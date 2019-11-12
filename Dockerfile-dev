@@ -1,0 +1,15 @@
+FROM golang:1.12-alpine
+
+RUN apk update && apk upgrade && \
+    apk add --no-cache bash git openssh
+
+WORKDIR /app/src/souin
+ENV GOPATH /app
+RUN go get .
+RUN go install
+
+COPY . .
+
+EXPOSE 80
+
+CMD ["go", "run", "souin.go", "requestService.go", "redisConnection.go"]

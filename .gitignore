@@ -1,0 +1,5 @@
+/cmd/*
+.env
+docker-compose.yml
+Dockerfile
+/.idea/

@@ -1,0 +1,32 @@
+version: '3.4'
+
+x-networks: &networks
+  networks:
+    - your_network
+
+services:
+  app:
+    build:
+      context: .
+    ports:
+      - ${CACHE_PORT}:80
+      - ${CACHE_TLS_PORT}:443
+    depends_on:
+      - redis
+    environment:
+      REDIS_URL: ${REDIS_URL}
+      TTL: ${TTL}
+      CACHE_PORT: ${CACHE_PORT}
+      CACHE_TLS_PORT: ${CACHE_TLS_PORT}
+      REVERSE_PROXY: ${REVERSE_PROXY}
+      REGEX: ${REGEX}
+      GOPATH: /app
+    <<: *networks
+
+  redis:
+    image: redis:alpine
+    <<: *networks
+
+networks:
+  your_network:
+    external: true
