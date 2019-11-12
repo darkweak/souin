@@ -11,17 +11,17 @@
 # <img src="docs/img/logo.svg?sanitize=true" alt="Souin logo" width="30" height="30">ouin reverse-proxy cache
 
 ## Project description
-Souin is a new cache system for every reverse-proxy. It will be placed on top of your reverse-proxy like Apache, NGinx or Traefik.  
-As it's written in go, it can be deployed on any server and with docker integration, it will be easy to implement it on top of Swarm or kubernetes instance.
+Souin is a new caching system for any reverse-proxy. It will be placed on top of your existing one, whether it's Apache, nginx or Traefik.
+Since it's written in go, it can be deployed on any server and thanks to docker integration, it will be easy to add it on top of a Swarm or kubernetes instance.
 
 ## Environment variables
 
 ### Required variables
 |  Variable  |  Description  |  Value exemple  |
 |:---:|:---:|:---:|
-|`CACHE_PORT`|The HTTP port Souin will be running to|`80`|
-|`CACHE_TLS_PORT`|The TLS port Souin will be running to|`443`|
-|`REDIS_URL`|The redis instance URL|- `http://redis` (Container way)<br/>`http://localhost:6379` (Local way)|
+|`CACHE_PORT`|The HTTP port Souin will be listening on|`80`|
+|`CACHE_TLS_PORT`|The TLS port Souin will be listening on|`443`|
+|`REDIS_URL`|The redis instance URL|- `http://redis` (Container way)<br/>- `http://localhost:6379` (Local way)|
 |`TTL`|Duration to cache request (in seconds)|10|
 |`REVERSE_PROXY`|The reverse-proxy instance URL like Apache, Nginx, Træfik, etc...|- `http://yourservice` (Container way)<br/>`http://localhost:81` (Local way)|
 
@@ -33,7 +33,7 @@ As it's written in go, it can be deployed on any server and with docker integrat
 ## Exemples
 
 ### Træfik container
-[Træfik](https://traefik.io) is a modern reverse-proxy and help you to manage full container architecure projects.
+[Træfik](https://traefik.io) is a modern reverse-proxy that helps you to manage full container architecure projects.
 
 ```yaml
 # your-traefik-instance/docker-compose.yml
