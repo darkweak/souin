@@ -1,0 +1,18 @@
+FROM golang:1.13-alpine
+
+RUN apk update && apk upgrade && \
+    apk add --no-cache bash git openssh gcc libc-dev
+
+RUN mkdir -p /app/src/github.com/darkweak/souin
+ADD ./*.go /app/src/github.com/darkweak/souin/
+ADD ./cache /app/src/github.com/darkweak/souin/cache
+ADD ./default/server.* /app/src/github.com/darkweak/souin/
+
+WORKDIR /app/src/github.com/darkweak/souin
+ENV GOPATH /app
+RUN go get ./...
+RUN go get -u golang.org/x/lint/golint
+
+EXPOSE 80
+
+CMD ["go", "run", "main.go"]

@@ -1,0 +1,23 @@
+sudo: required
+language: go
+
+addons:
+  apt:
+    packages:
+      - docker-ce
+
+git:
+  depth: 1
+
+notifications:
+  email: false
+
+services:
+  - docker
+
+before_install:
+  - make create-network
+  - make build-dev
+
+script:
+  - make validate
