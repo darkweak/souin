@@ -43,7 +43,6 @@ func getKeyFromResponse(resp *http.Response) string {
 func rewriteBody(resp *http.Response, redisClient *redis.Client) (err error) {
 	b := bytes.Replace(commonLoadingRequest(resp), []byte("server"), []byte("schmerver"), -1)
 	body := ioutil.NopCloser(bytes.NewReader(b))
-	resp.Header = make(http.Header)
 	resp.Body = body
 	resp.ContentLength = int64(len(b))
 	resp.Header.Set("Content-Length", strconv.Itoa(len(b)))
@@ -68,9 +67,7 @@ func rewriteBody(resp *http.Response, redisClient *redis.Client) (err error) {
 						newKey += "/"
 					}
 				}
-				go func() {
-					deleteKey(newKey, redisClient)
-				}()
+				deleteKey(newKey, redisClient)
 			}
 		}
 	}
