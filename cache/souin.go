@@ -6,6 +6,7 @@ import (
 	"os"
 	"net/http/httputil"
 	"encoding/json"
+	"github.com/go-redis/redis"
 )
 
 // ReverseResponse object contains the response from reverse-proxy
@@ -15,14 +16,14 @@ type ReverseResponse struct {
 	request *http.Request
 }
 
-func serveReverseProxy(res http.ResponseWriter, req *http.Request) {
+func serveReverseProxy(res http.ResponseWriter, req *http.Request, redisClient *redis.Client) {
 	url, _ := url.Parse(os.Getenv("REVERSE_PROXY"))
 	ctx := req.Context()
 
 	responses := make(chan ReverseResponse)
 	go func() {
-		responses<- getRequestInCache(req.Host + req.URL.Path)
-		responses<- requestReverseProxy(req, url)
+		responses<- getRequestInCache(req.Host + req.URL.Path, redisClient)
+		responses<- requestReverseProxy(req, url, redisClient)
 	}()
 
 	response := <-responses
@@ -33,6 +34,7 @@ func serveReverseProxy(res http.ResponseWriter, req *http.Request) {
 		if err != nil {
 			panic(err)
 		}
+		
 		for k, v := range responseJSON.Headers {
 			res.Header().Set(k, v[0])
 		}
@@ -46,7 +48,10 @@ func serveReverseProxy(res http.ResponseWriter, req *http.Request) {
 
 // Start cache system
 func Start() {
-	http.HandleFunc("/", serveReverseProxy)
+	redisClient := redisClientConnectionFactory()
+	http.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
+		serveReverseProxy(writer, request, redisClient)
+	})
 	go func() {
 		if err := http.ListenAndServeTLS(":" + os.Getenv("CACHE_TLS_PORT"), "server.crt", "server.key", nil); err != nil {
 			panic(err)

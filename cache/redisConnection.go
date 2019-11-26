@@ -21,8 +21,7 @@ func pathnameNotInRegex(pathname string) bool {
 	return !b
 }
 
-func getRequestInCache(pathname string) ReverseResponse {
-	client := redisClientConnectionFactory()
+func getRequestInCache(pathname string, client *redis.Client) ReverseResponse {
 	val2, err := client.Get(pathname).Result()
 
 	if err != nil {
@@ -32,20 +31,17 @@ func getRequestInCache(pathname string) ReverseResponse {
 	return ReverseResponse{val2, nil, nil}
 }
 
-func deleteKey(key string) {
-	client := redisClientConnectionFactory();
+func deleteKey(key string, client *redis.Client) {
 	client.Do("del", key)
 }
 
-func deleteKeys(regex string) {
-	client := redisClientConnectionFactory();
+func deleteKeys(regex string, client *redis.Client) {
 	for _, i := range client.Keys(regex).Val() {
 		client.Do("del", i)
 	}
 }
 
-func setRequestInCache(pathname string, data []byte) {
-	client := redisClientConnectionFactory()
+func setRequestInCache(pathname string, data []byte, client *redis.Client) {
 	value, _ := strconv.Atoi(os.Getenv("TTL"))
 
 	err := client.Set(pathname, string(data), time.Duration(value) * time.Second).Err()
