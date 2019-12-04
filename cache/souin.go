@@ -7,6 +7,7 @@ import (
 	"net/http/httputil"
 	"encoding/json"
 	"github.com/go-redis/redis"
+	"github.com/darkweak/souin/providers"
 )
 
 // ReverseResponse object contains the response from reverse-proxy
@@ -49,6 +50,12 @@ func serveReverseProxy(res http.ResponseWriter, req *http.Request, redisClient *
 // Start cache system
 func Start() {
 	redisClient := redisClientConnectionFactory()
+	certificates := providers.CommonProvider{}
+
+	go func() {
+		providers.InitProviders(&certificates)
+	}()
+
 	http.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
 		serveReverseProxy(writer, request, redisClient)
 	})

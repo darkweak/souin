@@ -1,10 +1,14 @@
 package providers
 
-type Provider struct {
-	certificates []Certificate
+type CommonProvider struct {
+	certificates map[string]Certificate
 }
 
 type Certificate struct {
-	key     string
-	payload string
+	certificate string
+	key         string
+}
+
+func InitProviders(certificates *CommonProvider) {
+	TraefikInitProvider(certificates)
 }
