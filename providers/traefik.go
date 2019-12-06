@@ -17,7 +17,7 @@ const fileLocation = "/app/src/github.com/darkweak/souin/acme.json"
 func loadFromConfigFile(certificatesProviders *CommonProvider, tlsconfig *tls.Config, configChannel *chan int) {
 	acmeFile, err := ioutil.ReadFile(fileLocation)
 	if nil != err {
-		panic(err)
+		return
 	}
 
 	certificates := &traefik.AcmeFile{}
@@ -78,7 +78,7 @@ func initWatcher(certificatesProviders *CommonProvider, tlsconfig *tls.Config, c
 
 	err = watcher.Add(fileLocation)
 	if err != nil {
-		panic(err)
+		return
 	}
 	<-done
 }

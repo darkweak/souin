@@ -23,7 +23,6 @@ services:
       GOPATH: /app
     volumes:
       - ./cmd:/app/cmd
-      - ./acme.json:/app/src/github.com/darkweak/souin/acme.json
     <<: *networks
 
   redis:
