@@ -1,7 +1,9 @@
 package providers
 
+import "crypto/tls"
+
 type CommonProvider struct {
-	certificates map[string]Certificate
+	Certificates map[string]Certificate
 }
 
 type Certificate struct {
@@ -9,6 +11,6 @@ type Certificate struct {
 	key         string
 }
 
-func InitProviders(certificates *CommonProvider) {
-	TraefikInitProvider(certificates)
+func InitProviders(certificates *CommonProvider, tlsconfig *tls.Config) {
+	TraefikInitProvider(certificates, tlsconfig)
 }

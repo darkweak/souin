@@ -9,11 +9,12 @@ import (
 	"encoding/json"
 	"encoding/base64"
 	"strings"
+	"crypto/tls"
 )
 
 const FILE_LOCATION = "/app/src/github.com/darkweak/souin/acme.json"
 
-func loadFromConfigFile(certificatesProviders *CommonProvider) {
+func loadFromConfigFile(certificatesProviders *CommonProvider, tlsconfig *tls.Config) {
 	acmeFile, err := ioutil.ReadFile(FILE_LOCATION)
 	if nil != err {
 		panic(err)
@@ -36,23 +37,28 @@ func loadFromConfigFile(certificatesProviders *CommonProvider) {
 		}
 		splittedCertificates := strings.Split(string(decodedCertificates), "\n\n")
 
-		certificatesProviders.certificates[i.Domain.Main] = Certificate{
+		certificatesProviders.Certificates[i.Domain.Main] = Certificate{
 			certificate: splittedCertificates[0],
 			key: string(decodedKey),
 		}
 
+		v, _ := tls.X509KeyPair([]byte(splittedCertificates[0]), decodedKey)
+		tlsconfig.Certificates = append(tlsconfig.Certificates, v)
+
 		if nil != i.Domain.SANs {
-			certificatesProviders.certificates[strings.Join(i.Domain.SANs, ",")] = Certificate{
-				certificate: splittedCertificates[1],
+			certificatesProviders.Certificates[strings.Join(i.Domain.SANs, ",")] = Certificate{
+				certificate: splittedCertificates[0],
 				key: string(decodedKey),
 			}
+			v, _ := tls.X509KeyPair([]byte(splittedCertificates[0]), decodedKey)
+			tlsconfig.Certificates = append(tlsconfig.Certificates, v)
 		}
 	}
 }
 
-func initWatcher(certificatesProviders *CommonProvider) {
+func initWatcher(certificatesProviders *CommonProvider, tlsconfig *tls.Config) {
 	watcher, err := fsnotify.NewWatcher()
-	loadFromConfigFile(certificatesProviders)
+	loadFromConfigFile(certificatesProviders, tlsconfig)
 
 	if err != nil {
 		log.Fatal(err)
@@ -68,7 +74,7 @@ func initWatcher(certificatesProviders *CommonProvider) {
 					return
 				}
 				if event.Op&fsnotify.Write == fsnotify.Write {
-					loadFromConfigFile(certificatesProviders)
+					loadFromConfigFile(certificatesProviders, tlsconfig)
 				}
 			case _, ok := <-watcher.Errors:
 				if !ok {
@@ -85,6 +91,6 @@ func initWatcher(certificatesProviders *CommonProvider) {
 	<-done
 }
 
-func TraefikInitProvider(certificates *CommonProvider)  {
-	initWatcher(certificates)
+func TraefikInitProvider(certificates *CommonProvider, tlsconfig *tls.Config)  {
+	initWatcher(certificates, tlsconfig)
 }

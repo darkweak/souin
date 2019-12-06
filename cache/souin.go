@@ -7,14 +7,18 @@ import (
 	"net/http/httputil"
 	"encoding/json"
 	"github.com/go-redis/redis"
+	"crypto/tls"
+	"log"
 	"github.com/darkweak/souin/providers"
+	"fmt"
+	"time"
 )
 
 // ReverseResponse object contains the response from reverse-proxy
 type ReverseResponse struct {
 	response string
-	proxy *httputil.ReverseProxy
-	request *http.Request
+	proxy    *httputil.ReverseProxy
+	request  *http.Request
 }
 
 func serveReverseProxy(res http.ResponseWriter, req *http.Request, redisClient *redis.Client) {
@@ -23,8 +27,8 @@ func serveReverseProxy(res http.ResponseWriter, req *http.Request, redisClient *
 
 	responses := make(chan ReverseResponse)
 	go func() {
-		responses<- getRequestInCache(req.Host + req.URL.Path, redisClient)
-		responses<- requestReverseProxy(req, url, redisClient)
+		responses <- getRequestInCache(req.Host+req.URL.Path, redisClient)
+		responses <- requestReverseProxy(req, url, redisClient)
 	}()
 
 	response := <-responses
@@ -35,7 +39,7 @@ func serveReverseProxy(res http.ResponseWriter, req *http.Request, redisClient *
 		if err != nil {
 			panic(err)
 		}
-		
+
 		for k, v := range responseJSON.Headers {
 			res.Header().Set(k, v[0])
 		}
@@ -50,21 +54,39 @@ func serveReverseProxy(res http.ResponseWriter, req *http.Request, redisClient *
 // Start cache system
 func Start() {
 	redisClient := redisClientConnectionFactory()
-	certificates := providers.CommonProvider{}
+	tlsconfig := &tls.Config{
+		Certificates: make([]tls.Certificate, 0),
+		NameToCertificate: make(map[string]*tls.Certificate),
+		InsecureSkipVerify: true,
+	}
+	v, _ := tls.LoadX509KeyPair("server.crt", "server.key")
+	tlsconfig.Certificates = append(tlsconfig.Certificates, v)
+	certificates := providers.CommonProvider{
+		Certificates: make(map[string]providers.Certificate),
+	}
 
 	go func() {
-		providers.InitProviders(&certificates)
+		providers.InitProviders(&certificates, tlsconfig)
 	}()
+	time.Sleep(10 * time.Second)
+	tlsconfig.BuildNameToCertificate()
 
 	http.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
 		serveReverseProxy(writer, request, redisClient)
 	})
 	go func() {
-		if err := http.ListenAndServeTLS(":" + os.Getenv("CACHE_TLS_PORT"), "server.crt", "server.key", nil); err != nil {
-			panic(err)
+		server := http.Server{
+			Addr:      ":443",
+			Handler:   nil,
+			TLSConfig: tlsconfig,
 		}
+		listener, err := tls.Listen("tcp", ":443", tlsconfig)
+		if err != nil {
+			fmt.Println(err)
+		}
+		log.Fatal(server.Serve(listener))
 	}()
-	if err := http.ListenAndServe(":" + os.Getenv("CACHE_PORT"), nil); err != nil {
+	if err := http.ListenAndServe(":"+os.Getenv("CACHE_PORT"), nil); err != nil {
 		panic(err)
 	}
 
