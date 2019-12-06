@@ -6,23 +6,29 @@ import (
 	"os"
 	"net/http/httputil"
 	"encoding/json"
+	"github.com/go-redis/redis"
+	"crypto/tls"
+	"github.com/darkweak/souin/providers"
+	"fmt"
+	"context"
+	"net"
 )
 
 // ReverseResponse object contains the response from reverse-proxy
 type ReverseResponse struct {
 	response string
-	proxy *httputil.ReverseProxy
-	request *http.Request
+	proxy    *httputil.ReverseProxy
+	request  *http.Request
 }
 
-func serveReverseProxy(res http.ResponseWriter, req *http.Request) {
+func serveReverseProxy(res http.ResponseWriter, req *http.Request, redisClient *redis.Client) {
 	url, _ := url.Parse(os.Getenv("REVERSE_PROXY"))
 	ctx := req.Context()
 
 	responses := make(chan ReverseResponse)
 	go func() {
-		responses<- getRequestInCache(req.Host + req.URL.Path)
-		responses<- requestReverseProxy(req, url)
+		responses <- getRequestInCache(req.Host+req.URL.Path, redisClient)
+		responses <- requestReverseProxy(req, url, redisClient)
 	}()
 
 	response := <-responses
@@ -33,6 +39,7 @@ func serveReverseProxy(res http.ResponseWriter, req *http.Request) {
 		if err != nil {
 			panic(err)
 		}
+
 		for k, v := range responseJSON.Headers {
 			res.Header().Set(k, v[0])
 		}
@@ -44,15 +51,67 @@ func serveReverseProxy(res http.ResponseWriter, req *http.Request) {
 	}
 }
 
-// Start cache system
-func Start() {
-	http.HandleFunc("/", serveReverseProxy)
+func startServer(tlsconfig *tls.Config) (net.Listener, *http.Server) {
+	tlsconfig.BuildNameToCertificate()
+	server := http.Server{
+		Addr:      ":443",
+		Handler:   nil,
+		TLSConfig: tlsconfig,
+	}
+	listener, err := tls.Listen("tcp", ":443", tlsconfig)
+	if err != nil {
+		fmt.Println(err)
+	}
 	go func() {
-		if err := http.ListenAndServeTLS(":" + os.Getenv("CACHE_TLS_PORT"), "server.crt", "server.key", nil); err != nil {
-			panic(err)
+		error := server.Serve(listener)
+		fmt.Println("YO")
+		fmt.Println(error)
+		fmt.Println("LO")
+		if nil != error {
+			fmt.Println(error)
 		}
 	}()
-	if err := http.ListenAndServe(":" + os.Getenv("CACHE_PORT"), nil); err != nil {
+
+	return listener, &server
+}
+
+// Start cache system
+func Start() {
+	redisClient := redisClientConnectionFactory()
+	configChannel := make(chan int)
+	tlsconfig := &tls.Config{
+		Certificates: make([]tls.Certificate, 0),
+		NameToCertificate: make(map[string]*tls.Certificate),
+		InsecureSkipVerify: true,
+	}
+	v, _ := tls.LoadX509KeyPair("server.crt", "server.key")
+	tlsconfig.Certificates = append(tlsconfig.Certificates, v)
+	certificates := providers.CommonProvider{
+		Certificates: make(map[string]providers.Certificate),
+	}
+
+	go func() {
+		providers.InitProviders(&certificates, tlsconfig, &configChannel)
+	}()
+
+	http.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
+		serveReverseProxy(writer, request, redisClient)
+	})
+	go func() {
+		listener, server := startServer(tlsconfig)
+		for {
+			select {
+			case <- configChannel:
+				listener.Close()
+				if err := server.Shutdown(context.Background()); err != nil {
+					fmt.Errorf("Shutdown failed: %s", err)
+				}
+				listener, server = startServer(tlsconfig)
+			}
+		}
+
+	}()
+	if err := http.ListenAndServe(":"+os.Getenv("CACHE_PORT"), nil); err != nil {
 		panic(err)
 	}
 

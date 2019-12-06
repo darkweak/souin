@@ -15,6 +15,10 @@ import (
 const DOMAIN = "domain.com"
 const PATH = "/testing"
 
+func mockRedis() *redis.Client {
+	return redisClientConnectionFactory()
+}
+
 func mockResponse(path string, method string, body string, code int) *http.Response {
 	return &http.Response{
 		Status:           "",
@@ -82,7 +86,7 @@ func shouldNotHaveKey(pathname string) bool {
 
 func TestKeyShouldBeDeletedOnPost(t *testing.T) {
 	populateRedisWithFakeData()
-	rewriteBody(mockResponse(PATH, http.MethodPost, "My second response", 201))
+	rewriteBody(mockResponse(PATH, http.MethodPost, "My second response", 201), mockRedis())
 	time.Sleep(10 * time.Second)
 	if !shouldNotHaveKey(PATH) {
 		generateError(t, "The key "+DOMAIN+PATH+" shouldn't exist.")
@@ -101,12 +105,12 @@ func verifyKeysExists(t *testing.T, path string, keys []string) {
 
 func TestKeyShouldBeDeletedOnPut(t *testing.T) {
 	populateRedisWithFakeData()
-	rewriteBody(mockResponse(PATH+"/1", http.MethodPut, "My second response", 200))
+	rewriteBody(mockResponse(PATH+"/1", http.MethodPut, "My second response", 200), mockRedis())
 	verifyKeysExists(t, PATH, []string{"", "/1"})
 }
 
 func TestKeyShouldBeDeletedOnDelete(t *testing.T) {
 	populateRedisWithFakeData()
-	rewriteBody(mockResponse(PATH+"/1", http.MethodDelete, "", 200))
+	rewriteBody(mockResponse(PATH+"/1", http.MethodDelete, "", 200), mockRedis())
 	verifyKeysExists(t, PATH, []string{"", "/1"})
 }

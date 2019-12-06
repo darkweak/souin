@@ -101,6 +101,7 @@ services:
       GOPATH: /app
     volumes:
       - ./cmd:/app/cmd
+      - ./acme.json:/app/src/github.com/darkweak/souin/acme.json
     <<: *networks
 
   redis:
@@ -111,3 +112,15 @@ networks:
   your_network:
     external: true
 ```
+
+## SSL
+
+### Træfik
+As Souin is compatible with Træfik, it can use (and it should use) acme.json provided on træfik. Souin will get new/updated certs from Træfik, then your SSL certs will be up to date as far as Træfik will be too
+To provide, acme, use just have to map volume as above
+```yaml
+    volumes:
+      - /anywhere/acme.json:/app/src/github.com/darkweak/souin/acme.json
+```
+At the moment you can't choose the path for the acme.json in the container, in the future you'll be able to do that just setting one env var
+If none acme.json is provided to container, a default cert will be served.
