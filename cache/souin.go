@@ -8,10 +8,10 @@ import (
 	"encoding/json"
 	"github.com/go-redis/redis"
 	"crypto/tls"
-	"log"
 	"github.com/darkweak/souin/providers"
 	"fmt"
-	"time"
+	"context"
+	"net"
 )
 
 // ReverseResponse object contains the response from reverse-proxy
@@ -51,9 +51,34 @@ func serveReverseProxy(res http.ResponseWriter, req *http.Request, redisClient *
 	}
 }
 
+func startServer(tlsconfig *tls.Config) (net.Listener, *http.Server) {
+	tlsconfig.BuildNameToCertificate()
+	server := http.Server{
+		Addr:      ":443",
+		Handler:   nil,
+		TLSConfig: tlsconfig,
+	}
+	listener, err := tls.Listen("tcp", ":443", tlsconfig)
+	if err != nil {
+		fmt.Println(err)
+	}
+	go func() {
+		error := server.Serve(listener)
+		fmt.Println("YO")
+		fmt.Println(error)
+		fmt.Println("LO")
+		if nil != error {
+			fmt.Println(error)
+		}
+	}()
+
+	return listener, &server
+}
+
 // Start cache system
 func Start() {
 	redisClient := redisClientConnectionFactory()
+	configChannel := make(chan int)
 	tlsconfig := &tls.Config{
 		Certificates: make([]tls.Certificate, 0),
 		NameToCertificate: make(map[string]*tls.Certificate),
@@ -66,25 +91,25 @@ func Start() {
 	}
 
 	go func() {
-		providers.InitProviders(&certificates, tlsconfig)
+		providers.InitProviders(&certificates, tlsconfig, &configChannel)
 	}()
-	time.Sleep(10 * time.Second)
-	tlsconfig.BuildNameToCertificate()
 
 	http.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
 		serveReverseProxy(writer, request, redisClient)
 	})
 	go func() {
-		server := http.Server{
-			Addr:      ":443",
-			Handler:   nil,
-			TLSConfig: tlsconfig,
+		listener, server := startServer(tlsconfig)
+		for {
+			select {
+			case <- configChannel:
+				listener.Close()
+				if err := server.Shutdown(context.Background()); err != nil {
+					fmt.Errorf("Shutdown failed: %s", err)
+				}
+				listener, server = startServer(tlsconfig)
+			}
 		}
-		listener, err := tls.Listen("tcp", ":443", tlsconfig)
-		if err != nil {
-			fmt.Println(err)
-		}
-		log.Fatal(server.Serve(listener))
+
 	}()
 	if err := http.ListenAndServe(":"+os.Getenv("CACHE_PORT"), nil); err != nil {
 		panic(err)

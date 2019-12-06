@@ -11,6 +11,6 @@ type Certificate struct {
 	key         string
 }
 
-func InitProviders(certificates *CommonProvider, tlsconfig *tls.Config) {
-	TraefikInitProvider(certificates, tlsconfig)
+func InitProviders(certificates *CommonProvider, tlsconfig *tls.Config, configChannel *chan int) {
+	TraefikInitProvider(certificates, tlsconfig, configChannel)
 }

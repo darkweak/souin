@@ -14,7 +14,7 @@ import (
 
 const FILE_LOCATION = "/app/src/github.com/darkweak/souin/acme.json"
 
-func loadFromConfigFile(certificatesProviders *CommonProvider, tlsconfig *tls.Config) {
+func loadFromConfigFile(certificatesProviders *CommonProvider, tlsconfig *tls.Config, configChannel *chan int) {
 	acmeFile, err := ioutil.ReadFile(FILE_LOCATION)
 	if nil != err {
 		panic(err)
@@ -44,21 +44,13 @@ func loadFromConfigFile(certificatesProviders *CommonProvider, tlsconfig *tls.Co
 
 		v, _ := tls.X509KeyPair([]byte(splittedCertificates[0]), decodedKey)
 		tlsconfig.Certificates = append(tlsconfig.Certificates, v)
-
-		if nil != i.Domain.SANs {
-			certificatesProviders.Certificates[strings.Join(i.Domain.SANs, ",")] = Certificate{
-				certificate: splittedCertificates[0],
-				key: string(decodedKey),
-			}
-			v, _ := tls.X509KeyPair([]byte(splittedCertificates[0]), decodedKey)
-			tlsconfig.Certificates = append(tlsconfig.Certificates, v)
-		}
+		*configChannel <- 1
 	}
 }
 
-func initWatcher(certificatesProviders *CommonProvider, tlsconfig *tls.Config) {
+func initWatcher(certificatesProviders *CommonProvider, tlsconfig *tls.Config, configChannel *chan int) {
 	watcher, err := fsnotify.NewWatcher()
-	loadFromConfigFile(certificatesProviders, tlsconfig)
+	loadFromConfigFile(certificatesProviders, tlsconfig, configChannel)
 
 	if err != nil {
 		log.Fatal(err)
@@ -74,7 +66,7 @@ func initWatcher(certificatesProviders *CommonProvider, tlsconfig *tls.Config) {
 					return
 				}
 				if event.Op&fsnotify.Write == fsnotify.Write {
-					loadFromConfigFile(certificatesProviders, tlsconfig)
+					loadFromConfigFile(certificatesProviders, tlsconfig, configChannel)
 				}
 			case _, ok := <-watcher.Errors:
 				if !ok {
@@ -91,6 +83,6 @@ func initWatcher(certificatesProviders *CommonProvider, tlsconfig *tls.Config) {
 	<-done
 }
 
-func TraefikInitProvider(certificates *CommonProvider, tlsconfig *tls.Config)  {
-	initWatcher(certificates, tlsconfig)
+func TraefikInitProvider(certificates *CommonProvider, tlsconfig *tls.Config, configChannel *chan int)  {
+	initWatcher(certificates, tlsconfig, configChannel)
 }
