@@ -12,10 +12,10 @@ import (
 	"crypto/tls"
 )
 
-const FILE_LOCATION = "/app/src/github.com/darkweak/souin/acme.json"
+const fileLocation = "/app/src/github.com/darkweak/souin/acme.json"
 
 func loadFromConfigFile(certificatesProviders *CommonProvider, tlsconfig *tls.Config, configChannel *chan int) {
-	acmeFile, err := ioutil.ReadFile(FILE_LOCATION)
+	acmeFile, err := ioutil.ReadFile(fileLocation)
 	if nil != err {
 		panic(err)
 	}
@@ -76,13 +76,14 @@ func initWatcher(certificatesProviders *CommonProvider, tlsconfig *tls.Config, c
 		}
 	}()
 
-	err = watcher.Add(FILE_LOCATION)
+	err = watcher.Add(fileLocation)
 	if err != nil {
 		panic(err)
 	}
 	<-done
 }
 
+// TraefikInitProvider function allow to init certificates referring Træfik integration into acme.json and parse it to be able to exploit data as needed
 func TraefikInitProvider(certificates *CommonProvider, tlsconfig *tls.Config, configChannel *chan int)  {
 	initWatcher(certificates, tlsconfig, configChannel)
 }
