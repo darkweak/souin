@@ -8,6 +8,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"strings"
+	"github.com/go-redis/redis"
+	"strconv"
 )
 
 //RequestResponse object contains the request belongs to reverse-proxy
@@ -38,20 +40,23 @@ func getKeyFromResponse(resp *http.Response) string {
 	return resp.Request.Host + resp.Request.URL.Path
 }
 
-func rewriteBody(resp *http.Response) (err error) {
+func rewriteBody(resp *http.Response, redisClient *redis.Client) (err error) {
 	b := bytes.Replace(commonLoadingRequest(resp), []byte("server"), []byte("schmerver"), -1)
 	body := ioutil.NopCloser(bytes.NewReader(b))
+	resp.Header = make(http.Header)
+	resp.Body = body
+	resp.ContentLength = int64(len(b))
+	resp.Header.Set("Content-Length", strconv.Itoa(len(b)))
 
 	if pathnameNotInRegex(resp.Request.Host+resp.Request.URL.Path) && !hasNotAllowedHeaders(resp) && nil == resp.Request.Context().Err() {
-		if http.MethodGet == resp.Request.Method {
+		key := getKeyFromResponse(resp)
+		if http.MethodGet == resp.Request.Method && len(b) > 0 {
 			r, _ := json.Marshal(RequestResponse{b, resp.Header})
-
 			go func() {
-				setRequestInCache(getKeyFromResponse(resp), r)
+				setRequestInCache(key, r, redisClient)
 			}()
 		} else {
-			key := getKeyFromResponse(resp)
-			deleteKey(key)
+			deleteKey(key, redisClient)
 
 			if http.MethodDelete == resp.Request.Method || http.MethodPut == resp.Request.Method || http.MethodPatch == resp.Request.Method {
 				newKeySplitted := strings.Split(key, "/")
@@ -63,25 +68,28 @@ func rewriteBody(resp *http.Response) (err error) {
 						newKey += "/"
 					}
 				}
-				deleteKey(newKey)
+				go func() {
+					deleteKey(newKey, redisClient)
+				}()
 			}
 		}
 	}
 
-	resp.Body = body
 	return nil
 }
 
-func requestReverseProxy(req *http.Request, url *url.URL) ReverseResponse  {
+func requestReverseProxy(req *http.Request, url *url.URL, redisClient *redis.Client) ReverseResponse  {
 	req.URL.Host = req.Host
 	req.URL.Scheme = url.Scheme
 	req.Header.Set("X-Forwarded-Host", req.Header.Get("Host"))
 
 	proxy := httputil.NewSingleHostReverseProxy(url)
-	proxy.ModifyResponse = rewriteBody
+	proxy.ModifyResponse = func(response *http.Response) error {
+		return rewriteBody(response, redisClient)
+	}
 
 	return ReverseResponse{
-		"",
+		"bad",
 		proxy,
 		req,
 	}
