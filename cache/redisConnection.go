@@ -10,8 +10,8 @@ import (
 
 func redisClientConnectionFactory() *redis.Client {
 	return redis.NewClient(&redis.Options{
-		Addr: os.Getenv("REDIS_URL"),
-		DB: 0,
+		Addr:     os.Getenv("REDIS_URL"),
+		DB:       0,
 		Password: "",
 	})
 }
@@ -44,7 +44,7 @@ func deleteKeys(regex string, client *redis.Client) {
 func setRequestInCache(pathname string, data []byte, client *redis.Client) {
 	value, _ := strconv.Atoi(os.Getenv("TTL"))
 
-	err := client.Set(pathname, string(data), time.Duration(value) * time.Second).Err()
+	err := client.Set(pathname, string(data), time.Duration(value)*time.Second).Err()
 	if err != nil {
 		panic(err)
 	}

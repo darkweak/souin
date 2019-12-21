@@ -8,8 +8,9 @@ import (
 	"encoding/json"
 	"github.com/go-redis/redis"
 	"crypto/tls"
-	"net"
+	"github.com/darkweak/souin/providers"
 	"fmt"
+	"net"
 )
 
 // ReverseResponse object contains the response from reverse-proxy
@@ -60,12 +61,9 @@ func startServer(tlsconfig *tls.Config) (net.Listener, *http.Server) {
 		fmt.Println(err)
 	}
 	go func() {
-		error := server.Serve(listener)
-		fmt.Println("YO")
-		fmt.Println(error)
-		fmt.Println("LO")
-		if nil != error {
-			fmt.Println(error)
+		err := server.Serve(listener)
+		if nil != err {
+			fmt.Println(err)
 		}
 	}()
 
@@ -75,26 +73,29 @@ func startServer(tlsconfig *tls.Config) (net.Listener, *http.Server) {
 // Start cache system
 func Start() {
 	redisClient := redisClientConnectionFactory()
-	http.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
-		serveReverseProxy(writer, request, redisClient)
-	})
+	configChannel := make(chan int)
+	tlsconfig := &tls.Config{
+		Certificates:       make([]tls.Certificate, 0),
+		NameToCertificate:  make(map[string]*tls.Certificate),
+		InsecureSkipVerify: true,
+	}
+	v, _ := tls.LoadX509KeyPair("server.crt", "server.key")
+	tlsconfig.Certificates = append(tlsconfig.Certificates, v)
+
 	go func() {
-		providers.InitProviders(&certificates, tlsconfig, &configChannel)
+		providers.InitProviders(tlsconfig, &configChannel)
 	}()
 
 	http.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
 		serveReverseProxy(writer, request, redisClient)
 	})
 	go func() {
-		listener, server := startServer(tlsconfig)
+		listener, _ := startServer(tlsconfig)
 		for {
 			select {
-			case <- configChannel:
+			case <-configChannel:
 				listener.Close()
-				if err := server.Shutdown(context.Background()); err != nil {
-					fmt.Errorf("Shutdown failed: %s", err)
-				}
-				listener, server = startServer(tlsconfig)
+				listener, _ = startServer(tlsconfig)
 			}
 		}
 

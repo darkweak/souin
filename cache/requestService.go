@@ -75,7 +75,7 @@ func rewriteBody(resp *http.Response, redisClient *redis.Client) (err error) {
 	return nil
 }
 
-func requestReverseProxy(req *http.Request, url *url.URL, redisClient *redis.Client) ReverseResponse  {
+func requestReverseProxy(req *http.Request, url *url.URL, redisClient *redis.Client) ReverseResponse {
 	req.URL.Host = req.Host
 	req.URL.Scheme = url.Scheme
 	req.Header.Set("X-Forwarded-Host", req.Header.Get("Host"))
