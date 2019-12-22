@@ -17,6 +17,7 @@ type CommonProvider struct {
 	fileLocation string
 }
 
+// Certificate contains key:certificate combo
 type Certificate struct {
 	certificate string
 	key         string

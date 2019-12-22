@@ -26,7 +26,7 @@ func mockResponse(path string, method string, body string, code int) *http.Respo
 		Proto:            "",
 		ProtoMajor:       0,
 		ProtoMinor:       0,
-		Header:           nil,
+		Header:           make(map[string][]string),
 		Body:             io.ReadCloser(ioutil.NopCloser(strings.NewReader(body))),
 		ContentLength:    0,
 		TransferEncoding: nil,
