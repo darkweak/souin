@@ -118,11 +118,23 @@ networks:
 ## SSL
 
 ### Træfik
-As Souin is compatible with Træfik, it can use (and it should use) the acme.json provided by træfik. Souin will fetch his certs from Træfik, meaning that as soon as Træfik has renewed SSL certificates, Soin will use them too.
-To provide the file, you just have to map volume as above
+As Souin is compatible with Træfik, it can use (and it should use) `traefik.json` provided on træfik. Souin will get new/updated certs from Træfik, then your SSL certs will be up to date as far as Træfik will be too
+To provide, acme, use just have to map volume as above
 ```yaml
     volumes:
-      - /anywhere/acme.json:/app/src/github.com/darkweak/souin/acme.json
+      - /anywhere/traefik.json:/ssl/traefik.json
 ```
-At the moment you can't customize the path for the acme.json in the container, but in the future you'll be able to do that just by setting an env var
-If no acme.json is provided to the container, a default cert will be served.
+### Apache
+Souin will listen `apache.json` file. You have to setup your own way to agregate your SSL cert files and keys. Alternatively you can use a side project called [dob](https://github.com/darkweak/dob), it's open-source and written in go too
+```yaml
+    volumes:
+      - /anywhere/apache.json:/ssl/apache.json
+```
+### Nginx
+Souin will listen `nginx.json` file. You have to setup your own way to agregate your SSL cert files and keys. Alternatively you can use a side project called [dob](https://github.com/darkweak/dob), it's open-source and written in go too
+```yaml
+    volumes:
+      - /anywhere/nginx.json:/ssl/nginx.json
+```
+At the moment you can't choose the path for the `*.json` in the container, they have to be placed in the `/ssl` folder. In the future you'll be able to do that just setting one env var
+If none `*.json` is provided to container, a default cert will be served.

@@ -1,4 +1,4 @@
-package traefik
+package providers
 
 // DomainAcmeFile structure is composed of DNS Main and SANs
 type DomainAcmeFile struct {

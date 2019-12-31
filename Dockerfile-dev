@@ -4,6 +4,7 @@ RUN apk update && apk upgrade && \
     apk add --no-cache bash git openssh gcc libc-dev
 
 RUN mkdir -p /app/src/github.com/darkweak/souin
+RUN mkdir -p /ssl
 ADD ./*.go /app/src/github.com/darkweak/souin/
 ADD ./cache /app/src/github.com/darkweak/souin/cache
 ADD ./providers /app/src/github.com/darkweak/souin/providers

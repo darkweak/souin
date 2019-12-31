@@ -3,3 +3,4 @@
 docker-compose.yml
 Dockerfile
 /.idea/
+/vendor/
