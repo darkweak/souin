@@ -23,6 +23,7 @@ services:
       GOPATH: /app
     volumes:
       - ./cmd:/app/cmd
+      - ./traefik.json:/ssl/traefik.json
     <<: *networks
 
   redis:

@@ -9,7 +9,7 @@ import (
 const VALUE = "My first data"
 
 func populateRedisWithFakeData() {
-	client := redisClientConnectionFactory()
+	client := redisConnectionFactory()
 	duration := time.Duration(120) * time.Second
 	basePath := "/testing"
 	domain := "domain.com"
@@ -21,7 +21,7 @@ func populateRedisWithFakeData() {
 }
 
 func TestIShouldBeAbleToReadAndWriteDataInRedis(t *testing.T) {
-	client := redisClientConnectionFactory()
+	client := redisConnectionFactory()
 	err := client.Set("Test", string(VALUE), time.Duration(10)*time.Second).Err()
 	if err != nil {
 		generateError(t, "Impossible to set redis variable")

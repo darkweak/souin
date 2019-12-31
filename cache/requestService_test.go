@@ -15,8 +15,8 @@ import (
 const DOMAIN = "domain.com"
 const PATH = "/testing"
 
-func mockRedis() *redis.Client {
-	return redisClientConnectionFactory()
+func mockRedis() *Redis {
+	return redisConnectionFactory()
 }
 
 func mockResponse(path string, method string, body string, code int) *http.Response {
@@ -26,7 +26,7 @@ func mockResponse(path string, method string, body string, code int) *http.Respo
 		Proto:            "",
 		ProtoMajor:       0,
 		ProtoMinor:       0,
-		Header:           nil,
+		Header:           make(map[string][]string),
 		Body:             io.ReadCloser(ioutil.NopCloser(strings.NewReader(body))),
 		ContentLength:    0,
 		TransferEncoding: nil,
@@ -78,7 +78,7 @@ func TestGetKeyFromResponse(t *testing.T) {
 }
 
 func shouldNotHaveKey(pathname string) bool {
-	client := redisClientConnectionFactory()
+	client := redisConnectionFactory()
 	_, err := client.Get(DOMAIN + pathname).Result()
 
 	return err == redis.Nil
