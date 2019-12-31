@@ -6,7 +6,6 @@ import (
 	"os"
 	"net/http/httputil"
 	"encoding/json"
-	"github.com/go-redis/redis"
 	"crypto/tls"
 	"github.com/darkweak/souin/providers"
 	"fmt"
@@ -20,13 +19,13 @@ type ReverseResponse struct {
 	request  *http.Request
 }
 
-func serveReverseProxy(res http.ResponseWriter, req *http.Request, redisClient *redis.Client) {
+func serveReverseProxy(res http.ResponseWriter, req *http.Request, redisClient *Redis) {
 	url, _ := url.Parse(os.Getenv("REVERSE_PROXY"))
 	ctx := req.Context()
 
 	responses := make(chan ReverseResponse)
 	go func() {
-		responses <- getRequestInCache(req.Host+req.URL.Path, redisClient)
+		responses <- redisClient.getRequestInCache(req.Host+req.URL.Path)
 		responses <- requestReverseProxy(req, url, redisClient)
 	}()
 
@@ -72,7 +71,7 @@ func startServer(tlsconfig *tls.Config) (net.Listener, *http.Server) {
 
 // Start cache system
 func Start() {
-	redisClient := redisClientConnectionFactory()
+	redisClient := redisConnectionFactory()
 	configChannel := make(chan int)
 	tlsconfig := &tls.Config{
 		Certificates:       make([]tls.Certificate, 0),

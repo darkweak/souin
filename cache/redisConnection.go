@@ -8,12 +8,18 @@ import (
 	"regexp"
 )
 
-func redisClientConnectionFactory() *redis.Client {
-	return redis.NewClient(&redis.Options{
-		Addr:     os.Getenv("REDIS_URL"),
-		DB:       0,
-		Password: "",
-	})
+type Redis struct {
+	*redis.Client
+}
+
+func redisConnectionFactory() *Redis {
+	return &Redis{
+		redis.NewClient(&redis.Options{
+			Addr:     os.Getenv("REDIS_URL"),
+			DB:       0,
+			Password: "",
+		}),
+	}
 }
 
 func pathnameNotInRegex(pathname string) bool {
@@ -21,7 +27,7 @@ func pathnameNotInRegex(pathname string) bool {
 	return !b
 }
 
-func getRequestInCache(pathname string, client *redis.Client) ReverseResponse {
+func (client *Redis) getRequestInCache(pathname string) ReverseResponse {
 	val2, err := client.Get(pathname).Result()
 
 	if err != nil {
@@ -31,17 +37,17 @@ func getRequestInCache(pathname string, client *redis.Client) ReverseResponse {
 	return ReverseResponse{val2, nil, nil}
 }
 
-func deleteKey(key string, client *redis.Client) {
-	client.Do("del", key)
+func (client *Redis) deleteKey(key string) {
+	Redis.Do("del", key)
 }
 
-func deleteKeys(regex string, client *redis.Client) {
+func (client *Redis) deleteKeys(regex string) {
 	for _, i := range client.Keys(regex).Val() {
 		client.Do("del", i)
 	}
 }
 
-func setRequestInCache(pathname string, data []byte, client *redis.Client) {
+func (client *Redis) setRequestInCache(pathname string, data []byte) {
 	value, _ := strconv.Atoi(os.Getenv("TTL"))
 
 	err := client.Set(pathname, string(data), time.Duration(value)*time.Second).Err()

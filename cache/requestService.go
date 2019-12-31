@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"strings"
-	"github.com/go-redis/redis"
 	"strconv"
 )
 
@@ -40,7 +39,7 @@ func getKeyFromResponse(resp *http.Response) string {
 	return resp.Request.Host + resp.Request.URL.Path
 }
 
-func rewriteBody(resp *http.Response, redisClient *redis.Client) (err error) {
+func rewriteBody(resp *http.Response, redisClient *Redis) (err error) {
 	b := bytes.Replace(commonLoadingRequest(resp), []byte("server"), []byte("schmerver"), -1)
 	body := ioutil.NopCloser(bytes.NewReader(b))
 	resp.Body = body
@@ -52,10 +51,10 @@ func rewriteBody(resp *http.Response, redisClient *redis.Client) (err error) {
 		if http.MethodGet == resp.Request.Method && len(b) > 0 {
 			r, _ := json.Marshal(RequestResponse{b, resp.Header})
 			go func() {
-				setRequestInCache(key, r, redisClient)
+				redisClient.setRequestInCache(key, r)
 			}()
 		} else {
-			deleteKey(key, redisClient)
+			redisClient.deleteKey(key)
 
 			if http.MethodDelete == resp.Request.Method || http.MethodPut == resp.Request.Method || http.MethodPatch == resp.Request.Method {
 				newKeySplitted := strings.Split(key, "/")
@@ -67,7 +66,7 @@ func rewriteBody(resp *http.Response, redisClient *redis.Client) (err error) {
 						newKey += "/"
 					}
 				}
-				deleteKey(newKey, redisClient)
+				redisClient.deleteKey(newKey)
 			}
 		}
 	}
@@ -75,7 +74,7 @@ func rewriteBody(resp *http.Response, redisClient *redis.Client) (err error) {
 	return nil
 }
 
-func requestReverseProxy(req *http.Request, url *url.URL, redisClient *redis.Client) ReverseResponse {
+func requestReverseProxy(req *http.Request, url *url.URL, redisClient *Redis) ReverseResponse {
 	req.URL.Host = req.Host
 	req.URL.Scheme = url.Scheme
 	req.Header.Set("X-Forwarded-Host", req.Header.Get("Host"))

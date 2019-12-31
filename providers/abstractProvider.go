@@ -100,6 +100,7 @@ func (c *CommonProvider) InitWatcher(tlsconfig *tls.Config, configChannel *chan 
 				}
 				if event.Op&fsnotify.Write == fsnotify.Write {
 					c.LoadFromConfigFile(tlsconfig, configChannel)
+					watcher.Add(c.fileLocation)
 				}
 			case _, ok := <-watcher.Errors:
 				if !ok {
