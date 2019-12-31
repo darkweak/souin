@@ -38,7 +38,7 @@ func (client *Redis) getRequestInCache(pathname string) ReverseResponse {
 }
 
 func (client *Redis) deleteKey(key string) {
-	Redis.Do("del", key)
+	client.Do("del", key)
 }
 
 func (client *Redis) deleteKeys(regex string) {
