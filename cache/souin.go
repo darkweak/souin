@@ -25,7 +25,7 @@ func serveReverseProxy(res http.ResponseWriter, req *http.Request, redisClient *
 
 	responses := make(chan ReverseResponse)
 	go func() {
-		responses <- redisClient.getRequestInCache(req.Host+req.URL.Path)
+		responses <- redisClient.getRequestInCache(req.Host + req.URL.Path)
 		responses <- requestReverseProxy(req, url, redisClient)
 	}()
 
