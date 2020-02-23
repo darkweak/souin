@@ -7,9 +7,10 @@ import (
 	"net/http/httputil"
 	"encoding/json"
 	"crypto/tls"
-	"github.com/darkweak/souin/providers"
 	"fmt"
 	"net"
+	cacheProviders "github.com/darkweak/souin/cache/providers"
+	"github.com/darkweak/souin/providers"
 )
 
 // ReverseResponse object contains the response from reverse-proxy
@@ -19,13 +20,13 @@ type ReverseResponse struct {
 	request  *http.Request
 }
 
-func serveReverseProxy(res http.ResponseWriter, req *http.Request, redisClient *Redis) {
+func serveReverseProxy(res http.ResponseWriter, req *http.Request, redisClient *cacheProviders.Redis) {
 	url, _ := url.Parse(os.Getenv("REVERSE_PROXY"))
 	ctx := req.Context()
 
 	responses := make(chan ReverseResponse)
 	go func() {
-		responses <- redisClient.getRequestInCache(req.Host + req.URL.Path)
+		responses <- redisClient.GetRequestInCache(req.Host + req.URL.Path)
 		responses <- requestReverseProxy(req, url, redisClient)
 	}()
 
@@ -71,7 +72,7 @@ func startServer(tlsconfig *tls.Config) (net.Listener, *http.Server) {
 
 // Start cache system
 func Start() {
-	redisClient := redisConnectionFactory()
+	redisClient := cacheProviders.RedisConnectionFactory()
 	configChannel := make(chan int)
 	tlsconfig := &tls.Config{
 		Certificates:       make([]tls.Certificate, 0),

@@ -4,3 +4,5 @@ docker-compose.yml
 Dockerfile
 /.idea/
 /vendor/
+.DS_Store
+traefik.json
