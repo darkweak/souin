@@ -5,7 +5,8 @@
 2. [Environment variables](#environment-variables)  
   2.1. [Required variables](#required-variables)  
   2.2. [Optional variables](#optional-variables)
-3. [Diagrams](#diagrams)
+3. [Diagrams](#diagrams)  
+  3.1. [Sequence diagram](#sequence-diagram)
 4. [Cache system](#cache-system)
 5. [Exemples](#exemples)  
   5.1. [Træfik container](#træfik-container)
@@ -37,6 +38,8 @@ Since it's written in go, it can be deployed on any server and thantks docker in
 |`REGEX`|The regex that matches URLs not to store in cache|`http://domain.com/mypath`|
 
 ## Diagrams
+
+### Sequence diagram
 <img src="docs/plantUML/sequenceDiagram.svg?sanitize=true" alt="Sequence diagram">
 
 ## Cache system
