@@ -5,11 +5,12 @@
 2. [Environment variables](#environment-variables)  
   2.1. [Required variables](#required-variables)  
   2.2. [Optional variables](#optional-variables)
-3. [Cache system](#cache-system)
-4. [Exemples](#exemples)  
-  4.1. [Træfik container](#træfik-container)
-5. [SSL](#ssl)  
-  5.1. [Træfik](#træfik)
+3. [Diagrams](#diagrams)
+4. [Cache system](#cache-system)
+5. [Exemples](#exemples)  
+  5.1. [Træfik container](#træfik-container)
+6. [SSL](#ssl)  
+  6.1. [Træfik](#træfik)
 
 [![Travis CI](https://travis-ci.com/Darkweak/Souin.svg?branch=master)](https://travis-ci.com/Darkweak/Souin)
 
@@ -34,6 +35,47 @@ Since it's written in go, it can be deployed on any server and thantks docker in
 |  Variable  |  Description  |  Value exemple  |
 |:---:|:---:|:---:|
 |`REGEX`|The regex that matches URLs not to store in cache|`http://domain.com/mypath`|
+
+## Diagrams
+```puml
+@startuml
+actor User
+actor System
+participant Souin
+collections Providers
+participant Memory
+participant Redis
+participant ReverseProxy
+System -> ReverseProxy ++ : run()
+System -> Souin ++ : main()
+Souin -> Providers : Init()
+Providers -> Memory ++ : MemoryConnectionFactory()
+Providers <-- Memory : *AbstractProvider
+Providers -> Redis ++ : RedisConnectionFactory()
+Providers <-- Redis : *AbstractProvider
+Souin <-- Providers : AbstractProvider[]
+loop User requests
+  User -> Souin : request
+  par Request providers content
+    Souin -> Memory: GetRequestInCache()
+  else
+    Souin -> Redis: GetRequestInCache()
+  else
+    Souin -> ReverseProxy: GetRequestInReverseProxy()
+  end
+  par Response providers content
+    Souin <-- Memory: *Response
+  else
+    Souin <-- Redis: *Response
+  else
+    Souin <-- ReverseProxy: *Response
+    Souin -> Memory: SetRequestInCache()
+    Souin -> Redis: SetRequestInCache()
+  end
+Souin -> User : response
+end
+@enduml
+```
 
 ## Cache system
 The cache sits into a Redis instance, because setting, getting, updating and deleting keys in Redis is as easy as it gets.  
