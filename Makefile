@@ -34,7 +34,7 @@ help:
 lint: ## Run lint
 	$(DC_EXEC) souin /app/bin/golint ./...
 
-log: ## Run lint
+log: ## Show souin logs
 	$(DC) logs -f souin
 
 tests: ## Run tests

@@ -4,47 +4,49 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"net/http/httputil"
 	"encoding/json"
 	"crypto/tls"
-	"github.com/darkweak/souin/providers"
 	"fmt"
 	"net"
+	"github.com/darkweak/souin/providers"
+	cacheProviders "github.com/darkweak/souin/cache/providers"
+	"github.com/darkweak/souin/cache/types"
+	"github.com/darkweak/souin/cache/service"
 )
 
-// ReverseResponse object contains the response from reverse-proxy
-type ReverseResponse struct {
-	response string
-	proxy    *httputil.ReverseProxy
-	request  *http.Request
-}
-
-func serveReverseProxy(res http.ResponseWriter, req *http.Request, redisClient *Redis) {
+func serveReverseProxy(res http.ResponseWriter, req *http.Request, providers *[]cacheProviders.AbstractProviderInterface) {
 	url, _ := url.Parse(os.Getenv("REVERSE_PROXY"))
 	ctx := req.Context()
 
-	responses := make(chan ReverseResponse)
+	responses := make(chan types.ReverseResponse)
 	go func() {
-		responses <- redisClient.getRequestInCache(req.Host + req.URL.Path)
-		responses <- requestReverseProxy(req, url, redisClient)
+		for _, v := range *providers {
+			responses <- v.GetRequestInCache(string(req.Host + req.URL.Path))
+		}
+		responses <- service.RequestReverseProxy(req, url, *providers)
 	}()
+	alreadySent := false
 
-	response := <-responses
+	for i := 0; i < len(*providers); i++ {
+		response := <-responses
+		if http.MethodGet == req.Method && "" != response.Response {
+			var responseJSON types.RequestResponse
+			err := json.Unmarshal([]byte(response.Response), &responseJSON)
+			if err != nil {
+				panic(err)
+			}
+			for k, v := range responseJSON.Headers {
+				res.Header().Set(k, v[0])
+			}
+			alreadySent = true
+			res.Write(responseJSON.Body)
+		}
+	}
 
-	if http.MethodGet == req.Method && "" != response.response {
-		var responseJSON RequestResponse
-		err := json.Unmarshal([]byte(response.response), &responseJSON)
-		if err != nil {
-			panic(err)
-		}
-		for k, v := range responseJSON.Headers {
-			res.Header().Set(k, v[0])
-		}
-		res.Write(responseJSON.Body)
-	} else {
+	if !alreadySent {
 		req = req.WithContext(ctx)
 		response2 := <-responses
-		response2.proxy.ServeHTTP(res, req)
+		response2.Proxy.ServeHTTP(res, req)
 	}
 }
 
@@ -71,7 +73,11 @@ func startServer(tlsconfig *tls.Config) (net.Listener, *http.Server) {
 
 // Start cache system
 func Start() {
-	redisClient := redisConnectionFactory()
+	providersList := []cacheProviders.AbstractProviderInterface{
+		cacheProviders.MemoryConnectionFactory(),
+		cacheProviders.RedisConnectionFactory(),
+	}
+
 	configChannel := make(chan int)
 	tlsconfig := &tls.Config{
 		Certificates:       make([]tls.Certificate, 0),
@@ -86,7 +92,7 @@ func Start() {
 	}()
 
 	http.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
-		serveReverseProxy(writer, request, redisClient)
+		serveReverseProxy(writer, request, &providersList)
 	})
 	go func() {
 		listener, _ := startServer(tlsconfig)
