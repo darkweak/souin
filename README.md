@@ -37,7 +37,7 @@ Since it's written in go, it can be deployed on any server and thantks docker in
 |`REGEX`|The regex that matches URLs not to store in cache|`http://domain.com/mypath`|
 
 ## Diagrams
-```puml
+```plantuml
 @startuml
 actor User
 actor System
