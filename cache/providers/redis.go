@@ -1,14 +1,14 @@
-package cache
+package providers
 
 import (
-	"github.com/go-redis/redis"
-	"time"
-	"os"
 	"strconv"
-	"regexp"
-	"github.com/darkweak/souin/cache"
+	"os"
+	"time"
+	"github.com/go-redis/redis"
+	"github.com/darkweak/souin/cache/types"
 )
 
+// Redis provider type
 type Redis struct {
 	*redis.Client
 }
@@ -24,37 +24,38 @@ func RedisConnectionFactory() *Redis {
 	}
 }
 
-// Check pathname is not in regex
-func PathnameNotInRegex(pathname string) bool {
-	b, _ := regexp.Match(os.Getenv("REGEX"), []byte(pathname))
-	return !b
-}
-
-func (client *Redis) GetRequestInCache(pathname string) cache.ReverseResponse {
-	val2, err := client.Get(pathname).Result()
+// GetRequestInCache method returns the populated response if exists, empty response then
+func (provider *Redis) GetRequestInCache(key string) types.ReverseResponse {
+	val2, err := provider.Get(key).Result()
 
 	if err != nil {
-		return cache.ReverseResponse{"", nil, nil}
+		return types.ReverseResponse{Response: "", Proxy: nil, Request: nil}
 	}
 
-	return cache.ReverseResponse{val2, nil, nil}
+	return types.ReverseResponse{Response: val2, Proxy: nil, Request: nil}
 }
 
-func (client *Redis) DeleteKey(key string) {
-	client.Do("del", key)
-}
+// SetRequestInCache method will store the response in Redis provider
+func (provider *Redis) SetRequestInCache(key string, value []byte) {
+	ttl, _ := strconv.Atoi(os.Getenv("TTL"))
 
-func (client *Redis) DeleteKeys(regex string) {
-	for _, i := range client.Keys(regex).Val() {
-		client.Do("del", i)
-	}
-}
-
-func (client *Redis) SetRequestInCache(pathname string, data []byte) {
-	value, _ := strconv.Atoi(os.Getenv("TTL"))
-
-	err := client.Set(pathname, string(data), time.Duration(value)*time.Second).Err()
+	err := provider.Set(key, string(value), time.Duration(ttl)*time.Second).Err()
 	if err != nil {
 		panic(err)
 	}
 }
+
+// DeleteRequestInCache method will delete the response in Redis provider if exists corresponding to key param
+func (provider *Redis) DeleteRequestInCache(key string) {
+	provider.Do("del", key)
+}
+
+// DeleteManyRequestInCache method will delete the response in Redis provider if exists corresponding to regex param
+func (provider *Redis) DeleteManyRequestInCache(regex string) {
+	for _, i := range provider.Keys(regex).Val() {
+		provider.Do("del", i)
+	}
+}
+
+// Init method will
+func (provider *Redis) Init() {}

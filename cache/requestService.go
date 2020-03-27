@@ -9,14 +9,9 @@ import (
 	"encoding/json"
 	"strings"
 	"strconv"
-	"github.com/darkweak/souin/cache/providers"
+	p "github.com/darkweak/souin/cache/providers"
+	"github.com/darkweak/souin/cache/types"
 )
-
-//RequestResponse object contains the request belongs to reverse-proxy
-type RequestResponse struct {
-	Body    []byte              `json:"body"`
-	Headers map[string][]string `json:"headers"`
-}
 
 func commonLoadingRequest(resp *http.Response) []byte {
 	b, err := ioutil.ReadAll(resp.Body)
@@ -40,22 +35,26 @@ func getKeyFromResponse(resp *http.Response) string {
 	return resp.Request.Host + resp.Request.URL.Path
 }
 
-func rewriteBody(resp *http.Response, redisClient *cache.Redis) (err error) {
+func rewriteBody(resp *http.Response, providers []p.AbstractProviderInterface) (err error) {
 	b := bytes.Replace(commonLoadingRequest(resp), []byte("server"), []byte("schmerver"), -1)
 	body := ioutil.NopCloser(bytes.NewReader(b))
 	resp.Body = body
 	resp.ContentLength = int64(len(b))
 	resp.Header.Set("Content-Length", strconv.Itoa(len(b)))
 
-	if cache.PathnameNotInRegex(resp.Request.Host+resp.Request.URL.Path) && !hasNotAllowedHeaders(resp) && nil == resp.Request.Context().Err() {
+	if p.PathnameNotInRegex(resp.Request.Host+resp.Request.URL.Path) && !hasNotAllowedHeaders(resp) && nil == resp.Request.Context().Err() {
 		key := getKeyFromResponse(resp)
 		if http.MethodGet == resp.Request.Method && len(b) > 0 {
-			r, _ := json.Marshal(RequestResponse{b, resp.Header})
+			r, _ := json.Marshal(types.RequestResponse{b, resp.Header})
 			go func() {
-				redisClient.SetRequestInCache(key, r)
+				for _, v := range providers {
+					v.SetRequestInCache(key, r)
+				}
 			}()
 		} else {
-			redisClient.DeleteKey(key)
+			for _, v := range providers {
+				v.DeleteRequestInCache(key)
+			}
 
 			if http.MethodDelete == resp.Request.Method || http.MethodPut == resp.Request.Method || http.MethodPatch == resp.Request.Method {
 				newKeySplitted := strings.Split(key, "/")
@@ -67,7 +66,9 @@ func rewriteBody(resp *http.Response, redisClient *cache.Redis) (err error) {
 						newKey += "/"
 					}
 				}
-				redisClient.DeleteKey(newKey)
+				for _, v := range providers {
+					v.DeleteRequestInCache(newKey)
+				}
 			}
 		}
 	}
@@ -75,17 +76,17 @@ func rewriteBody(resp *http.Response, redisClient *cache.Redis) (err error) {
 	return nil
 }
 
-func requestReverseProxy(req *http.Request, url *url.URL, redisClient *cache.Redis) ReverseResponse {
+func requestReverseProxy(req *http.Request, url *url.URL, providers []p.AbstractProviderInterface) types.ReverseResponse {
 	req.URL.Host = req.Host
 	req.URL.Scheme = url.Scheme
 	req.Header.Set("X-Forwarded-Host", req.Header.Get("Host"))
 
 	proxy := httputil.NewSingleHostReverseProxy(url)
 	proxy.ModifyResponse = func(response *http.Response) error {
-		return rewriteBody(response, redisClient)
+		return rewriteBody(response, providers)
 	}
 
-	return ReverseResponse{
+	return types.ReverseResponse{
 		"bad",
 		proxy,
 		req,
