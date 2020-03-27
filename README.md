@@ -37,45 +37,7 @@ Since it's written in go, it can be deployed on any server and thantks docker in
 |`REGEX`|The regex that matches URLs not to store in cache|`http://domain.com/mypath`|
 
 ## Diagrams
-```plantuml
-@startuml
-actor User
-actor System
-participant Souin
-collections Providers
-participant Memory
-participant Redis
-participant ReverseProxy
-System -> ReverseProxy ++ : run()
-System -> Souin ++ : main()
-Souin -> Providers : Init()
-Providers -> Memory ++ : MemoryConnectionFactory()
-Providers <-- Memory : *AbstractProvider
-Providers -> Redis ++ : RedisConnectionFactory()
-Providers <-- Redis : *AbstractProvider
-Souin <-- Providers : AbstractProvider[]
-loop User requests
-  User -> Souin : request
-  par Request providers content
-    Souin -> Memory: GetRequestInCache()
-  else
-    Souin -> Redis: GetRequestInCache()
-  else
-    Souin -> ReverseProxy: GetRequestInReverseProxy()
-  end
-  par Response providers content
-    Souin <-- Memory: *Response
-  else
-    Souin <-- Redis: *Response
-  else
-    Souin <-- ReverseProxy: *Response
-    Souin -> Memory: SetRequestInCache()
-    Souin -> Redis: SetRequestInCache()
-  end
-Souin -> User : response
-end
-@enduml
-```
+<img src="docs/plantUML/sequenceDiagram.svg?sanitize=true" alt="Sequence diagram">
 
 ## Cache system
 The cache sits into a Redis instance, because setting, getting, updating and deleting keys in Redis is as easy as it gets.  
