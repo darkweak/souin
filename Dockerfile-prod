@@ -8,6 +8,7 @@ RUN mkdir -p /ssl
 RUN mkdir -p /app/src/github.com/darkweak/souin
 ADD ./*.go /app/src/github.com/darkweak/souin/
 ADD ./cache /app/src/github.com/darkweak/souin/cache
+ADD ./errors /app/src/github.com/darkweak/souin/errors
 ADD ./providers /app/src/github.com/darkweak/souin/providers
 ADD ./default/server.* /app/src/github.com/darkweak/souin/
 ADD ./entrypoint.sh /app/src/github.com/darkweak/souin/entrypoint.sh
