@@ -11,6 +11,7 @@ import (
 	"github.com/darkweak/souin/providers"
 	cacheProviders "github.com/darkweak/souin/cache/providers"
 	"github.com/darkweak/souin/cache/types"
+	"github.com/darkweak/souin/cache/service"
 )
 
 func serveReverseProxy(res http.ResponseWriter, req *http.Request, providers *[]cacheProviders.AbstractProviderInterface) {
@@ -22,7 +23,7 @@ func serveReverseProxy(res http.ResponseWriter, req *http.Request, providers *[]
 		for _, v := range *providers {
 			responses <- v.GetRequestInCache(string(req.Host + req.URL.Path))
 		}
-		responses <- requestReverseProxy(req, url, *providers)
+		responses <- service.RequestReverseProxy(req, url, *providers)
 	}()
 	alreadySent := false
 
@@ -42,7 +43,7 @@ func serveReverseProxy(res http.ResponseWriter, req *http.Request, providers *[]
 		}
 	}
 
-	 if !alreadySent {
+	if !alreadySent {
 		req = req.WithContext(ctx)
 		response2 := <-responses
 		response2.Proxy.ServeHTTP(res, req)

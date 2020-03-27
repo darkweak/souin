@@ -1,4 +1,4 @@
-package cache
+package service
 
 import (
 	"net/http"
@@ -76,7 +76,8 @@ func rewriteBody(resp *http.Response, providers []p.AbstractProviderInterface) (
 	return nil
 }
 
-func requestReverseProxy(req *http.Request, url *url.URL, providers []p.AbstractProviderInterface) types.ReverseResponse {
+// RequestReverseProxy returns response from one of providers or the proxy response
+func RequestReverseProxy(req *http.Request, url *url.URL, providers []p.AbstractProviderInterface) types.ReverseResponse {
 	req.URL.Host = req.Host
 	req.URL.Scheme = url.Scheme
 	req.Header.Set("X-Forwarded-Host", req.Header.Get("Host"))

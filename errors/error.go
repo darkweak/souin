@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-// Syntactic sugar to display errors
+// GenerateError Syntactic sugar to display errors
 func GenerateError(t *testing.T, text string) {
 	t.Errorf("An error occurred : %s", text)
 }

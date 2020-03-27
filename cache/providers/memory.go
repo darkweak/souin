@@ -15,7 +15,7 @@ type Memory struct {
 // MemoryConnectionFactory function create new Memory instance
 func MemoryConnectionFactory() *Memory {
 	t, _ := time.ParseDuration(os.Getenv("TTL"))
-	bc, _ := bigcache.NewBigCache(bigcache.DefaultConfig(t*time.Second))
+	bc, _ := bigcache.NewBigCache(bigcache.DefaultConfig(t * time.Second))
 	return &Memory{
 		bc,
 	}
