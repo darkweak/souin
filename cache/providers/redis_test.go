@@ -1,9 +1,10 @@
 package providers
 
 import (
+	"fmt"
 	"testing"
 	"time"
-	"fmt"
+
 	"github.com/darkweak/souin/errors"
 )
 

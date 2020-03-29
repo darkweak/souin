@@ -3,8 +3,9 @@ package providers
 import (
 	"os"
 	"time"
-	"github.com/darkweak/souin/cache/types"
+
 	"github.com/allegro/bigcache"
+	"github.com/darkweak/souin/cache/types"
 )
 
 // Memory provider type

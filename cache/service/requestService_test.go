@@ -1,17 +1,18 @@
 package service
 
 import (
-	"testing"
-	"net/http"
-	"net/url"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net/http"
+	"net/url"
 	"strings"
-	"github.com/go-redis/redis"
+	"testing"
 	"time"
+
 	"github.com/darkweak/souin/cache/providers"
 	"github.com/darkweak/souin/errors"
+	"github.com/go-redis/redis"
 )
 
 const DOMAIN = "domain.com"

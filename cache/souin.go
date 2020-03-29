@@ -1,17 +1,18 @@
 package cache
 
 import (
+	"crypto/tls"
+	"encoding/json"
+	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
-	"encoding/json"
-	"crypto/tls"
-	"fmt"
-	"net"
-	"github.com/darkweak/souin/providers"
+
 	cacheProviders "github.com/darkweak/souin/cache/providers"
-	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/cache/service"
+	"github.com/darkweak/souin/cache/types"
+	"github.com/darkweak/souin/providers"
 )
 
 func serveReverseProxy(res http.ResponseWriter, req *http.Request, providers *[]cacheProviders.AbstractProviderInterface) {
