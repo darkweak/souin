@@ -28,6 +28,9 @@ env-prod: ## Up container with prod env vars
 	cp docker-compose.yml.prod docker-compose.yml
 	cp .env.prod .env
 
+generate-plantUML: ## Generate plantUML diagrams
+	cd ./docs/plantUML && sh generate.sh && cd ../..
+
 help:
 	@grep -E '(^[0-9a-zA-Z_-]+:.*?##.*$$)|(^##)' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[32m%-25s\033[0m %s\n", $$1, $$2}' | sed -e 's/\[32m##/[33m/'
 
