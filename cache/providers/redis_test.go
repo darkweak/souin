@@ -1,10 +1,10 @@
 package providers
 
 import (
-	"testing"
-	"time"
 	"fmt"
 	"github.com/darkweak/souin/errors"
+	"testing"
+	"time"
 )
 
 const VALUE = "My first data"

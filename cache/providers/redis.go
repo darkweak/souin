@@ -1,11 +1,11 @@
 package providers
 
 import (
-	"strconv"
-	"os"
-	"time"
-	"github.com/go-redis/redis"
 	"github.com/darkweak/souin/cache/types"
+	"github.com/go-redis/redis"
+	"os"
+	"strconv"
+	"time"
 )
 
 // Redis provider type

@@ -1,14 +1,15 @@
 package service
 
 import (
+	"bytes"
+	"encoding/json"
+	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"io/ioutil"
-	"bytes"
-	"encoding/json"
-	"strings"
 	"strconv"
+	"strings"
+
 	p "github.com/darkweak/souin/cache/providers"
 	"github.com/darkweak/souin/cache/types"
 )
@@ -45,7 +46,7 @@ func rewriteBody(resp *http.Response, providers []p.AbstractProviderInterface) (
 	if p.PathnameNotInRegex(resp.Request.Host+resp.Request.URL.Path) && !hasNotAllowedHeaders(resp) && nil == resp.Request.Context().Err() {
 		key := getKeyFromResponse(resp)
 		if http.MethodGet == resp.Request.Method && len(b) > 0 {
-			r, _ := json.Marshal(types.RequestResponse{b, resp.Header})
+			r, _ := json.Marshal(types.RequestResponse{Body: b, Headers: resp.Header})
 			go func() {
 				for _, v := range providers {
 					v.SetRequestInCache(key, r)
@@ -88,8 +89,8 @@ func RequestReverseProxy(req *http.Request, url *url.URL, providers []p.Abstract
 	}
 
 	return types.ReverseResponse{
-		"bad",
-		proxy,
-		req,
+		Response: "bad",
+		Proxy:    proxy,
+		Request:  req,
 	}
 }
