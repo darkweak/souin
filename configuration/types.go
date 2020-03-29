@@ -1,29 +1,35 @@
 package configuration
 
 import (
-	"gopkg.in/yaml.v2"
-	"log"
 	"io/ioutil"
+	"log"
+
+	"gopkg.in/yaml.v2"
 )
 
+// Port config
 type Port struct {
 	Web string `yaml:"web"`
 	Tls string `yaml:"tls"`
 }
 
+//Cache config
 type Cache struct {
 	Mode string `yaml:"mode"`
 	Port Port   `yaml:"port"`
 }
 
+//Redis config
 type Redis struct {
 	Url string `yaml:"url"`
 }
 
+//Regex config
 type Regex struct {
 	Exclude string `yaml:"exclude"`
 }
 
+//Configuration holder
 type Configuration struct {
 	Redis           Redis  `yaml:"redis"`
 	TTL             string `yaml:"ttl"`
@@ -32,6 +38,7 @@ type Configuration struct {
 	Cache           Cache  `yaml:"cache"`
 }
 
+// Parse configuration
 func (c *Configuration) Parse(data []byte) error {
 	if err := yaml.Unmarshal(data, c); err != nil {
 		return err

@@ -2,13 +2,14 @@ package providers
 
 import (
 	"crypto/tls"
-	"github.com/fsnotify/fsnotify"
-	"log"
-	"io/ioutil"
-	"encoding/json"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"log"
 	"strings"
+
+	"github.com/fsnotify/fsnotify"
 )
 
 // CommonProvider contains a Certificate map
@@ -80,9 +81,9 @@ func (c *CommonProvider) LoadFromConfigFile(tlsconfig *tls.Config, configChannel
 	}
 }
 
-// InitWatcher will start watcher on one ssl agregator file
+// InitWatcher will start watcher on one ssl aggregator file
 func (c *CommonProvider) InitWatcher(tlsconfig *tls.Config, configChannel *chan int) {
-	fmt.Sprintf("Start new watcher on %s", c.fileLocation)
+	fmt.Printf("Start new watcher on %s", c.fileLocation)
 	watcher, err := fsnotify.NewWatcher()
 	c.LoadFromConfigFile(tlsconfig, configChannel)
 

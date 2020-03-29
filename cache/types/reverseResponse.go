@@ -1,8 +1,8 @@
 package types
 
 import (
-	"net/http/httputil"
 	"net/http"
+	"net/http/httputil"
 )
 
 // ReverseResponse object contains the response from reverse-proxy

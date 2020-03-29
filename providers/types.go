@@ -33,7 +33,7 @@ type AccountAcmeFile struct {
 	Registration RegistrationAcmeFile `json:"Registration"`
 }
 
-// AcmeFile structure is Træfik acme.json hierachy
+// AcmeFile structure is Træfik acme.json hierarchy
 type AcmeFile struct {
 	Account      AccountAcmeFile       `json:"Account"`
 	Certificates []CertificateAcmeFile `json:"Certificates"`

@@ -1,8 +1,9 @@
 package providers
 
 import (
-	"regexp"
 	"os"
+	"regexp"
+
 	"github.com/darkweak/souin/cache/types"
 )
 
