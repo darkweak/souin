@@ -1,0 +1,42 @@
+@startuml
+actor User
+actor System
+activate System
+participant Souin
+collections Providers
+participant Memory
+participant Redis
+participant ReverseProxy
+System -> ReverseProxy ++ : run()
+System -> Souin ++ : main()
+Souin -> Providers : Init()
+activate Providers
+Providers -> Memory ++ : MemoryConnectionFactory()
+Providers <-- Memory : *AbstractProvider
+Providers -> Redis ++ : RedisConnectionFactory()
+Providers <-- Redis : *AbstractProvider
+Souin <-- Providers : AbstractProvider[]
+... Waiting for user request ...
+loop User requests
+  User -> Souin : request
+  activate User
+  par Request providers content
+    Souin -> Memory: GetRequestInCache()
+  else
+    Souin -> Redis: GetRequestInCache()
+  else
+    Souin -> ReverseProxy: GetRequestInReverseProxy()
+  end
+  par Response providers content
+    Souin <-- Memory: *Response
+  else
+    Souin <-- Redis: *Response
+  else
+    Souin <-- ReverseProxy: *Response
+    Souin -> Memory: SetRequestInCache()
+    Souin -> Redis: SetRequestInCache()
+  end
+Souin -> User : response
+deactivate User
+end
+@enduml
