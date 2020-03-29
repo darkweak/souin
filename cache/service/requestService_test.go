@@ -2,9 +2,6 @@ package service
 
 import (
 	"fmt"
-	"github.com/darkweak/souin/cache/providers"
-	"github.com/darkweak/souin/errors"
-	"github.com/go-redis/redis"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -12,6 +9,10 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/darkweak/souin/cache/providers"
+	"github.com/darkweak/souin/errors"
+	"github.com/go-redis/redis"
 )
 
 const DOMAIN = "domain.com"

@@ -1,9 +1,10 @@
 package providers
 
 import (
-	"github.com/darkweak/souin/cache/types"
 	"os"
 	"regexp"
+
+	"github.com/darkweak/souin/cache/types"
 )
 
 // AbstractProviderInterface should be implemented in any providers
