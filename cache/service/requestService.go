@@ -12,6 +12,7 @@ import (
 
 	p "github.com/darkweak/souin/cache/providers"
 	"github.com/darkweak/souin/cache/types"
+	"github.com/darkweak/souin/configuration"
 )
 
 func commonLoadingRequest(resp *http.Response) []byte {
@@ -36,14 +37,14 @@ func getKeyFromResponse(resp *http.Response) string {
 	return resp.Request.Host + resp.Request.URL.Path
 }
 
-func rewriteBody(resp *http.Response, providers []p.AbstractProviderInterface) (err error) {
+func rewriteBody(resp *http.Response, providers []p.AbstractProviderInterface, configuration configuration.Configuration) (err error) {
 	b := bytes.Replace(commonLoadingRequest(resp), []byte("server"), []byte("schmerver"), -1)
 	body := ioutil.NopCloser(bytes.NewReader(b))
 	resp.Body = body
 	resp.ContentLength = int64(len(b))
 	resp.Header.Set("Content-Length", strconv.Itoa(len(b)))
 
-	if p.PathnameNotInRegex(resp.Request.Host+resp.Request.URL.Path) && !hasNotAllowedHeaders(resp) && nil == resp.Request.Context().Err() {
+	if p.PathnameNotInRegex(resp.Request.Host+resp.Request.URL.Path, configuration) && !hasNotAllowedHeaders(resp) && nil == resp.Request.Context().Err() {
 		key := getKeyFromResponse(resp)
 		if http.MethodGet == resp.Request.Method && len(b) > 0 {
 			r, _ := json.Marshal(types.RequestResponse{Body: b, Headers: resp.Header})
@@ -78,14 +79,14 @@ func rewriteBody(resp *http.Response, providers []p.AbstractProviderInterface) (
 }
 
 // RequestReverseProxy returns response from one of providers or the proxy response
-func RequestReverseProxy(req *http.Request, url *url.URL, providers []p.AbstractProviderInterface) types.ReverseResponse {
+func RequestReverseProxy(req *http.Request, url *url.URL, providers []p.AbstractProviderInterface, configuration configuration.Configuration) types.ReverseResponse {
 	req.URL.Host = req.Host
 	req.URL.Scheme = url.Scheme
 	req.Header.Set("X-Forwarded-Host", req.Header.Get("Host"))
 
 	proxy := httputil.NewSingleHostReverseProxy(url)
 	proxy.ModifyResponse = func(response *http.Response) error {
-		return rewriteBody(response, providers)
+		return rewriteBody(response, providers, configuration)
 	}
 
 	return types.ReverseResponse{

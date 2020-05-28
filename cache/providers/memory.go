@@ -1,11 +1,12 @@
 package providers
 
 import (
-	"os"
 	"time"
 
 	"github.com/allegro/bigcache"
 	"github.com/darkweak/souin/cache/types"
+	"github.com/darkweak/souin/configuration"
+	"strconv"
 )
 
 // Memory provider type
@@ -14,9 +15,9 @@ type Memory struct {
 }
 
 // MemoryConnectionFactory function create new Memory instance
-func MemoryConnectionFactory() *Memory {
-	t, _ := time.ParseDuration(os.Getenv("TTL"))
-	bc, _ := bigcache.NewBigCache(bigcache.DefaultConfig(t * time.Second))
+func MemoryConnectionFactory(configuration configuration.Configuration) *Memory {
+	t, _ := strconv.Atoi(configuration.TTL)
+	bc, _ := bigcache.NewBigCache(bigcache.DefaultConfig(time.Second * time.Duration(t)))
 	return &Memory{
 		bc,
 	}

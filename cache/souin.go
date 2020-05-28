@@ -7,16 +7,20 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"os"
-
 	cacheProviders "github.com/darkweak/souin/cache/providers"
 	"github.com/darkweak/souin/cache/service"
 	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/providers"
+	"github.com/darkweak/souin/configuration"
 )
 
-func serveReverseProxy(res http.ResponseWriter, req *http.Request, providers *[]cacheProviders.AbstractProviderInterface) {
-	url, _ := url.Parse(os.Getenv("REVERSE_PROXY"))
+func serveReverseProxy(
+	res http.ResponseWriter,
+	req *http.Request,
+	providers *[]cacheProviders.AbstractProviderInterface,
+	configurationInstance configuration.Configuration,
+) {
+	url, _ := url.Parse(configurationInstance.ReverseProxyUrl)
 	ctx := req.Context()
 
 	responses := make(chan types.ReverseResponse)
@@ -24,7 +28,7 @@ func serveReverseProxy(res http.ResponseWriter, req *http.Request, providers *[]
 		for _, v := range *providers {
 			responses <- v.GetRequestInCache(string(req.Host + req.URL.Path))
 		}
-		responses <- service.RequestReverseProxy(req, url, *providers)
+		responses <- service.RequestReverseProxy(req, url, *providers, configurationInstance)
 	}()
 	alreadySent := false
 
@@ -74,10 +78,8 @@ func startServer(tlsconfig *tls.Config) (net.Listener, *http.Server) {
 
 // Start cache system
 func Start() {
-	providersList := []cacheProviders.AbstractProviderInterface{
-		cacheProviders.MemoryConnectionFactory(),
-		cacheProviders.RedisConnectionFactory(),
-	}
+	configurationInstance := *configuration.GetConfig()
+	providersList := cacheProviders.InitializeProviders(configurationInstance)
 
 	configChannel := make(chan int)
 	tlsconfig := &tls.Config{
@@ -93,7 +95,7 @@ func Start() {
 	}()
 
 	http.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
-		serveReverseProxy(writer, request, &providersList)
+		serveReverseProxy(writer, request, providersList, configurationInstance)
 	})
 	go func() {
 		listener, _ := startServer(tlsconfig)
@@ -106,7 +108,7 @@ func Start() {
 		}
 
 	}()
-	if err := http.ListenAndServe(":"+os.Getenv("CACHE_PORT"), nil); err != nil {
+	if err := http.ListenAndServe(":"+configurationInstance.Cache.Port.Web, nil); err != nil {
 		panic(err)
 	}
 

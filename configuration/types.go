@@ -15,7 +15,7 @@ type Port struct {
 
 //Cache config
 type Cache struct {
-	Mode string `yaml:"mode"`
+	Providers []string `yaml:"providers"`
 	Port Port   `yaml:"port"`
 }
 
@@ -55,12 +55,12 @@ func readFile(path string) []byte {
 }
 
 // GetConfig allow to retrieve Souin configuration through yaml file
-func GetConfig() Configuration {
+func GetConfig() *Configuration {
 	configFile := "./configuration.yml"
 	data := readFile(configFile)
 	var config Configuration
 	if err := config.Parse(data); err != nil {
 		log.Fatal(err)
 	}
-	return config
+	return &config
 }
