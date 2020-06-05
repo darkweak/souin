@@ -20,7 +20,7 @@ func serveReverseProxy(
 	providers *[]cacheProviders.AbstractProviderInterface,
 	configurationInstance configuration.Configuration,
 ) {
-	url, _ := url.Parse(configurationInstance.ReverseProxyUrl)
+	url, _ := url.Parse(configurationInstance.ReverseProxyURL)
 	ctx := req.Context()
 
 	responses := make(chan types.ReverseResponse)

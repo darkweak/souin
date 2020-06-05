@@ -10,7 +10,7 @@ import (
 // Port config
 type Port struct {
 	Web string `yaml:"web"`
-	Tls string `yaml:"tls"`
+	TLS string `yaml:"tls"`
 }
 
 //Cache config
@@ -21,7 +21,7 @@ type Cache struct {
 
 //Redis config
 type Redis struct {
-	Url string `yaml:"url"`
+	URL string `yaml:"url"`
 }
 
 //Regex config
@@ -34,7 +34,7 @@ type Configuration struct {
 	Redis           Redis    `yaml:"redis"`
 	TTL             string   `yaml:"ttl"`
 	SSLProviders    []string `yaml:"ssl_providers"`
-	ReverseProxyUrl string   `yaml:"reverse_proxy_url"`
+	ReverseProxyURL string   `yaml:"reverse_proxy_url"`
 	Regex           Regex    `yaml:"regex"`
 	Cache           Cache    `yaml:"cache"`
 }
@@ -57,8 +57,7 @@ func readFile(path string) []byte {
 
 // GetConfig allow to retrieve Souin configuration through yaml file
 func GetConfig() *Configuration {
-	configFile := "./configuration.yml"
-	data := readFile(configFile)
+	data := readFile("/app/src/github.com/darkweak/souin/configuration/configuration.yml")
 	var config Configuration
 	if err := config.Parse(data); err != nil {
 		log.Fatal(err)

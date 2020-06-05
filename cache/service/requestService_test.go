@@ -13,25 +13,27 @@ import (
 	"github.com/darkweak/souin/cache/providers"
 	"github.com/darkweak/souin/errors"
 	"github.com/go-redis/redis"
+	"github.com/darkweak/souin/configuration"
 )
 
 const DOMAIN = "domain.com"
 const PATH = "/testing"
 
 func populateRedisWithFakeData() {
-	client := providers.RedisConnectionFactory()
+	config := *configuration.GetConfig()
+	client := providers.RedisConnectionFactory(config)
 	duration := time.Duration(120) * time.Second
 	basePath := "/testing"
 	domain := "domain.com"
 
-	client.Set(domain+basePath, "testing value is here for "+basePath, duration)
+	client.Set(client.Context(), domain+basePath, "testing value is here for "+basePath, duration)
 	for i := 0; i < 25; i++ {
-		client.Set(domain+basePath+"/"+string(i), "testing value is here for my first init of "+basePath+"/"+string(i), duration)
+		client.Set(client.Context(), domain+basePath+"/"+string(i), "testing value is here for my first init of "+basePath+"/"+string(i), duration)
 	}
 }
 
 func mockRedis() *providers.Redis {
-	return providers.RedisConnectionFactory()
+	return providers.RedisConnectionFactory(*configuration.GetConfig())
 }
 
 func mockResponse(path string, method string, body string, code int) *http.Response {
@@ -93,15 +95,17 @@ func TestGetKeyFromResponse(t *testing.T) {
 }
 
 func shouldNotHaveKey(pathname string) bool {
-	client := providers.RedisConnectionFactory()
-	_, err := client.Get(DOMAIN + pathname).Result()
+	config := *configuration.GetConfig()
+	client := providers.RedisConnectionFactory(config)
+	_, err := client.Get(client.Context(), DOMAIN + pathname).Result()
 
 	return err == redis.Nil
 }
 
 func TestKeyShouldBeDeletedOnPost(t *testing.T) {
+	config := *configuration.GetConfig()
 	populateRedisWithFakeData()
-	rewriteBody(mockResponse(PATH, http.MethodPost, "My second response", 201), []providers.AbstractProviderInterface{mockRedis()})
+	rewriteBody(mockResponse(PATH, http.MethodPost, "My second response", 201), []providers.AbstractProviderInterface{mockRedis()}, config)
 	time.Sleep(10 * time.Second)
 	if !shouldNotHaveKey(PATH) {
 		errors.GenerateError(t, "The key "+DOMAIN+PATH+" shouldn't exist.")
@@ -119,13 +123,15 @@ func verifyKeysExists(t *testing.T, path string, keys []string) {
 }
 
 func TestKeyShouldBeDeletedOnPut(t *testing.T) {
+	config := *configuration.GetConfig()
 	populateRedisWithFakeData()
-	rewriteBody(mockResponse(PATH+"/1", http.MethodPut, "My second response", 200), []providers.AbstractProviderInterface{mockRedis()})
+	rewriteBody(mockResponse(PATH+"/1", http.MethodPut, "My second response", 200), []providers.AbstractProviderInterface{mockRedis()}, config)
 	verifyKeysExists(t, PATH, []string{"", "/1"})
 }
 
 func TestKeyShouldBeDeletedOnDelete(t *testing.T) {
+	config := *configuration.GetConfig()
 	populateRedisWithFakeData()
-	rewriteBody(mockResponse(PATH+"/1", http.MethodDelete, "", 200), []providers.AbstractProviderInterface{mockRedis()})
+	rewriteBody(mockResponse(PATH+"/1", http.MethodDelete, "", 200), []providers.AbstractProviderInterface{mockRedis()}, config)
 	verifyKeysExists(t, PATH, []string{"", "/1"})
 }

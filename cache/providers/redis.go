@@ -19,7 +19,7 @@ type Redis struct {
 func RedisConnectionFactory(configuration configuration.Configuration) *Redis {
 	return &Redis{
 		redis.NewClient(&redis.Options{
-			Addr:     configuration.Redis.Url,
+			Addr:     configuration.Redis.URL,
 			DB:       0,
 			Password: "",
 		}),
