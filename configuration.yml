@@ -4,6 +4,8 @@ ttl: 100 #TTL in second
 reverse_proxy_url: 'http://traefik' # The reverse-proxy http address
 regex:
   exclude: 'ARegexHere'
+ssl_providers:
+  - traefik
 cache:
   providers: # By defautl it will use in-memory and redis third-party cache. It can be `all`, `redis` or `memory` declaration
 #    - all # Can be set to all if you want to enable all providers instead of specifying each one

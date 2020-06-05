@@ -16,7 +16,7 @@ type Port struct {
 //Cache config
 type Cache struct {
 	Providers []string `yaml:"providers"`
-	Port Port   `yaml:"port"`
+	Port      Port     `yaml:"port"`
 }
 
 //Redis config
@@ -31,11 +31,12 @@ type Regex struct {
 
 //Configuration holder
 type Configuration struct {
-	Redis           Redis  `yaml:"redis"`
-	TTL             string `yaml:"ttl"`
-	ReverseProxyUrl string `yaml:"reverse_proxy_url"`
-	Regex           Regex  `yaml:"regex"`
-	Cache           Cache  `yaml:"cache"`
+	Redis           Redis    `yaml:"redis"`
+	TTL             string   `yaml:"ttl"`
+	SSLProviders    []string `yaml:"ssl_providers"`
+	ReverseProxyUrl string   `yaml:"reverse_proxy_url"`
+	Regex           Regex    `yaml:"regex"`
+	Cache           Cache    `yaml:"cache"`
 }
 
 // Parse configuration
