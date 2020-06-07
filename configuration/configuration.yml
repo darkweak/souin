@@ -4,7 +4,7 @@ ttl: 100 #TTL in second
 reverse_proxy_url: 'http://traefik' # The reverse-proxy http address
 regex:
   exclude: 'ARegexHere'
-ssl_providers:
+ssl_providers: # Must match your volumes to /ssl/{provider}.json
   - traefik
 cache:
   providers: # By defautl it will use in-memory and redis third-party cache. It can be `all`, `redis` or `memory` declaration
@@ -12,5 +12,5 @@ cache:
     - memory
 #    - redis
   port:
-    web: '80'
-    tls: '443'
+    web: 80
+    tls: 443

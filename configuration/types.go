@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"gopkg.in/yaml.v2"
+	"os"
 )
 
 // Port config
@@ -57,7 +58,7 @@ func readFile(path string) []byte {
 
 // GetConfig allow to retrieve Souin configuration through yaml file
 func GetConfig() *Configuration {
-	data := readFile("/app/src/github.com/darkweak/souin/configuration/configuration.yml")
+	data := readFile(os.Getenv("GOPATH") + "/src/github.com/darkweak/souin/configuration/configuration.yml")
 	var config Configuration
 	if err := config.Parse(data); err != nil {
 		log.Fatal(err)

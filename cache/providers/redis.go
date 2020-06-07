@@ -11,8 +11,8 @@ import (
 
 // Redis provider type
 type Redis struct {
-	*redis.Client;
-	configuration.Configuration;
+	*redis.Client
+	configuration.Configuration
 }
 
 // RedisConnectionFactory function create new Redis instance

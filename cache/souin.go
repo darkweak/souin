@@ -91,7 +91,7 @@ func Start() {
 	tlsconfig.Certificates = append(tlsconfig.Certificates, v)
 
 	go func() {
-		providers.InitProviders(tlsconfig, &configChannel)
+		providers.InitProviders(tlsconfig, &configChannel, configurationInstance)
 	}()
 
 	http.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
