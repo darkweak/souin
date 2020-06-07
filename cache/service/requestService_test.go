@@ -12,28 +12,30 @@ import (
 
 	"github.com/darkweak/souin/cache/providers"
 	"github.com/darkweak/souin/errors"
-	"github.com/go-redis/redis"
 	"github.com/darkweak/souin/configuration"
 )
 
 const DOMAIN = "domain.com"
 const PATH = "/testing"
 
-func populateRedisWithFakeData() {
-	config := *configuration.GetConfig()
-	client := providers.RedisConnectionFactory(config)
-	duration := time.Duration(120) * time.Second
+func populateProvidersWithFakeData() {
 	basePath := "/testing"
 	domain := "domain.com"
 
-	client.Set(client.Context(), domain+basePath, "testing value is here for "+basePath, duration)
-	for i := 0; i < 25; i++ {
-		client.Set(client.Context(), domain+basePath+"/"+string(i), "testing value is here for my first init of "+basePath+"/"+string(i), duration)
+	for _, provider := range []providers.AbstractProviderInterface{mockMemory(), mockRedis()} {
+		provider.SetRequestInCache(domain+basePath, []byte("testing value is here for "+basePath))
+		for i := 0; i < 25; i++ {
+			provider.SetRequestInCache(domain+basePath+"/"+string(i), []byte("testing value is here for my first init of "+basePath+"/"+string(i)))
+		}
 	}
 }
 
 func mockRedis() *providers.Redis {
 	return providers.RedisConnectionFactory(*configuration.GetConfig())
+}
+
+func mockMemory() *providers.Memory {
+	return providers.MemoryConnectionFactory(*configuration.GetConfig())
 }
 
 func mockResponse(path string, method string, body string, code int) *http.Response {
@@ -96,27 +98,29 @@ func TestGetKeyFromResponse(t *testing.T) {
 
 func shouldNotHaveKey(pathname string) bool {
 	config := *configuration.GetConfig()
-	client := providers.RedisConnectionFactory(config)
-	_, err := client.Get(client.Context(), DOMAIN + pathname).Result()
+	redisClient := providers.RedisConnectionFactory(config)
+	_, redisErr := redisClient.Get(redisClient.Context(), DOMAIN + pathname).Result()
+	memoryClient := providers.MemoryConnectionFactory(config)
+	_, memoryErr := memoryClient.Get(DOMAIN + pathname)
 
-	return err == redis.Nil
+	return memoryErr != nil && redisErr != nil
 }
 
 func TestKeyShouldBeDeletedOnPost(t *testing.T) {
 	config := *configuration.GetConfig()
-	populateRedisWithFakeData()
-	rewriteBody(mockResponse(PATH, http.MethodPost, "My second response", 201), []providers.AbstractProviderInterface{mockRedis()}, config)
+	populateProvidersWithFakeData()
+	rewriteBody(mockResponse(PATH, http.MethodPost, "My second response", 201), []providers.AbstractProviderInterface{mockRedis(), mockMemory()}, config)
 	time.Sleep(10 * time.Second)
 	if !shouldNotHaveKey(PATH) {
 		errors.GenerateError(t, "The key "+DOMAIN+PATH+" shouldn't exist.")
 	}
 }
 
-func verifyKeysExists(t *testing.T, path string, keys []string) {
+func verifyKeysExists(t *testing.T, path string, keys []string, isKeyDeleted bool) {
 	time.Sleep(10 * time.Second)
 
 	for _, i := range keys {
-		if !shouldNotHaveKey(PATH + i) {
+		if !shouldNotHaveKey(PATH + i) == isKeyDeleted {
 			errors.GenerateError(t, "The key "+DOMAIN+path+i+" shouldn't exist.")
 		}
 	}
@@ -124,14 +128,14 @@ func verifyKeysExists(t *testing.T, path string, keys []string) {
 
 func TestKeyShouldBeDeletedOnPut(t *testing.T) {
 	config := *configuration.GetConfig()
-	populateRedisWithFakeData()
-	rewriteBody(mockResponse(PATH+"/1", http.MethodPut, "My second response", 200), []providers.AbstractProviderInterface{mockRedis()}, config)
-	verifyKeysExists(t, PATH, []string{"", "/1"})
+	populateProvidersWithFakeData()
+	rewriteBody(mockResponse(PATH+"/1", http.MethodPut, "My second response", 200), []providers.AbstractProviderInterface{mockRedis(), mockMemory()}, config)
+	verifyKeysExists(t, PATH, []string{"", "/1"}, true)
 }
 
 func TestKeyShouldBeDeletedOnDelete(t *testing.T) {
 	config := *configuration.GetConfig()
-	populateRedisWithFakeData()
-	rewriteBody(mockResponse(PATH+"/1", http.MethodDelete, "", 200), []providers.AbstractProviderInterface{mockRedis()}, config)
-	verifyKeysExists(t, PATH, []string{"", "/1"})
+	populateProvidersWithFakeData()
+	rewriteBody(mockResponse(PATH+"/1", http.MethodDelete, "", 200), []providers.AbstractProviderInterface{mockRedis(), mockMemory()}, config)
+	verifyKeysExists(t, PATH, []string{"", "/1"}, true)
 }
