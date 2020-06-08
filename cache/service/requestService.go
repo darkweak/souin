@@ -33,8 +33,14 @@ func hasNotAllowedHeaders(r *http.Response) bool {
 		"no-cache" == r.Header.Get("Cache-Control")
 }
 
-func getKeyFromResponse(resp *http.Response) string {
-	return resp.Request.Host + resp.Request.URL.Path
+func getKeyFromResponse(resp *http.Response, config configuration.Configuration) string {
+	headers := ""
+	if config.Cache.Headers != nil && len(config.Cache.Headers) > 0 {
+		for _, h := range config.Cache.Headers {
+			headers += strings.ReplaceAll(resp.Request.Header.Get(h), " ", "")
+		}
+	}
+	return resp.Request.Host + resp.Request.URL.Path + headers
 }
 
 func rewriteBody(resp *http.Response, providers []p.AbstractProviderInterface, configuration configuration.Configuration) (err error) {
@@ -45,12 +51,14 @@ func rewriteBody(resp *http.Response, providers []p.AbstractProviderInterface, c
 	resp.Header.Set("Content-Length", strconv.Itoa(len(b)))
 
 	if p.PathnameNotInRegex(resp.Request.Host+resp.Request.URL.Path, configuration) && !hasNotAllowedHeaders(resp) && nil == resp.Request.Context().Err() {
-		key := getKeyFromResponse(resp)
+		key := getKeyFromResponse(resp, configuration)
 		if http.MethodGet == resp.Request.Method && len(b) > 0 {
 			r, _ := json.Marshal(types.RequestResponse{Body: b, Headers: resp.Header})
 			go func() {
 				for _, v := range providers {
-					v.SetRequestInCache(key, r)
+					go func() {
+						v.SetRequestInCache(key, r)
+					}()
 				}
 			}()
 		} else {

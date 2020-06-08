@@ -16,6 +16,7 @@ type Port struct {
 
 //Cache config
 type Cache struct {
+	Headers   []string `yaml:"headers"`
 	Providers []string `yaml:"providers"`
 	Port      Port     `yaml:"port"`
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/providers"
 	"github.com/darkweak/souin/configuration"
+	"strings"
 )
 
 func serveReverseProxy(
@@ -20,15 +21,21 @@ func serveReverseProxy(
 	providers *[]cacheProviders.AbstractProviderInterface,
 	configurationInstance configuration.Configuration,
 ) {
-	url, _ := url.Parse(configurationInstance.ReverseProxyURL)
+	u, _ := url.Parse(configurationInstance.ReverseProxyURL)
 	ctx := req.Context()
 
 	responses := make(chan types.ReverseResponse)
 	go func() {
-		for _, v := range *providers {
-			responses <- v.GetRequestInCache(string(req.Host + req.URL.Path))
+		headers := ""
+		if configurationInstance.Cache.Headers != nil && len(configurationInstance.Cache.Headers) > 0 {
+			for _, h := range configurationInstance.Cache.Headers {
+				headers += strings.ReplaceAll(req.Header.Get(h), " ", "")
+			}
 		}
-		responses <- service.RequestReverseProxy(req, url, *providers, configurationInstance)
+		for _, v := range *providers {
+			responses <- v.GetRequestInCache(string(req.Host + req.URL.Path + headers))
+		}
+		responses <- service.RequestReverseProxy(req, u, *providers, configurationInstance)
 	}()
 	alreadySent := false
 

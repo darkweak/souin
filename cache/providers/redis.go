@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/darkweak/souin/cache/types"
-	"github.com/go-redis/redis"
 	"github.com/darkweak/souin/configuration"
+	"github.com/go-redis/redis"
 )
 
 // Redis provider type

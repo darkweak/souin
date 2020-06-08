@@ -89,7 +89,7 @@ func mockResponse(path string, method string, body string, code int) *http.Respo
 }
 
 func TestGetKeyFromResponse(t *testing.T) {
-	resp := getKeyFromResponse(mockResponse(PATH, http.MethodGet, "", 200))
+	resp := getKeyFromResponse(mockResponse(PATH, http.MethodGet, "", 200), configuration.GetConfig())
 	urlCollapsed := DOMAIN + PATH
 	if urlCollapsed != resp {
 		errors.GenerateError(t, fmt.Sprintf("Key doesn't return %s but %s", urlCollapsed, resp))
@@ -99,7 +99,7 @@ func TestGetKeyFromResponse(t *testing.T) {
 func shouldNotHaveKey(pathname string) bool {
 	config := configuration.GetConfig()
 	redisClient := providers.RedisConnectionFactory(config)
-	_, redisErr := redisClient.Get(redisClient.Context(), DOMAIN + pathname).Result()
+	_, redisErr := redisClient.Get(redisClient.Context(), DOMAIN+pathname).Result()
 	memoryClient := providers.MemoryConnectionFactory(config)
 	_, memoryErr := memoryClient.Get(DOMAIN + pathname)
 

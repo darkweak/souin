@@ -8,10 +8,11 @@ import (
 
 func mockConfiguration() configuration.Configuration {
 	return configuration.Configuration{
-		SSLProviders: []string{},
+		SSLProviders:    []string{},
 		ReverseProxyURL: "http://traefik",
-		TTL: "100",
+		TTL:             "100",
 		Cache: configuration.Cache{
+			Headers:   []string{},
 			Providers: []string{},
 		},
 		Regex: configuration.Regex{
