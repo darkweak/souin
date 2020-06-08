@@ -17,7 +17,6 @@ services:
       GOPATH: /app
     volumes:
       - ./cmd:/app/cmd
-      - ./acme.json:/ssl/traefik.json
       - ./traefik.json:/ssl/traefik.json
     <<: *networks
 

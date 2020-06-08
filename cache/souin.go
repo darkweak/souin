@@ -55,14 +55,14 @@ func serveReverseProxy(
 	}
 }
 
-func startServer(tlsconfig *tls.Config) (net.Listener, *http.Server) {
-	tlsconfig.BuildNameToCertificate()
+func startServer(config *tls.Config) (net.Listener, *http.Server) {
+	config.BuildNameToCertificate()
 	server := http.Server{
 		Addr:      ":443",
 		Handler:   nil,
-		TLSConfig: tlsconfig,
+		TLSConfig: config,
 	}
-	listener, err := tls.Listen("tcp", ":443", tlsconfig)
+	listener, err := tls.Listen("tcp", ":443", config)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -78,7 +78,7 @@ func startServer(tlsconfig *tls.Config) (net.Listener, *http.Server) {
 
 // Start cache system
 func Start() {
-	configurationInstance := *configuration.GetConfig()
+	configurationInstance := configuration.GetConfig()
 	providersList := cacheProviders.InitializeProviders(configurationInstance)
 
 	configChannel := make(chan int)

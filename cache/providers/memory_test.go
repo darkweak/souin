@@ -11,7 +11,7 @@ import (
 const MEMORYVALUE = "My first data"
 
 func TestIShouldBeAbleToReadAndWriteDataInMemory(t *testing.T) {
-	client := MemoryConnectionFactory(*configuration.GetConfig())
+	client := MemoryConnectionFactory(configuration.GetConfig())
 	err := client.Set("Test", []byte(MEMORYVALUE))
 	if err != nil {
 		errors.GenerateError(t, "Impossible to set memory variable")

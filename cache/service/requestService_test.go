@@ -31,11 +31,11 @@ func populateProvidersWithFakeData() {
 }
 
 func mockRedis() *providers.Redis {
-	return providers.RedisConnectionFactory(*configuration.GetConfig())
+	return providers.RedisConnectionFactory(configuration.GetConfig())
 }
 
 func mockMemory() *providers.Memory {
-	return providers.MemoryConnectionFactory(*configuration.GetConfig())
+	return providers.MemoryConnectionFactory(configuration.GetConfig())
 }
 
 func mockResponse(path string, method string, body string, code int) *http.Response {
@@ -97,7 +97,7 @@ func TestGetKeyFromResponse(t *testing.T) {
 }
 
 func shouldNotHaveKey(pathname string) bool {
-	config := *configuration.GetConfig()
+	config := configuration.GetConfig()
 	redisClient := providers.RedisConnectionFactory(config)
 	_, redisErr := redisClient.Get(redisClient.Context(), DOMAIN + pathname).Result()
 	memoryClient := providers.MemoryConnectionFactory(config)
@@ -107,7 +107,7 @@ func shouldNotHaveKey(pathname string) bool {
 }
 
 func TestKeyShouldBeDeletedOnPost(t *testing.T) {
-	config := *configuration.GetConfig()
+	config := configuration.GetConfig()
 	populateProvidersWithFakeData()
 	rewriteBody(mockResponse(PATH, http.MethodPost, "My second response", 201), []providers.AbstractProviderInterface{mockRedis(), mockMemory()}, config)
 	time.Sleep(10 * time.Second)
@@ -127,14 +127,14 @@ func verifyKeysExists(t *testing.T, path string, keys []string, isKeyDeleted boo
 }
 
 func TestKeyShouldBeDeletedOnPut(t *testing.T) {
-	config := *configuration.GetConfig()
+	config := configuration.GetConfig()
 	populateProvidersWithFakeData()
 	rewriteBody(mockResponse(PATH+"/1", http.MethodPut, "My second response", 200), []providers.AbstractProviderInterface{mockRedis(), mockMemory()}, config)
 	verifyKeysExists(t, PATH, []string{"", "/1"}, true)
 }
 
 func TestKeyShouldBeDeletedOnDelete(t *testing.T) {
-	config := *configuration.GetConfig()
+	config := configuration.GetConfig()
 	populateProvidersWithFakeData()
 	rewriteBody(mockResponse(PATH+"/1", http.MethodDelete, "", 200), []providers.AbstractProviderInterface{mockRedis(), mockMemory()}, config)
 	verifyKeysExists(t, PATH, []string{"", "/1"}, true)

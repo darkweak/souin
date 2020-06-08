@@ -12,7 +12,7 @@ import (
 const REDISVALUE = "My first data"
 
 func TestIShouldBeAbleToReadAndWriteDataInRedis(t *testing.T) {
-	client := RedisConnectionFactory(*configuration.GetConfig())
+	client := RedisConnectionFactory(configuration.GetConfig())
 	err := client.Set(client.Context(), "Test", string(REDISVALUE), time.Duration(10)*time.Second).Err()
 	if err != nil {
 		errors.GenerateError(t, "Impossible to set redis variable")
