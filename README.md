@@ -2,9 +2,9 @@
 
 # Souin Table of Contents
 1. [Souin reverse-proxy cache](#project-description)
-2. [Environment variables](#environment-variables)  
-  2.1. [Required variables](#required-variables)  
-  2.2. [Optional variables](#optional-variables)
+2. [Configuration](#configuration)  
+  2.1. [Required configuration](#required-configuration)  
+  2.2. [Optional configuration](#optional-configuration)
 3. [Diagrams](#diagrams)  
   3.1. [Sequence diagram](#sequence-diagram)
 4. [Cache systems](#cache-systems)
@@ -21,21 +21,50 @@
 Souin is a new cache system suitable for every reverse-proxy. It will be placed on top of your current reverse-proxy whether it's Apache, Nginx or Traefik.  
 As it's written in go, it can be deployed on any server and thanks docker integration, it will be easy to install it on top of a Swarm or a kubernetes instance.
 
-## Environment variables
+## Configuration
+The configuration file is stored at `configuration/configuration.yml`. You can edit it as your needs following these required and optional parameters below.
 
-### Required variables
-|  Variable  |  Description  |  Value example  |
-|:---:|:---:|:---:|
-|`CACHE_PORT`|The HTTP port Souin will be listening on |`80`|
-|`CACHE_TLS_PORT`|The TLS port Souin will be listening on|`443`|
-|`REDIS_URL`|The redis instance URL|- `http://redis` (Container way)<br/>`http://localhost:6379` (Local way)|
-|`TTL`|Duration to cache request (in seconds)|10|
-|`REVERSE_PROXY`|The reverse-proxy's instance URL (Apache, Nginx, Træfik...)|- `http://yourservice` (Container way)<br/>`http://localhost:81` (Local way)|
+### Required configuration
+```yaml
+ttl: 100 #TTL in second
+reverse_proxy_url: 'http://traefik' # The reverse-proxy http address
+cache:
+  port:
+    web: 80
+    tls: 443
+```
+This is a fully working minimal configuration for Souin instance
 
-### Optional variables
-|  Variable  |  Description  |  Value example  |
+|  Key  |  Description  |  Value example  |
 |:---:|:---:|:---:|
-|`REGEX`|The regex that matches URLs not to store in cache|`http://domain.com/mypath`|
+|`ttl`|Duration to cache request (in seconds)|10|
+|`reverse_proxy_url`|The reverse-proxy's instance URL (Apache, Nginx, Træfik...)|- `http://yourservice` (Container way)<br/>`http://localhost:81` (Local way)|
+|`cache.port.{web,tls}`|The device local HTTP/TLS port Souin will be listening on |respectively `80` and `443`|
+
+### Optional configuration
+```yaml
+redis:
+  url: 'redis:6379' # Redis http address used only for redis provider
+regex:
+  exclude: 'ARegexHere'
+ssl_providers: # Must match your volumes to /ssl/{provider}.json
+  - traefik
+cache:
+  headers:
+    - Authorization # Can be any other headers
+  providers: # By defautl it will use in-memory and redis third-party cache. It can be `all`, `redis` or `memory` declaration
+    - all # Can be set to all if you want to enable all providers instead of specifying each one
+#    - memory
+#    - redis
+```
+
+|  Key  |  Description  |  Value example  |
+|:---:|:---:|:---:|
+|`redis.url`|The redis url, used if you enabled redis in providers|`redis:6379` (container way) and `http://yourdomain.com:6379` (network way)|
+|`regex.exclude`|The regex used to prevent paths being cached|`^[A-z]+.*$`|
+|`ssl_providers`|Your providers manage certificates list|`- traefik`<br/><br/>`- nginx`<br/><br/>`- apache`|
+|`cache.headers`|List of headers to include to the cache stored key|`- Authorization`<br/><br/>`- Content-Type`<br/><br/>`- X-Additional-Header`|
+|`cache.providers`|Your providers list to cache your data, by default it will use all systems (then by default you have to declare redis url)|`- all`<br/><br/>`- memory`<br/><br/>`- redis`|
 
 ## Diagrams
 
@@ -102,15 +131,10 @@ services:
     depends_on:
       - redis
     environment:
-      REDIS_URL: ${REDIS_URL}
-      TTL: ${TTL}
-      CACHE_PORT: ${CACHE_PORT}
-      CACHE_TLS_PORT: ${CACHE_TLS_PORT}
-      REVERSE_PROXY: ${REVERSE_PROXY}
-      REGEX: ${REGEX}
       GOPATH: /app
     volumes:
       - ./cmd:/app/cmd
+      - /anywhere/traefik.json:/ssl/traefik.json
       - /anywhere/traefik.json:/ssl/traefik.json
     <<: *networks
 
