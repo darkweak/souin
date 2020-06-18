@@ -135,7 +135,6 @@ services:
     volumes:
       - ./cmd:/app/cmd
       - /anywhere/traefik.json:/ssl/traefik.json
-      - /anywhere/traefik.json:/ssl/traefik.json
     <<: *networks
 
   redis:
