@@ -126,8 +126,8 @@ services:
     build:
       context: .
     ports:
-      - ${CACHE_PORT}:80
-      - ${CACHE_TLS_PORT}:443
+      - 80:80
+      - 443:443
     depends_on:
       - redis
     environment:
