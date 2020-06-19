@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/fsnotify/fsnotify"
+	"github.com/darkweak/souin/configuration"
 )
 
 // CommonProvider contains a Certificate map
@@ -24,18 +25,10 @@ type Certificate struct {
 	key         string
 }
 
-func getProviders() []string {
-	return []string{
-		"traefik",
-		"apache",
-		"nginx",
-	}
-}
-
 // InitProviders function allow to init certificates and be able to exploit data as needed
-func InitProviders(tlsconfig *tls.Config, configChannel *chan int) {
+func InitProviders(tlsconfig *tls.Config, configChannel *chan int, configuration configuration.Configuration) {
 	var providers []CommonProvider
-	for _, provider := range getProviders() {
+	for _, provider := range configuration.SSLProviders {
 		providers = append(providers, CommonProvider{
 			Certificates: make(map[string]Certificate),
 			fileLocation: fmt.Sprintf("/ssl/%s.json", provider),

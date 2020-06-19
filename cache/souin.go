@@ -7,24 +7,35 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"os"
-
 	cacheProviders "github.com/darkweak/souin/cache/providers"
 	"github.com/darkweak/souin/cache/service"
 	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/providers"
+	"github.com/darkweak/souin/configuration"
+	"strings"
 )
 
-func serveReverseProxy(res http.ResponseWriter, req *http.Request, providers *[]cacheProviders.AbstractProviderInterface) {
-	url, _ := url.Parse(os.Getenv("REVERSE_PROXY"))
+func serveReverseProxy(
+	res http.ResponseWriter,
+	req *http.Request,
+	providers *[]cacheProviders.AbstractProviderInterface,
+	configurationInstance configuration.Configuration,
+) {
+	u, _ := url.Parse(configurationInstance.ReverseProxyURL)
 	ctx := req.Context()
 
 	responses := make(chan types.ReverseResponse)
 	go func() {
-		for _, v := range *providers {
-			responses <- v.GetRequestInCache(string(req.Host + req.URL.Path))
+		headers := ""
+		if configurationInstance.Cache.Headers != nil && len(configurationInstance.Cache.Headers) > 0 {
+			for _, h := range configurationInstance.Cache.Headers {
+				headers += strings.ReplaceAll(req.Header.Get(h), " ", "")
+			}
 		}
-		responses <- service.RequestReverseProxy(req, url, *providers)
+		for _, v := range *providers {
+			responses <- v.GetRequestInCache(string(req.Host + req.URL.Path + headers))
+		}
+		responses <- service.RequestReverseProxy(req, u, *providers, configurationInstance)
 	}()
 	alreadySent := false
 
@@ -51,14 +62,14 @@ func serveReverseProxy(res http.ResponseWriter, req *http.Request, providers *[]
 	}
 }
 
-func startServer(tlsconfig *tls.Config) (net.Listener, *http.Server) {
-	tlsconfig.BuildNameToCertificate()
+func startServer(config *tls.Config) (net.Listener, *http.Server) {
+	config.BuildNameToCertificate()
 	server := http.Server{
 		Addr:      ":443",
 		Handler:   nil,
-		TLSConfig: tlsconfig,
+		TLSConfig: config,
 	}
-	listener, err := tls.Listen("tcp", ":443", tlsconfig)
+	listener, err := tls.Listen("tcp", ":443", config)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -74,10 +85,8 @@ func startServer(tlsconfig *tls.Config) (net.Listener, *http.Server) {
 
 // Start cache system
 func Start() {
-	providersList := []cacheProviders.AbstractProviderInterface{
-		cacheProviders.MemoryConnectionFactory(),
-		cacheProviders.RedisConnectionFactory(),
-	}
+	configurationInstance := configuration.GetConfig()
+	providersList := cacheProviders.InitializeProviders(configurationInstance)
 
 	configChannel := make(chan int)
 	tlsconfig := &tls.Config{
@@ -89,11 +98,11 @@ func Start() {
 	tlsconfig.Certificates = append(tlsconfig.Certificates, v)
 
 	go func() {
-		providers.InitProviders(tlsconfig, &configChannel)
+		providers.InitProviders(tlsconfig, &configChannel, configurationInstance)
 	}()
 
 	http.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
-		serveReverseProxy(writer, request, &providersList)
+		serveReverseProxy(writer, request, providersList, configurationInstance)
 	})
 	go func() {
 		listener, _ := startServer(tlsconfig)
@@ -106,7 +115,7 @@ func Start() {
 		}
 
 	}()
-	if err := http.ListenAndServe(":"+os.Getenv("CACHE_PORT"), nil); err != nil {
+	if err := http.ListenAndServe(":"+configurationInstance.Cache.Port.Web, nil); err != nil {
 		panic(err)
 	}
 

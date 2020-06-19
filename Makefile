@@ -21,12 +21,10 @@ down: ## Down containers
 env-dev: ## Up container with dev env vars
 	cp Dockerfile-dev Dockerfile
 	cp docker-compose.yml.dev docker-compose.yml
-	cp .env.dev .env
 
 env-prod: ## Up container with prod env vars
 	cp Dockerfile-prod Dockerfile
 	cp docker-compose.yml.prod docker-compose.yml
-	cp .env.prod .env
 
 generate-plantUML: ## Generate plantUML diagrams
 	cd ./docs/plantUML && sh generate.sh && cd ../..

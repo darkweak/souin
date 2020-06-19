@@ -5,23 +5,25 @@ import (
 	"log"
 
 	"gopkg.in/yaml.v2"
+	"os"
 )
 
 // Port config
 type Port struct {
 	Web string `yaml:"web"`
-	Tls string `yaml:"tls"`
+	TLS string `yaml:"tls"`
 }
 
 //Cache config
 type Cache struct {
-	Mode string `yaml:"mode"`
-	Port Port   `yaml:"port"`
+	Headers   []string `yaml:"headers"`
+	Providers []string `yaml:"providers"`
+	Port      Port     `yaml:"port"`
 }
 
 //Redis config
 type Redis struct {
-	Url string `yaml:"url"`
+	URL string `yaml:"url"`
 }
 
 //Regex config
@@ -31,11 +33,12 @@ type Regex struct {
 
 //Configuration holder
 type Configuration struct {
-	Redis           Redis  `yaml:"redis"`
-	TTL             string `yaml:"ttl"`
-	ReverseProxyUrl string `yaml:"reverse_proxy_url"`
-	Regex           Regex  `yaml:"regex"`
-	Cache           Cache  `yaml:"cache"`
+	Redis           Redis    `yaml:"redis"`
+	TTL             string   `yaml:"ttl"`
+	SSLProviders    []string `yaml:"ssl_providers"`
+	ReverseProxyURL string   `yaml:"reverse_proxy_url"`
+	Regex           Regex    `yaml:"regex"`
+	Cache           Cache    `yaml:"cache"`
 }
 
 // Parse configuration
@@ -56,8 +59,7 @@ func readFile(path string) []byte {
 
 // GetConfig allow to retrieve Souin configuration through yaml file
 func GetConfig() Configuration {
-	configFile := "./configuration.yml"
-	data := readFile(configFile)
+	data := readFile(os.Getenv("GOPATH") + "/src/github.com/darkweak/souin/configuration/configuration.yml")
 	var config Configuration
 	if err := config.Parse(data); err != nil {
 		log.Fatal(err)
