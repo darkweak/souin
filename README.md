@@ -19,10 +19,10 @@
 
 ## Project description
 Souin is a new cache system suitable for every reverse-proxy. It will be placed on top of your current reverse-proxy whether it's Apache, Nginx or Traefik.  
-As it's written in go, it can be deployed on any server and thanks docker integration, it will be easy to install it on top of a Swarm or a kubernetes instance.
+As it's written in go, it can be deployed on any server and thanks to the docker integration, it will be easy to install on top of a Swarm or a kubernetes instance.
 
 ## Configuration
-The configuration file is stored at `configuration/configuration.yml`. You can edit it as your needs following these required and optional parameters below.
+The configuration file is stored at `configuration/configuration.yml`. You can edit it provided you fill at least the required parameters as shown below.
 
 ### Required configuration
 ```yaml
@@ -33,18 +33,18 @@ cache:
     web: 80
     tls: 443
 ```
-This is a fully working minimal configuration for Souin instance
+This is a fully working minimal configuration for a Souin instance
 
 |  Key  |  Description  |  Value example  |
 |:---:|:---:|:---:|
 |`ttl`|Duration to cache request (in seconds)|10|
 |`reverse_proxy_url`|The reverse-proxy's instance URL (Apache, Nginx, Træfik...)|- `http://yourservice` (Container way)<br/>`http://localhost:81` (Local way)|
-|`cache.port.{web,tls}`|The device local HTTP/TLS port Souin will be listening on |respectively `80` and `443`|
+|`cache.port.{web,tls}`|The device's local HTTP/TLS port that Souin should be listening on |Respectively `80` and `443`|
 
 ### Optional configuration
 ```yaml
 redis:
-  url: 'redis:6379' # Redis http address used only for redis provider
+  url: 'redis:6379' # Redis http address, only used for redis provider
 regex:
   exclude: 'ARegexHere'
 ssl_providers: # Must match your volumes to /ssl/{provider}.json
@@ -52,7 +52,7 @@ ssl_providers: # Must match your volumes to /ssl/{provider}.json
 cache:
   headers:
     - Authorization # Can be any other headers
-  providers: # By defautl it will use in-memory and redis third-party cache. It can be `all`, `redis` or `memory` declaration
+  providers: # By default it will use in-memory and redis cache. It can be either `all`, `redis` or `memory`. 
     - all # Can be set to all if you want to enable all providers instead of specifying each one
 #    - memory
 #    - redis
@@ -60,11 +60,11 @@ cache:
 
 |  Key  |  Description  |  Value example  |
 |:---:|:---:|:---:|
-|`redis.url`|The redis url, used if you enabled redis in providers|`redis:6379` (container way) and `http://yourdomain.com:6379` (network way)|
+|`redis.url`|The redis url, used if you enabled it in the provider section|`redis:6379` (container way) and `http://yourdomain.com:6379` (network way)|
 |`regex.exclude`|The regex used to prevent paths being cached|`^[A-z]+.*$`|
-|`ssl_providers`|Your providers manage certificates list|`- traefik`<br/><br/>`- nginx`<br/><br/>`- apache`|
-|`cache.headers`|List of headers to include to the cache stored key|`- Authorization`<br/><br/>`- Content-Type`<br/><br/>`- X-Additional-Header`|
-|`cache.providers`|Your providers list to cache your data, by default it will use all systems (then by default you have to declare redis url)|`- all`<br/><br/>`- memory`<br/><br/>`- redis`|
+|`ssl_providers`|List of your providers handling certificates|`- traefik`<br/><br/>`- nginx`<br/><br/>`- apache`|
+|`cache.headers`|List of headers to include to the cache|`- Authorization`<br/><br/>`- Content-Type`<br/><br/>`- X-Additional-Header`|
+|`cache.providers`|Your providers list to cache your data, by default it will use all systems|`- all`<br/><br/>`- memory`<br/><br/>`- redis`|
 
 ## Diagrams
 
@@ -72,14 +72,14 @@ cache:
 <img src="docs/plantUML/sequenceDiagram.svg?sanitize=true" alt="Sequence diagram">
 
 ## Cache systems
-The cache system sits on two providers at the moment. It provides an in-memory and redis cache systems because setting, getting, updating and deleting keys in Redis is as easy as it gets.  
-In order to do that, Redis could be on the same network than the Souin instance when using docker-compose or over the internet then it will use by default in-memory to avoid network latency as much as possible. 
+The cache system sits on top of two providers at the moment. It provides an in-memory and redis cache systems because setting, getting, updating and deleting keys in Redis is as easy as it gets.  
+In order to do that, Redis needs to be either on the same network than the Souin instance when using docker-compose or over the internet, then it will use by default in-memory to avoid network latency as much as possible. 
 Souin will return at first the in-memory response when it gives a non-empty response, then the redis one will be used with same condition, or fallback to the reverse proxy otherwise.
 
 ### Cache invalidation
 The cache invalidation is made for CRUD requests, if you're doing a GET HTTP request, it will serve the cached response when it exists, otherwise the reverse-proxy response will be served.  
-If you're doing a POST, PUT, PATCH or DELETE HTTP request, the related cache GET request will be dropped and the list endpoint will be dropped too  
-It works very well with plain [API Platform](https://api-platform.com) integration (not for custom actions for now) and CRUD routes.
+If you're doing a POST, PUT, PATCH or DELETE HTTP request, the related cache GET request and the list endpoint will be dropped.  
+It works very well with plain [API Platform](https://api-platform.com) integration (not for custom actions at the moment) and CRUD routes.
 
 ## Examples
 
@@ -150,25 +150,25 @@ networks:
 
 ### Træfik
 As Souin is compatible with Træfik, it can use (and it should use) `traefik.json` provided on træfik. Souin will get new/updated certs from Træfik, then your SSL certs will be up to date as far as Træfik will be too
-To provide, acme, use just have to map volume as above
+To provide, acme, you just have to map volume as above
 ```yaml
     volumes:
       - /anywhere/traefik.json:/ssl/traefik.json
 ```
 ### Apache
-Souin will listen `apache.json` file. You have to setup your own way to aggregate your SSL cert files and keys. Alternatively you can use a side project called [dob](https://github.com/darkweak/dob), it's open-source and written in go too
+Souin will listen to the `apache.json` file. You have to setup your own way to aggregate your SSL cert files and keys. Alternatively you can use a side project called [dob](https://github.com/darkweak/dob), it's open-source and written in go too
 ```yaml
     volumes:
       - /anywhere/apache.json:/ssl/apache.json
 ```
 ### Nginx
-Souin will listen `nginx.json` file. You have to setup your own way to aggregate your SSL cert files and keys. Alternatively you can use a side project called [dob](https://github.com/darkweak/dob), it's open-source and written in go too
+Souin will listen to the `nginx.json` file. You have to setup your own way to aggregate your SSL cert files and keys. Alternatively you can use a side project called [dob](https://github.com/darkweak/dob), it's open-source and written in go too
 ```yaml
     volumes:
       - /anywhere/nginx.json:/ssl/nginx.json
 ```
-At the moment you can't choose the path for the `*.json` in the container, they have to be placed in the `/ssl` folder. In the future you'll be able to do that just setting one env var
-If none `*.json` is provided to container, a default cert will be served.
+At the moment you can't choose the path for the `*.json` file in the container, they have to be placed in the `/ssl` folder. In the future you'll be able to do that by setting one env var
+If none `*.json` file is provided to container, a default cert will be served.
 
 
 ## Credits
