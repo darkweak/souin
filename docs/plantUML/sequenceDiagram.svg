@@ -1,4 +1,413 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" contentScriptType="application/ecmascript" contentStyleType="text/css" height="860px" preserveAspectRatio="none" style="width:787px;height:860px;" version="1.1" viewBox="0 0 787 860" width="787px" zoomAndPan="magnify"><defs><filter height="300%" id="few23beh9x6dx" width="300%" x="-1" y="-1"><feGaussianBlur result="blurOut" stdDeviation="2.0"/><feColorMatrix in="blurOut" result="blurOut2" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .4 0"/><feOffset dx="4.0" dy="4.0" in="blurOut2" result="blurOut3"/><feBlend in="SourceGraphic" in2="blurOut3" mode="normal"/></filter></defs><g><rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="332.4609" style="stroke: #A80036; stroke-width: 1.0;" width="10" x="37" y="415.4297"/><rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="233.0625" style="stroke: #FFFFFF; stroke-width: 1.0;" width="10" x="94.5" y="96.2969"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="94.5" x2="94.5" y1="96.2969" y2="329.3594"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="104.5" x2="104.5" y1="96.2969" y2="329.3594"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="94.5" x2="104.5" y1="96.2969" y2="96.2969"/><rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="393.7266" style="stroke: #FFFFFF; stroke-width: 1.0;" width="10" x="94.5" y="370.1641"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="94.5" x2="94.5" y1="370.1641" y2="763.8906"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="104.5" x2="104.5" y1="370.1641" y2="763.8906"/><rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="182.7969" style="stroke: #FFFFFF; stroke-width: 1.0;" width="10" x="165.5" y="146.5625"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="165.5" x2="165.5" y1="146.5625" y2="329.3594"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="175.5" x2="175.5" y1="146.5625" y2="329.3594"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="165.5" x2="175.5" y1="146.5625" y2="146.5625"/><rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="393.7266" style="stroke: #FFFFFF; stroke-width: 1.0;" width="10" x="165.5" y="370.1641"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="165.5" x2="165.5" y1="370.1641" y2="763.8906"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="175.5" x2="175.5" y1="370.1641" y2="763.8906"/><rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="153.6641" style="stroke: #FFFFFF; stroke-width: 1.0;" width="10" x="315.5" y="175.6953"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="315.5" x2="315.5" y1="175.6953" y2="329.3594"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="325.5" x2="325.5" y1="175.6953" y2="329.3594"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="315.5" x2="325.5" y1="175.6953" y2="175.6953"/><rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="393.7266" style="stroke: #FFFFFF; stroke-width: 1.0;" width="10" x="315.5" y="370.1641"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="315.5" x2="315.5" y1="370.1641" y2="763.8906"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="325.5" x2="325.5" y1="370.1641" y2="763.8906"/><rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="124.5313" style="stroke: #FFFFFF; stroke-width: 1.0;" width="10" x="525.5" y="204.8281"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="525.5" x2="525.5" y1="204.8281" y2="329.3594"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="535.5" x2="535.5" y1="204.8281" y2="329.3594"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="525.5" x2="535.5" y1="204.8281" y2="204.8281"/><rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="393.7266" style="stroke: #FFFFFF; stroke-width: 1.0;" width="10" x="525.5" y="370.1641"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="525.5" x2="525.5" y1="370.1641" y2="763.8906"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="535.5" x2="535.5" y1="370.1641" y2="763.8906"/><rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="66.2656" style="stroke: #FFFFFF; stroke-width: 1.0;" width="10" x="600.5" y="263.0938"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="600.5" x2="600.5" y1="263.0938" y2="329.3594"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="610.5" x2="610.5" y1="263.0938" y2="329.3594"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="600.5" x2="610.5" y1="263.0938" y2="263.0938"/><rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="393.7266" style="stroke: #FFFFFF; stroke-width: 1.0;" width="10" x="600.5" y="370.1641"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="600.5" x2="600.5" y1="370.1641" y2="763.8906"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="610.5" x2="610.5" y1="370.1641" y2="763.8906"/><rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="211.9297" style="stroke: #FFFFFF; stroke-width: 1.0;" width="10" x="695" y="117.4297"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="695" x2="695" y1="117.4297" y2="329.3594"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="705" x2="705" y1="117.4297" y2="329.3594"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="695" x2="705" y1="117.4297" y2="117.4297"/><rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="393.7266" style="stroke: #FFFFFF; stroke-width: 1.0;" width="10" x="695" y="370.1641"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="695" x2="695" y1="370.1641" y2="763.8906"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="705" x2="705" y1="370.1641" y2="763.8906"/><rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="378.7266" style="stroke: #000000; stroke-width: 2.0;" width="763" x="13" y="377.1641"/><rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="108.5313" style="stroke: #000000; stroke-width: 2.0;" width="634" x="132" y="430.4297"/><rect fill="#FFFFFF" height="31.1328" style="stroke: none; stroke-width: 1.0;" width="634" x="132" y="476.6953"/><rect fill="#FFFFFF" height="31.1328" style="stroke: none; stroke-width: 1.0;" width="634" x="132" y="507.8281"/><rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="166.7969" style="stroke: #000000; stroke-width: 2.0;" width="634" x="132" y="552.9609"/><rect fill="#FFFFFF" height="31.1328" style="stroke: none; stroke-width: 1.0;" width="634" x="132" y="599.2266"/><rect fill="#FFFFFF" height="89.3984" style="stroke: none; stroke-width: 1.0;" width="634" x="132" y="630.3594"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="42" x2="42" y1="86.2969" y2="329.3594"/><line style="stroke: #A80036; stroke-width: 1.0; stroke-dasharray: 1.0,4.0;" x1="42" x2="42" y1="329.3594" y2="370.1641"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="42" x2="42" y1="370.1641" y2="772.8906"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="99" x2="99" y1="86.2969" y2="329.3594"/><line style="stroke: #A80036; stroke-width: 1.0; stroke-dasharray: 1.0,4.0;" x1="99" x2="99" y1="329.3594" y2="370.1641"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="99" x2="99" y1="370.1641" y2="772.8906"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="170" x2="170" y1="86.2969" y2="329.3594"/><line style="stroke: #A80036; stroke-width: 1.0; stroke-dasharray: 1.0,4.0;" x1="170" x2="170" y1="329.3594" y2="370.1641"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="170" x2="170" y1="370.1641" y2="772.8906"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="320.5" x2="320.5" y1="86.2969" y2="329.3594"/><line style="stroke: #A80036; stroke-width: 1.0; stroke-dasharray: 1.0,4.0;" x1="320.5" x2="320.5" y1="329.3594" y2="370.1641"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="320.5" x2="320.5" y1="370.1641" y2="772.8906"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="530" x2="530" y1="86.2969" y2="329.3594"/><line style="stroke: #A80036; stroke-width: 1.0; stroke-dasharray: 1.0,4.0;" x1="530" x2="530" y1="329.3594" y2="370.1641"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="530" x2="530" y1="370.1641" y2="772.8906"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="605" x2="605" y1="86.2969" y2="329.3594"/><line style="stroke: #A80036; stroke-width: 1.0; stroke-dasharray: 1.0,4.0;" x1="605" x2="605" y1="329.3594" y2="370.1641"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="605" x2="605" y1="370.1641" y2="772.8906"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="700" x2="700" y1="86.2969" y2="329.3594"/><line style="stroke: #A80036; stroke-width: 1.0; stroke-dasharray: 1.0,4.0;" x1="700" x2="700" y1="329.3594" y2="370.1641"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="700" x2="700" y1="370.1641" y2="772.8906"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="32" x="23" y="82.9951">User</text><ellipse cx="42" cy="13" fill="#FEFECE" filter="url(#few23beh9x6dx)" rx="8" ry="8" style="stroke: #A80036; stroke-width: 2.0;"/><path d="M42,21 L42,48 M29,29 L55,29 M42,48 L29,63 M42,48 L55,63 " fill="none" filter="url(#few23beh9x6dx)" style="stroke: #A80036; stroke-width: 2.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="32" x="23" y="784.8857">User</text><ellipse cx="42" cy="798.1875" fill="#FEFECE" filter="url(#few23beh9x6dx)" rx="8" ry="8" style="stroke: #A80036; stroke-width: 2.0;"/><path d="M42,806.1875 L42,833.1875 M29,814.1875 L55,814.1875 M42,833.1875 L29,848.1875 M42,833.1875 L55,848.1875 " fill="none" filter="url(#few23beh9x6dx)" style="stroke: #A80036; stroke-width: 2.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="51" x="71" y="82.9951">System</text><ellipse cx="99.5" cy="13" fill="#FEFECE" filter="url(#few23beh9x6dx)" rx="8" ry="8" style="stroke: #A80036; stroke-width: 2.0;"/><path d="M99.5,21 L99.5,48 M86.5,29 L112.5,29 M99.5,48 L86.5,63 M99.5,48 L112.5,63 " fill="none" filter="url(#few23beh9x6dx)" style="stroke: #A80036; stroke-width: 2.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="51" x="71" y="784.8857">System</text><ellipse cx="99.5" cy="798.1875" fill="#FEFECE" filter="url(#few23beh9x6dx)" rx="8" ry="8" style="stroke: #A80036; stroke-width: 2.0;"/><path d="M99.5,806.1875 L99.5,833.1875 M86.5,814.1875 L112.5,814.1875 M99.5,833.1875 L86.5,848.1875 M99.5,833.1875 L112.5,848.1875 " fill="none" filter="url(#few23beh9x6dx)" style="stroke: #A80036; stroke-width: 2.0;"/><rect fill="#FEFECE" filter="url(#few23beh9x6dx)" height="30.2969" style="stroke: #A80036; stroke-width: 1.5;" width="53" x="142" y="51"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="39" x="149" y="70.9951">Souin</text><rect fill="#FEFECE" filter="url(#few23beh9x6dx)" height="30.2969" style="stroke: #A80036; stroke-width: 1.5;" width="53" x="142" y="771.8906"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="39" x="149" y="791.8857">Souin</text><rect fill="#FEFECE" filter="url(#few23beh9x6dx)" height="30.2969" style="stroke: #A80036; stroke-width: 1.5;" width="78" x="281.5" y="47"/><rect fill="#FEFECE" filter="url(#few23beh9x6dx)" height="30.2969" style="stroke: #A80036; stroke-width: 1.5;" width="78" x="277.5" y="51"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="64" x="284.5" y="70.9951">Providers</text><rect fill="#FEFECE" filter="url(#few23beh9x6dx)" height="30.2969" style="stroke: #A80036; stroke-width: 1.5;" width="78" x="281.5" y="771.8906"/><rect fill="#FEFECE" filter="url(#few23beh9x6dx)" height="30.2969" style="stroke: #A80036; stroke-width: 1.5;" width="78" x="277.5" y="775.8906"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="64" x="284.5" y="795.8857">Providers</text><rect fill="#FEFECE" filter="url(#few23beh9x6dx)" height="30.2969" style="stroke: #A80036; stroke-width: 1.5;" width="69" x="494" y="51"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="55" x="501" y="70.9951">Memory</text><rect fill="#FEFECE" filter="url(#few23beh9x6dx)" height="30.2969" style="stroke: #A80036; stroke-width: 1.5;" width="69" x="494" y="771.8906"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="55" x="501" y="791.8857">Memory</text><rect fill="#FEFECE" filter="url(#few23beh9x6dx)" height="30.2969" style="stroke: #A80036; stroke-width: 1.5;" width="53" x="577" y="51"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="39" x="584" y="70.9951">Redis</text><rect fill="#FEFECE" filter="url(#few23beh9x6dx)" height="30.2969" style="stroke: #A80036; stroke-width: 1.5;" width="53" x="577" y="771.8906"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="39" x="584" y="791.8857">Redis</text><rect fill="#FEFECE" filter="url(#few23beh9x6dx)" height="30.2969" style="stroke: #A80036; stroke-width: 1.5;" width="108" x="644" y="51"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="94" x="651" y="70.9951">ReverseProxy</text><rect fill="#FEFECE" filter="url(#few23beh9x6dx)" height="30.2969" style="stroke: #A80036; stroke-width: 1.5;" width="108" x="644" y="771.8906"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="94" x="651" y="791.8857">ReverseProxy</text><rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="332.4609" style="stroke: #A80036; stroke-width: 1.0;" width="10" x="37" y="415.4297"/><rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="233.0625" style="stroke: #FFFFFF; stroke-width: 1.0;" width="10" x="94.5" y="96.2969"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="94.5" x2="94.5" y1="96.2969" y2="329.3594"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="104.5" x2="104.5" y1="96.2969" y2="329.3594"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="94.5" x2="104.5" y1="96.2969" y2="96.2969"/><rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="393.7266" style="stroke: #FFFFFF; stroke-width: 1.0;" width="10" x="94.5" y="370.1641"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="94.5" x2="94.5" y1="370.1641" y2="763.8906"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="104.5" x2="104.5" y1="370.1641" y2="763.8906"/><rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="182.7969" style="stroke: #FFFFFF; stroke-width: 1.0;" width="10" x="165.5" y="146.5625"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="165.5" x2="165.5" y1="146.5625" y2="329.3594"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="175.5" x2="175.5" y1="146.5625" y2="329.3594"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="165.5" x2="175.5" y1="146.5625" y2="146.5625"/><rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="393.7266" style="stroke: #FFFFFF; stroke-width: 1.0;" width="10" x="165.5" y="370.1641"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="165.5" x2="165.5" y1="370.1641" y2="763.8906"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="175.5" x2="175.5" y1="370.1641" y2="763.8906"/><rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="153.6641" style="stroke: #FFFFFF; stroke-width: 1.0;" width="10" x="315.5" y="175.6953"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="315.5" x2="315.5" y1="175.6953" y2="329.3594"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="325.5" x2="325.5" y1="175.6953" y2="329.3594"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="315.5" x2="325.5" y1="175.6953" y2="175.6953"/><rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="393.7266" style="stroke: #FFFFFF; stroke-width: 1.0;" width="10" x="315.5" y="370.1641"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="315.5" x2="315.5" y1="370.1641" y2="763.8906"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="325.5" x2="325.5" y1="370.1641" y2="763.8906"/><rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="124.5313" style="stroke: #FFFFFF; stroke-width: 1.0;" width="10" x="525.5" y="204.8281"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="525.5" x2="525.5" y1="204.8281" y2="329.3594"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="535.5" x2="535.5" y1="204.8281" y2="329.3594"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="525.5" x2="535.5" y1="204.8281" y2="204.8281"/><rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="393.7266" style="stroke: #FFFFFF; stroke-width: 1.0;" width="10" x="525.5" y="370.1641"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="525.5" x2="525.5" y1="370.1641" y2="763.8906"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="535.5" x2="535.5" y1="370.1641" y2="763.8906"/><rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="66.2656" style="stroke: #FFFFFF; stroke-width: 1.0;" width="10" x="600.5" y="263.0938"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="600.5" x2="600.5" y1="263.0938" y2="329.3594"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="610.5" x2="610.5" y1="263.0938" y2="329.3594"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="600.5" x2="610.5" y1="263.0938" y2="263.0938"/><rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="393.7266" style="stroke: #FFFFFF; stroke-width: 1.0;" width="10" x="600.5" y="370.1641"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="600.5" x2="600.5" y1="370.1641" y2="763.8906"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="610.5" x2="610.5" y1="370.1641" y2="763.8906"/><rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="211.9297" style="stroke: #FFFFFF; stroke-width: 1.0;" width="10" x="695" y="117.4297"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="695" x2="695" y1="117.4297" y2="329.3594"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="705" x2="705" y1="117.4297" y2="329.3594"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="695" x2="705" y1="117.4297" y2="117.4297"/><rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="393.7266" style="stroke: #FFFFFF; stroke-width: 1.0;" width="10" x="695" y="370.1641"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="695" x2="695" y1="370.1641" y2="763.8906"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="705" x2="705" y1="370.1641" y2="763.8906"/><polygon fill="#A80036" points="683,113.4297,693,117.4297,683,121.4297,687,117.4297" style="stroke: #A80036; stroke-width: 1.0;"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="104.5" x2="689" y1="117.4297" y2="117.4297"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="31" x="111.5" y="112.3638">run()</text><polygon fill="#A80036" points="153.5,142.5625,163.5,146.5625,153.5,150.5625,157.5,146.5625" style="stroke: #A80036; stroke-width: 1.0;"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="104.5" x2="159.5" y1="146.5625" y2="146.5625"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="42" x="111.5" y="141.4966">main()</text><polygon fill="#A80036" points="303.5,171.6953,313.5,175.6953,303.5,179.6953,307.5,175.6953" style="stroke: #A80036; stroke-width: 1.0;"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="175.5" x2="309.5" y1="175.6953" y2="175.6953"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="29" x="182.5" y="170.6294">Init()</text><polygon fill="#A80036" points="513.5,200.8281,523.5,204.8281,513.5,208.8281,517.5,204.8281" style="stroke: #A80036; stroke-width: 1.0;"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="325.5" x2="519.5" y1="204.8281" y2="204.8281"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="181" x="332.5" y="199.7622">MemoryConnectionFactory()</text><polygon fill="#A80036" points="336.5,229.9609,326.5,233.9609,336.5,237.9609,332.5,233.9609" style="stroke: #A80036; stroke-width: 1.0;"/><line style="stroke: #A80036; stroke-width: 1.0; stroke-dasharray: 2.0,2.0;" x1="330.5" x2="524.5" y1="233.9609" y2="233.9609"/><ellipse cx="348" cy="224.4609" fill="#000000" rx="2.5" ry="2.5" style="stroke: #000000; stroke-width: 0.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="106" x="353.5" y="228.895">AbstractProvider</text><polygon fill="#A80036" points="588.5,259.0938,598.5,263.0938,588.5,267.0938,592.5,263.0938" style="stroke: #A80036; stroke-width: 1.0;"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="325.5" x2="594.5" y1="263.0938" y2="263.0938"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="163" x="332.5" y="258.0278">RedisConnectionFactory()</text><polygon fill="#A80036" points="336.5,288.2266,326.5,292.2266,336.5,296.2266,332.5,292.2266" style="stroke: #A80036; stroke-width: 1.0;"/><line style="stroke: #A80036; stroke-width: 1.0; stroke-dasharray: 2.0,2.0;" x1="330.5" x2="599.5" y1="292.2266" y2="292.2266"/><ellipse cx="348" cy="282.7266" fill="#000000" rx="2.5" ry="2.5" style="stroke: #000000; stroke-width: 0.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="106" x="353.5" y="287.1606">AbstractProvider</text><polygon fill="#A80036" points="186.5,317.3594,176.5,321.3594,186.5,325.3594,182.5,321.3594" style="stroke: #A80036; stroke-width: 1.0;"/><line style="stroke: #A80036; stroke-width: 1.0; stroke-dasharray: 2.0,2.0;" x1="180.5" x2="314.5" y1="321.3594" y2="321.3594"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="116" x="192.5" y="316.2935">AbstractProvider[]</text><text fill="#000000" font-family="sans-serif" font-size="11" lengthAdjust="spacingAndGlyphs" textLength="138" x="302" y="353.5698">Waiting for user request</text><path d="M13,377.1641 L90,377.1641 L90,384.1641 L80,394.1641 L13,394.1641 L13,377.1641 " fill="#EEEEEE" style="stroke: #000000; stroke-width: 1.0;"/><rect fill="none" height="378.7266" style="stroke: #000000; stroke-width: 2.0;" width="763" x="13" y="377.1641"/><text fill="#000000" font-family="sans-serif" font-size="13" font-weight="bold" lengthAdjust="spacingAndGlyphs" textLength="32" x="28" y="390.231">loop</text><text fill="#000000" font-family="sans-serif" font-size="11" font-weight="bold" lengthAdjust="spacingAndGlyphs" textLength="99" x="105" y="389.3745">[User requests]</text><polygon fill="#A80036" points="153.5,411.4297,163.5,415.4297,153.5,419.4297,157.5,415.4297" style="stroke: #A80036; stroke-width: 1.0;"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="47" x2="159.5" y1="415.4297" y2="415.4297"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="49" x="54" y="410.3638">request</text><path d="M132,430.4297 L202,430.4297 L202,437.4297 L192,447.4297 L132,447.4297 L132,430.4297 " fill="#EEEEEE" style="stroke: #000000; stroke-width: 1.0;"/><rect fill="none" height="108.5313" style="stroke: #000000; stroke-width: 2.0;" width="634" x="132" y="430.4297"/><text fill="#000000" font-family="sans-serif" font-size="13" font-weight="bold" lengthAdjust="spacingAndGlyphs" textLength="25" x="147" y="443.4966">par</text><text fill="#000000" font-family="sans-serif" font-size="11" font-weight="bold" lengthAdjust="spacingAndGlyphs" textLength="179" x="217" y="442.6401">[Request providers content]</text><polygon fill="#A80036" points="513.5,464.6953,523.5,468.6953,513.5,472.6953,517.5,468.6953" style="stroke: #A80036; stroke-width: 1.0;"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="175.5" x2="519.5" y1="468.6953" y2="468.6953"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="136" x="182.5" y="463.6294">GetRequestInCache()</text><line style="stroke: #000000; stroke-width: 1.0; stroke-dasharray: 2.0,2.0;" x1="132" x2="766" y1="477.6953" y2="477.6953"/><polygon fill="#A80036" points="588.5,495.8281,598.5,499.8281,588.5,503.8281,592.5,499.8281" style="stroke: #A80036; stroke-width: 1.0;"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="175.5" x2="594.5" y1="499.8281" y2="499.8281"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="136" x="182.5" y="494.7622">GetRequestInCache()</text><line style="stroke: #000000; stroke-width: 1.0; stroke-dasharray: 2.0,2.0;" x1="132" x2="766" y1="508.8281" y2="508.8281"/><polygon fill="#A80036" points="683,526.9609,693,530.9609,683,534.9609,687,530.9609" style="stroke: #A80036; stroke-width: 1.0;"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="175.5" x2="689" y1="530.9609" y2="530.9609"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="182" x="182.5" y="525.895">GetRequestInReverseProxy()</text><path d="M132,552.9609 L202,552.9609 L202,559.9609 L192,569.9609 L132,569.9609 L132,552.9609 " fill="#EEEEEE" style="stroke: #000000; stroke-width: 1.0;"/><rect fill="none" height="166.7969" style="stroke: #000000; stroke-width: 2.0;" width="634" x="132" y="552.9609"/><text fill="#000000" font-family="sans-serif" font-size="13" font-weight="bold" lengthAdjust="spacingAndGlyphs" textLength="25" x="147" y="566.0278">par</text><text fill="#000000" font-family="sans-serif" font-size="11" font-weight="bold" lengthAdjust="spacingAndGlyphs" textLength="189" x="217" y="565.1714">[Response providers content]</text><polygon fill="#A80036" points="186.5,587.2266,176.5,591.2266,186.5,595.2266,182.5,591.2266" style="stroke: #A80036; stroke-width: 1.0;"/><line style="stroke: #A80036; stroke-width: 1.0; stroke-dasharray: 2.0,2.0;" x1="180.5" x2="524.5" y1="591.2266" y2="591.2266"/><ellipse cx="198" cy="581.7266" fill="#000000" rx="2.5" ry="2.5" style="stroke: #000000; stroke-width: 0.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="62" x="203.5" y="586.1606">Response</text><line style="stroke: #000000; stroke-width: 1.0; stroke-dasharray: 2.0,2.0;" x1="132" x2="766" y1="600.2266" y2="600.2266"/><polygon fill="#A80036" points="186.5,618.3594,176.5,622.3594,186.5,626.3594,182.5,622.3594" style="stroke: #A80036; stroke-width: 1.0;"/><line style="stroke: #A80036; stroke-width: 1.0; stroke-dasharray: 2.0,2.0;" x1="180.5" x2="599.5" y1="622.3594" y2="622.3594"/><ellipse cx="198" cy="612.8594" fill="#000000" rx="2.5" ry="2.5" style="stroke: #000000; stroke-width: 0.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="62" x="203.5" y="617.2935">Response</text><line style="stroke: #000000; stroke-width: 1.0; stroke-dasharray: 2.0,2.0;" x1="132" x2="766" y1="631.3594" y2="631.3594"/><polygon fill="#A80036" points="186.5,649.4922,176.5,653.4922,186.5,657.4922,182.5,653.4922" style="stroke: #A80036; stroke-width: 1.0;"/><line style="stroke: #A80036; stroke-width: 1.0; stroke-dasharray: 2.0,2.0;" x1="180.5" x2="694" y1="653.4922" y2="653.4922"/><ellipse cx="198" cy="643.9922" fill="#000000" rx="2.5" ry="2.5" style="stroke: #000000; stroke-width: 0.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="62" x="203.5" y="648.4263">Response</text><polygon fill="#A80036" points="513.5,678.625,523.5,682.625,513.5,686.625,517.5,682.625" style="stroke: #A80036; stroke-width: 1.0;"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="175.5" x2="519.5" y1="682.625" y2="682.625"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="135" x="182.5" y="677.5591">SetRequestInCache()</text><polygon fill="#A80036" points="588.5,707.7578,598.5,711.7578,588.5,715.7578,592.5,711.7578" style="stroke: #A80036; stroke-width: 1.0;"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="175.5" x2="594.5" y1="711.7578" y2="711.7578"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="135" x="182.5" y="706.6919">SetRequestInCache()</text><polygon fill="#A80036" points="53,743.8906,43,747.8906,53,751.8906,49,747.8906" style="stroke: #A80036; stroke-width: 1.0;"/><line style="stroke: #A80036; stroke-width: 1.0;" x1="47" x2="164.5" y1="747.8906" y2="747.8906"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="59" x="59" y="742.8247">response</text><!--MD5=[cf2de7c8707d908cdf5dfdb77c959aeb]
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     contentScriptType="application/ecmascript" contentStyleType="text/css" height="860px" preserveAspectRatio="none"
+     style="width:787px;height:860px;" version="1.1" viewBox="0 0 787 860" width="787px" zoomAndPan="magnify">
+    <defs>
+        <filter height="300%" id="few23beh9x6dx" width="300%" x="-1" y="-1">
+            <feGaussianBlur result="blurOut" stdDeviation="2.0"/>
+            <feColorMatrix in="blurOut" result="blurOut2" type="matrix"
+                           values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .4 0"/>
+            <feOffset dx="4.0" dy="4.0" in="blurOut2" result="blurOut3"/>
+            <feBlend in="SourceGraphic" in2="blurOut3" mode="normal"/>
+        </filter>
+    </defs>
+    <g>
+        <rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="332.4609" style="stroke: #A80036; stroke-width: 1.0;"
+              width="10" x="37" y="415.4297"/>
+        <rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="233.0625" style="stroke: #FFFFFF; stroke-width: 1.0;"
+              width="10" x="94.5" y="96.2969"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="94.5" x2="94.5" y1="96.2969" y2="329.3594"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="104.5" x2="104.5" y1="96.2969" y2="329.3594"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="94.5" x2="104.5" y1="96.2969" y2="96.2969"/>
+        <rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="393.7266" style="stroke: #FFFFFF; stroke-width: 1.0;"
+              width="10" x="94.5" y="370.1641"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="94.5" x2="94.5" y1="370.1641" y2="763.8906"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="104.5" x2="104.5" y1="370.1641" y2="763.8906"/>
+        <rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="182.7969" style="stroke: #FFFFFF; stroke-width: 1.0;"
+              width="10" x="165.5" y="146.5625"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="165.5" x2="165.5" y1="146.5625" y2="329.3594"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="175.5" x2="175.5" y1="146.5625" y2="329.3594"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="165.5" x2="175.5" y1="146.5625" y2="146.5625"/>
+        <rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="393.7266" style="stroke: #FFFFFF; stroke-width: 1.0;"
+              width="10" x="165.5" y="370.1641"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="165.5" x2="165.5" y1="370.1641" y2="763.8906"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="175.5" x2="175.5" y1="370.1641" y2="763.8906"/>
+        <rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="153.6641" style="stroke: #FFFFFF; stroke-width: 1.0;"
+              width="10" x="315.5" y="175.6953"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="315.5" x2="315.5" y1="175.6953" y2="329.3594"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="325.5" x2="325.5" y1="175.6953" y2="329.3594"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="315.5" x2="325.5" y1="175.6953" y2="175.6953"/>
+        <rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="393.7266" style="stroke: #FFFFFF; stroke-width: 1.0;"
+              width="10" x="315.5" y="370.1641"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="315.5" x2="315.5" y1="370.1641" y2="763.8906"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="325.5" x2="325.5" y1="370.1641" y2="763.8906"/>
+        <rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="124.5313" style="stroke: #FFFFFF; stroke-width: 1.0;"
+              width="10" x="525.5" y="204.8281"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="525.5" x2="525.5" y1="204.8281" y2="329.3594"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="535.5" x2="535.5" y1="204.8281" y2="329.3594"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="525.5" x2="535.5" y1="204.8281" y2="204.8281"/>
+        <rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="393.7266" style="stroke: #FFFFFF; stroke-width: 1.0;"
+              width="10" x="525.5" y="370.1641"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="525.5" x2="525.5" y1="370.1641" y2="763.8906"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="535.5" x2="535.5" y1="370.1641" y2="763.8906"/>
+        <rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="66.2656" style="stroke: #FFFFFF; stroke-width: 1.0;"
+              width="10" x="600.5" y="263.0938"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="600.5" x2="600.5" y1="263.0938" y2="329.3594"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="610.5" x2="610.5" y1="263.0938" y2="329.3594"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="600.5" x2="610.5" y1="263.0938" y2="263.0938"/>
+        <rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="393.7266" style="stroke: #FFFFFF; stroke-width: 1.0;"
+              width="10" x="600.5" y="370.1641"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="600.5" x2="600.5" y1="370.1641" y2="763.8906"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="610.5" x2="610.5" y1="370.1641" y2="763.8906"/>
+        <rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="211.9297" style="stroke: #FFFFFF; stroke-width: 1.0;"
+              width="10" x="695" y="117.4297"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="695" x2="695" y1="117.4297" y2="329.3594"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="705" x2="705" y1="117.4297" y2="329.3594"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="695" x2="705" y1="117.4297" y2="117.4297"/>
+        <rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="393.7266" style="stroke: #FFFFFF; stroke-width: 1.0;"
+              width="10" x="695" y="370.1641"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="695" x2="695" y1="370.1641" y2="763.8906"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="705" x2="705" y1="370.1641" y2="763.8906"/>
+        <rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="378.7266" style="stroke: #000000; stroke-width: 2.0;"
+              width="763" x="13" y="377.1641"/>
+        <rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="108.5313" style="stroke: #000000; stroke-width: 2.0;"
+              width="634" x="132" y="430.4297"/>
+        <rect fill="#FFFFFF" height="31.1328" style="stroke: none; stroke-width: 1.0;" width="634" x="132"
+              y="476.6953"/>
+        <rect fill="#FFFFFF" height="31.1328" style="stroke: none; stroke-width: 1.0;" width="634" x="132"
+              y="507.8281"/>
+        <rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="166.7969" style="stroke: #000000; stroke-width: 2.0;"
+              width="634" x="132" y="552.9609"/>
+        <rect fill="#FFFFFF" height="31.1328" style="stroke: none; stroke-width: 1.0;" width="634" x="132"
+              y="599.2266"/>
+        <rect fill="#FFFFFF" height="89.3984" style="stroke: none; stroke-width: 1.0;" width="634" x="132"
+              y="630.3594"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="42" x2="42" y1="86.2969" y2="329.3594"/>
+        <line style="stroke: #A80036; stroke-width: 1.0; stroke-dasharray: 1.0,4.0;" x1="42" x2="42" y1="329.3594"
+              y2="370.1641"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="42" x2="42" y1="370.1641" y2="772.8906"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="99" x2="99" y1="86.2969" y2="329.3594"/>
+        <line style="stroke: #A80036; stroke-width: 1.0; stroke-dasharray: 1.0,4.0;" x1="99" x2="99" y1="329.3594"
+              y2="370.1641"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="99" x2="99" y1="370.1641" y2="772.8906"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="170" x2="170" y1="86.2969" y2="329.3594"/>
+        <line style="stroke: #A80036; stroke-width: 1.0; stroke-dasharray: 1.0,4.0;" x1="170" x2="170" y1="329.3594"
+              y2="370.1641"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="170" x2="170" y1="370.1641" y2="772.8906"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="320.5" x2="320.5" y1="86.2969" y2="329.3594"/>
+        <line style="stroke: #A80036; stroke-width: 1.0; stroke-dasharray: 1.0,4.0;" x1="320.5" x2="320.5" y1="329.3594"
+              y2="370.1641"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="320.5" x2="320.5" y1="370.1641" y2="772.8906"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="530" x2="530" y1="86.2969" y2="329.3594"/>
+        <line style="stroke: #A80036; stroke-width: 1.0; stroke-dasharray: 1.0,4.0;" x1="530" x2="530" y1="329.3594"
+              y2="370.1641"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="530" x2="530" y1="370.1641" y2="772.8906"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="605" x2="605" y1="86.2969" y2="329.3594"/>
+        <line style="stroke: #A80036; stroke-width: 1.0; stroke-dasharray: 1.0,4.0;" x1="605" x2="605" y1="329.3594"
+              y2="370.1641"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="605" x2="605" y1="370.1641" y2="772.8906"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="700" x2="700" y1="86.2969" y2="329.3594"/>
+        <line style="stroke: #A80036; stroke-width: 1.0; stroke-dasharray: 1.0,4.0;" x1="700" x2="700" y1="329.3594"
+              y2="370.1641"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="700" x2="700" y1="370.1641" y2="772.8906"/>
+        <text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="32"
+              x="23" y="82.9951">User
+        </text>
+        <ellipse cx="42" cy="13" fill="#FEFECE" filter="url(#few23beh9x6dx)" rx="8" ry="8"
+                 style="stroke: #A80036; stroke-width: 2.0;"/>
+        <path d="M42,21 L42,48 M29,29 L55,29 M42,48 L29,63 M42,48 L55,63 " fill="none" filter="url(#few23beh9x6dx)"
+              style="stroke: #A80036; stroke-width: 2.0;"/>
+        <text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="32"
+              x="23" y="784.8857">User
+        </text>
+        <ellipse cx="42" cy="798.1875" fill="#FEFECE" filter="url(#few23beh9x6dx)" rx="8" ry="8"
+                 style="stroke: #A80036; stroke-width: 2.0;"/>
+        <path d="M42,806.1875 L42,833.1875 M29,814.1875 L55,814.1875 M42,833.1875 L29,848.1875 M42,833.1875 L55,848.1875 "
+              fill="none" filter="url(#few23beh9x6dx)" style="stroke: #A80036; stroke-width: 2.0;"/>
+        <text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="51"
+              x="71" y="82.9951">System
+        </text>
+        <ellipse cx="99.5" cy="13" fill="#FEFECE" filter="url(#few23beh9x6dx)" rx="8" ry="8"
+                 style="stroke: #A80036; stroke-width: 2.0;"/>
+        <path d="M99.5,21 L99.5,48 M86.5,29 L112.5,29 M99.5,48 L86.5,63 M99.5,48 L112.5,63 " fill="none"
+              filter="url(#few23beh9x6dx)" style="stroke: #A80036; stroke-width: 2.0;"/>
+        <text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="51"
+              x="71" y="784.8857">System
+        </text>
+        <ellipse cx="99.5" cy="798.1875" fill="#FEFECE" filter="url(#few23beh9x6dx)" rx="8" ry="8"
+                 style="stroke: #A80036; stroke-width: 2.0;"/>
+        <path d="M99.5,806.1875 L99.5,833.1875 M86.5,814.1875 L112.5,814.1875 M99.5,833.1875 L86.5,848.1875 M99.5,833.1875 L112.5,848.1875 "
+              fill="none" filter="url(#few23beh9x6dx)" style="stroke: #A80036; stroke-width: 2.0;"/>
+        <rect fill="#FEFECE" filter="url(#few23beh9x6dx)" height="30.2969" style="stroke: #A80036; stroke-width: 1.5;"
+              width="53" x="142" y="51"/>
+        <text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="39"
+              x="149" y="70.9951">Souin
+        </text>
+        <rect fill="#FEFECE" filter="url(#few23beh9x6dx)" height="30.2969" style="stroke: #A80036; stroke-width: 1.5;"
+              width="53" x="142" y="771.8906"/>
+        <text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="39"
+              x="149" y="791.8857">Souin
+        </text>
+        <rect fill="#FEFECE" filter="url(#few23beh9x6dx)" height="30.2969" style="stroke: #A80036; stroke-width: 1.5;"
+              width="78" x="281.5" y="47"/>
+        <rect fill="#FEFECE" filter="url(#few23beh9x6dx)" height="30.2969" style="stroke: #A80036; stroke-width: 1.5;"
+              width="78" x="277.5" y="51"/>
+        <text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="64"
+              x="284.5" y="70.9951">Providers
+        </text>
+        <rect fill="#FEFECE" filter="url(#few23beh9x6dx)" height="30.2969" style="stroke: #A80036; stroke-width: 1.5;"
+              width="78" x="281.5" y="771.8906"/>
+        <rect fill="#FEFECE" filter="url(#few23beh9x6dx)" height="30.2969" style="stroke: #A80036; stroke-width: 1.5;"
+              width="78" x="277.5" y="775.8906"/>
+        <text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="64"
+              x="284.5" y="795.8857">Providers
+        </text>
+        <rect fill="#FEFECE" filter="url(#few23beh9x6dx)" height="30.2969" style="stroke: #A80036; stroke-width: 1.5;"
+              width="69" x="494" y="51"/>
+        <text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="55"
+              x="501" y="70.9951">Memory
+        </text>
+        <rect fill="#FEFECE" filter="url(#few23beh9x6dx)" height="30.2969" style="stroke: #A80036; stroke-width: 1.5;"
+              width="69" x="494" y="771.8906"/>
+        <text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="55"
+              x="501" y="791.8857">Memory
+        </text>
+        <rect fill="#FEFECE" filter="url(#few23beh9x6dx)" height="30.2969" style="stroke: #A80036; stroke-width: 1.5;"
+              width="53" x="577" y="51"/>
+        <text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="39"
+              x="584" y="70.9951">Redis
+        </text>
+        <rect fill="#FEFECE" filter="url(#few23beh9x6dx)" height="30.2969" style="stroke: #A80036; stroke-width: 1.5;"
+              width="53" x="577" y="771.8906"/>
+        <text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="39"
+              x="584" y="791.8857">Redis
+        </text>
+        <rect fill="#FEFECE" filter="url(#few23beh9x6dx)" height="30.2969" style="stroke: #A80036; stroke-width: 1.5;"
+              width="108" x="644" y="51"/>
+        <text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="94"
+              x="651" y="70.9951">ReverseProxy
+        </text>
+        <rect fill="#FEFECE" filter="url(#few23beh9x6dx)" height="30.2969" style="stroke: #A80036; stroke-width: 1.5;"
+              width="108" x="644" y="771.8906"/>
+        <text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="94"
+              x="651" y="791.8857">ReverseProxy
+        </text>
+        <rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="332.4609" style="stroke: #A80036; stroke-width: 1.0;"
+              width="10" x="37" y="415.4297"/>
+        <rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="233.0625" style="stroke: #FFFFFF; stroke-width: 1.0;"
+              width="10" x="94.5" y="96.2969"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="94.5" x2="94.5" y1="96.2969" y2="329.3594"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="104.5" x2="104.5" y1="96.2969" y2="329.3594"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="94.5" x2="104.5" y1="96.2969" y2="96.2969"/>
+        <rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="393.7266" style="stroke: #FFFFFF; stroke-width: 1.0;"
+              width="10" x="94.5" y="370.1641"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="94.5" x2="94.5" y1="370.1641" y2="763.8906"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="104.5" x2="104.5" y1="370.1641" y2="763.8906"/>
+        <rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="182.7969" style="stroke: #FFFFFF; stroke-width: 1.0;"
+              width="10" x="165.5" y="146.5625"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="165.5" x2="165.5" y1="146.5625" y2="329.3594"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="175.5" x2="175.5" y1="146.5625" y2="329.3594"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="165.5" x2="175.5" y1="146.5625" y2="146.5625"/>
+        <rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="393.7266" style="stroke: #FFFFFF; stroke-width: 1.0;"
+              width="10" x="165.5" y="370.1641"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="165.5" x2="165.5" y1="370.1641" y2="763.8906"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="175.5" x2="175.5" y1="370.1641" y2="763.8906"/>
+        <rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="153.6641" style="stroke: #FFFFFF; stroke-width: 1.0;"
+              width="10" x="315.5" y="175.6953"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="315.5" x2="315.5" y1="175.6953" y2="329.3594"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="325.5" x2="325.5" y1="175.6953" y2="329.3594"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="315.5" x2="325.5" y1="175.6953" y2="175.6953"/>
+        <rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="393.7266" style="stroke: #FFFFFF; stroke-width: 1.0;"
+              width="10" x="315.5" y="370.1641"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="315.5" x2="315.5" y1="370.1641" y2="763.8906"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="325.5" x2="325.5" y1="370.1641" y2="763.8906"/>
+        <rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="124.5313" style="stroke: #FFFFFF; stroke-width: 1.0;"
+              width="10" x="525.5" y="204.8281"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="525.5" x2="525.5" y1="204.8281" y2="329.3594"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="535.5" x2="535.5" y1="204.8281" y2="329.3594"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="525.5" x2="535.5" y1="204.8281" y2="204.8281"/>
+        <rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="393.7266" style="stroke: #FFFFFF; stroke-width: 1.0;"
+              width="10" x="525.5" y="370.1641"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="525.5" x2="525.5" y1="370.1641" y2="763.8906"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="535.5" x2="535.5" y1="370.1641" y2="763.8906"/>
+        <rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="66.2656" style="stroke: #FFFFFF; stroke-width: 1.0;"
+              width="10" x="600.5" y="263.0938"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="600.5" x2="600.5" y1="263.0938" y2="329.3594"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="610.5" x2="610.5" y1="263.0938" y2="329.3594"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="600.5" x2="610.5" y1="263.0938" y2="263.0938"/>
+        <rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="393.7266" style="stroke: #FFFFFF; stroke-width: 1.0;"
+              width="10" x="600.5" y="370.1641"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="600.5" x2="600.5" y1="370.1641" y2="763.8906"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="610.5" x2="610.5" y1="370.1641" y2="763.8906"/>
+        <rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="211.9297" style="stroke: #FFFFFF; stroke-width: 1.0;"
+              width="10" x="695" y="117.4297"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="695" x2="695" y1="117.4297" y2="329.3594"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="705" x2="705" y1="117.4297" y2="329.3594"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="695" x2="705" y1="117.4297" y2="117.4297"/>
+        <rect fill="#FFFFFF" filter="url(#few23beh9x6dx)" height="393.7266" style="stroke: #FFFFFF; stroke-width: 1.0;"
+              width="10" x="695" y="370.1641"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="695" x2="695" y1="370.1641" y2="763.8906"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="705" x2="705" y1="370.1641" y2="763.8906"/>
+        <polygon fill="#A80036" points="683,113.4297,693,117.4297,683,121.4297,687,117.4297"
+                 style="stroke: #A80036; stroke-width: 1.0;"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="104.5" x2="689" y1="117.4297" y2="117.4297"/>
+        <text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="31"
+              x="111.5" y="112.3638">run()
+        </text>
+        <polygon fill="#A80036" points="153.5,142.5625,163.5,146.5625,153.5,150.5625,157.5,146.5625"
+                 style="stroke: #A80036; stroke-width: 1.0;"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="104.5" x2="159.5" y1="146.5625" y2="146.5625"/>
+        <text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="42"
+              x="111.5" y="141.4966">main()
+        </text>
+        <polygon fill="#A80036" points="303.5,171.6953,313.5,175.6953,303.5,179.6953,307.5,175.6953"
+                 style="stroke: #A80036; stroke-width: 1.0;"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="175.5" x2="309.5" y1="175.6953" y2="175.6953"/>
+        <text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="29"
+              x="182.5" y="170.6294">Init()
+        </text>
+        <polygon fill="#A80036" points="513.5,200.8281,523.5,204.8281,513.5,208.8281,517.5,204.8281"
+                 style="stroke: #A80036; stroke-width: 1.0;"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="325.5" x2="519.5" y1="204.8281" y2="204.8281"/>
+        <text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="181"
+              x="332.5" y="199.7622">MemoryConnectionFactory()
+        </text>
+        <polygon fill="#A80036" points="336.5,229.9609,326.5,233.9609,336.5,237.9609,332.5,233.9609"
+                 style="stroke: #A80036; stroke-width: 1.0;"/>
+        <line style="stroke: #A80036; stroke-width: 1.0; stroke-dasharray: 2.0,2.0;" x1="330.5" x2="524.5" y1="233.9609"
+              y2="233.9609"/>
+        <ellipse cx="348" cy="224.4609" fill="#000000" rx="2.5" ry="2.5" style="stroke: #000000; stroke-width: 0.0;"/>
+        <text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="106"
+              x="353.5" y="228.895">AbstractProvider
+        </text>
+        <polygon fill="#A80036" points="588.5,259.0938,598.5,263.0938,588.5,267.0938,592.5,263.0938"
+                 style="stroke: #A80036; stroke-width: 1.0;"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="325.5" x2="594.5" y1="263.0938" y2="263.0938"/>
+        <text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="163"
+              x="332.5" y="258.0278">RedisConnectionFactory()
+        </text>
+        <polygon fill="#A80036" points="336.5,288.2266,326.5,292.2266,336.5,296.2266,332.5,292.2266"
+                 style="stroke: #A80036; stroke-width: 1.0;"/>
+        <line style="stroke: #A80036; stroke-width: 1.0; stroke-dasharray: 2.0,2.0;" x1="330.5" x2="599.5" y1="292.2266"
+              y2="292.2266"/>
+        <ellipse cx="348" cy="282.7266" fill="#000000" rx="2.5" ry="2.5" style="stroke: #000000; stroke-width: 0.0;"/>
+        <text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="106"
+              x="353.5" y="287.1606">AbstractProvider
+        </text>
+        <polygon fill="#A80036" points="186.5,317.3594,176.5,321.3594,186.5,325.3594,182.5,321.3594"
+                 style="stroke: #A80036; stroke-width: 1.0;"/>
+        <line style="stroke: #A80036; stroke-width: 1.0; stroke-dasharray: 2.0,2.0;" x1="180.5" x2="314.5" y1="321.3594"
+              y2="321.3594"/>
+        <text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="116"
+              x="192.5" y="316.2935">AbstractProvider[]
+        </text>
+        <text fill="#000000" font-family="sans-serif" font-size="11" lengthAdjust="spacingAndGlyphs" textLength="138"
+              x="302" y="353.5698">Waiting for user request
+        </text>
+        <path d="M13,377.1641 L90,377.1641 L90,384.1641 L80,394.1641 L13,394.1641 L13,377.1641 " fill="#EEEEEE"
+              style="stroke: #000000; stroke-width: 1.0;"/>
+        <rect fill="none" height="378.7266" style="stroke: #000000; stroke-width: 2.0;" width="763" x="13"
+              y="377.1641"/>
+        <text fill="#000000" font-family="sans-serif" font-size="13" font-weight="bold" lengthAdjust="spacingAndGlyphs"
+              textLength="32" x="28" y="390.231">loop
+        </text>
+        <text fill="#000000" font-family="sans-serif" font-size="11" font-weight="bold" lengthAdjust="spacingAndGlyphs"
+              textLength="99" x="105" y="389.3745">[User requests]
+        </text>
+        <polygon fill="#A80036" points="153.5,411.4297,163.5,415.4297,153.5,419.4297,157.5,415.4297"
+                 style="stroke: #A80036; stroke-width: 1.0;"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="47" x2="159.5" y1="415.4297" y2="415.4297"/>
+        <text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="49"
+              x="54" y="410.3638">request
+        </text>
+        <path d="M132,430.4297 L202,430.4297 L202,437.4297 L192,447.4297 L132,447.4297 L132,430.4297 " fill="#EEEEEE"
+              style="stroke: #000000; stroke-width: 1.0;"/>
+        <rect fill="none" height="108.5313" style="stroke: #000000; stroke-width: 2.0;" width="634" x="132"
+              y="430.4297"/>
+        <text fill="#000000" font-family="sans-serif" font-size="13" font-weight="bold" lengthAdjust="spacingAndGlyphs"
+              textLength="25" x="147" y="443.4966">par
+        </text>
+        <text fill="#000000" font-family="sans-serif" font-size="11" font-weight="bold" lengthAdjust="spacingAndGlyphs"
+              textLength="179" x="217" y="442.6401">[Request providers content]
+        </text>
+        <polygon fill="#A80036" points="513.5,464.6953,523.5,468.6953,513.5,472.6953,517.5,468.6953"
+                 style="stroke: #A80036; stroke-width: 1.0;"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="175.5" x2="519.5" y1="468.6953" y2="468.6953"/>
+        <text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="136"
+              x="182.5" y="463.6294">GetRequestInCache()
+        </text>
+        <line style="stroke: #000000; stroke-width: 1.0; stroke-dasharray: 2.0,2.0;" x1="132" x2="766" y1="477.6953"
+              y2="477.6953"/>
+        <polygon fill="#A80036" points="588.5,495.8281,598.5,499.8281,588.5,503.8281,592.5,499.8281"
+                 style="stroke: #A80036; stroke-width: 1.0;"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="175.5" x2="594.5" y1="499.8281" y2="499.8281"/>
+        <text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="136"
+              x="182.5" y="494.7622">GetRequestInCache()
+        </text>
+        <line style="stroke: #000000; stroke-width: 1.0; stroke-dasharray: 2.0,2.0;" x1="132" x2="766" y1="508.8281"
+              y2="508.8281"/>
+        <polygon fill="#A80036" points="683,526.9609,693,530.9609,683,534.9609,687,530.9609"
+                 style="stroke: #A80036; stroke-width: 1.0;"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="175.5" x2="689" y1="530.9609" y2="530.9609"/>
+        <text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="182"
+              x="182.5" y="525.895">GetRequestInReverseProxy()
+        </text>
+        <path d="M132,552.9609 L202,552.9609 L202,559.9609 L192,569.9609 L132,569.9609 L132,552.9609 " fill="#EEEEEE"
+              style="stroke: #000000; stroke-width: 1.0;"/>
+        <rect fill="none" height="166.7969" style="stroke: #000000; stroke-width: 2.0;" width="634" x="132"
+              y="552.9609"/>
+        <text fill="#000000" font-family="sans-serif" font-size="13" font-weight="bold" lengthAdjust="spacingAndGlyphs"
+              textLength="25" x="147" y="566.0278">par
+        </text>
+        <text fill="#000000" font-family="sans-serif" font-size="11" font-weight="bold" lengthAdjust="spacingAndGlyphs"
+              textLength="189" x="217" y="565.1714">[Response providers content]
+        </text>
+        <polygon fill="#A80036" points="186.5,587.2266,176.5,591.2266,186.5,595.2266,182.5,591.2266"
+                 style="stroke: #A80036; stroke-width: 1.0;"/>
+        <line style="stroke: #A80036; stroke-width: 1.0; stroke-dasharray: 2.0,2.0;" x1="180.5" x2="524.5" y1="591.2266"
+              y2="591.2266"/>
+        <ellipse cx="198" cy="581.7266" fill="#000000" rx="2.5" ry="2.5" style="stroke: #000000; stroke-width: 0.0;"/>
+        <text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="62"
+              x="203.5" y="586.1606">Response
+        </text>
+        <line style="stroke: #000000; stroke-width: 1.0; stroke-dasharray: 2.0,2.0;" x1="132" x2="766" y1="600.2266"
+              y2="600.2266"/>
+        <polygon fill="#A80036" points="186.5,618.3594,176.5,622.3594,186.5,626.3594,182.5,622.3594"
+                 style="stroke: #A80036; stroke-width: 1.0;"/>
+        <line style="stroke: #A80036; stroke-width: 1.0; stroke-dasharray: 2.0,2.0;" x1="180.5" x2="599.5" y1="622.3594"
+              y2="622.3594"/>
+        <ellipse cx="198" cy="612.8594" fill="#000000" rx="2.5" ry="2.5" style="stroke: #000000; stroke-width: 0.0;"/>
+        <text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="62"
+              x="203.5" y="617.2935">Response
+        </text>
+        <line style="stroke: #000000; stroke-width: 1.0; stroke-dasharray: 2.0,2.0;" x1="132" x2="766" y1="631.3594"
+              y2="631.3594"/>
+        <polygon fill="#A80036" points="186.5,649.4922,176.5,653.4922,186.5,657.4922,182.5,653.4922"
+                 style="stroke: #A80036; stroke-width: 1.0;"/>
+        <line style="stroke: #A80036; stroke-width: 1.0; stroke-dasharray: 2.0,2.0;" x1="180.5" x2="694" y1="653.4922"
+              y2="653.4922"/>
+        <ellipse cx="198" cy="643.9922" fill="#000000" rx="2.5" ry="2.5" style="stroke: #000000; stroke-width: 0.0;"/>
+        <text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="62"
+              x="203.5" y="648.4263">Response
+        </text>
+        <polygon fill="#A80036" points="513.5,678.625,523.5,682.625,513.5,686.625,517.5,682.625"
+                 style="stroke: #A80036; stroke-width: 1.0;"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="175.5" x2="519.5" y1="682.625" y2="682.625"/>
+        <text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="135"
+              x="182.5" y="677.5591">SetRequestInCache()
+        </text>
+        <polygon fill="#A80036" points="588.5,707.7578,598.5,711.7578,588.5,715.7578,592.5,711.7578"
+                 style="stroke: #A80036; stroke-width: 1.0;"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="175.5" x2="594.5" y1="711.7578" y2="711.7578"/>
+        <text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="135"
+              x="182.5" y="706.6919">SetRequestInCache()
+        </text>
+        <polygon fill="#A80036" points="53,743.8906,43,747.8906,53,751.8906,49,747.8906"
+                 style="stroke: #A80036; stroke-width: 1.0;"/>
+        <line style="stroke: #A80036; stroke-width: 1.0;" x1="47" x2="164.5" y1="747.8906" y2="747.8906"/>
+        <text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="59"
+              x="59" y="742.8247">response
+        </text><!--MD5=[cf2de7c8707d908cdf5dfdb77c959aeb]
 @startuml
 actor User
 actor System
@@ -51,4 +460,6 @@ Operating System: Linux
 Default Encoding: UTF-8
 Language: en
 Country: US
---></g></svg>
+-->
+    </g>
+</svg>
