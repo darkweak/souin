@@ -10,7 +10,7 @@ ADD ./cache /app/src/github.com/darkweak/souin/cache
 ADD ./errors /app/src/github.com/darkweak/souin/errors
 ADD ./providers /app/src/github.com/darkweak/souin/providers
 ADD ./default/server.* /app/src/github.com/darkweak/souin/
-ADD ./configuration/configuration.yml /app/src/github.com/darkweak/souin/
+ADD ./configuration/configuration.yml /
 ADD ./configuration /app/src/github.com/darkweak/souin/configuration
 
 WORKDIR /app/src/github.com/darkweak/souin
