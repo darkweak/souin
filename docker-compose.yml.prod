@@ -8,6 +8,7 @@ services:
   souin:
     build:
       context: .
+      target: souin
     ports:
       - 80:80
       - 443:443
