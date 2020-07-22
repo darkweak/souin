@@ -116,6 +116,14 @@ func TestKeyShouldBeDeletedOnPost(t *testing.T) {
 	}
 }
 
+func TestRewriteBody(t *testing.T) {
+	config := configuration.GetConfig()
+	err := rewriteBody(mockResponse(PATH, http.MethodPost, "My second response", 201), []providers.AbstractProviderInterface{mockRedis(), mockMemory()}, config)
+	if err != nil {
+		errors.GenerateError(t, "Rewrite body can't return errors")
+	}
+}
+
 func verifyKeysExists(t *testing.T, path string, keys []string, isKeyDeleted bool) {
 	time.Sleep(10 * time.Second)
 
@@ -138,4 +146,40 @@ func TestKeyShouldBeDeletedOnDelete(t *testing.T) {
 	populateProvidersWithFakeData()
 	rewriteBody(mockResponse(PATH+"/1", http.MethodDelete, "", 200), []providers.AbstractProviderInterface{mockRedis(), mockMemory()}, config)
 	verifyKeysExists(t, PATH, []string{"", "/1"}, true)
+}
+
+func TestRequestReverseProxy(t *testing.T) {
+	request, _ := http.NewRequest(http.MethodGet, "http://localhost", nil)
+	conf := configuration.GetConfig()
+	response := RequestReverseProxy(request, request.URL, *providers.InitializeProviders(conf), conf)
+
+	if response.Response != "bad" {
+		errors.GenerateError(t, "Response should be bad due to no host available")
+	}
+
+	if response.Proxy == nil || response.Request == nil {
+		errors.GenerateError(t, "Response proxy and request shouldn't be empty")
+	}
+}
+
+func TestCommonLoadingRequest(t *testing.T)  {
+	body := "My testable response"
+	response := commonLoadingRequest(mockResponse(PATH, http.MethodGet, body, 200))
+
+	if body != string(response) {
+		errors.GenerateError(t, fmt.Sprintf("Body %s doesn't match attempted %s", string(response), body))
+	}
+
+	body = "Another body with <h1>HTML</h1>"
+	response = commonLoadingRequest(mockResponse(PATH, http.MethodGet, body, 200))
+
+	if body != string(response) {
+		errors.GenerateError(t, fmt.Sprintf("Body %s doesn't match attempted %s", string(response), body))
+	}
+
+	response = commonLoadingRequest(mockResponse(PATH+"/another", http.MethodGet, body, 200))
+
+	if body != string(response) {
+		errors.GenerateError(t, fmt.Sprintf("Body %s doesn't match attempted %s", string(response), body))
+	}
 }

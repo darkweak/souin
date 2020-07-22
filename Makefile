@@ -12,6 +12,13 @@ build-dev: env-dev ## Build containers with dev env vars
 	$(DC_BUILD) souin
 	$(MAKE) up
 
+coverage: ## Show code coverage
+	$(DC_EXEC) souin go test ./... -coverprofile cover.out
+	$(DC_EXEC) souin go tool cover -func cover.out
+
+coverage-percentage: ## Show code coverage percentage
+	$(DC_EXEC) souin go tool cover -func cover.out | grep total | awk '{print substr($$3, 1, length($$3)-2)}'
+
 create-network: ## Create network
 	docker network create your_network
 

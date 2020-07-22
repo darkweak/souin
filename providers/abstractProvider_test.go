@@ -24,7 +24,7 @@ func mockConfiguration() configuration.Configuration {
 	}
 }
 
-func TestIShouldBeAbleToReadCertificatesWithoutError(t *testing.T) {
+func TestInitProviders(t *testing.T) {
 	configChannel := make(chan int)
 	config := &tls.Config{
 		Certificates:       make([]tls.Certificate, 0),

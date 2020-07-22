@@ -53,12 +53,7 @@ func (provider *Redis) DeleteRequestInCache(key string) {
 	provider.Do(provider.Context(), "del", key)
 }
 
-// DeleteManyRequestInCache method will delete the response in Redis provider if exists corresponding to regex param
-func (provider *Redis) DeleteManyRequestInCache(regex string) {
-	for _, i := range provider.Keys(provider.Context(), regex).Val() {
-		provider.Do(provider.Context(), provider, "del", i)
-	}
-}
-
 // Init method will
-func (provider *Redis) Init() {}
+func (provider *Redis) Init() error {
+	return nil
+}

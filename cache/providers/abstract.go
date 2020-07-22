@@ -12,7 +12,7 @@ type AbstractProviderInterface interface {
 	GetRequestInCache(key string) types.ReverseResponse
 	SetRequestInCache(key string, value []byte)
 	DeleteRequestInCache(key string)
-	Init()
+	Init() error
 }
 
 // PathnameNotInRegex check if pathname is in parameter regex var

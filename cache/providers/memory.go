@@ -47,10 +47,7 @@ func (provider *Memory) DeleteRequestInCache(key string) {
 	provider.Delete(key)
 }
 
-// DeleteManyRequestInCache method will delete the response in Memory provider if exists corresponding to regex param
-func (provider *Memory) DeleteManyRequestInCache(regex string) {
-	provider.Delete(regex)
-}
-
 // Init method will
-func (provider *Memory) Init() {}
+func (provider *Memory) Init() error {
+	return nil
+}
