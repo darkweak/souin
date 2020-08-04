@@ -21,7 +21,6 @@ before_install:
 
 script:
   - make validate
-  - make coverage-percentage
 
 deploy:
   provider: script
