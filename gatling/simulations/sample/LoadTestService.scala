@@ -26,7 +26,7 @@ class LoadTestService extends Simulation {
     scn.inject(
       nothingFor(4.seconds),
       atOnceUsers(1),
-      rampUsers(10) during (10 seconds)
+      rampUsers(100) during (20 seconds)
     )
   ).maxDuration(FiniteDuration.apply(5, "minutes")).protocols(httpProtocol)
 }
