@@ -1,4 +1,4 @@
-.PHONY: build-app build-dev create-network down env-dev env-prod help lint tests up validate
+.PHONY: build-app build-dev coverage create-network down env-dev env-prod generate-plantUML help lint log tests up validate
 
 DC=docker-compose
 DC_BUILD=$(DC) build

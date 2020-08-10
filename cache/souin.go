@@ -25,10 +25,6 @@ func serveReverseProxy(
 	ctx := req.Context()
 
 	responses := make(chan types.ReverseResponse)
-
-	alreadyHaveResponse := false
-	alreadySent := false
-
 	headers := ""
 	if configurationInstance.Cache.Headers != nil && len(configurationInstance.Cache.Headers) > 0 {
 		for _, h := range configurationInstance.Cache.Headers {
@@ -36,19 +32,23 @@ func serveReverseProxy(
 		}
 	}
 
-	for _, v := range *providers {
-		go func() {
-			r := v.GetRequestInCache(string(req.Host + req.URL.Path + headers))
-			responses <- r
-			if !alreadyHaveResponse && "" != r.Response {
-				alreadyHaveResponse = true
-			}
-		}()
-	}
+	alreadyHaveResponse := false
+	alreadySent := false
 
-	if alreadyHaveResponse {
-		responses <- service.RequestReverseProxy(req, u, *providers, configurationInstance)
-	}
+	go func() {
+		for _, v := range *providers {
+			if !alreadyHaveResponse {
+				r := v.GetRequestInCache(string(req.Host + req.URL.Path + headers))
+				responses <- v.GetRequestInCache(string(req.Host + req.URL.Path + headers))
+				if "" != r.Response {
+					alreadyHaveResponse = true
+				}
+			}
+		}
+		if !alreadyHaveResponse {
+			responses <- service.RequestReverseProxy(req, u, *providers, configurationInstance)
+		}
+	}()
 
 	for i := 0; i < len(*providers); i++ {
 		response := <-responses
