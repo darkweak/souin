@@ -12,15 +12,30 @@ const MEMORYVALUE = "My first data"
 const BYTEKEY = "MyByteKey"
 const NONEXISTENTKEY = "NonexistentKey"
 
-func TestIShouldBeAbleToReadAndWriteDataInMemory(t *testing.T) {
+func getMemoryClientAndMatchedURL(key string) (Memory, configuration.URL) {
+	config := configuration.GetConfig()
 	client := MemoryConnectionFactory(configuration.GetConfig())
-	err := client.Set("Test", []byte(MEMORYVALUE))
-	if err != nil {
-		errors.GenerateError(t, "Impossible to set redis variable")
+	regexpUrls := MockInitializeRegexp(config)
+	regexpURL := regexpUrls.FindString(key)
+	matchedURL := configuration.URL{
+		TTL:       config.DefaultCache.TTL,
+		Providers: config.DefaultCache.Providers,
+		Headers:   config.DefaultCache.Headers,
 	}
-	res, err := client.Get( "Test")
-	if err != nil {
-		errors.GenerateError(t, "Retrieving data from redis")
+	if "" != regexpURL {
+		matchedURL = config.URLs[regexpURL]
+	}
+
+	return client, matchedURL
+}
+
+func TestIShouldBeAbleToReadAndWriteDataInMemory(t *testing.T) {
+	client, matchedURL := getMemoryClientAndMatchedURL("Test")
+
+	client.SetRequestInCache("Test", []byte(MEMORYVALUE), matchedURL)
+	res, b := client.Get( "Test")
+	if nil != b {
+		errors.GenerateError(t, fmt.Sprintf("Key %s should exist", MEMORYVALUE))
 	}
 	if MEMORYVALUE != string(res) {
 		errors.GenerateError(t, fmt.Sprintf("%s not corresponding to %s", string(res), MEMORYVALUE))
@@ -36,8 +51,8 @@ func TestMemory_GetRequestInCache(t *testing.T) {
 }
 
 func TestMemory_GetSetRequestInCache_OneByte(t *testing.T) {
-	client := MemoryConnectionFactory(configuration.GetConfig())
-	client.SetRequestInCache(BYTEKEY, []byte("A"))
+	client, matchedURL := getMemoryClientAndMatchedURL(BYTEKEY)
+	client.SetRequestInCache(BYTEKEY, []byte("A"), matchedURL)
 
 	res := client.GetRequestInCache(BYTEKEY)
 	if res.Response == "" {
@@ -50,28 +65,28 @@ func TestMemory_GetSetRequestInCache_OneByte(t *testing.T) {
 }
 
 func TestMemory_SetRequestInCache_MultipleKeys(t *testing.T) {
-	client := MemoryConnectionFactory(configuration.GetConfig())
+	client, matchedURL := getMemoryClientAndMatchedURL(DELETABLEKEY)
 
 	for i:= 0; i < 10; i++ {
-		client.SetRequestInCache(fmt.Sprintf("%s%v", DELETABLEKEY, i), []byte{65})
+		client.SetRequestInCache(fmt.Sprintf("%s%v", DELETABLEKEY, i), []byte{65}, matchedURL)
 	}
 }
 
 func TestMemory_SetRequestInCache_Empty(t *testing.T) {
-	client := MemoryConnectionFactory(configuration.GetConfig())
-	client.SetRequestInCache("MyEmptyKey", []byte{})
+	client, matchedURL := getMemoryClientAndMatchedURL("MyEmptyKey")
+	client.SetRequestInCache("MyEmptyKey", []byte{}, matchedURL)
 }
 
 func TestMemory_SetRequestInCache_VeryLong(t *testing.T) {
-	client := MemoryConnectionFactory(configuration.GetConfig())
-	client.SetRequestInCache("MyVeryLongKey", make([]byte, 100000000))
+	client, matchedURL := getMemoryClientAndMatchedURL("MyVeryLongKey")
+	client.SetRequestInCache("MyVeryLongKey", make([]byte, 100000000), matchedURL)
 }
 
 func TestMemory_SetRequestInCache_ExistingKey(t *testing.T) {
-	client := MemoryConnectionFactory(configuration.GetConfig())
+	client, matchedURL := getMemoryClientAndMatchedURL(BYTEKEY)
 
 	for i:= 0; i < 10; i++ {
-		client.SetRequestInCache(BYTEKEY, []byte("New value"))
+		client.SetRequestInCache(BYTEKEY, []byte("New value"), matchedURL)
 	}
 }
 

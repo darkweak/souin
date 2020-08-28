@@ -11,7 +11,7 @@ services:
       target: souin
     ports:
       - 80:80
-      - 443:443
+#      - 443:443
     depends_on:
       - redis
     environment:

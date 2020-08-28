@@ -12,8 +12,25 @@ import (
 const REDISVALUE = "My first data"
 const DELETABLEKEY = "MyDeletableKey"
 
-func TestIShouldBeAbleToReadAndWriteDataInRedis(t *testing.T) {
+func getRedisClientAndMatchedURL(key string) (*Redis, configuration.URL) {
+	config := configuration.GetConfig()
 	client := RedisConnectionFactory(configuration.GetConfig())
+	regexpUrls := MockInitializeRegexp(config)
+	regexpURL := regexpUrls.FindString(key)
+	matchedURL := configuration.URL{
+		TTL:       config.DefaultCache.TTL,
+		Providers: config.DefaultCache.Providers,
+		Headers:   config.DefaultCache.Headers,
+	}
+	if "" != regexpURL {
+		matchedURL = config.URLs[regexpURL]
+	}
+
+	return client, matchedURL
+}
+
+func TestIShouldBeAbleToReadAndWriteDataInRedis(t *testing.T) {
+	client, _ := getRedisClientAndMatchedURL("Test")
 	err := client.Set(client.Context(), "Test", string(REDISVALUE), time.Duration(10)*time.Second).Err()
 	if err != nil {
 		errors.GenerateError(t, "Impossible to set redis variable")
@@ -28,7 +45,7 @@ func TestIShouldBeAbleToReadAndWriteDataInRedis(t *testing.T) {
 }
 
 func TestRedis_GetRequestInCache(t *testing.T) {
-	client := RedisConnectionFactory(configuration.GetConfig())
+	client, _ := getRedisClientAndMatchedURL(NONEXISTENTKEY)
 	res := client.GetRequestInCache(NONEXISTENTKEY)
 	if res.Response != "" {
 		errors.GenerateError(t, fmt.Sprintf("Key %s should not exist", NONEXISTENTKEY))
@@ -36,12 +53,12 @@ func TestRedis_GetRequestInCache(t *testing.T) {
 }
 
 func TestRedis_SetRequestInCache_OneByte(t *testing.T) {
-	client := RedisConnectionFactory(configuration.GetConfig())
-	client.SetRequestInCache(BYTEKEY, []byte{65})
+	client, u := getRedisClientAndMatchedURL(BYTEKEY)
+	client.SetRequestInCache(BYTEKEY, []byte{65}, u)
 }
 
 func TestRedis_GetRequestInCache_OneByte(t *testing.T) {
-	client := RedisConnectionFactory(configuration.GetConfig())
+	client, _ := getRedisClientAndMatchedURL(BYTEKEY)
 	res := client.GetRequestInCache(BYTEKEY)
 	if res.Response == "" {
 		errors.GenerateError(t, fmt.Sprintf("Key %s should exist", BYTEKEY))
@@ -54,7 +71,7 @@ func TestRedis_GetRequestInCache_OneByte(t *testing.T) {
 }
 
 func TestRedis_SetRequestInCache_MultipleKeys(t *testing.T) {
-	client := RedisConnectionFactory(configuration.GetConfig())
+	client, _ := getRedisClientAndMatchedURL(DELETABLEKEY)
 
 	for i:= 0; i < 10; i++ {
 		err := client.Set(client.Context(), fmt.Sprintf("%s%v", DELETABLEKEY, i), string([]byte{65}), time.Duration(30)*time.Second).Err()
@@ -65,7 +82,7 @@ func TestRedis_SetRequestInCache_MultipleKeys(t *testing.T) {
 }
 
 func TestRedis_SetRequestInCache_ExistingKey(t *testing.T) {
-	client := RedisConnectionFactory(configuration.GetConfig())
+	client, _ := getRedisClientAndMatchedURL(BYTEKEY)
 
 	for i:= 0; i < 10; i++ {
 		err := client.Set(client.Context(), BYTEKEY, "New value", time.Duration(10)*time.Second).Err()
@@ -76,7 +93,7 @@ func TestRedis_SetRequestInCache_ExistingKey(t *testing.T) {
 }
 
 func TestRedis_DeleteRequestInCache(t *testing.T) {
-	client := RedisConnectionFactory(configuration.GetConfig())
+	client, _ := getRedisClientAndMatchedURL(BYTEKEY)
 	client.DeleteRequestInCache(BYTEKEY)
 	if "" != client.GetRequestInCache(BYTEKEY).Response {
 		errors.GenerateError(t, fmt.Sprintf("Key %s should not exist", BYTEKEY))
@@ -84,7 +101,7 @@ func TestRedis_DeleteRequestInCache(t *testing.T) {
 }
 
 func TestRedis_Init(t *testing.T) {
-	client := RedisConnectionFactory(configuration.GetConfig())
+	client, _ := getRedisClientAndMatchedURL(BYTEKEY)
 	err := client.Init()
 
 	if nil != err {

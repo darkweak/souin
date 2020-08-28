@@ -13,19 +13,48 @@ import (
 	"github.com/darkweak/souin/cache/providers"
 	"github.com/darkweak/souin/errors"
 	"github.com/darkweak/souin/configuration"
+	"regexp"
 )
 
 const DOMAIN = "domain.com"
 const PATH = "/testing"
 
+func MockInitializeRegexp(configurationInstance configuration.Configuration) regexp.Regexp {
+	u := ""
+	for k := range configurationInstance.URLs {
+		if "" != u {
+			u += "|"
+		}
+		u += "(" + k + ")"
+	}
+
+	return *regexp.MustCompile(u)
+}
+
+func getMatchedURL(key string) configuration.URL {
+	config := configuration.GetConfig()
+	regexpUrls := MockInitializeRegexp(config)
+	regexpURL := regexpUrls.FindString(key)
+	matchedURL := configuration.URL{
+		TTL:       config.DefaultCache.TTL,
+		Providers: config.DefaultCache.Providers,
+		Headers:   config.DefaultCache.Headers,
+	}
+	if "" != regexpURL {
+		matchedURL = config.URLs[regexpURL]
+	}
+
+	return matchedURL
+}
+
 func populateProvidersWithFakeData() {
 	basePath := "/testing"
 	domain := "domain.com"
 
-	for _, provider := range []providers.AbstractProviderInterface{mockMemory(), mockRedis()} {
-		provider.SetRequestInCache(domain+basePath, []byte("testing value is here for "+basePath))
+	for _, provider := range map[string]providers.AbstractProviderInterface{"redis": mockRedis(), "memory": mockMemory()} {
+		provider.SetRequestInCache(domain+basePath, []byte("testing value is here for "+basePath), getMatchedURL(domain+basePath))
 		for i := 0; i < 25; i++ {
-			provider.SetRequestInCache(domain+basePath+"/"+string(i), []byte("testing value is here for my first init of "+basePath+"/"+string(i)))
+			provider.SetRequestInCache(domain+basePath+"/"+string(i), []byte("testing value is here for my first init of "+basePath+"/"+string(i)), getMatchedURL(domain+basePath))
 		}
 	}
 }
@@ -34,7 +63,7 @@ func mockRedis() *providers.Redis {
 	return providers.RedisConnectionFactory(configuration.GetConfig())
 }
 
-func mockMemory() *providers.Memory {
+func mockMemory() providers.Memory {
 	return providers.MemoryConnectionFactory(configuration.GetConfig())
 }
 
@@ -89,7 +118,7 @@ func mockResponse(path string, method string, body string, code int) *http.Respo
 }
 
 func TestGetKeyFromResponse(t *testing.T) {
-	resp := getKeyFromResponse(mockResponse(PATH, http.MethodGet, "", 200), configuration.GetConfig())
+	resp := getKeyFromResponse(mockResponse(PATH, http.MethodGet, "", 200), getMatchedURL(PATH))
 	urlCollapsed := DOMAIN + PATH
 	if urlCollapsed != resp {
 		errors.GenerateError(t, fmt.Sprintf("Key doesn't return %s but %s", urlCollapsed, resp))
@@ -106,10 +135,14 @@ func shouldNotHaveKey(pathname string) bool {
 	return memoryErr != nil && redisErr != nil
 }
 
-func TestKeyShouldBeDeletedOnPost(t *testing.T) {
+func mockRewriteBody (method string, body string, path string, code int) error {
 	config := configuration.GetConfig()
+	return rewriteBody(mockResponse(PATH + path, method, body, code), map[string]providers.AbstractProviderInterface{"redis": mockRedis(), "memory": mockMemory()}, config, getMatchedURL(DOMAIN+PATH+path))
+}
+
+func TestKeyShouldBeDeletedOnPost(t *testing.T) {
 	populateProvidersWithFakeData()
-	rewriteBody(mockResponse(PATH, http.MethodPost, "My second response", 201), []providers.AbstractProviderInterface{mockRedis(), mockMemory()}, config)
+	mockRewriteBody("", http.MethodPost, "My second response", 201)
 	time.Sleep(10 * time.Second)
 	if !shouldNotHaveKey(PATH) {
 		errors.GenerateError(t, "The key "+DOMAIN+PATH+" shouldn't exist.")
@@ -117,8 +150,7 @@ func TestKeyShouldBeDeletedOnPost(t *testing.T) {
 }
 
 func TestRewriteBody(t *testing.T) {
-	config := configuration.GetConfig()
-	err := rewriteBody(mockResponse(PATH, http.MethodPost, "My second response", 201), []providers.AbstractProviderInterface{mockRedis(), mockMemory()}, config)
+	err := mockRewriteBody("", http.MethodPost, "My second response", 201)
 	if err != nil {
 		errors.GenerateError(t, "Rewrite body can't return errors")
 	}
@@ -135,23 +167,22 @@ func verifyKeysExists(t *testing.T, path string, keys []string, isKeyDeleted boo
 }
 
 func TestKeyShouldBeDeletedOnPut(t *testing.T) {
-	config := configuration.GetConfig()
 	populateProvidersWithFakeData()
-	rewriteBody(mockResponse(PATH+"/1", http.MethodPut, "My second response", 200), []providers.AbstractProviderInterface{mockRedis(), mockMemory()}, config)
+	mockResponse("/1", http.MethodPut, "My second response", 200)
+
 	verifyKeysExists(t, PATH, []string{"", "/1"}, true)
 }
 
 func TestKeyShouldBeDeletedOnDelete(t *testing.T) {
-	config := configuration.GetConfig()
 	populateProvidersWithFakeData()
-	rewriteBody(mockResponse(PATH+"/1", http.MethodDelete, "", 200), []providers.AbstractProviderInterface{mockRedis(), mockMemory()}, config)
+	mockResponse("/1", http.MethodDelete, "", 200)
 	verifyKeysExists(t, PATH, []string{"", "/1"}, true)
 }
 
 func TestRequestReverseProxy(t *testing.T) {
 	request, _ := http.NewRequest(http.MethodGet, "http://localhost", nil)
 	conf := configuration.GetConfig()
-	response := RequestReverseProxy(request, request.URL, *providers.InitializeProviders(conf), conf)
+	response := RequestReverseProxy(request, request.URL, *providers.InitializeProviders(conf), conf, getMatchedURL(PATH))
 
 	if response.Response != "bad" {
 		errors.GenerateError(t, "Response should be bad due to no host available")

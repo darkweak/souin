@@ -30,14 +30,29 @@ type Regex struct {
 	Exclude string `yaml:"exclude"`
 }
 
+//URL configuration
+type URL struct {
+	TTL       string   `yaml:"ttl"`
+	Providers []string `yaml:"providers"`
+	Headers   []string `yaml:"headers"`
+}
+
+//DefaultCache configuration
+type DefaultCache struct {
+	Headers   []string `yaml:"headers"`
+	Port      Port     `yaml:"port"`
+	Providers []string `yaml:"providers"`
+	Redis     Redis    `yaml:"redis"`
+	Regex     Regex    `yaml:"regex"`
+	TTL       string   `yaml:"ttl"`
+}
+
 //Configuration holder
 type Configuration struct {
-	Redis           Redis    `yaml:"redis"`
-	TTL             string   `yaml:"ttl"`
-	SSLProviders    []string `yaml:"ssl_providers"`
-	ReverseProxyURL string   `yaml:"reverse_proxy_url"`
-	Regex           Regex    `yaml:"regex"`
-	Cache           Cache    `yaml:"cache"`
+	DefaultCache    DefaultCache   `yaml:"default_cache"`
+	ReverseProxyURL string         `yaml:"reverse_proxy_url"`
+	SSLProviders    []string       `yaml:"ssl_providers"`
+	URLs            map[string]URL `yaml:"urls"`
 }
 
 // Parse configuration

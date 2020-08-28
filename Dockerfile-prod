@@ -2,6 +2,15 @@ FROM golang:1.13-alpine AS builder
 
 RUN apk update && apk upgrade && \
     apk add --no-cache bash git openssh gcc libc-dev
+ENV GOPATH /app
+ENV GOOS linux
+ENV GOARCH arm
+RUN go get -u \
+    golang.org/x/lint/golint \
+    github.com/allegro/bigcache \
+    github.com/fsnotify/fsnotify \
+    github.com/go-redis/redis \
+    gopkg.in/yaml.v2
 
 RUN mkdir -p /app/src/github.com/darkweak/cmd
 RUN mkdir -p /app/src/github.com/darkweak/souin
@@ -15,15 +24,6 @@ ADD ./configuration/configuration.yml /
 ADD ./configuration/* /app/src/github.com/darkweak/souin/configuration/
 
 WORKDIR /app/src/github.com/darkweak/souin
-ENV GOPATH /app
-ENV GOOS linux
-ENV GOARCH arm
-RUN go get -u \
-    golang.org/x/lint/golint \
-    github.com/allegro/bigcache \
-    github.com/fsnotify/fsnotify \
-    github.com/go-redis/redis \
-    gopkg.in/yaml.v2
 
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a \
   -tags netgo -ldflags '-w -extldflags "-static"' -o /app/cmd/souin .

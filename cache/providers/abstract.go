@@ -10,14 +10,14 @@ import (
 // AbstractProviderInterface should be implemented in any providers
 type AbstractProviderInterface interface {
 	GetRequestInCache(key string) types.ReverseResponse
-	SetRequestInCache(key string, value []byte)
+	SetRequestInCache(key string, value []byte, url configuration.URL)
 	DeleteRequestInCache(key string)
 	Init() error
 }
 
-// PathnameNotInRegex check if pathname is in parameter regex var
-func PathnameNotInRegex(pathname string, configuration configuration.Configuration) bool {
-	b, _ := regexp.Match(configuration.Regex.Exclude, []byte(pathname))
+// PathnameNotInExcludeRegex check if pathname is in parameter regex var
+func PathnameNotInExcludeRegex(pathname string, configuration configuration.Configuration) bool {
+	b, _ := regexp.Match(configuration.DefaultCache.Regex.Exclude, []byte(pathname))
 	return !b
 }
 
@@ -31,17 +31,18 @@ func contains(s []string, e string) bool {
 }
 
 // InitializeProviders allow to generate the providers array according to the configuration
-func InitializeProviders(configuration configuration.Configuration) *[]AbstractProviderInterface {
-	var providers []AbstractProviderInterface
+func InitializeProviders(configuration configuration.Configuration) *map[string]AbstractProviderInterface {
+	var providers = make(map[string]AbstractProviderInterface)
 
-	if len(configuration.Cache.Providers) == 0 || contains(configuration.Cache.Providers, "all") {
-		providers = append(providers, MemoryConnectionFactory(configuration), RedisConnectionFactory(configuration))
+	if len(configuration.DefaultCache.Providers) == 0 || contains(configuration.DefaultCache.Providers, "all") {
+		providers["memory"] = MemoryConnectionFactory(configuration)
+		providers["redis"] = RedisConnectionFactory(configuration)
 	} else {
-		if contains(configuration.Cache.Providers, "redis") {
-			providers = append(providers, RedisConnectionFactory(configuration))
+		if contains(configuration.DefaultCache.Providers, "redis") {
+			providers["redis"] = RedisConnectionFactory(configuration)
 		}
-		if contains(configuration.Cache.Providers, "memory") {
-			providers = append(providers, MemoryConnectionFactory(configuration))
+		if contains(configuration.DefaultCache.Providers, "memory") {
+			providers["memory"] = MemoryConnectionFactory(configuration)
 		}
 	}
 

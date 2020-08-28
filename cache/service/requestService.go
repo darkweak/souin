@@ -28,57 +28,40 @@ func commonLoadingRequest(resp *http.Response) []byte {
 	return b
 }
 
-func hasNotAllowedHeaders(r *http.Response) bool {
-	return "" != r.Header.Get("Authorization") ||
-		"no-cache" == r.Header.Get("Cache-Control")
+func hasCacheEnabled(r *http.Response) bool {
+	return "no-cache" != r.Header.Get("Cache-Control")
 }
 
-func getKeyFromResponse(resp *http.Response, config configuration.Configuration) string {
+func getKeyFromResponse(resp *http.Response, u configuration.URL) string {
 	headers := ""
-	if config.Cache.Headers != nil && len(config.Cache.Headers) > 0 {
-		for _, h := range config.Cache.Headers {
+	if u.Headers != nil && len(u.Headers) > 0 {
+		for _, h := range u.Headers {
 			headers += strings.ReplaceAll(resp.Request.Header.Get(h), " ", "")
 		}
 	}
 	return resp.Request.Host + resp.Request.URL.Path + headers
 }
 
-func rewriteBody(resp *http.Response, providers []p.AbstractProviderInterface, configuration configuration.Configuration) (err error) {
+func rewriteBody(resp *http.Response, providers map[string]p.AbstractProviderInterface, configuration configuration.Configuration, matchedURL configuration.URL) (err error) {
 	b := bytes.Replace(commonLoadingRequest(resp), []byte("server"), []byte("schmerver"), -1)
 	body := ioutil.NopCloser(bytes.NewReader(b))
 	resp.Body = body
 	resp.ContentLength = int64(len(b))
 	resp.Header.Set("Content-Length", strconv.Itoa(len(b)))
+	pathname := resp.Request.Host+resp.Request.URL.Path
 
-	if p.PathnameNotInRegex(resp.Request.Host+resp.Request.URL.Path, configuration) && !hasNotAllowedHeaders(resp) && nil == resp.Request.Context().Err() {
-		key := getKeyFromResponse(resp, configuration)
+	if p.PathnameNotInExcludeRegex(pathname, configuration) && hasCacheEnabled(resp)  && nil == resp.Request.Context().Err() {
+		key := getKeyFromResponse(resp, matchedURL)
 		if http.MethodGet == resp.Request.Method && len(b) > 0 {
 			r, _ := json.Marshal(types.RequestResponse{Body: b, Headers: resp.Header})
 			go func() {
-				for _, v := range providers {
-					go func() {
-						v.SetRequestInCache(key, r)
-					}()
+				for _, v := range matchedURL.Providers {
+					providers[v].SetRequestInCache(key, r, matchedURL)
 				}
 			}()
 		} else {
-			for _, v := range providers {
-				v.DeleteRequestInCache(key)
-			}
-
-			if http.MethodDelete == resp.Request.Method || http.MethodPut == resp.Request.Method || http.MethodPatch == resp.Request.Method {
-				newKeySplitted := strings.Split(key, "/")
-				maxSize := len(newKeySplitted) - 1
-				newKey := ""
-				for i := 0; i < maxSize; i++ {
-					newKey += newKeySplitted[i]
-					if i < maxSize-1 {
-						newKey += "/"
-					}
-				}
-				for _, v := range providers {
-					v.DeleteRequestInCache(newKey)
-				}
+			for _, v := range matchedURL.Providers {
+				providers[v].DeleteRequestInCache(key)
 			}
 		}
 	}
@@ -87,14 +70,14 @@ func rewriteBody(resp *http.Response, providers []p.AbstractProviderInterface, c
 }
 
 // RequestReverseProxy returns response from one of providers or the proxy response
-func RequestReverseProxy(req *http.Request, url *url.URL, providers []p.AbstractProviderInterface, configuration configuration.Configuration) types.ReverseResponse {
+func RequestReverseProxy(req *http.Request, url *url.URL, providers map[string]p.AbstractProviderInterface, configuration configuration.Configuration, matchedURL configuration.URL) types.ReverseResponse {
 	req.URL.Host = req.Host
 	req.URL.Scheme = url.Scheme
 	req.Header.Set("X-Forwarded-Host", req.Header.Get("Host"))
 
 	proxy := httputil.NewSingleHostReverseProxy(url)
 	proxy.ModifyResponse = func(response *http.Response) error {
-		return rewriteBody(response, providers, configuration)
+		return rewriteBody(response, providers, configuration, matchedURL)
 	}
 
 	return types.ReverseResponse{

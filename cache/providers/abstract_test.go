@@ -5,9 +5,22 @@ import (
 	"github.com/darkweak/souin/configuration"
 	"github.com/darkweak/souin/errors"
 	"fmt"
+	"regexp"
 )
 
 const PROVIDERSCOUNT = 2
+
+func MockInitializeRegexp(configurationInstance configuration.Configuration) regexp.Regexp {
+	u := ""
+	for k := range configurationInstance.URLs {
+		if "" != u {
+			u += "|"
+		}
+		u += "(" + k + ")"
+	}
+
+	return *regexp.MustCompile(u)
+}
 
 func TestInitializeProviders(t *testing.T) {
 	providers := InitializeProviders(configuration.GetConfig())
@@ -16,7 +29,7 @@ func TestInitializeProviders(t *testing.T) {
 	}
 
 	conf := configuration.GetConfig()
-	conf.Cache.Providers = []string{"memory"}
+	conf.DefaultCache.Providers = []string{"memory"}
 	providers = InitializeProviders(conf)
 	if nil == providers {
 		errors.GenerateError(t, "Impossible to retrieve providers list")
@@ -26,13 +39,13 @@ func TestInitializeProviders(t *testing.T) {
 		errors.GenerateError(t, fmt.Sprintf("%v not corresponding to %v", len(*providers), PROVIDERSCOUNT))
 	}
 
-	conf.Cache.Providers = []string{"NotValid"}
+	conf.DefaultCache.Providers = []string{"NotValid"}
 	providers = InitializeProviders(conf)
 	if 0 != len(*providers) {
 		errors.GenerateError(t, fmt.Sprintf("%v not corresponding to %v", len(*providers), PROVIDERSCOUNT))
 	}
 
-	conf.Cache.Providers = []string{}
+	conf.DefaultCache.Providers = []string{}
 	providers = InitializeProviders(conf)
 	if PROVIDERSCOUNT != len(*providers) {
 		errors.GenerateError(t, fmt.Sprintf("%v not corresponding to %v", len(*providers), PROVIDERSCOUNT))
@@ -50,14 +63,14 @@ func TestContainsString(t *testing.T) {
 	}
 }
 
-func TestPathnameNotInRegex(t *testing.T) {
-	if PathnameNotInRegex(configuration.GetConfig().Regex.Exclude, configuration.GetConfig()) {
+func TestPathnameNotInExcludeRegex(t *testing.T) {
+	if PathnameNotInExcludeRegex(configuration.GetConfig().DefaultCache.Regex.Exclude, configuration.GetConfig()) {
 		errors.GenerateError(t, "Pathname should be in regex")
 	}
-	if PathnameNotInRegex(configuration.GetConfig().Regex.Exclude+"/A", configuration.GetConfig()) {
+	if PathnameNotInExcludeRegex(configuration.GetConfig().DefaultCache.Regex.Exclude+"/A", configuration.GetConfig()) {
 		errors.GenerateError(t, "Pathname should be in regex")
 	}
-	if !PathnameNotInRegex("/BadPath", configuration.GetConfig()) {
+	if !PathnameNotInExcludeRegex("/BadPath", configuration.GetConfig()) {
 		errors.GenerateError(t, "Pathname shouldn't be in regex")
 	}
 }

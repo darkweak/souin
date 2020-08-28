@@ -10,16 +10,16 @@ func mockConfiguration() configuration.Configuration {
 	return configuration.Configuration{
 		SSLProviders:    []string{},
 		ReverseProxyURL: "http://traefik",
-		TTL:             "100",
-		Cache: configuration.Cache{
+		DefaultCache: configuration.DefaultCache{
 			Headers:   []string{},
 			Providers: []string{},
-		},
-		Regex: configuration.Regex{
-			Exclude: "MyCustomRegex",
-		},
-		Redis: configuration.Redis{
-			URL: "redis:6379",
+			Regex: configuration.Regex{
+				Exclude: "MyCustomRegex",
+			},
+			Redis: configuration.Redis{
+				URL: "redis:6379",
+			},
+			TTL:             "100",
 		},
 	}
 }
