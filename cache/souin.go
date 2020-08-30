@@ -59,35 +59,39 @@ func serveReverseProxy(
 	alreadySent := false
 
 	go func() {
-		for _, v := range matchedURL.Providers {
-			if !alreadyHaveResponse {
-				pr := providers[v]
-				p := string(path + headers)
-				r := pr.GetRequestInCache(p)
-				responses <- pr.GetRequestInCache(p)
-				if "" != r.Response {
-					alreadyHaveResponse = true
+		if http.MethodGet == req.Method {
+			for _, v := range matchedURL.Providers {
+				if !alreadyHaveResponse {
+					pr := providers[v]
+					p := string(path + headers)
+					r := pr.GetRequestInCache(p)
+					responses <- pr.GetRequestInCache(p)
+					if "" != r.Response {
+						alreadyHaveResponse = true
+					}
 				}
 			}
 		}
-		if !alreadyHaveResponse {
+		if !alreadyHaveResponse || http.MethodGet != req.Method {
 			responses <- service.RequestReverseProxy(req, u, providers, configurationInstance, matchedURL)
 		}
 	}()
 
-	for range matchedURL.Providers {
-		response := <-responses
-		if http.MethodGet == req.Method && "" != response.Response {
-			var responseJSON types.RequestResponse
-			err := json.Unmarshal([]byte(response.Response), &responseJSON)
-			if err != nil {
-				panic(err)
+	if http.MethodGet == req.Method {
+		for range matchedURL.Providers {
+			response := <-responses
+			if http.MethodGet == req.Method && "" != response.Response {
+				var responseJSON types.RequestResponse
+				err := json.Unmarshal([]byte(response.Response), &responseJSON)
+				if err != nil {
+					panic(err)
+				}
+				for k, v := range responseJSON.Headers {
+					res.Header().Set(k, v[0])
+				}
+				alreadySent = true
+				res.Write(responseJSON.Body)
 			}
-			for k, v := range responseJSON.Headers {
-				res.Header().Set(k, v[0])
-			}
-			alreadySent = true
-			res.Write(responseJSON.Body)
 		}
 	}
 
@@ -122,7 +126,7 @@ func startServer(config *tls.Config) (net.Listener, *http.Server) {
 // Start cache system
 func Start() {
 	configurationInstance := configuration.GetConfig()
-	providersList := *cacheProviders.InitializeProviders(configurationInstance)
+	providersList := cacheProviders.InitializeProviders(configurationInstance)
 	regexpUrls := InitializeRegexp(configurationInstance)
 
 	configChannel := make(chan int)

@@ -11,8 +11,8 @@
 5. [Examples](#examples)  
   5.1. [Træfik container](#træfik-container)
 6. [SSL](#ssl)  
-  6.1. [Træfik](#træfik)
-  6.2. [Apache](#apache)
+  6.1. [Træfik](#træfik)  
+  6.2. [Apache](#apache)  
   6.3. [Nginx](#nginx)
 6. [Credits](#credits)
 

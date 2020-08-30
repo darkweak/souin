@@ -15,16 +15,16 @@ type Memory struct {
 }
 
 // MemoryConnectionFactory function create new Memory instance
-func MemoryConnectionFactory(configuration configuration.Configuration) Memory {
+func MemoryConnectionFactory(configuration configuration.Configuration) *Memory {
 	t, _ := strconv.Atoi(configuration.DefaultCache.TTL)
 	bc, _ := bigcache.NewBigCache(bigcache.DefaultConfig(time.Second * time.Duration(t)))
-	return Memory{
+	return &Memory{
 		bc,
 	}
 }
 
 // GetRequestInCache method returns the populated response if exists, empty response then
-func (provider Memory) GetRequestInCache(key string) types.ReverseResponse {
+func (provider *Memory) GetRequestInCache(key string) types.ReverseResponse {
 	val2, err := provider.Get(key)
 
 	if err != nil {
@@ -35,7 +35,7 @@ func (provider Memory) GetRequestInCache(key string) types.ReverseResponse {
 }
 
 // SetRequestInCache method will store the response in Memory provider
-func (provider Memory) SetRequestInCache(key string, value []byte, _ configuration.URL) {
+func (provider *Memory) SetRequestInCache(key string, value []byte, _ configuration.URL) {
 	err := provider.Set(key, value)
 	if err != nil {
 		panic(err)
@@ -43,11 +43,11 @@ func (provider Memory) SetRequestInCache(key string, value []byte, _ configurati
 }
 
 // DeleteRequestInCache method will delete the response in Memory provider if exists corresponding to key param
-func (provider Memory) DeleteRequestInCache(key string) {
+func (provider *Memory) DeleteRequestInCache(key string) {
 	provider.Delete(key)
 }
 
 // Init method will
-func (provider Memory) Init() error {
+func (provider *Memory) Init() error {
 	return nil
 }

@@ -12,7 +12,7 @@ const MEMORYVALUE = "My first data"
 const BYTEKEY = "MyByteKey"
 const NONEXISTENTKEY = "NonexistentKey"
 
-func getMemoryClientAndMatchedURL(key string) (Memory, configuration.URL) {
+func getMemoryClientAndMatchedURL(key string) (*Memory, configuration.URL) {
 	config := configuration.GetConfig()
 	client := MemoryConnectionFactory(configuration.GetConfig())
 	regexpUrls := MockInitializeRegexp(config)

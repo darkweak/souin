@@ -24,8 +24,8 @@ func MockInitializeRegexp(configurationInstance configuration.Configuration) reg
 
 func TestInitializeProviders(t *testing.T) {
 	providers := InitializeProviders(configuration.GetConfig())
-	if PROVIDERSCOUNT != len(*providers) {
-		errors.GenerateError(t, fmt.Sprintf("%v not corresponding to %v", len(*providers), PROVIDERSCOUNT))
+	if PROVIDERSCOUNT != len(providers) {
+		errors.GenerateError(t, fmt.Sprintf("%v not corresponding to %v", len(providers), PROVIDERSCOUNT))
 	}
 
 	conf := configuration.GetConfig()
@@ -35,20 +35,20 @@ func TestInitializeProviders(t *testing.T) {
 		errors.GenerateError(t, "Impossible to retrieve providers list")
 	}
 
-	if 1 != len(*providers) {
-		errors.GenerateError(t, fmt.Sprintf("%v not corresponding to %v", len(*providers), PROVIDERSCOUNT))
+	if 1 != len(providers) {
+		errors.GenerateError(t, fmt.Sprintf("%v not corresponding to %v", len(providers), PROVIDERSCOUNT))
 	}
 
 	conf.DefaultCache.Providers = []string{"NotValid"}
 	providers = InitializeProviders(conf)
-	if 0 != len(*providers) {
-		errors.GenerateError(t, fmt.Sprintf("%v not corresponding to %v", len(*providers), PROVIDERSCOUNT))
+	if 0 != len(providers) {
+		errors.GenerateError(t, fmt.Sprintf("%v not corresponding to %v", len(providers), PROVIDERSCOUNT))
 	}
 
 	conf.DefaultCache.Providers = []string{}
 	providers = InitializeProviders(conf)
-	if PROVIDERSCOUNT != len(*providers) {
-		errors.GenerateError(t, fmt.Sprintf("%v not corresponding to %v", len(*providers), PROVIDERSCOUNT))
+	if PROVIDERSCOUNT != len(providers) {
+		errors.GenerateError(t, fmt.Sprintf("%v not corresponding to %v", len(providers), PROVIDERSCOUNT))
 	}
 }
 

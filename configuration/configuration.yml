@@ -15,11 +15,6 @@ reverse_proxy_url: 'http://traefik'
 ssl_providers:
   - traefik
 urls:
-  'domain.com/glossary':
-    ttl: 1000
-    providers:
-      - redis
-      - memory
   'domain.com/':
     ttl: 1000
     headers:

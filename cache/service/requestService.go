@@ -62,6 +62,15 @@ func rewriteBody(resp *http.Response, providers map[string]p.AbstractProviderInt
 		} else {
 			for _, v := range matchedURL.Providers {
 				providers[v].DeleteRequestInCache(key)
+				newKeySplitted := strings.Split(key, "/")
+				maxSize := len(newKeySplitted) - 1
+				newKey := ""
+				for i := 0; i < maxSize; i++ {
+					newKey += newKeySplitted[i] + "/"
+				}
+				for _, v := range matchedURL.Providers {
+					providers[v].DeleteRequestInCache(newKey)
+				}
 			}
 		}
 	}

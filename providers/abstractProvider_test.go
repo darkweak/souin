@@ -4,6 +4,8 @@ import (
 	"crypto/tls"
 	"github.com/darkweak/souin/configuration"
 	"testing"
+	"github.com/darkweak/souin/errors"
+	"fmt"
 )
 
 func mockConfiguration() configuration.Configuration {
@@ -51,6 +53,10 @@ func TestLoadFromConfigFile(t *testing.T) {
 	for _, provider := range providers {
 		provider.LoadFromConfigFile(config, &configChannel)
 	}
+
+	if 1 != len(config.Certificates) {
+		errors.GenerateError(t, fmt.Sprintf("Certificates length %d not corresponding to received %d", 0, len(config.Certificates)))
+	}
 }
 
 func TestLoadFromConfigFile_NoAdditionalProviders(t *testing.T) {
@@ -66,5 +72,9 @@ func TestLoadFromConfigFile_NoAdditionalProviders(t *testing.T) {
 	var providers []CommonProvider
 	for _, provider := range providers {
 		provider.LoadFromConfigFile(config, &configChannel)
+	}
+
+	if 1 != len(config.Certificates) {
+		errors.GenerateError(t, fmt.Sprintf("Certificates length %d not corresponding to received %d", 0, len(config.Certificates)))
 	}
 }

@@ -31,8 +31,8 @@ func contains(s []string, e string) bool {
 }
 
 // InitializeProviders allow to generate the providers array according to the configuration
-func InitializeProviders(configuration configuration.Configuration) *map[string]AbstractProviderInterface {
-	var providers = make(map[string]AbstractProviderInterface)
+func InitializeProviders(configuration configuration.Configuration) map[string]AbstractProviderInterface {
+	providers := make(map[string]AbstractProviderInterface)
 
 	if len(configuration.DefaultCache.Providers) == 0 || contains(configuration.DefaultCache.Providers, "all") {
 		providers["memory"] = MemoryConnectionFactory(configuration)
@@ -46,5 +46,5 @@ func InitializeProviders(configuration configuration.Configuration) *map[string]
 		}
 	}
 
-	return &providers
+	return providers
 }
