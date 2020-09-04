@@ -37,12 +37,16 @@ func InitializeProviders(configuration configuration.Configuration) map[string]A
 	if len(configuration.DefaultCache.Providers) == 0 || contains(configuration.DefaultCache.Providers, "all") {
 		providers["memory"] = MemoryConnectionFactory(configuration)
 		providers["redis"] = RedisConnectionFactory(configuration)
+		providers["ristretto"] = RistrettoConnectionFactory(configuration)
 	} else {
 		if contains(configuration.DefaultCache.Providers, "redis") {
 			providers["redis"] = RedisConnectionFactory(configuration)
 		}
 		if contains(configuration.DefaultCache.Providers, "memory") {
 			providers["memory"] = MemoryConnectionFactory(configuration)
+		}
+		if contains(configuration.DefaultCache.Providers, "ristretto") {
+			providers["ristretto"] = RistrettoConnectionFactory(configuration)
 		}
 	}
 

@@ -20,6 +20,7 @@ urls:
     providers:
       - redis
       - memory
+      - ristretto
   'https:\/\/domain.com\/second-route':
     ttl: 10
     headers:

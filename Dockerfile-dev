@@ -6,6 +6,7 @@ ENV GOPATH /app
 RUN go get -u \
     golang.org/x/lint/golint \
     github.com/allegro/bigcache \
+    github.com/dgraph-io/ristretto \
     github.com/fsnotify/fsnotify \
     github.com/go-redis/redis \
     gopkg.in/yaml.v2

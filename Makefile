@@ -1,4 +1,4 @@
-.PHONY: build-app build-dev coverage create-network down env-dev env-prod generate-plantUML help lint log tests up validate
+.PHONY: build-app build-dev coverage create-network down env-dev env-prod gatling generate-plantUML help lint log tests up validate
 
 DC=docker-compose
 DC_BUILD=$(DC) build
@@ -29,6 +29,9 @@ env-dev: ## Up container with dev env vars
 env-prod: ## Up container with prod env vars
 	cp Dockerfile-prod Dockerfile
 	cp docker-compose.yml.prod docker-compose.yml
+
+gatling: ## Launch gatling scenarios
+	cd ./gatling && $(DC) up
 
 generate-plantUML: ## Generate plantUML diagrams
 	cd ./docs/plantUML && sh generate.sh && cd ../..

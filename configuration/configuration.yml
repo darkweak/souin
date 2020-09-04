@@ -21,6 +21,7 @@ urls:
       - Authorization
     providers:
       - memory
+      - ristretto
   'mysubdomain.domain.com':
     ttl: 50
     headers:

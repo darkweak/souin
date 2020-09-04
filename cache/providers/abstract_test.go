@@ -8,7 +8,7 @@ import (
 	"regexp"
 )
 
-const PROVIDERSCOUNT = 2
+const PROVIDERSCOUNT = 3
 
 func MockInitializeRegexp(configurationInstance configuration.Configuration) regexp.Regexp {
 	u := ""
@@ -36,13 +36,13 @@ func TestInitializeProviders(t *testing.T) {
 	}
 
 	if 1 != len(providers) {
-		errors.GenerateError(t, fmt.Sprintf("%v not corresponding to %v", len(providers), PROVIDERSCOUNT))
+		errors.GenerateError(t, fmt.Sprintf("%v not corresponding to %v", len(providers), 1))
 	}
 
 	conf.DefaultCache.Providers = []string{"NotValid"}
 	providers = InitializeProviders(conf)
 	if 0 != len(providers) {
-		errors.GenerateError(t, fmt.Sprintf("%v not corresponding to %v", len(providers), PROVIDERSCOUNT))
+		errors.GenerateError(t, fmt.Sprintf("%v not corresponding to %v", len(providers), 0))
 	}
 
 	conf.DefaultCache.Providers = []string{}

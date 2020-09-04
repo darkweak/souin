@@ -79,8 +79,9 @@ func serveReverseProxy(
 
 	if http.MethodGet == req.Method {
 		for range matchedURL.Providers {
-			response := <-responses
-			if http.MethodGet == req.Method && "" != response.Response {
+			response, open := <-responses
+			if open && http.MethodGet == req.Method && "" != response.Response {
+				close(responses)
 				var responseJSON types.RequestResponse
 				err := json.Unmarshal([]byte(response.Response), &responseJSON)
 				if err != nil {
@@ -98,6 +99,7 @@ func serveReverseProxy(
 	if !alreadySent {
 		req = req.WithContext(ctx)
 		response2 := <-responses
+		close(responses)
 		response2.Proxy.ServeHTTP(res, req)
 	}
 }
