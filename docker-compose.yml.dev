@@ -17,7 +17,7 @@ services:
     environment:
       GOPATH: /app
     volumes:
-      - ./cmd:/app/cmd
+      - ./configuration/configuration.yml:/configuration.yml
     <<: *networks
 
   redis:
