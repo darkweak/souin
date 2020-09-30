@@ -4,6 +4,8 @@ import (
 	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/configuration"
 	"github.com/dgraph-io/ristretto"
+	"time"
+	"strconv"
 )
 
 // Ristretto provider type
@@ -38,8 +40,9 @@ func (provider *Ristretto) GetRequestInCache(key string) types.ReverseResponse {
 }
 
 // SetRequestInCache method will store the response in Ristretto provider
-func (provider *Ristretto) SetRequestInCache(key string, value []byte, _ configuration.URL) {
-	isSet := provider.Set(key, value, 1)
+func (provider *Ristretto) SetRequestInCache(key string, value []byte, url configuration.URL) {
+	ttl, _ := strconv.Atoi(url.TTL)
+	isSet := provider.SetWithTTL(key, value, 1, time.Duration(ttl)*time.Second)
 	if !isSet {
 		panic("Impossible to set into Ristretto")
 	}

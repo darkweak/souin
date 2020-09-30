@@ -1,0 +1,49 @@
+name: Build container and publish to docker hub
+
+on:
+  create:
+    tags: ["v*"]
+
+jobs:
+  generate-binary:
+    name: Generate binary
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Get tag name
+        run: echo ::set-env name=RELEASE_VERSION::${GITHUB_REF#refs/*/}
+      -
+        name: Checkout code
+        uses: actions/checkout@v2
+      -
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      -
+        name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      -
+        name: Build & push Docker image containing only binary
+        id: docker_build
+        uses: docker/build-push-action@v2
+        with:
+          push: true
+          file: ./Dockerfile-prod
+          tags: |
+            darkweak/souin:latest
+            darkweak/souin:${{ env.RELEASE_VERSION }}
+#      -
+#        uses: mr-smithers-excellent/docker-build-push@v3
+#        name: Build & push Docker image containing only binary
+#        with:
+#          image: darkweak/souin
+#          tags: ${{ github.ref }}, latest
+#          registry: https://index.docker.io/v1/
+#          dockerfile: Dockerfile-prod
+#          username: ${{ secrets.DOCKER_USERNAME }}
+#          password: ${{ secrets.DOCKER_PASSWORD }}

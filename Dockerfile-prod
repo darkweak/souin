@@ -4,7 +4,7 @@ RUN apk update && apk upgrade && \
     apk add --no-cache bash git openssh gcc libc-dev
 ENV GOPATH /app
 ENV GOOS linux
-ENV GOARCH arm
+ENV GOARCH arm64
 RUN go get -u \
     golang.org/x/lint/golint \
     github.com/allegro/bigcache \
