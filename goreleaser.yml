@@ -18,7 +18,6 @@ builds:
     - arm64
 archives:
   -
-    format: binary
     replacements:
       darwin: Darwin
       linux: Linux
