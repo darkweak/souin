@@ -1,18 +1,31 @@
-redis:
-  url: 'redis:6379' # Redis http address used only for redis provider
-ttl: 100 #TTL in second
-reverse_proxy_url: 'http://traefik' # The reverse-proxy http address
-regex:
-  exclude: 'ARegexHere'
-ssl_providers: # Must match your volumes to /ssl/{provider}.json
-  - traefik
-cache:
+default_cache:
   headers:
-    - Authorization # Can be any other headers
-  providers: # By defautl it will use in-memory and redis third-party cache. It can be `all`, `redis` or `memory` declaration
-    - all # Can be set to all if you want to enable all providers instead of specifying each one
-#    - memory
-#    - redis
+    - Authorization
   port:
     web: 80
     tls: 443
+  providers:
+    - all
+  redis:
+    url: 'redis:6379'
+  regex:
+    exclude: 'ARegexHere'
+  ttl: 100
+reverse_proxy_url: 'http://traefik'
+ssl_providers:
+  - traefik
+urls:
+  'domain.com/':
+    ttl: 1000
+    headers:
+      - Authorization
+    providers:
+      - memory
+      - ristretto
+  'mysubdomain.domain.com':
+    ttl: 50
+    headers:
+      - Authorization
+      - 'Content-Type'
+    providers:
+      - redis

@@ -1,31 +1,43 @@
-FROM golang:1.13-alpine
+FROM golang:1.13-alpine AS builder
 
 RUN apk update && apk upgrade && \
     apk add --no-cache bash git openssh gcc libc-dev
+ENV GOPATH /app
+ENV GOOS linux
+ENV GOARCH arm64
+RUN go get -u \
+    golang.org/x/lint/golint \
+    github.com/allegro/bigcache \
+    github.com/dgraph-io/ristretto \
+    github.com/fsnotify/fsnotify \
+    github.com/go-redis/redis \
+    gopkg.in/yaml.v2
 
 RUN mkdir -p /app/src/github.com/darkweak/cmd
-RUN mkdir -p /ssl
 RUN mkdir -p /app/src/github.com/darkweak/souin
+RUN mkdir -p /ssl
 ADD ./*.go /app/src/github.com/darkweak/souin/
 ADD ./cache /app/src/github.com/darkweak/souin/cache
 ADD ./errors /app/src/github.com/darkweak/souin/errors
 ADD ./providers /app/src/github.com/darkweak/souin/providers
 ADD ./default/server.* /app/src/github.com/darkweak/souin/
+ADD ./configuration/configuration.yml /
 ADD ./configuration/* /app/src/github.com/darkweak/souin/configuration/
-ADD ./entrypoint.sh /app/src/github.com/darkweak/souin/entrypoint.sh
 
 WORKDIR /app/src/github.com/darkweak/souin
-ENV GOPATH /app
-ENV GOOS linux
-ENV GOARCH arm
-RUN go get -u \
-    golang.org/x/lint/golint \
-    github.com/allegro/bigcache \
-    github.com/fsnotify/fsnotify \
-    github.com/go-redis/redis \
-    gopkg.in/yaml.v2
-RUN chmod 755 ./entrypoint.sh
+
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a \
+  -tags netgo -ldflags '-w -extldflags "-static"' -o /app/cmd/souin .
 
 EXPOSE 80
 
-ENTRYPOINT ["./entrypoint.sh"]
+FROM alpine:latest AS souin
+
+COPY --from=builder /app/cmd/souin .
+COPY --from=builder /app/src/github.com/darkweak/souin/configuration .
+COPY --from=builder /ssl/ .
+COPY --from=builder /app/src/github.com/darkweak/souin/server.crt .
+COPY --from=builder /app/src/github.com/darkweak/souin/server.key .
+RUN chmod +x ./souin
+
+CMD ["./souin"]

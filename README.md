@@ -11,7 +11,10 @@
 5. [Examples](#examples)  
   5.1. [Træfik container](#træfik-container)
 6. [SSL](#ssl)  
-  6.1. [Træfik](#træfik)
+  6.1. [Træfik](#træfik)  
+  6.2. [Apache](#apache)  
+  6.3. [Nginx](#nginx)  
+6. [Credits](#credits)
 
 [![Travis CI](https://travis-ci.com/Darkweak/Souin.svg?branch=master)](https://travis-ci.com/Darkweak/Souin)
 
@@ -22,49 +25,72 @@ Souin is a new cache system suitable for every reverse-proxy. It will be placed 
 As it's written in go, it can be deployed on any server and thanks to the docker integration, it will be easy to install on top of a Swarm or a kubernetes instance.
 
 ## Configuration
-The configuration file is stored at `configuration/configuration.yml`. You can edit it provided you fill at least the required parameters as shown below.
+The configuration file is stored at `/anywhere/configuration.yml`. You can edit it provided you fill at least the required parameters as shown below.
 
 ### Required configuration
 ```yaml
-ttl: 100 #TTL in second
-reverse_proxy_url: 'http://traefik' # The reverse-proxy http address
-cache:
-  port:
+default_cache: # Required part
+  port: # Ports to expose Souin
     web: 80
     tls: 443
+  ttl: 10 # Default TTL
+reverse_proxy_url: 'http://traefik' # If it's in the same network you can use http://your-service. Then just use https://yourdomain.com
 ```
 This is a fully working minimal configuration for a Souin instance
 
 |  Key  |  Description  |  Value example  |
 |:---:|:---:|:---:|
-|`ttl`|Duration to cache request (in seconds)|10|
-|`reverse_proxy_url`|The reverse-proxy's instance URL (Apache, Nginx, Træfik...)|- `http://yourservice` (Container way)<br/>`http://localhost:81` (Local way)|
-|`cache.port.{web,tls}`|The device's local HTTP/TLS port that Souin should be listening on |Respectively `80` and `443`|
+|`default_cache.port.{web,tls}`|The device's local HTTP/TLS port that Souin should be listening on |Respectively `80` and `443`|
+|`default_cache.ttl`|Duration to cache request (in seconds)|10|
+|`reverse_proxy_url`|The reverse-proxy's instance URL (Apache, Nginx, Træfik...)|- `http://yourservice` (Container way)<br/>`http://localhost:81` (Local way)<br/>`http://yourdomain.com:81` (Network way)|
 
 ### Optional configuration
 ```yaml
-redis:
-  url: 'redis:6379' # Redis http address, only used for redis provider
-regex:
-  exclude: 'ARegexHere'
-ssl_providers: # Must match your volumes to /ssl/{provider}.json
+# /anywhere/configuration.yml
+default_cache:
+  headers: # Default headers concatenated in stored keys
+    - Authorization
+  providers:
+    - all # Enable all providers by default
+  redis: # Redis configuration
+    url: 'redis:6379'
+  regex:
+    exclude: 'ARegexHere' # Regex to exclude from cache
+ssl_providers: # The {providers}.json to use
   - traefik
-cache:
-  headers:
-    - Authorization # Can be any other headers
-  providers: # By default it will use in-memory and redis cache. It can be either `all`, `redis` or `memory`. 
-    - all # Can be set to all if you want to enable all providers instead of specifying each one
-#    - memory
-#    - redis
+urls:
+  'https:\/\/domain.com\/first-.+': # First regex route configuration
+    ttl: 1000 # Override default TTL
+    providers: # Providers list (each item must be in default providers list)
+      - redis
+      - memory
+      - ristretto
+  'https:\/\/domain.com\/second-route': # Second regex route configuration
+    ttl: 10 # Override default TTL
+    headers: # Override default headers
+    - Authorization
+    providers: # Providers list (each item must be in default providers list)
+      - memory
+  'https?:\/\/mysubdomain\.domain\.com': # Third regex route configuration
+    ttl: 50
+    headers: # Override default headers
+    - Authorization
+    - 'Content-Type'
+    providers: # Providers list (each item must be in default providers list)
+      - redis
 ```
 
 |  Key  |  Description  |  Value example  |
 |:---:|:---:|:---:|
-|`redis.url`|The redis url, used if you enabled it in the provider section|`redis:6379` (container way) and `http://yourdomain.com:6379` (network way)|
-|`regex.exclude`|The regex used to prevent paths being cached|`^[A-z]+.*$`|
+|`default_cache.headers`|List of headers to include to the cache|`- Authorization`<br/><br/>`- Content-Type`<br/><br/>`- X-Additional-Header`|
+|`default_cache.providers`|Your providers list to cache your data, by default it will use all systems|`- all`<br/><br/>`- memory`<br/><br/>`- redis`|
+|`default_cache.redis.url`|The redis url, used if you enabled it in the provider section|`redis:6379` (container way) and `http://yourdomain.com:6379` (network way)|
+|`default_cache.regex.exclude`|The regex used to prevent paths being cached|`^[A-z]+.*$`|
 |`ssl_providers`|List of your providers handling certificates|`- traefik`<br/><br/>`- nginx`<br/><br/>`- apache`|
-|`cache.headers`|List of headers to include to the cache|`- Authorization`<br/><br/>`- Content-Type`<br/><br/>`- X-Additional-Header`|
-|`cache.providers`|Your providers list to cache your data, by default it will use all systems|`- all`<br/><br/>`- memory`<br/><br/>`- redis`|
+|`urls.{your url or regex}`|List of your custom configuration depending each URL or regex|'https:\/\/yourdomain.com'|
+|`urls.{your url or regex}.ttl`|Override the default TTL if defined|99999|
+|`urls.{your url or regex}.headers`|Override the default headers if defined|`- Authorization`<br/><br/>`- 'Content-Type'`|
+|`urls.{your url or regex}.providers`|Override the default providers if defined|`- redis`<br/><br/>`- ristretto`|
 
 ## Diagrams
 
@@ -123,8 +149,7 @@ x-networks: &networks
 
 services:
   souin:
-    build:
-      context: .
+    image: darkweak/souin:latest
     ports:
       - 80:80
       - 443:443
@@ -133,7 +158,6 @@ services:
     environment:
       GOPATH: /app
     volumes:
-      - ./cmd:/app/cmd
       - /anywhere/traefik.json:/ssl/traefik.json
     <<: *networks
 

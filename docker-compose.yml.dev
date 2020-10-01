@@ -8,16 +8,16 @@ services:
   souin:
     build:
       context: .
+      target: souin
     ports:
       - 80:80
-      - 443:443
+#      - 443:443
     depends_on:
       - redis
     environment:
       GOPATH: /app
     volumes:
-      - ./cmd:/app/cmd
-      - ./traefik.json:/ssl/traefik.json
+      - ./configuration/configuration.yml:/configuration.yml
     <<: *networks
 
   redis:
