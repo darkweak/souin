@@ -1,4 +1,4 @@
-.PHONY: build-app build-dev create-network down env-dev env-prod help lint tests up validate
+.PHONY: build-app build-dev coverage create-network down env-dev env-prod gatling generate-plantUML help lint log tests up validate
 
 DC=docker-compose
 DC_BUILD=$(DC) build
@@ -11,6 +11,10 @@ build-app: env-prod ## Build containers with prod env vars
 build-dev: env-dev ## Build containers with dev env vars
 	$(DC_BUILD) souin
 	$(MAKE) up
+
+coverage: ## Show code coverage
+	$(DC_EXEC) souin go test ./... -coverprofile cover.out
+	$(DC_EXEC) souin go tool cover -func cover.out
 
 create-network: ## Create network
 	docker network create your_network
@@ -25,6 +29,9 @@ env-dev: ## Up container with dev env vars
 env-prod: ## Up container with prod env vars
 	cp Dockerfile-prod Dockerfile
 	cp docker-compose.yml.prod docker-compose.yml
+
+gatling: ## Launch gatling scenarios
+	cd ./gatling && $(DC) up
 
 generate-plantUML: ## Generate plantUML diagrams
 	cd ./docs/plantUML && sh generate.sh && cd ../..

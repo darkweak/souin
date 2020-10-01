@@ -1,0 +1,36 @@
+default_cache: # Required part
+  headers: # Default headers concatenated in stored keys
+    - Authorization
+  port: # Ports to expose Souin
+    web: 80
+    tls: 443
+  providers:
+    - all # Enable all providers by default
+  redis: # Redis configuration
+    url: 'redis:6379'
+  regex: # Redis configuration
+    exclude: 'ARegexHere' # Regex to exclude from cache
+  ttl: 10 # Default TTL
+reverse_proxy_url: 'http://traefik' # If it's in the same network you can use http://your-service. Then just use https://yourdomain.com
+ssl_providers: # The {providers}.json to usee
+  - traefik
+urls:
+  'https:\/\/domain.com\/first-.+': # First regex route configuration
+    ttl: 1000 # Override default TTL
+    providers: # Providers list (each item must be in default providers list)
+      - redis
+      - memory
+      - ristretto
+  'https:\/\/domain.com\/second-route': # Second regex route configuration
+    ttl: 10 # Override default TTL
+    headers: # Override default headers
+    - Authorization
+    providers: # Providers list (each item must be in default providers list)
+      - memory
+  'https?:\/\/mysubdomain\.domain\.com': # Third regex route configuration
+    ttl: 50
+    headers: # Override default headers
+    - Authorization
+    - 'Content-Type'
+    providers: # Providers list (each item must be in default providers list)
+      - redis

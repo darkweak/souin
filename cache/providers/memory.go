@@ -3,10 +3,10 @@ package providers
 import (
 	"time"
 
-	"github.com/allegro/bigcache"
 	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/configuration"
 	"strconv"
+	"github.com/allegro/bigcache"
 )
 
 // Memory provider type
@@ -16,7 +16,7 @@ type Memory struct {
 
 // MemoryConnectionFactory function create new Memory instance
 func MemoryConnectionFactory(configuration configuration.Configuration) *Memory {
-	t, _ := strconv.Atoi(configuration.TTL)
+	t, _ := strconv.Atoi(configuration.DefaultCache.TTL)
 	bc, _ := bigcache.NewBigCache(bigcache.DefaultConfig(time.Second * time.Duration(t)))
 	return &Memory{
 		bc,
@@ -35,7 +35,7 @@ func (provider *Memory) GetRequestInCache(key string) types.ReverseResponse {
 }
 
 // SetRequestInCache method will store the response in Memory provider
-func (provider *Memory) SetRequestInCache(key string, value []byte) {
+func (provider *Memory) SetRequestInCache(key string, value []byte, _ configuration.URL) {
 	err := provider.Set(key, value)
 	if err != nil {
 		panic(err)
@@ -47,10 +47,7 @@ func (provider *Memory) DeleteRequestInCache(key string) {
 	provider.Delete(key)
 }
 
-// DeleteManyRequestInCache method will delete the response in Memory provider if exists corresponding to regex param
-func (provider *Memory) DeleteManyRequestInCache(regex string) {
-	provider.Delete(regex)
-}
-
 // Init method will
-func (provider *Memory) Init() {}
+func (provider *Memory) Init() error {
+	return nil
+}

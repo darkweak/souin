@@ -19,7 +19,7 @@ type Redis struct {
 func RedisConnectionFactory(configuration configuration.Configuration) *Redis {
 	return &Redis{
 		redis.NewClient(&redis.Options{
-			Addr:     configuration.Redis.URL,
+			Addr:     configuration.DefaultCache.Redis.URL,
 			DB:       0,
 			Password: "",
 		}),
@@ -39,8 +39,8 @@ func (provider *Redis) GetRequestInCache(key string) types.ReverseResponse {
 }
 
 // SetRequestInCache method will store the response in Redis provider
-func (provider *Redis) SetRequestInCache(key string, value []byte) {
-	ttl, _ := strconv.Atoi(provider.Configuration.TTL)
+func (provider *Redis) SetRequestInCache(key string, value []byte, url configuration.URL) {
+	ttl, _ := strconv.Atoi(url.TTL)
 
 	err := provider.Set(provider.Context(), key, string(value), time.Duration(ttl)*time.Second).Err()
 	if err != nil {
@@ -53,12 +53,7 @@ func (provider *Redis) DeleteRequestInCache(key string) {
 	provider.Do(provider.Context(), "del", key)
 }
 
-// DeleteManyRequestInCache method will delete the response in Redis provider if exists corresponding to regex param
-func (provider *Redis) DeleteManyRequestInCache(regex string) {
-	for _, i := range provider.Keys(provider.Context(), regex).Val() {
-		provider.Do(provider.Context(), provider, "del", i)
-	}
-}
-
 // Init method will
-func (provider *Redis) Init() {}
+func (provider *Redis) Init() error {
+	return nil
+}

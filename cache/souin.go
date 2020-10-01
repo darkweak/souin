@@ -13,51 +13,93 @@ import (
 	"github.com/darkweak/souin/providers"
 	"github.com/darkweak/souin/configuration"
 	"strings"
+	"regexp"
 )
+
+// InitializeRegexp will generate one strong regex from your urls defined in the configuration.yml
+func InitializeRegexp(configurationInstance configuration.Configuration) regexp.Regexp {
+	u := ""
+	for k := range configurationInstance.URLs {
+		if "" != u {
+			u += "|"
+		}
+		u += "(" + k + ")"
+	}
+
+	return *regexp.MustCompile(u)
+}
 
 func serveReverseProxy(
 	res http.ResponseWriter,
 	req *http.Request,
-	providers *[]cacheProviders.AbstractProviderInterface,
+	providers map[string]cacheProviders.AbstractProviderInterface,
 	configurationInstance configuration.Configuration,
+	regexpUrls regexp.Regexp,
+	matchedURL configuration.URL,
 ) {
+	path := req.Host + req.URL.Path
+
+	regexpURL := regexpUrls.FindString(path)
+	if "" != regexpURL {
+		matchedURL = configurationInstance.URLs[regexpURL]
+	}
+
 	u, _ := url.Parse(configurationInstance.ReverseProxyURL)
 	ctx := req.Context()
 
 	responses := make(chan types.ReverseResponse)
-	go func() {
-		headers := ""
-		if configurationInstance.Cache.Headers != nil && len(configurationInstance.Cache.Headers) > 0 {
-			for _, h := range configurationInstance.Cache.Headers {
-				headers += strings.ReplaceAll(req.Header.Get(h), " ", "")
-			}
+	headers := ""
+	if matchedURL.Headers != nil && len(matchedURL.Headers) > 0 {
+		for _, h := range matchedURL.Headers {
+			headers += strings.ReplaceAll(req.Header.Get(h), " ", "")
 		}
-		for _, v := range *providers {
-			responses <- v.GetRequestInCache(string(req.Host + req.URL.Path + headers))
-		}
-		responses <- service.RequestReverseProxy(req, u, *providers, configurationInstance)
-	}()
+	}
+
+	alreadyHaveResponse := false
 	alreadySent := false
 
-	for i := 0; i < len(*providers); i++ {
-		response := <-responses
-		if http.MethodGet == req.Method && "" != response.Response {
-			var responseJSON types.RequestResponse
-			err := json.Unmarshal([]byte(response.Response), &responseJSON)
-			if err != nil {
-				panic(err)
+	go func() {
+		if http.MethodGet == req.Method {
+			for _, v := range matchedURL.Providers {
+				if !alreadyHaveResponse {
+					pr := providers[v]
+					p := string(path + headers)
+					r := pr.GetRequestInCache(p)
+					responses <- pr.GetRequestInCache(p)
+					if "" != r.Response {
+						alreadyHaveResponse = true
+					}
+				}
 			}
-			for k, v := range responseJSON.Headers {
-				res.Header().Set(k, v[0])
+		}
+		if !alreadyHaveResponse || http.MethodGet != req.Method {
+			responses <- service.RequestReverseProxy(req, u, providers, configurationInstance, matchedURL)
+		}
+	}()
+
+	if http.MethodGet == req.Method {
+		for range matchedURL.Providers {
+			response, open := <-responses
+			if open && http.MethodGet == req.Method && "" != response.Response {
+				close(responses)
+				var responseJSON types.RequestResponse
+				err := json.Unmarshal([]byte(response.Response), &responseJSON)
+				if err != nil {
+					panic(err)
+				}
+				for k, v := range responseJSON.Headers {
+					res.Header().Set(k, v[0])
+				}
+				alreadySent = true
+				res.Write(responseJSON.Body)
 			}
-			alreadySent = true
-			res.Write(responseJSON.Body)
 		}
 	}
 
 	if !alreadySent {
 		req = req.WithContext(ctx)
 		response2 := <-responses
+		close(responses)
 		response2.Proxy.ServeHTTP(res, req)
 	}
 }
@@ -87,6 +129,7 @@ func startServer(config *tls.Config) (net.Listener, *http.Server) {
 func Start() {
 	configurationInstance := configuration.GetConfig()
 	providersList := cacheProviders.InitializeProviders(configurationInstance)
+	regexpUrls := InitializeRegexp(configurationInstance)
 
 	configChannel := make(chan int)
 	tlsconfig := &tls.Config{
@@ -102,7 +145,18 @@ func Start() {
 	}()
 
 	http.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
-		serveReverseProxy(writer, request, providersList, configurationInstance)
+		serveReverseProxy(
+			writer,
+			request,
+			providersList,
+			configurationInstance,
+			regexpUrls,
+			configuration.URL{
+				TTL:       configurationInstance.DefaultCache.TTL,
+				Providers: configurationInstance.DefaultCache.Providers,
+				Headers:   configurationInstance.DefaultCache.Headers,
+			},
+		)
 	})
 	go func() {
 		listener, _ := startServer(tlsconfig)
@@ -115,7 +169,7 @@ func Start() {
 		}
 
 	}()
-	if err := http.ListenAndServe(":"+configurationInstance.Cache.Port.Web, nil); err != nil {
+	if err := http.ListenAndServe(":"+configurationInstance.DefaultCache.Port.Web, nil); err != nil {
 		panic(err)
 	}
 
