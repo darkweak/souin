@@ -30,25 +30,7 @@ func contains(s []string, e string) bool {
 	return false
 }
 
-// InitializeProviders allow to generate the providers array according to the configuration
-func InitializeProviders(configuration configuration.Configuration) map[string]AbstractProviderInterface {
-	providers := make(map[string]AbstractProviderInterface)
-
-	if len(configuration.DefaultCache.Providers) == 0 || contains(configuration.DefaultCache.Providers, "all") {
-		providers["memory"] = MemoryConnectionFactory(configuration)
-		providers["redis"] = RedisConnectionFactory(configuration)
-		providers["ristretto"] = RistrettoConnectionFactory(configuration)
-	} else {
-		if contains(configuration.DefaultCache.Providers, "redis") {
-			providers["redis"] = RedisConnectionFactory(configuration)
-		}
-		if contains(configuration.DefaultCache.Providers, "memory") {
-			providers["memory"] = MemoryConnectionFactory(configuration)
-		}
-		if contains(configuration.DefaultCache.Providers, "ristretto") {
-			providers["ristretto"] = RistrettoConnectionFactory(configuration)
-		}
-	}
-
-	return providers
+// InitializeProvider allow to generate the providers array according to the configuration
+func InitializeProvider(configuration configuration.Configuration) AbstractProviderInterface {
+	return RistrettoConnectionFactory(configuration)
 }

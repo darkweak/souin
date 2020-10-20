@@ -14,7 +14,6 @@ func mockConfiguration() configuration.Configuration {
 		ReverseProxyURL: "http://traefik",
 		DefaultCache: configuration.DefaultCache{
 			Headers:   []string{},
-			Providers: []string{},
 			Regex: configuration.Regex{
 				Exclude: "MyCustomRegex",
 			},

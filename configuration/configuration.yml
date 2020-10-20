@@ -4,10 +4,6 @@ default_cache:
   port:
     web: 80
     tls: 443
-  providers:
-    - all
-  redis:
-    url: 'redis:6379'
   regex:
     exclude: 'ARegexHere'
   ttl: 100
@@ -19,13 +15,8 @@ urls:
     ttl: 1000
     headers:
       - Authorization
-    providers:
-      - memory
-      - ristretto
   'mysubdomain.domain.com':
     ttl: 50
     headers:
       - Authorization
       - 'Content-Type'
-    providers:
-      - redis

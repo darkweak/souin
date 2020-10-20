@@ -42,7 +42,7 @@ func getKeyFromResponse(resp *http.Response, u configuration.URL) string {
 	return resp.Request.Host + resp.Request.URL.Path + headers
 }
 
-func rewriteBody(resp *http.Response, providers map[string]p.AbstractProviderInterface, configuration configuration.Configuration, matchedURL configuration.URL) (err error) {
+func rewriteBody(resp *http.Response, provider p.AbstractProviderInterface, configuration configuration.Configuration, matchedURL configuration.URL) (err error) {
 	b := bytes.Replace(commonLoadingRequest(resp), []byte("server"), []byte("schmerver"), -1)
 	body := ioutil.NopCloser(bytes.NewReader(b))
 	resp.Body = body
@@ -55,23 +55,17 @@ func rewriteBody(resp *http.Response, providers map[string]p.AbstractProviderInt
 		if http.MethodGet == resp.Request.Method && len(b) > 0 {
 			r, _ := json.Marshal(types.RequestResponse{Body: b, Headers: resp.Header})
 			go func() {
-				for _, v := range matchedURL.Providers {
-					providers[v].SetRequestInCache(key, r, matchedURL)
-				}
+				provider.SetRequestInCache(key, r, matchedURL)
 			}()
 		} else {
-			for _, v := range matchedURL.Providers {
-				providers[v].DeleteRequestInCache(key)
-				newKeySplitted := strings.Split(key, "/")
-				maxSize := len(newKeySplitted) - 1
-				newKey := ""
-				for i := 0; i < maxSize; i++ {
-					newKey += newKeySplitted[i] + "/"
-				}
-				for _, v := range matchedURL.Providers {
-					providers[v].DeleteRequestInCache(newKey)
-				}
+			provider.DeleteRequestInCache(key)
+			newKeySplitted := strings.Split(key, "/")
+			maxSize := len(newKeySplitted) - 1
+			newKey := ""
+			for i := 0; i < maxSize; i++ {
+				newKey += newKeySplitted[i] + "/"
 			}
+			provider.DeleteRequestInCache(newKey)
 		}
 	}
 
@@ -79,14 +73,14 @@ func rewriteBody(resp *http.Response, providers map[string]p.AbstractProviderInt
 }
 
 // RequestReverseProxy returns response from one of providers or the proxy response
-func RequestReverseProxy(req *http.Request, url *url.URL, providers map[string]p.AbstractProviderInterface, configuration configuration.Configuration, matchedURL configuration.URL) types.ReverseResponse {
+func RequestReverseProxy(req *http.Request, url *url.URL, provider p.AbstractProviderInterface, configuration configuration.Configuration, matchedURL configuration.URL) types.ReverseResponse {
 	req.URL.Host = req.Host
 	req.URL.Scheme = url.Scheme
 	req.Header.Set("X-Forwarded-Host", req.Header.Get("Host"))
 
 	proxy := httputil.NewSingleHostReverseProxy(url)
 	proxy.ModifyResponse = func(response *http.Response) error {
-		return rewriteBody(response, providers, configuration, matchedURL)
+		return rewriteBody(response, provider, configuration, matchedURL)
 	}
 
 	return types.ReverseResponse{

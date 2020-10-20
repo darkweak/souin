@@ -32,7 +32,7 @@ func InitializeRegexp(configurationInstance configuration.Configuration) regexp.
 func serveReverseProxy(
 	res http.ResponseWriter,
 	req *http.Request,
-	providers map[string]cacheProviders.AbstractProviderInterface,
+	provider cacheProviders.AbstractProviderInterface,
 	configurationInstance configuration.Configuration,
 	regexpUrls regexp.Regexp,
 	matchedURL configuration.URL,
@@ -60,39 +60,34 @@ func serveReverseProxy(
 
 	go func() {
 		if http.MethodGet == req.Method {
-			for _, v := range matchedURL.Providers {
-				if !alreadyHaveResponse {
-					pr := providers[v]
-					p := string(path + headers)
-					r := pr.GetRequestInCache(p)
-					responses <- pr.GetRequestInCache(p)
-					if "" != r.Response {
-						alreadyHaveResponse = true
-					}
+			if !alreadyHaveResponse {
+				p := string(path + headers)
+				r := provider.GetRequestInCache(p)
+				responses <- provider.GetRequestInCache(p)
+				if "" != r.Response {
+					alreadyHaveResponse = true
 				}
 			}
 		}
 		if !alreadyHaveResponse || http.MethodGet != req.Method {
-			responses <- service.RequestReverseProxy(req, u, providers, configurationInstance, matchedURL)
+			responses <- service.RequestReverseProxy(req, u, provider, configurationInstance, matchedURL)
 		}
 	}()
 
 	if http.MethodGet == req.Method {
-		for range matchedURL.Providers {
-			response, open := <-responses
-			if open && http.MethodGet == req.Method && "" != response.Response {
-				close(responses)
-				var responseJSON types.RequestResponse
-				err := json.Unmarshal([]byte(response.Response), &responseJSON)
-				if err != nil {
-					panic(err)
-				}
-				for k, v := range responseJSON.Headers {
-					res.Header().Set(k, v[0])
-				}
-				alreadySent = true
-				res.Write(responseJSON.Body)
+		response, open := <-responses
+		if open && http.MethodGet == req.Method && "" != response.Response {
+			close(responses)
+			var responseJSON types.RequestResponse
+			err := json.Unmarshal([]byte(response.Response), &responseJSON)
+			if err != nil {
+				panic(err)
 			}
+			for k, v := range responseJSON.Headers {
+				res.Header().Set(k, v[0])
+			}
+			alreadySent = true
+			res.Write(responseJSON.Body)
 		}
 	}
 
@@ -128,7 +123,7 @@ func startServer(config *tls.Config) (net.Listener, *http.Server) {
 // Start cache system
 func Start() {
 	configurationInstance := configuration.GetConfig()
-	providersList := cacheProviders.InitializeProviders(configurationInstance)
+	provider := cacheProviders.InitializeProvider(configurationInstance)
 	regexpUrls := InitializeRegexp(configurationInstance)
 
 	configChannel := make(chan int)
@@ -148,12 +143,11 @@ func Start() {
 		serveReverseProxy(
 			writer,
 			request,
-			providersList,
+			provider,
 			configurationInstance,
 			regexpUrls,
 			configuration.URL{
 				TTL:       configurationInstance.DefaultCache.TTL,
-				Providers: configurationInstance.DefaultCache.Providers,
 				Headers:   configurationInstance.DefaultCache.Headers,
 			},
 		)

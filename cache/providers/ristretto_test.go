@@ -10,6 +10,9 @@ import (
 )
 
 const RISTRETTOVALUE = "My first data"
+const BYTEKEY = "MyByteKey"
+const NONEXISTENTKEY = "NonexistentKey"
+const DELETABLEKEY = "MyDeletableKey"
 
 func getRistrettoClientAndMatchedURL(key string) (*Ristretto, configuration.URL) {
 	config := configuration.GetConfig()
@@ -18,7 +21,6 @@ func getRistrettoClientAndMatchedURL(key string) (*Ristretto, configuration.URL)
 	regexpURL := regexpUrls.FindString(key)
 	matchedURL := configuration.URL{
 		TTL:       config.DefaultCache.TTL,
-		Providers: config.DefaultCache.Providers,
 		Headers:   config.DefaultCache.Headers,
 	}
 	if "" != regexpURL {

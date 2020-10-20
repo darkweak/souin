@@ -37,7 +37,6 @@ func getMatchedURL(key string) configuration.URL {
 	regexpURL := regexpUrls.FindString(key)
 	matchedURL := configuration.URL{
 		TTL:       config.DefaultCache.TTL,
-		Providers: config.DefaultCache.Providers,
 		Headers:   config.DefaultCache.Headers,
 	}
 	if "" != regexpURL {
@@ -47,15 +46,13 @@ func getMatchedURL(key string) configuration.URL {
 	return matchedURL
 }
 
-func populateProvidersWithFakeData(ps map[string]providers.AbstractProviderInterface) {
+func populateProviderWithFakeData(provider providers.AbstractProviderInterface) {
 	basePath := "/testing"
 	domain := "domain.com"
 
-	for _, provider := range ps {
-		provider.SetRequestInCache(domain+basePath, []byte("testing value is here for "+basePath), getMatchedURL(domain+basePath))
-		for i := 0; i < 25; i++ {
-			provider.SetRequestInCache(domain+basePath+"/"+string(i), []byte("testing value is here for my first init of "+basePath+"/"+string(i)), getMatchedURL(domain+basePath))
-		}
+	provider.SetRequestInCache(domain+basePath, []byte("testing value is here for "+basePath), getMatchedURL(domain+basePath))
+	for i := 0; i < 25; i++ {
+		provider.SetRequestInCache(domain+basePath+"/"+string(i), []byte("testing value is here for my first init of "+basePath+"/"+string(i)), getMatchedURL(domain+basePath))
 	}
 }
 
@@ -117,25 +114,23 @@ func TestGetKeyFromResponse(t *testing.T) {
 	}
 }
 
-func shouldNotHaveKey(pathname string, prs map[string]providers.AbstractProviderInterface) bool {
-	for _, v := range prs {
-		r := v.GetRequestInCache(pathname)
-		if "" != r.Response {
-			return false
-		}
+func shouldNotHaveKey(pathname string, pr providers.AbstractProviderInterface) bool {
+	r := pr.GetRequestInCache(pathname)
+	if "" != r.Response {
+		return false
 	}
 
 	return true
 }
 
-func mockRewriteBody (method string, body string, path string, code int, prs map[string]providers.AbstractProviderInterface) error {
+func mockRewriteBody (method string, body string, path string, code int, pr providers.AbstractProviderInterface) error {
 	config := configuration.GetConfig()
-	return rewriteBody(mockResponse(PATH + path, method, body, code), prs, config, getMatchedURL(DOMAIN+PATH+path))
+	return rewriteBody(mockResponse(PATH + path, method, body, code), pr, config, getMatchedURL(DOMAIN+PATH+path))
 }
 
 func TestKeyShouldBeDeletedOnPost(t *testing.T) {
-	prs := providers.InitializeProviders(configuration.GetConfig())
-	populateProvidersWithFakeData(prs)
+	prs := providers.InitializeProvider(configuration.GetConfig())
+	populateProviderWithFakeData(prs)
 	mockRewriteBody(http.MethodPost, "My second response", "/1", 201, prs)
 	time.Sleep(10 * time.Second)
 	if !shouldNotHaveKey(PATH, prs) {
@@ -144,34 +139,34 @@ func TestKeyShouldBeDeletedOnPost(t *testing.T) {
 }
 
 func TestRewriteBody(t *testing.T) {
-	prs := providers.InitializeProviders(configuration.GetConfig())
+	prs := providers.InitializeProvider(configuration.GetConfig())
 	err := mockRewriteBody(http.MethodPost, "My second response", "", 201, prs)
 	if err != nil {
 		errors.GenerateError(t, "Rewrite body can't return errors")
 	}
 }
 
-func verifyKeysExists(t *testing.T, path string, keys []string, isKeyDeleted bool, prs map[string]providers.AbstractProviderInterface) {
+func verifyKeysExists(t *testing.T, path string, keys []string, isKeyDeleted bool, pr providers.AbstractProviderInterface) {
 	time.Sleep(10 * time.Second)
 
 	for _, i := range keys {
-		if !shouldNotHaveKey(PATH + i, prs) == isKeyDeleted {
+		if !shouldNotHaveKey(PATH + i, pr) == isKeyDeleted {
 			errors.GenerateError(t, "The key "+DOMAIN+path+i+" shouldn't exist.")
 		}
 	}
 }
 
 func TestKeyShouldBeDeletedOnPut(t *testing.T) {
-	prs := providers.InitializeProviders(configuration.GetConfig())
-	populateProvidersWithFakeData(prs)
+	prs := providers.InitializeProvider(configuration.GetConfig())
+	populateProviderWithFakeData(prs)
 	mockResponse("/1", http.MethodPut, "My second response", 200)
 
 	verifyKeysExists(t, PATH, []string{"", "/1"}, true, prs)
 }
 
 func TestKeyShouldBeDeletedOnDelete(t *testing.T) {
-	prs := providers.InitializeProviders(configuration.GetConfig())
-	populateProvidersWithFakeData(prs)
+	prs := providers.InitializeProvider(configuration.GetConfig())
+	populateProviderWithFakeData(prs)
 	mockResponse("/1", http.MethodDelete, "", 200)
 	verifyKeysExists(t, PATH, []string{"", "/1"}, true, prs)
 }
@@ -179,7 +174,7 @@ func TestKeyShouldBeDeletedOnDelete(t *testing.T) {
 func TestRequestReverseProxy(t *testing.T) {
 	request, _ := http.NewRequest(http.MethodGet, "http://localhost", nil)
 	conf := configuration.GetConfig()
-	response := RequestReverseProxy(request, request.URL, providers.InitializeProviders(conf), conf, getMatchedURL(PATH))
+	response := RequestReverseProxy(request, request.URL, providers.InitializeProvider(conf), conf, getMatchedURL(PATH))
 
 	if response.Response != "bad" {
 		errors.GenerateError(t, "Response should be bad due to no host available")

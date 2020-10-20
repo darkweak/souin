@@ -61,23 +61,15 @@ ssl_providers: # The {providers}.json to use
 urls:
   'https:\/\/domain.com\/first-.+': # First regex route configuration
     ttl: 1000 # Override default TTL
-    providers: # Providers list (each item must be in default providers list)
-      - redis
-      - memory
-      - ristretto
   'https:\/\/domain.com\/second-route': # Second regex route configuration
     ttl: 10 # Override default TTL
     headers: # Override default headers
     - Authorization
-    providers: # Providers list (each item must be in default providers list)
-      - memory
   'https?:\/\/mysubdomain\.domain\.com': # Third regex route configuration
     ttl: 50
     headers: # Override default headers
     - Authorization
     - 'Content-Type'
-    providers: # Providers list (each item must be in default providers list)
-      - redis
 ```
 
 |  Key  |  Description  |  Value example  |
@@ -123,9 +115,6 @@ x-networks: &networks
 services:
   traefik:
     image: traefik:v2.0
-    ports:
-      - "81:80" # Note the 81 to 80 port declaration
-      - "444:443" # Note the 444 to 443 port declaration
     command: --providers.docker
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
