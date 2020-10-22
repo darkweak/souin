@@ -4,22 +4,8 @@ import (
 	"testing"
 	"github.com/darkweak/souin/configuration"
 	"github.com/darkweak/souin/errors"
-	"regexp"
+	"github.com/darkweak/souin/helpers"
 )
-
-const PROVIDERSCOUNT = 3
-
-func MockInitializeRegexp(configurationInstance configuration.Configuration) regexp.Regexp {
-	u := ""
-	for k := range configurationInstance.URLs {
-		if "" != u {
-			u += "|"
-		}
-		u += "(" + k + ")"
-	}
-
-	return *regexp.MustCompile(u)
-}
 
 func TestContainsString(t *testing.T) {
 	a := []string{"a", "b", "c"}
@@ -33,13 +19,13 @@ func TestContainsString(t *testing.T) {
 }
 
 func TestPathnameNotInExcludeRegex(t *testing.T) {
-	if PathnameNotInExcludeRegex(configuration.GetConfig().DefaultCache.Regex.Exclude, configuration.GetConfig()) {
+	if helpers.PathnameNotInExcludeRegex(configuration.GetConfiguration().GetDefaultCache().Regex.Exclude, configuration.GetConfiguration()) {
 		errors.GenerateError(t, "Pathname should be in regex")
 	}
-	if PathnameNotInExcludeRegex(configuration.GetConfig().DefaultCache.Regex.Exclude+"/A", configuration.GetConfig()) {
+	if helpers.PathnameNotInExcludeRegex(configuration.GetConfiguration().GetDefaultCache().Regex.Exclude+"/A", configuration.GetConfiguration()) {
 		errors.GenerateError(t, "Pathname should be in regex")
 	}
-	if !PathnameNotInExcludeRegex("/BadPath", configuration.GetConfig()) {
+	if !helpers.PathnameNotInExcludeRegex("/BadPath", configuration.GetConfiguration()) {
 		errors.GenerateError(t, "Pathname shouldn't be in regex")
 	}
 }

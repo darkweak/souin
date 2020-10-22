@@ -14,7 +14,7 @@ services:
 #      - 443:443
     volumes:
       - ./traefik.json:/ssl/traefik.json
-      - ./configuration/configuration.yml:/configuration.yml
+      - ./configuration/configuration.yml:/configuration/configuration.yml
     <<: *networks
 
 networks:

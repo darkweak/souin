@@ -15,16 +15,16 @@ const NONEXISTENTKEY = "NonexistentKey"
 const DELETABLEKEY = "MyDeletableKey"
 
 func getRistrettoClientAndMatchedURL(key string) (*Ristretto, configuration.URL) {
-	config := configuration.GetConfig()
-	client := RistrettoConnectionFactory(configuration.GetConfig())
+	config := configuration.GetConfiguration()
+	client := RistrettoConnectionFactory(configuration.GetConfiguration())
 	regexpUrls := MockInitializeRegexp(config)
 	regexpURL := regexpUrls.FindString(key)
 	matchedURL := configuration.URL{
-		TTL:       config.DefaultCache.TTL,
-		Headers:   config.DefaultCache.Headers,
+		TTL:       config.GetDefaultCache().TTL,
+		Headers:   config.GetDefaultCache().Headers,
 	}
 	if "" != regexpURL {
-		matchedURL = config.URLs[regexpURL]
+		matchedURL = config.GetUrls()[regexpURL]
 	}
 
 	return client, matchedURL
@@ -46,7 +46,7 @@ func TestIShouldBeAbleToReadAndWriteDataInRistretto(t *testing.T) {
 }
 
 func TestRistretto_GetRequestInCache(t *testing.T) {
-	client := RistrettoConnectionFactory(configuration.GetConfig())
+	client := RistrettoConnectionFactory(configuration.GetConfiguration())
 	res := client.GetRequestInCache(NONEXISTENTKEY)
 	if res.Response != "" {
 		errors.GenerateError(t, fmt.Sprintf("Key %s should not exist", NONEXISTENTKEY))
@@ -95,7 +95,7 @@ func TestRistretto_SetRequestInCache_ExistingKey(t *testing.T) {
 }
 
 func TestRistretto_DeleteRequestInCache(t *testing.T) {
-	client := RistrettoConnectionFactory(configuration.GetConfig())
+	client := RistrettoConnectionFactory(configuration.GetConfiguration())
 	client.DeleteRequestInCache(BYTEKEY)
 	time.Sleep(1 * time.Second)
 	if "" != client.GetRequestInCache(BYTEKEY).Response {
@@ -104,7 +104,7 @@ func TestRistretto_DeleteRequestInCache(t *testing.T) {
 }
 
 func TestRistretto_Init(t *testing.T) {
-	client := RistrettoConnectionFactory(configuration.GetConfig())
+	client := RistrettoConnectionFactory(configuration.GetConfiguration())
 	err := client.Init()
 
 	if nil != err {

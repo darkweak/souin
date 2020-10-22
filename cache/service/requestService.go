@@ -10,9 +10,9 @@ import (
 	"strconv"
 	"strings"
 
-	p "github.com/darkweak/souin/cache/providers"
 	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/configuration"
+	"github.com/darkweak/souin/helpers"
 )
 
 func commonLoadingRequest(resp *http.Response) []byte {
@@ -42,7 +42,7 @@ func getKeyFromResponse(resp *http.Response, u configuration.URL) string {
 	return resp.Request.Host + resp.Request.URL.Path + headers
 }
 
-func rewriteBody(resp *http.Response, provider p.AbstractProviderInterface, configuration configuration.Configuration, matchedURL configuration.URL) (err error) {
+func rewriteBody(resp *http.Response, retriever types.RetrieverResponsePropertiesInterface) (err error) {
 	b := bytes.Replace(commonLoadingRequest(resp), []byte("server"), []byte("schmerver"), -1)
 	body := ioutil.NopCloser(bytes.NewReader(b))
 	resp.Body = body
@@ -50,22 +50,22 @@ func rewriteBody(resp *http.Response, provider p.AbstractProviderInterface, conf
 	resp.Header.Set("Content-Length", strconv.Itoa(len(b)))
 	pathname := resp.Request.Host+resp.Request.URL.Path
 
-	if p.PathnameNotInExcludeRegex(pathname, configuration) && hasCacheEnabled(resp)  && nil == resp.Request.Context().Err() {
-		key := getKeyFromResponse(resp, matchedURL)
+	if helpers.PathnameNotInExcludeRegex(pathname, retriever.GetConfiguration()) && hasCacheEnabled(resp)  && nil == resp.Request.Context().Err() {
+		key := getKeyFromResponse(resp, retriever.GetMatchedURL())
 		if http.MethodGet == resp.Request.Method && len(b) > 0 {
 			r, _ := json.Marshal(types.RequestResponse{Body: b, Headers: resp.Header})
 			go func() {
-				provider.SetRequestInCache(key, r, matchedURL)
+				retriever.GetProvider().SetRequestInCache(key, r, retriever.GetMatchedURL())
 			}()
 		} else {
-			provider.DeleteRequestInCache(key)
+			retriever.GetProvider().DeleteRequestInCache(key)
 			newKeySplitted := strings.Split(key, "/")
 			maxSize := len(newKeySplitted) - 1
 			newKey := ""
 			for i := 0; i < maxSize; i++ {
 				newKey += newKeySplitted[i] + "/"
 			}
-			provider.DeleteRequestInCache(newKey)
+			retriever.GetProvider().DeleteRequestInCache(newKey)
 		}
 	}
 
@@ -73,14 +73,14 @@ func rewriteBody(resp *http.Response, provider p.AbstractProviderInterface, conf
 }
 
 // RequestReverseProxy returns response from one of providers or the proxy response
-func RequestReverseProxy(req *http.Request, url *url.URL, provider p.AbstractProviderInterface, configuration configuration.Configuration, matchedURL configuration.URL) types.ReverseResponse {
+func RequestReverseProxy(req *http.Request, url *url.URL, r types.RetrieverResponsePropertiesInterface) types.ReverseResponse {
 	req.URL.Host = req.Host
 	req.URL.Scheme = url.Scheme
 	req.Header.Set("X-Forwarded-Host", req.Header.Get("Host"))
 
 	proxy := httputil.NewSingleHostReverseProxy(url)
 	proxy.ModifyResponse = func(response *http.Response) error {
-		return rewriteBody(response, provider, configuration, matchedURL)
+		return rewriteBody(response, r)
 	}
 
 	return types.ReverseResponse{

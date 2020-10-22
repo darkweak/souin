@@ -14,7 +14,7 @@ type Ristretto struct {
 }
 
 // RistrettoConnectionFactory function create new Ristretto instance
-func RistrettoConnectionFactory(_ configuration.Configuration) *Ristretto {
+func RistrettoConnectionFactory(_ configuration.AbstractConfigurationInterface) *Ristretto {
 	cache, err := ristretto.NewCache(&ristretto.Config{
 		NumCounters: 1e7,     // number of keys to track frequency of (10M).
 		MaxCost:     1 << 30, // maximum cost of cache (1GB).

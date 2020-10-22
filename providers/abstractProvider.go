@@ -26,9 +26,9 @@ type Certificate struct {
 }
 
 // InitProviders function allow to init certificates and be able to exploit data as needed
-func InitProviders(tlsconfig *tls.Config, configChannel *chan int, configuration configuration.Configuration) {
+func InitProviders(tlsconfig *tls.Config, configChannel *chan int, configuration configuration.AbstractConfigurationInterface) {
 	var providers []CommonProvider
-	for _, provider := range configuration.SSLProviders {
+	for _, provider := range configuration.GetSSLProviders() {
 		providers = append(providers, CommonProvider{
 			Certificates: make(map[string]Certificate),
 			fileLocation: fmt.Sprintf("/ssl/%s.json", provider),

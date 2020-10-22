@@ -9,7 +9,7 @@ RUN go get -u \
     golang.org/x/lint/golint \
     github.com/dgraph-io/ristretto \
     github.com/fsnotify/fsnotify \
-    gopkg.in/yaml.v2
+    gopkg.in/yaml.v3
 
 RUN mkdir -p /app/src/github.com/darkweak/cmd
 RUN mkdir -p /app/src/github.com/darkweak/souin
@@ -18,7 +18,8 @@ ADD ./*.go /app/src/github.com/darkweak/souin/
 ADD ./cache /app/src/github.com/darkweak/souin/cache
 ADD ./errors /app/src/github.com/darkweak/souin/errors
 ADD ./providers /app/src/github.com/darkweak/souin/providers
-ADD ./default/server.* /app/src/github.com/darkweak/souin/
+ADD ./helpers /app/src/github.com/darkweak/souin/helpers
+ADD ./default /app/src/github.com/darkweak/souin/default
 ADD ./configuration/configuration.yml /
 ADD ./configuration/* /app/src/github.com/darkweak/souin/configuration/
 
@@ -33,9 +34,13 @@ FROM alpine:latest AS souin
 
 COPY --from=builder /app/cmd/souin .
 COPY --from=builder /app/src/github.com/darkweak/souin/configuration .
+RUN mkdir -p configuration
+RUN mv *.yml configuration/
 COPY --from=builder /ssl/ .
-COPY --from=builder /app/src/github.com/darkweak/souin/server.crt .
-COPY --from=builder /app/src/github.com/darkweak/souin/server.key .
+COPY --from=builder /app/src/github.com/darkweak/souin/default .
+RUN mkdir -p default
+RUN mv server.* default/
+RUN ls
 RUN chmod +x ./souin
 
 CMD ["./souin"]

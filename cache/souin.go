@@ -2,102 +2,16 @@ package cache
 
 import (
 	"crypto/tls"
-	"encoding/json"
 	"fmt"
 	"net"
 	"net/http"
-	"net/url"
-	cacheProviders "github.com/darkweak/souin/cache/providers"
-	"github.com/darkweak/souin/cache/service"
-	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/providers"
 	"github.com/darkweak/souin/configuration"
-	"strings"
-	"regexp"
+	"github.com/darkweak/souin/helpers"
+	"github.com/darkweak/souin/cache/service"
+	"github.com/darkweak/souin/cache/types"
+	providers2 "github.com/darkweak/souin/cache/providers"
 )
-
-// InitializeRegexp will generate one strong regex from your urls defined in the configuration.yml
-func InitializeRegexp(configurationInstance configuration.Configuration) regexp.Regexp {
-	u := ""
-	for k := range configurationInstance.URLs {
-		if "" != u {
-			u += "|"
-		}
-		u += "(" + k + ")"
-	}
-
-	return *regexp.MustCompile(u)
-}
-
-func serveReverseProxy(
-	res http.ResponseWriter,
-	req *http.Request,
-	provider cacheProviders.AbstractProviderInterface,
-	configurationInstance configuration.Configuration,
-	regexpUrls regexp.Regexp,
-	matchedURL configuration.URL,
-) {
-	path := req.Host + req.URL.Path
-
-	regexpURL := regexpUrls.FindString(path)
-	if "" != regexpURL {
-		matchedURL = configurationInstance.URLs[regexpURL]
-	}
-
-	u, _ := url.Parse(configurationInstance.ReverseProxyURL)
-	ctx := req.Context()
-
-	responses := make(chan types.ReverseResponse)
-	headers := ""
-	if matchedURL.Headers != nil && len(matchedURL.Headers) > 0 {
-		for _, h := range matchedURL.Headers {
-			headers += strings.ReplaceAll(req.Header.Get(h), " ", "")
-		}
-	}
-
-	alreadyHaveResponse := false
-	alreadySent := false
-
-	go func() {
-		if http.MethodGet == req.Method {
-			if !alreadyHaveResponse {
-				p := string(path + headers)
-				r := provider.GetRequestInCache(p)
-				responses <- provider.GetRequestInCache(p)
-				if "" != r.Response {
-					alreadyHaveResponse = true
-				}
-			}
-		}
-		if !alreadyHaveResponse || http.MethodGet != req.Method {
-			responses <- service.RequestReverseProxy(req, u, provider, configurationInstance, matchedURL)
-		}
-	}()
-
-	if http.MethodGet == req.Method {
-		response, open := <-responses
-		if open && http.MethodGet == req.Method && "" != response.Response {
-			close(responses)
-			var responseJSON types.RequestResponse
-			err := json.Unmarshal([]byte(response.Response), &responseJSON)
-			if err != nil {
-				panic(err)
-			}
-			for k, v := range responseJSON.Headers {
-				res.Header().Set(k, v[0])
-			}
-			alreadySent = true
-			res.Write(responseJSON.Body)
-		}
-	}
-
-	if !alreadySent {
-		req = req.WithContext(ctx)
-		response2 := <-responses
-		close(responses)
-		response2.Proxy.ServeHTTP(res, req)
-	}
-}
 
 func startServer(config *tls.Config) (net.Listener, *http.Server) {
 	config.BuildNameToCertificate()
@@ -122,49 +36,48 @@ func startServer(config *tls.Config) (net.Listener, *http.Server) {
 
 // Start cache system
 func Start() {
-	configurationInstance := configuration.GetConfig()
-	provider := cacheProviders.InitializeProvider(configurationInstance)
-	regexpUrls := InitializeRegexp(configurationInstance)
-
+	config := configuration.GetConfiguration()
 	configChannel := make(chan int)
-	tlsconfig := &tls.Config{
+	tlsConfig := &tls.Config{
 		Certificates:       make([]tls.Certificate, 0),
 		NameToCertificate:  make(map[string]*tls.Certificate),
 		InsecureSkipVerify: true,
 	}
-	v, _ := tls.LoadX509KeyPair("server.crt", "server.key")
-	tlsconfig.Certificates = append(tlsconfig.Certificates, v)
+	v, _ := tls.LoadX509KeyPair("./default/server.crt", "./default/server.key")
+	tlsConfig.Certificates = append(tlsConfig.Certificates, v)
 
 	go func() {
-		providers.InitProviders(tlsconfig, &configChannel, configurationInstance)
+		providers.InitProviders(tlsConfig, &configChannel, config)
 	}()
 
+
+	c := configuration.GetConfiguration()
+	provider := providers2.InitializeProvider(c)
+	regexpUrls := helpers.InitializeRegexp(c)
+	retriever := &types.RetrieverResponseProperties{
+		MatchedURL: configuration.URL{
+			TTL:       c.GetDefaultCache().TTL,
+			Headers:   c.GetDefaultCache().Headers,
+		},
+		Provider: provider,
+		Configuration: c,
+		RegexpUrls: regexpUrls,
+	}
+
 	http.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
-		serveReverseProxy(
-			writer,
-			request,
-			provider,
-			configurationInstance,
-			regexpUrls,
-			configuration.URL{
-				TTL:       configurationInstance.DefaultCache.TTL,
-				Headers:   configurationInstance.DefaultCache.Headers,
-			},
-		)
+		service.ServeResponse(writer, request, retriever)
 	})
 	go func() {
-		listener, _ := startServer(tlsconfig)
+		listener, _ := startServer(tlsConfig)
 		for {
 			select {
 			case <-configChannel:
 				listener.Close()
-				listener, _ = startServer(tlsconfig)
+				listener, _ = startServer(tlsConfig)
 			}
 		}
-
 	}()
-	if err := http.ListenAndServe(":"+configurationInstance.DefaultCache.Port.Web, nil); err != nil {
+	if err := http.ListenAndServe(":"+config.GetDefaultCache().Port.Web, nil); err != nil {
 		panic(err)
 	}
-
 }
