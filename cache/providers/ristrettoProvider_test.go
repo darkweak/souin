@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/darkweak/souin/errors"
-	"github.com/darkweak/souin/configuration"
 	"time"
+	"github.com/darkweak/souin/configuration"
 )
 
 const RISTRETTOVALUE = "My first data"
@@ -15,8 +15,8 @@ const NONEXISTENTKEY = "NonexistentKey"
 const DELETABLEKEY = "MyDeletableKey"
 
 func getRistrettoClientAndMatchedURL(key string) (*Ristretto, configuration.URL) {
-	config := configuration.GetConfiguration()
-	client := RistrettoConnectionFactory(configuration.GetConfiguration())
+	config := MockConfiguration()
+	client := RistrettoConnectionFactory(config)
 	regexpUrls := MockInitializeRegexp(config)
 	regexpURL := regexpUrls.FindString(key)
 	matchedURL := configuration.URL{
@@ -46,7 +46,8 @@ func TestIShouldBeAbleToReadAndWriteDataInRistretto(t *testing.T) {
 }
 
 func TestRistretto_GetRequestInCache(t *testing.T) {
-	client := RistrettoConnectionFactory(configuration.GetConfiguration())
+	c := MockConfiguration()
+	client := RistrettoConnectionFactory(c)
 	res := client.GetRequestInCache(NONEXISTENTKEY)
 	if res.Response != "" {
 		errors.GenerateError(t, fmt.Sprintf("Key %s should not exist", NONEXISTENTKEY))
@@ -95,7 +96,7 @@ func TestRistretto_SetRequestInCache_ExistingKey(t *testing.T) {
 }
 
 func TestRistretto_DeleteRequestInCache(t *testing.T) {
-	client := RistrettoConnectionFactory(configuration.GetConfiguration())
+	client := RistrettoConnectionFactory(MockConfiguration())
 	client.DeleteRequestInCache(BYTEKEY)
 	time.Sleep(1 * time.Second)
 	if "" != client.GetRequestInCache(BYTEKEY).Response {
@@ -104,7 +105,7 @@ func TestRistretto_DeleteRequestInCache(t *testing.T) {
 }
 
 func TestRistretto_Init(t *testing.T) {
-	client := RistrettoConnectionFactory(configuration.GetConfiguration())
+	client := RistrettoConnectionFactory(MockConfiguration())
 	err := client.Init()
 
 	if nil != err {

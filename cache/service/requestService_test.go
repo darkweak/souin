@@ -15,7 +15,38 @@ import (
 	"regexp"
 	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/cache/providers"
+	"log"
 )
+
+func MockConfiguration() configuration.AbstractConfigurationInterface {
+	var config configuration.Configuration
+	if err := config.Parse([]byte(`default_cache:
+headers:
+	- Authorization
+port:
+web: 80
+tls: 443
+regex:
+exclude: 'ARegexHere'
+  ttl: 1000
+reverse_proxy_url: 'http://traefik'
+ssl_providers:
+	- traefik
+urls:
+	'domain.com/':
+ttl: 1000
+headers:
+	- Authorization
+	'mysubdomain.domain.com':
+ttl: 50
+headers:
+	- Authorization
+	- 'Content-Type'
+`)); err != nil {
+		log.Fatal(err)
+	}
+	return &config
+}
 
 const DOMAIN = "domain.com"
 const PATH = "/testing"
@@ -33,7 +64,7 @@ func MockInitializeRegexp(configurationInstance configuration.AbstractConfigurat
 }
 
 func getMatchedURL(key string) configuration.URL {
-	config := configuration.GetConfiguration()
+	config := MockConfiguration()
 	regexpUrls := MockInitializeRegexp(config)
 	regexpURL := regexpUrls.FindString(key)
 	matchedURL := configuration.URL{
@@ -125,7 +156,7 @@ func shouldNotHaveKey(pathname string, pr types.AbstractProviderInterface) bool 
 }
 
 func mockRewriteBody (method string, body string, path string, code int, pr types.AbstractProviderInterface) error {
-	config := configuration.GetConfiguration()
+	config := MockConfiguration()
 	return rewriteBody(
 		mockResponse(PATH + path, method, body, code),
 		&types.RetrieverResponseProperties{
@@ -137,7 +168,8 @@ func mockRewriteBody (method string, body string, path string, code int, pr type
 }
 
 func TestKeyShouldBeDeletedOnPost(t *testing.T) {
-	prs := providers.InitializeProvider(configuration.GetConfiguration())
+	c := MockConfiguration()
+	prs := providers.InitializeProvider(c)
 	populateProviderWithFakeData(prs)
 	mockRewriteBody(http.MethodPost, "My second response", "/1", 201, prs)
 	time.Sleep(10 * time.Second)
@@ -147,7 +179,8 @@ func TestKeyShouldBeDeletedOnPost(t *testing.T) {
 }
 
 func TestRewriteBody(t *testing.T) {
-	prs := providers.InitializeProvider(configuration.GetConfiguration())
+	c := MockConfiguration()
+	prs := providers.InitializeProvider(c)
 	err := mockRewriteBody(http.MethodPost, "My second response", "", 201, prs)
 	if err != nil {
 		errors.GenerateError(t, "Rewrite body can't return errors")
@@ -165,7 +198,8 @@ func verifyKeysExists(t *testing.T, path string, keys []string, isKeyDeleted boo
 }
 
 func TestKeyShouldBeDeletedOnPut(t *testing.T) {
-	prs := providers.InitializeProvider(configuration.GetConfiguration())
+	c := MockConfiguration()
+	prs := providers.InitializeProvider(c)
 	populateProviderWithFakeData(prs)
 	mockResponse("/1", http.MethodPut, "My second response", 200)
 
@@ -173,7 +207,8 @@ func TestKeyShouldBeDeletedOnPut(t *testing.T) {
 }
 
 func TestKeyShouldBeDeletedOnDelete(t *testing.T) {
-	prs := providers.InitializeProvider(configuration.GetConfiguration())
+	c := MockConfiguration()
+	prs := providers.InitializeProvider(c)
 	populateProviderWithFakeData(prs)
 	mockResponse("/1", http.MethodDelete, "", 200)
 	verifyKeysExists(t, PATH, []string{"", "/1"}, true, prs)
@@ -181,7 +216,7 @@ func TestKeyShouldBeDeletedOnDelete(t *testing.T) {
 
 func TestRequestReverseProxy(t *testing.T) {
 	request, _ := http.NewRequest(http.MethodGet, "http://localhost", nil)
-	conf := configuration.GetConfiguration()
+	conf := MockConfiguration()
 	response := RequestReverseProxy(
 		request,
 		request.URL,

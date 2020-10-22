@@ -2,27 +2,43 @@ package providers
 
 import (
 	"crypto/tls"
-	"github.com/darkweak/souin/configuration"
 	"testing"
 	"github.com/darkweak/souin/errors"
 	"fmt"
+	"log"
+	"github.com/darkweak/souin/configuration"
 )
 
-func mockConfiguration() configuration.Configuration {
-	return configuration.Configuration{
-		SSLProviders:    []string{},
-		ReverseProxyURL: "http://traefik",
-		DefaultCache: configuration.DefaultCache{
-			Headers:   []string{},
-			Regex: configuration.Regex{
-				Exclude: "MyCustomRegex",
-			},
-			Redis: configuration.Redis{
-				URL: "redis:6379",
-			},
-			TTL:             "100",
-		},
+func MockConfiguration() configuration.AbstractConfigurationInterface {
+	var config configuration.Configuration
+	e := config.Parse([]byte(`
+default_cache:
+  headers:
+    - Authorization
+  port:
+    web: 80
+    tls: 443
+  regex:
+    exclude: 'ARegexHere'
+  ttl: 1000
+reverse_proxy_url: 'http://traefik'
+ssl_providers:
+  - traefik
+urls:
+  'domain.com/':
+    ttl: 1000
+    headers:
+      - Authorization
+  'mysubdomain.domain.com':
+    ttl: 50
+    headers:
+      - Authorization
+      - 'Content-Type'
+`))
+	if e != nil {
+		log.Fatal(e)
 	}
+	return &config
 }
 
 func TestInitProviders(t *testing.T) {
@@ -34,7 +50,7 @@ func TestInitProviders(t *testing.T) {
 	}
 	v, _ := tls.LoadX509KeyPair("server.crt", "server.key")
 	config.Certificates = append(config.Certificates, v)
-	InitProviders(config, &configChannel, mockConfiguration())
+	InitProviders(config, &configChannel, MockConfiguration())
 }
 
 func TestLoadFromConfigFile(t *testing.T) {
