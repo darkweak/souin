@@ -1,0 +1,10 @@
+displayName: Souin efficient cache system
+
+type: middleware
+
+import: github.com/darkweak/souin
+
+summary: Souin is a powerfull cache system as fast as Varnish but easier to configure
+
+testData:
+  nil: nil
