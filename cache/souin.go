@@ -15,7 +15,7 @@ import (
 	"encoding/json"
 )
 
-func mycallback(
+func callback(
 	res http.ResponseWriter,
 	req *http.Request,
 	retriever types.RetrieverResponsePropertiesInterface,
@@ -92,7 +92,7 @@ func startServer(config *tls.Config) (net.Listener, *http.Server) {
 
 // Start cache system
 func Start() {
-	config := configuration.GetConfiguration()
+	c := configuration.GetConfiguration()
 	configChannel := make(chan int)
 	tlsConfig := &tls.Config{
 		Certificates:       make([]tls.Certificate, 0),
@@ -103,11 +103,9 @@ func Start() {
 	tlsConfig.Certificates = append(tlsConfig.Certificates, v)
 
 	go func() {
-		providers.InitProviders(tlsConfig, &configChannel, config)
+		providers.InitProviders(tlsConfig, &configChannel, c)
 	}()
 
-
-	c := configuration.GetConfiguration()
 	provider := providers2.InitializeProvider(c)
 	regexpUrls := helpers.InitializeRegexp(c)
 	retriever := &types.RetrieverResponseProperties{
@@ -121,7 +119,7 @@ func Start() {
 	}
 
 	http.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
-		service.ServeResponse(writer, request, retriever, mycallback)
+		service.ServeResponse(writer, request, retriever, callback)
 	})
 	go func() {
 		listener, _ := startServer(tlsConfig)
@@ -133,7 +131,7 @@ func Start() {
 			}
 		}
 	}()
-	if err := http.ListenAndServe(":"+config.GetDefaultCache().Port.Web, nil); err != nil {
+	if err := http.ListenAndServe(":"+c.GetDefaultCache().Port.Web, nil); err != nil {
 		panic(err)
 	}
 }
