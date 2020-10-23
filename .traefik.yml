@@ -1,10 +1,21 @@
-displayName: Souin efficient cache system
+displayName: Souin
 
 type: middleware
 
-import: github.com/darkweak/souin
+import: github.com/darkweak/souin/plugins/traefik
 
-summary: Souin is a powerfull cache system as fast as Varnish but easier to configure
+summary: 'Souin is a powerfull cache system as fast as Varnish but easier to configure'
 
+# Refer to https://github.com/darkweak/Souin/configuration/configuration.sample.yml for full configuration
 testData:
-  nil: nil
+  default_cache:
+    headers:
+      - Authorization
+    regex:
+      exclude: 'ARegexHere'
+    ttl: 1000
+  urls:
+    'domain.com/':
+      ttl: 1000
+      headers:
+        - Authorization
