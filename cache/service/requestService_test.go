@@ -240,22 +240,33 @@ func TestRequestReverseProxy(t *testing.T) {
 
 func TestCommonLoadingRequest(t *testing.T)  {
 	body := "My testable response"
+	lenBody := len([]byte(body))
 	response := commonLoadingRequest(mockResponse(PATH, http.MethodGet, body, 200))
 
-	if body != string(response) {
+	if "" == string(response) {
+		errors.GenerateError(t, "Body shouldn't be empty")
+	}
+	if body != string(response) || lenBody != len(response) {
 		errors.GenerateError(t, fmt.Sprintf("Body %s doesn't match attempted %s", string(response), body))
 	}
 
 	body = "Another body with <h1>HTML</h1>"
+	lenBody = len([]byte(body))
 	response = commonLoadingRequest(mockResponse(PATH, http.MethodGet, body, 200))
 
-	if body != string(response) {
+	if "" == string(response) {
+		errors.GenerateError(t, "Body shouldn't be empty")
+	}
+	if body != string(response) || lenBody != len(response) {
 		errors.GenerateError(t, fmt.Sprintf("Body %s doesn't match attempted %s", string(response), body))
 	}
 
 	response = commonLoadingRequest(mockResponse(PATH+"/another", http.MethodGet, body, 200))
 
-	if body != string(response) {
+	if "" == string(response) {
+		errors.GenerateError(t, "Body shouldn't be empty")
+	}
+	if body != string(response) || lenBody != len(response) {
 		errors.GenerateError(t, fmt.Sprintf("Body %s doesn't match attempted %s", string(response), body))
 	}
 }

@@ -64,6 +64,15 @@ func TestContainsString(t *testing.T) {
 	}
 }
 
+func TestInitializeProvider(t *testing.T) {
+	c := MockConfiguration()
+	p := InitializeProvider(c)
+	err := p.Init()
+	if nil != err {
+		errors.GenerateError(t, "Init shouldn't crash")
+	}
+}
+
 func TestPathnameNotInExcludeRegex(t *testing.T) {
 	config := MockConfiguration()
 	if helpers.PathnameNotInExcludeRegex(config.GetDefaultCache().Regex.Exclude, config) {
