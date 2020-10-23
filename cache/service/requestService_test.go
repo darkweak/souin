@@ -20,30 +20,32 @@ import (
 
 func MockConfiguration() configuration.AbstractConfigurationInterface {
 	var config configuration.Configuration
-	if err := config.Parse([]byte(`default_cache:
-headers:
-	- Authorization
-port:
-web: 80
-tls: 443
-regex:
-exclude: 'ARegexHere'
+	e := config.Parse([]byte(`
+default_cache:
+  headers:
+    - Authorization
+  port:
+    web: 80
+    tls: 443
+  regex:
+    exclude: 'ARegexHere'
   ttl: 1000
 reverse_proxy_url: 'http://traefik'
 ssl_providers:
-	- traefik
+  - traefik
 urls:
-	'domain.com/':
-ttl: 1000
-headers:
-	- Authorization
-	'mysubdomain.domain.com':
-ttl: 50
-headers:
-	- Authorization
-	- 'Content-Type'
-`)); err != nil {
-		log.Fatal(err)
+  'domain.com/':
+    ttl: 1000
+    headers:
+      - Authorization
+  'mysubdomain.domain.com':
+    ttl: 50
+    headers:
+      - Authorization
+      - 'Content-Type'
+`))
+	if e != nil {
+		log.Fatal(e)
 	}
 	return &config
 }
@@ -238,22 +240,33 @@ func TestRequestReverseProxy(t *testing.T) {
 
 func TestCommonLoadingRequest(t *testing.T)  {
 	body := "My testable response"
+	lenBody := len([]byte(body))
 	response := commonLoadingRequest(mockResponse(PATH, http.MethodGet, body, 200))
 
-	if body != string(response) {
+	if "" == string(response) {
+		errors.GenerateError(t, "Body shouldn't be empty")
+	}
+	if body != string(response) || lenBody != len(response) {
 		errors.GenerateError(t, fmt.Sprintf("Body %s doesn't match attempted %s", string(response), body))
 	}
 
 	body = "Another body with <h1>HTML</h1>"
+	lenBody = len([]byte(body))
 	response = commonLoadingRequest(mockResponse(PATH, http.MethodGet, body, 200))
 
-	if body != string(response) {
+	if "" == string(response) {
+		errors.GenerateError(t, "Body shouldn't be empty")
+	}
+	if body != string(response) || lenBody != len(response) {
 		errors.GenerateError(t, fmt.Sprintf("Body %s doesn't match attempted %s", string(response), body))
 	}
 
 	response = commonLoadingRequest(mockResponse(PATH+"/another", http.MethodGet, body, 200))
 
-	if body != string(response) {
+	if "" == string(response) {
+		errors.GenerateError(t, "Body shouldn't be empty")
+	}
+	if body != string(response) || lenBody != len(response) {
 		errors.GenerateError(t, fmt.Sprintf("Body %s doesn't match attempted %s", string(response), body))
 	}
 }

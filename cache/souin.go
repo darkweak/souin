@@ -11,7 +11,63 @@ import (
 	"github.com/darkweak/souin/cache/service"
 	"github.com/darkweak/souin/cache/types"
 	providers2 "github.com/darkweak/souin/cache/providers"
+	"net/url"
+	"encoding/json"
 )
+
+func callback(
+	res http.ResponseWriter,
+	req *http.Request,
+	retriever types.RetrieverResponsePropertiesInterface,
+	key string,
+) {
+
+	u, _ := url.Parse(retriever.GetConfiguration().GetReverseProxyURL())
+	ctx := req.Context()
+	responses := make(chan types.ReverseResponse)
+
+	alreadyHaveResponse := false
+	alreadySent := false
+
+	go func() {
+		if http.MethodGet == req.Method {
+			if !alreadyHaveResponse {
+				r := retriever.GetProvider().GetRequestInCache(key)
+				responses <- retriever.GetProvider().GetRequestInCache(key)
+				if "" != r.Response {
+					alreadyHaveResponse = true
+				}
+			}
+		}
+		if !alreadyHaveResponse || http.MethodGet != req.Method {
+			responses <- service.RequestReverseProxy(req, u, retriever)
+		}
+	}()
+
+	if http.MethodGet == req.Method {
+		response, open := <-responses
+		if open && http.MethodGet == req.Method && "" != response.Response {
+			close(responses)
+			var responseJSON types.RequestResponse
+			err := json.Unmarshal([]byte(response.Response), &responseJSON)
+			if err != nil {
+				panic(err)
+			}
+			for k, v := range responseJSON.Headers {
+				res.Header().Set(k, v[0])
+			}
+			alreadySent = true
+			res.Write(responseJSON.Body)
+		}
+	}
+
+	if !alreadySent {
+		req = req.WithContext(ctx)
+		response2 := <-responses
+		close(responses)
+		response2.Proxy.ServeHTTP(res, req)
+	}
+}
 
 func startServer(config *tls.Config) (net.Listener, *http.Server) {
 	config.BuildNameToCertificate()
@@ -36,7 +92,7 @@ func startServer(config *tls.Config) (net.Listener, *http.Server) {
 
 // Start cache system
 func Start() {
-	config := configuration.GetConfiguration()
+	c := configuration.GetConfiguration()
 	configChannel := make(chan int)
 	tlsConfig := &tls.Config{
 		Certificates:       make([]tls.Certificate, 0),
@@ -47,11 +103,9 @@ func Start() {
 	tlsConfig.Certificates = append(tlsConfig.Certificates, v)
 
 	go func() {
-		providers.InitProviders(tlsConfig, &configChannel, config)
+		providers.InitProviders(tlsConfig, &configChannel, c)
 	}()
 
-
-	c := configuration.GetConfiguration()
 	provider := providers2.InitializeProvider(c)
 	regexpUrls := helpers.InitializeRegexp(c)
 	retriever := &types.RetrieverResponseProperties{
@@ -65,7 +119,7 @@ func Start() {
 	}
 
 	http.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
-		service.ServeResponse(writer, request, retriever)
+		service.ServeResponse(writer, request, retriever, callback)
 	})
 	go func() {
 		listener, _ := startServer(tlsConfig)
@@ -77,7 +131,7 @@ func Start() {
 			}
 		}
 	}()
-	if err := http.ListenAndServe(":"+config.GetDefaultCache().Port.Web, nil); err != nil {
+	if err := http.ListenAndServe(":"+c.GetDefaultCache().Port.Web, nil); err != nil {
 		panic(err)
 	}
 }

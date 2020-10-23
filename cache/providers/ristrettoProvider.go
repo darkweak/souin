@@ -14,7 +14,7 @@ type Ristretto struct {
 }
 
 // RistrettoConnectionFactory function create new Ristretto instance
-func RistrettoConnectionFactory(_ configuration.AbstractConfigurationInterface) *Ristretto {
+func RistrettoConnectionFactory(_ configuration.AbstractConfigurationInterface) (*Ristretto, error) {
 	cache, err := ristretto.NewCache(&ristretto.Config{
 		NumCounters: 1e7,     // number of keys to track frequency of (10M).
 		MaxCost:     1 << 30, // maximum cost of cache (1GB).
@@ -22,10 +22,10 @@ func RistrettoConnectionFactory(_ configuration.AbstractConfigurationInterface) 
 	})
 
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	return &Ristretto{cache}
+	return &Ristretto{cache}, nil
 }
 
 // GetRequestInCache method returns the populated response if exists, empty response then

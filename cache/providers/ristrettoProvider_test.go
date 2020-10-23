@@ -16,7 +16,7 @@ const DELETABLEKEY = "MyDeletableKey"
 
 func getRistrettoClientAndMatchedURL(key string) (*Ristretto, configuration.URL) {
 	config := MockConfiguration()
-	client := RistrettoConnectionFactory(config)
+	client, _ := RistrettoConnectionFactory(config)
 	regexpUrls := MockInitializeRegexp(config)
 	regexpURL := regexpUrls.FindString(key)
 	matchedURL := configuration.URL{
@@ -28,6 +28,19 @@ func getRistrettoClientAndMatchedURL(key string) (*Ristretto, configuration.URL)
 	}
 
 	return client, matchedURL
+}
+
+func TestRistrettoConnectionFactory(t *testing.T) {
+	c := MockConfiguration()
+	r, err := RistrettoConnectionFactory(c)
+
+	if nil != err {
+		errors.GenerateError(t, "Shouldn't have panic")
+	}
+
+	if nil == r {
+		errors.GenerateError(t, "Ristretto should be instanciated")
+	}
 }
 
 func TestIShouldBeAbleToReadAndWriteDataInRistretto(t *testing.T) {
@@ -47,7 +60,7 @@ func TestIShouldBeAbleToReadAndWriteDataInRistretto(t *testing.T) {
 
 func TestRistretto_GetRequestInCache(t *testing.T) {
 	c := MockConfiguration()
-	client := RistrettoConnectionFactory(c)
+	client, _ := RistrettoConnectionFactory(c)
 	res := client.GetRequestInCache(NONEXISTENTKEY)
 	if res.Response != "" {
 		errors.GenerateError(t, fmt.Sprintf("Key %s should not exist", NONEXISTENTKEY))
@@ -77,6 +90,11 @@ func TestRistretto_SetRequestInCache_MultipleKeys(t *testing.T) {
 	}
 }
 
+func TestRistretto_SetRequestInCache(t *testing.T) {
+	client, matchedURL := getRistrettoClientAndMatchedURL("MyEmptyKey")
+	client.SetRequestInCache("MyEmptyKey", []byte("Hello world"), matchedURL)
+}
+
 func TestRistretto_SetRequestInCache_Empty(t *testing.T) {
 	client, matchedURL := getRistrettoClientAndMatchedURL("MyEmptyKey")
 	client.SetRequestInCache("MyEmptyKey", []byte{}, matchedURL)
@@ -96,7 +114,7 @@ func TestRistretto_SetRequestInCache_ExistingKey(t *testing.T) {
 }
 
 func TestRistretto_DeleteRequestInCache(t *testing.T) {
-	client := RistrettoConnectionFactory(MockConfiguration())
+	client, _ := RistrettoConnectionFactory(MockConfiguration())
 	client.DeleteRequestInCache(BYTEKEY)
 	time.Sleep(1 * time.Second)
 	if "" != client.GetRequestInCache(BYTEKEY).Response {
@@ -105,10 +123,10 @@ func TestRistretto_DeleteRequestInCache(t *testing.T) {
 }
 
 func TestRistretto_Init(t *testing.T) {
-	client := RistrettoConnectionFactory(MockConfiguration())
+	client, _ := RistrettoConnectionFactory(MockConfiguration())
 	err := client.Init()
 
 	if nil != err {
-		errors.GenerateError(t, "Impossible to instantiate Ristretto provider")
+		errors.GenerateError(t, "Impossible to init Ristretto provider")
 	}
 }

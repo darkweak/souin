@@ -16,5 +16,6 @@ func contains(s []string, e string) bool {
 
 // InitializeProvider allow to generate the providers array according to the configuration
 func InitializeProvider(configuration configuration.AbstractConfigurationInterface) types.AbstractProviderInterface {
-	return RistrettoConnectionFactory(configuration)
+	r, _ := RistrettoConnectionFactory(configuration)
+	return r
 }
