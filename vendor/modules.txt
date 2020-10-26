@@ -1,0 +1,20 @@
+# github.com/cespare/xxhash v1.1.0
+github.com/cespare/xxhash
+# github.com/dgraph-io/ristretto v0.0.3
+## explicit
+github.com/dgraph-io/ristretto
+github.com/dgraph-io/ristretto/z
+# github.com/fsnotify/fsnotify v1.4.9
+## explicit
+github.com/fsnotify/fsnotify
+# golang.org/x/lint v0.0.0-20200302205851-738671d3881b
+## explicit
+# golang.org/x/sys v0.0.0-20200602225109-6fdc65e7d980
+## explicit
+golang.org/x/sys/internal/unsafeheader
+golang.org/x/sys/unix
+# golang.org/x/tools v0.0.0-20200608174601-1b747fd94509
+## explicit
+# gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776
+## explicit
+gopkg.in/yaml.v3

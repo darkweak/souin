@@ -7,7 +7,7 @@ import (
 
 // ReverseResponse object contains the response from reverse-proxy
 type ReverseResponse struct {
-	Response string
+	Response []byte
 	Proxy    *httputil.ReverseProxy
 	Request  *http.Request
 }

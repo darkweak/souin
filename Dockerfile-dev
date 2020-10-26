@@ -1,25 +1,24 @@
-FROM golang:1.13-alpine AS souin
+FROM golang:1.15-alpine AS souin
 
 RUN apk update && apk upgrade && \
     apk add --no-cache bash git openssh gcc libc-dev
 ENV GOPATH /app
 RUN go get -u \
     golang.org/x/lint/golint \
-    github.com/allegro/bigcache \
     github.com/dgraph-io/ristretto \
     github.com/fsnotify/fsnotify \
-    github.com/go-redis/redis \
-    gopkg.in/yaml.v2
+    gopkg.in/yaml.v3
 
 RUN mkdir -p /app/src/github.com/darkweak/souin
 RUN mkdir -p /ssl
 ADD ./*.go /app/src/github.com/darkweak/souin/
 ADD ./cache /app/src/github.com/darkweak/souin/cache
-ADD ./errors /app/src/github.com/darkweak/souin/errors
-ADD ./providers /app/src/github.com/darkweak/souin/providers
-ADD ./default/server.* /app/src/github.com/darkweak/souin/
-ADD ./configuration/configuration.yml /
 ADD ./configuration /app/src/github.com/darkweak/souin/configuration
+ADD ./configuration_types /app/src/github.com/darkweak/souin/configuration_types
+ADD ./default /app/src/github.com/darkweak/souin/default
+ADD ./errors /app/src/github.com/darkweak/souin/errors
+ADD ./helpers /app/src/github.com/darkweak/souin/helpers
+ADD ./providers /app/src/github.com/darkweak/souin/providers
 
 WORKDIR /app/src/github.com/darkweak/souin
 
