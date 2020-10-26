@@ -4,28 +4,19 @@ default_cache:
   port:
     web: 80
     tls: 443
-  providers:
-    - all
-  redis:
-    url: 'redis:6379'
   regex:
     exclude: 'ARegexHere'
-  ttl: 100
+  ttl: 10
 reverse_proxy_url: 'http://traefik'
 ssl_providers:
   - traefik
 urls:
   'domain.com/':
-    ttl: 1000
+    ttl: 100
     headers:
       - Authorization
-    providers:
-      - memory
-      - ristretto
   'mysubdomain.domain.com':
     ttl: 50
     headers:
       - Authorization
       - 'Content-Type'
-    providers:
-      - redis
