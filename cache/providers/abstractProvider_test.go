@@ -1,16 +1,16 @@
 package providers
 
 import (
-	"testing"
 	"github.com/darkweak/souin/configuration"
-	"github.com/darkweak/souin/configuration_types"
+	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/errors"
 	"github.com/darkweak/souin/helpers"
-	"regexp"
 	"log"
+	"regexp"
+	"testing"
 )
 
-func MockConfiguration() configuration_types.AbstractConfigurationInterface {
+func MockConfiguration() configurationtypes.AbstractConfigurationInterface {
 	var config configuration.Configuration
 	e := config.Parse([]byte(`
 default_cache:
@@ -42,7 +42,7 @@ urls:
 	return &config
 }
 
-func MockInitializeRegexp(configurationInstance configuration_types.AbstractConfigurationInterface) regexp.Regexp {
+func MockInitializeRegexp(configurationInstance configurationtypes.AbstractConfigurationInterface) regexp.Regexp {
 	u := ""
 	for k := range configurationInstance.GetUrls() {
 		if "" != u {

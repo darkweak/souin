@@ -5,25 +5,22 @@ RUN apk update && apk upgrade && \
 ENV GOPATH /app
 ENV GOOS linux
 ENV GOARCH arm64
-RUN go get -u \
-    golang.org/x/lint/golint \
-    github.com/dgraph-io/ristretto \
-    github.com/fsnotify/fsnotify \
-    gopkg.in/yaml.v3
 
 RUN mkdir -p /app/src/github.com/darkweak/cmd
 RUN mkdir -p /app/src/github.com/darkweak/souin
+ADD ./go.* /app/src/github.com/darkweak/souin/
 RUN mkdir -p /ssl
 ADD ./*.go /app/src/github.com/darkweak/souin/
 ADD ./cache /app/src/github.com/darkweak/souin/cache
 ADD ./configuration /app/src/github.com/darkweak/souin/configuration
-ADD ./configuration_types /app/src/github.com/darkweak/souin/configuration_types
+ADD ./configurationtypes /app/src/github.com/darkweak/souin/configurationtypes
 ADD ./default /app/src/github.com/darkweak/souin/default
 ADD ./errors /app/src/github.com/darkweak/souin/errors
 ADD ./helpers /app/src/github.com/darkweak/souin/helpers
 ADD ./providers /app/src/github.com/darkweak/souin/providers
 
 WORKDIR /app/src/github.com/darkweak/souin
+RUN go mod download
 
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a \
   -tags netgo -ldflags '-w -extldflags "-static"' -o /app/cmd/souin .

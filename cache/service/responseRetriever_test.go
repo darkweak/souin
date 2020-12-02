@@ -1,12 +1,12 @@
 package service
 
 import (
-	"testing"
-	"net/http"
 	"github.com/darkweak/souin/cache/providers"
 	"github.com/darkweak/souin/cache/types"
-	"net/http/httptest"
 	"github.com/darkweak/souin/helpers"
+	"net/http"
+	"net/http/httptest"
+	"testing"
 )
 
 func TestServeResponse(t *testing.T) {

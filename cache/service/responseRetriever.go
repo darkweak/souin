@@ -1,8 +1,8 @@
 package service
 
 import (
-	"net/http"
 	"github.com/darkweak/souin/cache/types"
+	"net/http"
 	"strings"
 )
 
@@ -29,6 +29,6 @@ func ServeResponse(
 		res,
 		req,
 		retriever,
-		string(path+headers),
+		path+headers,
 	)
 }

@@ -2,15 +2,15 @@ package providers
 
 import (
 	"crypto/tls"
-	"testing"
-	"github.com/darkweak/souin/errors"
 	"fmt"
-	"log"
-	"github.com/darkweak/souin/configuration_types"
 	"github.com/darkweak/souin/configuration"
+	"github.com/darkweak/souin/configurationtypes"
+	"github.com/darkweak/souin/errors"
+	"log"
+	"testing"
 )
 
-func MockConfiguration() configuration_types.AbstractConfigurationInterface {
+func MockConfiguration() configurationtypes.AbstractConfigurationInterface {
 	var config configuration.Configuration
 	e := config.Parse([]byte(`
 default_cache:
@@ -46,7 +46,6 @@ func TestInitProviders(t *testing.T) {
 	configChannel := make(chan int)
 	config := &tls.Config{
 		Certificates:       make([]tls.Certificate, 0),
-		NameToCertificate:  make(map[string]*tls.Certificate),
 		InsecureSkipVerify: true,
 	}
 	v, _ := tls.LoadX509KeyPair("server.crt", "server.key")
@@ -75,7 +74,6 @@ func TestCommonProvider_LoadFromConfigFile2(t *testing.T) {
 	configChannel := make(chan int)
 	config := &tls.Config{
 		Certificates:       make([]tls.Certificate, 0),
-		NameToCertificate:  make(map[string]*tls.Certificate),
 		InsecureSkipVerify: true,
 	}
 
@@ -113,7 +111,6 @@ func TestCommonProvider_LoadFromConfigFile4(t *testing.T) {
 	v, _ := tls.LoadX509KeyPair("server.crt", "server.key")
 	config := &tls.Config{
 		Certificates:       []tls.Certificate{v},
-		NameToCertificate:  make(map[string]*tls.Certificate),
 		InsecureSkipVerify: true,
 	}
 

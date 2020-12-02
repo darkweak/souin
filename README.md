@@ -22,7 +22,10 @@
 
 ## Project description
 Souin is a new cache system suitable for every reverse-proxy. It will be placed on top of your current reverse-proxy whether it's Apache, Nginx or Traefik.  
-As it's written in go, it can be deployed on any server and thanks to the docker integration, it will be easy to install on top of a Swarm or a kubernetes instance.
+As it's written in go, it can be deployed on any server and thanks to the docker integration, it will be easy to install on top of a Swarm, or a kubernetes instance.
+
+## Disclaimer
+If you don't need redis or other custom cache providers, it's recommended to use the minimal version. You can read the documentation, on [the master branch](https://github.com/darkweak/souin).
 
 ## Configuration
 The configuration file is stored at `/anywhere/configuration.yml`. You can edit it provided you fill at least the required parameters as shown below.
@@ -50,7 +53,7 @@ This is a fully working minimal configuration for a Souin instance
 default_cache:
   headers: # Default headers concatenated in stored keys
     - Authorization
-  providers:
+  cache_providers:
     - all # Enable all providers by default
   redis: # Redis configuration
     url: 'redis:6379'
@@ -75,7 +78,7 @@ urls:
 |  Key  |  Description  |  Value example  |
 |:---:|:---:|:---:|
 |`default_cache.headers`|List of headers to include to the cache|`- Authorization`<br/><br/>`- Content-Type`<br/><br/>`- X-Additional-Header`|
-|`default_cache.providers`|Your providers list to cache your data, by default it will use all systems|`- all`<br/><br/>`- memory`<br/><br/>`- redis`|
+|`default_cache.cache_providers`|Your providers list to cache your data, by default it will use all systems|`- all`<br/><br/>`- ristretto`<br/><br/>`- redis`|
 |`default_cache.redis.url`|The redis url, used if you enabled it in the provider section|`redis:6379` (container way) and `http://yourdomain.com:6379` (network way)|
 |`default_cache.regex.exclude`|The regex used to prevent paths being cached|`^[A-z]+.*$`|
 |`ssl_providers`|List of your providers handling certificates|`- traefik`<br/><br/>`- nginx`<br/><br/>`- apache`|
@@ -95,8 +98,8 @@ In order to do that, Redis needs to be either on the same network than the Souin
 Souin will return at first the in-memory response when it gives a non-empty response, then the redis one will be used with same condition, or fallback to the reverse proxy otherwise.
 
 ### Cache invalidation
-The cache invalidation is made for CRUD requests, if you're doing a GET HTTP request, it will serve the cached response when it exists, otherwise the reverse-proxy response will be served.  
-If you're doing a POST, PUT, PATCH or DELETE HTTP request, the related cache GET request and the list endpoint will be dropped.  
+The cache invalidation is build for CRUD requests, if you're doing a GET HTTP request, it will serve the cached response when it exists, otherwise the reverse-proxy response will be served.  
+If you're doing a POST, PUT, PATCH or DELETE HTTP request, the related cache GET request, and the list endpoint will be dropped.  
 It works very well with plain [API Platform](https://api-platform.com) integration (not for custom actions at the moment) and CRUD routes.
 
 ## Examples

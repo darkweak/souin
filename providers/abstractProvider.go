@@ -5,11 +5,11 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/darkweak/souin/configurationtypes"
+	"github.com/fsnotify/fsnotify"
 	"io/ioutil"
 	"log"
 	"strings"
-	"github.com/darkweak/souin/configuration_types"
-	"github.com/fsnotify/fsnotify"
 )
 
 // CommonProvider contains a Certificate map
@@ -25,7 +25,7 @@ type Certificate struct {
 }
 
 // InitProviders function allow to init certificates and be able to exploit data as needed
-func InitProviders(tlsconfig *tls.Config, configChannel *chan int, configuration configuration_types.AbstractConfigurationInterface) {
+func InitProviders(tlsconfig *tls.Config, configChannel *chan int, configuration configurationtypes.AbstractConfigurationInterface) {
 	var providers []CommonProvider
 	for _, provider := range configuration.GetSSLProviders() {
 		providers = append(providers, CommonProvider{
@@ -46,7 +46,7 @@ func (c *CommonProvider) LoadFromConfigFile(tlsconfig *tls.Config, configChannel
 	}
 
 	certificates := &AcmeFile{}
-	err = json.Unmarshal([]byte(acmeFile), &certificates)
+	err = json.Unmarshal(acmeFile, &certificates)
 	if nil != err {
 		panic(err)
 	}
@@ -93,7 +93,7 @@ func (c *CommonProvider) InitWatcher(tlsconfig *tls.Config, configChannel *chan 
 				}
 				if event.Op&fsnotify.Write == fsnotify.Write {
 					c.LoadFromConfigFile(tlsconfig, configChannel)
-					watcher.Add(c.fileLocation)
+					_ = watcher.Add(c.fileLocation)
 				}
 			case _, ok := <-watcher.Errors:
 				if !ok {
