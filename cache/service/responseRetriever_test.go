@@ -1,4 +1,4 @@
-package coalescing
+package service
 
 import (
 	"github.com/darkweak/souin/cache/providers"
@@ -10,35 +10,22 @@ import (
 	"testing"
 )
 
-func commonInitializer() (*httptest.ResponseRecorder, *http.Request, *types.RetrieverResponseProperties) {
+func TestServeResponse(t *testing.T) {
 	c := tests.MockConfiguration()
 	prs := providers.InitializeProvider(c)
 	regexpUrls := helpers.InitializeRegexp(c)
 	retriever := &types.RetrieverResponseProperties{
 		Configuration: c,
-		Providers:      prs,
+		Providers:     prs,
 		MatchedURL:    tests.GetMatchedURL(tests.PATH),
 		RegexpUrls:    regexpUrls,
 	}
 	r := httptest.NewRequest("GET", "http://"+tests.DOMAIN+tests.PATH, nil)
 	w := httptest.NewRecorder()
-
-	return w, r, retriever
-}
-
-func TestServeResponse(t *testing.T) {
-	rc := Initialize()
-	w, r, retriever := commonInitializer()
 	ServeResponse(
 		w,
 		r,
 		retriever,
-		func(
-			rw http.ResponseWriter,
-			rq *http.Request,
-			r types.RetrieverResponsePropertiesInterface,
-			rc RequestCoalescingInterface) {
-		},
-		rc,
+		func(rw http.ResponseWriter, rq *http.Request, r types.RetrieverResponsePropertiesInterface, key string) {},
 	)
 }

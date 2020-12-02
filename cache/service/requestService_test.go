@@ -16,15 +16,17 @@ import (
 	"github.com/darkweak/souin/errors"
 )
 
-func populateProviderWithFakeData(provider types.AbstractProviderInterface) {
-	provider.Set(tests.DOMAIN+tests.PATH, []byte("testing value is here for "+tests.PATH), tests.GetMatchedURL(tests.DOMAIN+tests.PATH), time.Duration(20)*time.Second)
-	for i := 0; i < 25; i++ {
-		provider.Set(
-			fmt.Sprintf("%s%s/%d", tests.DOMAIN, tests.PATH, i),
-			[]byte(fmt.Sprintf("testing value is here for my first init of %s/%d", tests.PATH, i)),
-			tests.GetMatchedURL(tests.DOMAIN+tests.PATH),
-			time.Duration(20)*time.Second,
-		)
+func populateProviderWithFakeData(providers map[string]types.AbstractProviderInterface) {
+	for _, provider := range providers {
+		provider.Set(tests.DOMAIN+tests.PATH, []byte("testing value is here for "+tests.PATH), tests.GetMatchedURL(tests.DOMAIN+tests.PATH), time.Duration(20)*time.Second)
+		for i := 0; i < 25; i++ {
+			provider.Set(
+				fmt.Sprintf("%s%s/%d", tests.DOMAIN, tests.PATH, i),
+				[]byte(fmt.Sprintf("testing value is here for my first init of %s/%d", tests.PATH, i)),
+				tests.GetMatchedURL(tests.DOMAIN+tests.PATH),
+				time.Duration(20)*time.Second,
+			)
+		}
 	}
 }
 
@@ -86,13 +88,17 @@ func TestGetKeyFromResponse(t *testing.T) {
 	}
 }
 
-func shouldNotHaveKey(pathname string, pr types.AbstractProviderInterface) bool {
-	r := pr.Get(pathname)
-	if 0 < len(r) {
-		return false
+func shouldNotHaveKey(pathname string, prs map[string]types.AbstractProviderInterface) bool {
+	hasKey := true
+
+	for _, pr := range prs {
+		r := pr.Get(pathname)
+		if 0 < len(r) {
+			hasKey = false
+		}
 	}
 
-	return true
+	return hasKey
 }
 
 func mockRewriteResponse(method string, body string, path string, code int) []byte {
@@ -120,11 +126,11 @@ func TestRewriteBody(t *testing.T) {
 	}
 }
 
-func verifyKeysExists(t *testing.T, path string, keys []string, isKeyDeleted bool, pr types.AbstractProviderInterface) {
+func verifyKeysExists(t *testing.T, path string, keys []string, isKeyDeleted bool, prs map[string]types.AbstractProviderInterface) {
 	time.Sleep(10 * time.Second)
 
 	for _, i := range keys {
-		if !shouldNotHaveKey(tests.PATH+i, pr) == isKeyDeleted {
+		if !shouldNotHaveKey(tests.PATH+i, prs) == isKeyDeleted {
 			errors.GenerateError(t, "The key "+tests.DOMAIN+path+i+" shouldn't exist.")
 		}
 	}
@@ -154,7 +160,7 @@ func TestRequestReverseProxy(t *testing.T) {
 	response := RequestReverseProxy(
 		request,
 		&types.RetrieverResponseProperties{
-			Provider:        providers.InitializeProvider(conf),
+			Providers:        providers.InitializeProvider(conf),
 			Configuration:   conf,
 			MatchedURL:      tests.GetMatchedURL(tests.PATH),
 			ReverseProxyURL: u,

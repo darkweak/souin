@@ -189,7 +189,7 @@ x-networks: &networks
 
 services:
   souin:
-    image: darkweak/souin:latest
+    image: darkweak/souin:latest-full
     ports:
       - 80:80
       - 443:443

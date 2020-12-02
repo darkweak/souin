@@ -2,6 +2,7 @@ package providers
 
 import (
 	"fmt"
+	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/tests"
 	"testing"
 
@@ -14,20 +15,12 @@ const RISTRETTOVALUE = "My first data"
 const BYTEKEY = "MyByteKey"
 const NONEXISTENTKEY = "NonexistentKey"
 
-func getRistrettoClientAndMatchedURL(key string) (*Ristretto, configurationtypes.URL) {
-	config := tests.MockConfiguration()
-	client, _ := RistrettoConnectionFactory(config)
-	regexpUrls := tests.MockInitializeRegexp(config)
-	regexpURL := regexpUrls.FindString(key)
-	matchedURL := configurationtypes.URL{
-		TTL:     config.GetDefaultCache().TTL,
-		Headers: config.GetDefaultCache().Headers,
-	}
-	if "" != regexpURL {
-		matchedURL = config.GetUrls()[regexpURL]
-	}
+func getRistrettoClientAndMatchedURL(key string) (types.AbstractProviderInterface, configurationtypes.URL) {
+	return tests.GetCacheProviderClientAndMatchedURL(key, func(configurationInterface configurationtypes.AbstractConfigurationInterface) (types.AbstractProviderInterface, error) {
+		provider, _ := RistrettoConnectionFactory(configurationInterface)
 
-	return client, matchedURL
+		return provider, nil
+	})
 }
 
 func TestRistrettoConnectionFactory(t *testing.T) {
@@ -82,7 +75,7 @@ func TestRistretto_GetSetRequestInCache_OneByte(t *testing.T) {
 	}
 }
 
-func verifyNewValueAfterSet(client *Ristretto, key string, value []byte, t *testing.T) {
+func verifyNewValueAfterSet(client types.AbstractProviderInterface, key string, value []byte, t *testing.T) {
 	newValue := client.Get(key)
 
 	if len(newValue) != len(value) {
@@ -90,7 +83,7 @@ func verifyNewValueAfterSet(client *Ristretto, key string, value []byte, t *test
 	}
 }
 
-func setValueThenVerify(client *Ristretto, key string, value []byte, matchedURL configurationtypes.URL, ttl time.Duration, t *testing.T) {
+func setValueThenVerify(client types.AbstractProviderInterface, key string, value []byte, matchedURL configurationtypes.URL, ttl time.Duration, t *testing.T) {
 	client.Set(key, value, matchedURL, ttl)
 	time.Sleep(1 * time.Second)
 	verifyNewValueAfterSet(client, key, value, t)

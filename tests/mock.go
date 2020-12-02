@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/configuration"
 	"github.com/darkweak/souin/configurationtypes"
 	"log"
@@ -37,6 +38,8 @@ default_cache:
   regex:
     exclude: 'ARegexHere'
   ttl: 1000
+  redis:
+    url: 'redis:6379'
 reverse_proxy_url: 'http://domain.com:81'
 ssl_providers:
   - traefik
@@ -82,4 +85,20 @@ func GetValidToken() *http.Cookie {
 		Value: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6InVzZXIxIiwiZXhwIjoxNjE0MTI0Nzk5OX0.7blW8hKWls2UgHLU8KOzwTG13uNoJR3UhLgoVdyCzx0",
 		Path:  "/",
 	}
+}
+
+func GetCacheProviderClientAndMatchedURL(key string, factory func(configurationInterface configurationtypes.AbstractConfigurationInterface) (types.AbstractProviderInterface, error)) (types.AbstractProviderInterface, configurationtypes.URL) {
+	config := MockConfiguration()
+	client, _ := factory(config)
+	regexpUrls := MockInitializeRegexp(config)
+	regexpURL := regexpUrls.FindString(key)
+	matchedURL := configurationtypes.URL{
+		TTL:     config.GetDefaultCache().TTL,
+		Headers: config.GetDefaultCache().Headers,
+	}
+	if "" != regexpURL {
+		matchedURL = config.GetUrls()[regexpURL]
+	}
+
+	return client, matchedURL
 }

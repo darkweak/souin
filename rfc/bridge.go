@@ -39,11 +39,13 @@ func (t *VaryTransport) UpdateCacheEventually(req *http.Request) (resp *http.Res
 	cacheKey := GetCacheKey(req)
 	cacheable := IsVaryCacheable(req)
 	var cachedResp *http.Response
-	if cacheable {
-		cr, _ := CachedResponse(t.GetProvider(), req, cacheKey, t, false)
-		cachedResp = cr.Response
-	} else {
-		t.GetProvider().Delete(cacheKey)
+	for _, p := range t.ConfigurationURL.Providers {
+		if cacheable {
+			cr, _ := CachedResponse(t.Providers[p], req, cacheKey, t, false)
+			cachedResp = cr.Response
+		} else {
+			t.Providers[p].Delete(cacheKey)
+		}
 	}
 
 	if cacheable && cachedResp != nil {
@@ -127,11 +129,13 @@ func (t *VaryTransport) RoundTrip(req *http.Request) (resp *http.Response, err e
 	cacheKey := GetCacheKey(req)
 	cacheable := IsVaryCacheable(req)
 	var cachedResp *http.Response
-	if cacheable {
-		cr, _ := CachedResponse(t.Provider, req, cacheKey, t, true)
-		cachedResp = cr.Response
-	} else {
-		t.Provider.Delete(cacheKey)
+	for _, p := range t.ConfigurationURL.Providers {
+		if cacheable {
+			cr, _ := CachedResponse(t.Providers[p], req, cacheKey, t, false)
+			cachedResp = cr.Response
+		} else {
+			t.Providers[p].Delete(cacheKey)
+		}
 	}
 
 	transport := t.Transport
@@ -187,7 +191,9 @@ func (t *VaryTransport) RoundTrip(req *http.Request) (resp *http.Response, err e
 			return cachedResp, nil
 		} else {
 			if err != nil || cachedResp.StatusCode != http.StatusOK {
-				t.Provider.Delete(cacheKey)
+				for _, p := range t.ConfigurationURL.Providers {
+					t.Providers[p].Delete(cacheKey)
+				}
 			}
 			if err != nil {
 				return nil, err
@@ -229,7 +235,9 @@ func (t *VaryTransport) RoundTrip(req *http.Request) (resp *http.Response, err e
 			t.SetCache(cacheKey, resp, req)
 		}
 	} else {
-		t.Provider.Delete(cacheKey)
+		for _, p := range t.ConfigurationURL.Providers {
+			t.Providers[p].Delete(cacheKey)
+		}
 	}
 	return resp, nil
 }
