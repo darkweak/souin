@@ -29,30 +29,34 @@ func callback(
 
 	go func() {
 		if http.MethodGet == req.Method {
-			r, _ := rfc.CachedResponse(
-				retriever.GetProvider(),
-				req,
-				rfc.GetCacheKey(req),
-				retriever.GetTransport(),
-				true,
-			)
-			responses <- r
-			if nil != r.Response {
-				return
+			for _, v := range retriever.GetMatchedURL().Providers {
+				r, _ := rfc.CachedResponse(
+					retriever.GetProviders()[v],
+					req,
+					rfc.GetCacheKey(req),
+					retriever.GetTransport(),
+					true,
+				)
+				responses <- r
+				if nil != r.Response {
+					return
+				}
 			}
 		}
 	}()
 
 	if http.MethodGet == req.Method {
-		response, open := <-responses
-		if open && nil != response.Response {
-			close(responses)
-			for k, v := range response.Response.Header {
-				res.Header().Set(k, v[0])
+		for range retriever.GetMatchedURL().Providers {
+			response, open := <-responses
+			if open && nil != response.Response {
+				close(responses)
+				for k, v := range response.Response.Header {
+					res.Header().Set(k, v[0])
+				}
+				b, _ := ioutil.ReadAll(response.Response.Body)
+				_, _ = res.Write(b)
+				return
 			}
-			b, _ := ioutil.ReadAll(response.Response.Body)
-			_, _ = res.Write(b)
-			return
 		}
 	}
 
@@ -88,6 +92,7 @@ func Start() {
 	if err != nil {
 		panic("Reverse proxy url is missing")
 	}
+
 	configChannel := make(chan int)
 	tlsConfig := &tls.Config{
 		Certificates:       make([]tls.Certificate, 0),
@@ -100,18 +105,18 @@ func Start() {
 		providers.InitProviders(tlsConfig, &configChannel, c)
 	}()
 
-	provider := providers2.InitializeProvider(c)
+	cacheProviders := providers2.InitializeProvider(c)
 	regexpUrls := helpers.InitializeRegexp(c)
 	var transport types.TransportInterface
-	transport = rfc.NewTransport(provider)
+	transport = rfc.NewTransport(cacheProviders)
 	retriever := &types.RetrieverResponseProperties{
 		MatchedURL: configurationtypes.URL{
 			TTL:     c.GetDefaultCache().TTL,
 			Headers: c.GetDefaultCache().Headers,
 		},
-		Provider:        provider,
-		Configuration:   c,
-		RegexpUrls:      regexpUrls,
+		Providers:     cacheProviders,
+		Configuration: c,
+		RegexpUrls:    regexpUrls,
 		ReverseProxyURL: u,
 		Transport:       transport,
 	}

@@ -3,7 +3,7 @@ api:
   insecure: true
 
 pilot:
-  token: "2ea7a8b4-11f2-4882-8173-53b3ba681fd1"
+  token: "ad5f61d8-a747-4300-b659-ac7d10a82573"
 
 experimental:
   devPlugin:
