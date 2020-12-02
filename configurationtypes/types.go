@@ -25,6 +25,7 @@ type Regex struct {
 //URL configuration
 type URL struct {
 	TTL     string   `yaml:"ttl"`
+	Providers []string `yaml:"cache_providers"`
 	Headers []string `yaml:"headers"`
 }
 
@@ -32,6 +33,7 @@ type URL struct {
 type DefaultCache struct {
 	Headers []string `yaml:"headers"`
 	Port    Port     `yaml:"port"`
+	Providers []string `yaml:"cache_providers"`
 	Redis   Redis    `yaml:"redis"`
 	Regex   Regex    `yaml:"regex"`
 	TTL     string   `yaml:"ttl"`

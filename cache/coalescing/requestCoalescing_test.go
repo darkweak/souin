@@ -16,7 +16,7 @@ func commonInitializer() (*httptest.ResponseRecorder, *http.Request, *types.Retr
 	regexpUrls := helpers.InitializeRegexp(c)
 	retriever := &types.RetrieverResponseProperties{
 		Configuration: c,
-		Provider:      prs,
+		Providers:      prs,
 		MatchedURL:    tests.GetMatchedURL(tests.PATH),
 		RegexpUrls:    regexpUrls,
 	}

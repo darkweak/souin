@@ -42,8 +42,10 @@ func TestVaryTransport_GetProvider(t *testing.T) {
 	prs := providers.InitializeProvider(c)
 
 	tr := NewTransport(prs)
-	if tr.GetProvider() == nil {
-		errors.GenerateError(t, "Provider should exist")
+	for _, v := range tr.Providers {
+		if v == nil {
+			errors.GenerateError(t, "Provider should exist")
+		}
 	}
 }
 

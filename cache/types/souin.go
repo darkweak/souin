@@ -9,7 +9,7 @@ import (
 
 // TransportInterface interface
 type TransportInterface interface {
-	GetProvider() AbstractProviderInterface
+	GetProviders() map[string]AbstractProviderInterface
 	RoundTrip(req *http.Request) (resp *http.Response, err error)
 	SetURL(url configurationtypes.URL)
 	UpdateCacheEventually(req *http.Request) (resp *http.Response, err error)
@@ -21,16 +21,16 @@ type TransportInterface interface {
 type Transport struct {
 	// The RoundTripper interface actually used to make requests
 	// If nil, http.DefaultTransport is used
-	Transport        http.RoundTripper
-	Provider         AbstractProviderInterface
-	ConfigurationURL configurationtypes.URL
+	Transport           http.RoundTripper
+	Providers           map[string]AbstractProviderInterface
+	ConfigurationURL    configurationtypes.URL
 	// If true, responses returned from the cache will be given an extra header, X-From-Cache
 	MarkCachedResponses bool
 }
 
 // RetrieverResponsePropertiesInterface interface
 type RetrieverResponsePropertiesInterface interface {
-	GetProvider() AbstractProviderInterface
+	GetProviders() map[string]AbstractProviderInterface
 	GetConfiguration() configurationtypes.AbstractConfigurationInterface
 	GetMatchedURL() configurationtypes.URL
 	SetMatchedURL(url configurationtypes.URL)
@@ -42,7 +42,7 @@ type RetrieverResponsePropertiesInterface interface {
 
 // RetrieverResponseProperties struct
 type RetrieverResponseProperties struct {
-	Provider        AbstractProviderInterface
+	Providers       map[string]AbstractProviderInterface
 	Configuration   configurationtypes.AbstractConfigurationInterface
 	MatchedURL      configurationtypes.URL
 	RegexpUrls      regexp.Regexp
@@ -50,9 +50,9 @@ type RetrieverResponseProperties struct {
 	Transport       TransportInterface
 }
 
-// GetProvider interface
-func (r *RetrieverResponseProperties) GetProvider() AbstractProviderInterface {
-	return r.Provider
+// GetProviders interface
+func (r *RetrieverResponseProperties) GetProviders() map[string]AbstractProviderInterface {
+	return r.Providers
 }
 
 // GetConfiguration get the configuration
