@@ -1,12 +1,12 @@
 package helpers
 
 import (
-	configuration_types "github.com/darkweak/souin/configuration_types"
+	configurationtypes "github.com/darkweak/souin/configurationtypes"
 	"regexp"
 )
 
 // InitializeRegexp will generate one strong regex from your urls defined in the configuration.yml
-func InitializeRegexp(configurationInstance configuration_types.AbstractConfigurationInterface) regexp.Regexp {
+func InitializeRegexp(configurationInstance configurationtypes.AbstractConfigurationInterface) regexp.Regexp {
 	u := ""
 	for k := range configurationInstance.GetUrls() {
 		if "" != u {
@@ -19,7 +19,7 @@ func InitializeRegexp(configurationInstance configuration_types.AbstractConfigur
 }
 
 // PathnameNotInExcludeRegex check if pathname is in parameter regex var
-func PathnameNotInExcludeRegex(pathname string, configuration configuration_types.AbstractConfigurationInterface) bool {
+func PathnameNotInExcludeRegex(pathname string, configuration configurationtypes.AbstractConfigurationInterface) bool {
 	b, _ := regexp.Match(configuration.GetDefaultCache().Regex.Exclude, []byte(pathname))
 	return !b
 }

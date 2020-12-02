@@ -2,18 +2,18 @@ package cache
 
 import (
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
-	"net"
-	"net/http"
-	"github.com/darkweak/souin/providers"
-	"github.com/darkweak/souin/configuration"
-	"github.com/darkweak/souin/helpers"
+	providers2 "github.com/darkweak/souin/cache/providers"
 	"github.com/darkweak/souin/cache/service"
 	"github.com/darkweak/souin/cache/types"
-	providers2 "github.com/darkweak/souin/cache/providers"
+	"github.com/darkweak/souin/configuration"
+	"github.com/darkweak/souin/configurationtypes"
+	"github.com/darkweak/souin/helpers"
+	"github.com/darkweak/souin/providers"
+	"net"
+	"net/http"
 	"net/url"
-	"encoding/json"
-	"github.com/darkweak/souin/configuration_types"
 )
 
 func callback(
@@ -22,7 +22,6 @@ func callback(
 	retriever types.RetrieverResponsePropertiesInterface,
 	key string,
 ) {
-	u, _ := url.Parse(retriever.GetConfiguration().GetReverseProxyURL())
 	ctx := req.Context()
 	responses := make(chan types.ReverseResponse)
 
@@ -40,13 +39,13 @@ func callback(
 			}
 		}
 		if !alreadyHaveResponse || http.MethodGet != req.Method {
-			responses <- service.RequestReverseProxy(req, u, retriever)
+			responses <- service.RequestReverseProxy(req, retriever)
 		}
 	}()
 
 	if http.MethodGet == req.Method {
 		response, open := <-responses
-		if open && http.MethodGet == req.Method && 0 < len(response.Response) {
+		if open && 0 < len(response.Response) {
 			close(responses)
 			var responseJSON types.RequestResponse
 			err := json.Unmarshal(response.Response, &responseJSON)
@@ -57,7 +56,7 @@ func callback(
 				res.Header().Set(k, v[0])
 			}
 			alreadySent = true
-			res.Write(responseJSON.Body)
+			_, _ = res.Write(responseJSON.Body)
 		}
 	}
 
@@ -70,7 +69,6 @@ func callback(
 }
 
 func startServer(config *tls.Config) (net.Listener, *http.Server) {
-	config.BuildNameToCertificate()
 	server := http.Server{
 		Addr:      ":443",
 		Handler:   nil,
@@ -93,10 +91,13 @@ func startServer(config *tls.Config) (net.Listener, *http.Server) {
 // Start cache system
 func Start() {
 	c := configuration.GetConfiguration()
+	u, err := url.Parse(c.GetReverseProxyURL())
+	if err != nil {
+		panic("Reverse proxy url is missing")
+	}
 	configChannel := make(chan int)
 	tlsConfig := &tls.Config{
 		Certificates:       make([]tls.Certificate, 0),
-		NameToCertificate:  make(map[string]*tls.Certificate),
 		InsecureSkipVerify: true,
 	}
 	v, _ := tls.LoadX509KeyPair("./default/server.crt", "./default/server.key")
@@ -109,13 +110,14 @@ func Start() {
 	provider := providers2.InitializeProvider(c)
 	regexpUrls := helpers.InitializeRegexp(c)
 	retriever := &types.RetrieverResponseProperties{
-		MatchedURL: configuration_types.URL{
+		MatchedURL: configurationtypes.URL{
 			TTL:     c.GetDefaultCache().TTL,
 			Headers: c.GetDefaultCache().Headers,
 		},
 		Provider:      provider,
 		Configuration: c,
 		RegexpUrls:    regexpUrls,
+		ReverseProxyURL: u,
 	}
 
 	http.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
@@ -126,7 +128,7 @@ func Start() {
 		for {
 			select {
 			case <-configChannel:
-				listener.Close()
+				_ = listener.Close()
 				listener, _ = startServer(tlsConfig)
 			}
 		}

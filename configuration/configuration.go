@@ -1,18 +1,18 @@
 package configuration
 
 import (
+	"github.com/darkweak/souin/configurationtypes"
+	"gopkg.in/yaml.v3"
 	"io/ioutil"
 	"log"
-	"gopkg.in/yaml.v3"
-	"github.com/darkweak/souin/configuration_types"
 )
 
 //Configuration holder
 type Configuration struct {
-	DefaultCache    configuration_types.DefaultCache   `yaml:"default_cache"`
+	DefaultCache    configurationtypes.DefaultCache   `yaml:"default_cache"`
 	ReverseProxyURL string                             `yaml:"reverse_proxy_url"`
 	SSLProviders    []string                           `yaml:"ssl_providers"`
-	URLs            map[string]configuration_types.URL `yaml:"urls"`
+	URLs            map[string]configurationtypes.URL `yaml:"urls"`
 }
 
 func readFile(path string) []byte {
@@ -32,7 +32,7 @@ func (c *Configuration) Parse(data []byte) error {
 }
 
 // GetUrls get the urls list in the configuration
-func (c *Configuration) GetUrls() map[string]configuration_types.URL {
+func (c *Configuration) GetUrls() map[string]configurationtypes.URL {
 	return c.URLs
 }
 
@@ -47,12 +47,12 @@ func (c *Configuration) GetSSLProviders() []string {
 }
 
 // GetDefaultCache get the default cache
-func (c *Configuration) GetDefaultCache() configuration_types.DefaultCache {
+func (c *Configuration) GetDefaultCache() configurationtypes.DefaultCache {
 	return c.DefaultCache
 }
 
 // GetConfiguration allow to retrieve Souin configuration through yaml file
-func GetConfiguration() configuration_types.AbstractConfigurationInterface {
+func GetConfiguration() configurationtypes.AbstractConfigurationInterface {
 	data := readFile("./configuration/configuration.yml")
 	var config Configuration
 	if err := config.Parse(data); err != nil {

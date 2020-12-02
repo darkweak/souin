@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/errors"
 	"time"
-	"github.com/darkweak/souin/configuration_types"
 )
 
 const RISTRETTOVALUE = "My first data"
@@ -14,12 +14,12 @@ const BYTEKEY = "MyByteKey"
 const NONEXISTENTKEY = "NonexistentKey"
 const DELETABLEKEY = "MyDeletableKey"
 
-func getRistrettoClientAndMatchedURL(key string) (*Ristretto, configuration_types.URL) {
+func getRistrettoClientAndMatchedURL(key string) (*Ristretto, configurationtypes.URL) {
 	config := MockConfiguration()
 	client, _ := RistrettoConnectionFactory(config)
 	regexpUrls := MockInitializeRegexp(config)
 	regexpURL := regexpUrls.FindString(key)
-	matchedURL := configuration_types.URL{
+	matchedURL := configurationtypes.URL{
 		TTL:     config.GetDefaultCache().TTL,
 		Headers: config.GetDefaultCache().Headers,
 	}

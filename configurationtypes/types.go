@@ -1,4 +1,4 @@
-package configuration_types
+package configurationtypes
 
 // Port config
 type Port struct {

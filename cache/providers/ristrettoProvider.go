@@ -2,10 +2,10 @@ package providers
 
 import (
 	"github.com/darkweak/souin/cache/types"
-	t "github.com/darkweak/souin/configuration_types"
+	t "github.com/darkweak/souin/configurationtypes"
 	"github.com/dgraph-io/ristretto"
-	"time"
 	"strconv"
+	"time"
 )
 
 // Ristretto provider type

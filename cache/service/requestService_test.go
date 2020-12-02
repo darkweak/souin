@@ -2,7 +2,6 @@ package service
 
 import (
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -10,16 +9,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/darkweak/souin/errors"
-	"github.com/darkweak/souin/configuration"
-	"regexp"
-	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/cache/providers"
+	"github.com/darkweak/souin/cache/types"
+	"github.com/darkweak/souin/configuration"
+	"github.com/darkweak/souin/configurationtypes"
+	"github.com/darkweak/souin/errors"
 	"log"
-	"github.com/darkweak/souin/configuration_types"
+	"regexp"
 )
 
-func MockConfiguration() configuration_types.AbstractConfigurationInterface {
+func MockConfiguration() configurationtypes.AbstractConfigurationInterface {
 	var config configuration.Configuration
 	e := config.Parse([]byte(`
 default_cache:
@@ -54,7 +53,7 @@ urls:
 const DOMAIN = "domain.com"
 const PATH = "/testing"
 
-func MockInitializeRegexp(configurationInstance configuration_types.AbstractConfigurationInterface) regexp.Regexp {
+func MockInitializeRegexp(configurationInstance configurationtypes.AbstractConfigurationInterface) regexp.Regexp {
 	u := ""
 	for k := range configurationInstance.GetUrls() {
 		if "" != u {
@@ -66,11 +65,11 @@ func MockInitializeRegexp(configurationInstance configuration_types.AbstractConf
 	return *regexp.MustCompile(u)
 }
 
-func getMatchedURL(key string) configuration_types.URL {
+func getMatchedURL(key string) configurationtypes.URL {
 	config := MockConfiguration()
 	regexpUrls := MockInitializeRegexp(config)
 	regexpURL := regexpUrls.FindString(key)
-	matchedURL := configuration_types.URL{
+	matchedURL := configurationtypes.URL{
 		TTL:     config.GetDefaultCache().TTL,
 		Headers: config.GetDefaultCache().Headers,
 	}
@@ -103,7 +102,7 @@ func mockResponse(path string, method string, body string, code int) *http.Respo
 		ProtoMajor:       0,
 		ProtoMinor:       0,
 		Header:           make(map[string][]string),
-		Body:             io.ReadCloser(ioutil.NopCloser(strings.NewReader(body))),
+		Body:             ioutil.NopCloser(strings.NewReader(body)),
 		ContentLength:    0,
 		TransferEncoding: nil,
 		Close:            false,
@@ -164,12 +163,14 @@ func shouldNotHaveKey(pathname string, pr types.AbstractProviderInterface) bool 
 
 func mockRewriteBody(method string, body string, path string, code int, pr types.AbstractProviderInterface) error {
 	config := MockConfiguration()
+	u, _ := url.Parse(config.GetReverseProxyURL())
 	return rewriteBody(
 		mockResponse(PATH+path, method, body, code),
 		&types.RetrieverResponseProperties{
 			Configuration: config,
 			Provider:      pr,
 			MatchedURL:    getMatchedURL(DOMAIN + PATH + path),
+			ReverseProxyURL: u,
 		},
 	)
 }
@@ -178,7 +179,10 @@ func TestKeyShouldBeDeletedOnPost(t *testing.T) {
 	c := MockConfiguration()
 	prs := providers.InitializeProvider(c)
 	populateProviderWithFakeData(prs)
-	mockRewriteBody(http.MethodPost, "My second response", "/1", 201, prs)
+	err := mockRewriteBody(http.MethodPost, "My second response", "/1", 201, prs)
+	if err != nil {
+		errors.GenerateError(t, err.Error())
+	}
 	time.Sleep(10 * time.Second)
 	if !shouldNotHaveKey(PATH, prs) {
 		errors.GenerateError(t, "The key "+DOMAIN+PATH+" shouldn't exist.")
@@ -224,13 +228,14 @@ func TestKeyShouldBeDeletedOnDelete(t *testing.T) {
 func TestRequestReverseProxy(t *testing.T) {
 	request, _ := http.NewRequest(http.MethodGet, "http://localhost", nil)
 	conf := MockConfiguration()
+	u, _ := url.Parse(conf.GetReverseProxyURL())
 	response := RequestReverseProxy(
 		request,
-		request.URL,
 		&types.RetrieverResponseProperties{
 			Provider:      providers.InitializeProvider(conf),
 			Configuration: conf,
 			MatchedURL:    getMatchedURL(PATH),
+			ReverseProxyURL: u,
 		},
 	)
 

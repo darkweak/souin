@@ -6,12 +6,11 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
-	"net/url"
 	"strconv"
 	"strings"
 
 	"github.com/darkweak/souin/cache/types"
-	"github.com/darkweak/souin/configuration_types"
+	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/helpers"
 )
 
@@ -32,7 +31,7 @@ func hasCacheEnabled(r *http.Response) bool {
 	return "no-cache" != r.Header.Get("Cache-Control")
 }
 
-func getKeyFromResponse(resp *http.Response, u configuration_types.URL) string {
+func getKeyFromResponse(resp *http.Response, u configurationtypes.URL) string {
 	headers := ""
 	if u.Headers != nil && len(u.Headers) > 0 {
 		for _, h := range u.Headers {
@@ -73,7 +72,8 @@ func rewriteBody(resp *http.Response, retriever types.RetrieverResponsePropertie
 }
 
 // RequestReverseProxy returns response from one of providers or the proxy response
-func RequestReverseProxy(req *http.Request, url *url.URL, r types.RetrieverResponsePropertiesInterface) types.ReverseResponse {
+func RequestReverseProxy(req *http.Request, r types.RetrieverResponsePropertiesInterface) types.ReverseResponse {
+	url := r.GetReverseProxyURL()
 	req.URL.Host = req.Host
 	req.URL.Scheme = url.Scheme
 	req.Header.Set("X-Forwarded-Host", req.Header.Get("Host"))
