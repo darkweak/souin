@@ -67,8 +67,8 @@ func callback(
 	go func() {
 		if http.MethodGet == req.Method {
 			if !alreadyHaveResponse {
-				r := retriever.GetProvider().GetRequestInCache(key)
-				responses <- retriever.GetProvider().GetRequestInCache(key)
+				r := retriever.GetProvider().Get(key)
+				responses <- r
 				if 0 < len(r.Response) {
 					alreadyHaveResponse = true
 				}

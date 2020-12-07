@@ -2,9 +2,30 @@ package types
 
 import (
 	"github.com/darkweak/souin/configurationtypes"
+	"net/http"
 	"net/url"
 	"regexp"
 )
+
+// RetrieverResponsePropertiesInterface interface
+type TransportInterface interface {
+	GetProvider() AbstractProviderInterface
+	RoundTrip(req *http.Request) (resp *http.Response, err error)
+	SetUrl(url configurationtypes.URL)
+}
+
+// Transport is an implementation of http.RoundTripper that will return values from a cache
+// where possible (avoiding a network request) and will additionally add validators (etag/if-modified-since)
+// to repeated requests allowing servers to return 304 / Not Modified
+type Transport struct {
+	// The RoundTripper interface actually used to make requests
+	// If nil, http.DefaultTransport is used
+	Transport           http.RoundTripper
+	Provider            AbstractProviderInterface
+	ConfigurationURL    configurationtypes.URL
+	// If true, responses returned from the cache will be given an extra header, X-From-Cache
+	MarkCachedResponses bool
+}
 
 // RetrieverResponsePropertiesInterface interface
 type RetrieverResponsePropertiesInterface interface {
@@ -14,6 +35,8 @@ type RetrieverResponsePropertiesInterface interface {
 	SetMatchedURL(url configurationtypes.URL)
 	GetRegexpUrls() *regexp.Regexp
 	GetReverseProxyURL() *url.URL
+	GetTransport() http.RoundTripper
+	SetTransport(http.RoundTripper)
 }
 
 // RetrieverResponseProperties struct
@@ -23,6 +46,7 @@ type RetrieverResponseProperties struct {
 	MatchedURL      configurationtypes.URL
 	RegexpUrls      regexp.Regexp
 	ReverseProxyURL *url.URL
+	Transport        http.RoundTripper
 }
 
 // GetProvider interface
@@ -53,4 +77,14 @@ func (r *RetrieverResponseProperties) GetRegexpUrls() *regexp.Regexp {
 // GetReverseProxyURL get the reverse proxy url
 func (r *RetrieverResponseProperties) GetReverseProxyURL() *url.URL {
 	return r.ReverseProxyURL
+}
+
+// GetTransport get the transport according to the RFC
+func (r *RetrieverResponseProperties) GetTransport() http.RoundTripper {
+	return r.Transport
+}
+
+// SetTransport set the transport
+func (r *RetrieverResponseProperties) SetTransport(transportInterface http.RoundTripper) {
+	r.Transport = transportInterface
 }

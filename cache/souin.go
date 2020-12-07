@@ -11,6 +11,7 @@ import (
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/helpers"
 	"github.com/darkweak/souin/providers"
+	"github.com/darkweak/souin/rfc"
 	"net"
 	"net/http"
 	"net/url"
@@ -20,19 +21,17 @@ func callback(
 	res http.ResponseWriter,
 	req *http.Request,
 	retriever types.RetrieverResponsePropertiesInterface,
-	key string,
 ) {
 	ctx := req.Context()
 	responses := make(chan types.ReverseResponse)
 
 	alreadyHaveResponse := false
-	alreadySent := false
 
 	go func() {
 		if http.MethodGet == req.Method {
 			if !alreadyHaveResponse {
-				r := retriever.GetProvider().GetRequestInCache(key)
-				responses <- retriever.GetProvider().GetRequestInCache(key)
+				r := retriever.GetProvider().Get(rfc.GetCacheKey(req))
+				responses <- r
 				if 0 < len(r.Response) {
 					alreadyHaveResponse = true
 				}
@@ -55,17 +54,15 @@ func callback(
 			for k, v := range responseJSON.Headers {
 				res.Header().Set(k, v[0])
 			}
-			alreadySent = true
 			_, _ = res.Write(responseJSON.Body)
+			return
 		}
 	}
 
-	if !alreadySent {
-		req = req.WithContext(ctx)
-		response2 := <-responses
-		close(responses)
-		response2.Proxy.ServeHTTP(res, req)
-	}
+	req = req.WithContext(ctx)
+	r := <-responses
+	close(responses)
+	r.Proxy.ServeHTTP(res, req)
 }
 
 func startServer(config *tls.Config) (net.Listener, *http.Server) {
@@ -109,15 +106,18 @@ func Start() {
 
 	provider := providers2.InitializeProvider(c)
 	regexpUrls := helpers.InitializeRegexp(c)
+	var transport types.TransportInterface
+	transport = rfc.NewTransport(provider)
 	retriever := &types.RetrieverResponseProperties{
 		MatchedURL: configurationtypes.URL{
 			TTL:     c.GetDefaultCache().TTL,
 			Headers: c.GetDefaultCache().Headers,
 		},
-		Provider:      provider,
-		Configuration: c,
-		RegexpUrls:    regexpUrls,
+		Provider:        provider,
+		Configuration:   c,
+		RegexpUrls:      regexpUrls,
 		ReverseProxyURL: u,
+		Transport:       transport,
 	}
 
 	http.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {

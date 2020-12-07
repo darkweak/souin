@@ -5,3 +5,4 @@ Dockerfile
 /.idea/
 .DS_Store
 traefik.json
+*.iml

@@ -11,12 +11,13 @@ func ServeResponse(
 	res http.ResponseWriter,
 	req *http.Request,
 	retriever types.RetrieverResponsePropertiesInterface,
-	callback func(rw http.ResponseWriter, rq *http.Request, r types.RetrieverResponsePropertiesInterface, key string),
+	callback func(rw http.ResponseWriter, rq *http.Request, r types.RetrieverResponsePropertiesInterface),
 ) {
 	path := req.Host + req.URL.Path
 	regexpURL := retriever.GetRegexpUrls().FindString(path)
 	if "" != regexpURL {
-		retriever.SetMatchedURL(retriever.GetConfiguration().GetUrls()[regexpURL])
+		url := retriever.GetConfiguration().GetUrls()[regexpURL]
+		retriever.SetMatchedURL(url)
 	}
 	headers := ""
 	if retriever.GetMatchedURL().Headers != nil && len(retriever.GetMatchedURL().Headers) > 0 {
@@ -25,10 +26,5 @@ func ServeResponse(
 		}
 	}
 
-	callback(
-		res,
-		req,
-		retriever,
-		path+headers,
-	)
+	callback(res, req, retriever)
 }

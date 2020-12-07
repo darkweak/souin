@@ -28,28 +28,33 @@ func RistrettoConnectionFactory(_ t.AbstractConfigurationInterface) (*Ristretto,
 	return &Ristretto{cache}, nil
 }
 
-// GetRequestInCache method returns the populated response if exists, empty response then
-func (provider *Ristretto) GetRequestInCache(key string) types.ReverseResponse {
-	val, found := provider.Get(key)
-
+// Get method returns the populated response if exists, empty response then
+func (provider *Ristretto) Get(key string) types.ReverseResponse {
+	val, found := provider.Cache.Get(key)
+	var response []byte
 	if !found {
-		return types.ReverseResponse{Response: []byte{}, Proxy: nil, Request: nil}
+		response = nil
+	} else {
+		response = val.([]byte)
 	}
 
-	return types.ReverseResponse{Response: val.([]byte), Proxy: nil, Request: nil}
+	return types.ReverseResponse{Response: response, Proxy: nil, Request: nil}
 }
 
-// SetRequestInCache method will store the response in Ristretto provider
-func (provider *Ristretto) SetRequestInCache(key string, value []byte, url t.URL) {
-	ttl, _ := strconv.Atoi(url.TTL)
-	isSet := provider.SetWithTTL(key, value, 1, time.Duration(ttl)*time.Second)
+// Set method will store the response in Ristretto provider
+func (provider *Ristretto) Set(key string, value []byte, url t.URL, duration time.Duration) {
+	if duration == 0 {
+		ttl, _ := strconv.Atoi(url.TTL)
+		duration = time.Duration(ttl)*time.Second
+	}
+	isSet := provider.SetWithTTL(key, value, 1, duration)
 	if !isSet {
-		panic("Impossible to set into Ristretto")
+		panic("Impossible to set value into Ristretto")
 	}
 }
 
-// DeleteRequestInCache method will delete the response in Ristretto provider if exists corresponding to key param
-func (provider *Ristretto) DeleteRequestInCache(key string) {
+// Delete method will delete the response in Ristretto provider if exists corresponding to key param
+func (provider *Ristretto) Delete(key string) {
 	provider.Del(key)
 }
 

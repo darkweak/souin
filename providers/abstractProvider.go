@@ -75,7 +75,7 @@ func (c *CommonProvider) LoadFromConfigFile(tlsconfig *tls.Config, configChannel
 
 // InitWatcher will start watcher on one ssl aggregator file
 func (c *CommonProvider) InitWatcher(tlsconfig *tls.Config, configChannel *chan int) {
-	fmt.Printf("Start new watcher on %s", c.fileLocation)
+	//fmt.Printf("Start new watcher on %s", c.fileLocation)
 	watcher, err := fsnotify.NewWatcher()
 	c.LoadFromConfigFile(tlsconfig, configChannel)
 

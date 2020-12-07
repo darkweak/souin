@@ -1,11 +1,14 @@
 package types
 
-import "github.com/darkweak/souin/configurationtypes"
+import (
+	"github.com/darkweak/souin/configurationtypes"
+	"time"
+)
 
 // AbstractProviderInterface should be implemented in any providers
 type AbstractProviderInterface interface {
-	GetRequestInCache(key string) ReverseResponse
-	SetRequestInCache(key string, value []byte, url configurationtypes.URL)
-	DeleteRequestInCache(key string)
+	Get(key string) ReverseResponse
+	Set(key string, value []byte, url configurationtypes.URL, duration time.Duration)
+	Delete(key string)
 	Init() error
 }
