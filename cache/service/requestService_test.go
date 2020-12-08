@@ -84,12 +84,13 @@ func populateProviderWithFakeData(provider types.AbstractProviderInterface) {
 	basePath := "/testing"
 	domain := "domain.com"
 
-	provider.SetRequestInCache(domain+basePath, []byte("testing value is here for "+basePath), getMatchedURL(domain+basePath))
+	provider.Set(domain+basePath, []byte("testing value is here for "+basePath), getMatchedURL(domain+basePath), time.Duration(20) * time.Second)
 	for i := 0; i < 25; i++ {
-		provider.SetRequestInCache(
+		provider.Set(
 			fmt.Sprintf("%s%s/%d", domain, basePath, i),
 			[]byte(fmt.Sprintf("testing value is here for my first init of %s/%d", basePath, i)),
 			getMatchedURL(domain+basePath),
+			time.Duration(20) * time.Second,
 		)
 	}
 }
@@ -153,7 +154,7 @@ func TestGetKeyFromResponse(t *testing.T) {
 }
 
 func shouldNotHaveKey(pathname string, pr types.AbstractProviderInterface) bool {
-	r := pr.GetRequestInCache(pathname)
+	r := pr.Get(pathname)
 	if 0 < len(r.Response) {
 		return false
 	}
@@ -161,27 +162,17 @@ func shouldNotHaveKey(pathname string, pr types.AbstractProviderInterface) bool 
 	return true
 }
 
-func mockRewriteBody(method string, body string, path string, code int, pr types.AbstractProviderInterface) error {
-	config := MockConfiguration()
-	u, _ := url.Parse(config.GetReverseProxyURL())
-	return rewriteBody(
-		mockResponse(PATH+path, method, body, code),
-		&types.RetrieverResponseProperties{
-			Configuration: config,
-			Provider:      pr,
-			MatchedURL:    getMatchedURL(DOMAIN + PATH + path),
-			ReverseProxyURL: u,
-		},
-	)
+func mockRewriteResponse(method string, body string, path string, code int) []byte {
+	return RewriteResponse(mockResponse(PATH+path, method, body, code))
 }
 
 func TestKeyShouldBeDeletedOnPost(t *testing.T) {
 	c := MockConfiguration()
 	prs := providers.InitializeProvider(c)
 	populateProviderWithFakeData(prs)
-	err := mockRewriteBody(http.MethodPost, "My second response", "/1", 201, prs)
-	if err != nil {
-		errors.GenerateError(t, err.Error())
+	res := mockRewriteResponse(http.MethodPost, "My second response", "/1", 201)
+	if len(res) <= 0 {
+		errors.GenerateError(t, "The response should be valid and filled")
 	}
 	time.Sleep(10 * time.Second)
 	if !shouldNotHaveKey(PATH, prs) {
@@ -190,9 +181,7 @@ func TestKeyShouldBeDeletedOnPost(t *testing.T) {
 }
 
 func TestRewriteBody(t *testing.T) {
-	c := MockConfiguration()
-	prs := providers.InitializeProvider(c)
-	err := mockRewriteBody(http.MethodPost, "My second response", "", 201, prs)
+	err := mockRewriteResponse(http.MethodPost, "My second response", "", 201)
 	if err != nil {
 		errors.GenerateError(t, "Rewrite body can't return errors")
 	}
@@ -251,7 +240,7 @@ func TestRequestReverseProxy(t *testing.T) {
 func TestCommonLoadingRequest(t *testing.T) {
 	body := "My testable response"
 	lenBody := len([]byte(body))
-	response := commonLoadingRequest(mockResponse(PATH, http.MethodGet, body, 200))
+	response := responseBodyExtractor(mockResponse(PATH, http.MethodGet, body, 200))
 
 	if "" == string(response) {
 		errors.GenerateError(t, "Body shouldn't be empty")
@@ -262,7 +251,7 @@ func TestCommonLoadingRequest(t *testing.T) {
 
 	body = "Another body with <h1>HTML</h1>"
 	lenBody = len([]byte(body))
-	response = commonLoadingRequest(mockResponse(PATH, http.MethodGet, body, 200))
+	response = responseBodyExtractor(mockResponse(PATH, http.MethodGet, body, 200))
 
 	if "" == string(response) {
 		errors.GenerateError(t, "Body shouldn't be empty")
@@ -271,7 +260,7 @@ func TestCommonLoadingRequest(t *testing.T) {
 		errors.GenerateError(t, fmt.Sprintf("Body %s doesn't match attempted %s", string(response), body))
 	}
 
-	response = commonLoadingRequest(mockResponse(PATH+"/another", http.MethodGet, body, 200))
+	response = responseBodyExtractor(mockResponse(PATH+"/another", http.MethodGet, body, 200))
 
 	if "" == string(response) {
 		errors.GenerateError(t, "Body shouldn't be empty")

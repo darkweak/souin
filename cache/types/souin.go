@@ -12,6 +12,7 @@ type TransportInterface interface {
 	GetProvider() AbstractProviderInterface
 	RoundTrip(req *http.Request) (resp *http.Response, err error)
 	SetUrl(url configurationtypes.URL)
+	UpdateCacheEventually(req *http.Request) (resp *http.Response, err error)
 }
 
 // Transport is an implementation of http.RoundTripper that will return values from a cache
@@ -35,8 +36,8 @@ type RetrieverResponsePropertiesInterface interface {
 	SetMatchedURL(url configurationtypes.URL)
 	GetRegexpUrls() *regexp.Regexp
 	GetReverseProxyURL() *url.URL
-	GetTransport() http.RoundTripper
-	SetTransport(http.RoundTripper)
+	GetTransport() TransportInterface
+	SetTransport(TransportInterface)
 }
 
 // RetrieverResponseProperties struct
@@ -46,7 +47,7 @@ type RetrieverResponseProperties struct {
 	MatchedURL      configurationtypes.URL
 	RegexpUrls      regexp.Regexp
 	ReverseProxyURL *url.URL
-	Transport        http.RoundTripper
+	Transport        TransportInterface
 }
 
 // GetProvider interface
@@ -80,11 +81,11 @@ func (r *RetrieverResponseProperties) GetReverseProxyURL() *url.URL {
 }
 
 // GetTransport get the transport according to the RFC
-func (r *RetrieverResponseProperties) GetTransport() http.RoundTripper {
+func (r *RetrieverResponseProperties) GetTransport() TransportInterface {
 	return r.Transport
 }
 
 // SetTransport set the transport
-func (r *RetrieverResponseProperties) SetTransport(transportInterface http.RoundTripper) {
+func (r *RetrieverResponseProperties) SetTransport(transportInterface TransportInterface) {
 	r.Transport = transportInterface
 }

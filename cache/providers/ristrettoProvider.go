@@ -1,7 +1,7 @@
 package providers
 
 import (
-	"github.com/darkweak/souin/cache/types"
+	"fmt"
 	t "github.com/darkweak/souin/configurationtypes"
 	"github.com/dgraph-io/ristretto"
 	"strconv"
@@ -29,16 +29,12 @@ func RistrettoConnectionFactory(_ t.AbstractConfigurationInterface) (*Ristretto,
 }
 
 // Get method returns the populated response if exists, empty response then
-func (provider *Ristretto) Get(key string) types.ReverseResponse {
+func (provider *Ristretto) Get(key string) []byte {
 	val, found := provider.Cache.Get(key)
-	var response []byte
 	if !found {
-		response = nil
-	} else {
-		response = val.([]byte)
+		return []byte{}
 	}
-
-	return types.ReverseResponse{Response: response, Proxy: nil, Request: nil}
+	return val.([]byte)
 }
 
 // Set method will store the response in Ristretto provider
@@ -47,6 +43,7 @@ func (provider *Ristretto) Set(key string, value []byte, url t.URL, duration tim
 		ttl, _ := strconv.Atoi(url.TTL)
 		duration = time.Duration(ttl)*time.Second
 	}
+	fmt.Println(duration)
 	isSet := provider.SetWithTTL(key, value, 1, duration)
 	if !isSet {
 		panic("Impossible to set value into Ristretto")

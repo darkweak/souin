@@ -60,7 +60,6 @@ func RequestReverseProxy(req *http.Request, r types.RetrieverResponsePropertiesI
 	proxy.Transport = r.GetTransport()
 
 	return types.ReverseResponse{
-		Response: []byte("bad"),
 		Proxy:    proxy,
 		Request:  req,
 	}

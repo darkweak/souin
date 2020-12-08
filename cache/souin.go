@@ -2,7 +2,6 @@ package cache
 
 import (
 	"crypto/tls"
-	"encoding/json"
 	"fmt"
 	providers2 "github.com/darkweak/souin/cache/providers"
 	"github.com/darkweak/souin/cache/service"
@@ -12,6 +11,7 @@ import (
 	"github.com/darkweak/souin/helpers"
 	"github.com/darkweak/souin/providers"
 	"github.com/darkweak/souin/rfc"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
@@ -22,44 +22,38 @@ func callback(
 	req *http.Request,
 	retriever types.RetrieverResponsePropertiesInterface,
 ) {
-	ctx := req.Context()
 	responses := make(chan types.ReverseResponse)
-
-	alreadyHaveResponse := false
 
 	go func() {
 		if http.MethodGet == req.Method {
-			if !alreadyHaveResponse {
-				r := retriever.GetProvider().Get(rfc.GetCacheKey(req))
-				responses <- r
-				if 0 < len(r.Response) {
-					alreadyHaveResponse = true
-				}
+			r, _ := rfc.CachedResponse(
+				retriever.GetProvider(),
+				req,
+				rfc.GetCacheKey(req),
+				retriever.GetTransport(),
+				true,
+			)
+			responses <- r
+			if nil != r.Response {
+				return
 			}
 		}
-		if !alreadyHaveResponse || http.MethodGet != req.Method {
-			responses <- service.RequestReverseProxy(req, retriever)
-		}
+		responses <- service.RequestReverseProxy(req, retriever)
 	}()
 
 	if http.MethodGet == req.Method {
 		response, open := <-responses
-		if open && 0 < len(response.Response) {
+		if open && nil != response.Response {
 			close(responses)
-			var responseJSON types.RequestResponse
-			err := json.Unmarshal(response.Response, &responseJSON)
-			if err != nil {
-				panic(err)
-			}
-			for k, v := range responseJSON.Headers {
+			for k, v := range response.Response.Header {
 				res.Header().Set(k, v[0])
 			}
-			_, _ = res.Write(responseJSON.Body)
+			b, _ := ioutil.ReadAll(response.Response.Body)
+			_, _ = res.Write(b)
 			return
 		}
 	}
 
-	req = req.WithContext(ctx)
 	r := <-responses
 	close(responses)
 	r.Proxy.ServeHTTP(res, req)

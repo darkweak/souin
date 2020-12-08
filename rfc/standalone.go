@@ -12,7 +12,6 @@ import (
 
 // GetCacheKey returns the cache key for req.
 func GetCacheKey(req *http.Request) string {
-	//fmt.Println(req.Method + req.URL.String(), " | ", req)
 	return req.Method + req.Host + req.URL.Path
 }
 
