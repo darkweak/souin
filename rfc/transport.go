@@ -1,7 +1,6 @@
 package rfc
 
 import (
-	"fmt"
 	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/pquerna/cachecontrol"
@@ -10,8 +9,10 @@ import (
 	"time"
 )
 
+// VaryTransport type
 type VaryTransport types.Transport
 
+// IsVaryCacheable determines if it's cacheable
 func IsVaryCacheable(req *http.Request) bool {
 	method := req.Method
 	rangeHeader := req.Header.Get("range")
@@ -24,16 +25,19 @@ func NewTransport(p types.AbstractProviderInterface) *VaryTransport {
 	return &VaryTransport{Provider: p, MarkCachedResponses: true}
 }
 
+// GetProvider returns the associated provider
 func (t *VaryTransport) GetProvider() types.AbstractProviderInterface {
 	return t.Provider
 }
 
+// SetUrl set the URL
 func (t *VaryTransport) SetUrl(url configurationtypes.URL) {
 	t.ConfigurationURL = url
 }
 
+// SetCache set the cache
 func (t *VaryTransport) SetCache(key string, resp *http.Response, req *http.Request) {
-	r, d, _ := cachecontrol.CachableResponse(req, resp, cachecontrol.Options{})
+	r, _, _ := cachecontrol.CachableResponse(req, resp, cachecontrol.Options{})
 	respBytes, err := httputil.DumpResponse(resp, true)
 	if err == nil && len(r) == 0 {
 		t.Provider.Set(key, respBytes, t.ConfigurationURL, time.Duration(0))

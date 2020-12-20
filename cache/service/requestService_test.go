@@ -155,7 +155,7 @@ func TestGetKeyFromResponse(t *testing.T) {
 
 func shouldNotHaveKey(pathname string, pr types.AbstractProviderInterface) bool {
 	r := pr.Get(pathname)
-	if 0 < len(r.Response) {
+	if 0 < len(r) {
 		return false
 	}
 
@@ -181,9 +181,9 @@ func TestKeyShouldBeDeletedOnPost(t *testing.T) {
 }
 
 func TestRewriteBody(t *testing.T) {
-	err := mockRewriteResponse(http.MethodPost, "My second response", "", 201)
-	if err != nil {
-		errors.GenerateError(t, "Rewrite body can't return errors")
+	response := mockRewriteResponse(http.MethodPost, "My second response", "", 201)
+	if response == nil || len(response) <= 0 {
+		errors.GenerateError(t, "Rewrite body should return an empty response")
 	}
 }
 
@@ -228,7 +228,7 @@ func TestRequestReverseProxy(t *testing.T) {
 		},
 	)
 
-	if string(response.Response) != "bad" {
+	if response.Request != nil {
 		errors.GenerateError(t, "Response should be bad due to no host available")
 	}
 

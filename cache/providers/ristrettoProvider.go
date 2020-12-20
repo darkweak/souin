@@ -1,7 +1,6 @@
 package providers
 
 import (
-	"fmt"
 	t "github.com/darkweak/souin/configurationtypes"
 	"github.com/dgraph-io/ristretto"
 	"strconv"
@@ -43,7 +42,6 @@ func (provider *Ristretto) Set(key string, value []byte, url t.URL, duration tim
 		ttl, _ := strconv.Atoi(url.TTL)
 		duration = time.Duration(ttl)*time.Second
 	}
-	fmt.Println(duration)
 	isSet := provider.SetWithTTL(key, value, 1, duration)
 	if !isSet {
 		panic("Impossible to set value into Ristretto")

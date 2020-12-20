@@ -50,11 +50,11 @@ func TestIShouldBeAbleToReadAndWriteDataInRistretto(t *testing.T) {
 	time.Sleep(1 * time.Second)
 
 	res := client.Get("Test")
-	if res.Response == nil || len(res.Response) <= 0 {
+	if res == nil || len(res) <= 0 {
 		errors.GenerateError(t, fmt.Sprintf("Key %s should exist", RISTRETTOVALUE))
 	}
-	if RISTRETTOVALUE != string(res.Response) {
-		errors.GenerateError(t, fmt.Sprintf("%s not corresponding to %s", string(res.Response), RISTRETTOVALUE))
+	if RISTRETTOVALUE != string(res) {
+		errors.GenerateError(t, fmt.Sprintf("%s not corresponding to %s", string(res), RISTRETTOVALUE))
 	}
 }
 
@@ -62,7 +62,7 @@ func TestRistretto_GetRequestInCache(t *testing.T) {
 	c := MockConfiguration()
 	client, _ := RistrettoConnectionFactory(c)
 	res := client.Get(NONEXISTENTKEY)
-	if 0 < len(res.Response) {
+	if 0 < len(res) {
 		errors.GenerateError(t, fmt.Sprintf("Key %s should not exist", NONEXISTENTKEY))
 	}
 }
@@ -73,12 +73,12 @@ func TestRistretto_GetSetRequestInCache_OneByte(t *testing.T) {
 	time.Sleep(1 * time.Second)
 
 	res := client.Get(BYTEKEY)
-	if 0 >= len(res.Response) {
+	if 0 >= len(res) {
 		errors.GenerateError(t, fmt.Sprintf("Key %s should exist", BYTEKEY))
 	}
 
-	if string(res.Response) != "A" {
-		errors.GenerateError(t, fmt.Sprintf("%s not corresponding to %v", res.Response, 65))
+	if string(res) != "A" {
+		errors.GenerateError(t, fmt.Sprintf("%s not corresponding to %v", res, 65))
 	}
 }
 
@@ -117,7 +117,7 @@ func TestRistretto_DeleteRequestInCache(t *testing.T) {
 	client, _ := RistrettoConnectionFactory(MockConfiguration())
 	client.Delete(BYTEKEY)
 	time.Sleep(1 * time.Second)
-	if 0 < len(client.Get(BYTEKEY).Response) {
+	if 0 < len(client.Get(BYTEKEY)) {
 		errors.GenerateError(t, fmt.Sprintf("Key %s should not exist", BYTEKEY))
 	}
 }

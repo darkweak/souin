@@ -3,8 +3,8 @@ package cache
 import (
 	"crypto/tls"
 	"fmt"
+	"github.com/darkweak/souin/cache/coalescing"
 	providers2 "github.com/darkweak/souin/cache/providers"
-	"github.com/darkweak/souin/cache/service"
 	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/configuration"
 	"github.com/darkweak/souin/configurationtypes"
@@ -15,12 +15,14 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"time"
 )
 
 func callback(
 	res http.ResponseWriter,
 	req *http.Request,
 	retriever types.RetrieverResponsePropertiesInterface,
+	rc coalescing.RequestCoalescingInterface,
 ) {
 	responses := make(chan types.ReverseResponse)
 
@@ -38,7 +40,6 @@ func callback(
 				return
 			}
 		}
-		responses <- service.RequestReverseProxy(req, retriever)
 	}()
 
 	if http.MethodGet == req.Method {
@@ -54,9 +55,8 @@ func callback(
 		}
 	}
 
-	r := <-responses
 	close(responses)
-	r.Proxy.ServeHTTP(res, req)
+	rc.Temporise(req, res, retriever)
 }
 
 func startServer(config *tls.Config) (net.Listener, *http.Server) {
@@ -83,6 +83,7 @@ func startServer(config *tls.Config) (net.Listener, *http.Server) {
 func Start() {
 	c := configuration.GetConfiguration()
 	u, err := url.Parse(c.GetReverseProxyURL())
+	rc := coalescing.Initialize()
 	if err != nil {
 		panic("Reverse proxy url is missing")
 	}
@@ -115,7 +116,8 @@ func Start() {
 	}
 
 	http.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
-		service.ServeResponse(writer, request, retriever, callback)
+		request.Header.Set("Date", time.Now().UTC().Format(time.RFC1123))
+		coalescing.ServeResponse(writer, request, retriever, callback, rc)
 	})
 	go func() {
 		listener, _ := startServer(tlsConfig)

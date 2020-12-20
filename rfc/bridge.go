@@ -13,6 +13,7 @@ const (
 	stale = iota
 	fresh
 	transparent
+	// XFromCache header constant
 	XFromCache = "X-From-Cache"
 )
 

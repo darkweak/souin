@@ -7,7 +7,7 @@ import (
 	"regexp"
 )
 
-// RetrieverResponsePropertiesInterface interface
+// TransportInterface interface
 type TransportInterface interface {
 	GetProvider() AbstractProviderInterface
 	RoundTrip(req *http.Request) (resp *http.Response, err error)
