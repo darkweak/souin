@@ -2,6 +2,7 @@ package coalescing
 
 import (
 	"github.com/darkweak/souin/cache/types"
+	"golang.org/x/sync/singleflight"
 	"net/http"
 )
 
@@ -13,13 +14,10 @@ type RequestCoalescingChannelItem struct {
 
 // RequestCoalescing handle channels map
 type RequestCoalescing struct {
-	channels map[string]chan RequestCoalescingChannelItem
+	requestGroup singleflight.Group
 }
 
 // RequestCoalescingInterface is the interface
 type RequestCoalescingInterface interface {
-	Drop(string)
-	Reset() *RequestCoalescing
-	Resolve(types.ReverseResponse, *http.Request, http.ResponseWriter)
 	Temporise(*http.Request, http.ResponseWriter, types.RetrieverResponsePropertiesInterface)
 }

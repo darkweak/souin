@@ -47,7 +47,7 @@ func (t *VaryTransport) UpdateCacheEventually(req *http.Request) (resp *http.Res
 	}
 
 	if cacheable && cachedResp != nil {
-		cachedResp.Header.Set(XFromCache, "1")
+		cachedResp.Header.Set(XFromCache, "Souin")
 
 		if varyMatches(cachedResp, req) {
 			// Can only use cached value if the new request doesn't Vary significantly

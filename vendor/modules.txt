@@ -13,6 +13,9 @@ github.com/pquerna/cachecontrol
 github.com/pquerna/cachecontrol/cacheobject
 # golang.org/x/lint v0.0.0-20200302205851-738671d3881b
 ## explicit
+# golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
+## explicit
+golang.org/x/sync/singleflight
 # golang.org/x/sys v0.0.0-20200602225109-6fdc65e7d980
 ## explicit
 golang.org/x/sys/internal/unsafeheader

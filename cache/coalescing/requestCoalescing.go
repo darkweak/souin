@@ -4,60 +4,42 @@ import (
 	"github.com/darkweak/souin/cache/service"
 	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/rfc"
+	"golang.org/x/sync/singleflight"
 	"net/http"
 	"strings"
+	"time"
 )
-
-// Drop will remove one key on the coalescing cache
-func (r *RequestCoalescing) Drop(dropped string) {
-	delete(r.channels, dropped)
-}
-
-// Reset will drop all associated channels then recreate the RequestCoalescing instance
-// TLDR flush RequestCoalescing channels
-func (r *RequestCoalescing) Reset() *RequestCoalescing {
-	for k := range r.channels {
-		r.Drop(k)
-	}
-	return Initialize()
-}
-
-// Resolve will serve http response from Proxy associated
-func (r *RequestCoalescing) Resolve(rr types.ReverseResponse, req *http.Request, rw http.ResponseWriter) {
-	rr.Proxy.ServeHTTP(rw, req)
-	r.ResolveAll(rr, req, rw)
-}
-
-// ResolveAll will serve temporised http response from Proxy associated
-func (r *RequestCoalescing) ResolveAll(rr types.ReverseResponse, req *http.Request, rw http.ResponseWriter) {
-	key := rfc.GetCacheKey(req)
-
-	close(r.channels[key])
-	for v := range r.channels[key] {
-		rr.Proxy.ServeHTTP(v.Rw, v.Rq)
-	}
-	r.Drop(key)
-}
 
 // Temporise will run one call to proxy then use the response for other requests that couldn't reach cached response
 func (r *RequestCoalescing) Temporise(req *http.Request, rw http.ResponseWriter, retriever types.RetrieverResponsePropertiesInterface) {
-	key := rfc.GetCacheKey(req)
-	if nil == r.channels[key] {
-		r.channels[key] = make(chan RequestCoalescingChannelItem)
+	ch := r.requestGroup.DoChan(rfc.GetCacheKey(req), func() (interface{}, error) {
 		rr := service.RequestReverseProxy(req, retriever)
-		r.Resolve(rr, req, rw)
-	} else {
-		if _, ok := <-r.channels[key]; ok {
-			r.channels[key] <-RequestCoalescingChannelItem{req, rw}
-		}
+		rr.Proxy.ServeHTTP(rw, req)
+
+		return nil, nil
+	})
+
+	timeout := time.After(60 * time.Second)
+
+	var result singleflight.Result
+	select {
+	case <-timeout:
+		http.Error(rw, "Gateway Timeout", http.StatusGatewayTimeout)
+		return
+	case result = <-ch:
+	}
+
+	if result.Err != nil {
+		http.Error(rw, result.Err.Error(), http.StatusInternalServerError)
+		return
 	}
 }
 
 // Initialize will return RequestCoalescing instance
 func Initialize() *RequestCoalescing {
-	requestCoalescing := make(map[string]chan RequestCoalescingChannelItem)
+	var requestGroup singleflight.Group
 	return &RequestCoalescing{
-		channels: requestCoalescing,
+		requestGroup,
 	}
 }
 

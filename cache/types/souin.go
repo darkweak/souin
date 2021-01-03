@@ -11,7 +11,7 @@ import (
 type TransportInterface interface {
 	GetProvider() AbstractProviderInterface
 	RoundTrip(req *http.Request) (resp *http.Response, err error)
-	SetUrl(url configurationtypes.URL)
+	SetURL(url configurationtypes.URL)
 	UpdateCacheEventually(req *http.Request) (resp *http.Response, err error)
 }
 

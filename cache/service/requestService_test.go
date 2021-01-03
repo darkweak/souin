@@ -228,10 +228,6 @@ func TestRequestReverseProxy(t *testing.T) {
 		},
 	)
 
-	if response.Request != nil {
-		errors.GenerateError(t, "Response should be bad due to no host available")
-	}
-
 	if response.Proxy == nil || response.Request == nil {
 		errors.GenerateError(t, "Response proxy and request shouldn't be empty")
 	}

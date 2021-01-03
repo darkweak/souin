@@ -30,8 +30,8 @@ func (t *VaryTransport) GetProvider() types.AbstractProviderInterface {
 	return t.Provider
 }
 
-// SetUrl set the URL
-func (t *VaryTransport) SetUrl(url configurationtypes.URL) {
+// SetURL set the URL
+func (t *VaryTransport) SetURL(url configurationtypes.URL) {
 	t.ConfigurationURL = url
 }
 
