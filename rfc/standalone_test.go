@@ -101,7 +101,7 @@ func validateClonedRequest(t *testing.T, r *http.Request) {
 	if len(tmpReq.Header) != len(r.Header) {
 		errors.GenerateError(t, fmt.Sprintf("Headers length should be equal, %d expected, %d provided", len(r.Header), len(tmpReq.Header)))
 	}
-	for k, _ := range tmpReq.Header {
+	for k := range tmpReq.Header {
 		if tmpReq.Header.Get(k) != r.Header.Get(k) {
 			errors.GenerateError(t, fmt.Sprintf("Header %s should be equal to %s, %s provided", k, r.Header.Get(k), tmpReq.Header.Get(k)))
 		}

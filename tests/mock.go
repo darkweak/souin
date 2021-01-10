@@ -7,9 +7,12 @@ import (
 	"regexp"
 )
 
+// DOMAIN is the domain constant
 const DOMAIN = "domain.com"
+// PATH is the path constant
 const PATH = "/testing"
 
+// MockConfiguration is an helper to mock the configuration
 func MockConfiguration() configurationtypes.AbstractConfigurationInterface {
 	var config configuration.Configuration
 	e := config.Parse([]byte(`
@@ -42,6 +45,7 @@ urls:
 	return &config
 }
 
+// MockInitializeRegexp is an helper to mock the regexp initialization
 func MockInitializeRegexp(configurationInstance configurationtypes.AbstractConfigurationInterface) regexp.Regexp {
 	u := ""
 	for k := range configurationInstance.GetUrls() {

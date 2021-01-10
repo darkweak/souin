@@ -6,6 +6,7 @@ import (
 	"testing"
 )
 
+// GetMatchedURL is an helper to mock the matchedURL
 func GetMatchedURL(key string) configurationtypes.URL {
 	config := MockConfiguration()
 	regexpUrls := MockInitializeRegexp(config)
@@ -21,6 +22,7 @@ func GetMatchedURL(key string) configurationtypes.URL {
 	return matchedURL
 }
 
+// ValidatePanic is an helper to check if function should panic
 func ValidatePanic(t *testing.T, f func()) {
 	defer func() {
 		if r := recover(); r == nil {

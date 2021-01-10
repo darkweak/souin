@@ -7,7 +7,7 @@ default_cache:
   regex:
     exclude: 'ARegexHere'
   ttl: 10
-reverse_proxy_url: 'http://domain.com:81'
+reverse_proxy_url: 'http://traefik'
 ssl_providers:
   - traefik
 urls:
