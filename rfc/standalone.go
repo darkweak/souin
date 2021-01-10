@@ -114,24 +114,16 @@ func canStaleOnError(respHeaders, reqHeaders http.Header) bool {
 	var err error
 	lifetime := time.Duration(-1)
 
-	if staleMaxAge, ok := respCacheControl["stale-if-error"]; ok {
-		if staleMaxAge != "" {
-			lifetime, err = time.ParseDuration(staleMaxAge + "s")
-			if err != nil {
-				return false
+	for _, cc := range []cacheControl{respCacheControl, reqCacheControl} {
+		if staleMaxAge, ok := cc["stale-if-error"]; ok {
+			if staleMaxAge != "" {
+				lifetime, err = time.ParseDuration(staleMaxAge + "s")
+				if err != nil {
+					return false
+				}
+			} else {
+				return true
 			}
-		} else {
-			return true
-		}
-	}
-	if staleMaxAge, ok := reqCacheControl["stale-if-error"]; ok {
-		if staleMaxAge != "" {
-			lifetime, err = time.ParseDuration(staleMaxAge + "s")
-			if err != nil {
-				return false
-			}
-		} else {
-			return true
 		}
 	}
 
@@ -202,10 +194,7 @@ func canStore(reqCacheControl, respCacheControl cacheControl) (canStore bool) {
 func newGatewayTimeoutResponse(req *http.Request) *http.Response {
 	var braw bytes.Buffer
 	braw.WriteString("HTTP/1.1 504 Gateway Timeout\r\n\r\n")
-	resp, err := http.ReadResponse(bufio.NewReader(&braw), req)
-	if err != nil {
-		panic(err)
-	}
+	resp, _ := http.ReadResponse(bufio.NewReader(&braw), req)
 	return resp
 }
 

@@ -55,14 +55,6 @@ func RequestReverseProxy(req *http.Request, r types.RetrieverResponsePropertiesI
 
 	proxy := httputil.NewSingleHostReverseProxy(url)
 	proxy.ModifyResponse = func(response *http.Response) error {
-		/*fmt.Println("===== DATES START =====")
-		fmt.Println(req.Header.Get("Date"))
-		fmt.Println(response.Header.Get("Date"))
-		fmt.Println("===== DATES END =====")
-		r, d, e := cachecontrol.CachableResponse(req, response, cachecontrol.Options{})
-		fmt.Println("REASONS => ", r)
-		fmt.Println("DURATION => ", d)
-		fmt.Println("ERRORS => ", e)*/
 		_ = RewriteResponse(response)
 		return nil
 	}

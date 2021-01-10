@@ -4,7 +4,11 @@ import (
 	"github.com/darkweak/souin/configuration"
 	"github.com/darkweak/souin/configurationtypes"
 	"log"
+	"regexp"
 )
+
+const DOMAIN = "domain.com"
+const PATH = "/testing"
 
 func MockConfiguration() configurationtypes.AbstractConfigurationInterface {
 	var config configuration.Configuration
@@ -18,7 +22,7 @@ default_cache:
   regex:
     exclude: 'ARegexHere'
   ttl: 1000
-reverse_proxy_url: 'http://traefik'
+reverse_proxy_url: 'http://domain.com:81'
 ssl_providers:
   - traefik
 urls:
@@ -36,4 +40,16 @@ urls:
 		log.Fatal(e)
 	}
 	return &config
+}
+
+func MockInitializeRegexp(configurationInstance configurationtypes.AbstractConfigurationInterface) regexp.Regexp {
+	u := ""
+	for k := range configurationInstance.GetUrls() {
+		if "" != u {
+			u += "|"
+		}
+		u += "(" + k + ")"
+	}
+
+	return *regexp.MustCompile(u)
 }

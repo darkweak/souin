@@ -1,6 +1,7 @@
 /cmd/*
 .env
 docker-compose.yml
+cover.out
 Dockerfile
 /.idea/
 .DS_Store
