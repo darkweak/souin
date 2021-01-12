@@ -12,6 +12,8 @@ ADD ./go.* /app/src/github.com/darkweak/souin/
 RUN mkdir -p /ssl
 ADD ./*.go /app/src/github.com/darkweak/souin/
 ADD ./cache /app/src/github.com/darkweak/souin/cache
+ADD ./tests /app/src/github.com/darkweak/souin/tests
+ADD ./rfc /app/src/github.com/darkweak/souin/rfc
 ADD ./configuration /app/src/github.com/darkweak/souin/configuration
 ADD ./configurationtypes /app/src/github.com/darkweak/souin/configurationtypes
 ADD ./default /app/src/github.com/darkweak/souin/default

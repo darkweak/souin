@@ -1,7 +1,6 @@
 package providers
 
 import (
-	"github.com/darkweak/souin/cache/types"
 	t "github.com/darkweak/souin/configurationtypes"
 	"github.com/dgraph-io/ristretto"
 	"strconv"
@@ -15,41 +14,38 @@ type Ristretto struct {
 
 // RistrettoConnectionFactory function create new Ristretto instance
 func RistrettoConnectionFactory(_ t.AbstractConfigurationInterface) (*Ristretto, error) {
-	cache, err := ristretto.NewCache(&ristretto.Config{
+	cache, _ := ristretto.NewCache(&ristretto.Config{
 		NumCounters: 1e7,     // number of keys to track frequency of (10M).
 		MaxCost:     1 << 30, // maximum cost of cache (1GB).
 		BufferItems: 64,      // number of keys per Get buffer.
 	})
 
-	if err != nil {
-		return nil, err
-	}
-
 	return &Ristretto{cache}, nil
 }
 
-// GetRequestInCache method returns the populated response if exists, empty response then
-func (provider *Ristretto) GetRequestInCache(key string) types.ReverseResponse {
-	val, found := provider.Get(key)
-
+// Get method returns the populated response if exists, empty response then
+func (provider *Ristretto) Get(key string) []byte {
+	val, found := provider.Cache.Get(key)
 	if !found {
-		return types.ReverseResponse{Response: []byte{}, Proxy: nil, Request: nil}
+		return []byte{}
 	}
-
-	return types.ReverseResponse{Response: val.([]byte), Proxy: nil, Request: nil}
+	return val.([]byte)
 }
 
-// SetRequestInCache method will store the response in Ristretto provider
-func (provider *Ristretto) SetRequestInCache(key string, value []byte, url t.URL) {
-	ttl, _ := strconv.Atoi(url.TTL)
-	isSet := provider.SetWithTTL(key, value, 1, time.Duration(ttl)*time.Second)
+// Set method will store the response in Ristretto provider
+func (provider *Ristretto) Set(key string, value []byte, url t.URL, duration time.Duration) {
+	if duration == 0 {
+		ttl, _ := strconv.Atoi(url.TTL)
+		duration = time.Duration(ttl)*time.Second
+	}
+	isSet := provider.SetWithTTL(key, value, 1, duration)
 	if !isSet {
-		panic("Impossible to set into Ristretto")
+		panic("Impossible to set value into Ristretto")
 	}
 }
 
-// DeleteRequestInCache method will delete the response in Ristretto provider if exists corresponding to key param
-func (provider *Ristretto) DeleteRequestInCache(key string) {
+// Delete method will delete the response in Ristretto provider if exists corresponding to key param
+func (provider *Ristretto) Delete(key string) {
 	provider.Del(key)
 }
 
