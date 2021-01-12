@@ -2,6 +2,7 @@ package providers
 
 import (
 	"fmt"
+	"github.com/darkweak/souin/tests"
 	"testing"
 
 	"github.com/darkweak/souin/configurationtypes"
@@ -12,12 +13,11 @@ import (
 const RISTRETTOVALUE = "My first data"
 const BYTEKEY = "MyByteKey"
 const NONEXISTENTKEY = "NonexistentKey"
-const DELETABLEKEY = "MyDeletableKey"
 
 func getRistrettoClientAndMatchedURL(key string) (*Ristretto, configurationtypes.URL) {
-	config := MockConfiguration()
+	config := tests.MockConfiguration()
 	client, _ := RistrettoConnectionFactory(config)
-	regexpUrls := MockInitializeRegexp(config)
+	regexpUrls := tests.MockInitializeRegexp(config)
 	regexpURL := regexpUrls.FindString(key)
 	matchedURL := configurationtypes.URL{
 		TTL:     config.GetDefaultCache().TTL,
@@ -31,7 +31,7 @@ func getRistrettoClientAndMatchedURL(key string) (*Ristretto, configurationtypes
 }
 
 func TestRistrettoConnectionFactory(t *testing.T) {
-	c := MockConfiguration()
+	c := tests.MockConfiguration()
 	r, err := RistrettoConnectionFactory(c)
 
 	if nil != err {
@@ -46,84 +46,89 @@ func TestRistrettoConnectionFactory(t *testing.T) {
 func TestIShouldBeAbleToReadAndWriteDataInRistretto(t *testing.T) {
 	client, matchedURL := getRistrettoClientAndMatchedURL("Test")
 
-	client.SetRequestInCache("Test", []byte(RISTRETTOVALUE), matchedURL)
+	client.Set("Test", []byte(RISTRETTOVALUE), matchedURL, time.Duration(20) * time.Second)
 	time.Sleep(1 * time.Second)
 
-	res, b := client.Get("Test")
-	if false == b || nil == res {
+	res := client.Get("Test")
+	if res == nil || len(res) <= 0 {
 		errors.GenerateError(t, fmt.Sprintf("Key %s should exist", RISTRETTOVALUE))
 	}
-	if RISTRETTOVALUE != string(res.([]byte)) {
-		errors.GenerateError(t, fmt.Sprintf("%s not corresponding to %s", string(res.([]byte)), RISTRETTOVALUE))
+	if RISTRETTOVALUE != string(res) {
+		errors.GenerateError(t, fmt.Sprintf("%s not corresponding to %s", string(res), RISTRETTOVALUE))
 	}
 }
 
 func TestRistretto_GetRequestInCache(t *testing.T) {
-	c := MockConfiguration()
+	c := tests.MockConfiguration()
 	client, _ := RistrettoConnectionFactory(c)
-	res := client.GetRequestInCache(NONEXISTENTKEY)
-	if 0 < len(res.Response) {
+	res := client.Get(NONEXISTENTKEY)
+	if 0 < len(res) {
 		errors.GenerateError(t, fmt.Sprintf("Key %s should not exist", NONEXISTENTKEY))
 	}
 }
 
 func TestRistretto_GetSetRequestInCache_OneByte(t *testing.T) {
 	client, matchedURL := getRistrettoClientAndMatchedURL(BYTEKEY)
-	client.SetRequestInCache(BYTEKEY, []byte("A"), matchedURL)
+	client.Set(BYTEKEY, []byte("A"), matchedURL, time.Duration(20) * time.Second)
 	time.Sleep(1 * time.Second)
 
-	res := client.GetRequestInCache(BYTEKEY)
-	if 0 >= len(res.Response) {
+	res := client.Get(BYTEKEY)
+	if 0 == len(res) {
 		errors.GenerateError(t, fmt.Sprintf("Key %s should exist", BYTEKEY))
 	}
 
-	if string(res.Response) != "A" {
-		errors.GenerateError(t, fmt.Sprintf("%s not corresponding to %v", res.Response, 65))
+	if string(res) != "A" {
+		errors.GenerateError(t, fmt.Sprintf("%s not corresponding to %v", res, 65))
 	}
 }
 
-func TestRistretto_SetRequestInCache_MultipleKeys(t *testing.T) {
-	client, matchedURL := getRistrettoClientAndMatchedURL(DELETABLEKEY)
+func verifyNewValueAfterSet(client *Ristretto, key string, value []byte, t *testing.T) {
+	newValue := client.Get(key)
 
-	for i := 0; i < 10; i++ {
-		client.SetRequestInCache(fmt.Sprintf("%s%v", DELETABLEKEY, i), []byte{65}, matchedURL)
+	if len(newValue) != len(value) {
+		errors.GenerateError(t, fmt.Sprintf("Key %s should be equals to %s, %s provided", key, value, newValue))
 	}
 }
 
-func TestRistretto_SetRequestInCache(t *testing.T) {
-	client, matchedURL := getRistrettoClientAndMatchedURL("MyEmptyKey")
-	client.SetRequestInCache("MyEmptyKey", []byte("Hello world"), matchedURL)
+func setValueThenVerify(client *Ristretto, key string, value []byte, matchedURL configurationtypes.URL, ttl time.Duration, t *testing.T) {
+	client.Set(key, value, matchedURL, ttl)
+	time.Sleep(1 * time.Second)
+	verifyNewValueAfterSet(client, key, value, t)
 }
 
-func TestRistretto_SetRequestInCache_Empty(t *testing.T) {
-	client, matchedURL := getRistrettoClientAndMatchedURL("MyEmptyKey")
-	client.SetRequestInCache("MyEmptyKey", []byte{}, matchedURL)
+func TestRistretto_SetRequestInCache_TTL(t *testing.T) {
+	key := "MyEmptyKey"
+	client, matchedURL := getRistrettoClientAndMatchedURL(key)
+	nv := []byte("Hello world")
+	setValueThenVerify(client, key, nv, matchedURL, time.Duration(20) * time.Second, t)
 }
 
-func TestRistretto_SetRequestInCache_VeryLong(t *testing.T) {
-	client, matchedURL := getRistrettoClientAndMatchedURL("MyVeryLongKey")
-	client.SetRequestInCache("MyVeryLongKey", make([]byte, 100000000), matchedURL)
-}
-
-func TestRistretto_SetRequestInCache_ExistingKey(t *testing.T) {
+func TestRistretto_SetRequestInCache_NoTTL(t *testing.T) {
 	client, matchedURL := getRistrettoClientAndMatchedURL(BYTEKEY)
+	nv := []byte("New value")
+	setValueThenVerify(client, BYTEKEY, nv, matchedURL, 0, t)
+}
 
-	for i := 0; i < 10; i++ {
-		client.SetRequestInCache(BYTEKEY, []byte("New value"), matchedURL)
-	}
+func TestRistretto_SetRequestInCache_NegativeTTL(t *testing.T) {
+
+	client, matchedURL := getRistrettoClientAndMatchedURL(BYTEKEY)
+	nv := []byte("New value")
+	tests.ValidatePanic(t, func() {
+		setValueThenVerify(client, BYTEKEY, nv, matchedURL, time.Duration(-20) * time.Second, t)
+	})
 }
 
 func TestRistretto_DeleteRequestInCache(t *testing.T) {
-	client, _ := RistrettoConnectionFactory(MockConfiguration())
-	client.DeleteRequestInCache(BYTEKEY)
+	client, _ := RistrettoConnectionFactory(tests.MockConfiguration())
+	client.Delete(BYTEKEY)
 	time.Sleep(1 * time.Second)
-	if 0 < len(client.GetRequestInCache(BYTEKEY).Response) {
+	if 0 < len(client.Get(BYTEKEY)) {
 		errors.GenerateError(t, fmt.Sprintf("Key %s should not exist", BYTEKEY))
 	}
 }
 
 func TestRistretto_Init(t *testing.T) {
-	client, _ := RistrettoConnectionFactory(MockConfiguration())
+	client, _ := RistrettoConnectionFactory(tests.MockConfiguration())
 	err := client.Init()
 
 	if nil != err {

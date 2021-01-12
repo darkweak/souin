@@ -2,22 +2,22 @@ package traefik
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
+	"github.com/darkweak/souin/cache/coalescing"
 	providers2 "github.com/darkweak/souin/cache/providers"
-	"github.com/darkweak/souin/cache/service"
 	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/helpers"
+	"github.com/darkweak/souin/rfc"
 	"gopkg.in/yaml.v3"
+	"io/ioutil"
 	"net/http"
 )
 
 // Config the Souin configuration.
 type Config struct {
 	DefaultCache    configurationtypes.DefaultCache   `yaml:"default_cache"`
-	ReverseProxyURL string                             `yaml:"reverse_proxy_url"`
-	SSLProviders    []string                           `yaml:"ssl_providers"`
+	ReverseProxyURL string                            `yaml:"reverse_proxy_url"`
+	SSLProviders    []string                          `yaml:"ssl_providers"`
 	URLs            map[string]configurationtypes.URL `yaml:"urls"`
 }
 
@@ -58,39 +58,41 @@ func callback(
 	res http.ResponseWriter,
 	req *http.Request,
 	retriever types.RetrieverResponsePropertiesInterface,
-	key string,
+	rc coalescing.RequestCoalescingInterface,
 ) {
 	responses := make(chan types.ReverseResponse)
 
-	alreadyHaveResponse := false
-
 	go func() {
 		if http.MethodGet == req.Method {
-			if !alreadyHaveResponse {
-				r := retriever.GetProvider().GetRequestInCache(key)
-				responses <- retriever.GetProvider().GetRequestInCache(key)
-				if 0 < len(r.Response) {
-					alreadyHaveResponse = true
-				}
+			r, _ := rfc.CachedResponse(
+				retriever.GetProvider(),
+				req,
+				rfc.GetCacheKey(req),
+				retriever.GetTransport(),
+				true,
+			)
+			responses <- r
+			if nil != r.Response {
+				return
 			}
 		}
 	}()
 
 	if http.MethodGet == req.Method {
 		response, open := <-responses
-		if open && http.MethodGet == req.Method && 0 < len(response.Response) {
+		if open && nil != response.Response {
 			close(responses)
-			var responseJSON types.RequestResponse
-			err := json.Unmarshal(response.Response, &responseJSON)
-			if err != nil {
-				fmt.Println(err)
-			}
-			for k, v := range responseJSON.Headers {
+			for k, v := range response.Response.Header {
 				res.Header().Set(k, v[0])
 			}
-			_, _ = res.Write(responseJSON.Body)
+			b, _ := ioutil.ReadAll(response.Response.Body)
+			_, _ = res.Write(b)
+			return
 		}
 	}
+
+	close(responses)
+	rc.Temporise(req, res, retriever)
 }
 
 // SouinTraefikPlugin declaration.
@@ -98,11 +100,13 @@ type SouinTraefikPlugin struct {
 	next http.Handler
 	name string
 
-	Retriever types.RetrieverResponsePropertiesInterface
+	Retriever         types.RetrieverResponsePropertiesInterface
+	RequestCoalescing coalescing.RequestCoalescingInterface
 }
 
 // New create Souin instance.
 func New(_ context.Context, next http.Handler, config *Config, name string) (http.Handler, error) {
+	rc := coalescing.Initialize()
 	provider := providers2.InitializeProvider(config)
 	regexpUrls := helpers.InitializeRegexp(config)
 
@@ -118,10 +122,11 @@ func New(_ context.Context, next http.Handler, config *Config, name string) (htt
 			Configuration: config,
 			RegexpUrls:    regexpUrls,
 		},
+		RequestCoalescing: rc,
 	}, nil
 }
 
 func (e *SouinTraefikPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	service.ServeResponse(rw, req, e.Retriever, callback)
+	coalescing.ServeResponse(rw, req, e.Retriever, callback, e.RequestCoalescing)
 	e.next.ServeHTTP(rw, req)
 }

@@ -2,70 +2,61 @@ package cache
 
 import (
 	"crypto/tls"
-	"encoding/json"
 	"fmt"
+	"github.com/darkweak/souin/cache/coalescing"
 	providers2 "github.com/darkweak/souin/cache/providers"
-	"github.com/darkweak/souin/cache/service"
 	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/configuration"
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/helpers"
 	"github.com/darkweak/souin/providers"
+	"github.com/darkweak/souin/rfc"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
+	"time"
 )
 
 func callback(
 	res http.ResponseWriter,
 	req *http.Request,
 	retriever types.RetrieverResponsePropertiesInterface,
-	key string,
+	rc coalescing.RequestCoalescingInterface,
 ) {
-	ctx := req.Context()
 	responses := make(chan types.ReverseResponse)
-
-	alreadyHaveResponse := false
-	alreadySent := false
 
 	go func() {
 		if http.MethodGet == req.Method {
-			if !alreadyHaveResponse {
-				r := retriever.GetProvider().GetRequestInCache(key)
-				responses <- retriever.GetProvider().GetRequestInCache(key)
-				if 0 < len(r.Response) {
-					alreadyHaveResponse = true
-				}
+			r, _ := rfc.CachedResponse(
+				retriever.GetProvider(),
+				req,
+				rfc.GetCacheKey(req),
+				retriever.GetTransport(),
+				true,
+			)
+			responses <- r
+			if nil != r.Response {
+				return
 			}
-		}
-		if !alreadyHaveResponse || http.MethodGet != req.Method {
-			responses <- service.RequestReverseProxy(req, retriever)
 		}
 	}()
 
 	if http.MethodGet == req.Method {
 		response, open := <-responses
-		if open && 0 < len(response.Response) {
+		if open && nil != response.Response {
 			close(responses)
-			var responseJSON types.RequestResponse
-			err := json.Unmarshal(response.Response, &responseJSON)
-			if err != nil {
-				panic(err)
-			}
-			for k, v := range responseJSON.Headers {
+			for k, v := range response.Response.Header {
 				res.Header().Set(k, v[0])
 			}
-			alreadySent = true
-			_, _ = res.Write(responseJSON.Body)
+			b, _ := ioutil.ReadAll(response.Response.Body)
+			_, _ = res.Write(b)
+			return
 		}
 	}
 
-	if !alreadySent {
-		req = req.WithContext(ctx)
-		response2 := <-responses
-		close(responses)
-		response2.Proxy.ServeHTTP(res, req)
-	}
+	close(responses)
+	rc.Temporise(req, res, retriever)
 }
 
 func startServer(config *tls.Config) (net.Listener, *http.Server) {
@@ -92,6 +83,7 @@ func startServer(config *tls.Config) (net.Listener, *http.Server) {
 func Start() {
 	c := configuration.GetConfiguration()
 	u, err := url.Parse(c.GetReverseProxyURL())
+	rc := coalescing.Initialize()
 	if err != nil {
 		panic("Reverse proxy url is missing")
 	}
@@ -109,19 +101,23 @@ func Start() {
 
 	provider := providers2.InitializeProvider(c)
 	regexpUrls := helpers.InitializeRegexp(c)
+	var transport types.TransportInterface
+	transport = rfc.NewTransport(provider)
 	retriever := &types.RetrieverResponseProperties{
 		MatchedURL: configurationtypes.URL{
 			TTL:     c.GetDefaultCache().TTL,
 			Headers: c.GetDefaultCache().Headers,
 		},
-		Provider:      provider,
-		Configuration: c,
-		RegexpUrls:    regexpUrls,
+		Provider:        provider,
+		Configuration:   c,
+		RegexpUrls:      regexpUrls,
 		ReverseProxyURL: u,
+		Transport:       transport,
 	}
 
 	http.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
-		service.ServeResponse(writer, request, retriever, callback)
+		request.Header.Set("Date", time.Now().UTC().Format(time.RFC1123))
+		coalescing.ServeResponse(writer, request, retriever, callback, rc)
 	})
 	go func() {
 		listener, _ := startServer(tlsConfig)
