@@ -22,10 +22,11 @@
 
 ## Project description
 Souin is a new cache system suitable for every reverse-proxy. It will be placed on top of your current reverse-proxy whether it's Apache, Nginx or Traefik.  
-As it's written in go, it can be deployed on any server and thanks to the docker integration, it will be easy to install on top of a Swarm, or a kubernetes instance.
+As it's written in go, it can be deployed on any server and thanks to the docker integration, it will be easy to install on top of a Swarm, or a kubernetes instance.  
+It's RFC compatible, supporting Vary, request coalescing and other specifications related to the [RFC-7234](https://tools.ietf.org/html/rfc7234)
 
 ## Disclaimer
-If you don't need redis or other custom cache providers, it's recommended to use the minimal version. You can read the documentation, on [the master branch](https://github.com/darkweak/souin).
+If you need redis or other custom cache providers, you have to use the full-featured version. You can read the documentation, on [the full-featured branch](https://github.com/Darkweak/Souin/pull/30) to discover the specific parts.
 
 ## Configuration
 The configuration file is stored at `/anywhere/configuration.yml`. You can edit it provided you fill at least the required parameters as shown below.
