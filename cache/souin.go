@@ -3,6 +3,7 @@ package cache
 import (
 	"crypto/tls"
 	"fmt"
+	"github.com/darkweak/souin/api"
 	"github.com/darkweak/souin/cache/coalescing"
 	providers2 "github.com/darkweak/souin/cache/providers"
 	"github.com/darkweak/souin/cache/types"
@@ -113,6 +114,14 @@ func Start() {
 		RegexpUrls:      regexpUrls,
 		ReverseProxyURL: u,
 		Transport:       transport,
+	}
+
+	fmt.Sprintf(fmt.Sprintf("Hello %v", api.Initialize(provider, c)))
+	for _, endpoint := range api.Initialize(provider, c) {
+		if endpoint.IsEnabled() {
+			http.HandleFunc(endpoint.GetBasePath(), endpoint.HandleRequest)
+			http.HandleFunc(endpoint.GetBasePath() + "/", endpoint.HandleRequest)
+		}
 	}
 
 	http.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {

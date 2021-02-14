@@ -109,7 +109,6 @@ func (t *VaryTransport) UpdateCacheEventually(req *http.Request) (resp *http.Res
 					t.SetCache(cacheKey, &resp, req)
 				},
 			}
-			t.SetCache(cacheKey, resp, req)
 		default:
 			t.SetCache(cacheKey, resp, req)
 		}

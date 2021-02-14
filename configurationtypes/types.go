@@ -37,6 +37,17 @@ type DefaultCache struct {
 	TTL     string   `yaml:"ttl"`
 }
 
+// APIEndpoint is the minimal structure to define an endpoint
+type APIEndpoint struct {
+	BasePath string `yaml:"basepath"`
+	Enable bool `yaml:"enable"`
+}
+
+// API structure contains all additional endpoints
+type API struct {
+	Souin APIEndpoint `yaml:"souin"`
+}
+
 // AbstractConfigurationInterface interface
 type AbstractConfigurationInterface interface {
 	Parse(data []byte) error
@@ -44,4 +55,5 @@ type AbstractConfigurationInterface interface {
 	GetReverseProxyURL() string
 	GetSSLProviders() []string
 	GetDefaultCache() DefaultCache
+	GetAPI() API
 }
