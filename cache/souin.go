@@ -116,7 +116,6 @@ func Start() {
 		Transport:       transport,
 	}
 
-	fmt.Sprintf(fmt.Sprintf("Hello %v", api.Initialize(provider, c)))
 	for _, endpoint := range api.Initialize(provider, c) {
 		if endpoint.IsEnabled() {
 			http.HandleFunc(endpoint.GetBasePath(), endpoint.HandleRequest)

@@ -1,0 +1,80 @@
+package api
+
+import (
+	"github.com/darkweak/souin/cache/providers"
+	"github.com/darkweak/souin/errors"
+	"github.com/darkweak/souin/tests"
+	"regexp"
+	"testing"
+	"time"
+)
+
+func mockSouinAPI() *SouinAPI {
+	config := tests.MockConfiguration()
+	prs := providers.InitializeProvider(config)
+	return &SouinAPI{
+		"/souinbasepath",
+		true,
+		prs,
+	}
+}
+
+func TestSouinAPI_BulkDelete(t *testing.T) {
+	souinMock := mockSouinAPI()
+	souinMock.provider.Set("key", []byte("value"), tests.GetMatchedURL("key"), 20 * time.Second)
+	souinMock.provider.Set("key2", []byte("value"), tests.GetMatchedURL("key"), 20 * time.Second)
+	time.Sleep(3 * time.Second)
+	if len(souinMock.GetAll()) != 2 {
+		errors.GenerateError(t, "Souin API should have a record")
+	}
+	souinMock.BulkDelete(regexp.MustCompile(".+"))
+	time.Sleep(5 * time.Second)
+	if len(souinMock.GetAll()) != 0 {
+		errors.GenerateError(t, "Souin API shouldn't have a record")
+	}
+}
+
+func TestSouinAPI_Delete(t *testing.T) {
+	souinMock := mockSouinAPI()
+	souinMock.provider.Set("key", []byte("value"), tests.GetMatchedURL("key"), 20 * time.Second)
+	time.Sleep(3 * time.Second)
+	if len(souinMock.GetAll()) != 1 {
+		errors.GenerateError(t, "Souin API should have a record")
+	}
+	souinMock.Delete("key")
+	time.Sleep(3 * time.Second)
+	if len(souinMock.GetAll()) == 1 {
+		errors.GenerateError(t, "Souin API shouldn't have a record")
+	}
+}
+
+func TestSouinAPI_GetAll(t *testing.T) {
+	souinMock := mockSouinAPI()
+	if len(souinMock.GetAll()) > 0 {
+		errors.GenerateError(t, "Souin API don't have any record yet")
+	}
+
+	souinMock.provider.Set("key", []byte("value"), tests.GetMatchedURL("key"), 6 * time.Second)
+	time.Sleep(3 * time.Second)
+	if len(souinMock.GetAll()) != 1 {
+		errors.GenerateError(t, "Souin API should have a record")
+	}
+	time.Sleep(10 * time.Second)
+	if len(souinMock.GetAll()) == 1 {
+		errors.GenerateError(t, "Souin API shouldn't have a record")
+	}
+}
+
+func TestSouinAPI_GetBasePath(t *testing.T) {
+	souinMock := mockSouinAPI()
+	if souinMock.GetBasePath() != "/souinbasepath" {
+		errors.GenerateError(t, "Souin API should be enabled")
+	}
+}
+
+func TestSouinAPI_IsEnabled(t *testing.T) {
+	souinMock := mockSouinAPI()
+	if !souinMock.IsEnabled() {
+		errors.GenerateError(t, "Souin API should be enabled")
+	}
+}

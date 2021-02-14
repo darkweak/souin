@@ -16,6 +16,9 @@ const PATH = "/testing"
 func MockConfiguration() configurationtypes.AbstractConfigurationInterface {
 	var config configuration.Configuration
 	e := config.Parse([]byte(`
+api:
+  souin:
+    enable: true
 default_cache:
   headers:
     - Authorization

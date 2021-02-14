@@ -9,7 +9,6 @@ import (
 type EndpointInterface interface {
 	BulkDelete(rg *regexp.Regexp)
 	Delete(key string)
-	Get(key string) interface{}
 	GetAll() []string
 	GetBasePath() string
 	IsEnabled() bool

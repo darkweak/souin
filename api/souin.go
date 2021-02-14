@@ -43,11 +43,6 @@ func (s *SouinAPI) Delete(key string) {
 	s.provider.Delete(key)
 }
 
-// Get will retrieve a record stored in the provider
-func (s *SouinAPI) Get(key string) interface{} {
-	return s.provider.Get(key)
-}
-
 // GetAll will retrieve all stored keys in the provider
 func (s *SouinAPI) GetAll() []string {
 	return s.provider.ListKeys()
