@@ -40,12 +40,27 @@ type DefaultCache struct {
 // APIEndpoint is the minimal structure to define an endpoint
 type APIEndpoint struct {
 	BasePath string `yaml:"basepath"`
-	Enable bool `yaml:"enable"`
+	Enable   bool   `yaml:"enable"`
+}
+
+type User struct {
+	Username string `yaml:"username"`
+	Password string `yaml:"password"`
+}
+
+// SecurityAPI object contains informations related to the endpoints
+type SecurityAPI struct {
+	BasePath string            `yaml:"basepath"`
+	Enable   bool              `yaml:"enable"`
+	Secret   string            `yaml:"secret"`
+	Users    []User `yaml:"users"`
 }
 
 // API structure contains all additional endpoints
 type API struct {
-	Souin APIEndpoint `yaml:"souin"`
+	BasePath string      `yaml:basepath`
+	Souin    APIEndpoint `yaml:"souin"`
+	Security SecurityAPI `yaml:"security"`
 }
 
 // AbstractConfigurationInterface interface

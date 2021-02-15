@@ -62,6 +62,7 @@ func (s *SouinAPI) IsEnabled() bool {
 func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 	res := []byte{}
 	compile := regexp.MustCompile(fmt.Sprintf("%s/.+", s.GetBasePath())).FindString(r.RequestURI) != ""
+	fmt.Println(compile, r.RequestURI)
 	switch r.Method {
 	case http.MethodGet:
 		if compile {

@@ -116,10 +116,11 @@ func Start() {
 		Transport:       transport,
 	}
 
+	basePathAPIS := c.GetAPI().BasePath
 	for _, endpoint := range api.Initialize(provider, c) {
 		if endpoint.IsEnabled() {
-			http.HandleFunc(endpoint.GetBasePath(), endpoint.HandleRequest)
-			http.HandleFunc(endpoint.GetBasePath() + "/", endpoint.HandleRequest)
+			http.HandleFunc(fmt.Sprintf("%s%s", basePathAPIS, endpoint.GetBasePath()), endpoint.HandleRequest)
+			http.HandleFunc(fmt.Sprintf("%s%s/", basePathAPIS, endpoint.GetBasePath()), endpoint.HandleRequest)
 		}
 	}
 
