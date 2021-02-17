@@ -13,8 +13,12 @@ func TestSignatureError_Error(t *testing.T) {
 }
 
 func TestTokenError_Error(t *testing.T) {
-	s := tokenError{}
+	s := tokenError{true}
 	if s.Error() != "An error occurred, Invalid request" {
+		errors.GenerateError(t, "Token Error function not compliant")
+	}
+	s = tokenError{false}
+	if s.Error() != "An error occurred, Token not found" {
 		errors.GenerateError(t, "Token Error function not compliant")
 	}
 }
