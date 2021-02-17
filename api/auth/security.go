@@ -34,11 +34,11 @@ func InitializeSecurity(configuration configurationtypes.AbstractConfigurationIn
 	}
 }
 
-func (s *SecurityAPI) Login(w http.ResponseWriter, r *http.Request) {
+func (s *SecurityAPI) login(w http.ResponseWriter, r *http.Request) {
 	signJWT(s, w, r)
 }
 
-func (s *SecurityAPI) Refresh(w http.ResponseWriter, r *http.Request) {
+func (s *SecurityAPI) refresh(w http.ResponseWriter, r *http.Request) {
 	refresh(s, w, r)
 }
 
@@ -57,9 +57,9 @@ func (s *SecurityAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
 		if regexp.MustCompile(fmt.Sprintf("%s/login", s.GetBasePath())).FindString(r.RequestURI) != "" {
-			s.Login(w, r)
+			s.login(w, r)
 		} else if regexp.MustCompile(fmt.Sprintf("%s/refresh", s.GetBasePath())).FindString(r.RequestURI) != "" {
-			s.Refresh(w, r)
+			s.refresh(w, r)
 		} else {
 			w.Write([]byte{})
 		}

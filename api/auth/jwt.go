@@ -2,7 +2,6 @@ package auth
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"net/http"
 	"time"
@@ -45,7 +44,7 @@ func signJWT(security *SecurityAPI, w http.ResponseWriter, r *http.Request) {
 
 	// Create the JWT claims, which includes the username and expiry time
 	claims := &jwtProvider{
-		Username: creds.Username,
+		Username:       creds.Username,
 		StandardClaims: jwt.StandardClaims{},
 	}
 
@@ -53,7 +52,7 @@ func signJWT(security *SecurityAPI, w http.ResponseWriter, r *http.Request) {
 }
 
 func refresh(security *SecurityAPI, w http.ResponseWriter, r *http.Request) {
-	claims, err := checkToken(security, w, r)
+	claims, err := CheckToken(security, w, r)
 	if err != nil {
 		return
 	}
@@ -69,10 +68,11 @@ func refresh(security *SecurityAPI, w http.ResponseWriter, r *http.Request) {
 	setCookie(w, claims, security.secret)
 }
 
-func checkToken(security *SecurityAPI, w http.ResponseWriter, r *http.Request) (*jwtProvider, error) {
+// CheckToken will return if token is valid or not
+func CheckToken(security *SecurityAPI, w http.ResponseWriter, r *http.Request) (*jwtProvider, error) {
 	c, err := r.Cookie(tokenName)
 	if err != nil {
-		if err == http.ErrNoCookie {
+		if err.Error() == http.ErrNoCookie.Error() {
 			w.WriteHeader(http.StatusUnauthorized)
 			return nil, &tokenError{found: false}
 		}
@@ -85,7 +85,7 @@ func checkToken(security *SecurityAPI, w http.ResponseWriter, r *http.Request) (
 		return security.secret, nil
 	})
 	if err != nil {
-		if err == jwt.ErrSignatureInvalid {
+		if jwt.ErrSignatureInvalid.Error() == err.Error() {
 			w.WriteHeader(http.StatusUnauthorized)
 			return claims, &signatureError{}
 		}
@@ -100,19 +100,19 @@ func checkToken(security *SecurityAPI, w http.ResponseWriter, r *http.Request) (
 	return claims, nil
 }
 
-func setCookie (w http.ResponseWriter, claims *jwtProvider, secret []byte) {
+func setCookie(w http.ResponseWriter, claims *jwtProvider, secret []byte) {
 	expirationTime := time.Now().Add(lifetime)
 	claims.ExpiresAt = expirationTime.Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err := token.SignedString(secret)
 	if err != nil {
-		fmt.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	http.SetCookie(w, &http.Cookie{
 		Name:    tokenName,
+		Path:    "/",
 		Value:   tokenString,
 		Expires: expirationTime,
 	})

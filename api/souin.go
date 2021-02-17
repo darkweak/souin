@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/darkweak/souin/api/auth"
 	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/configurationtypes"
 	"net/http"
@@ -14,11 +15,16 @@ type SouinAPI struct {
 	basePath string
 	enabled bool
 	provider types.AbstractProviderInterface
+	security *auth.SecurityAPI
 }
 
-func initializeSouin(provider types.AbstractProviderInterface, configuration configurationtypes.AbstractConfigurationInterface) *SouinAPI {
+func initializeSouin(provider types.AbstractProviderInterface, configuration configurationtypes.AbstractConfigurationInterface, api *auth.SecurityAPI) *SouinAPI {
 	basePath := configuration.GetAPI().Souin.BasePath
 	enabled := configuration.GetAPI().Souin.Enable
+	var security *auth.SecurityAPI
+	if configuration.GetAPI().Souin.Security {
+		security = api
+	}
 	if "" == basePath {
 		basePath = "/souin"
 	}
@@ -26,6 +32,7 @@ func initializeSouin(provider types.AbstractProviderInterface, configuration con
 		basePath,
 		enabled,
 		provider,
+		security,
 	}
 }
 
@@ -61,8 +68,13 @@ func (s *SouinAPI) IsEnabled() bool {
 // HandleRequest will handle the request
 func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 	res := []byte{}
+	if s.security != nil {
+		if _, err := auth.CheckToken(s.security, w, r); err != nil {
+			w.Write(res)
+			return
+		}
+	}
 	compile := regexp.MustCompile(fmt.Sprintf("%s/.+", s.GetBasePath())).FindString(r.RequestURI) != ""
-	fmt.Println(compile, r.RequestURI)
 	switch r.Method {
 	case http.MethodGet:
 		if compile {

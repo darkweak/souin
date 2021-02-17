@@ -117,6 +117,9 @@ func Start() {
 	}
 
 	basePathAPIS := c.GetAPI().BasePath
+	if basePathAPIS == "" {
+		basePathAPIS = "/souin-api"
+	}
 	for _, endpoint := range api.Initialize(provider, c) {
 		if endpoint.IsEnabled() {
 			http.HandleFunc(fmt.Sprintf("%s%s", basePathAPIS, endpoint.GetBasePath()), endpoint.HandleRequest)

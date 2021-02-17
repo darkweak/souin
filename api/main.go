@@ -8,5 +8,6 @@ import (
 
 // Initialize contains all apis that should be enabled
 func Initialize(provider types.AbstractProviderInterface, c configurationtypes.AbstractConfigurationInterface) []EndpointInterface {
-	return []EndpointInterface{initializeSouin(provider, c), auth.InitializeSecurity(c)}
+	security := auth.InitializeSecurity(c)
+	return []EndpointInterface{security, initializeSouin(provider, c, security)}
 }

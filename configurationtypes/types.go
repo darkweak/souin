@@ -41,6 +41,7 @@ type DefaultCache struct {
 type APIEndpoint struct {
 	BasePath string `yaml:"basepath"`
 	Enable   bool   `yaml:"enable"`
+	Security   bool   `yaml:"security"`
 }
 
 type User struct {

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"github.com/darkweak/souin/api/auth"
 	"github.com/darkweak/souin/cache/providers"
 	"github.com/darkweak/souin/errors"
 	"github.com/darkweak/souin/tests"
@@ -12,10 +13,12 @@ import (
 func mockSouinAPI() *SouinAPI {
 	config := tests.MockConfiguration()
 	prs := providers.InitializeProvider(config)
+	security := auth.InitializeSecurity(config)
 	return &SouinAPI{
 		"/souinbasepath",
 		true,
 		prs,
+		security,
 	}
 }
 

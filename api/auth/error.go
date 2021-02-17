@@ -14,9 +14,9 @@ func generateMessage(s string) string {
 
 func (t *tokenError) Error() string {
 	if t.found {
-		return generateMessage("Token not found")
+		return generateMessage("Invalid request")
 	}
-	return generateMessage("Invalid request")
+	return generateMessage("Token not found")
 }
 
 type signatureError struct {}
