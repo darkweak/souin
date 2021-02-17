@@ -14,7 +14,7 @@ func TestInitialize(t *testing.T) {
 
 	endpoints := Initialize(prs, config)
 
-	if len(endpoints) != 1 {
+	if len(endpoints) != 2 {
 		errors.GenerateError(t, fmt.Sprintf("Endpoints length should be 1, %d received", len(endpoints)))
 	}
 	if !endpoints[0].IsEnabled() {
