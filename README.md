@@ -5,16 +5,19 @@
 2. [Configuration](#configuration)  
   2.1. [Required configuration](#required-configuration)  
   2.2. [Optional configuration](#optional-configuration)
-3. [Diagrams](#diagrams)  
-  3.1. [Sequence diagram](#sequence-diagram)
-4. [Cache systems](#cache-systems)
-5. [Examples](#examples)  
-  5.1. [Træfik container](#træfik-container)
-6. [SSL](#ssl)  
-  6.1. [Træfik](#træfik)  
-  6.2. [Apache](#apache)  
-  6.3. [Nginx](#nginx)  
-6. [Credits](#credits)
+3. [APIs](#apis)
+  3.1. [Souin API](#souin-api)
+  3.2. [Security API](#security-api)
+4. [Diagrams](#diagrams)  
+  4.1. [Sequence diagram](#sequence-diagram)
+5. [Cache systems](#cache-systems)
+6. [Examples](#examples)  
+  6.1. [Træfik container](#træfik-container)
+7. [SSL](#ssl)  
+  7.1. [Træfik](#træfik)  
+  7.2. [Apache](#apache)  
+  7.3. [Nginx](#nginx)  
+8. [Credits](#credits)
 
 [![Travis CI](https://travis-ci.com/Darkweak/Souin.svg?branch=master)](https://travis-ci.com/Darkweak/Souin)
 
@@ -42,15 +45,26 @@ reverse_proxy_url: 'http://traefik' # If it's in the same network you can use ht
 ```
 This is a fully working minimal configuration for a Souin instance
 
-|  Key  |  Description  |  Value example  |
-|:---:|:---:|:---:|
-|`default_cache.port.{web,tls}`|The device's local HTTP/TLS port that Souin should be listening on |Respectively `80` and `443`|
-|`default_cache.ttl`|Duration to cache request (in seconds)|10|
-|`reverse_proxy_url`|The reverse-proxy's instance URL (Apache, Nginx, Træfik...)|- `http://yourservice` (Container way)<br/>`http://localhost:81` (Local way)<br/>`http://yourdomain.com:81` (Network way)|
+|  Key                           |  Description                                                       |  Value example                                                                                                            |
+|:------------------------------:|:------------------------------------------------------------------:|:-------------------------------------------------------------------------------------------------------------------------:|
+| `default_cache.port.{web,tls}` | The device's local HTTP/TLS port that Souin should be listening on | Respectively `80` and `443`                                                                                               |
+| `default_cache.ttl`            | Duration to cache request (in seconds)                             | 10                                                                                                                        |
+| `reverse_proxy_url`            | The reverse-proxy's instance URL (Apache, Nginx, Træfik...)        | - `http://yourservice` (Container way)<br/>`http://localhost:81` (Local way)<br/>`http://yourdomain.com:81` (Network way) |
 
 ### Optional configuration
 ```yaml
 # /anywhere/configuration.yml
+api:
+  basepath: /souin-api # Default route basepath for every additional APIs to avoid conflicts with existing routes
+  security: # Secure your APIs
+    secret: your_secret_key # JWT secret key
+    enable: true # Required to enable the endpoints
+    users: # Users declaration
+      - username: user1
+        password: test
+  souin: # Souin listing keys and cache management
+    security: true # Enable JWT Authentication token
+    enable: true # Enable the endpoints
 default_cache:
   headers: # Default headers concatenated in stored keys
     - Authorization
@@ -76,32 +90,60 @@ urls:
     - 'Content-Type'
 ```
 
-|  Key  |  Description  |  Value example  |
-|:---:|:---:|:---:|
-|`default_cache.headers`|List of headers to include to the cache|`- Authorization`<br/><br/>`- Content-Type`<br/><br/>`- X-Additional-Header`|
-|`default_cache.cache_providers`|Your providers list to cache your data, by default it will use all systems|`- all`<br/><br/>`- ristretto`<br/><br/>`- redis`|
-|`default_cache.redis.url`|The redis url, used if you enabled it in the provider section|`redis:6379` (container way) and `http://yourdomain.com:6379` (network way)|
-|`default_cache.regex.exclude`|The regex used to prevent paths being cached|`^[A-z]+.*$`|
-|`ssl_providers`|List of your providers handling certificates|`- traefik`<br/><br/>`- nginx`<br/><br/>`- apache`|
-|`urls.{your url or regex}`|List of your custom configuration depending each URL or regex|'https:\/\/yourdomain.com'|
-|`urls.{your url or regex}.ttl`|Override the default TTL if defined|99999|
-|`urls.{your url or regex}.headers`|Override the default headers if defined|`- Authorization`<br/><br/>`- 'Content-Type'`|
-|`urls.{your url or regex}.providers`|Override the default providers if defined|`- redis`<br/><br/>`- ristretto`|
+|  Key                                 |  Description                                                               |  Value example                                                               |
+|:------------------------------------:|:--------------------------------------------------------------------------:|:----------------------------------------------------------------------------:|
+| `api.basepath`                       | BasePath for all APIs to avoid conflicts                                   | `/your-non-conflicting-route`<br/><br/>`(default: /souin-api)`               |
+| `api.{api}.enable`                   | Enable the new API with related routes                                     | `true`<br/><br/>`(default: false)`                                           |
+| `api.security.secret`                | JWT secret key                                                             | `Any_charCanW0rk123`                                                         |
+| `api.security.users`                 | Array of authorized users with username x password combo                   | `- username: admin`<br/><br/>`  password: admin`                             |
+| `api.souin.security`                 | Enable JWT validation to access the resource                               | `true`<br/><br/>`(default: false)`                                           |
+| `default_cache.headers`              | List of headers to include to the cache                                    | `- Authorization`<br/><br/>`- Content-Type`<br/><br/>`- X-Additional-Header` |
+| `default_cache.cache_providers`      | Your providers list to cache your data, by default it will use all systems | `- all`<br/><br/>`- ristretto`<br/><br/>`- redis`                            |
+| `default_cache.redis.url`            | The redis url, used if you enabled it in the provider section              | `redis:6379` (container way) and `http://yourdomain.com:6379` (network way)  |
+| `default_cache.regex.exclude`        | The regex used to prevent paths being cached                               | `^[A-z]+.*$`                                                                 |
+| `ssl_providers`                      | List of your providers handling certificates                               | `- traefik`<br/><br/>`- nginx`<br/><br/>`- apache`                           |
+| `urls.{your url or regex}`           | List of your custom configuration depending each URL or regex              | 'https:\/\/yourdomain.com'                                                   |
+| `urls.{your url or regex}.ttl`       | Override the default TTL if defined                                        | 99999                                                                        |
+| `urls.{your url or regex}.headers`   | Override the default headers if defined                                    | `- Authorization`<br/><br/>`- 'Content-Type'`                                |
+| `urls.{your url or regex}.providers` | Override the default providers if defined                                  | `- redis`<br/><br/>`- ristretto`                                             |
+
+## APIs
+All endpoints are accessible through the `api.basepath` configuration line or by default through `/souin-api` to avoid named route conflicts. Be sure to define an unused route to not break your existing application.
+
+### Souin API
+Souin API allow users to manage the cache.  
+The base path for the souin API is `/souin`.
+
+| Method  | Endpoint          | Description                                                                                             |
+|:-------:|:-----------------:|:-------------------------------------------------------------------------------------------------------:|
+| `GET`   | `/`               | List stored keys cache                                                                                  |
+| `PURGE` | `/{id or regexp}` | Purge selected one or multiple items depending of the parameter which can be a specific key or a regexp |
+
+### Security API
+Security API allow users to protect other APIs with JWT authentication.  
+The base path for the security API is `/authentication`.
+
+| Method | Endpoint   | Body                                       | Headers                                                                         | Description                                                                                                            |
+|:------:|:----------:|:------------------------------------------:|:-------------------------------------------------------------------------------:|:----------------------------------------------------------------------------------------------------------------------:|
+| `POST` | `/login`   | `{"username":"admin", "password":"admin"}` | `['Content-Type' => 'json']`                                                    | Try to login, it returns a response which contains the cookie name `souin-authorization-token` with the JWT if succeed |
+| `POST` | `/refresh` | `-`                                        | `['Content-Type' => 'json', 'Cookie' => 'souin-authorization-token=the-token']` | Purge selected one or multiple items depending of the parameter which can be a specific key or a regexp                |
 
 ## Diagrams
 
 ### Sequence diagram
+See the sequence for the minimal version below
 <img src="docs/plantUML/sequenceDiagram.svg?sanitize=true" alt="Sequence diagram">
 
 ## Cache systems
 The cache system sits on top of two providers at the moment. It provides an in-memory and redis cache systems because setting, getting, updating and deleting keys in Redis is as easy as it gets.  
-In order to do that, Redis needs to be either on the same network than the Souin instance when using docker-compose or over the internet, then it will use by default in-memory to avoid network latency as much as possible. 
+In order to do that, Redis needs to be either on the same network as the Souin instance when using docker-compose or over the internet, then it will use by default in-memory to avoid network latency as much as possible. 
 Souin will return at first the in-memory response when it gives a non-empty response, then the redis one will be used with same condition, or fallback to the reverse proxy otherwise.
 
 ### Cache invalidation
 The cache invalidation is build for CRUD requests, if you're doing a GET HTTP request, it will serve the cached response when it exists, otherwise the reverse-proxy response will be served.  
 If you're doing a POST, PUT, PATCH or DELETE HTTP request, the related cache GET request, and the list endpoint will be dropped.  
 It works very well with plain [API Platform](https://api-platform.com) integration (not for custom actions at the moment) and CRUD routes.
+Then it supports invalidation via [Souin API](#souin-api) to invalidate the cache programmatically.
 
 ## Examples
 
@@ -152,6 +194,7 @@ services:
       GOPATH: /app
     volumes:
       - /anywhere/traefik.json:/ssl/traefik.json
+      - /anywhere/configuration.yml:/configuration/configuration.yml
     <<: *networks
 
   redis:

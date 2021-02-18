@@ -18,7 +18,7 @@ type credentials struct {
 	Username string `json:"username"`
 }
 
-const tokenName = "token"
+const tokenName = "souin-authorization-token"
 const lifetime = time.Hour * 24 * 7
 
 func signJWT(security *SecurityAPI, w http.ResponseWriter, r *http.Request) {
