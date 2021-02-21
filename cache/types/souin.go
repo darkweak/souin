@@ -21,9 +21,9 @@ type TransportInterface interface {
 type Transport struct {
 	// The RoundTripper interface actually used to make requests
 	// If nil, http.DefaultTransport is used
-	Transport           http.RoundTripper
-	Provider            AbstractProviderInterface
-	ConfigurationURL    configurationtypes.URL
+	Transport        http.RoundTripper
+	Provider         AbstractProviderInterface
+	ConfigurationURL configurationtypes.URL
 	// If true, responses returned from the cache will be given an extra header, X-From-Cache
 	MarkCachedResponses bool
 }
@@ -47,7 +47,7 @@ type RetrieverResponseProperties struct {
 	MatchedURL      configurationtypes.URL
 	RegexpUrls      regexp.Regexp
 	ReverseProxyURL *url.URL
-	Transport        TransportInterface
+	Transport       TransportInterface
 }
 
 // GetProvider interface

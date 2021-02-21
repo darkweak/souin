@@ -4,6 +4,9 @@ github.com/cespare/xxhash
 ## explicit
 github.com/dgraph-io/ristretto
 github.com/dgraph-io/ristretto/z
+# github.com/dgrijalva/jwt-go v3.2.0+incompatible
+## explicit
+github.com/dgrijalva/jwt-go
 # github.com/fsnotify/fsnotify v1.4.9
 ## explicit
 github.com/fsnotify/fsnotify
