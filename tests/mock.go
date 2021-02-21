@@ -4,6 +4,7 @@ import (
 	"github.com/darkweak/souin/configuration"
 	"github.com/darkweak/souin/configurationtypes"
 	"log"
+	"net/http"
 	"regexp"
 )
 
@@ -16,6 +17,16 @@ const PATH = "/testing"
 func MockConfiguration() configurationtypes.AbstractConfigurationInterface {
 	var config configuration.Configuration
 	e := config.Parse([]byte(`
+api:
+  basepath: /souin-api
+  security:
+    secret: your_secret_key
+    enable: true
+    users:
+      - username: user1
+        password: test
+  souin:
+    enable: true
 default_cache:
   headers:
     - Authorization
@@ -56,4 +67,16 @@ func MockInitializeRegexp(configurationInstance configurationtypes.AbstractConfi
 	}
 
 	return *regexp.MustCompile(u)
+}
+
+func GetTokenName() string {
+	return "souin-authorization-token"
+}
+
+func GetValidToken() *http.Cookie {
+	return &http.Cookie{
+		Name: GetTokenName(),
+		Value: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6InVzZXIxIiwiZXhwIjoxNjE0MTI0Nzk5OX0.7blW8hKWls2UgHLU8KOzwTG13uNoJR3UhLgoVdyCzx0",
+		Path: "/",
+	}
 }

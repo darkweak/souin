@@ -10,8 +10,9 @@ import (
 //Configuration holder
 type Configuration struct {
 	DefaultCache    configurationtypes.DefaultCache   `yaml:"default_cache"`
-	ReverseProxyURL string                             `yaml:"reverse_proxy_url"`
-	SSLProviders    []string                           `yaml:"ssl_providers"`
+	API             configurationtypes.API            `yaml:"api"`
+	ReverseProxyURL string                            `yaml:"reverse_proxy_url"`
+	SSLProviders    []string                          `yaml:"ssl_providers"`
 	URLs            map[string]configurationtypes.URL `yaml:"urls"`
 }
 
@@ -49,6 +50,11 @@ func (c *Configuration) GetSSLProviders() []string {
 // GetDefaultCache get the default cache
 func (c *Configuration) GetDefaultCache() configurationtypes.DefaultCache {
 	return c.DefaultCache
+}
+
+// GetAPI get the default cache
+func (c *Configuration) GetAPI() configurationtypes.API {
+	return c.API
 }
 
 // GetConfiguration allow to retrieve Souin configuration through yaml file

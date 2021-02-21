@@ -4,6 +4,7 @@ go 1.15
 
 require (
 	github.com/dgraph-io/ristretto v0.0.3
+	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/pquerna/cachecontrol v0.0.0-20200921180117-858c6e7e6b7e
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect
