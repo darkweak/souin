@@ -24,47 +24,68 @@ func mockSouinAPI() *SouinAPI {
 
 func TestSouinAPI_BulkDelete(t *testing.T) {
 	souinMock := mockSouinAPI()
-	souinMock.provider.Set("key", []byte("value"), tests.GetMatchedURL("key"), 20*time.Second)
-	souinMock.provider.Set("key2", []byte("value"), tests.GetMatchedURL("key"), 20*time.Second)
+	for _, provider := range souinMock.providers {
+		provider.Set("key", []byte("value"), tests.GetMatchedURL("key"), 20 * time.Second)
+		provider.Set("key2", []byte("value"), tests.GetMatchedURL("key"), 20 * time.Second)
+	}
 	time.Sleep(3 * time.Second)
-	if len(souinMock.GetAll()) != 2 {
-		errors.GenerateError(t, "Souin API should have a record")
+	for _, v := range souinMock.GetAll() {
+		if len(v) != 2 {
+			errors.GenerateError(t, "Souin API should have a record")
+		}
 	}
 	souinMock.BulkDelete(regexp.MustCompile(".+"))
 	time.Sleep(5 * time.Second)
-	if len(souinMock.GetAll()) != 0 {
-		errors.GenerateError(t, "Souin API shouldn't have a record")
+	for _, v := range souinMock.GetAll() {
+		if len(v) != 0 {
+			errors.GenerateError(t, "Souin API should have a record")
+		}
 	}
 }
 
 func TestSouinAPI_Delete(t *testing.T) {
 	souinMock := mockSouinAPI()
-	souinMock.provider.Set("key", []byte("value"), tests.GetMatchedURL("key"), 20*time.Second)
+	for _, provider := range souinMock.providers {
+		provider.Set("key", []byte("value"), tests.GetMatchedURL("key"), 20 * time.Second)
+	}
 	time.Sleep(3 * time.Second)
-	if len(souinMock.GetAll()) != 1 {
-		errors.GenerateError(t, "Souin API should have a record")
+	for _, v := range souinMock.GetAll() {
+		if len(v) != 1 {
+			errors.GenerateError(t, "Souin API should have a record")
+		}
 	}
 	souinMock.Delete("key")
 	time.Sleep(3 * time.Second)
-	if len(souinMock.GetAll()) == 1 {
-		errors.GenerateError(t, "Souin API shouldn't have a record")
+	for _, v := range souinMock.GetAll() {
+		if len(v) == 1 {
+			errors.GenerateError(t, "Souin API shouldn't have a record")
+		}
 	}
 }
 
 func TestSouinAPI_GetAll(t *testing.T) {
 	souinMock := mockSouinAPI()
-	if len(souinMock.GetAll()) > 0 {
-		errors.GenerateError(t, "Souin API don't have any record yet")
+	for _, v := range souinMock.GetAll() {
+		if len(v) > 0 {
+			errors.GenerateError(t, "Souin API shouldn't have a record")
+		}
 	}
 
-	souinMock.provider.Set("key", []byte("value"), tests.GetMatchedURL("key"), 6*time.Second)
-	time.Sleep(3 * time.Second)
-	if len(souinMock.GetAll()) != 1 {
-		errors.GenerateError(t, "Souin API should have a record")
+	for _, provider := range souinMock.providers {
+		provider.Set("key", []byte("value"), tests.GetMatchedURL("key"), 6 * time.Second)
 	}
+	time.Sleep(3 * time.Second)
+	for _, v := range souinMock.GetAll() {
+		if len(v) != 1 {
+			errors.GenerateError(t, "Souin API should have a record")
+		}
+	}
+	souinMock.providers["redis"].Delete("key")
 	time.Sleep(10 * time.Second)
-	if len(souinMock.GetAll()) == 1 {
-		errors.GenerateError(t, "Souin API shouldn't have a record")
+	for _, v := range souinMock.GetAll() {
+		if len(v) == 1 {
+			errors.GenerateError(t, "Souin API shouldn't have a record")
+		}
 	}
 }
 
