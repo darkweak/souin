@@ -29,7 +29,7 @@ As it's written in go, it can be deployed on any server and thanks to the docker
 It's RFC compatible, supporting Vary, request coalescing and other specifications related to the [RFC-7234](https://tools.ietf.org/html/rfc7234)
 
 ## Disclaimer
-If you need redis or other custom cache providers, you have to use the full-featured version. You can read the documentation, on [the full-featured branch](https://github.com/Darkweak/Souin/tree/full-version) to discover the specific parts.
+If you don't need redis or other custom cache providers, you can use the minimal version. You can read the documentation, on [the minimal branch](https://github.com/Darkweak/Souin) to discover the specific parts.
 
 ## Configuration
 The configuration file is stored at `/anywhere/configuration.yml`. You can edit it provided you fill at least the required parameters as shown below.
