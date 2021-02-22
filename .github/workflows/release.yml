@@ -38,7 +38,7 @@ jobs:
           file: ./Dockerfile-prod
           tags: |
             darkweak/souin:latest-full
-            darkweak/souin:${{ env.RELEASE_VERSION }}-full
+            darkweak/souin:${{ env.RELEASE_VERSION }}
   generate-artifacts:
     name: Generate cross-platform builds
     runs-on: ubuntu-latest
