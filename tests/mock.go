@@ -38,7 +38,7 @@ default_cache:
     exclude: 'ARegexHere'
   ttl: 1000
   redis:
-    url: 'redis:6379'
+    url: 'localhost:6379'
 reverse_proxy_url: 'http://domain.com:81'
 ssl_providers:
   - traefik

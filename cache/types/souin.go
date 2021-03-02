@@ -67,6 +67,13 @@ func (r *RetrieverResponseProperties) GetMatchedURL() configurationtypes.URL {
 
 // SetMatchedURL set the matched url
 func (r *RetrieverResponseProperties) SetMatchedURL(url configurationtypes.URL) {
+	providers := url.Providers
+	if nil == providers || 0 == len(providers) {
+		for k, _ := range r.Providers {
+			providers = append(providers, k)
+		}
+	}
+	url.Providers= providers
 	r.MatchedURL = url
 }
 

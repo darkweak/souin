@@ -18,10 +18,8 @@ default_cache:
   regex:
     exclude: 'ARegexHere'
   redis:
-    url: 'redis:6379'
+    url: 'localhost:6379'
   ttl: 10
-  cache_providers:
-    - ristretto
 reverse_proxy_url: 'http://traefik'
 ssl_providers:
   - traefik

@@ -38,6 +38,7 @@ func TestCachedResponse_WithUpdate(t *testing.T) {
 			errors.GenerateError(t, fmt.Sprintf("Request and Proxy shouldn't be set"))
 		}
 	}
+	c["olric"].Reset()
 }
 
 func TestCachedResponse_WithoutUpdate(t *testing.T) {
@@ -59,4 +60,5 @@ func TestCachedResponse_WithoutUpdate(t *testing.T) {
 			errors.GenerateError(t, fmt.Sprintf("Request and Proxy shouldn't be set"))
 		}
 	}
+	c["olric"].Reset()
 }

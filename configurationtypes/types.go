@@ -24,26 +24,26 @@ type Regex struct {
 
 //URL configuration
 type URL struct {
-	TTL     string   `yaml:"ttl"`
+	TTL       string   `yaml:"ttl"`
 	Providers []string `yaml:"cache_providers"`
-	Headers []string `yaml:"headers"`
+	Headers   []string `yaml:"headers"`
 }
 
 //DefaultCache configuration
 type DefaultCache struct {
-	Headers []string `yaml:"headers"`
-	Port    Port     `yaml:"port"`
+	Headers   []string `yaml:"headers"`
+	Port      Port     `yaml:"port"`
 	Providers []string `yaml:"cache_providers"`
-	Redis   Redis    `yaml:"redis"`
-	Regex   Regex    `yaml:"regex"`
-	TTL     string   `yaml:"ttl"`
+	Redis     Redis    `yaml:"redis"`
+	Regex     Regex    `yaml:"regex"`
+	TTL       string   `yaml:"ttl"`
 }
 
 // APIEndpoint is the minimal structure to define an endpoint
 type APIEndpoint struct {
 	BasePath string `yaml:"basepath"`
 	Enable   bool   `yaml:"enable"`
-	Security   bool   `yaml:"security"`
+	Security bool   `yaml:"security"`
 }
 
 type User struct {
@@ -53,9 +53,9 @@ type User struct {
 
 // SecurityAPI object contains informations related to the endpoints
 type SecurityAPI struct {
-	BasePath string            `yaml:"basepath"`
-	Enable   bool              `yaml:"enable"`
-	Secret   string            `yaml:"secret"`
+	BasePath string `yaml:"basepath"`
+	Enable   bool   `yaml:"enable"`
+	Secret   string `yaml:"secret"`
 	Users    []User `yaml:"users"`
 }
 

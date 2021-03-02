@@ -47,6 +47,7 @@ func TestVaryTransport_GetProvider(t *testing.T) {
 			errors.GenerateError(t, "Provider should exist")
 		}
 	}
+	prs["olric"].Reset()
 }
 
 func TestVaryTransport_SetURL(t *testing.T) {
@@ -63,6 +64,7 @@ func TestVaryTransport_SetURL(t *testing.T) {
 	if len(tr.ConfigurationURL.Headers) != len(matchedURL.Headers) || tr.ConfigurationURL.TTL != matchedURL.TTL {
 		errors.GenerateError(t, "The transport configurationURL property must be a shallow copy of the matchedURL")
 	}
+	prs["olric"].Reset()
 }
 
 func TestVaryTransport_SetCache(t *testing.T) {
@@ -73,4 +75,5 @@ func TestVaryTransport_SetCache(t *testing.T) {
 	prs := providers.InitializeProvider(config)
 	tr := NewTransport(prs)
 	tr.SetCache(key, res, req)
+	prs["olric"].Reset()
 }

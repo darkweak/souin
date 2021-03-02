@@ -78,7 +78,10 @@ func (provider *Redis) Delete(key string) {
 	}()
 }
 
-// Init method will
+// Init method will initialize Redis provider if needed
 func (provider *Redis) Init() error {
 	return nil
 }
+
+// Reset method will reset or close provider
+func (provider *Redis) Reset() {}

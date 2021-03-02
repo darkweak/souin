@@ -79,7 +79,10 @@ func (provider *Ristretto) Delete(key string) {
 	}()
 }
 
-// Init method will
+// Init method will initialize Ristretto provider if needed
 func (provider *Ristretto) Init() error {
 	return nil
 }
+
+// Reset method will reset or close provider
+func (provider *Ristretto) Reset() {}
