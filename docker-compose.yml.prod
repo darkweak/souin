@@ -21,19 +21,10 @@ services:
     <<: *networks
 
   olric:
-    image: docker.io/olricio/olric-dev:latest
+    build:
+      context: olric
+      target: olric
     restart: on-failure
-    environment:
-      - OLRICD_CONFIG=/etc/olricd.yaml
-      - CGO_ENABLED=1
-    command: bash -c "
-      cd /go &&
-      go get -u github.com/buraksezer/olric &&
-      cd /go/src/github.com/buraksezer/olric &&
-      go build -v -o /go/bin/olricd /go/src/github.com/buraksezer/olric/cmd/olricd/main.go &&
-      /go/bin/olricd -c /go/src/github.com/buraksezer/olric/cmd/olricd/olricd.yaml"
-    volumes:
-      - ./olric.yml:/etc/olricd.yaml:ro
     <<: *networks
 
   redis:

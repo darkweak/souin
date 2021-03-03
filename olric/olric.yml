@@ -29,7 +29,7 @@ logging:
 memberlist:
   environment: "local"
   bindAddr: "0.0.0.0"
-  bindPort: 3320
+  bindPort: 3322
   enableCompression: false
   joinRetryInterval: "1s"
   maxJoinAttempts: 10
