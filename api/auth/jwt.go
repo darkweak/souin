@@ -7,7 +7,8 @@ import (
 	"time"
 )
 
-type jwtProvider struct {
+// JwtProvider is the representation of decoded JWT
+type JwtProvider struct {
 	Username string `json:"username"`
 	jwt.StandardClaims
 }
@@ -43,7 +44,7 @@ func signJWT(security *SecurityAPI, w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create the JWT claims, which includes the username and expiry time
-	claims := &jwtProvider{
+	claims := &JwtProvider{
 		Username:       creds.Username,
 		StandardClaims: jwt.StandardClaims{},
 	}
@@ -69,7 +70,7 @@ func refresh(security *SecurityAPI, w http.ResponseWriter, r *http.Request) {
 }
 
 // CheckToken will return if token is valid or not
-func CheckToken(security *SecurityAPI, w http.ResponseWriter, r *http.Request) (*jwtProvider, error) {
+func CheckToken(security *SecurityAPI, w http.ResponseWriter, r *http.Request) (*JwtProvider, error) {
 	c, err := r.Cookie(tokenName)
 	if err != nil {
 		if err.Error() == http.ErrNoCookie.Error() {
@@ -80,7 +81,7 @@ func CheckToken(security *SecurityAPI, w http.ResponseWriter, r *http.Request) (
 		return nil, &tokenError{found: true}
 	}
 	tknStr := c.Value
-	claims := &jwtProvider{}
+	claims := &JwtProvider{}
 	tkn, err := jwt.ParseWithClaims(tknStr, claims, func(token *jwt.Token) (interface{}, error) {
 		return security.secret, nil
 	})
@@ -100,7 +101,7 @@ func CheckToken(security *SecurityAPI, w http.ResponseWriter, r *http.Request) (
 	return claims, nil
 }
 
-func setCookie(w http.ResponseWriter, claims *jwtProvider, secret []byte) {
+func setCookie(w http.ResponseWriter, claims *JwtProvider, secret []byte) {
 	expirationTime := time.Now().Add(lifetime)
 	claims.ExpiresAt = expirationTime.Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

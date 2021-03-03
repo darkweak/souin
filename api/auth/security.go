@@ -15,6 +15,7 @@ type SecurityAPI struct {
 	users    map[string]string
 }
 
+// InitializeSecurity initialize the security endpoints
 func InitializeSecurity(configuration configurationtypes.AbstractConfigurationInterface) *SecurityAPI {
 	basePath := configuration.GetAPI().Security.BasePath
 	enabled := configuration.GetAPI().Security.Enable

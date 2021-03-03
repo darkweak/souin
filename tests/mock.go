@@ -69,10 +69,12 @@ func MockInitializeRegexp(configurationInstance configurationtypes.AbstractConfi
 	return *regexp.MustCompile(u)
 }
 
+// GetTokenName returns the token name
 func GetTokenName() string {
 	return "souin-authorization-token"
 }
 
+// GetValidToken returns a valid token
 func GetValidToken() *http.Cookie {
 	return &http.Cookie{
 		Name: GetTokenName(),
