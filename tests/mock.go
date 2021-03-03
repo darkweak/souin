@@ -74,10 +74,12 @@ func MockInitializeRegexp(configurationInstance configurationtypes.AbstractConfi
 	return *regexp.MustCompile(u)
 }
 
+// GetTokenName returns the token name
 func GetTokenName() string {
 	return "souin-authorization-token"
 }
 
+// GetValidToken returns a valid token
 func GetValidToken() *http.Cookie {
 	return &http.Cookie{
 		Name:  GetTokenName(),
@@ -86,6 +88,7 @@ func GetValidToken() *http.Cookie {
 	}
 }
 
+// GetCacheProviderClientAndMatchedURL will work as a factory to build providers from configuration and get the URL from the key passed in parameter
 func GetCacheProviderClientAndMatchedURL(key string, factory func(configurationInterface configurationtypes.AbstractConfigurationInterface) (types.AbstractProviderInterface, error)) (types.AbstractProviderInterface, configurationtypes.URL) {
 	config := MockConfiguration()
 	client, _ := factory(config)

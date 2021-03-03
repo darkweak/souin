@@ -47,6 +47,7 @@ type APIEndpoint struct {
 	Security bool   `yaml:"security"`
 }
 
+// User is the minimal structure to define a user
 type User struct {
 	Username string `yaml:"username"`
 	Password string `yaml:"password"`

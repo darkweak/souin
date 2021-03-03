@@ -7,7 +7,10 @@ import (
 	"time"
 )
 
+// ADD to add
 const ADD = "add"
+
+// DELETE to delete
 const DELETE = "delete"
 
 type payload struct {
