@@ -29,7 +29,7 @@ As it's written in go, it can be deployed on any server and thanks to the docker
 It's RFC compatible, supporting Vary, request coalescing and other specifications related to the [RFC-7234](https://tools.ietf.org/html/rfc7234)
 
 ## Disclaimer
-If you don't need redis or other custom cache providers, you can use the minimal version. You can read the documentation, on [the minimal branch](https://github.com/Darkweak/Souin) to discover the specific parts.
+If you don't need redis, olric or other custom cache providers, you can use the minimal version. You can read the documentation, on [the minimal branch](https://github.com/Darkweak/Souin) to discover the specific parts.
 
 ## Configuration
 The configuration file is stored at `/anywhere/configuration.yml`. You can edit it provided you fill at least the required parameters as shown below.
@@ -70,8 +70,10 @@ default_cache:
     - Authorization
   cache_providers:
     - all # Enable all providers by default
-  redis: # Redis configuration
+  redis: # Redis provider configuration
     url: 'redis:6379'
+  olric: # Olric provider configuration
+    url: 'olric:3320'
   regex:
     exclude: 'ARegexHere' # Regex to exclude from cache
 ssl_providers: # The {providers}.json to use
@@ -100,6 +102,7 @@ urls:
 | `default_cache.headers`              | List of headers to include to the cache                                    | `- Authorization`<br/><br/>`- Content-Type`<br/><br/>`- X-Additional-Header` |
 | `default_cache.cache_providers`      | Your providers list to cache your data, by default it will use all systems | `- all`<br/><br/>`- ristretto`<br/><br/>`- redis`                            |
 | `default_cache.redis.url`            | The redis url, used if you enabled it in the provider section              | `redis:6379` (container way) and `http://yourdomain.com:6379` (network way)  |
+| `default_cache.olric.url`            | The olric url, used if you enabled it in the provider section              | `olric:3320` (container way) and `http://yourdomain.com:3320` (network way)  |
 | `default_cache.regex.exclude`        | The regex used to prevent paths being cached                               | `^[A-z]+.*$`                                                                 |
 | `ssl_providers`                      | List of your providers handling certificates                               | `- traefik`<br/><br/>`- nginx`<br/><br/>`- apache`                           |
 | `urls.{your url or regex}`           | List of your custom configuration depending each URL or regex              | 'https:\/\/yourdomain.com'                                                   |
@@ -135,9 +138,14 @@ See the sequence for the minimal version below
 <img src="docs/plantUML/sequenceDiagram.svg?sanitize=true" alt="Sequence diagram">
 
 ## Cache systems
-The cache system sits on top of two providers at the moment. It provides an in-memory and redis cache systems because setting, getting, updating and deleting keys in Redis is as easy as it gets.  
-In order to do that, Redis needs to be either on the same network as the Souin instance when using docker-compose or over the internet, then it will use by default in-memory to avoid network latency as much as possible. 
-Souin will return at first the in-memory response when it gives a non-empty response, then the redis one will be used with same condition, or fallback to the reverse proxy otherwise.
+Supported providers
+- [Redis](https://github.com/go-redis/redis)
+- [Olric](https://github.com/buraksezer/olric)
+
+The cache system sits on top of three providers at the moment. It provides an in-memory, redis and Olric cache systems because setting, getting, updating and deleting keys in these providers is as easy as it gets.  
+In order to do that, Redis and Olric providers need to be either on the same network as the Souin instance when using docker-compose or over the internet, then it will use by default in-memory to avoid network latency as much as possible. 
+Souin will return at first the in-memory response when it gives a non-empty response, then the olric followed by the redis one with same condition, or fallback to the reverse proxy otherwise.
+Since 1.4.2, Souin supports [Olric](https://github.com/buraksezer/olric) to handle distributed cache.
 
 ### Cache invalidation
 The cache invalidation is build for CRUD requests, if you're doing a GET HTTP request, it will serve the cached response when it exists, otherwise the reverse-proxy response will be served.  
@@ -189,12 +197,21 @@ services:
       - 80:80
       - 443:443
     depends_on:
+      - olric
       - redis
     environment:
       GOPATH: /app
     volumes:
       - /anywhere/traefik.json:/ssl/traefik.json
       - /anywhere/configuration.yml:/configuration/configuration.yml
+    <<: *networks
+
+  olric:
+    build:
+      context: ./olric
+      dockerfile: Dockerfile-olric
+      target: olric
+    restart: on-failure
     <<: *networks
 
   redis:
@@ -238,3 +255,4 @@ Thanks to these users for contributing or helping this project in any way
 * [Deuchnord](https://github.com/deuchnord)
 * [Sata51](https://github.com/sata51)
 * [Pierre Diancourt](https://github.com/pierrediancourt)
+* [Burak Sezer](https://github.com/buraksezer)
