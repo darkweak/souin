@@ -25,7 +25,7 @@ func NewTransport(p map[string]types.AbstractProviderInterface) *VaryTransport {
 	return &VaryTransport{Providers: p, MarkCachedResponses: true}
 }
 
-// GetProvider returns the associated provider
+// GetProviders returns the associated provider
 func (t *VaryTransport) GetProviders() map[string]types.AbstractProviderInterface {
 	return t.Providers
 }

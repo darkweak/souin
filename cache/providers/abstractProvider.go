@@ -20,6 +20,8 @@ func InitializeProvider(configuration configurationtypes.AbstractConfigurationIn
 	if len(configuration.GetDefaultCache().Providers) == 0 || contains(configuration.GetDefaultCache().Providers, "all") {
 		redis, _ := RedisConnectionFactory(configuration)
 		providers["redis"] = redis
+		olric, _ := OlricConnectionFactory(configuration)
+		providers["olric"] = olric
 		ristretto, _ := RistrettoConnectionFactory(configuration)
 		providers["ristretto"] = ristretto
 	} else {
@@ -27,10 +29,18 @@ func InitializeProvider(configuration configurationtypes.AbstractConfigurationIn
 			redis, _ := RedisConnectionFactory(configuration)
 			providers["redis"] = redis
 		}
+		if contains(configuration.GetDefaultCache().Providers, "olric") {
+			olric, _ := OlricConnectionFactory(configuration)
+			providers["olric"] = olric
+		}
 		if contains(configuration.GetDefaultCache().Providers, "ristretto") {
 			ristretto, _ := RistrettoConnectionFactory(configuration)
 			providers["ristretto"] = ristretto
 		}
+	}
+
+	for _, p := range providers {
+		_ = p.Init()
 	}
 	return providers
 }

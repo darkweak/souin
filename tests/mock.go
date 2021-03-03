@@ -40,6 +40,8 @@ default_cache:
   ttl: 1000
   redis:
     url: 'redis:6379'
+  olric:
+    url: 'olric:3320'
 reverse_proxy_url: 'http://domain.com:81'
 ssl_providers:
   - traefik
@@ -87,6 +89,7 @@ func GetValidToken() *http.Cookie {
 	}
 }
 
+// GetCacheProviderClientAndMatchedURL will work as a factory to build providers from configuration and get the URL from the key passed in parameter
 func GetCacheProviderClientAndMatchedURL(key string, factory func(configurationInterface configurationtypes.AbstractConfigurationInterface) (types.AbstractProviderInterface, error)) (types.AbstractProviderInterface, configurationtypes.URL) {
 	config := MockConfiguration()
 	client, _ := factory(config)

@@ -13,10 +13,19 @@ services:
       - 80:80
 #      - 443:443
     depends_on:
+      - olric
       - redis
     volumes:
       - ./traefik.json:/ssl/traefik.json
       - ./configuration/configuration.yml:/configuration/configuration.yml
+    <<: *networks
+
+  olric:
+    build:
+      context: ./olric
+      dockerfile: Dockerfile-olric
+      target: olric
+    restart: on-failure
     <<: *networks
 
   redis:
