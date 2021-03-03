@@ -13,14 +13,11 @@ services:
       - 80:80
 #      - 443:443
     depends_on:
+      - olric
       - redis
     volumes:
       - ./traefik.json:/ssl/traefik.json
       - ./configuration/configuration.yml:/configuration/configuration.yml
-    <<: *networks
-
-  redis:
-    image: redis:alpine
     <<: *networks
 
   olric:
@@ -37,6 +34,10 @@ services:
       /go/bin/olricd -c /go/src/github.com/buraksezer/olric/cmd/olricd/olricd.yaml"
     volumes:
       - ./olric.yml:/etc/olricd.yaml:ro
+    <<: *networks
+
+  redis:
+    image: redis:alpine
     <<: *networks
 
 networks:
