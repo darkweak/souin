@@ -24,6 +24,7 @@ services:
   olric:
     build:
       context: ./olric
+      dockerfile: Dockerfile-olric
       target: olric
     restart: on-failure
     <<: *networks
