@@ -19,9 +19,9 @@ default_cache:
     exclude: 'ARegexHere'
   redis:
     url: 'redis:6379'
+  olric:
+    url: 'olric:3320'
   ttl: 10
-  cache_providers:
-    - ristretto
 reverse_proxy_url: 'http://traefik'
 ssl_providers:
   - traefik

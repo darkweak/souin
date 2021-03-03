@@ -13,6 +13,7 @@ import (
 func TestServeResponse(t *testing.T) {
 	c := tests.MockConfiguration()
 	prs := providers.InitializeProvider(c)
+	defer prs["olric"].Reset()
 	regexpUrls := helpers.InitializeRegexp(c)
 	retriever := &types.RetrieverResponseProperties{
 		Configuration: c,

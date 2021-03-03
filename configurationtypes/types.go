@@ -12,8 +12,8 @@ type Cache struct {
 	Port    Port     `yaml:"port"`
 }
 
-//Redis config
-type Redis struct {
+//CacheProvider config
+type CacheProvider struct {
 	URL string `yaml:"url"`
 }
 
@@ -24,19 +24,20 @@ type Regex struct {
 
 //URL configuration
 type URL struct {
-	TTL     string   `yaml:"ttl"`
+	TTL       string   `yaml:"ttl"`
 	Providers []string `yaml:"cache_providers"`
-	Headers []string `yaml:"headers"`
+	Headers   []string `yaml:"headers"`
 }
 
 //DefaultCache configuration
 type DefaultCache struct {
-	Headers []string `yaml:"headers"`
-	Port    Port     `yaml:"port"`
-	Providers []string `yaml:"cache_providers"`
-	Redis   Redis    `yaml:"redis"`
-	Regex   Regex    `yaml:"regex"`
-	TTL     string   `yaml:"ttl"`
+	Headers   []string      `yaml:"headers"`
+	Port      Port          `yaml:"port"`
+	Providers []string      `yaml:"cache_providers"`
+	Olric     CacheProvider `yaml:"olric"`
+	Redis     CacheProvider `yaml:"redis"`
+	Regex     Regex         `yaml:"regex"`
+	TTL       string        `yaml:"ttl"`
 }
 
 // APIEndpoint is the minimal structure to define an endpoint

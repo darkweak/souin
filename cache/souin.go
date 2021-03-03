@@ -114,9 +114,9 @@ func Start() {
 			TTL:     c.GetDefaultCache().TTL,
 			Headers: c.GetDefaultCache().Headers,
 		},
-		Providers:     cacheProviders,
-		Configuration: c,
-		RegexpUrls:    regexpUrls,
+		Providers:       cacheProviders,
+		Configuration:   c,
+		RegexpUrls:      regexpUrls,
 		ReverseProxyURL: u,
 		Transport:       transport,
 	}

@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"github.com/darkweak/souin/cache/providers"
 	"github.com/darkweak/souin/tests"
 	"io/ioutil"
 	"net/http"
@@ -11,7 +12,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/darkweak/souin/cache/providers"
 	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/errors"
 )
@@ -117,6 +117,7 @@ func TestKeyShouldBeDeletedOnPost(t *testing.T) {
 	if !shouldNotHaveKey(tests.PATH, prs) {
 		errors.GenerateError(t, "The key "+tests.DOMAIN+tests.PATH+" shouldn't exist.")
 	}
+	prs["olric"].Reset()
 }
 
 func TestRewriteBody(t *testing.T) {
@@ -143,6 +144,7 @@ func TestKeyShouldBeDeletedOnPut(t *testing.T) {
 	mockResponse("/1", http.MethodPut, "My second response", 200)
 
 	verifyKeysExists(t, tests.PATH, []string{"", "/1"}, true, prs)
+	prs["olric"].Reset()
 }
 
 func TestKeyShouldBeDeletedOnDelete(t *testing.T) {
@@ -151,21 +153,24 @@ func TestKeyShouldBeDeletedOnDelete(t *testing.T) {
 	populateProviderWithFakeData(prs)
 	mockResponse("/1", http.MethodDelete, "", 200)
 	verifyKeysExists(t, tests.PATH, []string{"", "/1"}, true, prs)
+	prs["olric"].Reset()
 }
 
 func TestRequestReverseProxy(t *testing.T) {
 	request := httptest.NewRequest("GET", "http://"+tests.DOMAIN+tests.PATH, nil)
 	conf := tests.MockConfiguration()
 	u, _ := url.Parse(conf.GetReverseProxyURL())
+	prs := providers.InitializeProvider(conf)
 	response := RequestReverseProxy(
 		request,
 		&types.RetrieverResponseProperties{
-			Providers:        providers.InitializeProvider(conf),
+			Providers:       prs,
 			Configuration:   conf,
 			MatchedURL:      tests.GetMatchedURL(tests.PATH),
 			ReverseProxyURL: u,
 		},
 	)
+	prs["olric"].Reset()
 
 	if response.Proxy == nil || response.Request == nil {
 		errors.GenerateError(t, "Response proxy and request shouldn't be empty")
