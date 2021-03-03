@@ -22,7 +22,7 @@ services:
 
   olric:
     build:
-      context: olric
+      context: ./olric
       target: olric
     restart: on-failure
     <<: *networks
