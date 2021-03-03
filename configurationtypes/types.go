@@ -41,9 +41,10 @@ type DefaultCache struct {
 type APIEndpoint struct {
 	BasePath string `yaml:"basepath"`
 	Enable   bool   `yaml:"enable"`
-	Security   bool   `yaml:"security"`
+	Security bool   `yaml:"security"`
 }
 
+// User is the minimal structure to define a user
 type User struct {
 	Username string `yaml:"username"`
 	Password string `yaml:"password"`
@@ -51,9 +52,9 @@ type User struct {
 
 // SecurityAPI object contains informations related to the endpoints
 type SecurityAPI struct {
-	BasePath string            `yaml:"basepath"`
-	Enable   bool              `yaml:"enable"`
-	Secret   string            `yaml:"secret"`
+	BasePath string `yaml:"basepath"`
+	Enable   bool   `yaml:"enable"`
+	Secret   string `yaml:"secret"`
 	Users    []User `yaml:"users"`
 }
 
