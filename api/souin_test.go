@@ -24,6 +24,7 @@ func mockSouinAPI() *SouinAPI {
 
 func TestSouinAPI_BulkDelete(t *testing.T) {
 	souinMock := mockSouinAPI()
+	defer souinMock.providers["olric"].Reset()
 	for _, provider := range souinMock.providers {
 		provider.Set("key", []byte("value"), tests.GetMatchedURL("key"), 20 * time.Second)
 		provider.Set("key2", []byte("value"), tests.GetMatchedURL("key"), 20 * time.Second)
@@ -41,11 +42,11 @@ func TestSouinAPI_BulkDelete(t *testing.T) {
 			errors.GenerateError(t, "Souin API should have a record")
 		}
 	}
-	souinMock.providers["olric"].Reset()
 }
 
 func TestSouinAPI_Delete(t *testing.T) {
 	souinMock := mockSouinAPI()
+	defer souinMock.providers["olric"].Reset()
 	for _, provider := range souinMock.providers {
 		provider.Set("key", []byte("value"), tests.GetMatchedURL("key"), 20 * time.Second)
 	}
@@ -62,11 +63,11 @@ func TestSouinAPI_Delete(t *testing.T) {
 			errors.GenerateError(t, "Souin API shouldn't have a record")
 		}
 	}
-	souinMock.providers["olric"].Reset()
 }
 
 func TestSouinAPI_GetAll(t *testing.T) {
 	souinMock := mockSouinAPI()
+	defer souinMock.providers["olric"].Reset()
 	for _, v := range souinMock.GetAll() {
 		if len(v) > 0 {
 			errors.GenerateError(t, "Souin API shouldn't have a record")
@@ -90,21 +91,20 @@ func TestSouinAPI_GetAll(t *testing.T) {
 			errors.GenerateError(t, "Souin API shouldn't have a record")
 		}
 	}
-	souinMock.providers["olric"].Reset()
 }
 
 func TestSouinAPI_GetBasePath(t *testing.T) {
 	souinMock := mockSouinAPI()
+	defer souinMock.providers["olric"].Reset()
 	if souinMock.GetBasePath() != "/souinbasepath" {
 		errors.GenerateError(t, "Souin API should be enabled")
 	}
-	souinMock.providers["olric"].Reset()
 }
 
 func TestSouinAPI_IsEnabled(t *testing.T) {
 	souinMock := mockSouinAPI()
+	defer souinMock.providers["olric"].Reset()
 	if !souinMock.IsEnabled() {
 		errors.GenerateError(t, "Souin API should be enabled")
 	}
-	souinMock.providers["olric"].Reset()
 }

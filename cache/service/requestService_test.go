@@ -2,9 +2,11 @@ package service
 
 import (
 	"fmt"
+	"github.com/darkweak/souin/cache/providers"
 	"github.com/darkweak/souin/tests"
 	"io/ioutil"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
@@ -103,77 +105,77 @@ func mockRewriteResponse(method string, body string, path string, code int) []by
 	return RewriteResponse(mockResponse(tests.PATH+path, method, body, code))
 }
 
-//func TestKeyShouldBeDeletedOnPost(t *testing.T) {
-//	c := tests.MockConfiguration()
-//	prs := providers.InitializeProvider(c)
-//	populateProviderWithFakeData(prs)
-//	res := mockRewriteResponse(http.MethodPost, "My second response", "/1", 201)
-//	if len(res) <= 0 {
-//		errors.GenerateError(t, "The response should be valid and filled")
-//	}
-//	time.Sleep(10 * time.Second)
-//	if !shouldNotHaveKey(tests.PATH, prs) {
-//		errors.GenerateError(t, "The key "+tests.DOMAIN+tests.PATH+" shouldn't exist.")
-//	}
-//	prs["olric"].Reset()
-//}
+func TestKeyShouldBeDeletedOnPost(t *testing.T) {
+	c := tests.MockConfiguration()
+	prs := providers.InitializeProvider(c)
+	populateProviderWithFakeData(prs)
+	res := mockRewriteResponse(http.MethodPost, "My second response", "/1", 201)
+	if len(res) <= 0 {
+		errors.GenerateError(t, "The response should be valid and filled")
+	}
+	time.Sleep(10 * time.Second)
+	if !shouldNotHaveKey(tests.PATH, prs) {
+		errors.GenerateError(t, "The key "+tests.DOMAIN+tests.PATH+" shouldn't exist.")
+	}
+	prs["olric"].Reset()
+}
 
-//func TestRewriteBody(t *testing.T) {
-//	response := mockRewriteResponse(http.MethodPost, "My second response", "", 201)
-//	if response == nil || len(response) <= 0 {
-//		errors.GenerateError(t, "Rewrite body should return an empty response")
-//	}
-//}
-//
-//func verifyKeysExists(t *testing.T, path string, keys []string, isKeyDeleted bool, prs map[string]types.AbstractProviderInterface) {
-//	time.Sleep(10 * time.Second)
-//
-//	for _, i := range keys {
-//		if !shouldNotHaveKey(tests.PATH+i, prs) == isKeyDeleted {
-//			errors.GenerateError(t, "The key "+tests.DOMAIN+path+i+" shouldn't exist.")
-//		}
-//	}
-//}
-//
-//func TestKeyShouldBeDeletedOnPut(t *testing.T) {
-//	c := tests.MockConfiguration()
-//	prs := providers.InitializeProvider(c)
-//	populateProviderWithFakeData(prs)
-//	mockResponse("/1", http.MethodPut, "My second response", 200)
-//
-//	verifyKeysExists(t, tests.PATH, []string{"", "/1"}, true, prs)
-//	prs["olric"].Reset()
-//}
-//
-//func TestKeyShouldBeDeletedOnDelete(t *testing.T) {
-//	c := tests.MockConfiguration()
-//	prs := providers.InitializeProvider(c)
-//	populateProviderWithFakeData(prs)
-//	mockResponse("/1", http.MethodDelete, "", 200)
-//	verifyKeysExists(t, tests.PATH, []string{"", "/1"}, true, prs)
-//	prs["olric"].Reset()
-//}
-//
-//func TestRequestReverseProxy(t *testing.T) {
-//	request := httptest.NewRequest("GET", "http://"+tests.DOMAIN+tests.PATH, nil)
-//	conf := tests.MockConfiguration()
-//	u, _ := url.Parse(conf.GetReverseProxyURL())
-//	prs := providers.InitializeProvider(conf)
-//	response := RequestReverseProxy(
-//		request,
-//		&types.RetrieverResponseProperties{
-//			Providers:       prs,
-//			Configuration:   conf,
-//			MatchedURL:      tests.GetMatchedURL(tests.PATH),
-//			ReverseProxyURL: u,
-//		},
-//	)
-//	prs["olric"].Reset()
-//
-//	if response.Proxy == nil || response.Request == nil {
-//		errors.GenerateError(t, "Response proxy and request shouldn't be empty")
-//	}
-//}
+func TestRewriteBody(t *testing.T) {
+	response := mockRewriteResponse(http.MethodPost, "My second response", "", 201)
+	if response == nil || len(response) <= 0 {
+		errors.GenerateError(t, "Rewrite body should return an empty response")
+	}
+}
+
+func verifyKeysExists(t *testing.T, path string, keys []string, isKeyDeleted bool, prs map[string]types.AbstractProviderInterface) {
+	time.Sleep(10 * time.Second)
+
+	for _, i := range keys {
+		if !shouldNotHaveKey(tests.PATH+i, prs) == isKeyDeleted {
+			errors.GenerateError(t, "The key "+tests.DOMAIN+path+i+" shouldn't exist.")
+		}
+	}
+}
+
+func TestKeyShouldBeDeletedOnPut(t *testing.T) {
+	c := tests.MockConfiguration()
+	prs := providers.InitializeProvider(c)
+	populateProviderWithFakeData(prs)
+	mockResponse("/1", http.MethodPut, "My second response", 200)
+
+	verifyKeysExists(t, tests.PATH, []string{"", "/1"}, true, prs)
+	prs["olric"].Reset()
+}
+
+func TestKeyShouldBeDeletedOnDelete(t *testing.T) {
+	c := tests.MockConfiguration()
+	prs := providers.InitializeProvider(c)
+	populateProviderWithFakeData(prs)
+	mockResponse("/1", http.MethodDelete, "", 200)
+	verifyKeysExists(t, tests.PATH, []string{"", "/1"}, true, prs)
+	prs["olric"].Reset()
+}
+
+func TestRequestReverseProxy(t *testing.T) {
+	request := httptest.NewRequest("GET", "http://"+tests.DOMAIN+tests.PATH, nil)
+	conf := tests.MockConfiguration()
+	u, _ := url.Parse(conf.GetReverseProxyURL())
+	prs := providers.InitializeProvider(conf)
+	response := RequestReverseProxy(
+		request,
+		&types.RetrieverResponseProperties{
+			Providers:       prs,
+			Configuration:   conf,
+			MatchedURL:      tests.GetMatchedURL(tests.PATH),
+			ReverseProxyURL: u,
+		},
+	)
+	prs["olric"].Reset()
+
+	if response.Proxy == nil || response.Request == nil {
+		errors.GenerateError(t, "Response proxy and request shouldn't be empty")
+	}
+}
 
 func TestCommonLoadingRequest(t *testing.T) {
 	body := "My testable response"

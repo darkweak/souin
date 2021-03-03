@@ -22,6 +22,7 @@ func commonInitializer() (*http.Request, map[string]types.AbstractProviderInterf
 
 func TestCachedResponse_WithUpdate(t *testing.T) {
 	r, c := commonInitializer()
+	defer c["olric"].Reset()
 
 	for _, v := range c {
 		res, err := CachedResponse(v, r, GetCacheKey(r), NewTransport(c), true)
@@ -38,15 +39,14 @@ func TestCachedResponse_WithUpdate(t *testing.T) {
 			errors.GenerateError(t, fmt.Sprintf("Request and Proxy shouldn't be set"))
 		}
 	}
-	c["olric"].Reset()
 }
 
 func TestCachedResponse_WithoutUpdate(t *testing.T) {
 	r, c := commonInitializer()
-	key := GetCacheKey(r)
+	defer c["olric"].Reset()
 
 	for _, v := range c {
-		res, err := CachedResponse(v, r, key, NewTransport(c), false)
+		res, err := CachedResponse(v, r, GetCacheKey(r), NewTransport(c), false)
 
 		if err != nil {
 			errors.GenerateError(t, "CachedResponse cannot throw error")
@@ -60,5 +60,4 @@ func TestCachedResponse_WithoutUpdate(t *testing.T) {
 			errors.GenerateError(t, fmt.Sprintf("Request and Proxy shouldn't be set"))
 		}
 	}
-	c["olric"].Reset()
 }

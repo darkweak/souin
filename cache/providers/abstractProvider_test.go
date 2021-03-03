@@ -7,19 +7,19 @@ import (
 	"testing"
 )
 
-//func TestInitializeProvider(t *testing.T) {
-//	c := tests.MockConfiguration()
-//	ps := InitializeProvider(c)
-//	for k, p := range ps {
-//		if k != "olric" {
-//			err := p.Init()
-//			if nil != err {
-//				errors.GenerateError(t, "Init shouldn't crash")
-//			}
-//		}
-//	}
-//	ps["olric"].Reset()
-//}
+func TestInitializeProvider(t *testing.T) {
+	c := tests.MockConfiguration()
+	ps := InitializeProvider(c)
+	defer ps["olric"].Reset()
+	for k, p := range ps {
+		if k != "olric" {
+			err := p.Init()
+			if nil != err {
+				errors.GenerateError(t, "Init shouldn't crash")
+			}
+		}
+	}
+}
 
 func TestPathnameNotInExcludeRegex(t *testing.T) {
 	config := tests.MockConfiguration()

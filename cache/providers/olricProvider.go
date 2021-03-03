@@ -1,9 +1,7 @@
 package providers
 
 import (
-	"context"
-	"fmt"
-	"github.com/buraksezer/olric"
+	"github.com/buraksezer/olric/client"
 	"github.com/buraksezer/olric/config"
 	"github.com/darkweak/souin/cache/keysaver"
 	t "github.com/darkweak/souin/configurationtypes"
@@ -13,8 +11,8 @@ import (
 
 // Olric provider type
 type Olric struct {
-	*olric.Olric
-	dm *olric.DMap
+	*client.Client
+	dm *client.DMap
 	keySaver *keysaver.ClearKey
 }
 
@@ -24,13 +22,21 @@ func OlricConnectionFactory(configuration t.AbstractConfigurationInterface) (*Ol
 	if configuration.GetAPI().Souin.Enable {
 		keySaver = keysaver.NewClearKey()
 	}
-	db, err := olric.New(config.New("local"))
+
+	c, err := client.New(&client.Config{
+		Servers: []string{configuration.GetDefaultCache().Olric.URL},
+		Client: &config.Client{
+			DialTimeout: time.Second,
+			KeepAlive:   time.Second,
+			MaxConn:     10,
+		},
+	})
 	if err != nil {
 		panic(err)
 	}
 
 	return &Olric{
-		db,
+		c,
 		nil,
 		keySaver,
 	}, nil
@@ -92,20 +98,7 @@ func (provider *Olric) Delete(key string) {
 
 // Init method will initialize Olric provider if needed
 func (provider *Olric) Init() error {
-	c := make(chan interface{})
-
-	go func() {
-		defer func() {
-			time.Sleep(2 * time.Second)
-			c<-1
-		}()
-		go func() {
-			_ = provider.Olric.Start()
-		}()
-	}()
-
-	_ = <-c
-	dm, _ := provider.Olric.NewDMap("souin-map")
+	dm := provider.Client.NewDMap("souin-map")
 
 	provider.dm = dm
 	return nil
@@ -113,6 +106,5 @@ func (provider *Olric) Init() error {
 
 // Reset method will reset or close provider
 func (provider *Olric) Reset() {
-	e := provider.Olric.Shutdown(context.Background())
-	fmt.Println(e)
+	provider.Client.Close()
 }
