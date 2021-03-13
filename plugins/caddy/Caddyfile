@@ -1,0 +1,46 @@
+{
+    experimental_http3
+    cache {
+        api {
+            basepath /souin-api
+            security {
+                secret your_secret_key
+                enable true
+                users [
+                    {
+                        username user1
+                        password test
+                    }
+                ]
+            }
+            souin {
+                enable true
+                security true
+            }
+        }
+        default_cache {
+            regex {
+                exclude ARegexHere
+            }
+            ttl 10
+        }
+        reverse_proxy_url http://traefik
+        reverse_proxy_url [
+            traefik
+        ]
+        urls [
+            'domain.com/' {
+                ttl 100
+                headers [
+                    Content-Type
+                ]
+            }
+        ]
+    }
+}
+
+route /cache-s-maxage {
+    cache
+    header Cache-Control "s-maxage=5, max-age=1"
+    respond "Hello, s-maxage!"
+}
