@@ -46,7 +46,7 @@ func TestRistrettoConnectionFactory(t *testing.T) {
 func TestIShouldBeAbleToReadAndWriteDataInRistretto(t *testing.T) {
 	client, matchedURL := getRistrettoClientAndMatchedURL("Test")
 
-	client.Set("Test", []byte(RISTRETTOVALUE), matchedURL, time.Duration(20) * time.Second)
+	client.Set("Test", []byte(RISTRETTOVALUE), matchedURL, time.Duration(20)*time.Second)
 	time.Sleep(1 * time.Second)
 
 	res := client.Get("Test")
@@ -69,7 +69,7 @@ func TestRistretto_GetRequestInCache(t *testing.T) {
 
 func TestRistretto_GetSetRequestInCache_OneByte(t *testing.T) {
 	client, matchedURL := getRistrettoClientAndMatchedURL(BYTEKEY)
-	client.Set(BYTEKEY, []byte("A"), matchedURL, time.Duration(20) * time.Second)
+	client.Set(BYTEKEY, []byte("A"), matchedURL, time.Duration(20)*time.Second)
 	time.Sleep(1 * time.Second)
 
 	res := client.Get(BYTEKEY)
@@ -100,7 +100,7 @@ func TestRistretto_SetRequestInCache_TTL(t *testing.T) {
 	key := "MyEmptyKey"
 	client, matchedURL := getRistrettoClientAndMatchedURL(key)
 	nv := []byte("Hello world")
-	setValueThenVerify(client, key, nv, matchedURL, time.Duration(20) * time.Second, t)
+	setValueThenVerify(client, key, nv, matchedURL, time.Duration(20)*time.Second, t)
 }
 
 func TestRistretto_SetRequestInCache_NoTTL(t *testing.T) {
@@ -114,7 +114,7 @@ func TestRistretto_SetRequestInCache_NegativeTTL(t *testing.T) {
 	client, matchedURL := getRistrettoClientAndMatchedURL(BYTEKEY)
 	nv := []byte("New value")
 	tests.ValidatePanic(t, func() {
-		setValueThenVerify(client, BYTEKEY, nv, matchedURL, time.Duration(-20) * time.Second, t)
+		setValueThenVerify(client, BYTEKEY, nv, matchedURL, time.Duration(-20)*time.Second, t)
 	})
 }
 

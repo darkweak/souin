@@ -19,7 +19,7 @@ func (t *tokenError) Error() string {
 	return generateMessage("Token not found")
 }
 
-type signatureError struct {}
+type signatureError struct{}
 
 func (s *signatureError) Error() string {
 	return generateMessage("Impossible to sign the JWT")

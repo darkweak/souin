@@ -10,7 +10,7 @@ import (
 // SecurityAPI object contains informations related to the endpoints
 type SecurityAPI struct {
 	basePath string
-	enabled   bool
+	enabled  bool
 	secret   []byte
 	users    map[string]string
 }

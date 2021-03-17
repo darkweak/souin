@@ -10,6 +10,7 @@ import (
 
 // DOMAIN is the domain constant
 const DOMAIN = "domain.com"
+
 // PATH is the path constant
 const PATH = "/testing"
 
@@ -77,8 +78,8 @@ func GetTokenName() string {
 // GetValidToken returns a valid token
 func GetValidToken() *http.Cookie {
 	return &http.Cookie{
-		Name: GetTokenName(),
+		Name:  GetTokenName(),
 		Value: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6InVzZXIxIiwiZXhwIjoxNjE0MTI0Nzk5OX0.7blW8hKWls2UgHLU8KOzwTG13uNoJR3UhLgoVdyCzx0",
-		Path: "/",
+		Path:  "/",
 	}
 }

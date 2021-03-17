@@ -37,7 +37,8 @@ func TestServeResponse(t *testing.T) {
 			rw http.ResponseWriter,
 			rq *http.Request,
 			r types.RetrieverResponsePropertiesInterface,
-			rc RequestCoalescingInterface){},
+			rc RequestCoalescingInterface) {
+		},
 		rc,
 	)
 }

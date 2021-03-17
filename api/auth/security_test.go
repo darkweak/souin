@@ -77,7 +77,7 @@ func TestSecurityAPI_HandleRequest(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	security.HandleRequest(w, r)
-	if w.Result().StatusCode != http.StatusOK{
+	if w.Result().StatusCode != http.StatusOK {
 		errors.GenerateError(t, "Status code should be 200")
 	}
 	b, _ := ioutil.ReadAll(w.Result().Body)
@@ -89,7 +89,7 @@ func TestSecurityAPI_HandleRequest(t *testing.T) {
 	w = httptest.NewRecorder()
 
 	security.HandleRequest(w, r)
-	if w.Result().StatusCode != http.StatusOK{
+	if w.Result().StatusCode != http.StatusOK {
 		errors.GenerateError(t, "Status code should be 200")
 	}
 	b, _ = ioutil.ReadAll(w.Result().Body)

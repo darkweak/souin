@@ -13,7 +13,7 @@ import (
 // SouinAPI object contains informations related to the endpoints
 type SouinAPI struct {
 	basePath string
-	enabled bool
+	enabled  bool
 	provider types.AbstractProviderInterface
 	security *auth.SecurityAPI
 }
