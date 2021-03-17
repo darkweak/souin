@@ -37,6 +37,7 @@ func (t *VaryTransport) SetURL(url configurationtypes.URL) {
 
 // SetCache set the cache
 func (t *VaryTransport) SetCache(key string, resp *http.Response, req *http.Request) {
+	resp.Header.Set(XFromCache, "Souin")
 	r, _, _ := cachecontrol.CachableResponse(req, resp, cachecontrol.Options{})
 	respBytes, err := httputil.DumpResponse(resp, true)
 	if err == nil && len(r) == 0 {
