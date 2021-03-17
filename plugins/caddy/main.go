@@ -1,13 +1,11 @@
 package caddy
 
 import (
-	"fmt"
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
 	"github.com/caddyserver/caddy/v2/caddyconfig/httpcaddyfile"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
 	"github.com/darkweak/souin/cache/coalescing"
-	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/plugins"
 	"go.uber.org/zap"
 	"net/http"
@@ -16,13 +14,16 @@ import (
 func init() {
 	caddy.RegisterModule(SouinCaddyPlugin{})
 	httpcaddyfile.RegisterGlobalOption("souin", parseCaddyfileGlobalOption)
+	httpcaddyfile.RegisterHandlerDirective("souin", parseCaddyfileHandlerDirective)
 }
+
+var staticConfig Configuration
 
 // SouinCaddyPlugin declaration.
 type SouinCaddyPlugin struct {
-	*plugins.SouinBasePlugin
-	configuration Configuration
-	logger        *zap.Logger
+	plugins.SouinBasePlugin
+	configuration     *Configuration
+	logger            *zap.Logger
 }
 
 // CaddyModule returns the Caddy module information.
@@ -46,27 +47,40 @@ func (s *SouinCaddyPlugin) Validate() error {
 
 func (s *SouinCaddyPlugin) Provision(ctx caddy.Context) error {
 	s.logger = ctx.Logger(s)
-	c := &Configuration{
-		DefaultCache: configurationtypes.DefaultCache{
-			TTL: "10000",
-		},
-	}
 	s.RequestCoalescing = coalescing.Initialize()
-	s.Retriever = plugins.DefaultSouinPluginInitializerFromConfiguration(c)
+	if s.configuration == nil && &staticConfig != nil {
+		s.configuration = &staticConfig
+	}
+	s.Retriever = plugins.DefaultSouinPluginInitializerFromConfiguration(s.configuration)
 	return nil
 }
 
 func parseCaddyfileGlobalOption(d *caddyfile.Dispenser) (interface{}, error) {
+	p := NewParser()
+
 	for d.Next() {
-		for d.NextBlock(0) {
-			if !d.NextArg() {
-				return nil, d.ArgErr()
-			}
-			fmt.Println(d.Val())
+		for nesting := d.Nesting(); d.NextBlock(nesting); {
+			v := d.Val()
+			d.NextArg()
+			v2 := d.Val()
+
+			p.WriteLine(v, v2)
 		}
 	}
 
-	return nil, nil
+	var s SouinCaddyPlugin
+	err := staticConfig.Parse([]byte(p.str))
+	s.configuration = &staticConfig
+	return nil, err
+}
+
+func parseCaddyfileHandlerDirective(_ httpcaddyfile.Helper) (caddyhttp.MiddlewareHandler, error) {
+	s := &SouinCaddyPlugin{}
+	if &staticConfig != nil {
+		s.configuration = &staticConfig
+	}
+
+	return s, nil
 }
 
 // Interface guards

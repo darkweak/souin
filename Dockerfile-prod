@@ -21,6 +21,7 @@ ADD ./default /app/src/github.com/darkweak/souin/default
 ADD ./errors /app/src/github.com/darkweak/souin/errors
 ADD ./helpers /app/src/github.com/darkweak/souin/helpers
 ADD ./providers /app/src/github.com/darkweak/souin/providers
+ADD ./plugins /app/src/github.com/darkweak/souin/plugins
 
 WORKDIR /app/src/github.com/darkweak/souin
 RUN go mod download

@@ -2,6 +2,7 @@ package caddy
 
 import (
 	"github.com/darkweak/souin/configurationtypes"
+	"gopkg.in/yaml.v3"
 )
 
 //Configuration holder
@@ -14,7 +15,10 @@ type Configuration struct {
 }
 
 // Parse configuration
-func (c *Configuration) Parse(_ []byte) error {
+func (c *Configuration) Parse(data []byte) error {
+	if err := yaml.Unmarshal(data, c); err != nil {
+		return err
+	}
 	return nil
 }
 

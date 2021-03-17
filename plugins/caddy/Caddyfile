@@ -1,6 +1,7 @@
 {
     experimental_http3
-    cache {
+    default_sni domain.com
+    souin {
         api {
             basepath /souin-api
             security {
@@ -14,33 +15,48 @@
                 ]
             }
             souin {
-                enable true
                 security true
+                enable true
             }
         }
         default_cache {
-            regex {
-                exclude ARegexHere
+            headers [
+                Authorization
+            ]
+            port {
+                web 80
+                tls 443
             }
-            ttl 10
+            regex {
+                exclude 'ARegex'
+            }
+            ttl 1000
         }
-        reverse_proxy_url http://traefik
-        reverse_proxy_url [
+        reverse_proxy_url 'http://domain.com:81'
+        ssl_providers [
             traefik
         ]
-        urls [
+        urls {
             'domain.com/' {
                 ttl 100
                 headers [
-                    Content-Type
+                    Authorization
+                    'Content-Type'
                 ]
             }
-        ]
+            'mysubdomain.domain.com' {
+                ttl 50
+                headers [
+                    Authorization
+                    'Content-Type'
+                ]
+            }
+        }
     }
 }
 
-route /cache-s-maxage {
-    cache
-    header Cache-Control "s-maxage=5, max-age=1"
-    respond "Hello, s-maxage!"
+:80
+
+route * {
+    souin
 }
