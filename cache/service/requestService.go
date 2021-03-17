@@ -61,7 +61,7 @@ func RequestReverseProxy(req *http.Request, r types.RetrieverResponsePropertiesI
 	proxy.Transport = r.GetTransport()
 
 	return types.ReverseResponse{
-		Proxy:    proxy,
-		Request:  req,
+		Proxy:   proxy,
+		Request: req,
 	}
 }

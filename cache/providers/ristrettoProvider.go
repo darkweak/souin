@@ -57,7 +57,7 @@ func (provider *Ristretto) Get(key string) []byte {
 func (provider *Ristretto) Set(key string, value []byte, url t.URL, duration time.Duration) {
 	if duration == 0 {
 		ttl, _ := strconv.Atoi(url.TTL)
-		duration = time.Duration(ttl)*time.Second
+		duration = time.Duration(ttl) * time.Second
 	}
 	isSet := provider.SetWithTTL(key, value, 1, duration)
 	if !isSet {

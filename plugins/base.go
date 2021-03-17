@@ -12,6 +12,7 @@ import (
 	"net/url"
 )
 
+// DefaultSouinPluginCallback is the default callback for plugins
 func DefaultSouinPluginCallback(
 	res http.ResponseWriter,
 	req *http.Request,
@@ -53,6 +54,7 @@ func DefaultSouinPluginCallback(
 	rc.Temporise(req, res, retriever)
 }
 
+// DefaultSouinPluginInitializerFromConfiguration is the default initialization for plugins
 func DefaultSouinPluginInitializerFromConfiguration(c configurationtypes.AbstractConfigurationInterface) *types.RetrieverResponseProperties {
 	provider := providers.InitializeProvider(c)
 	regexpUrls := helpers.InitializeRegexp(c)

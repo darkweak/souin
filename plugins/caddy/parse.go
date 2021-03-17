@@ -5,14 +5,16 @@ import (
 	"strings"
 )
 
-const TAB_SPACES = 2
+const tabSpaces = 2
 
+// ParsedString is the representation of the parser
 type ParsedString struct {
 	openedDelimiters  []string
 	waitingDelimiters []string
 	str               string
 }
 
+// NewParser will create a new parser to parse Caddyfile configuration
 func NewParser() *ParsedString {
 	return &ParsedString{
 		openedDelimiters:  []string{},
@@ -73,12 +75,13 @@ func (p *ParsedString) appendContent(s1 string, s2 string) {
 	if s1 != s2 && !isDelimiter {
 		lineValue += fmt.Sprintf(" %s", s2)
 	}
-	p.str = fmt.Sprintf("%s%s%s\n", p.str, strings.Repeat(" ", TAB_SPACES * len(p.openedDelimiters)), lineValue)
+	p.str = fmt.Sprintf("%s%s%s\n", p.str, strings.Repeat(" ", tabSpaces* len(p.openedDelimiters)), lineValue)
 	if isDelimiter {
 		p.updateDelimiter(s2, isOpening)
 	}
 }
 
+// WriteLine will write the yaml formatted line
 func (p *ParsedString) WriteLine(s1 string, s2 string) {
 	isDelimiter, isOpening := getCurrentNature(s1)
 

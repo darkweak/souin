@@ -40,11 +40,13 @@ func (s SouinCaddyPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request, n
 	return next.ServeHTTP(rw, req)
 }
 
+// Validate to validate configuration
 func (s *SouinCaddyPlugin) Validate() error {
 	s.logger.Info("Keep in mind the existing keys are always stored with the previous configuration. Use the API to purge existing keys")
 	return nil
 }
 
+// Provision to do the provisioning part
 func (s *SouinCaddyPlugin) Provision(ctx caddy.Context) error {
 	s.logger = ctx.Logger(s)
 	s.RequestCoalescing = coalescing.Initialize()

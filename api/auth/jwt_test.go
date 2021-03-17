@@ -9,14 +9,13 @@ import (
 	"testing"
 )
 
-
 func TestCheckToken(t *testing.T) {
 	config := tests.MockConfiguration()
 	security := InitializeSecurity(config)
 	r := httptest.NewRequest("GET", fmt.Sprintf("http://%s%s/valid_path", config.GetAPI().BasePath, security.basePath), nil)
 	w := httptest.NewRecorder()
 	jwt, err := CheckToken(security, w, r)
-	if w.Result().StatusCode != http.StatusUnauthorized{
+	if w.Result().StatusCode != http.StatusUnauthorized {
 		errors.GenerateError(t, "Status code should be 401")
 	}
 	if jwt != nil {
@@ -57,7 +56,7 @@ func TestCheckToken(t *testing.T) {
 
 	// Invalid signature token
 	http.SetCookie(w, &http.Cookie{
-		Name: tests.GetTokenName(),
+		Name:  tests.GetTokenName(),
 		Value: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6InVzZXIxIiwiZXhwIjoxNjE0MTI0ODd9.wwIwMd36VaQ6CYNdgG7LiZ_zZ95tAz157zEoDz4Etl0",
 		Path:  "/",
 	})

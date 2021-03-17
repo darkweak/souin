@@ -27,4 +27,4 @@ WORKDIR /app/src/github.com/darkweak/souin
 
 EXPOSE 80
 
-CMD ["go", "run", "main.go"]
+CMD ["go", "run", "plugins/souin/main.go"]

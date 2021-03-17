@@ -61,7 +61,7 @@ func TestVaryMatches(t *testing.T) {
 	r.Header.Set("Vary", header)
 	r.Header.Set(header, "same")
 	res.Header.Set("vary", header)
-	res.Header.Set("X-Varied-" + header, "different")
+	res.Header.Set("X-Varied-"+header, "different")
 
 	if varyMatches(res, r) {
 		errors.GenerateError(t, "Vary match should return false if Response contains X-Varied-* header same than * in Request header")
@@ -137,7 +137,7 @@ func TestGetEndToEndHeaders(t *testing.T) {
 	res.Header.Set("Keep-Alive", "1")
 	res.Header.Set("Connection", "keep-alive")
 	e2eHeaders = getEndToEndHeaders(res.Header)
-	if len(e2eHeaders) != len(res.Header) - 2 {
+	if len(e2eHeaders) != len(res.Header)-2 {
 		errors.GenerateError(t, fmt.Sprintf("Headers should be equal to %v, %v provided", res.Header, e2eHeaders))
 	}
 }
