@@ -27,6 +27,7 @@ func TestServeResponse(t *testing.T) {
 		w,
 		r,
 		retriever,
-		func(rw http.ResponseWriter, rq *http.Request, r types.RetrieverResponsePropertiesInterface, key string) {},
+		func(rw http.ResponseWriter, rq *http.Request, r types.RetrieverResponsePropertiesInterface, key string) {
+		},
 	)
 }

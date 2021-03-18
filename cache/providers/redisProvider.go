@@ -55,7 +55,7 @@ func (provider *Redis) Get(key string) []byte {
 func (provider *Redis) Set(key string, value []byte, url t.URL, duration time.Duration) {
 	if duration == 0 {
 		ttl, _ := strconv.Atoi(url.TTL)
-		duration = time.Duration(ttl)*time.Second
+		duration = time.Duration(ttl) * time.Second
 	}
 
 	err := provider.Client.Set(provider.Context(), key, string(value), duration).Err()

@@ -26,7 +26,7 @@ func TestIShouldBeAbleToReadAndWriteDataInOlric(t *testing.T) {
 	client, u := getOlricClientAndMatchedURL("Test")
 	defer client.Reset()
 	client.Set("Test", []byte(OLRICVALUE), u, time.Duration(10)*time.Second)
-	time.Sleep(3*time.Second)
+	time.Sleep(3 * time.Second)
 	res := client.Get("Test")
 	if OLRICVALUE != string(res) {
 		errors.GenerateError(t, fmt.Sprintf("%s not corresponding to %s", res, OLRICVALUE))
@@ -45,7 +45,7 @@ func TestOlric_GetRequestInCache(t *testing.T) {
 func TestOlric_SetRequestInCache_OneByte(t *testing.T) {
 	client, u := getOlricClientAndMatchedURL(BYTEKEY)
 	defer client.Reset()
-	client.Set(BYTEKEY, []byte{65}, u, time.Duration(20) * time.Second)
+	client.Set(BYTEKEY, []byte{65}, u, time.Duration(20)*time.Second)
 }
 
 func TestOlric_SetRequestInCache_TTL(t *testing.T) {
@@ -53,7 +53,7 @@ func TestOlric_SetRequestInCache_TTL(t *testing.T) {
 	client, matchedURL := getOlricClientAndMatchedURL(key)
 	defer client.Reset()
 	nv := []byte("Hello world")
-	setValueThenVerify(client, key, nv, matchedURL, time.Duration(20) * time.Second, t)
+	setValueThenVerify(client, key, nv, matchedURL, time.Duration(20)*time.Second, t)
 }
 
 func TestOlric_SetRequestInCache_NoTTL(t *testing.T) {

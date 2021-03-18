@@ -26,8 +26,8 @@ func TestSouinAPI_BulkDelete(t *testing.T) {
 	souinMock := mockSouinAPI()
 	defer souinMock.providers["olric"].Reset()
 	for _, provider := range souinMock.providers {
-		provider.Set("key", []byte("value"), tests.GetMatchedURL("key"), 20 * time.Second)
-		provider.Set("key2", []byte("value"), tests.GetMatchedURL("key"), 20 * time.Second)
+		provider.Set("key", []byte("value"), tests.GetMatchedURL("key"), 20*time.Second)
+		provider.Set("key2", []byte("value"), tests.GetMatchedURL("key"), 20*time.Second)
 	}
 	time.Sleep(3 * time.Second)
 	for _, v := range souinMock.GetAll() {
@@ -48,7 +48,7 @@ func TestSouinAPI_Delete(t *testing.T) {
 	souinMock := mockSouinAPI()
 	defer souinMock.providers["olric"].Reset()
 	for _, provider := range souinMock.providers {
-		provider.Set("key", []byte("value"), tests.GetMatchedURL("key"), 20 * time.Second)
+		provider.Set("key", []byte("value"), tests.GetMatchedURL("key"), 20*time.Second)
 	}
 	time.Sleep(3 * time.Second)
 	for _, v := range souinMock.GetAll() {
@@ -75,7 +75,7 @@ func TestSouinAPI_GetAll(t *testing.T) {
 	}
 
 	for _, provider := range souinMock.providers {
-		provider.Set("key", []byte("value"), tests.GetMatchedURL("key"), 6 * time.Second)
+		provider.Set("key", []byte("value"), tests.GetMatchedURL("key"), 6*time.Second)
 	}
 	time.Sleep(3 * time.Second)
 	for _, v := range souinMock.GetAll() {

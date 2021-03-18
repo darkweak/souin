@@ -40,14 +40,14 @@ func TestRedis_GetRequestInCache(t *testing.T) {
 
 func TestRedis_SetRequestInCache_OneByte(t *testing.T) {
 	client, u := getRedisClientAndMatchedURL(BYTEKEY)
-	client.Set(BYTEKEY, []byte{65}, u, time.Duration(20) * time.Second)
+	client.Set(BYTEKEY, []byte{65}, u, time.Duration(20)*time.Second)
 }
 
 func TestRedis_SetRequestInCache_TTL(t *testing.T) {
 	key := "MyEmptyKey"
 	client, matchedURL := getRedisClientAndMatchedURL(key)
 	nv := []byte("Hello world")
-	setValueThenVerify(client, key, nv, matchedURL, time.Duration(20) * time.Second, t)
+	setValueThenVerify(client, key, nv, matchedURL, time.Duration(20)*time.Second, t)
 }
 
 func TestRedis_SetRequestInCache_NoTTL(t *testing.T) {

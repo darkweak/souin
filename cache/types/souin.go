@@ -21,9 +21,9 @@ type TransportInterface interface {
 type Transport struct {
 	// The RoundTripper interface actually used to make requests
 	// If nil, http.DefaultTransport is used
-	Transport           http.RoundTripper
-	Providers           map[string]AbstractProviderInterface
-	ConfigurationURL    configurationtypes.URL
+	Transport        http.RoundTripper
+	Providers        map[string]AbstractProviderInterface
+	ConfigurationURL configurationtypes.URL
 	// If true, responses returned from the cache will be given an extra header, X-From-Cache
 	MarkCachedResponses bool
 }
@@ -73,7 +73,7 @@ func (r *RetrieverResponseProperties) SetMatchedURL(url configurationtypes.URL) 
 			providers = append(providers, k)
 		}
 	}
-	url.Providers= providers
+	url.Providers = providers
 	r.MatchedURL = url
 }
 

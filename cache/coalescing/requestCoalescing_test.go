@@ -18,7 +18,7 @@ func TestServeResponse(t *testing.T) {
 	rc := Initialize()
 	retriever := &types.RetrieverResponseProperties{
 		Configuration: c,
-		Providers:      prs,
+		Providers:     prs,
 		MatchedURL:    tests.GetMatchedURL(tests.PATH),
 		RegexpUrls:    regexpUrls,
 	}

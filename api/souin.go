@@ -12,10 +12,10 @@ import (
 
 // SouinAPI object contains informations related to the endpoints
 type SouinAPI struct {
-	basePath string
-	enabled  bool
+	basePath  string
+	enabled   bool
 	providers map[string]types.AbstractProviderInterface
-	security *auth.SecurityAPI
+	security  *auth.SecurityAPI
 }
 
 func initializeSouin(providers map[string]types.AbstractProviderInterface, configuration configurationtypes.AbstractConfigurationInterface, api *auth.SecurityAPI) *SouinAPI {

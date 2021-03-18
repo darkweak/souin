@@ -12,7 +12,7 @@ import (
 // Olric provider type
 type Olric struct {
 	*client.Client
-	dm *client.DMap
+	dm       *client.DMap
 	keySaver *keysaver.ClearKey
 }
 
@@ -65,7 +65,7 @@ func (provider *Olric) Get(key string) []byte {
 func (provider *Olric) Set(key string, value []byte, url t.URL, duration time.Duration) {
 	if duration == 0 {
 		ttl, _ := strconv.Atoi(url.TTL)
-		duration = time.Duration(ttl)*time.Second
+		duration = time.Duration(ttl) * time.Second
 	}
 
 	err := provider.dm.PutEx(key, value, duration)
