@@ -27,7 +27,7 @@ WORKDIR /app/src/github.com/darkweak/souin
 RUN go mod download
 
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a \
-  -tags netgo -ldflags '-w -extldflags "-static"' -o /app/cmd/souin .
+  -tags netgo -ldflags '-w -extldflags "-static"' -o /app/cmd/souin ./plugins/souin
 
 EXPOSE 80
 
