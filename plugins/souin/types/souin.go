@@ -7,6 +7,7 @@ import (
 	"regexp"
 )
 
+// SouinRetrieverResponseProperties struct
 type SouinRetrieverResponseProperties struct {
 	types.RetrieverResponseProperties
 	ReverseProxyURL *url.URL

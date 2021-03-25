@@ -15,7 +15,7 @@ const DOMAIN = "domain.com"
 const PATH = "/testing"
 
 // MockConfiguration is an helper to mock the configuration
-func MockConfiguration() configurationtypes.AbstractConfigurationInterface {
+func MockConfiguration() *configuration.Configuration {
 	var config configuration.Configuration
 	e := config.Parse([]byte(`
 api:

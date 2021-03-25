@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	souintypes "github.com/darkweak/souin/plugins/souin/types"
 	"github.com/darkweak/souin/tests"
 	"io/ioutil"
 	"net/http"
@@ -153,11 +154,13 @@ func TestRequestReverseProxy(t *testing.T) {
 	u, _ := url.Parse(conf.GetReverseProxyURL())
 	response := RequestReverseProxy(
 		request,
-		&types.RetrieverResponseProperties{
-			Provider:        providers.InitializeProvider(conf),
-			Configuration:   conf,
-			MatchedURL:      tests.GetMatchedURL(tests.PATH),
-			ReverseProxyURL: u,
+		souintypes.SouinRetrieverResponseProperties{
+			RetrieverResponseProperties: types.RetrieverResponseProperties{
+				Provider:        providers.InitializeProvider(conf),
+				Configuration:   conf,
+				MatchedURL:      tests.GetMatchedURL(tests.PATH),
+			},
+			ReverseProxyURL:             u,
 		},
 	)
 
