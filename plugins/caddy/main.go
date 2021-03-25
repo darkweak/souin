@@ -36,24 +36,24 @@ func (s SouinCaddyPlugin) CaddyModule() caddy.ModuleInfo {
 
 // ServeHTTP implements caddyhttp.MiddlewareHandler.
 func (s SouinCaddyPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request, next caddyhttp.Handler) error {
-	coalescing.ServeResponse(rw, req, s.Retriever, plugins.DefaultSouinPluginCallback, s.RequestCoalescing)
-	return next.ServeHTTP(rw, req)
+	coalescing.ServeResponse(rw, req, s.Retriever, plugins.DefaultSouinPluginCallback, s.RequestCoalescing, next.ServeHTTP)
+	return nil
 }
 
-// Validate to validate configuration
+// Validate to validate configuration.
 func (s *SouinCaddyPlugin) Validate() error {
 	s.logger.Info("Keep in mind the existing keys are always stored with the previous configuration. Use the API to purge existing keys")
 	return nil
 }
 
-// Provision to do the provisioning part
+// Provision to do the provisioning part.
 func (s *SouinCaddyPlugin) Provision(ctx caddy.Context) error {
 	s.logger = ctx.Logger(s)
-	s.RequestCoalescing = coalescing.Initialize()
 	if s.configuration == nil && &staticConfig != nil {
 		s.configuration = &staticConfig
 	}
 	s.Retriever = plugins.DefaultSouinPluginInitializerFromConfiguration(s.configuration)
+	s.RequestCoalescing = coalescing.Initialize()
 	return nil
 }
 

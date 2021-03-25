@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"github.com/darkweak/souin/api"
 	"github.com/darkweak/souin/cache/coalescing"
-	providers2 "github.com/darkweak/souin/cache/providers"
+	"github.com/darkweak/souin/cache/service"
 	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/configuration"
-	"github.com/darkweak/souin/configurationtypes"
-	"github.com/darkweak/souin/helpers"
+	"github.com/darkweak/souin/plugins"
+	souintypes "github.com/darkweak/souin/plugins/souin/types"
 	"github.com/darkweak/souin/providers"
 	"github.com/darkweak/souin/rfc"
 	"io/ioutil"
@@ -24,6 +24,7 @@ func callback(
 	req *http.Request,
 	retriever types.RetrieverResponsePropertiesInterface,
 	rc coalescing.RequestCoalescingInterface,
+	nm func(w http.ResponseWriter, r *http.Request) error,
 ) {
 	responses := make(chan types.ReverseResponse)
 
@@ -57,7 +58,22 @@ func callback(
 	}
 
 	close(responses)
-	rc.Temporise(req, res, retriever)
+	rc.Temporise(req, res, nm)
+}
+
+func souinPluginInitializerFromConfiguration(c *configuration.Configuration) *souintypes.SouinRetrieverResponseProperties {
+	baseRetriever := *plugins.DefaultSouinPluginInitializerFromConfiguration(c)
+	u, err := url.Parse(c.GetReverseProxyURL())
+	if err != nil {
+		panic("Reverse proxy url is missing")
+	}
+
+	retriever := &souintypes.SouinRetrieverResponseProperties{
+		RetrieverResponseProperties: baseRetriever,
+		ReverseProxyURL: u,
+	}
+
+	return retriever
 }
 
 func startServer(config *tls.Config) (net.Listener, *http.Server) {
@@ -82,11 +98,7 @@ func startServer(config *tls.Config) (net.Listener, *http.Server) {
 
 func main() {
 	c := configuration.GetConfiguration()
-	u, err := url.Parse(c.GetReverseProxyURL())
 	rc := coalescing.Initialize()
-	if err != nil {
-		panic("Reverse proxy url is missing")
-	}
 	configChannel := make(chan int)
 	tlsConfig := &tls.Config{
 		Certificates:       make([]tls.Certificate, 0),
@@ -99,27 +111,13 @@ func main() {
 		providers.InitProviders(tlsConfig, &configChannel, c)
 	}()
 
-	provider := providers2.InitializeProvider(c)
-	regexpUrls := helpers.InitializeRegexp(c)
-	var transport types.TransportInterface
-	transport = rfc.NewTransport(provider)
-	retriever := &types.RetrieverResponseProperties{
-		MatchedURL: configurationtypes.URL{
-			TTL:     c.GetDefaultCache().TTL,
-			Headers: c.GetDefaultCache().Headers,
-		},
-		Provider:        provider,
-		Configuration:   c,
-		RegexpUrls:      regexpUrls,
-		ReverseProxyURL: u,
-		Transport:       transport,
-	}
+	retriever := souinPluginInitializerFromConfiguration(c)
 
 	basePathAPIS := c.GetAPI().BasePath
 	if basePathAPIS == "" {
 		basePathAPIS = "/souin-api"
 	}
-	for _, endpoint := range api.Initialize(provider, c) {
+	for _, endpoint := range api.Initialize(retriever.Provider, c) {
 		if endpoint.IsEnabled() {
 			http.HandleFunc(fmt.Sprintf("%s%s", basePathAPIS, endpoint.GetBasePath()), endpoint.HandleRequest)
 			http.HandleFunc(fmt.Sprintf("%s%s/", basePathAPIS, endpoint.GetBasePath()), endpoint.HandleRequest)
@@ -128,7 +126,11 @@ func main() {
 
 	http.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
 		request.Header.Set("Date", time.Now().UTC().Format(time.RFC1123))
-		coalescing.ServeResponse(writer, request, retriever, callback, rc)
+		coalescing.ServeResponse(writer, request, retriever, callback, rc, func(w http.ResponseWriter, r *http.Request) error {
+			rr := service.RequestReverseProxy(r, *retriever)
+			rr.Proxy.ServeHTTP(w, r)
+			return nil
+		})
 	})
 	go func() {
 		listener, _ := startServer(tlsConfig)

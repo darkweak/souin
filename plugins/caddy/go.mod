@@ -4,7 +4,7 @@ go 1.15
 
 require (
 	github.com/caddyserver/caddy/v2 v2.3.0
-	github.com/darkweak/souin v1.4.2
+	github.com/darkweak/souin v1.4.4
 	github.com/dgraph-io/ristretto v0.0.3 // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // indirect

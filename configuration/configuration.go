@@ -58,7 +58,7 @@ func (c *Configuration) GetAPI() configurationtypes.API {
 }
 
 // GetConfiguration allow to retrieve Souin configuration through yaml file
-func GetConfiguration() configurationtypes.AbstractConfigurationInterface {
+func GetConfiguration() *Configuration {
 	data := readFile("./configuration/configuration.yml")
 	var config Configuration
 	if err := config.Parse(data); err != nil {
