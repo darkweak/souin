@@ -15,6 +15,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"sync"
 )
 
@@ -117,9 +118,24 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser) (interface{}, error) {
 		for nesting := h.Nesting(); h.NextBlock(nesting); {
 			rootOption := h.Val()
 			switch rootOption {
+			case "distributed":
+				args := h.RemainingArgs()
+				distributed, _ := strconv.ParseBool(args[0])
+				cfg.DefaultCache.Distributed = distributed
 			case "headers":
 				args := h.RemainingArgs()
 				cfg.DefaultCache.Headers = append(cfg.DefaultCache.Headers, args...)
+			case "olric":
+				provider := configurationtypes.CacheProvider{}
+				for nesting := h.Nesting(); h.NextBlock(nesting); {
+					directive := h.Val()
+					switch directive {
+					case "url":
+						urlArgs := h.RemainingArgs()
+						provider.URL = urlArgs[0]
+					}
+				}
+				cfg.DefaultCache.Olric = provider
 			case "ttl":
 				args := h.RemainingArgs()
 				cfg.DefaultCache.TTL = args[0]

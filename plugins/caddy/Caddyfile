@@ -2,7 +2,11 @@
     experimental_http3
     order souin before rewrite
     souin {
+        distributed true
         headers Content-Type Authorization
+        olric {
+            url `olric:3320`
+        }
         ttl 1000
     }
 }
