@@ -9,7 +9,7 @@ import (
 
 //Configuration holder
 type Configuration struct {
-	DefaultCache    configurationtypes.DefaultCache   `yaml:"default_cache"`
+	DefaultCache    *configurationtypes.DefaultCache  `yaml:"default_cache"`
 	API             configurationtypes.API            `yaml:"api"`
 	ReverseProxyURL string                            `yaml:"reverse_proxy_url"`
 	SSLProviders    []string                          `yaml:"ssl_providers"`
@@ -48,7 +48,7 @@ func (c *Configuration) GetSSLProviders() []string {
 }
 
 // GetDefaultCache get the default cache
-func (c *Configuration) GetDefaultCache() configurationtypes.DefaultCache {
+func (c *Configuration) GetDefaultCache() configurationtypes.DefaultCacheInterface {
 	return c.DefaultCache
 }
 

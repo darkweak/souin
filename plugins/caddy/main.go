@@ -1,15 +1,24 @@
 package caddy
 
 import (
+	"bytes"
+	"context"
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
 	"github.com/caddyserver/caddy/v2/caddyconfig/httpcaddyfile"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
 	"github.com/darkweak/souin/cache/coalescing"
+	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/plugins"
+	"github.com/darkweak/souin/rfc"
 	"go.uber.org/zap"
+	"io"
 	"net/http"
+	"net/http/httptest"
+	"sync"
 )
+
+const getterContextCtxKey string = "getter_context"
 
 func init() {
 	caddy.RegisterModule(SouinCaddyPlugin{})
@@ -22,8 +31,9 @@ var staticConfig Configuration
 // SouinCaddyPlugin declaration.
 type SouinCaddyPlugin struct {
 	plugins.SouinBasePlugin
-	configuration     *Configuration
-	logger            *zap.Logger
+	configuration *Configuration
+	logger        *zap.Logger
+	bufPool       sync.Pool
 }
 
 // CaddyModule returns the Caddy module information.
@@ -34,9 +44,40 @@ func (s SouinCaddyPlugin) CaddyModule() caddy.ModuleInfo {
 	}
 }
 
+type getterContext struct {
+	rw     http.ResponseWriter
+	req    *http.Request
+	next   caddyhttp.Handler
+}
+
 // ServeHTTP implements caddyhttp.MiddlewareHandler.
 func (s SouinCaddyPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request, next caddyhttp.Handler) error {
-	coalescing.ServeResponse(rw, req, s.Retriever, plugins.DefaultSouinPluginCallback, s.RequestCoalescing, next.ServeHTTP)
+	getterCtx := getterContext{rw, req, next}
+	ctx := context.WithValue(req.Context(), getterContextCtxKey, getterCtx)
+	req = req.WithContext(ctx)
+	buf := s.bufPool.Get().(*bytes.Buffer)
+	buf.Reset()
+	defer s.bufPool.Put(buf)
+	combo := ctx.Value(getterContextCtxKey).(getterContext)
+	coalescing.ServeResponse(rw, req, s.Retriever, plugins.DefaultSouinPluginCallback, s.RequestCoalescing, func(_ http.ResponseWriter, _ *http.Request) error {
+		recorder := httptest.NewRecorder()
+		e := combo.next.ServeHTTP(recorder, combo.req)
+		if e != nil {
+			return e
+		}
+
+		response := recorder.Result()
+		req.Response = response
+		response, e = s.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(req)
+		if e != nil {
+			return e
+		}
+
+		_, e = io.Copy(rw, response.Body)
+
+		return e
+	})
+
 	return nil
 }
 
@@ -49,6 +90,11 @@ func (s *SouinCaddyPlugin) Validate() error {
 // Provision to do the provisioning part.
 func (s *SouinCaddyPlugin) Provision(ctx caddy.Context) error {
 	s.logger = ctx.Logger(s)
+	s.bufPool = sync.Pool{
+		New: func() interface{} {
+			return new(bytes.Buffer)
+		},
+	}
 	if s.configuration == nil && &staticConfig != nil {
 		s.configuration = &staticConfig
 	}
@@ -57,29 +103,66 @@ func (s *SouinCaddyPlugin) Provision(ctx caddy.Context) error {
 	return nil
 }
 
-func parseCaddyfileGlobalOption(d *caddyfile.Dispenser) (interface{}, error) {
-	p := NewParser()
+func parseCaddyfileGlobalOption(h *caddyfile.Dispenser) (interface{}, error) {
+	var souin SouinCaddyPlugin
+	cfg := &Configuration{
+		DefaultCache: &CaddyDefaultCache{
+			Headers: []string{},
+		},
+		URLs: make(map[string]configurationtypes.URL),
+	}
 
-	for d.Next() {
-		for nesting := d.Nesting(); d.NextBlock(nesting); {
-			v := d.Val()
-			d.NextArg()
-			v2 := d.Val()
-
-			p.WriteLine(v, v2)
+	for h.Next() {
+		for nesting := h.Nesting(); h.NextBlock(nesting); {
+			rootOption := h.Val()
+			switch rootOption {
+			case "headers":
+				args := h.RemainingArgs()
+				cfg.DefaultCache.Headers = append(cfg.DefaultCache.Headers, args...)
+			case "ttl":
+				args := h.RemainingArgs()
+				cfg.DefaultCache.TTL = args[0]
+			default:
+				return nil, h.Errf("unsupported root directive: %s", rootOption)
+			}
 		}
 	}
 
-	var s SouinCaddyPlugin
-	err := staticConfig.Parse([]byte(p.str))
-	s.configuration = &staticConfig
-	return nil, err
+	souin.configuration = cfg
+	staticConfig = *cfg
+	return nil, nil
 }
 
-func parseCaddyfileHandlerDirective(_ httpcaddyfile.Helper) (caddyhttp.MiddlewareHandler, error) {
+func parseCaddyfileHandlerDirective(h httpcaddyfile.Helper) (caddyhttp.MiddlewareHandler, error) {
 	s := &SouinCaddyPlugin{}
 	if &staticConfig != nil {
 		s.configuration = &staticConfig
+	}
+
+	for h.Next() {
+		for nesting := h.Nesting(); h.NextBlock(nesting); {
+			switch h.Val() {
+			case "route":
+				args := h.RemainingArgs()
+				url := configurationtypes.URL{}
+
+				if _, ok := s.configuration.URLs[args[0]]; ok {
+					url = s.configuration.URLs[args[0]]
+				}
+				for nesting := h.Nesting(); h.NextBlock(nesting); {
+					directive := h.Val()
+					switch directive {
+					case "headers":
+						headers := h.RemainingArgs()
+						url.Headers = append(s.configuration.URLs[args[0]].Headers, headers...)
+					case "ttl":
+						url.TTL = h.RemainingArgs()[0]
+					}
+				}
+
+				s.configuration.URLs[args[0]] = url
+			}
+		}
 	}
 
 	return s, nil

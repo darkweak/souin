@@ -13,7 +13,6 @@ type SouinRetrieverResponseProperties struct {
 	ReverseProxyURL *url.URL
 }
 
-
 // GetProvider interface
 func (r *SouinRetrieverResponseProperties) GetProvider() types.AbstractProviderInterface {
 	return r.Provider

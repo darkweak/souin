@@ -31,6 +31,28 @@ type DefaultCache struct {
 	TTL     string   `yaml:"ttl"`
 }
 
+// GetHeaders returns the default headers that should be cached
+func (d *DefaultCache) GetHeaders() []string {
+	return d.Headers
+}
+
+// GetRegex returns the regex that shouldn't be cached
+func (d *DefaultCache) GetRegex() Regex {
+	return d.Regex
+}
+
+// GetTTL returns the default TTL
+func (d *DefaultCache) GetTTL() string {
+	return d.TTL
+}
+
+// DefaultCacheInterface interface
+type DefaultCacheInterface interface {
+	GetHeaders() []string
+	GetRegex() Regex
+	GetTTL() string
+}
+
 // APIEndpoint is the minimal structure to define an endpoint
 type APIEndpoint struct {
 	BasePath string `yaml:"basepath"`
@@ -62,6 +84,6 @@ type API struct {
 // AbstractConfigurationInterface interface
 type AbstractConfigurationInterface interface {
 	GetUrls() map[string]URL
-	GetDefaultCache() DefaultCache
+	GetDefaultCache() DefaultCacheInterface
 	GetAPI() API
 }

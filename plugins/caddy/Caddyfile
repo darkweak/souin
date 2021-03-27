@@ -1,23 +1,30 @@
 {
     experimental_http3
-    default_sni domain.com
+    order souin before rewrite
     souin {
-        headers [
-            Authorization
-        ]
-        port {
-            web 80
-            tls 443
-        }
-        regex {
-            exclude 'ARegex'
-        }
+        headers Content-Type Authorization
         ttl 1000
     }
 }
 
 :80
 
-route * {
-    souin
+route /testing-purpose {
+    souin {
+        headers Content-Type
+        ttl 100
+    }
+}
+route /testing-purpose-2 {
+    souin {
+        headers Content-Type
+        ttl 200
+    }
+    respond "Hello, s-maxage!"
+}
+route `/[A-z]-try*` {
+    souin {
+        headers Authorization
+        ttl 666
+    }
 }

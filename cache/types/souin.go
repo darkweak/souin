@@ -40,11 +40,11 @@ type RetrieverResponsePropertiesInterface interface {
 
 // RetrieverResponseProperties struct
 type RetrieverResponseProperties struct {
-	Provider        AbstractProviderInterface
-	Configuration   configurationtypes.AbstractConfigurationInterface
-	MatchedURL      configurationtypes.URL
-	RegexpUrls      regexp.Regexp
-	Transport       TransportInterface
+	Provider      AbstractProviderInterface
+	Configuration configurationtypes.AbstractConfigurationInterface
+	MatchedURL    configurationtypes.URL
+	RegexpUrls    regexp.Regexp
+	Transport     TransportInterface
 }
 
 // GetProvider interface

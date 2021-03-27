@@ -156,11 +156,11 @@ func TestRequestReverseProxy(t *testing.T) {
 		request,
 		souintypes.SouinRetrieverResponseProperties{
 			RetrieverResponseProperties: types.RetrieverResponseProperties{
-				Provider:        providers.InitializeProvider(conf),
-				Configuration:   conf,
-				MatchedURL:      tests.GetMatchedURL(tests.PATH),
+				Provider:      providers.InitializeProvider(conf),
+				Configuration: conf,
+				MatchedURL:    tests.GetMatchedURL(tests.PATH),
 			},
-			ReverseProxyURL:             u,
+			ReverseProxyURL: u,
 		},
 	)
 

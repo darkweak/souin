@@ -14,9 +14,6 @@ require (
 	golang.org/x/sync v0.0.0-20201207232520-09787c993a3a // indirect
 	golang.org/x/sys v0.0.0-20210309074719-68d13333faf2 // indirect
 	golang.org/x/tools v0.0.0-20200608174601-1b747fd94509 // indirect
-	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776
 )
 
-replace (
-	"github.com/darkweak/souin" latest => ../..
-)
+replace github.com/darkweak/souin latest => ../..

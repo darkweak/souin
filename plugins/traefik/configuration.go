@@ -7,9 +7,9 @@ import (
 
 //Configuration holder
 type Configuration struct {
-	DefaultCache    configurationtypes.DefaultCache   `yaml:"default_cache"`
-	API             configurationtypes.API            `yaml:"api"`
-	URLs            map[string]configurationtypes.URL `yaml:"urls"`
+	DefaultCache *configurationtypes.DefaultCache  `yaml:"default_cache"`
+	API          configurationtypes.API            `yaml:"api"`
+	URLs         map[string]configurationtypes.URL `yaml:"urls"`
 }
 
 // Parse configuration
@@ -26,7 +26,7 @@ func (c *Configuration) GetUrls() map[string]configurationtypes.URL {
 }
 
 // GetDefaultCache get the default cache
-func (c *Configuration) GetDefaultCache() configurationtypes.DefaultCache {
+func (c *Configuration) GetDefaultCache() configurationtypes.DefaultCacheInterface {
 	return c.DefaultCache
 }
 

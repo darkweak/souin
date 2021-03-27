@@ -63,13 +63,13 @@ func DefaultSouinPluginInitializerFromConfiguration(c configurationtypes.Abstrac
 
 	retriever := &types.RetrieverResponseProperties{
 		MatchedURL: configurationtypes.URL{
-			TTL:     c.GetDefaultCache().TTL,
-			Headers: c.GetDefaultCache().Headers,
+			TTL:     c.GetDefaultCache().GetTTL(),
+			Headers: c.GetDefaultCache().GetHeaders(),
 		},
-		Provider:        provider,
-		Configuration:   c,
-		RegexpUrls:      regexpUrls,
-		Transport:       transport,
+		Provider:      provider,
+		Configuration: c,
+		RegexpUrls:    regexpUrls,
+		Transport:     transport,
 	}
 
 	return retriever
