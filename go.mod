@@ -3,6 +3,7 @@ module github.com/darkweak/souin
 go 1.15
 
 require (
+	github.com/buraksezer/olric v0.3.6
 	github.com/caddyserver/caddy/v2 v2.3.0 // indirect
 	github.com/dgraph-io/ristretto v0.0.3
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible

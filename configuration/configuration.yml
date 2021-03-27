@@ -10,8 +10,11 @@ api:
     security: true
     enable: true
 default_cache:
+  distributed: true
   headers:
     - Authorization
+  olric:
+    url: 'olric:3320'
   port:
     web: 80
     tls: 443

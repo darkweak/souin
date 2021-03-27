@@ -11,7 +11,7 @@ import (
 )
 
 func commonInitializer() (*httptest.ResponseRecorder, *http.Request, *types.RetrieverResponseProperties) {
-	c := tests.MockConfiguration()
+	c := tests.MockConfiguration(tests.BaseConfiguration)
 	prs := providers.InitializeProvider(c)
 	regexpUrls := helpers.InitializeRegexp(c)
 	retriever := &types.RetrieverResponseProperties{

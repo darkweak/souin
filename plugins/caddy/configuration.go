@@ -4,31 +4,43 @@ import (
 	"github.com/darkweak/souin/configurationtypes"
 )
 
-// CaddyDefaultCache the struct
-type CaddyDefaultCache struct {
-	Headers []string
-	Regex   configurationtypes.Regex
-	TTL     string
+// DefaultCache the struct
+type DefaultCache struct {
+	Distributed bool
+	Headers     []string
+	Olric       configurationtypes.CacheProvider
+	Regex       configurationtypes.Regex
+	TTL         string
+}
+
+// GetDistributed returns if it uses Olric or not as provider
+func (d *DefaultCache) GetDistributed() bool {
+	return d.Distributed
 }
 
 // GetHeaders returns the default headers that should be cached
-func (d *CaddyDefaultCache) GetHeaders() []string {
+func (d *DefaultCache) GetHeaders() []string {
 	return d.Headers
 }
 
+// GetOlric returns olric configuration
+func (d *DefaultCache) GetOlric() configurationtypes.CacheProvider {
+	return d.Olric
+}
+
 // GetRegex returns the regex that shouldn't be cached
-func (d *CaddyDefaultCache) GetRegex() configurationtypes.Regex {
+func (d *DefaultCache) GetRegex() configurationtypes.Regex {
 	return d.Regex
 }
 
 // GetTTL returns the default TTL
-func (d *CaddyDefaultCache) GetTTL() string {
+func (d *DefaultCache) GetTTL() string {
 	return d.TTL
 }
 
 //Configuration holder
 type Configuration struct {
-	DefaultCache *CaddyDefaultCache
+	DefaultCache *DefaultCache
 	API          configurationtypes.API
 	URLs         map[string]configurationtypes.URL
 }

@@ -7,6 +7,15 @@ import (
 
 // InitializeProvider allow to generate the providers array according to the configuration
 func InitializeProvider(configuration configurationtypes.AbstractConfigurationInterface) types.AbstractProviderInterface {
-	r, _ := RistrettoConnectionFactory(configuration)
+	var r types.AbstractProviderInterface
+	if configuration.GetDefaultCache().GetDistributed() {
+		r, _ = OlricConnectionFactory(configuration)
+	} else {
+		r, _ = RistrettoConnectionFactory(configuration)
+	}
+	e := r.Init()
+	if e != nil {
+		panic(e)
+	}
 	return r
 }

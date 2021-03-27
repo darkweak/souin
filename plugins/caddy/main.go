@@ -18,7 +18,8 @@ import (
 	"sync"
 )
 
-const getterContextCtxKey string = "getter_context"
+type key string
+const getterContextCtxKey key = "getter_context"
 
 func init() {
 	caddy.RegisterModule(SouinCaddyPlugin{})
@@ -106,7 +107,7 @@ func (s *SouinCaddyPlugin) Provision(ctx caddy.Context) error {
 func parseCaddyfileGlobalOption(h *caddyfile.Dispenser) (interface{}, error) {
 	var souin SouinCaddyPlugin
 	cfg := &Configuration{
-		DefaultCache: &CaddyDefaultCache{
+		DefaultCache: &DefaultCache{
 			Headers: []string{},
 		},
 		URLs: make(map[string]configurationtypes.URL),
