@@ -1,62 +1,34 @@
 {
     experimental_http3
-    default_sni domain.com
+    order souin before rewrite
     souin {
-        api {
-            basepath /souin-api
-            security {
-                secret your_secret_key
-                enable true
-                users [
-                    {
-                        username user1
-                        password test
-                    }
-                ]
-            }
-            souin {
-                security true
-                enable true
-            }
+        distributed true
+        headers Content-Type Authorization
+        olric {
+            url `olric:3320`
         }
-        default_cache {
-            headers [
-                Authorization
-            ]
-            port {
-                web 80
-                tls 443
-            }
-            regex {
-                exclude 'ARegex'
-            }
-            ttl 1000
-        }
-        reverse_proxy_url 'http://domain.com:81'
-        ssl_providers [
-            traefik
-        ]
-        urls {
-            'domain.com/' {
-                ttl 100
-                headers [
-                    Authorization
-                    'Content-Type'
-                ]
-            }
-            'mysubdomain.domain.com' {
-                ttl 50
-                headers [
-                    Authorization
-                    'Content-Type'
-                ]
-            }
-        }
+        ttl 1000
     }
 }
 
 :80
 
-route * {
-    souin
+route /testing-purpose {
+    souin {
+        headers Content-Type
+        ttl 100
+    }
+}
+route /testing-purpose-2 {
+    souin {
+        headers Content-Type
+        ttl 200
+    }
+    respond "Hello, s-maxage!"
+}
+route `/[A-z]-try*` {
+    souin {
+        headers Authorization
+        ttl 666
+    }
 }

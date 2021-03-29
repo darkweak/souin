@@ -10,7 +10,7 @@ import (
 )
 
 func TestCheckToken(t *testing.T) {
-	config := tests.MockConfiguration()
+	config := tests.MockConfiguration(tests.BaseConfiguration)
 	security := InitializeSecurity(config)
 	r := httptest.NewRequest("GET", fmt.Sprintf("http://%s%s/valid_path", config.GetAPI().BasePath, security.basePath), nil)
 	w := httptest.NewRecorder()

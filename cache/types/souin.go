@@ -3,7 +3,6 @@ package types
 import (
 	"github.com/darkweak/souin/configurationtypes"
 	"net/http"
-	"net/url"
 	"regexp"
 )
 
@@ -35,19 +34,17 @@ type RetrieverResponsePropertiesInterface interface {
 	GetMatchedURL() configurationtypes.URL
 	SetMatchedURL(url configurationtypes.URL)
 	GetRegexpUrls() *regexp.Regexp
-	GetReverseProxyURL() *url.URL
 	GetTransport() TransportInterface
 	SetTransport(TransportInterface)
 }
 
 // RetrieverResponseProperties struct
 type RetrieverResponseProperties struct {
-	Provider        AbstractProviderInterface
-	Configuration   configurationtypes.AbstractConfigurationInterface
-	MatchedURL      configurationtypes.URL
-	RegexpUrls      regexp.Regexp
-	ReverseProxyURL *url.URL
-	Transport       TransportInterface
+	Provider      AbstractProviderInterface
+	Configuration configurationtypes.AbstractConfigurationInterface
+	MatchedURL    configurationtypes.URL
+	RegexpUrls    regexp.Regexp
+	Transport     TransportInterface
 }
 
 // GetProvider interface
@@ -73,11 +70,6 @@ func (r *RetrieverResponseProperties) SetMatchedURL(url configurationtypes.URL) 
 // GetRegexpUrls get the regexp urls
 func (r *RetrieverResponseProperties) GetRegexpUrls() *regexp.Regexp {
 	return &r.RegexpUrls
-}
-
-// GetReverseProxyURL get the reverse proxy url
-func (r *RetrieverResponseProperties) GetReverseProxyURL() *url.URL {
-	return r.ReverseProxyURL
 }
 
 // GetTransport get the transport according to the RFC

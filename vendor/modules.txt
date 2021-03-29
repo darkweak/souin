@@ -1,3 +1,27 @@
+# github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da
+github.com/armon/go-metrics
+# github.com/buraksezer/consistent v0.0.0-20191006190839-693edf70fd72
+github.com/buraksezer/consistent
+# github.com/buraksezer/olric v0.3.6
+## explicit
+github.com/buraksezer/olric
+github.com/buraksezer/olric/client
+github.com/buraksezer/olric/config
+github.com/buraksezer/olric/config/internal/loader
+github.com/buraksezer/olric/hasher
+github.com/buraksezer/olric/internal/bufpool
+github.com/buraksezer/olric/internal/discovery
+github.com/buraksezer/olric/internal/locker
+github.com/buraksezer/olric/internal/protocol
+github.com/buraksezer/olric/internal/storage
+github.com/buraksezer/olric/internal/transport
+github.com/buraksezer/olric/pkg/flog
+github.com/buraksezer/olric/pkg/service_discovery
+github.com/buraksezer/olric/query
+github.com/buraksezer/olric/serializer
+github.com/buraksezer/olric/stats
+# github.com/buraksezer/pool v3.0.0+incompatible
+github.com/buraksezer/pool
 # github.com/caddyserver/caddy/v2 v2.3.0
 ## explicit
 # github.com/cespare/xxhash v1.1.0
@@ -12,21 +36,105 @@ github.com/dgrijalva/jwt-go
 # github.com/fsnotify/fsnotify v1.4.9
 ## explicit
 github.com/fsnotify/fsnotify
+# github.com/golang/protobuf v1.4.3
+github.com/golang/protobuf/proto
+# github.com/google/btree v1.0.0
+github.com/google/btree
+# github.com/hashicorp/errwrap v1.0.0
+github.com/hashicorp/errwrap
+# github.com/hashicorp/go-immutable-radix v1.0.0
+github.com/hashicorp/go-immutable-radix
+# github.com/hashicorp/go-msgpack v0.5.3
+github.com/hashicorp/go-msgpack/codec
+# github.com/hashicorp/go-multierror v1.0.0
+github.com/hashicorp/go-multierror
+# github.com/hashicorp/go-sockaddr v1.0.2
+github.com/hashicorp/go-sockaddr
+# github.com/hashicorp/golang-lru v0.5.1
+github.com/hashicorp/golang-lru/simplelru
+# github.com/hashicorp/logutils v1.0.0
+github.com/hashicorp/logutils
+# github.com/hashicorp/memberlist v0.1.5
+github.com/hashicorp/memberlist
+# github.com/miekg/dns v1.1.31
+github.com/miekg/dns
+# github.com/pkg/errors v0.9.1
+github.com/pkg/errors
 # github.com/pquerna/cachecontrol v0.0.0-20200921180117-858c6e7e6b7e
 ## explicit
 github.com/pquerna/cachecontrol
 github.com/pquerna/cachecontrol/cacheobject
+# github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529
+github.com/sean-/seed
+# github.com/vmihailenco/msgpack v4.0.4+incompatible
+github.com/vmihailenco/msgpack
+github.com/vmihailenco/msgpack/codes
+# golang.org/x/crypto v0.0.0-20201001193750-eb9a90e9f9cb
+golang.org/x/crypto/ed25519
+golang.org/x/crypto/ed25519/internal/edwards25519
 # golang.org/x/lint v0.0.0-20200302205851-738671d3881b
 ## explicit
+# golang.org/x/net v0.0.0-20201110031124-69a78807bb2b
+golang.org/x/net/bpf
+golang.org/x/net/context
+golang.org/x/net/internal/iana
+golang.org/x/net/internal/socket
+golang.org/x/net/ipv4
+golang.org/x/net/ipv6
 # golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
 ## explicit
+golang.org/x/sync/errgroup
+golang.org/x/sync/semaphore
 golang.org/x/sync/singleflight
 # golang.org/x/sys v0.0.0-20210309074719-68d13333faf2
 ## explicit
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
+golang.org/x/sys/windows
 # golang.org/x/tools v0.0.0-20200608174601-1b747fd94509
 ## explicit
+# google.golang.org/appengine v1.6.5
+google.golang.org/appengine
+google.golang.org/appengine/datastore
+google.golang.org/appengine/datastore/internal/cloudkey
+google.golang.org/appengine/datastore/internal/cloudpb
+google.golang.org/appengine/internal
+google.golang.org/appengine/internal/app_identity
+google.golang.org/appengine/internal/base
+google.golang.org/appengine/internal/datastore
+google.golang.org/appengine/internal/log
+google.golang.org/appengine/internal/modules
+google.golang.org/appengine/internal/remote_api
+# google.golang.org/protobuf v1.24.0
+google.golang.org/protobuf/encoding/prototext
+google.golang.org/protobuf/encoding/protowire
+google.golang.org/protobuf/internal/descfmt
+google.golang.org/protobuf/internal/descopts
+google.golang.org/protobuf/internal/detrand
+google.golang.org/protobuf/internal/encoding/defval
+google.golang.org/protobuf/internal/encoding/messageset
+google.golang.org/protobuf/internal/encoding/tag
+google.golang.org/protobuf/internal/encoding/text
+google.golang.org/protobuf/internal/errors
+google.golang.org/protobuf/internal/fieldnum
+google.golang.org/protobuf/internal/fieldsort
+google.golang.org/protobuf/internal/filedesc
+google.golang.org/protobuf/internal/filetype
+google.golang.org/protobuf/internal/flags
+google.golang.org/protobuf/internal/genname
+google.golang.org/protobuf/internal/impl
+google.golang.org/protobuf/internal/mapsort
+google.golang.org/protobuf/internal/pragma
+google.golang.org/protobuf/internal/set
+google.golang.org/protobuf/internal/strs
+google.golang.org/protobuf/internal/version
+google.golang.org/protobuf/proto
+google.golang.org/protobuf/reflect/protoreflect
+google.golang.org/protobuf/reflect/protoregistry
+google.golang.org/protobuf/runtime/protoiface
+google.golang.org/protobuf/runtime/protoimpl
+# gopkg.in/yaml.v2 v2.3.0
+gopkg.in/yaml.v2
 # gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776
 ## explicit
 gopkg.in/yaml.v3

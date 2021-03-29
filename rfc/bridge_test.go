@@ -12,7 +12,7 @@ import (
 )
 
 func commonInitializer() (*http.Request, types.AbstractProviderInterface) {
-	c := tests.MockConfiguration()
+	c := tests.MockConfiguration(tests.BaseConfiguration)
 	prs := providers.InitializeProvider(c)
 	r := httptest.NewRequest("GET", "http://domain.com/testing", nil)
 	httptest.NewRecorder()

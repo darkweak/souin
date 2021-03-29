@@ -16,7 +16,7 @@ func TestInitProviders(t *testing.T) {
 	}
 	v, _ := tls.LoadX509KeyPair("server.crt", "server.key")
 	config.Certificates = append(config.Certificates, v)
-	InitProviders(config, &configChannel, tests.MockConfiguration())
+	InitProviders(config, &configChannel, tests.MockConfiguration(tests.BaseConfiguration))
 }
 
 func TestCommonProvider_LoadFromConfigFile(t *testing.T) {

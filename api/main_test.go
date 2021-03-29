@@ -9,7 +9,7 @@ import (
 )
 
 func TestInitialize(t *testing.T) {
-	config := tests.MockConfiguration()
+	config := tests.MockConfiguration(tests.BaseConfiguration)
 	prs := providers.InitializeProvider(config)
 
 	endpoints := Initialize(prs, config)

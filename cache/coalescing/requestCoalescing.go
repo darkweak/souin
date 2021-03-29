@@ -1,7 +1,6 @@
 package coalescing
 
 import (
-	"github.com/darkweak/souin/cache/service"
 	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/rfc"
 	"golang.org/x/sync/singleflight"
@@ -11,12 +10,11 @@ import (
 )
 
 // Temporise will run one call to proxy then use the response for other requests that couldn't reach cached response
-func (r *RequestCoalescing) Temporise(req *http.Request, rw http.ResponseWriter, retriever types.RetrieverResponsePropertiesInterface) {
+func (r *RequestCoalescing) Temporise(req *http.Request, rw http.ResponseWriter, nextMiddleware func(http.ResponseWriter, *http.Request) error) {
 	ch := r.requestGroup.DoChan(rfc.GetCacheKey(req), func() (interface{}, error) {
-		rr := service.RequestReverseProxy(req, retriever)
-		rr.Proxy.ServeHTTP(rw, req)
+		e := nextMiddleware(rw, req)
 
-		return nil, nil
+		return nil, e
 	})
 
 	timeout := time.After(60 * time.Second)
@@ -39,7 +37,7 @@ func (r *RequestCoalescing) Temporise(req *http.Request, rw http.ResponseWriter,
 func Initialize() *RequestCoalescing {
 	var requestGroup singleflight.Group
 	return &RequestCoalescing{
-		requestGroup,
+		requestGroup: requestGroup,
 	}
 }
 
@@ -48,8 +46,9 @@ func ServeResponse(
 	res http.ResponseWriter,
 	req *http.Request,
 	retriever types.RetrieverResponsePropertiesInterface,
-	callback func(rw http.ResponseWriter, rq *http.Request, r types.RetrieverResponsePropertiesInterface, rc RequestCoalescingInterface),
+	callback func(http.ResponseWriter, *http.Request, types.RetrieverResponsePropertiesInterface, RequestCoalescingInterface, func(http.ResponseWriter, *http.Request) error),
 	rc RequestCoalescingInterface,
+	nm func(w http.ResponseWriter, r *http.Request) error,
 ) {
 	path := req.Host + req.URL.Path
 	regexpURL := retriever.GetRegexpUrls().FindString(path)
@@ -64,5 +63,5 @@ func ServeResponse(
 		}
 	}
 
-	callback(res, req, retriever, rc)
+	callback(res, req, retriever, rc, nm)
 }

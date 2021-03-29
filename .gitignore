@@ -7,3 +7,4 @@ Dockerfile
 .DS_Store
 traefik.json
 *.iml
+caddy

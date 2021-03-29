@@ -38,7 +38,7 @@ func TestIsVaryCacheable(t *testing.T) {
 }
 
 func TestVaryTransport_GetProvider(t *testing.T) {
-	c := tests.MockConfiguration()
+	c := tests.MockConfiguration(tests.BaseConfiguration)
 	prs := providers.InitializeProvider(c)
 
 	tr := NewTransport(prs)
@@ -48,11 +48,11 @@ func TestVaryTransport_GetProvider(t *testing.T) {
 }
 
 func TestVaryTransport_SetURL(t *testing.T) {
-	config := tests.MockConfiguration()
+	config := tests.MockConfiguration(tests.BaseConfiguration)
 	prs := providers.InitializeProvider(config)
 	matchedURL := configurationtypes.URL{
-		TTL:     config.GetDefaultCache().TTL,
-		Headers: config.GetDefaultCache().Headers,
+		TTL:     config.GetDefaultCache().GetTTL(),
+		Headers: config.GetDefaultCache().GetHeaders(),
 	}
 
 	tr := NewTransport(prs)
@@ -67,7 +67,7 @@ func TestVaryTransport_SetCache(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "http://domain.com/testing", nil)
 	res := httptest.NewRecorder().Result()
 	key := GetCacheKey(req)
-	config := tests.MockConfiguration()
+	config := tests.MockConfiguration(tests.BaseConfiguration)
 	prs := providers.InitializeProvider(config)
 	tr := NewTransport(prs)
 	tr.SetCache(key, res, req)

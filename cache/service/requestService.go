@@ -2,14 +2,14 @@ package service
 
 import (
 	"bytes"
+	"github.com/darkweak/souin/cache/types"
+	"github.com/darkweak/souin/configurationtypes"
+	souintypes "github.com/darkweak/souin/plugins/souin/types"
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
 	"strconv"
 	"strings"
-
-	"github.com/darkweak/souin/cache/types"
-	"github.com/darkweak/souin/configurationtypes"
 )
 
 func responseBodyExtractor(resp *http.Response) []byte {
@@ -47,7 +47,7 @@ func RewriteResponse(resp *http.Response) []byte {
 }
 
 // RequestReverseProxy returns response from one of providers or the proxy response
-func RequestReverseProxy(req *http.Request, r types.RetrieverResponsePropertiesInterface) types.ReverseResponse {
+func RequestReverseProxy(req *http.Request, r souintypes.SouinRetrieverResponseProperties) types.ReverseResponse {
 	url := r.GetReverseProxyURL()
 	req.URL.Host = req.Host
 	req.URL.Scheme = url.Scheme
