@@ -35,7 +35,7 @@ FROM alpine:latest AS souin
 
 COPY --from=builder /app/cmd/souin .
 COPY --from=builder /app/src/github.com/darkweak/souin/configuration .
-COPY --from=builder /ssl/ .
+RUN mkdir -p /ssl
 COPY --from=builder /app/src/github.com/darkweak/souin/default .
 RUN mkdir -p configuration
 RUN mv *.yml configuration/
