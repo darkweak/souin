@@ -15,6 +15,9 @@ build-dev: env-dev ## Build containers with dev env vars
 	$(DC_BUILD) souin
 	$(MAKE) up
 
+health-check-prod: build-app ## Production container health check
+	$(DC_EXEC) souin ls
+
 coverage: ## Show code coverage
 	$(DC_EXEC) souin go test ./... -coverprofile cover.out
 	$(DC_EXEC) souin go tool cover -func cover.out
@@ -54,4 +57,4 @@ tests: ## Run tests
 up: ## Up containers
 	$(DC) up -d --remove-orphans
 
-validate: lint tests ## Run lint and tests
+validate: lint tests down health-check-prod ## Run lint, tests and ensure prod can build
