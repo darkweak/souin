@@ -25,7 +25,9 @@ func New(_ context.Context, next http.Handler, config *Configuration, name strin
 	return s, nil
 }
 
-func (e *SouinTraefikPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	coalescing.ServeResponse(rw, req, e.Retriever, plugins.DefaultSouinPluginCallback, e.RequestCoalescing)
-	e.next.ServeHTTP(rw, req)
+func (s *SouinTraefikPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	coalescing.ServeResponse(rw, req, s.Retriever, plugins.DefaultSouinPluginCallback, s.RequestCoalescing, func(w http.ResponseWriter, r *http.Request) error {
+		s.next.ServeHTTP(w, r)
+		return nil
+	})
 }

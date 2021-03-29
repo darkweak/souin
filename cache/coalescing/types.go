@@ -1,7 +1,6 @@
 package coalescing
 
 import (
-	"github.com/darkweak/souin/cache/types"
 	"golang.org/x/sync/singleflight"
 	"net/http"
 )
@@ -19,5 +18,5 @@ type RequestCoalescing struct {
 
 // RequestCoalescingInterface is the interface
 type RequestCoalescingInterface interface {
-	Temporise(*http.Request, http.ResponseWriter, types.RetrieverResponsePropertiesInterface)
+	Temporise(*http.Request, http.ResponseWriter, func(http.ResponseWriter, *http.Request) error)
 }

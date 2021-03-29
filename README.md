@@ -29,7 +29,7 @@ As it's written in go, it can be deployed on any server and thanks to the docker
 It's RFC compatible, supporting Vary, request coalescing and other specifications related to the [RFC-7234](https://tools.ietf.org/html/rfc7234)
 
 ## Disclaimer
-If you need redis, olric or other custom cache providers, you have to use the full-featured version. You can read the documentation, on [the full-featured branch](https://github.com/Darkweak/Souin/tree/full-version) to discover the specific parts.
+If you need redis or other custom cache providers, you have to use the full-featured version. You can read the documentation, on [the full-featured branch](https://github.com/Darkweak/Souin/tree/full-version) to discover the specific parts.
 
 ## Configuration
 The configuration file is stored at `/anywhere/configuration.yml`. You can edit it provided you fill at least the required parameters as shown below.
@@ -66,12 +66,11 @@ api:
     security: true # Enable JWT Authentication token
     enable: true # Enable the endpoints
 default_cache:
+  distributed: true # Use Olric distributed storage
   headers: # Default headers concatenated in stored keys
     - Authorization
-  cache_providers:
-    - all # Enable all providers by default
-  redis: # Redis configuration
-    url: 'redis:6379'
+  olric: # If distributed is set to true, you have to define the olric part
+    url: 'olric:3320' # Olric server
   regex:
     exclude: 'ARegexHere' # Regex to exclude from cache
 ssl_providers: # The {providers}.json to use
@@ -98,14 +97,11 @@ urls:
 | `api.security.users`                 | Array of authorized users with username x password combo                   | `- username: admin`<br/><br/>`  password: admin`                             |
 | `api.souin.security`                 | Enable JWT validation to access the resource                               | `true`<br/><br/>`(default: false)`                                           |
 | `default_cache.headers`              | List of headers to include to the cache                                    | `- Authorization`<br/><br/>`- Content-Type`<br/><br/>`- X-Additional-Header` |
-| `default_cache.cache_providers`      | Your providers list to cache your data, by default it will use all systems | `- all`<br/><br/>`- ristretto`<br/><br/>`- redis`                            |
-| `default_cache.redis.url`            | The redis url, used if you enabled it in the provider section              | `redis:6379` (container way) and `http://yourdomain.com:6379` (network way)  |
 | `default_cache.regex.exclude`        | The regex used to prevent paths being cached                               | `^[A-z]+.*$`                                                                 |
 | `ssl_providers`                      | List of your providers handling certificates                               | `- traefik`<br/><br/>`- nginx`<br/><br/>`- apache`                           |
 | `urls.{your url or regex}`           | List of your custom configuration depending each URL or regex              | 'https:\/\/yourdomain.com'                                                   |
 | `urls.{your url or regex}.ttl`       | Override the default TTL if defined                                        | 99999                                                                        |
 | `urls.{your url or regex}.headers`   | Override the default headers if defined                                    | `- Authorization`<br/><br/>`- 'Content-Type'`                                |
-| `urls.{your url or regex}.providers` | Override the default providers if defined                                  | `- redis`<br/><br/>`- ristretto`                                             |
 
 ## APIs
 All endpoints are accessible through the `api.basepath` configuration line or by default through `/souin-api` to avoid named route conflicts. Be sure to define an unused route to not break your existing application.
@@ -193,17 +189,11 @@ services:
     ports:
       - 80:80
       - 443:443
-    depends_on:
-      - redis
     environment:
       GOPATH: /app
     volumes:
       - /anywhere/traefik.json:/ssl/traefik.json
       - /anywhere/configuration.yml:/configuration/configuration.yml
-    <<: *networks
-
-  redis:
-    image: redis:alpine
     <<: *networks
 
 networks:

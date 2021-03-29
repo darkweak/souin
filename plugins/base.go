@@ -9,7 +9,6 @@ import (
 	"github.com/darkweak/souin/rfc"
 	"io/ioutil"
 	"net/http"
-	"net/url"
 )
 
 // DefaultSouinPluginCallback is the default callback for plugins
@@ -18,6 +17,7 @@ func DefaultSouinPluginCallback(
 	req *http.Request,
 	retriever types.RetrieverResponsePropertiesInterface,
 	rc coalescing.RequestCoalescingInterface,
+	nextMiddleware func(w http.ResponseWriter, r *http.Request) error,
 ) {
 	responses := make(chan types.ReverseResponse)
 
@@ -51,7 +51,7 @@ func DefaultSouinPluginCallback(
 	}
 
 	close(responses)
-	rc.Temporise(req, res, retriever)
+	rc.Temporise(req, res, nextMiddleware)
 }
 
 // DefaultSouinPluginInitializerFromConfiguration is the default initialization for plugins
@@ -60,21 +60,16 @@ func DefaultSouinPluginInitializerFromConfiguration(c configurationtypes.Abstrac
 	regexpUrls := helpers.InitializeRegexp(c)
 	var transport types.TransportInterface
 	transport = rfc.NewTransport(provider)
-	u, err := url.Parse(c.GetReverseProxyURL())
-	if err != nil {
-		panic("Reverse proxy url is missing")
-	}
 
 	retriever := &types.RetrieverResponseProperties{
 		MatchedURL: configurationtypes.URL{
-			TTL:     c.GetDefaultCache().TTL,
-			Headers: c.GetDefaultCache().Headers,
+			TTL:     c.GetDefaultCache().GetTTL(),
+			Headers: c.GetDefaultCache().GetHeaders(),
 		},
-		Provider:        provider,
-		Configuration:   c,
-		RegexpUrls:      regexpUrls,
-		ReverseProxyURL: u,
-		Transport:       transport,
+		Provider:      provider,
+		Configuration: c,
+		RegexpUrls:    regexpUrls,
+		Transport:     transport,
 	}
 
 	return retriever

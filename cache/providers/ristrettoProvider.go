@@ -83,3 +83,6 @@ func (provider *Ristretto) Delete(key string) {
 func (provider *Ristretto) Init() error {
 	return nil
 }
+
+// Reset method will reset or close provider
+func (provider *Ristretto) Reset() {}

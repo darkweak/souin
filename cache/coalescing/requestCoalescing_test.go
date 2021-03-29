@@ -11,7 +11,7 @@ import (
 )
 
 func commonInitializer() (*httptest.ResponseRecorder, *http.Request, *types.RetrieverResponseProperties) {
-	c := tests.MockConfiguration()
+	c := tests.MockConfiguration(tests.BaseConfiguration)
 	prs := providers.InitializeProvider(c)
 	regexpUrls := helpers.InitializeRegexp(c)
 	retriever := &types.RetrieverResponseProperties{
@@ -34,11 +34,16 @@ func TestServeResponse(t *testing.T) {
 		r,
 		retriever,
 		func(
-			rw http.ResponseWriter,
-			rq *http.Request,
-			r types.RetrieverResponsePropertiesInterface,
-			rc RequestCoalescingInterface) {
+			http.ResponseWriter,
+			*http.Request,
+			types.RetrieverResponsePropertiesInterface,
+			RequestCoalescingInterface,
+			func(http.ResponseWriter, *http.Request) error,
+		) {
 		},
 		rc,
+		func(http.ResponseWriter, *http.Request) error {
+			return nil
+		},
 	)
 }

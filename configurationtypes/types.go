@@ -12,11 +12,6 @@ type Cache struct {
 	Port    Port     `yaml:"port"`
 }
 
-//Redis config
-type Redis struct {
-	URL string `yaml:"url"`
-}
-
 //Regex config
 type Regex struct {
 	Exclude string `yaml:"exclude"`
@@ -28,13 +23,53 @@ type URL struct {
 	Headers []string `yaml:"headers"`
 }
 
+//CacheProvider config
+type CacheProvider struct {
+	URL string `yaml:"url"`
+}
+
 //DefaultCache configuration
 type DefaultCache struct {
-	Headers []string `yaml:"headers"`
-	Port    Port     `yaml:"port"`
-	Redis   Redis    `yaml:"redis"`
-	Regex   Regex    `yaml:"regex"`
-	TTL     string   `yaml:"ttl"`
+	Distributed bool          `yaml:"distributed"`
+	Headers     []string      `yaml:"headers"`
+	Olric       CacheProvider `yaml:"olric"`
+	Port        Port          `yaml:"port"`
+	Regex       Regex         `yaml:"regex"`
+	TTL         string        `yaml:"ttl"`
+}
+
+// GetDistributed returns if it uses Olric or not as provider
+func (d *DefaultCache) GetDistributed() bool {
+	return d.Distributed
+}
+
+// GetHeaders returns the default headers that should be cached
+func (d *DefaultCache) GetHeaders() []string {
+	return d.Headers
+}
+
+// GetOlric returns olric configuration
+func (d *DefaultCache) GetOlric() CacheProvider {
+	return d.Olric
+}
+
+// GetRegex returns the regex that shouldn't be cached
+func (d *DefaultCache) GetRegex() Regex {
+	return d.Regex
+}
+
+// GetTTL returns the default TTL
+func (d *DefaultCache) GetTTL() string {
+	return d.TTL
+}
+
+// DefaultCacheInterface interface
+type DefaultCacheInterface interface {
+	GetDistributed() bool
+	GetOlric() CacheProvider
+	GetHeaders() []string
+	GetRegex() Regex
+	GetTTL() string
 }
 
 // APIEndpoint is the minimal structure to define an endpoint
@@ -67,10 +102,7 @@ type API struct {
 
 // AbstractConfigurationInterface interface
 type AbstractConfigurationInterface interface {
-	Parse(data []byte) error
 	GetUrls() map[string]URL
-	GetReverseProxyURL() string
-	GetSSLProviders() []string
-	GetDefaultCache() DefaultCache
+	GetDefaultCache() DefaultCacheInterface
 	GetAPI() API
 }

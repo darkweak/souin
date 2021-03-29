@@ -10,12 +10,15 @@ api:
     security: true # Enable JWT Authentication token
     enable: true # Enable the endpoints
 default_cache: # Required part
+  distributed: true # Use Olric distributed storage
   headers: # Default headers concatenated in stored keys
     - Authorization
+  olric: # If distributed is set to true, you have to define the olric part
+    url: 'olric:3320' # Olric server
   port: # Ports to expose Souin
     web: 80
     tls: 443
-  regex: # Redis configuration
+  regex: # Regex configuration
     exclude: 'ARegexHere' # Regex to exclude from cache
   ttl: 10 # Default TTL
 reverse_proxy_url: 'http://traefik' # If it's in the same network you can use http://your-service. Then just use https://yourdomain.com

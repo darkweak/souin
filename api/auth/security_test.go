@@ -50,28 +50,28 @@ urls:
 		errors.GenerateError(t, "Basepath should be /mybasepath")
 	}
 
-	security = InitializeSecurity(tests.MockConfiguration())
+	security = InitializeSecurity(tests.MockConfiguration(tests.BaseConfiguration))
 	if security.basePath != "/authentication" {
 		errors.GenerateError(t, "Basepath should be /authentication")
 	}
 }
 
 func TestSecurityAPI_GetBasePath(t *testing.T) {
-	security := InitializeSecurity(tests.MockConfiguration())
+	security := InitializeSecurity(tests.MockConfiguration(tests.BaseConfiguration))
 	if security.GetBasePath() != "/authentication" {
 		errors.GenerateError(t, "Basepath should be /authentication")
 	}
 }
 
 func TestSecurityAPI_IsEnabled(t *testing.T) {
-	security := InitializeSecurity(tests.MockConfiguration())
+	security := InitializeSecurity(tests.MockConfiguration(tests.BaseConfiguration))
 	if security.IsEnabled() != true {
 		errors.GenerateError(t, "Security should be enabled")
 	}
 }
 
 func TestSecurityAPI_HandleRequest(t *testing.T) {
-	config := tests.MockConfiguration()
+	config := tests.MockConfiguration(tests.BaseConfiguration)
 	security := InitializeSecurity(config)
 	r := httptest.NewRequest("GET", fmt.Sprintf("http://%s%s/invalid_path", config.GetAPI().BasePath, security.basePath), nil)
 	w := httptest.NewRecorder()

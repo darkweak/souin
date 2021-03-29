@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	souintypes "github.com/darkweak/souin/plugins/souin/types"
 	"github.com/darkweak/souin/tests"
 	"io/ioutil"
 	"net/http"
@@ -100,7 +101,7 @@ func mockRewriteResponse(method string, body string, path string, code int) []by
 }
 
 func TestKeyShouldBeDeletedOnPost(t *testing.T) {
-	c := tests.MockConfiguration()
+	c := tests.MockConfiguration(tests.BaseConfiguration)
 	prs := providers.InitializeProvider(c)
 	populateProviderWithFakeData(prs)
 	res := mockRewriteResponse(http.MethodPost, "My second response", "/1", 201)
@@ -131,7 +132,7 @@ func verifyKeysExists(t *testing.T, path string, keys []string, isKeyDeleted boo
 }
 
 func TestKeyShouldBeDeletedOnPut(t *testing.T) {
-	c := tests.MockConfiguration()
+	c := tests.MockConfiguration(tests.BaseConfiguration)
 	prs := providers.InitializeProvider(c)
 	populateProviderWithFakeData(prs)
 	mockResponse("/1", http.MethodPut, "My second response", 200)
@@ -140,7 +141,7 @@ func TestKeyShouldBeDeletedOnPut(t *testing.T) {
 }
 
 func TestKeyShouldBeDeletedOnDelete(t *testing.T) {
-	c := tests.MockConfiguration()
+	c := tests.MockConfiguration(tests.BaseConfiguration)
 	prs := providers.InitializeProvider(c)
 	populateProviderWithFakeData(prs)
 	mockResponse("/1", http.MethodDelete, "", 200)
@@ -149,14 +150,16 @@ func TestKeyShouldBeDeletedOnDelete(t *testing.T) {
 
 func TestRequestReverseProxy(t *testing.T) {
 	request := httptest.NewRequest("GET", "http://"+tests.DOMAIN+tests.PATH, nil)
-	conf := tests.MockConfiguration()
+	conf := tests.MockConfiguration(tests.BaseConfiguration)
 	u, _ := url.Parse(conf.GetReverseProxyURL())
 	response := RequestReverseProxy(
 		request,
-		&types.RetrieverResponseProperties{
-			Provider:        providers.InitializeProvider(conf),
-			Configuration:   conf,
-			MatchedURL:      tests.GetMatchedURL(tests.PATH),
+		souintypes.SouinRetrieverResponseProperties{
+			RetrieverResponseProperties: types.RetrieverResponseProperties{
+				Provider:      providers.InitializeProvider(conf),
+				Configuration: conf,
+				MatchedURL:    tests.GetMatchedURL(tests.PATH),
+			},
 			ReverseProxyURL: u,
 		},
 	)

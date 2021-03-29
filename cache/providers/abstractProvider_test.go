@@ -8,7 +8,7 @@ import (
 )
 
 func TestInitializeProvider(t *testing.T) {
-	c := tests.MockConfiguration()
+	c := tests.MockConfiguration(tests.BaseConfiguration)
 	p := InitializeProvider(c)
 	err := p.Init()
 	if nil != err {
@@ -17,11 +17,11 @@ func TestInitializeProvider(t *testing.T) {
 }
 
 func TestPathnameNotInExcludeRegex(t *testing.T) {
-	config := tests.MockConfiguration()
-	if helpers.PathnameNotInExcludeRegex(config.GetDefaultCache().Regex.Exclude, config) {
+	config := tests.MockConfiguration(tests.BaseConfiguration)
+	if helpers.PathnameNotInExcludeRegex(config.GetDefaultCache().GetRegex().Exclude, config) {
 		errors.GenerateError(t, "Pathname should be in regex")
 	}
-	if helpers.PathnameNotInExcludeRegex(config.GetDefaultCache().Regex.Exclude+"/A", config) {
+	if helpers.PathnameNotInExcludeRegex(config.GetDefaultCache().GetRegex().Exclude+"/A", config) {
 		errors.GenerateError(t, "Pathname should be in regex")
 	}
 	if !helpers.PathnameNotInExcludeRegex("/BadPath", config) {

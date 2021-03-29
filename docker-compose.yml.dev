@@ -18,6 +18,14 @@ services:
       - ./configuration/configuration.yml:/configuration.yml
     <<: *networks
 
+  olric:
+    build:
+      context: ./olric
+      dockerfile: Dockerfile-olric
+      target: olric
+    restart: on-failure
+    <<: *networks
+
 networks:
   your_network:
     external: true

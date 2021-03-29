@@ -20,6 +20,6 @@ func InitializeRegexp(configurationInstance configurationtypes.AbstractConfigura
 
 // PathnameNotInExcludeRegex check if pathname is in parameter regex var
 func PathnameNotInExcludeRegex(pathname string, configuration configurationtypes.AbstractConfigurationInterface) bool {
-	b, _ := regexp.Match(configuration.GetDefaultCache().Regex.Exclude, []byte(pathname))
+	b, _ := regexp.Match(configuration.GetDefaultCache().GetRegex().Exclude, []byte(pathname))
 	return !b
 }

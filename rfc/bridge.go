@@ -20,13 +20,14 @@ const (
 // CachedResponse returns the cached http.Response for req if present, and nil
 // otherwise.
 func CachedResponse(c types.AbstractProviderInterface, req *http.Request, cachedKey string, transport types.TransportInterface, update bool) (types.ReverseResponse, error) {
+	clonedReq := cloneRequest(req)
 	cachedVal := c.Get(cachedKey)
 	b := bytes.NewBuffer(cachedVal)
-	response, _ := http.ReadResponse(bufio.NewReader(b), req)
+	response, _ := http.ReadResponse(bufio.NewReader(b), clonedReq)
 	if update && nil != response {
 		go func() {
 			// Update current cached response in background
-			_, _ = transport.UpdateCacheEventually(req)
+			_, _ = transport.UpdateCacheEventually(clonedReq)
 		}()
 	}
 	return types.ReverseResponse{
@@ -38,10 +39,12 @@ func CachedResponse(c types.AbstractProviderInterface, req *http.Request, cached
 func (t *VaryTransport) UpdateCacheEventually(req *http.Request) (resp *http.Response, err error) {
 	cacheKey := GetCacheKey(req)
 	cacheable := IsVaryCacheable(req)
-	var cachedResp *http.Response
+	cachedResp := req.Response
 	if cacheable {
 		cr, _ := CachedResponse(t.GetProvider(), req, cacheKey, t, false)
-		cachedResp = cr.Response
+		if cr.Response != nil {
+			cachedResp = cr.Response
+		}
 	} else {
 		t.GetProvider().Delete(cacheKey)
 	}

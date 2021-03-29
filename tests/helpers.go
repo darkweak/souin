@@ -8,12 +8,12 @@ import (
 
 // GetMatchedURL is an helper to mock the matchedURL
 func GetMatchedURL(key string) configurationtypes.URL {
-	config := MockConfiguration()
+	config := MockConfiguration(BaseConfiguration)
 	regexpUrls := MockInitializeRegexp(config)
 	regexpURL := regexpUrls.FindString(key)
 	matchedURL := configurationtypes.URL{
-		TTL:     config.GetDefaultCache().TTL,
-		Headers: config.GetDefaultCache().Headers,
+		TTL:     config.GetDefaultCache().GetTTL(),
+		Headers: config.GetDefaultCache().GetHeaders(),
 	}
 	if "" != regexpURL {
 		matchedURL = config.GetUrls()[regexpURL]

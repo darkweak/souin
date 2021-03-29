@@ -11,7 +11,7 @@ import (
 )
 
 func mockSouinAPI() *SouinAPI {
-	config := tests.MockConfiguration()
+	config := tests.MockConfiguration(tests.BaseConfiguration)
 	prs := providers.InitializeProvider(config)
 	security := auth.InitializeSecurity(config)
 	return &SouinAPI{

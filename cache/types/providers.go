@@ -12,4 +12,5 @@ type AbstractProviderInterface interface {
 	Set(key string, value []byte, url configurationtypes.URL, duration time.Duration)
 	Delete(key string)
 	Init() error
+	Reset()
 }
