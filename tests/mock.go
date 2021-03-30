@@ -38,8 +38,6 @@ default_cache:
     exclude: 'ARegexHere'
   ttl: 1000
 reverse_proxy_url: 'http://domain.com:81'
-ssl_providers:
-  - traefik
 urls:
   'domain.com/':
     ttl: 1000

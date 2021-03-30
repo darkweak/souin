@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -12,7 +13,7 @@ import (
 
 // GetCacheKey returns the cache key for req.
 func GetCacheKey(req *http.Request) string {
-	return req.Method + req.Host + req.URL.Path
+	return fmt.Sprintf("%s-%s-%s", req.Method, req.Host, req.URL.Path)
 }
 
 // getFreshness will return one of fresh/stale/transparent based on the cache-control

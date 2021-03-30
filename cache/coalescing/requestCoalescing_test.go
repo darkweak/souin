@@ -4,6 +4,7 @@ import (
 	"github.com/darkweak/souin/cache/providers"
 	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/helpers"
+	"github.com/darkweak/souin/rfc"
 	"github.com/darkweak/souin/tests"
 	"net/http"
 	"net/http/httptest"
@@ -19,6 +20,7 @@ func commonInitializer() (*httptest.ResponseRecorder, *http.Request, *types.Retr
 		Provider:      prs,
 		MatchedURL:    tests.GetMatchedURL(tests.PATH),
 		RegexpUrls:    regexpUrls,
+		Transport:     rfc.NewTransport(prs),
 	}
 	r := httptest.NewRequest("GET", "http://"+tests.DOMAIN+tests.PATH, nil)
 	w := httptest.NewRecorder()
@@ -39,8 +41,7 @@ func TestServeResponse(t *testing.T) {
 			types.RetrieverResponsePropertiesInterface,
 			RequestCoalescingInterface,
 			func(http.ResponseWriter, *http.Request) error,
-		) {
-		},
+		) {},
 		rc,
 		func(http.ResponseWriter, *http.Request) error {
 			return nil
