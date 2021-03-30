@@ -1,6 +1,7 @@
 package providers
 
 import (
+	"fmt"
 	"github.com/darkweak/souin/cache/keysaver"
 	t "github.com/darkweak/souin/configurationtypes"
 	"github.com/dgraph-io/ristretto"
@@ -20,15 +21,17 @@ func RistrettoConnectionFactory(c t.AbstractConfigurationInterface) (*Ristretto,
 		NumCounters: 1e7,     // number of keys to track frequency of (10M).
 		MaxCost:     1 << 30, // maximum cost of cache (1GB).
 		BufferItems: 64,      // number of keys per Get buffer.
+		OnEvict: func(key, conflict uint64, value interface{}, cost int64) {
+			fmt.Println("Evict => ", key)
+		},
 	}
 
 	var keySaver *keysaver.ClearKey
 	if c.GetAPI().Souin.Enable {
 		keySaver = keysaver.NewClearKey()
 		ristrettoConfig.OnEvict = func(key uint64, u2 uint64, i interface{}, i2 int64) {
-			go func() {
-				keySaver.DelKey("", key)
-			}()
+			fmt.Println("Eviction => ", key)
+			keySaver.DelKey("", key)
 		}
 	}
 	cache, _ := ristretto.NewCache(ristrettoConfig)

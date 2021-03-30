@@ -46,7 +46,7 @@ func (t *VaryTransport) UpdateCacheEventually(req *http.Request) (resp *http.Res
 			cachedResp = cr.Response
 		}
 	} else {
-		t.GetProvider().Delete(cacheKey)
+		t.Provider.Delete(cacheKey)
 	}
 
 	if cacheable && cachedResp != nil {
