@@ -48,7 +48,6 @@ func validateVary(req *http.Request, resp *http.Response, key string, t *VaryTra
 				},
 			}
 		}
-
 		return true
 	}
 
