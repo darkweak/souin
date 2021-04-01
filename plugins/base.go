@@ -22,11 +22,16 @@ func DefaultSouinPluginCallback(
 	responses := make(chan types.ReverseResponse)
 
 	go func() {
+		cacheKey := rfc.GetCacheKey(req)
+		varied := retriever.GetTransport().GetVaryLayerStorage().Get(cacheKey)
+		if len(varied) != 0 {
+			cacheKey = rfc.GetVariedCacheKey(req, varied)
+		}
 		if http.MethodGet == req.Method {
 			r, _ := rfc.CachedResponse(
 				retriever.GetProvider(),
 				req,
-				rfc.GetCacheKey(req),
+				cacheKey,
 				retriever.GetTransport(),
 				true,
 			)

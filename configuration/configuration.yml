@@ -7,14 +7,11 @@ api:
       - username: user1
         password: test
   souin:
-    security: true
+    security: false
     enable: true
 default_cache:
-  distributed: true
   headers:
     - Authorization
-  olric:
-    url: 'olric:3320'
   port:
     web: 80
     tls: 443
@@ -25,7 +22,7 @@ reverse_proxy_url: 'http://traefik'
 ssl_providers:
   - traefik
 urls:
-  'domain.com/':
+  'domain.com/testing':
     ttl: 100
     headers:
       - Authorization

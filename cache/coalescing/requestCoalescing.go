@@ -2,6 +2,7 @@ package coalescing
 
 import (
 	"github.com/darkweak/souin/cache/types"
+	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/rfc"
 	"golang.org/x/sync/singleflight"
 	"net/http"
@@ -52,10 +53,16 @@ func ServeResponse(
 ) {
 	path := req.Host + req.URL.Path
 	regexpURL := retriever.GetRegexpUrls().FindString(path)
-	if "" != regexpURL {
-		url := retriever.GetConfiguration().GetUrls()[regexpURL]
-		retriever.SetMatchedURL(url)
+	url := configurationtypes.URL{
+		TTL:     retriever.GetConfiguration().GetDefaultCache().GetTTL(),
+		Headers: retriever.GetConfiguration().GetDefaultCache().GetHeaders(),
 	}
+	if "" != regexpURL {
+		url = retriever.GetConfiguration().GetUrls()[regexpURL]
+	}
+	retriever.GetTransport().SetURL(url)
+	retriever.SetMatchedURL(url)
+
 	headers := ""
 	if retriever.GetMatchedURL().Headers != nil && len(retriever.GetMatchedURL().Headers) > 0 {
 		for _, h := range retriever.GetMatchedURL().Headers {
