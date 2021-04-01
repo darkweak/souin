@@ -10,10 +10,6 @@ import (
 	"time"
 )
 
-func (r *RequestCoalescing) GetCoalescingLayerStorage() *types.CoalescingLayerStorage {
-	return r.store
-}
-
 // Temporise will run one call to proxy then use the response for other requests that couldn't reach cached response
 func (r *RequestCoalescing) Temporise(req *http.Request, rw http.ResponseWriter, nextMiddleware func(http.ResponseWriter, *http.Request) error) {
 	ch := r.requestGroup.DoChan(rfc.GetCacheKey(req), func() (interface{}, error) {
@@ -43,7 +39,6 @@ func Initialize() *RequestCoalescing {
 	var requestGroup singleflight.Group
 	return &RequestCoalescing{
 		requestGroup: requestGroup,
-		store: types.InitializeCoalescingLayerStorage(),
 	}
 }
 

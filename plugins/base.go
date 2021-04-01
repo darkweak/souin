@@ -24,12 +24,12 @@ func DefaultSouinPluginCallback(
 
 	go func() {
 		cacheKey := rfc.GetCacheKey(req)
-		varied := retriever.GetTransport().GetLayerStorage().Get(cacheKey)
+		varied := retriever.GetTransport().GetVaryLayerStorage().Get(cacheKey)
 		if len(varied) != 0 {
 			cacheKey = rfc.GetVariedCacheKey(req, varied)
 		}
 		go func() {
-			coalesceable <- rc.GetCoalescingLayerStorage().Exists(cacheKey)
+			coalesceable <- retriever.GetTransport().GetCoalescingLayerStorage().Exists(cacheKey)
 		}()
 		if http.MethodGet == req.Method {
 			r, _ := rfc.CachedResponse(
