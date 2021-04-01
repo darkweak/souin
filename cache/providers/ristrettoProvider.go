@@ -74,7 +74,9 @@ func (provider *Ristretto) Set(key string, value []byte, url t.URL, duration tim
 func (provider *Ristretto) Delete(key string) {
 	go func() {
 		provider.Del(key)
-		provider.keySaver.DelKey(key, 0)
+		if provider.keySaver != nil {
+			provider.keySaver.DelKey(key, 0)
+		}
 	}()
 }
 

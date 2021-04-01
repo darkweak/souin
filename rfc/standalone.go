@@ -16,8 +16,12 @@ func GetCacheKey(req *http.Request) string {
 	return fmt.Sprintf("%s-%s-%s", req.Method, req.Host, req.URL.Path)
 }
 
-// GetVariedCacheKey returns the cache key for req.
+// GetVariedCacheKey returns the varied cache key for req and resp.
 func GetVariedCacheKey(req *http.Request, headers []string) string {
+	str := ""
+	for _, v := range headers {
+		str += fmt.Sprintf("%s:%s", v, req.Header.Get(v))
+	}
 	return fmt.Sprintf("%s-[%s]", GetCacheKey(req), strings.Join(headers[:], ";"))
 }
 
