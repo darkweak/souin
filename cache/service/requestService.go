@@ -37,11 +37,12 @@ func getKeyFromResponse(resp *http.Response, u configurationtypes.URL) string {
 
 // RewriteResponse rewrite the response
 func RewriteResponse(resp *http.Response) []byte {
-	b := bytes.Replace(responseBodyExtractor(resp), []byte("server"), []byte("schmerver"), -1)
+	b := responseBodyExtractor(resp)
+	lb := len(b)
 	body := ioutil.NopCloser(bytes.NewReader(b))
 	resp.Body = body
-	resp.ContentLength = int64(len(b))
-	resp.Header.Set("Content-Length", strconv.Itoa(len(b)))
+	resp.ContentLength = int64(lb)
+	resp.Header.Set("Content-Length", strconv.Itoa(lb))
 
 	return b
 }
