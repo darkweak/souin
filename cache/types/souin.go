@@ -12,7 +12,7 @@ type TransportInterface interface {
 	RoundTrip(req *http.Request) (resp *http.Response, err error)
 	SetURL(url configurationtypes.URL)
 	UpdateCacheEventually(req *http.Request) (resp *http.Response, err error)
-	GetVaryLayerStorage() *VaryLayerStorage
+	GetLayerStorage() *VaryLayerStorage
 }
 
 // Transport is an implementation of http.RoundTripper that will return values from a cache

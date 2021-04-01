@@ -20,13 +20,17 @@ func DefaultSouinPluginCallback(
 	nextMiddleware func(w http.ResponseWriter, r *http.Request) error,
 ) {
 	responses := make(chan types.ReverseResponse)
+	coalesceable := make(chan bool)
 
 	go func() {
 		cacheKey := rfc.GetCacheKey(req)
-		varied := retriever.GetTransport().GetVaryLayerStorage().Get(cacheKey)
+		varied := retriever.GetTransport().GetLayerStorage().Get(cacheKey)
 		if len(varied) != 0 {
 			cacheKey = rfc.GetVariedCacheKey(req, varied)
 		}
+		go func() {
+			coalesceable <- rc.GetCoalescingLayerStorage().Exists(cacheKey)
+		}()
 		if http.MethodGet == req.Method {
 			r, _ := rfc.CachedResponse(
 				retriever.GetProvider(),
@@ -56,7 +60,12 @@ func DefaultSouinPluginCallback(
 	}
 
 	close(responses)
-	rc.Temporise(req, res, nextMiddleware)
+	if <-coalesceable {
+		rc.Temporise(req, res, nextMiddleware)
+	} else {
+		_ = nextMiddleware(res, req)
+	}
+	close(coalesceable)
 }
 
 // DefaultSouinPluginInitializerFromConfiguration is the default initialization for plugins

@@ -38,7 +38,7 @@ func (t *VaryTransport) BaseRoundTrip(req *http.Request, shouldReUpdate bool) (s
 	cacheable := IsVaryCacheable(req)
 	cachedResp := req.Response
 	if cacheable {
-		varied := t.GetVaryLayerStorage().Get(cacheKey)
+		varied := t.GetLayerStorage().Get(cacheKey)
 		if len(varied) != 0 {
 			cacheKey = GetVariedCacheKey(req, varied)
 		}

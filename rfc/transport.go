@@ -3,7 +3,6 @@ package rfc
 import (
 	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/configurationtypes"
-	"github.com/dgraph-io/ristretto"
 	"github.com/pquerna/cachecontrol"
 	"net/http"
 	"net/http/httputil"
@@ -23,13 +22,7 @@ func IsVaryCacheable(req *http.Request) bool {
 // NewTransport returns a new Transport with the
 // provided Cache implementation and MarkCachedResponses set to true
 func NewTransport(p types.AbstractProviderInterface) *VaryTransport {
-	storage, _ := ristretto.NewCache(&ristretto.Config{
-		NumCounters: 1e7,     // number of keys to track frequency of (10M).
-		MaxCost:     1 << 30, // maximum cost of cache (1GB).
-		BufferItems: 64,      // number of keys per Get buffer.
-		OnEvict: func(key, conflict uint64, value interface{}, cost int64) {},
-	})
-	return &VaryTransport{Provider: p, VaryLayerStorage: &types.VaryLayerStorage{Cache: storage}, MarkCachedResponses: true}
+	return &VaryTransport{Provider: p, VaryLayerStorage: types.InitializeVaryLayerStorage(), MarkCachedResponses: true}
 }
 
 // GetProvider returns the associated provider
@@ -42,7 +35,7 @@ func (t *VaryTransport) SetURL(url configurationtypes.URL) {
 	t.ConfigurationURL = url
 }
 
-func (t *VaryTransport) GetVaryLayerStorage() *types.VaryLayerStorage {
+func (t *VaryTransport) GetLayerStorage() *types.VaryLayerStorage {
 	return t.VaryLayerStorage
 }
 
