@@ -4,8 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"github.com/darkweak/souin/cache/types"
-	"io"
-	"io/ioutil"
 	"net/http"
 )
 
@@ -35,19 +33,29 @@ func CachedResponse(c types.AbstractProviderInterface, req *http.Request, cached
 	}, nil
 }
 
-// UpdateCacheEventually will handle Request and update the previous one in the cache provider
-func (t *VaryTransport) UpdateCacheEventually(req *http.Request) (resp *http.Response, err error) {
+func (t *VaryTransport) BaseRoundTrip(req *http.Request, shouldReUpdate bool) (string, bool, *http.Response) {
 	cacheKey := GetCacheKey(req)
 	cacheable := IsVaryCacheable(req)
 	cachedResp := req.Response
 	if cacheable {
-		cr, _ := CachedResponse(t.GetProvider(), req, cacheKey, t, false)
+		varied := t.GetVaryLayerStorage().Get(cacheKey)
+		if len(varied) != 0 {
+			cacheKey = GetVariedCacheKey(req, varied)
+		}
+		cr, _ := CachedResponse(t.GetProvider(), req, cacheKey, t, shouldReUpdate)
 		if cr.Response != nil {
 			cachedResp = cr.Response
 		}
 	} else {
 		t.Provider.Delete(cacheKey)
 	}
+
+	return cacheKey, cacheable, cachedResp
+}
+
+// UpdateCacheEventually will handle Request and update the previous one in the cache provider
+func (t *VaryTransport) UpdateCacheEventually(req *http.Request) (resp *http.Response, err error) {
+	cacheKey, cacheable, cachedResp := t.BaseRoundTrip(req, false)
 
 	if cacheable && cachedResp != nil {
 		if varyMatches(cachedResp, req) {
@@ -90,29 +98,8 @@ func (t *VaryTransport) UpdateCacheEventually(req *http.Request) (resp *http.Res
 	}
 
 	resp = cachedResp
-	if cacheable && resp != nil && canStore(parseCacheControl(req.Header), parseCacheControl(resp.Header)) {
-		for _, varyKey := range headerAllCommaSepValues(resp.Header, "vary") {
-			varyKey = http.CanonicalHeaderKey(varyKey)
-			fakeHeader := "X-Varied-" + varyKey
-			reqValue := req.Header.Get(varyKey)
-			if reqValue != "" {
-				resp.Header.Set(fakeHeader, reqValue)
-			}
-		}
-		switch req.Method {
-		case http.MethodGet:
-			// Delay caching until EOF is reached.
-			resp.Body = &cachingReadCloser{
-				R: resp.Body,
-				OnEOF: func(r io.Reader) {
-					resp := *resp
-					resp.Body = ioutil.NopCloser(r)
-					t.SetCache(cacheKey, &resp, req)
-				},
-			}
-		default:
-			t.SetCache(cacheKey, resp, req)
-		}
+	if cacheable {
+		_ = validateVary(req, resp, cacheKey, t)
 	}
 
 	return resp, nil
@@ -127,15 +114,7 @@ func (t *VaryTransport) UpdateCacheEventually(req *http.Request) (resp *http.Res
 // to give the server a chance to respond with NotModified. If this happens, then the cached Response
 // will be returned.
 func (t *VaryTransport) RoundTrip(req *http.Request) (resp *http.Response, err error) {
-	cacheKey := GetCacheKey(req)
-	cacheable := IsVaryCacheable(req)
-	var cachedResp *http.Response
-	if cacheable {
-		cr, _ := CachedResponse(t.Provider, req, cacheKey, t, true)
-		cachedResp = cr.Response
-	} else {
-		t.Provider.Delete(cacheKey)
-	}
+	cacheKey, cacheable, cachedResp := t.BaseRoundTrip(req, true)
 
 	transport := t.Transport
 	if transport == nil {
@@ -208,30 +187,7 @@ func (t *VaryTransport) RoundTrip(req *http.Request) (resp *http.Response, err e
 		}
 	}
 	resp, err = transport.RoundTrip(req)
-	if cacheable && resp != nil && canStore(parseCacheControl(req.Header), parseCacheControl(resp.Header)) {
-		for _, varyKey := range headerAllCommaSepValues(resp.Header, "vary") {
-			varyKey = http.CanonicalHeaderKey(varyKey)
-			fakeHeader := "X-Varied-" + varyKey
-			reqValue := req.Header.Get(varyKey)
-			if reqValue != "" {
-				resp.Header.Set(fakeHeader, reqValue)
-			}
-		}
-		switch req.Method {
-		case http.MethodGet:
-			// Delay caching until EOF is reached.
-			resp.Body = &cachingReadCloser{
-				R: resp.Body,
-				OnEOF: func(r io.Reader) {
-					resp := *resp
-					resp.Body = ioutil.NopCloser(r)
-					t.SetCache(cacheKey, &resp, req)
-				},
-			}
-		default:
-			t.SetCache(cacheKey, resp, req)
-		}
-	} else {
+	if !(cacheable && validateVary(req, resp, cacheKey, t)) {
 		t.Provider.Delete(cacheKey)
 	}
 	return resp, nil

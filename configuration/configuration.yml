@@ -7,7 +7,7 @@ api:
       - username: user1
         password: test
   souin:
-    security: true
+    security: false
     enable: true
 default_cache:
   headers:

@@ -16,6 +16,12 @@ func GetCacheKey(req *http.Request) string {
 	return fmt.Sprintf("%s-%s-%s", req.Method, req.Host, req.URL.Path)
 }
 
+// GetVariedCacheKey returns the cache key for req.
+func GetVariedCacheKey(req *http.Request, headers []string) string {
+	fmt.Println(fmt.Sprintf("%s-[%s]", GetCacheKey(req), strings.Join(headers[:], ";")))
+	return fmt.Sprintf("%s-[%s]", GetCacheKey(req), strings.Join(headers[:], ";"))
+}
+
 // getFreshness will return one of fresh/stale/transparent based on the cache-control
 // values of the request and the response
 //
@@ -140,18 +146,6 @@ func canStaleOnError(respHeaders, reqHeaders http.Header) bool {
 	}
 
 	return false
-}
-
-// varyMatches will return false unless all of the cached values for the headers listed in Vary
-// match the new request
-func varyMatches(cachedResp *http.Response, req *http.Request) bool {
-	for _, header := range headerAllCommaSepValues(cachedResp.Header, "vary") {
-		header = http.CanonicalHeaderKey(header)
-		if header != "" && req.Header.Get(header) != cachedResp.Header.Get("X-Varied-"+header) {
-			return false
-		}
-	}
-	return true
 }
 
 func getEndToEndHeaders(respHeaders http.Header) []string {
