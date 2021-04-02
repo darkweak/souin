@@ -47,6 +47,9 @@ func (t *VaryTransport) BaseRoundTrip(req *http.Request, shouldReUpdate bool) (s
 			cachedResp = cr.Response
 		}
 	} else {
+		go func() {
+			t.CoalescingLayerStorage.Set(cacheKey)
+		}()
 		t.Provider.Delete(cacheKey)
 	}
 

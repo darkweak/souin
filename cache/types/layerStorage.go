@@ -62,3 +62,10 @@ func (provider *CoalescingLayerStorage) Set(key string) {
 		panic("Impossible to set value into Ristretto")
 	}
 }
+
+// Delete method will delete the response in Ristretto provider if exists corresponding to key param
+func (provider *CoalescingLayerStorage) Delete(key string) {
+	go func() {
+		provider.Del(key)
+	}()
+}
