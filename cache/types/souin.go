@@ -13,6 +13,7 @@ type TransportInterface interface {
 	SetURL(url configurationtypes.URL)
 	UpdateCacheEventually(req *http.Request) (resp *http.Response, err error)
 	GetVaryLayerStorage() *VaryLayerStorage
+	GetCoalescingLayerStorage() *CoalescingLayerStorage
 }
 
 // Transport is an implementation of http.RoundTripper that will return values from a cache
@@ -21,11 +22,12 @@ type TransportInterface interface {
 type Transport struct {
 	// The RoundTripper interface actually used to make requests
 	// If nil, http.DefaultTransport is used
-	Transport           http.RoundTripper
-	Provider            AbstractProviderInterface
-	ConfigurationURL    configurationtypes.URL
-	MarkCachedResponses bool
-	VaryLayerStorage    *VaryLayerStorage
+	Transport              http.RoundTripper
+	Provider               AbstractProviderInterface
+	ConfigurationURL       configurationtypes.URL
+	MarkCachedResponses    bool
+	VaryLayerStorage       *VaryLayerStorage
+	CoalescingLayerStorage *CoalescingLayerStorage
 }
 
 // RetrieverResponsePropertiesInterface interface

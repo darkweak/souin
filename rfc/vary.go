@@ -11,7 +11,7 @@ import (
 func varyMatches(cachedResp *http.Response, req *http.Request) bool {
 	for _, header := range headerAllCommaSepValues(cachedResp.Header, "vary") {
 		header = http.CanonicalHeaderKey(header)
-		if header != "" && req.Header.Get(header) != cachedResp.Header.Get("X-Varied-"+header) {
+		if header == "" || req.Header.Get(header) == "" {
 			return false
 		}
 	}
@@ -26,14 +26,6 @@ func validateVary(req *http.Request, resp *http.Response, key string, t *VaryTra
 			go func() {
 				t.VaryLayerStorage.Set(key, variedHeaders)
 			}()
-			for _, varyKey := range variedHeaders {
-				varyKey = http.CanonicalHeaderKey(varyKey)
-				fakeHeader := "X-Varied-" + varyKey
-				reqValue := req.Header.Get(varyKey)
-				if reqValue != "" {
-					resp.Header.Set(fakeHeader, reqValue)
-				}
-			}
 			cacheKey = GetVariedCacheKey(req, variedHeaders)
 		}
 		switch req.Method {
@@ -45,6 +37,9 @@ func validateVary(req *http.Request, resp *http.Response, key string, t *VaryTra
 					resp := *resp
 					resp.Body = ioutil.NopCloser(r)
 					t.SetCache(cacheKey, &resp, req)
+					go func() {
+						t.CoalescingLayerStorage.Delete(cacheKey)
+					}()
 				},
 			}
 		}
