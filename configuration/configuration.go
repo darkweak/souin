@@ -2,6 +2,7 @@ package configuration
 
 import (
 	"github.com/darkweak/souin/configurationtypes"
+	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 	"io/ioutil"
 	"log"
@@ -14,6 +15,8 @@ type Configuration struct {
 	ReverseProxyURL string                            `yaml:"reverse_proxy_url"`
 	SSLProviders    []string                          `yaml:"ssl_providers"`
 	URLs            map[string]configurationtypes.URL `yaml:"urls"`
+	LogLevel        string                            `yaml:"log_level"`
+	logger          *zap.Logger
 }
 
 func readFile(path string) []byte {
@@ -55,6 +58,21 @@ func (c *Configuration) GetDefaultCache() configurationtypes.DefaultCacheInterfa
 // GetAPI get the default cache
 func (c *Configuration) GetAPI() configurationtypes.API {
 	return c.API
+}
+
+// GetLogLevel get the log level
+func (c *Configuration) GetLogLevel() string {
+	return c.LogLevel
+}
+
+// GetLogger get the logger
+func (c *Configuration) GetLogger() *zap.Logger {
+	return c.logger
+}
+
+// SetLogger set the logger
+func (c *Configuration) SetLogger(l *zap.Logger) {
+	c.logger = l
 }
 
 // GetConfiguration allow to retrieve Souin configuration through yaml file
