@@ -73,6 +73,7 @@ default_cache:
     url: 'olric:3320' # Olric server
   regex:
     exclude: 'ARegexHere' # Regex to exclude from cache
+log_level: INFO # Logs verbosity [ DEBUG, INFO, WARN, ERROR, DPANIC, PANIC, FATAL, debug, info, warn, error, dpanic, panic, fatal ]
 ssl_providers: # The {providers}.json to use
   - traefik
 urls:
@@ -89,19 +90,20 @@ urls:
     - 'Content-Type'
 ```
 
-|  Key                                 |  Description                                                               |  Value example                                                               |
-|:------------------------------------:|:--------------------------------------------------------------------------:|:----------------------------------------------------------------------------:|
-| `api.basepath`                       | BasePath for all APIs to avoid conflicts                                   | `/your-non-conflicting-route`<br/><br/>`(default: /souin-api)`               |
-| `api.{api}.enable`                   | Enable the new API with related routes                                     | `true`<br/><br/>`(default: false)`                                           |
-| `api.security.secret`                | JWT secret key                                                             | `Any_charCanW0rk123`                                                         |
-| `api.security.users`                 | Array of authorized users with username x password combo                   | `- username: admin`<br/><br/>`  password: admin`                             |
-| `api.souin.security`                 | Enable JWT validation to access the resource                               | `true`<br/><br/>`(default: false)`                                           |
-| `default_cache.headers`              | List of headers to include to the cache                                    | `- Authorization`<br/><br/>`- Content-Type`<br/><br/>`- X-Additional-Header` |
-| `default_cache.regex.exclude`        | The regex used to prevent paths being cached                               | `^[A-z]+.*$`                                                                 |
-| `ssl_providers`                      | List of your providers handling certificates                               | `- traefik`<br/><br/>`- nginx`<br/><br/>`- apache`                           |
-| `urls.{your url or regex}`           | List of your custom configuration depending each URL or regex              | 'https:\/\/yourdomain.com'                                                   |
-| `urls.{your url or regex}.ttl`       | Override the default TTL if defined                                        | 99999                                                                        |
-| `urls.{your url or regex}.headers`   | Override the default headers if defined                                    | `- Authorization`<br/><br/>`- 'Content-Type'`                                |
+|  Key                               |  Description                                                  |  Value example                                                                |
+|:----------------------------------:|:-------------------------------------------------------------:|:-----------------------------------------------------------------------------:|
+| `api.basepath`                     | BasePath for all APIs to avoid conflicts                      | `/your-non-conflicting-route`<br/><br/>`(default: /souin-api)`                |
+| `api.{api}.enable`                 | Enable the new API with related routes                        | `true`<br/><br/>`(default: false)`                                            |
+| `api.security.secret`              | JWT secret key                                                | `Any_charCanW0rk123`                                                          |
+| `api.security.users`               | Array of authorized users with username x password combo      | `- username: admin`<br/><br/>`  password: admin`                              |
+| `api.souin.security`               | Enable JWT validation to access the resource                  | `true`<br/><br/>`(default: false)`                                            |
+| `default_cache.headers`            | List of headers to include to the cache                       | `- Authorization`<br/><br/>`- Content-Type`<br/><br/>`- X-Additional-Header`  |
+| `default_cache.regex.exclude`      | The regex used to prevent paths being cached                  | `^[A-z]+.*$`                                                                  |
+| `log_level`                        | The log level                                                 | `One of DEBUG, INFO, WARN, ERROR, DPANIC, PANIC, FATAL it's case insensitive` |
+| `ssl_providers`                    | List of your providers handling certificates                  | `- traefik`<br/><br/>`- nginx`<br/><br/>`- apache`                            |
+| `urls.{your url or regex}`         | List of your custom configuration depending each URL or regex | 'https:\/\/yourdomain.com'                                                    |
+| `urls.{your url or regex}.ttl`     | Override the default TTL if defined                           | 99999                                                                         |
+| `urls.{your url or regex}.headers` | Override the default headers if defined                       | `- Authorization`<br/><br/>`- 'Content-Type'`                                 |
 
 ## APIs
 All endpoints are accessible through the `api.basepath` configuration line or by default through `/souin-api` to avoid named route conflicts. Be sure to define an unused route to not break your existing application.
