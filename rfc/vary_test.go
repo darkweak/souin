@@ -25,23 +25,21 @@ func TestVaryMatches(t *testing.T) {
 	}
 
 	header := "Cache"
-	r.Header.Set("Vary", header)
 	r.Header.Set(header, "same")
 	res.Header.Set("vary", header)
-	res.Header.Set("X-Varied-"+header, "same")
 
 	if !varyMatches(res, r) {
-		errors.GenerateError(t, "Vary match should return true if Response contains X-Varied-* header is the same than * in Request header")
+		errors.GenerateError(t, "Vary match should return true if Response contains a vary header that is not null in the request")
 	}
 
 	if !validateVary(r, res, GetCacheKey(r), tr) {
 		errors.GenerateError(t, fmt.Sprintf("It contains valid vary headers in the Response. It should validate it, %v given", res.Header))
 	}
 
-	res.Header.Set("X-Varied-"+header, "different")
+	r.Header.Set(header, "")
 
 	if varyMatches(res, r) {
-		errors.GenerateError(t, "Vary match should return false if Response contains X-Varied-* header different than * in Request header")
+		errors.GenerateError(t, "Vary match should return false if Response contains a vary header that is empty in the request")
 	}
 
 	if !validateVary(r, res, GetCacheKey(r), tr) {

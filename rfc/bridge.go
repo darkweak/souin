@@ -47,10 +47,45 @@ func (t *VaryTransport) BaseRoundTrip(req *http.Request, shouldReUpdate bool) (s
 			cachedResp = cr.Response
 		}
 	} else {
+		go func() {
+			t.CoalescingLayerStorage.Set(cacheKey)
+		}()
 		t.Provider.Delete(cacheKey)
 	}
 
 	return cacheKey, cacheable, cachedResp
+}
+
+func commonVaryMatchesVerification(cachedResp *http.Response, req *http.Request) *http.Response {
+	if varyMatches(cachedResp, req) {
+		// Can only use cached value if the new request doesn't Vary significantly
+		freshness := getFreshness(cachedResp.Header, req.Header)
+		if freshness == fresh {
+			return cachedResp
+		}
+
+		if freshness == stale {
+			var req2 *http.Request
+			// Add validators if caller hasn't already done so
+			etag := cachedResp.Header.Get("etag")
+			if etag != "" && req.Header.Get("etag") == "" {
+				req2 = cloneRequest(req)
+				req2.Header.Set("if-none-match", etag)
+			}
+			lastModified := cachedResp.Header.Get("last-modified")
+			if lastModified != "" && req.Header.Get("last-modified") == "" {
+				if req2 == nil {
+					req2 = cloneRequest(req)
+				}
+				req2.Header.Set("if-modified-since", lastModified)
+			}
+			if req2 != nil {
+				req = req2
+			}
+		}
+	}
+
+	return nil
 }
 
 // UpdateCacheEventually will handle Request and update the previous one in the cache provider
@@ -58,32 +93,9 @@ func (t *VaryTransport) UpdateCacheEventually(req *http.Request) (resp *http.Res
 	cacheKey, cacheable, cachedResp := t.BaseRoundTrip(req, false)
 
 	if cacheable && cachedResp != nil {
-		if varyMatches(cachedResp, req) {
-			// Can only use cached value if the new request doesn't Vary significantly
-			freshness := getFreshness(cachedResp.Header, req.Header)
-			if freshness == fresh {
-				return cachedResp, nil
-			}
-
-			if freshness == stale {
-				var req2 *http.Request
-				// Add validators if caller hasn't already done so
-				etag := cachedResp.Header.Get("etag")
-				if etag != "" && req.Header.Get("etag") == "" {
-					req2 = cloneRequest(req)
-					req2.Header.Set("if-none-match", etag)
-				}
-				lastModified := cachedResp.Header.Get("last-modified")
-				if lastModified != "" && req.Header.Get("last-modified") == "" {
-					if req2 == nil {
-						req2 = cloneRequest(req)
-					}
-					req2.Header.Set("if-modified-since", lastModified)
-				}
-				if req2 != nil {
-					req = req2
-				}
-			}
+		r := commonVaryMatchesVerification(cachedResp, req)
+		if r != nil {
+			return r, nil
 		}
 	} else {
 		reqCacheControl := parseCacheControl(req.Header)
@@ -126,32 +138,9 @@ func (t *VaryTransport) RoundTrip(req *http.Request) (resp *http.Response, err e
 			cachedResp.Header.Set(XFromCache, "1")
 		}
 
-		if varyMatches(cachedResp, req) {
-			// Can only use cached value if the new request doesn't Vary significantly
-			freshness := getFreshness(cachedResp.Header, req.Header)
-			if freshness == fresh {
-				return cachedResp, nil
-			}
-
-			if freshness == stale {
-				var req2 *http.Request
-				// Add validators if caller hasn't already done so
-				etag := cachedResp.Header.Get("etag")
-				if etag != "" && req.Header.Get("etag") == "" {
-					req2 = cloneRequest(req)
-					req2.Header.Set("if-none-match", etag)
-				}
-				lastModified := cachedResp.Header.Get("last-modified")
-				if lastModified != "" && req.Header.Get("last-modified") == "" {
-					if req2 == nil {
-						req2 = cloneRequest(req)
-					}
-					req2.Header.Set("if-modified-since", lastModified)
-				}
-				if req2 != nil {
-					req = req2
-				}
-			}
+		r := commonVaryMatchesVerification(cachedResp, req)
+		if r != nil {
+			return r, nil
 		}
 
 		resp, err = transport.RoundTrip(req)
@@ -188,6 +177,9 @@ func (t *VaryTransport) RoundTrip(req *http.Request) (resp *http.Response, err e
 	}
 	resp, err = transport.RoundTrip(req)
 	if !(cacheable && validateVary(req, resp, cacheKey, t)) {
+		go func() {
+			t.CoalescingLayerStorage.Set(cacheKey)
+		}()
 		t.Provider.Delete(cacheKey)
 	}
 	return resp, nil
