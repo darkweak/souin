@@ -125,6 +125,9 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser) (interface{}, error) {
 			case "headers":
 				args := h.RemainingArgs()
 				cfg.DefaultCache.Headers = append(cfg.DefaultCache.Headers, args...)
+			case "log_level":
+				args := h.RemainingArgs()
+				cfg.LogLevel = args[0]
 			case "olric":
 				provider := configurationtypes.CacheProvider{}
 				for nesting := h.Nesting(); h.NextBlock(nesting); {

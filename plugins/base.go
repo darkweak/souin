@@ -7,6 +7,8 @@ import (
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/helpers"
 	"github.com/darkweak/souin/rfc"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	"io/ioutil"
 	"net/http"
 )
@@ -70,10 +72,39 @@ func DefaultSouinPluginCallback(
 
 // DefaultSouinPluginInitializerFromConfiguration is the default initialization for plugins
 func DefaultSouinPluginInitializerFromConfiguration(c configurationtypes.AbstractConfigurationInterface) *types.RetrieverResponseProperties {
+	var logLevel zapcore.Level
+	if c.GetLogLevel() == "" {
+		logLevel = zapcore.FatalLevel
+	} else if err := logLevel.UnmarshalText([]byte(c.GetLogLevel())); err != nil {
+		logLevel = zapcore.FatalLevel
+	}
+	cfg := zap.Config{
+		Encoding:         "json",
+		Level:            zap.NewAtomicLevelAt(logLevel),
+		OutputPaths:      []string{"stderr"},
+		ErrorOutputPaths: []string{"stderr"},
+		EncoderConfig: zapcore.EncoderConfig{
+			MessageKey: "message",
+
+			LevelKey:    "level",
+			EncodeLevel: zapcore.CapitalLevelEncoder,
+
+			TimeKey:    "time",
+			EncodeTime: zapcore.ISO8601TimeEncoder,
+
+			CallerKey:    "caller",
+			EncodeCaller: zapcore.ShortCallerEncoder,
+		},
+	}
+	logger, _ := cfg.Build()
+	c.SetLogger(logger)
+
 	provider := providers.InitializeProvider(c)
+	c.GetLogger().Debug("Provider initialized")
 	regexpUrls := helpers.InitializeRegexp(c)
 	var transport types.TransportInterface
 	transport = rfc.NewTransport(provider)
+	c.GetLogger().Debug("Transport initialized")
 
 	retriever := &types.RetrieverResponseProperties{
 		MatchedURL: configurationtypes.URL{
@@ -85,6 +116,7 @@ func DefaultSouinPluginInitializerFromConfiguration(c configurationtypes.Abstrac
 		RegexpUrls:    regexpUrls,
 		Transport:     transport,
 	}
+	retriever.GetConfiguration().GetLogger().Debug("Souin configuration is now loaded")
 
 	return retriever
 }
