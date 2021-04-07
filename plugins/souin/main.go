@@ -74,6 +74,7 @@ func main() {
 	}
 	for _, endpoint := range api.Initialize(retriever.Provider, c) {
 		if endpoint.IsEnabled() {
+			c.GetLogger().Info(fmt.Sprintf("Enabling %s%s endpoint", basePathAPIS, endpoint.GetBasePath()))
 			http.HandleFunc(fmt.Sprintf("%s%s", basePathAPIS, endpoint.GetBasePath()), endpoint.HandleRequest)
 			http.HandleFunc(fmt.Sprintf("%s%s/", basePathAPIS, endpoint.GetBasePath()), endpoint.HandleRequest)
 		}
@@ -97,6 +98,8 @@ func main() {
 			}
 		}
 	}()
+
+	c.GetLogger().Debug("Waiting for an incoming request...")
 	if err := http.ListenAndServe(":"+c.DefaultCache.Port.Web, nil); err != nil {
 		panic(err)
 	}

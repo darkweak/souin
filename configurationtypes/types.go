@@ -1,5 +1,7 @@
 package configurationtypes
 
+import "go.uber.org/zap"
+
 // Port config
 type Port struct {
 	Web string `yaml:"web"`
@@ -105,4 +107,7 @@ type AbstractConfigurationInterface interface {
 	GetUrls() map[string]URL
 	GetDefaultCache() DefaultCacheInterface
 	GetAPI() API
+	GetLogLevel() string
+	GetLogger() *zap.Logger
+	SetLogger(*zap.Logger)
 }

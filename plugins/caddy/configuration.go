@@ -2,6 +2,7 @@ package caddy
 
 import (
 	"github.com/darkweak/souin/configurationtypes"
+	"go.uber.org/zap"
 )
 
 // DefaultCache the struct
@@ -43,6 +44,8 @@ type Configuration struct {
 	DefaultCache *DefaultCache
 	API          configurationtypes.API
 	URLs         map[string]configurationtypes.URL
+	LogLevel     string
+	logger       *zap.Logger
 }
 
 // GetUrls get the urls list in the configuration
@@ -58,4 +61,19 @@ func (c *Configuration) GetDefaultCache() configurationtypes.DefaultCacheInterfa
 // GetAPI get the default cache
 func (c *Configuration) GetAPI() configurationtypes.API {
 	return c.API
+}
+
+// GetLogLevel get the log level
+func (c *Configuration) GetLogLevel() string {
+	return c.LogLevel
+}
+
+// GetLogger get the logger
+func (c *Configuration) GetLogger() *zap.Logger {
+	return c.logger
+}
+
+// SetLogger set the logger
+func (c *Configuration) SetLogger(l *zap.Logger) {
+	c.logger = l
 }
