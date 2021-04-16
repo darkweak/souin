@@ -33,19 +33,22 @@ func CachedResponse(c types.AbstractProviderInterface, req *http.Request, cached
 	}, nil
 }
 
-func commonCacheControl(req *http.Request, t func(*http.Request) (*http.Response, error)) (*http.Response, error)  {
+func commonCacheControl(req *http.Request, t func(*http.Request) (*http.Response, error)) (*http.Response, error) {
 	reqCacheControl := parseCacheControl(req.Header)
 	if _, ok := reqCacheControl["only-if-cached"]; ok {
 		return newGatewayTimeoutResponse(req), nil
 	}
 
-	if r, err := t(req); err != nil {
+	r, err := t(req)
+
+	if err != nil {
 		return nil, err
-	} else {
-		return r, nil
 	}
+
+	return r, nil
 }
 
+// BaseRoundTrip is the base for RoundTrip
 func (t *VaryTransport) BaseRoundTrip(req *http.Request, shouldReUpdate bool) (string, bool, *http.Response) {
 	cacheKey := GetCacheKey(req)
 	cacheable := IsVaryCacheable(req)

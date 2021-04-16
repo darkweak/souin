@@ -39,10 +39,12 @@ func (t *VaryTransport) SetURL(url configurationtypes.URL) {
 	t.ConfigurationURL = url
 }
 
+// GetVaryLayerStorage get the vary layer storagecache/coalescing/requestCoalescing_test.go
 func (t *VaryTransport) GetVaryLayerStorage() *types.VaryLayerStorage {
 	return t.VaryLayerStorage
 }
 
+// GetCoalescingLayerStorage get the coalescing layer storage
 func (t *VaryTransport) GetCoalescingLayerStorage() *types.CoalescingLayerStorage {
 	return t.CoalescingLayerStorage
 }
