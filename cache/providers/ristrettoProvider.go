@@ -20,7 +20,7 @@ func RistrettoConnectionFactory(c t.AbstractConfigurationInterface) (*Ristretto,
 		NumCounters: 1e7,     // number of keys to track frequency of (10M).
 		MaxCost:     1 << 30, // maximum cost of cache (1GB).
 		BufferItems: 64,      // number of keys per Get buffer.
-		OnEvict: func(key, conflict uint64, value interface{}, cost int64) {},
+		OnEvict:     func(key, conflict uint64, value interface{}, cost int64) {},
 	}
 
 	var keySaver *keysaver.ClearKey

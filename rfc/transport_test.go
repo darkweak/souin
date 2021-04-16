@@ -70,5 +70,5 @@ func TestVaryTransport_SetCache(t *testing.T) {
 	config := tests.MockConfiguration(tests.BaseConfiguration)
 	prs := providers.InitializeProvider(config)
 	tr := NewTransport(prs)
-	tr.SetCache(key, res, req)
+	tr.SetCache(key, res)
 }

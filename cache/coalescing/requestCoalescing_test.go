@@ -41,7 +41,8 @@ func TestServeResponse(t *testing.T) {
 			types.RetrieverResponsePropertiesInterface,
 			RequestCoalescingInterface,
 			func(http.ResponseWriter, *http.Request) error,
-		) {},
+		) {
+		},
 		rc,
 		func(http.ResponseWriter, *http.Request) error {
 			return nil

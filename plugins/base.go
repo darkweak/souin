@@ -42,9 +42,6 @@ func DefaultSouinPluginCallback(
 				true,
 			)
 			responses <- r
-			if nil != r.Response {
-				return
-			}
 		}
 	}()
 
@@ -52,6 +49,9 @@ func DefaultSouinPluginCallback(
 		response, open := <-responses
 		if open && nil != response.Response {
 			close(responses)
+			rh := response.Response.Header
+			rfc.HitCache(&rh)
+			response.Response.Header = rh
 			for k, v := range response.Response.Header {
 				res.Header().Set(k, v[0])
 			}

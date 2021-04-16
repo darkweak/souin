@@ -11,7 +11,7 @@ services:
       target: souin
     ports:
       - 80:80
-#      - 443:443
+      - 443:443
     environment:
       GOPATH: /app
     volumes:
@@ -26,6 +26,18 @@ services:
     restart: on-failure
     <<: *networks
 
+  traefik:
+    image: traefik:latest
+    command: --providers.docker
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    <<: *networks
+
+  whoami:
+    image: traefik/whoami
+    labels:
+      - traefik.http.routers.whoami.rule=Host(`domain.com`)
+    <<: *networks
 networks:
   your_network:
     external: true
