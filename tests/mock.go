@@ -31,12 +31,16 @@ api:
 default_cache:
   headers:
     - Authorization
+  olric:
+    url: 'olric:3320'
   port:
     web: 80
     tls: 443
   regex:
     exclude: 'ARegexHere'
   ttl: 1000
+  redis:
+    url: 'redis:6379'
 reverse_proxy_url: 'http://domain.com:81'
 urls:
   'domain.com/':

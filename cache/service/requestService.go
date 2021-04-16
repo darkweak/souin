@@ -49,7 +49,7 @@ func RewriteResponse(resp *http.Response) []byte {
 
 // RequestReverseProxy returns response from one of providers or the proxy response
 func RequestReverseProxy(req *http.Request, r souintypes.SouinRetrieverResponseProperties) types.ReverseResponse {
-	url := r.GetReverseProxyURL()
+	url := r.ReverseProxyURL
 	req.URL.Host = req.Host
 	req.URL.Scheme = url.Scheme
 	req.Header.Set("X-Forwarded-Host", req.Header.Get("Host"))

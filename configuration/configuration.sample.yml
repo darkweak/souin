@@ -20,6 +20,10 @@ default_cache: # Required part
     tls: 443
   regex: # Regex configuration
     exclude: 'ARegexHere' # Regex to exclude from cache
+  redis: # Redis provider configuration
+    url: 'redis:6379'
+  olric: # Olric provider configuration
+    url: 'olric:3320'
   ttl: 10 # Default TTL
 log_level: INFO # Logs verbosity [ DEBUG, INFO, WARN, ERROR, DPANIC, PANIC, FATAL, debug, info, warn, error, dpanic, panic, fatal ]
 reverse_proxy_url: 'http://traefik' # If it's in the same network you can use http://your-service. Then just use https://yourdomain.com

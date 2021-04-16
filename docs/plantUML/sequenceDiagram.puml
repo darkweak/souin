@@ -3,22 +3,46 @@ actor User
 actor System
 activate System
 participant Souin
+collections Providers
 participant Memory
+participant Olric
+participant Redis
 participant ReverseProxy
 System -> ReverseProxy ++ : run()
 System -> Souin ++ : main()
-Souin -> Memory ++ : MemoryConnectionFactory()
-Souin <-- Memory : AbstractProvider
+Souin -> Providers : Init()
+activate Providers
+Providers -> Memory ++ : MemoryConnectionFactory()
+Providers <-- Memory : *AbstractProvider
+Providers -> Olric ++ : OlricConnectionFactory()
+Providers <-- Olric : *AbstractProvider
+Providers -> Redis ++ : RedisConnectionFactory()
+Providers <-- Redis : *AbstractProvider
+Souin <-- Providers : AbstractProvider[]
 ... Waiting for user request ...
 loop User requests
   User -> Souin : request
   activate User
-  Souin -> Memory: GetRequestInCache()
-  Souin <-- Memory: *Response
-  group if the response from cache is not valid
+  par Request providers content
+    Souin -> Memory: GetRequestInCache()
+  else
+    Souin -> Olric: GetRequestInCache()
+  else
+    Souin -> Redis: GetRequestInCache()
+  else
     Souin -> ReverseProxy: GetRequestInReverseProxy()
+  end
+  par Response providers content
+    Souin <-- Memory: *Response
+  else
+    Souin <-- Olric: *Response
+  else
+    Souin <-- Redis: *Response
+  else
     Souin <-- ReverseProxy: *Response
     Souin -> Memory: SetRequestInCache()
+    Souin -> Olric: SetRequestInCache()
+    Souin -> Redis: SetRequestInCache()
   end
 Souin -> User : response
 deactivate User

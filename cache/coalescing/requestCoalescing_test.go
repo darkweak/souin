@@ -11,13 +11,15 @@ import (
 	"testing"
 )
 
-func commonInitializer() (*httptest.ResponseRecorder, *http.Request, *types.RetrieverResponseProperties) {
+func TestServeResponse(t *testing.T) {
 	c := tests.MockConfiguration(tests.BaseConfiguration)
-	prs := providers.InitializeProvider(c)
 	regexpUrls := helpers.InitializeRegexp(c)
+	prs := providers.InitializeProvider(c)
+	defer prs["olric"].Reset()
+	rc := Initialize()
 	retriever := &types.RetrieverResponseProperties{
 		Configuration: c,
-		Provider:      prs,
+		Providers:     prs,
 		MatchedURL:    tests.GetMatchedURL(tests.PATH),
 		RegexpUrls:    regexpUrls,
 		Transport:     rfc.NewTransport(prs),
@@ -25,12 +27,6 @@ func commonInitializer() (*httptest.ResponseRecorder, *http.Request, *types.Retr
 	r := httptest.NewRequest("GET", "http://"+tests.DOMAIN+tests.PATH, nil)
 	w := httptest.NewRecorder()
 
-	return w, r, retriever
-}
-
-func TestServeResponse(t *testing.T) {
-	rc := Initialize()
-	w, r, retriever := commonInitializer()
 	ServeResponse(
 		w,
 		r,

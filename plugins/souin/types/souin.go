@@ -13,9 +13,9 @@ type SouinRetrieverResponseProperties struct {
 	ReverseProxyURL *url.URL
 }
 
-// GetProvider interface
-func (r *SouinRetrieverResponseProperties) GetProvider() types.AbstractProviderInterface {
-	return r.Provider
+// GetProviders interface
+func (r *SouinRetrieverResponseProperties) GetProviders() map[string]types.AbstractProviderInterface {
+	return r.Providers
 }
 
 // GetConfiguration get the configuration

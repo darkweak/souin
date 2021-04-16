@@ -34,7 +34,7 @@ It's RFC compatible, supporting Vary, request coalescing and other specification
 It supports the [Cache-Status HTTP response header](https://httpwg.org/http-extensions/draft-ietf-httpbis-cache-header.html)
 
 ## Disclaimer
-If you need redis or other custom cache providers, you have to use the full-featured version. You can read the documentation, on [the full-featured branch](https://github.com/Darkweak/Souin/tree/full-version) to discover the specific parts.
+If you don't need redis or other custom cache providers, you can to use the minimal version. You can read the documentation, on [the master branch](https://github.com/Darkweak/Souin) to discover the specific parts.
 
 ## Configuration
 The configuration file is stored at `/anywhere/configuration.yml`. You can edit it provided you fill at least the required parameters as shown below.
@@ -74,8 +74,12 @@ default_cache:
   distributed: true # Use Olric distributed storage
   headers: # Default headers concatenated in stored keys
     - Authorization
-  olric: # If distributed is set to true, you have to define the olric part
-    url: 'olric:3320' # Olric server
+  cache_providers:
+    - all # Enable all providers by default
+  redis: # Redis provider configuration
+    url: 'redis:6379'
+  olric: # Olric provider configuration
+    url: 'olric:3320'
   regex:
     exclude: 'ARegexHere' # Regex to exclude from cache
 log_level: INFO # Logs verbosity [ DEBUG, INFO, WARN, ERROR, DPANIC, PANIC, FATAL, debug, info, warn, error, dpanic, panic, fatal ]
@@ -94,21 +98,25 @@ urls:
     - Authorization
     - 'Content-Type'
 ```
+|  Key                                 |  Description                                                               |  Value example                                                                |
+|:------------------------------------:|:--------------------------------------------------------------------------:|:-----------------------------------------------------------------------------:|
+| `api.basepath`                       | BasePath for all APIs to avoid conflicts                                   | `/your-non-conflicting-route`<br/><br/>`(default: /souin-api)`                |
+| `api.{api}.enable`                   | Enable the new API with related routes                                     | `true`<br/><br/>`(default: false)`                                            |
+| `api.security.secret`                | JWT secret key                                                             | `Any_charCanW0rk123`                                                          |
+| `api.security.users`                 | Array of authorized users with username x password combo                   | `- username: admin`<br/><br/>`  password: admin`                              |
+| `api.souin.security`                 | Enable JWT validation to access the resource                               | `true`<br/><br/>`(default: false)`                                            |
+| `default_cache.headers`              | List of headers to include to the cache                                    | `- Authorization`<br/><br/>`- Content-Type`<br/><br/>`- X-Additional-Header`  |
+| `default_cache.cache_providers`      | Your providers list to cache your data, by default it will use all systems | `- all`<br/><br/>`- ristretto`<br/><br/>`- redis`                             |
+| `default_cache.redis.url`            | The redis url, used if you enabled it in the provider section              | `redis:6379` (container way) and `http://yourdomain.com:6379` (network way)   |
+| `default_cache.olric.url`            | The olric url, used if you enabled it in the provider section              | `olric:3320` (container way) and `http://yourdomain.com:3320` (network way)   |
+| `default_cache.regex.exclude`        | The regex used to prevent paths being cached                               | `^[A-z]+.*$`                                                                  |
+| `log_level`                          | The log level                                                              | `One of DEBUG, INFO, WARN, ERROR, DPANIC, PANIC, FATAL it's case insensitive` |
+| `ssl_providers`                      | List of your providers handling certificates                               | `- traefik`<br/><br/>`- nginx`<br/><br/>`- apache`                            |
+| `urls.{your url or regex}`           | List of your custom configuration depending each URL or regex              | 'https:\/\/yourdomain.com'                                                    |
+| `urls.{your url or regex}.ttl`       | Override the default TTL if defined                                        | 99999                                                                         |
+| `urls.{your url or regex}.headers`   | Override the default headers if defined                                    | `- Authorization`<br/><br/>`- 'Content-Type'`                                 |
+| `urls.{your url or regex}.providers` | Override the default providers if defined                                  | `- redis`<br/><br/>`- 'olric'`                                 |
 
-|  Key                               |  Description                                                  |  Value example                                                                |
-|:----------------------------------:|:-------------------------------------------------------------:|:-----------------------------------------------------------------------------:|
-| `api.basepath`                     | BasePath for all APIs to avoid conflicts                      | `/your-non-conflicting-route`<br/><br/>`(default: /souin-api)`                |
-| `api.{api}.enable`                 | Enable the new API with related routes                        | `true`<br/><br/>`(default: false)`                                            |
-| `api.security.secret`              | JWT secret key                                                | `Any_charCanW0rk123`                                                          |
-| `api.security.users`               | Array of authorized users with username x password combo      | `- username: admin`<br/><br/>`  password: admin`                              |
-| `api.souin.security`               | Enable JWT validation to access the resource                  | `true`<br/><br/>`(default: false)`                                            |
-| `default_cache.headers`            | List of headers to include to the cache                       | `- Authorization`<br/><br/>`- Content-Type`<br/><br/>`- X-Additional-Header`  |
-| `default_cache.regex.exclude`      | The regex used to prevent paths being cached                  | `^[A-z]+.*$`                                                                  |
-| `log_level`                        | The log level                                                 | `One of DEBUG, INFO, WARN, ERROR, DPANIC, PANIC, FATAL it's case insensitive` |
-| `ssl_providers`                    | List of your providers handling certificates                  | `- traefik`<br/><br/>`- nginx`<br/><br/>`- apache`                            |
-| `urls.{your url or regex}`         | List of your custom configuration depending each URL or regex | 'https:\/\/yourdomain.com'                                                    |
-| `urls.{your url or regex}.ttl`     | Override the default TTL if defined                           | 99999                                                                         |
-| `urls.{your url or regex}.headers` | Override the default headers if defined                       | `- Authorization`<br/><br/>`- 'Content-Type'`                                 |
 
 ## APIs
 All endpoints are accessible through the `api.basepath` configuration line or by default through `/souin-api` to avoid named route conflicts. Be sure to define an unused route to not break your existing application.
@@ -139,13 +147,13 @@ See the sequence for the minimal version below
 
 ## Cache systems
 Supported providers
- - [Redis](https://github.com/go-redis/redis)
- - [Olric](https://github.com/buraksezer/olric)
+- [Redis](https://github.com/go-redis/redis)
+- [Olric](https://github.com/buraksezer/olric)
 
- The cache system sits on top of three providers at the moment. It provides an in-memory, redis and Olric cache systems because setting, getting, updating and deleting keys in these providers is as easy as it gets.  
- In order to do that, Redis and Olric providers need to be either on the same network as the Souin instance when using docker-compose or over the internet, then it will use by default in-memory to avoid network latency as much as possible. 
- Souin will return at first the in-memory response when it gives a non-empty response, then the olric followed by the redis one with same condition, or fallback to the reverse proxy otherwise.
- Since 1.4.2, Souin supports [Olric](https://github.com/buraksezer/olric) to handle distributed cache.
+The cache system sits on top of three providers at the moment. It provides an in-memory, redis and Olric cache systems because setting, getting, updating and deleting keys in these providers is as easy as it gets.  
+In order to do that, Redis and Olric providers need to be either on the same network as the Souin instance when using docker-compose or over the internet, then it will use by default in-memory to avoid network latency as much as possible. 
+Souin will return at first the in-memory response when it gives a non-empty response, then the olric followed by the redis one with same condition, or fallback to the reverse proxy otherwise.
+Since 1.4.2, Souin supports [Olric](https://github.com/buraksezer/olric) to handle distributed cache.
 
 ### Cache invalidation
 The cache invalidation is build for CRUD requests, if you're doing a GET HTTP request, it will serve the cached response when it exists, otherwise the reverse-proxy response will be served.  
@@ -192,15 +200,30 @@ x-networks: &networks
 
 services:
   souin:
-    image: darkweak/souin:latest
+    image: darkweak/souin:latest-full
     ports:
       - 80:80
       - 443:443
+    depends_on:
+      - olric
+      - redis
     environment:
       GOPATH: /app
     volumes:
       - /anywhere/traefik.json:/ssl/traefik.json
       - /anywhere/configuration.yml:/configuration/configuration.yml
+    <<: *networks
+
+  olric:
+    build:
+      context: ./olric
+      dockerfile: Dockerfile-olric
+      target: olric
+    restart: on-failure
+    <<: *networks
+
+  redis:
+    image: redis:alpine
     <<: *networks
 
 networks:

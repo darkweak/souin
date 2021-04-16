@@ -5,14 +5,14 @@ DC_BUILD=$(DC) build
 DC_EXEC=$(DC) exec
 
 build-app: env-prod ## Build containers with prod env vars
-	$(DC_BUILD) souin
+	$(DC_BUILD) olric souin
 	$(MAKE) up
 
 build-and-run-caddy: ## Build caddy binary
 	cd plugins/caddy && xcaddy build --with github.com/darkweak/souin/plugins/caddy=./ --with github.com/darkweak/souin@latest=../.. && ./caddy run
 
 build-dev: env-dev ## Build containers with dev env vars
-	$(DC_BUILD) souin
+	$(DC_BUILD) olric souin
 	$(MAKE) up
 
 health-check-prod: build-app ## Production container health check

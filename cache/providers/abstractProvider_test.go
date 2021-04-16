@@ -9,10 +9,15 @@ import (
 
 func TestInitializeProvider(t *testing.T) {
 	c := tests.MockConfiguration(tests.BaseConfiguration)
-	p := InitializeProvider(c)
-	err := p.Init()
-	if nil != err {
-		errors.GenerateError(t, "Init shouldn't crash")
+	ps := InitializeProvider(c)
+	defer ps["olric"].Reset()
+	for k, p := range ps {
+		if k != "olric" {
+			err := p.Init()
+			if nil != err {
+				errors.GenerateError(t, "Init shouldn't crash")
+			}
+		}
 	}
 }
 

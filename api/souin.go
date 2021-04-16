@@ -12,13 +12,13 @@ import (
 
 // SouinAPI object contains informations related to the endpoints
 type SouinAPI struct {
-	basePath string
-	enabled  bool
-	provider types.AbstractProviderInterface
-	security *auth.SecurityAPI
+	basePath  string
+	enabled   bool
+	providers map[string]types.AbstractProviderInterface
+	security  *auth.SecurityAPI
 }
 
-func initializeSouin(provider types.AbstractProviderInterface, configuration configurationtypes.AbstractConfigurationInterface, api *auth.SecurityAPI) *SouinAPI {
+func initializeSouin(providers map[string]types.AbstractProviderInterface, configuration configurationtypes.AbstractConfigurationInterface, api *auth.SecurityAPI) *SouinAPI {
 	basePath := configuration.GetAPI().Souin.BasePath
 	enabled := configuration.GetAPI().Souin.Enable
 	var security *auth.SecurityAPI
@@ -31,28 +31,37 @@ func initializeSouin(provider types.AbstractProviderInterface, configuration con
 	return &SouinAPI{
 		basePath,
 		enabled,
-		provider,
+		providers,
 		security,
 	}
 }
 
 // BulkDelete allow user to delete multiple items with regexp
 func (s *SouinAPI) BulkDelete(rg *regexp.Regexp) {
-	for _, key := range s.GetAll() {
-		if rg.Match([]byte(key)) {
-			s.Delete(key)
+	for _, v := range s.GetAll() {
+		for _, key := range v {
+			if rg.Match([]byte(key)) {
+				s.Delete(key)
+			}
 		}
 	}
 }
 
 // Delete will delete a record into the provider cache system and will update the Souin API if enabled
 func (s *SouinAPI) Delete(key string) {
-	s.provider.Delete(key)
+	for _, p := range s.providers {
+		p.Delete(key)
+	}
 }
 
 // GetAll will retrieve all stored keys in the provider
-func (s *SouinAPI) GetAll() []string {
-	return s.provider.ListKeys()
+func (s *SouinAPI) GetAll() map[string][]string {
+	list := map[string][]string{}
+	for pName, p := range s.providers {
+		list[pName] = p.ListKeys()
+	}
+
+	return list
 }
 
 // GetBasePath will return the basepath for this resource

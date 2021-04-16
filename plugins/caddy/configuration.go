@@ -10,6 +10,8 @@ type DefaultCache struct {
 	Distributed bool
 	Headers     []string
 	Olric       configurationtypes.CacheProvider
+	Providers   []string
+	Redis       configurationtypes.CacheProvider
 	Regex       configurationtypes.Regex
 	TTL         string
 }
@@ -27,6 +29,16 @@ func (d *DefaultCache) GetHeaders() []string {
 // GetOlric returns olric configuration
 func (d *DefaultCache) GetOlric() configurationtypes.CacheProvider {
 	return d.Olric
+}
+
+// GetProviders returns the providers
+func (d *DefaultCache) GetProviders() []string {
+	return d.Providers
+}
+
+// GetRedis returns the redis configuration
+func (d *DefaultCache) GetRedis() configurationtypes.CacheProvider {
+	return d.Redis
 }
 
 // GetRegex returns the regex that shouldn't be cached
