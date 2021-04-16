@@ -20,4 +20,5 @@ func TestInitialize(t *testing.T) {
 	if !endpoints[0].IsEnabled() {
 		errors.GenerateError(t, fmt.Sprintf("Endpoint should be enabled"))
 	}
+	prs["olric"].Reset()
 }

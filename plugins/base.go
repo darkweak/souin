@@ -34,14 +34,19 @@ func DefaultSouinPluginCallback(
 			coalesceable <- retriever.GetTransport().GetCoalescingLayerStorage().Exists(cacheKey)
 		}()
 		if http.MethodGet == req.Method {
-			r, _ := rfc.CachedResponse(
-				retriever.GetProvider(),
-				req,
-				cacheKey,
-				retriever.GetTransport(),
-				true,
-			)
-			responses <- r
+			for _, v := range retriever.GetProviders() {
+				r, _ := rfc.CachedResponse(
+					v,
+					req,
+					rfc.GetCacheKey(req),
+					retriever.GetTransport(),
+					true,
+				)
+				responses <- r
+				if nil != r.Response {
+					return
+				}
+			}
 		}
 	}()
 
@@ -111,7 +116,7 @@ func DefaultSouinPluginInitializerFromConfiguration(c configurationtypes.Abstrac
 			TTL:     c.GetDefaultCache().GetTTL(),
 			Headers: c.GetDefaultCache().GetHeaders(),
 		},
-		Provider:      provider,
+		Providers:      provider,
 		Configuration: c,
 		RegexpUrls:    regexpUrls,
 		Transport:     transport,

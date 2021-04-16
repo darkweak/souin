@@ -46,14 +46,18 @@ func TestVaryMatches(t *testing.T) {
 		errors.GenerateError(t, fmt.Sprintf("It contains valid vary headers in the Response. It should validate it, %v given", res.Header))
 	}
 
-	if len(prs.Get(GetCacheKey(r))) != 0 {
-		errors.GenerateError(t, fmt.Sprintf("The key %s shouldn't exist in the storage provider. %v given", GetCacheKey(r), prs.Get(GetCacheKey(r))))
+	for n, p := range prs {
+		if len(p.Get(GetCacheKey(r))) != 0 {
+			errors.GenerateError(t, fmt.Sprintf("The key %s shouldn't exist in the %s provider. %v given", GetCacheKey(r), n, p.Get(GetCacheKey(r))))
+		}
 	}
 
 	variedHeaders := headerAllCommaSepValues(res.Header, "vary")
 	variedCacheKey := GetVariedCacheKey(r, variedHeaders)
-	b := prs.Get(GetVariedCacheKey(r, headerAllCommaSepValues(res.Header, "vary")))
-	if len(b) != 0 {
-		errors.GenerateError(t, fmt.Sprintf("The key %s with headers %v shouldn't exist in the storage provider. %v given", variedCacheKey, variedHeaders, b))
+	for n, p := range prs {
+		b := p.Get(GetVariedCacheKey(r, headerAllCommaSepValues(res.Header, "vary")))
+		if len(b) != 0 {
+			errors.GenerateError(t, fmt.Sprintf("The key %s with headers %v shouldn't exist in the %s provider. %v given", variedCacheKey, variedHeaders, n, b))
+		}
 	}
 }

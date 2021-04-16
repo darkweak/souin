@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"github.com/darkweak/souin/cache/providers"
 	souintypes "github.com/darkweak/souin/plugins/souin/types"
 	"github.com/darkweak/souin/tests"
 	"io/ioutil"
@@ -12,20 +13,21 @@ import (
 	"testing"
 	"time"
 
-	"github.com/darkweak/souin/cache/providers"
 	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/errors"
 )
 
-func populateProviderWithFakeData(provider types.AbstractProviderInterface) {
-	provider.Set(tests.DOMAIN+tests.PATH, []byte("testing value is here for "+tests.PATH), tests.GetMatchedURL(tests.DOMAIN+tests.PATH), time.Duration(20)*time.Second)
-	for i := 0; i < 25; i++ {
-		provider.Set(
-			fmt.Sprintf("%s%s/%d", tests.DOMAIN, tests.PATH, i),
-			[]byte(fmt.Sprintf("testing value is here for my first init of %s/%d", tests.PATH, i)),
-			tests.GetMatchedURL(tests.DOMAIN+tests.PATH),
-			time.Duration(20)*time.Second,
-		)
+func populateProviderWithFakeData(providers map[string]types.AbstractProviderInterface) {
+	for _, provider := range providers {
+		provider.Set(tests.DOMAIN+tests.PATH, []byte("testing value is here for "+tests.PATH), tests.GetMatchedURL(tests.DOMAIN+tests.PATH), time.Duration(20)*time.Second)
+		for i := 0; i < 25; i++ {
+			provider.Set(
+				fmt.Sprintf("%s%s/%d", tests.DOMAIN, tests.PATH, i),
+				[]byte(fmt.Sprintf("testing value is here for my first init of %s/%d", tests.PATH, i)),
+				tests.GetMatchedURL(tests.DOMAIN+tests.PATH),
+				time.Duration(20)*time.Second,
+			)
+		}
 	}
 }
 
@@ -87,13 +89,17 @@ func TestGetKeyFromResponse(t *testing.T) {
 	}
 }
 
-func shouldNotHaveKey(pathname string, pr types.AbstractProviderInterface) bool {
-	r := pr.Get(pathname)
-	if 0 < len(r) {
-		return false
+func shouldNotHaveKey(pathname string, prs map[string]types.AbstractProviderInterface) bool {
+	hasKey := true
+
+	for _, pr := range prs {
+		r := pr.Get(pathname)
+		if 0 < len(r) {
+			hasKey = false
+		}
 	}
 
-	return true
+	return hasKey
 }
 
 func mockRewriteResponse(method string, body string, path string, code int) []byte {
@@ -112,6 +118,7 @@ func TestKeyShouldBeDeletedOnPost(t *testing.T) {
 	if !shouldNotHaveKey(tests.PATH, prs) {
 		errors.GenerateError(t, "The key "+tests.DOMAIN+tests.PATH+" shouldn't exist.")
 	}
+	prs["olric"].Reset()
 }
 
 func TestRewriteBody(t *testing.T) {
@@ -121,11 +128,11 @@ func TestRewriteBody(t *testing.T) {
 	}
 }
 
-func verifyKeysExists(t *testing.T, path string, keys []string, isKeyDeleted bool, pr types.AbstractProviderInterface) {
+func verifyKeysExists(t *testing.T, path string, keys []string, isKeyDeleted bool, prs map[string]types.AbstractProviderInterface) {
 	time.Sleep(10 * time.Second)
 
 	for _, i := range keys {
-		if !shouldNotHaveKey(tests.PATH+i, pr) == isKeyDeleted {
+		if !shouldNotHaveKey(tests.PATH+i, prs) == isKeyDeleted {
 			errors.GenerateError(t, "The key "+tests.DOMAIN+path+i+" shouldn't exist.")
 		}
 	}
@@ -138,6 +145,7 @@ func TestKeyShouldBeDeletedOnPut(t *testing.T) {
 	mockResponse("/1", http.MethodPut, "My second response", 200)
 
 	verifyKeysExists(t, tests.PATH, []string{"", "/1"}, true, prs)
+	prs["olric"].Reset()
 }
 
 func TestKeyShouldBeDeletedOnDelete(t *testing.T) {
@@ -146,23 +154,27 @@ func TestKeyShouldBeDeletedOnDelete(t *testing.T) {
 	populateProviderWithFakeData(prs)
 	mockResponse("/1", http.MethodDelete, "", 200)
 	verifyKeysExists(t, tests.PATH, []string{"", "/1"}, true, prs)
+	prs["olric"].Reset()
 }
 
 func TestRequestReverseProxy(t *testing.T) {
 	request := httptest.NewRequest("GET", "http://"+tests.DOMAIN+tests.PATH, nil)
 	conf := tests.MockConfiguration(tests.BaseConfiguration)
 	u, _ := url.Parse(conf.GetReverseProxyURL())
+
+	prs := providers.InitializeProvider(conf)
 	response := RequestReverseProxy(
 		request,
 		souintypes.SouinRetrieverResponseProperties{
 			RetrieverResponseProperties: types.RetrieverResponseProperties{
-				Provider:      providers.InitializeProvider(conf),
+				Providers:        providers.InitializeProvider(conf),
 				Configuration: conf,
 				MatchedURL:    tests.GetMatchedURL(tests.PATH),
 			},
 			ReverseProxyURL: u,
 		},
 	)
+	prs["olric"].Reset()
 
 	if response.Proxy == nil || response.Request == nil {
 		errors.GenerateError(t, "Response proxy and request shouldn't be empty")

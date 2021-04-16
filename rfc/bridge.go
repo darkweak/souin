@@ -54,21 +54,24 @@ func (t *VaryTransport) BaseRoundTrip(req *http.Request, shouldReUpdate bool) (s
 	cacheable := IsVaryCacheable(req)
 	cachedResp := req.Response
 	if cacheable {
-		varied := t.GetVaryLayerStorage().Get(cacheKey)
-		if len(varied) != 0 {
-			cacheKey = GetVariedCacheKey(req, varied)
-		}
-		cr, _ := CachedResponse(t.GetProvider(), req, cacheKey, t, shouldReUpdate)
-		if cr.Response != nil {
-			cachedResp = cr.Response
+		for _, p := range t.ConfigurationURL.Providers {
+			varied := t.GetVaryLayerStorage().Get(cacheKey)
+			if len(varied) != 0 {
+				cacheKey = GetVariedCacheKey(req, varied)
+			}
+			cr, _ := CachedResponse(t.Providers[p], req, cacheKey, t, shouldReUpdate)
+			if cr.Response != nil {
+				cachedResp = cr.Response
+			}
 		}
 	} else {
 		go func() {
 			t.CoalescingLayerStorage.Set(cacheKey)
 		}()
-		t.Provider.Delete(cacheKey)
+		for _, p := range t.ConfigurationURL.Providers {
+			t.Providers[p].Delete(cacheKey)
+		}
 	}
-
 	return cacheKey, cacheable, cachedResp
 }
 
@@ -165,7 +168,9 @@ func (t *VaryTransport) RoundTrip(req *http.Request) (resp *http.Response, err e
 			return cachedResp, nil
 		} else {
 			if err != nil || cachedResp.StatusCode != http.StatusOK {
-				t.Provider.Delete(cacheKey)
+				for _, p := range t.ConfigurationURL.Providers {
+					t.Providers[p].Delete(cacheKey)
+				}
 			}
 			if err != nil {
 				return nil, err
@@ -182,7 +187,9 @@ func (t *VaryTransport) RoundTrip(req *http.Request) (resp *http.Response, err e
 		go func() {
 			t.CoalescingLayerStorage.Set(cacheKey)
 		}()
-		t.Provider.Delete(cacheKey)
+		for _, p := range t.ConfigurationURL.Providers {
+			t.Providers[p].Delete(cacheKey)
+		}
 	}
 	return resp, nil
 }

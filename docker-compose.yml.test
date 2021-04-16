@@ -25,6 +25,10 @@ services:
       target: olric
     restart: on-failure
     <<: *networks
+
+  redis:
+    image: redis:alpine
+    <<: *networks
 networks:
   your_network:
     external: true

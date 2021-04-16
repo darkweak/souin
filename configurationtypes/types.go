@@ -21,8 +21,9 @@ type Regex struct {
 
 //URL configuration
 type URL struct {
-	TTL     string   `yaml:"ttl"`
-	Headers []string `yaml:"headers"`
+	TTL       string   `yaml:"ttl"`
+	Providers []string `yaml:"cache_providers"`
+	Headers   []string `yaml:"headers"`
 }
 
 //CacheProvider config
@@ -33,11 +34,13 @@ type CacheProvider struct {
 //DefaultCache configuration
 type DefaultCache struct {
 	Distributed bool          `yaml:"distributed"`
-	Headers     []string      `yaml:"headers"`
-	Olric       CacheProvider `yaml:"olric"`
-	Port        Port          `yaml:"port"`
-	Regex       Regex         `yaml:"regex"`
-	TTL         string        `yaml:"ttl"`
+	Headers   []string      `yaml:"headers"`
+	Port      Port          `yaml:"port"`
+	Providers []string      `yaml:"cache_providers"`
+	Olric     CacheProvider `yaml:"olric"`
+	Redis     CacheProvider `yaml:"redis"`
+	Regex     Regex         `yaml:"regex"`
+	TTL       string        `yaml:"ttl"`
 }
 
 // GetDistributed returns if it uses Olric or not as provider
@@ -55,6 +58,16 @@ func (d *DefaultCache) GetOlric() CacheProvider {
 	return d.Olric
 }
 
+// GetProviders returns the providers
+func (d *DefaultCache) GetProviders() []string {
+	return d.Providers
+}
+
+// GetRedis returns the redis configuration
+func (d *DefaultCache) GetRedis() CacheProvider {
+	return d.Redis
+}
+
 // GetRegex returns the regex that shouldn't be cached
 func (d *DefaultCache) GetRegex() Regex {
 	return d.Regex
@@ -69,6 +82,8 @@ func (d *DefaultCache) GetTTL() string {
 type DefaultCacheInterface interface {
 	GetDistributed() bool
 	GetOlric() CacheProvider
+	GetProviders() []string
+	GetRedis() CacheProvider
 	GetHeaders() []string
 	GetRegex() Regex
 	GetTTL() string

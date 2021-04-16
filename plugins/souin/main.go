@@ -72,7 +72,7 @@ func main() {
 	if basePathAPIS == "" {
 		basePathAPIS = "/souin-api"
 	}
-	for _, endpoint := range api.Initialize(retriever.Provider, c) {
+	for _, endpoint := range api.Initialize(retriever.Providers, c) {
 		if endpoint.IsEnabled() {
 			c.GetLogger().Info(fmt.Sprintf("Enabling %s%s endpoint", basePathAPIS, endpoint.GetBasePath()))
 			http.HandleFunc(fmt.Sprintf("%s%s", basePathAPIS, endpoint.GetBasePath()), endpoint.HandleRequest)

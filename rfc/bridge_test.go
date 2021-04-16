@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-func commonInitializer() (*http.Request, types.AbstractProviderInterface) {
+func commonInitializer() (*http.Request, map[string]types.AbstractProviderInterface) {
 	c := tests.MockConfiguration(tests.BaseConfiguration)
 	prs := providers.InitializeProvider(c)
 	r := httptest.NewRequest("GET", "http://domain.com/testing", nil)
@@ -22,35 +22,42 @@ func commonInitializer() (*http.Request, types.AbstractProviderInterface) {
 
 func TestCachedResponse_WithUpdate(t *testing.T) {
 	r, c := commonInitializer()
-	res, err := CachedResponse(c, r, GetCacheKey(r), NewTransport(c), true)
+	defer c["olric"].Reset()
 
-	if err != nil {
-		errors.GenerateError(t, "CachedResponse cannot throw error")
-	}
+	for _, v := range c {
+		res, err := CachedResponse(v, r, GetCacheKey(r), NewTransport(c), true)
 
-	if res.Response != nil {
-		errors.GenerateError(t, fmt.Sprintf("Result from cached response should be a valid response"))
-	}
+		if err != nil {
+			errors.GenerateError(t, "CachedResponse cannot throw error")
+		}
 
-	if res.Request != nil || res.Proxy != nil {
-		errors.GenerateError(t, fmt.Sprintf("Request and Proxy shouldn't be set"))
+		if res.Response != nil {
+			errors.GenerateError(t, fmt.Sprintf("Result from cached response should be a valid response"))
+		}
+
+		if res.Request != nil || res.Proxy != nil {
+			errors.GenerateError(t, fmt.Sprintf("Request and Proxy shouldn't be set"))
+		}
 	}
 }
 
 func TestCachedResponse_WithoutUpdate(t *testing.T) {
 	r, c := commonInitializer()
-	key := GetCacheKey(r)
-	res, err := CachedResponse(c, r, key, NewTransport(c), false)
+	defer c["olric"].Reset()
 
-	if err != nil {
-		errors.GenerateError(t, "CachedResponse cannot throw error")
-	}
+	for _, v := range c {
+		res, err := CachedResponse(v, r, GetCacheKey(r), NewTransport(c), false)
 
-	if res.Response != nil {
-		errors.GenerateError(t, fmt.Sprintf("Result from cached response should be a valid response"))
-	}
+		if err != nil {
+			errors.GenerateError(t, "CachedResponse cannot throw error")
+		}
 
-	if res.Request != nil || res.Proxy != nil {
-		errors.GenerateError(t, fmt.Sprintf("Request and Proxy shouldn't be set"))
+		if res.Response != nil {
+			errors.GenerateError(t, fmt.Sprintf("Result from cached response should be a valid response"))
+		}
+
+		if res.Request != nil || res.Proxy != nil {
+			errors.GenerateError(t, fmt.Sprintf("Request and Proxy shouldn't be set"))
+		}
 	}
 }

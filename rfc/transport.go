@@ -20,18 +20,18 @@ func IsVaryCacheable(req *http.Request) bool {
 
 // NewTransport returns a new Transport with the
 // provided Cache implementation and MarkCachedResponses set to true
-func NewTransport(p types.AbstractProviderInterface) *VaryTransport {
+func NewTransport(p map[string]types.AbstractProviderInterface) *VaryTransport {
 	return &VaryTransport{
-		Provider:               p,
+		Providers:              p,
 		VaryLayerStorage:       types.InitializeVaryLayerStorage(),
 		CoalescingLayerStorage: types.InitializeCoalescingLayerStorage(),
 		MarkCachedResponses:    true,
 	}
 }
 
-// GetProvider returns the associated provider
-func (t *VaryTransport) GetProvider() types.AbstractProviderInterface {
-	return t.Provider
+// GetProviders returns the associated provider
+func (t *VaryTransport) GetProviders() map[string]types.AbstractProviderInterface {
+	return t.Providers
 }
 
 // SetURL set the URL
@@ -52,6 +52,8 @@ func (t *VaryTransport) GetCoalescingLayerStorage() *types.CoalescingLayerStorag
 // SetCache set the cache
 func (t *VaryTransport) SetCache(key string, resp *http.Response) {
 	if respBytes, err := httputil.DumpResponse(resp, true); err == nil {
-		t.Provider.Set(key, respBytes, t.ConfigurationURL, time.Duration(0))
+		for _, p := range t.Providers {
+			p.Set(key, respBytes, t.ConfigurationURL, time.Duration(0))
+		}
 	}
 }
