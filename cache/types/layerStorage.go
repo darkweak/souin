@@ -4,10 +4,12 @@ import (
 	"github.com/dgraph-io/ristretto"
 )
 
+// VaryLayerStorage is the layer for Vary support storage
 type VaryLayerStorage struct {
 	*ristretto.Cache
 }
 
+// InitializeVaryLayerStorage initialize the storage
 func InitializeVaryLayerStorage() *VaryLayerStorage {
 	storage, _ := ristretto.NewCache(&ristretto.Config{
 		NumCounters: 1e7,     // number of keys to track frequency of (10M).
@@ -35,10 +37,12 @@ func (provider *VaryLayerStorage) Set(key string, headers []string) {
 	}
 }
 
+// CoalescingLayerStorage is the layer to be able to not coalesce uncoalesceable request
 type CoalescingLayerStorage struct {
 	*ristretto.Cache
 }
 
+// InitializeCoalescingLayerStorage initialize the storage
 func InitializeCoalescingLayerStorage() *CoalescingLayerStorage {
 	storage, _ := ristretto.NewCache(&ristretto.Config{
 		NumCounters: 1e7,     // number of keys to track frequency of (10M).
