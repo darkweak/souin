@@ -3,7 +3,6 @@ package rfc
 import (
 	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/configurationtypes"
-	"github.com/pquerna/cachecontrol"
 	"net/http"
 	"net/http/httputil"
 	"time"
@@ -49,11 +48,8 @@ func (t *VaryTransport) GetCoalescingLayerStorage() *types.CoalescingLayerStorag
 }
 
 // SetCache set the cache
-func (t *VaryTransport) SetCache(key string, resp *http.Response, req *http.Request) {
-	r, _, _ := cachecontrol.CachableResponse(req, resp, cachecontrol.Options{})
-	resp.Header.Set(XFromCache, "Souin")
-	respBytes, err := httputil.DumpResponse(resp, true)
-	if err == nil && len(r) == 0 {
+func (t *VaryTransport) SetCache(key string, resp *http.Response) {
+	if respBytes, err := httputil.DumpResponse(resp, true); err == nil {
 		t.Provider.Set(key, respBytes, t.ConfigurationURL, time.Duration(0))
 	}
 }

@@ -11,8 +11,6 @@ const (
 	stale = iota
 	fresh
 	transparent
-	// XFromCache header constant
-	XFromCache = "X-From-Cache"
 )
 
 // CachedResponse returns the cached http.Response for req if present, and nil
@@ -22,8 +20,10 @@ func CachedResponse(c types.AbstractProviderInterface, req *http.Request, cached
 	cachedVal := c.Get(cachedKey)
 	b := bytes.NewBuffer(cachedVal)
 	response, _ := http.ReadResponse(bufio.NewReader(b), clonedReq)
-	if update && nil != response {
+	if update && nil != response && ValidateCacheControl(response) {
+		SetCacheStatusEventually(response)
 		go func() {
+			clonedReq.Response = response
 			// Update current cached response in background
 			_, _ = transport.UpdateCacheEventually(clonedReq)
 		}()
@@ -31,6 +31,19 @@ func CachedResponse(c types.AbstractProviderInterface, req *http.Request, cached
 	return types.ReverseResponse{
 		Response: response,
 	}, nil
+}
+
+func commonCacheControl(req *http.Request, t func(*http.Request) (*http.Response, error)) (*http.Response, error)  {
+	reqCacheControl := parseCacheControl(req.Header)
+	if _, ok := reqCacheControl["only-if-cached"]; ok {
+		return newGatewayTimeoutResponse(req), nil
+	}
+
+	if r, err := t(req); err != nil {
+		return nil, err
+	} else {
+		return r, nil
+	}
 }
 
 func (t *VaryTransport) BaseRoundTrip(req *http.Request, shouldReUpdate bool) (string, bool, *http.Response) {
@@ -98,14 +111,8 @@ func (t *VaryTransport) UpdateCacheEventually(req *http.Request) (resp *http.Res
 			return r, nil
 		}
 	} else {
-		reqCacheControl := parseCacheControl(req.Header)
-		if _, ok := reqCacheControl["only-if-cached"]; ok {
-			resp = newGatewayTimeoutResponse(req)
-		} else {
-			resp, err = t.RoundTrip(req)
-			if err != nil {
-				return nil, err
-			}
+		if resp, err = commonCacheControl(req, t.RoundTrip); err != nil {
+			return nil, err
 		}
 	}
 
@@ -134,10 +141,7 @@ func (t *VaryTransport) RoundTrip(req *http.Request) (resp *http.Response, err e
 	}
 
 	if cacheable && cachedResp != nil {
-		if t.MarkCachedResponses {
-			cachedResp.Header.Set(XFromCache, "1")
-		}
-
+		cachedResp.Header.Set("Cache-Status", "Souin; fwd=uri-miss: stored")
 		r := commonVaryMatchesVerification(cachedResp, req)
 		if r != nil {
 			return r, nil
@@ -165,15 +169,10 @@ func (t *VaryTransport) RoundTrip(req *http.Request) (resp *http.Response, err e
 			}
 		}
 	} else {
-		reqCacheControl := parseCacheControl(req.Header)
-		if _, ok := reqCacheControl["only-if-cached"]; ok {
-			resp = newGatewayTimeoutResponse(req)
-		} else {
-			resp, err = transport.RoundTrip(req)
-			if err != nil {
-				return nil, err
-			}
+		if resp, err = commonCacheControl(req, transport.RoundTrip); err != nil {
+			return nil, err
 		}
+		resp.Header.Set("Cache-Status", "Souin; fwd=uri-miss")
 	}
 	resp, err = transport.RoundTrip(req)
 	if !(cacheable && validateVary(req, resp, cacheKey, t)) {
