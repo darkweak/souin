@@ -17,7 +17,11 @@
   7.1. [Træfik](#træfik)  
   7.2. [Apache](#apache)  
   7.3. [Nginx](#nginx)  
-8. [Credits](#credits)
+8. [Plugins](#plugins)  
+  8.1. [Caddy module](#caddy-module)  
+  8.2. [Træfik plugin](#træfik-plugin)  
+  8.3. [Prestashop plugin](#prestashop-plugin)  
+9. [Credits](#credits)
 
 [![Travis CI](https://travis-ci.com/Darkweak/Souin.svg?branch=master)](https://travis-ci.com/Darkweak/Souin)
 
@@ -26,7 +30,8 @@
 ## Project description
 Souin is a new cache system suitable for every reverse-proxy. It will be placed on top of your current reverse-proxy whether it's Apache, Nginx or Traefik.  
 As it's written in go, it can be deployed on any server and thanks to the docker integration, it will be easy to install on top of a Swarm, or a kubernetes instance.  
-It's RFC compatible, supporting Vary, request coalescing and other specifications related to the [RFC-7234](https://tools.ietf.org/html/rfc7234)
+It's RFC compatible, supporting Vary, request coalescing and other specifications related to the [RFC-7234](https://tools.ietf.org/html/rfc7234)  
+It supports the [Cache-Status HTTP response header](https://httpwg.org/http-extensions/draft-ietf-httpbis-cache-header.html)
 
 ## Disclaimer
 If you need redis or other custom cache providers, you have to use the full-featured version. You can read the documentation, on [the full-featured branch](https://github.com/Darkweak/Souin/tree/full-version) to discover the specific parts.
@@ -226,6 +231,24 @@ Souin will listen to the `nginx.json` file. You have to setup your own way to ag
 ```
 At the moment you can't choose the path for the `*.json` file in the container, they have to be placed in the `/ssl` folder. In the future you'll be able to do that by setting one env var
 If none `*.json` file is provided to container, a default cert will be served.
+
+
+## Plugins
+
+### Caddy module
+You just have to refer to the [Caddy module integration folder](https://github.com/darkweak/souin/tree/master/plugins/caddy) to discover how to configure it.  
+The related Caddyfile can be found [here](https://github.com/darkweak/souin/tree/master/plugins/caddy/Caddyfile).  
+Then you just have to run 
+```bash
+xcaddy build --with github.com/Darkweak/Souin/plugins/caddy
+```
+Or you can go to [the xcaddy builder website](https://xcaddy.tech) to build your caddy instance easier.
+
+### Træfik plugin
+Not available at the moment expect for developers due to Yægi. It doesn't support unsafe library usage in the dependencies, but an example can be found [here](https://github.com/darkweak/souin/tree/master/plugins/traefik)
+
+### Prestashop plugin
+A repository called [prestashop-souin](https://github.com/lucmichalski/prestashop-souin) has been started by [lucmichalski](https://github.com/lucmichalski). Any help will be appreciate to make it working as soon as possible.
 
 
 ## Credits
