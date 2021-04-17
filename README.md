@@ -29,20 +29,20 @@
 
 ## Project description
 Souin is a new cache system suitable for every reverse-proxy. It will be placed on top of your current reverse-proxy whether it's Apache, Nginx or Traefik.  
-As it's written in go, it can be deployed on any server and thanks to the docker integration, it will be easy to install on top of a Swarm, or a kubernetes instance.  
+Since it's written in go, it can be deployed on any server and thanks to the docker integration, it will be easy to install on top of a Swarm, or a kubernetes instance.  
 It's RFC compatible, supporting Vary, request coalescing and other specifications related to the [RFC-7234](https://tools.ietf.org/html/rfc7234)  
-It supports the [Cache-Status HTTP response header](https://httpwg.org/http-extensions/draft-ietf-httpbis-cache-header.html)
+It also supports the [Cache-Status HTTP response header](https://httpwg.org/http-extensions/draft-ietf-httpbis-cache-header.html)
 
 ## Disclaimer
-If you need redis or other custom cache providers, you have to use the full-featured version. You can read the documentation, on [the full-featured branch](https://github.com/Darkweak/Souin/tree/full-version) to discover the specific parts.
+If you need redis or other custom cache providers, you have to use the fully-featured version. You can read the documentation, on [the fully-featured branch](https://github.com/Darkweak/Souin/tree/full-version) to understand the specific parts.
 
 ## Configuration
-The configuration file is stored at `/anywhere/configuration.yml`. You can edit it provided you fill at least the required parameters as shown below.
+The configuration file is stored at `/anywhere/configuration.yml`. You can supply your own as long as you use the minimal configuration below.
 
 ### Required configuration
 ```yaml
-default_cache: # Required part
-  port: # Ports to expose Souin
+default_cache: # Required
+  port: # Ports on which Souin will be exposed
     web: 80
     tls: 443
   ttl: 10 # Default TTL
@@ -74,11 +74,11 @@ default_cache:
   distributed: true # Use Olric distributed storage
   headers: # Default headers concatenated in stored keys
     - Authorization
-  olric: # If distributed is set to true, you have to define the olric part
+  olric: # If distributed is set to true, you'll have to define the olric section
     url: 'olric:3320' # Olric server
   regex:
     exclude: 'ARegexHere' # Regex to exclude from cache
-log_level: INFO # Logs verbosity [ DEBUG, INFO, WARN, ERROR, DPANIC, PANIC, FATAL, debug, info, warn, error, dpanic, panic, fatal ]
+log_level: INFO # Logs verbosity [ DEBUG, INFO, WARN, ERROR, DPANIC, PANIC, FATAL ], case do not matter
 ssl_providers: # The {providers}.json to use
   - traefik
 urls:
@@ -89,7 +89,7 @@ urls:
     headers: # Override default headers
     - Authorization
   'https?:\/\/mysubdomain\.domain\.com': # Third regex route configuration
-    ttl: 50
+    ttl: 50 # Override default TTL
     headers: # Override default headers
     - Authorization
     - 'Content-Type'
@@ -117,24 +117,24 @@ All endpoints are accessible through the `api.basepath` configuration line or by
 Souin API allow users to manage the cache.  
 The base path for the souin API is `/souin`.
 
-| Method  | Endpoint          | Description                                                                                             |
-|:-------:|:-----------------:|:-------------------------------------------------------------------------------------------------------:|
-| `GET`   | `/`               | List stored keys cache                                                                                  |
-| `PURGE` | `/{id or regexp}` | Purge selected one or multiple items depending of the parameter which can be a specific key or a regexp |
+| Method  | Endpoint          | Description                                                                              |
+|:-------:|:-----------------:|:-----------------------------------------------------------------------------------------|
+| `GET`   | `/`               | List stored keys cache                                                                   |
+| `PURGE` | `/{id or regexp}` | Purge selected item(s) depending. The parameter can be either a specific key or a regexp |
 
 ### Security API
-Security API allow users to protect other APIs with JWT authentication.  
+Security API allows users to protect other APIs with JWT authentication.  
 The base path for the security API is `/authentication`.
 
 | Method | Endpoint   | Body                                       | Headers                                                                         | Description                                                                                                            |
 |:------:|:----------:|:------------------------------------------:|:-------------------------------------------------------------------------------:|:----------------------------------------------------------------------------------------------------------------------:|
 | `POST` | `/login`   | `{"username":"admin", "password":"admin"}` | `['Content-Type' => 'json']`                                                    | Try to login, it returns a response which contains the cookie name `souin-authorization-token` with the JWT if succeed |
-| `POST` | `/refresh` | `-`                                        | `['Content-Type' => 'json', 'Cookie' => 'souin-authorization-token=the-token']` | Purge selected one or multiple items depending of the parameter which can be a specific key or a regexp                |
+| `POST` | `/refresh` | `-`                                        | `['Content-Type' => 'json', 'Cookie' => 'souin-authorization-token=the-token']` | Purge one or multiple item(s) depending on the parameter which can be a specific key or a regexp                |
 
 ## Diagrams
 
 ### Sequence diagram
-See the sequence for the minimal version below
+See the sequence diagram for the minimal version below
 <img src="docs/plantUML/sequenceDiagram.svg?sanitize=true" alt="Sequence diagram">
 
 ## Cache systems
@@ -144,19 +144,19 @@ Supported providers
 
  The cache system sits on top of three providers at the moment. It provides an in-memory, redis and Olric cache systems because setting, getting, updating and deleting keys in these providers is as easy as it gets.  
  In order to do that, Redis and Olric providers need to be either on the same network as the Souin instance when using docker-compose or over the internet, then it will use by default in-memory to avoid network latency as much as possible. 
- Souin will return at first the in-memory response when it gives a non-empty response, then the olric followed by the redis one with same condition, or fallback to the reverse proxy otherwise.
+ Souin will return at first the in-memory response when it gives a non-empty response, then the olric one followed by the redis one with same condition, or fallback to the reverse proxy otherwise.
  Since 1.4.2, Souin supports [Olric](https://github.com/buraksezer/olric) to handle distributed cache.
 
 ### Cache invalidation
-The cache invalidation is build for CRUD requests, if you're doing a GET HTTP request, it will serve the cached response when it exists, otherwise the reverse-proxy response will be served.  
+The cache invalidation is built for CRUD requests, if you're doing a GET HTTP request, it will serve the cached response when it exists, otherwise the reverse-proxy response will be served.  
 If you're doing a POST, PUT, PATCH or DELETE HTTP request, the related cache GET request, and the list endpoint will be dropped.  
-It works very well with plain [API Platform](https://api-platform.com) integration (not for custom actions at the moment) and CRUD routes.
-Then it supports invalidation via [Souin API](#souin-api) to invalidate the cache programmatically.
+It works very well with plain [API Platform](https://api-platform.com) integration (except for custom actions at the moment) and CRUD routes.
+It also supports invalidation via [Souin API](#souin-api) to invalidate the cache programmatically.
 
 ## Examples
 
 ### Træfik container
-[Træfik](https://traefik.io) is a modern reverse-proxy and help you to manage full container architecture projects.
+[Træfik](https://traefik.io) is a modern reverse-proxy which helps you to manage full container architecture projects.
 
 ```yaml
 # your-traefik-instance/docker-compose.yml
@@ -211,26 +211,26 @@ networks:
 ## SSL
 
 ### Træfik
-As Souin is compatible with Træfik, it can use (and it should use) `traefik.json` provided on træfik. Souin will get new/updated certs from Træfik, then your SSL certs will be up to date as far as Træfik will be too
-To provide, acme, you just have to map volume as above
+As Souin is compatible with Træfik, it can use (and it should use) `traefik.json` provided on træfik. Souin will get new/updated certs from Træfik, so your SSL certificates will be up to date as long as the Træfik ones are.
+To provide acme, you just have to map the volume as below
 ```yaml
     volumes:
       - /anywhere/traefik.json:/ssl/traefik.json
 ```
 ### Apache
-Souin will listen to the `apache.json` file. You have to setup your own way to aggregate your SSL cert files and keys. Alternatively you can use a side project called [dob](https://github.com/darkweak/dob), it's open-source and written in go too
+Souin will listen to the `apache.json` file. You have to setup your own way to aggregate your SSL cert files and keys. Alternatively you can use a side project called [dob](https://github.com/darkweak/dob), it's also open-source and written in go
 ```yaml
     volumes:
       - /anywhere/apache.json:/ssl/apache.json
 ```
 ### Nginx
-Souin will listen to the `nginx.json` file. You have to setup your own way to aggregate your SSL cert files and keys. Alternatively you can use a side project called [dob](https://github.com/darkweak/dob), it's open-source and written in go too
+Souin will listen to the `nginx.json` file. You have to setup your own way to aggregate your SSL cert files and keys. Alternatively you can use a side project called [dob](https://github.com/darkweak/dob), it's also open-source and written in go
 ```yaml
     volumes:
       - /anywhere/nginx.json:/ssl/nginx.json
 ```
 At the moment you can't choose the path for the `*.json` file in the container, they have to be placed in the `/ssl` folder. In the future you'll be able to do that by setting one env var
-If none `*.json` file is provided to container, a default cert will be served.
+If no `*.json` file is provided to container, a default cert will be served.
 
 
 ## Plugins
@@ -238,17 +238,17 @@ If none `*.json` file is provided to container, a default cert will be served.
 ### Caddy module
 You just have to refer to the [Caddy module integration folder](https://github.com/darkweak/souin/tree/master/plugins/caddy) to discover how to configure it.  
 The related Caddyfile can be found [here](https://github.com/darkweak/souin/tree/master/plugins/caddy/Caddyfile).  
-Then you just have to run 
+Then you just have to run the following command:
 ```bash
 xcaddy build --with github.com/Darkweak/Souin/plugins/caddy
 ```
-Or you can go to [the xcaddy builder website](https://xcaddy.tech) to build your caddy instance easier.
+Alternatively, you can go to [the xcaddy builder website](https://xcaddy.tech) to build your caddy instance easily.
 
 ### Træfik plugin
-Not available at the moment expect for developers due to Yægi. It doesn't support unsafe library usage in the dependencies, but an example can be found [here](https://github.com/darkweak/souin/tree/master/plugins/traefik)
+Not available at the moment, except for developers thanks to Yægi. It doesn't support unsafe library usage in the dependencies, but an example can be found [here](https://github.com/darkweak/souin/tree/master/plugins/traefik)
 
 ### Prestashop plugin
-A repository called [prestashop-souin](https://github.com/lucmichalski/prestashop-souin) has been started by [lucmichalski](https://github.com/lucmichalski). Any help will be appreciate to make it working as soon as possible.
+A repository called [prestashop-souin](https://github.com/lucmichalski/prestashop-souin) has been started by [lucmichalski](https://github.com/lucmichalski). Any help will be appreciated to make it working as soon as possible.
 
 
 ## Credits
