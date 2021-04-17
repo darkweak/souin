@@ -46,7 +46,7 @@ default_cache: # Required
     web: 80
     tls: 443
   ttl: 10 # Default TTL
-reverse_proxy_url: 'http://traefik' # If it's in the same network you can use http://your-service. Then just use https://yourdomain.com
+reverse_proxy_url: 'http://traefik' # If it's in the same network you can use http://your-service, otherwise just use https://yourdomain.com
 ```
 This is a fully working minimal configuration for a Souin instance
 
@@ -129,7 +129,7 @@ The base path for the security API is `/authentication`.
 | Method | Endpoint   | Body                                       | Headers                                                                         | Description                                                                                                            |
 |:------:|:----------:|:------------------------------------------:|:-------------------------------------------------------------------------------:|:----------------------------------------------------------------------------------------------------------------------:|
 | `POST` | `/login`   | `{"username":"admin", "password":"admin"}` | `['Content-Type' => 'json']`                                                    | Try to login, it returns a response which contains the cookie name `souin-authorization-token` with the JWT if succeed |
-| `POST` | `/refresh` | `-`                                        | `['Content-Type' => 'json', 'Cookie' => 'souin-authorization-token=the-token']` | Purge one or multiple item(s) depending on the parameter which can be a specific key or a regexp                |
+| `POST` | `/refresh` | `-`                                        | `['Content-Type' => 'json', 'Cookie' => 'souin-authorization-token=the-token']` | Refreshes the token, replaces the old with a new one |
 
 ## Diagrams
 
@@ -245,7 +245,7 @@ xcaddy build --with github.com/Darkweak/Souin/plugins/caddy
 Alternatively, you can go to [the xcaddy builder website](https://xcaddy.tech) to build your caddy instance easily.
 
 ### Træfik plugin
-Not available at the moment, except for developers thanks to Yægi. It doesn't support unsafe library usage in the dependencies, but an example can be found [here](https://github.com/darkweak/souin/tree/master/plugins/traefik)
+Currenly not available because Træfik uses Yaegi to analyse the plugin, which prevents the usage of unsafe libraries unless you're a developper. An example can be found [here](https://github.com/darkweak/souin/tree/master/plugins/traefik) nonetheless.
 
 ### Prestashop plugin
 A repository called [prestashop-souin](https://github.com/lucmichalski/prestashop-souin) has been started by [lucmichalski](https://github.com/lucmichalski). Any help will be appreciated to make it working as soon as possible.
