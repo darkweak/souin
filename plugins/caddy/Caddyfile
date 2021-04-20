@@ -1,8 +1,7 @@
 {
     experimental_http3
-    order souin before rewrite
-    souin {
-        distributed true
+    order souin_cache before rewrite
+    souin_cache {
         headers Content-Type Authorization
         olric {
             url `olric:3320`
@@ -13,21 +12,21 @@
 
 :80
 
-route /testing-purpose {
-    souin {
+souin_cache {
+    route /testing-purpose {
+        headers Content-Type
+    }
+    route /testing-purpose-2 {
         headers Content-Type
         ttl 100
     }
-}
-route /testing-purpose-2 {
-    souin {
-        headers Content-Type
-        ttl 200
+    route /a* {
+        ttl 20
     }
-    respond "Hello, s-maxage!"
-}
-route `/[A-z]-try*` {
-    souin {
+    route /a* {
+        headers Content-Type
+    }
+    route * {
         headers Authorization
         ttl 666
     }

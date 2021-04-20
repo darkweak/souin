@@ -20,12 +20,15 @@ import (
 )
 
 type key string
+
 const getterContextCtxKey key = "getter_context"
+const moduleName = "souin_cache"
+const moduleID caddy.ModuleID = "http.handlers." + moduleName
 
 func init() {
 	caddy.RegisterModule(SouinCaddyPlugin{})
-	httpcaddyfile.RegisterGlobalOption("souin", parseCaddyfileGlobalOption)
-	httpcaddyfile.RegisterHandlerDirective("souin", parseCaddyfileHandlerDirective)
+	httpcaddyfile.RegisterGlobalOption(moduleName, parseCaddyfileGlobalOption)
+	httpcaddyfile.RegisterHandlerDirective(moduleName, parseCaddyfileHandlerDirective)
 }
 
 var staticConfig Configuration
@@ -33,23 +36,28 @@ var staticConfig Configuration
 // SouinCaddyPlugin declaration.
 type SouinCaddyPlugin struct {
 	plugins.SouinBasePlugin
-	configuration *Configuration
+	Configuration *Configuration
 	logger        *zap.Logger
 	bufPool       sync.Pool
+	Distributed   bool
+	Headers       []string
+	Olric         configurationtypes.CacheProvider
+	TTL           string
+	Rules         map[string]configurationtypes.URL
 }
 
 // CaddyModule returns the Caddy module information.
 func (s SouinCaddyPlugin) CaddyModule() caddy.ModuleInfo {
 	return caddy.ModuleInfo{
-		ID:  "http.handlers.souin_system",
+		ID:  moduleID,
 		New: func() caddy.Module { return new(SouinCaddyPlugin) },
 	}
 }
 
 type getterContext struct {
-	rw     http.ResponseWriter
-	req    *http.Request
-	next   caddyhttp.Handler
+	rw   http.ResponseWriter
+	req  *http.Request
+	next caddyhttp.Handler
 }
 
 // ServeHTTP implements caddyhttp.MiddlewareHandler.
@@ -89,18 +97,48 @@ func (s *SouinCaddyPlugin) Validate() error {
 	return nil
 }
 
+func (s *SouinCaddyPlugin) configurationPropertyMapper() error {
+	if val, ok := s.Rules["*"]; ok {
+		delete(s.Rules, "*")
+		defaultCache := &DefaultCache{
+			Distributed: s.Olric.URL != "",
+			Headers:     val.Headers,
+			Olric:       s.Olric,
+			TTL:         val.TTL,
+		}
+		if s.Configuration == nil {
+			s.Configuration = &Configuration{
+				DefaultCache: defaultCache,
+				URLs:         s.Rules,
+			}
+		}
+		s.Configuration.DefaultCache = defaultCache
+		return nil
+	}
+
+	for _, _ = range s.Configuration.URLs {
+		return nil
+	}
+
+	return new(defaultCacheError)
+}
+
 // Provision to do the provisioning part.
 func (s *SouinCaddyPlugin) Provision(ctx caddy.Context) error {
 	s.logger = ctx.Logger(s)
+	if err := s.configurationPropertyMapper(); err != nil {
+		return err
+	}
+
 	s.bufPool = sync.Pool{
 		New: func() interface{} {
 			return new(bytes.Buffer)
 		},
 	}
-	if s.configuration == nil && &staticConfig != nil {
-		s.configuration = &staticConfig
+	if s.Configuration == nil && &staticConfig != nil {
+		s.Configuration = &staticConfig
 	}
-	s.Retriever = plugins.DefaultSouinPluginInitializerFromConfiguration(s.configuration)
+	s.Retriever = plugins.DefaultSouinPluginInitializerFromConfiguration(s.Configuration)
 	s.RequestCoalescing = coalescing.Initialize()
 	return nil
 }
@@ -109,6 +147,7 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser) (interface{}, error) {
 	var souin SouinCaddyPlugin
 	cfg := &Configuration{
 		DefaultCache: &DefaultCache{
+			Distributed: false,
 			Headers: []string{},
 		},
 		URLs: make(map[string]configurationtypes.URL),
@@ -148,7 +187,7 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser) (interface{}, error) {
 		}
 	}
 
-	souin.configuration = cfg
+	souin.Configuration = cfg
 	staticConfig = *cfg
 	return nil, nil
 }
@@ -156,7 +195,7 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser) (interface{}, error) {
 func parseCaddyfileHandlerDirective(h httpcaddyfile.Helper) (caddyhttp.MiddlewareHandler, error) {
 	s := &SouinCaddyPlugin{}
 	if &staticConfig != nil {
-		s.configuration = &staticConfig
+		s.Configuration = &staticConfig
 	}
 
 	for h.Next() {
@@ -166,21 +205,31 @@ func parseCaddyfileHandlerDirective(h httpcaddyfile.Helper) (caddyhttp.Middlewar
 				args := h.RemainingArgs()
 				url := configurationtypes.URL{}
 
-				if _, ok := s.configuration.URLs[args[0]]; ok {
-					url = s.configuration.URLs[args[0]]
+				if v, ok := s.Configuration.URLs[args[0]]; ok {
+					url = v
 				}
 				for nesting := h.Nesting(); h.NextBlock(nesting); {
 					directive := h.Val()
 					switch directive {
 					case "headers":
 						headers := h.RemainingArgs()
-						url.Headers = append(s.configuration.URLs[args[0]].Headers, headers...)
+						if args[0] == "*" {
+							s.Configuration.DefaultCache.Headers = headers
+						} else {
+							url.Headers = append(s.Configuration.URLs[args[0]].Headers, headers...)
+						}
 					case "ttl":
-						url.TTL = h.RemainingArgs()[0]
+						if args[0] == "*" {
+							s.Configuration.DefaultCache.TTL = h.RemainingArgs()[0]
+						} else {
+							url.TTL = h.RemainingArgs()[0]
+						}
 					}
 				}
 
-				s.configuration.URLs[args[0]] = url
+				if args[0] != "*" {
+					s.Configuration.URLs[args[0]] = url
+				}
 			}
 		}
 	}
