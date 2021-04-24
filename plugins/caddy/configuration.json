@@ -1,0 +1,37 @@
+{
+  "apps": {
+    "http": {
+      "servers": {
+        "": {
+          "routes": [
+            {
+              "handle": [
+                {
+                  "handler": "souin_cache",
+                  "olric": {
+                    "url": "olric:3320"
+                  },
+                  "rules": {
+                    "/a*": {
+                      "headers": [
+                        "Content-Type"
+                      ],
+                      "ttl": "30s"
+                    },
+                    "/b*": {
+                      "ttl": "432000s"
+                    },
+                    "*": {
+                      "headers": ["Content-Type", "Authorization"],
+                      "ttl": "1000s"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  }
+}

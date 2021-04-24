@@ -3,31 +3,30 @@
     order souin_cache before rewrite
     souin_cache {
         headers Content-Type Authorization
-        olric {
-            url `olric:3320`
-        }
+        log_level info
         ttl 1000
     }
 }
 
 :80
 
-souin_cache {
-    route /testing-purpose {
-        headers Content-Type
-    }
-    route /testing-purpose-2 {
-        headers Content-Type
-        ttl 100
-    }
-    route /a* {
-        ttl 20
-    }
-    route /a* {
-        headers Content-Type
-    }
-    route * {
-        headers Authorization
-        ttl 666
-    }
+@match path /test1*
+@match2 path /test2*
+@matchdefault path /default
+@matchall path /*
+
+souin_cache @match {
+    ttl 30s
+    headers Cookie
 }
+
+souin_cache @match2 {
+    ttl 50s
+    headers Authorization
+}
+
+souin_cache @matchdefault {
+    ttl 25s
+}
+
+souin_cache @matchall {}
