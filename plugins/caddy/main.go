@@ -3,7 +3,6 @@ package caddy
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
 	"github.com/caddyserver/caddy/v2/caddyconfig/httpcaddyfile"
@@ -34,8 +33,8 @@ func init() {
 
 var (
 	staticConfig Configuration
-	appCounter = 0
-	appConfigs []*Configuration
+	appCounter   = 0
+	appConfigs   []*Configuration
 )
 
 // SouinCaddyPlugin declaration.
@@ -43,12 +42,11 @@ type SouinCaddyPlugin struct {
 	plugins.SouinBasePlugin
 	Configuration *Configuration
 	logger        *zap.Logger
+	LogLevel      string `json:"log_level,omitempty"`
 	bufPool       sync.Pool
-	Distributed   bool
 	Headers       []string
 	Olric         configurationtypes.CacheProvider
 	TTL           string
-	Rules         map[string]configurationtypes.URL
 }
 
 // CaddyModule returns the Caddy module information.
@@ -74,7 +72,6 @@ func (s SouinCaddyPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request, n
 	buf.Reset()
 	defer s.bufPool.Put(buf)
 	combo := ctx.Value(getterContextCtxKey).(getterContext)
-	fmt.Println(s.Configuration.DefaultCache)
 	plugins.DefaultSouinPluginCallback(rw, req, s.Retriever, s.RequestCoalescing, func(_ http.ResponseWriter, _ *http.Request) error {
 		recorder := httptest.NewRecorder()
 		e := combo.next.ServeHTTP(recorder, combo.req)
@@ -97,6 +94,26 @@ func (s SouinCaddyPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request, n
 	return nil
 }
 
+func (s *SouinCaddyPlugin) configurationPropertyMapper() error {
+	if s.Configuration != nil {
+		return nil
+	}
+	defaultCache := &DefaultCache{
+		Distributed: s.Olric.URL != "",
+		Headers:     s.Headers,
+		Olric:       s.Olric,
+		TTL:         s.TTL,
+	}
+	if s.Configuration == nil {
+		s.Configuration = &Configuration{
+			DefaultCache: defaultCache,
+			LogLevel:     s.LogLevel,
+		}
+	}
+	s.Configuration.DefaultCache = defaultCache
+	return nil
+}
+
 // Validate to validate configuration.
 func (s *SouinCaddyPlugin) Validate() error {
 	return nil
@@ -105,14 +122,22 @@ func (s *SouinCaddyPlugin) Validate() error {
 // Provision to do the provisioning part.
 func (s *SouinCaddyPlugin) Provision(ctx caddy.Context) error {
 	s.logger = ctx.Logger(s)
+	if err := s.configurationPropertyMapper(); err != nil {
+		return err
+	}
 
 	s.bufPool = sync.Pool{
 		New: func() interface{} {
 			return new(bytes.Buffer)
 		},
 	}
-	if s.Configuration == nil && appConfigs[appCounter] != nil {
-		s.Configuration = appConfigs[appCounter]
+	if s.Configuration == nil {
+		if len(appConfigs) > appCounter {
+			s.Configuration = appConfigs[appCounter]
+		} else {
+			sc := staticConfig
+			s.Configuration = &sc
+		}
 	}
 	s.Retriever = plugins.DefaultSouinPluginInitializerFromConfiguration(s.Configuration)
 	s.RequestCoalescing = coalescing.Initialize()
@@ -125,7 +150,7 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser) (interface{}, error) {
 	cfg := &Configuration{
 		DefaultCache: &DefaultCache{
 			Distributed: false,
-			Headers: []string{},
+			Headers:     []string{},
 		},
 		URLs: make(map[string]configurationtypes.URL),
 	}

@@ -39,12 +39,6 @@ func (d *DefaultCache) GetTTL() string {
 	return d.TTL
 }
 
-type Rule struct {
-	URL     string   `json:"url,omitempty"`
-	Headers []string `json:"headers,omitempty"`
-	TTL     int      `json:"ttl,omitempty"`
-}
-
 //Configuration holder
 type Configuration struct {
 	DefaultCache *DefaultCache

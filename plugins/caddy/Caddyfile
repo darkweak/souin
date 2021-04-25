@@ -29,4 +29,5 @@ souin_cache @matchdefault {
     ttl 25s
 }
 
-souin_cache @matchall {}
+souin_cache * {
+}

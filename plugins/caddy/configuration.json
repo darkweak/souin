@@ -5,26 +5,36 @@
         "": {
           "routes": [
             {
+              "match": [
+                {
+                  "path": [
+                    "/a*"
+                  ]
+                }
+              ],
               "handle": [
                 {
                   "handler": "souin_cache",
+                  "ttl": "30s"
+                }
+              ]
+            },
+            {
+              "match": [
+                {
+                  "path": [
+                    "*"
+                  ]
+                }
+              ],
+              "handle": [
+                {
+                  "handler": "souin_cache",
+                  "headers": ["Content-Type", "Authorization"],
+                  "log_level": "info",
+                  "ttl": "1000",
                   "olric": {
                     "url": "olric:3320"
-                  },
-                  "rules": {
-                    "/a*": {
-                      "headers": [
-                        "Content-Type"
-                      ],
-                      "ttl": "30s"
-                    },
-                    "/b*": {
-                      "ttl": "432000s"
-                    },
-                    "*": {
-                      "headers": ["Content-Type", "Authorization"],
-                      "ttl": "1000s"
-                    }
                   }
                 }
               ]
