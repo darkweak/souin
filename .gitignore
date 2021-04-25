@@ -7,4 +7,4 @@ Dockerfile
 .DS_Store
 traefik.json
 *.iml
-caddy
+plugins/caddy/caddy

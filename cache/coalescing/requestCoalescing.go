@@ -58,7 +58,13 @@ func ServeResponse(
 		Headers: retriever.GetConfiguration().GetDefaultCache().GetHeaders(),
 	}
 	if "" != regexpURL {
-		url = retriever.GetConfiguration().GetUrls()[regexpURL]
+		u := retriever.GetConfiguration().GetUrls()[regexpURL]
+		if u.TTL != "" {
+			url.TTL = u.TTL
+		}
+		if len(u.Headers) != 0 {
+			url.Headers = u.Headers
+		}
 	}
 	retriever.GetTransport().SetURL(url)
 	retriever.SetMatchedURL(url)
