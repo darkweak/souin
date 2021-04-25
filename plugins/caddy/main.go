@@ -140,8 +140,8 @@ func (s *SouinCaddyPlugin) Provision(ctx caddy.Context) error {
 			counter := c.(int)
 			config, _, _ := appConfigs.LoadOrNew(appCounter - counter, nil)
 			s.Configuration, _ = config.(*Configuration)
-			appConfigs.Delete("counter")
-			counter -= 1
+			_, _ = appConfigs.Delete("counter")
+			counter--
 			appConfigs.LoadOrStore("counter", counter)
 		} else {
 			sc := staticConfig
@@ -150,7 +150,6 @@ func (s *SouinCaddyPlugin) Provision(ctx caddy.Context) error {
 	}
 	s.Retriever = plugins.DefaultSouinPluginInitializerFromConfiguration(s.Configuration)
 	s.RequestCoalescing = coalescing.Initialize()
-	appCounter += 1
 	return nil
 }
 
@@ -229,9 +228,9 @@ func parseCaddyfileHandlerDirective(h httpcaddyfile.Helper) (caddyhttp.Middlewar
 	}
 
 	appConfigs.LoadOrStore(appCounter, &sc)
-	appConfigs.Delete("counter")
+	_, _ = appConfigs.Delete("counter")
 	appConfigs.LoadOrStore("counter", appCounter)
-	appCounter += 1
+	appCounter++
 
 	return &SouinCaddyPlugin{
 		Configuration: &sc,
