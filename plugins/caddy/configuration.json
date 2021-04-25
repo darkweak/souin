@@ -3,10 +3,14 @@
     "http": {
       "servers": {
         "": {
+          "listen": [":80"],
           "routes": [
             {
               "match": [
                 {
+                  "header": {
+                    "Content-Type": ["*"]
+                  },
                   "path": [
                     "/a*"
                   ]
@@ -22,6 +26,9 @@
             {
               "match": [
                 {
+                  "header": {
+                    "Content-Type": ["*"]
+                  },
                   "path": [
                     "*"
                   ]
