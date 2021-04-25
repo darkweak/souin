@@ -34,7 +34,7 @@ func init() {
 var (
 	staticConfig Configuration
 	appCounter   = 0
-	appConfigs   []*Configuration
+	appConfigs   *caddy.UsagePool
 )
 
 // SouinCaddyPlugin declaration.
@@ -51,6 +51,9 @@ type SouinCaddyPlugin struct {
 
 // CaddyModule returns the Caddy module information.
 func (SouinCaddyPlugin) CaddyModule() caddy.ModuleInfo {
+	if appConfigs == nil {
+		appConfigs = caddy.NewUsagePool()
+	}
 	return caddy.ModuleInfo{
 		ID:  moduleID,
 		New: func() caddy.Module { return new(SouinCaddyPlugin) },
@@ -132,8 +135,14 @@ func (s *SouinCaddyPlugin) Provision(ctx caddy.Context) error {
 		},
 	}
 	if s.Configuration == nil {
-		if len(appConfigs) > appCounter {
-			s.Configuration = appConfigs[appCounter]
+		c, _, _ := appConfigs.LoadOrNew("counter", nil)
+		if c != nil {
+			counter := c.(int)
+			config, _, _ := appConfigs.LoadOrNew(appCounter - counter, nil)
+			s.Configuration, _ = config.(*Configuration)
+			appConfigs.Delete("counter")
+			counter -= 1
+			appConfigs.LoadOrStore("counter", counter)
 		} else {
 			sc := staticConfig
 			s.Configuration = &sc
@@ -219,11 +228,10 @@ func parseCaddyfileHandlerDirective(h httpcaddyfile.Helper) (caddyhttp.Middlewar
 		}
 	}
 
-	if appConfigs == nil || len(appConfigs) == 0 {
-		appConfigs = []*Configuration{&sc}
-	} else {
-		appConfigs = append(appConfigs, &sc)
-	}
+	appConfigs.LoadOrStore(appCounter, &sc)
+	appConfigs.Delete("counter")
+	appConfigs.LoadOrStore("counter", appCounter)
+	appCounter += 1
 
 	return &SouinCaddyPlugin{
 		Configuration: &sc,
