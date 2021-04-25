@@ -1,0 +1,54 @@
+{
+  "apps": {
+    "http": {
+      "servers": {
+        "": {
+          "listen": [":80"],
+          "routes": [
+            {
+              "match": [
+                {
+                  "header": {
+                    "Content-Type": ["*"]
+                  },
+                  "path": [
+                    "/a*"
+                  ]
+                }
+              ],
+              "handle": [
+                {
+                  "handler": "souin_cache",
+                  "ttl": "30s"
+                }
+              ]
+            },
+            {
+              "match": [
+                {
+                  "header": {
+                    "Content-Type": ["*"]
+                  },
+                  "path": [
+                    "*"
+                  ]
+                }
+              ],
+              "handle": [
+                {
+                  "handler": "souin_cache",
+                  "headers": ["Content-Type", "Authorization"],
+                  "log_level": "info",
+                  "ttl": "1000",
+                  "olric": {
+                    "url": "olric:3320"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  }
+}
