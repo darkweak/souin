@@ -102,38 +102,9 @@ func (s *SouinCaddyPlugin) Validate() error {
 	return nil
 }
 
-func (s *SouinCaddyPlugin) configurationPropertyMapper() error {
-	if val, ok := s.Rules["*"]; ok {
-		delete(s.Rules, "*")
-		defaultCache := &DefaultCache{
-			Distributed: s.Olric.URL != "",
-			Headers:     val.Headers,
-			Olric:       s.Olric,
-			TTL:         val.TTL,
-		}
-		if s.Configuration == nil {
-			s.Configuration = &Configuration{
-				DefaultCache: defaultCache,
-				URLs:         s.Rules,
-			}
-		}
-		s.Configuration.DefaultCache = defaultCache
-		return nil
-	}
-
-	for _, _ = range s.Configuration.URLs {
-		return nil
-	}
-
-	return new(defaultCacheError)
-}
-
 // Provision to do the provisioning part.
 func (s *SouinCaddyPlugin) Provision(ctx caddy.Context) error {
 	s.logger = ctx.Logger(s)
-	if err := s.configurationPropertyMapper(); err != nil {
-		return err
-	}
 
 	s.bufPool = sync.Pool{
 		New: func() interface{} {
