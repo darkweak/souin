@@ -20,36 +20,50 @@ import (
 )
 
 type key string
+
 const getterContextCtxKey key = "getter_context"
+const moduleName = "souin_cache"
+const moduleID caddy.ModuleID = "http.handlers." + moduleName
 
 func init() {
 	caddy.RegisterModule(SouinCaddyPlugin{})
-	httpcaddyfile.RegisterGlobalOption("souin", parseCaddyfileGlobalOption)
-	httpcaddyfile.RegisterHandlerDirective("souin", parseCaddyfileHandlerDirective)
+	httpcaddyfile.RegisterGlobalOption(moduleName, parseCaddyfileGlobalOption)
+	httpcaddyfile.RegisterHandlerDirective(moduleName, parseCaddyfileHandlerDirective)
 }
 
-var staticConfig Configuration
+var (
+	staticConfig Configuration
+	appCounter   = 0
+	appConfigs   *caddy.UsagePool
+)
 
 // SouinCaddyPlugin declaration.
 type SouinCaddyPlugin struct {
 	plugins.SouinBasePlugin
-	configuration *Configuration
+	Configuration *Configuration
 	logger        *zap.Logger
+	LogLevel      string `json:"log_level,omitempty"`
 	bufPool       sync.Pool
+	Headers       []string
+	Olric         configurationtypes.CacheProvider
+	TTL           string
 }
 
 // CaddyModule returns the Caddy module information.
-func (s SouinCaddyPlugin) CaddyModule() caddy.ModuleInfo {
+func (SouinCaddyPlugin) CaddyModule() caddy.ModuleInfo {
+	if appConfigs == nil {
+		appConfigs = caddy.NewUsagePool()
+	}
 	return caddy.ModuleInfo{
-		ID:  "http.handlers.souin_system",
+		ID:  moduleID,
 		New: func() caddy.Module { return new(SouinCaddyPlugin) },
 	}
 }
 
 type getterContext struct {
-	rw     http.ResponseWriter
-	req    *http.Request
-	next   caddyhttp.Handler
+	rw   http.ResponseWriter
+	req  *http.Request
+	next caddyhttp.Handler
 }
 
 // ServeHTTP implements caddyhttp.MiddlewareHandler.
@@ -61,7 +75,7 @@ func (s SouinCaddyPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request, n
 	buf.Reset()
 	defer s.bufPool.Put(buf)
 	combo := ctx.Value(getterContextCtxKey).(getterContext)
-	coalescing.ServeResponse(rw, req, s.Retriever, plugins.DefaultSouinPluginCallback, s.RequestCoalescing, func(_ http.ResponseWriter, _ *http.Request) error {
+	plugins.DefaultSouinPluginCallback(rw, req, s.Retriever, s.RequestCoalescing, func(_ http.ResponseWriter, _ *http.Request) error {
 		recorder := httptest.NewRecorder()
 		e := combo.next.ServeHTTP(recorder, combo.req)
 		if e != nil {
@@ -83,24 +97,58 @@ func (s SouinCaddyPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request, n
 	return nil
 }
 
+func (s *SouinCaddyPlugin) configurationPropertyMapper() error {
+	if s.Configuration != nil {
+		return nil
+	}
+	defaultCache := &DefaultCache{
+		Distributed: s.Olric.URL != "",
+		Headers:     s.Headers,
+		Olric:       s.Olric,
+		TTL:         s.TTL,
+	}
+	if s.Configuration == nil {
+		s.Configuration = &Configuration{
+			DefaultCache: defaultCache,
+			LogLevel:     s.LogLevel,
+		}
+	}
+	s.Configuration.DefaultCache = defaultCache
+	return nil
+}
+
 // Validate to validate configuration.
 func (s *SouinCaddyPlugin) Validate() error {
-	s.logger.Info("Keep in mind the existing keys are always stored with the previous configuration. Use the API to purge existing keys")
 	return nil
 }
 
 // Provision to do the provisioning part.
 func (s *SouinCaddyPlugin) Provision(ctx caddy.Context) error {
 	s.logger = ctx.Logger(s)
+	if err := s.configurationPropertyMapper(); err != nil {
+		return err
+	}
+
 	s.bufPool = sync.Pool{
 		New: func() interface{} {
 			return new(bytes.Buffer)
 		},
 	}
-	if s.configuration == nil && &staticConfig != nil {
-		s.configuration = &staticConfig
+	if s.Configuration == nil {
+		c, _, _ := appConfigs.LoadOrNew("counter", nil)
+		if c != nil {
+			counter := c.(int)
+			config, _, _ := appConfigs.LoadOrNew(appCounter - counter, nil)
+			s.Configuration, _ = config.(*Configuration)
+			_, _ = appConfigs.Delete("counter")
+			counter--
+			appConfigs.LoadOrStore("counter", counter)
+		} else {
+			sc := staticConfig
+			s.Configuration = &sc
+		}
 	}
-	s.Retriever = plugins.DefaultSouinPluginInitializerFromConfiguration(s.configuration)
+	s.Retriever = plugins.DefaultSouinPluginInitializerFromConfiguration(s.Configuration)
 	s.RequestCoalescing = coalescing.Initialize()
 	return nil
 }
@@ -109,7 +157,8 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser) (interface{}, error) {
 	var souin SouinCaddyPlugin
 	cfg := &Configuration{
 		DefaultCache: &DefaultCache{
-			Headers: []string{},
+			Distributed: false,
+			Headers:     []string{},
 		},
 		URLs: make(map[string]configurationtypes.URL),
 	}
@@ -148,44 +197,44 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser) (interface{}, error) {
 		}
 	}
 
-	souin.configuration = cfg
+	souin.Configuration = cfg
 	staticConfig = *cfg
 	return nil, nil
 }
 
 func parseCaddyfileHandlerDirective(h httpcaddyfile.Helper) (caddyhttp.MiddlewareHandler, error) {
-	s := &SouinCaddyPlugin{}
-	if &staticConfig != nil {
-		s.configuration = &staticConfig
+	dc := DefaultCache{
+		Distributed: staticConfig.DefaultCache.Distributed,
+		Headers:     staticConfig.DefaultCache.Headers,
+		Olric:       staticConfig.DefaultCache.Olric,
+		Regex:       staticConfig.DefaultCache.Regex,
+		TTL:         staticConfig.DefaultCache.TTL,
+	}
+	sc := Configuration{
+		DefaultCache: &dc,
+		URLs:         staticConfig.URLs,
+		LogLevel:     staticConfig.LogLevel,
+		logger:       staticConfig.logger,
 	}
 
 	for h.Next() {
-		for nesting := h.Nesting(); h.NextBlock(nesting); {
-			switch h.Val() {
-			case "route":
-				args := h.RemainingArgs()
-				url := configurationtypes.URL{}
-
-				if _, ok := s.configuration.URLs[args[0]]; ok {
-					url = s.configuration.URLs[args[0]]
-				}
-				for nesting := h.Nesting(); h.NextBlock(nesting); {
-					directive := h.Val()
-					switch directive {
-					case "headers":
-						headers := h.RemainingArgs()
-						url.Headers = append(s.configuration.URLs[args[0]].Headers, headers...)
-					case "ttl":
-						url.TTL = h.RemainingArgs()[0]
-					}
-				}
-
-				s.configuration.URLs[args[0]] = url
-			}
+		directive := h.Val()
+		switch directive {
+		case "headers":
+			sc.DefaultCache.Headers = h.RemainingArgs()
+		case "ttl":
+			sc.DefaultCache.TTL = h.RemainingArgs()[0]
 		}
 	}
 
-	return s, nil
+	appConfigs.LoadOrStore(appCounter, &sc)
+	_, _ = appConfigs.Delete("counter")
+	appConfigs.LoadOrStore("counter", appCounter)
+	appCounter++
+
+	return &SouinCaddyPlugin{
+		Configuration: &sc,
+	}, nil
 }
 
 // Interface guards
