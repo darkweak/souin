@@ -190,7 +190,7 @@ func (s *SouinCaddyPlugin) Provision(ctx caddy.Context) error {
 	return nil
 }
 
-func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, i interface{}) (interface{}, error) {
+func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interface{}, error) {
 	souinApp := new(SouinApp)
 	cfg := &Configuration{
 		DefaultCache: &DefaultCache{

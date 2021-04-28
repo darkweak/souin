@@ -18,6 +18,7 @@ func (s *SouinApp) Provision(_ caddy.Context) error {
 	return nil
 }
 
+// Start will start the App
 func (s SouinApp) Start() error {
 	if s.DefaultCache != nil && s.DefaultCache.TTL == "" {
 		return new(defaultCacheError)
@@ -25,6 +26,7 @@ func (s SouinApp) Start() error {
 	return nil
 }
 
+// Stop will stop the App
 func (s SouinApp) Stop() error {
 	return nil
 }

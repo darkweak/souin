@@ -3,7 +3,7 @@
     souin_cache {
         headers Content-Type Authorization
         log_level info
-        ttl 1000
+        ttl 1000s
     }
 }
 
@@ -12,7 +12,6 @@
 @match path /test1*
 @match2 path /test2*
 @matchdefault path /default
-@matchall path /*
 
 souin_cache @match {
     ttl 30s
