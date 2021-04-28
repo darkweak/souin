@@ -31,8 +31,6 @@ func init() {
 	httpcaddyfile.RegisterHandlerDirective(moduleName, parseCaddyfileHandlerDirective)
 }
 
-var appConfigs   *caddy.UsagePool
-
 // SouinCaddyPlugin declaration.
 type SouinCaddyPlugin struct {
 	plugins.SouinBasePlugin
@@ -47,9 +45,6 @@ type SouinCaddyPlugin struct {
 
 // CaddyModule returns the Caddy module information.
 func (SouinCaddyPlugin) CaddyModule() caddy.ModuleInfo {
-	if appConfigs == nil {
-		appConfigs = caddy.NewUsagePool()
-	}
 	return caddy.ModuleInfo{
 		ID:  moduleID,
 		New: func() caddy.Module { return new(SouinCaddyPlugin) },
