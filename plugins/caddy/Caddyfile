@@ -1,5 +1,4 @@
 {
-    experimental_http3
     order souin_cache before rewrite
     souin_cache {
         headers Content-Type Authorization

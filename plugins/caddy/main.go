@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"github.com/caddyserver/caddy/v2"
+	"github.com/caddyserver/caddy/v2/caddyconfig"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
 	"github.com/caddyserver/caddy/v2/caddyconfig/httpcaddyfile"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
@@ -15,7 +16,6 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"strconv"
 	"sync"
 )
 
@@ -32,7 +32,6 @@ func init() {
 }
 
 var (
-	staticConfig Configuration
 	appCounter   = 0
 	appConfigs   *caddy.UsagePool
 )
@@ -44,9 +43,9 @@ type SouinCaddyPlugin struct {
 	logger        *zap.Logger
 	LogLevel      string `json:"log_level,omitempty"`
 	bufPool       sync.Pool
-	Headers       []string
-	Olric         configurationtypes.CacheProvider
-	TTL           string
+	Headers       []string `json:"headers,omitempty"`
+	Olric         configurationtypes.CacheProvider `json:"olric,omitempty"`
+	TTL           string `json:"ttl,omitempty"`
 }
 
 // CaddyModule returns the Caddy module information.
@@ -122,10 +121,51 @@ func (s *SouinCaddyPlugin) Validate() error {
 	return nil
 }
 
+// FromApp to initialize configuration from App structure.
+func (s *SouinCaddyPlugin) FromApp(app *SouinApp) error {
+	if s.Configuration == nil {
+		s.Configuration = &Configuration{
+			URLs: make(map[string]configurationtypes.URL),
+		}
+	}
+
+	if app.DefaultCache == nil {
+		return nil
+	}
+
+	if s.Configuration.DefaultCache == nil {
+		s.Configuration.DefaultCache = &DefaultCache{
+			Headers:     app.Headers,
+			TTL:         app.TTL,
+		}
+	} else {
+		dc := s.Configuration.DefaultCache
+		appDc := app.DefaultCache
+		if dc.Headers == nil {
+			s.Configuration.DefaultCache.Headers = appDc.Headers
+		}
+		if dc.TTL == "" {
+			s.Configuration.DefaultCache.TTL = appDc.TTL
+		}
+		if dc.Olric.URL == "" {
+			s.Configuration.DefaultCache.Olric = appDc.Olric
+		}
+	}
+
+	return nil
+}
+
 // Provision to do the provisioning part.
 func (s *SouinCaddyPlugin) Provision(ctx caddy.Context) error {
 	s.logger = ctx.Logger(s)
+
 	if err := s.configurationPropertyMapper(); err != nil {
+		return err
+	}
+
+	app, _ := ctx.App(moduleName)
+
+	if err := s.FromApp(app.(*SouinApp)); err != nil {
 		return err
 	}
 
@@ -143,9 +183,6 @@ func (s *SouinCaddyPlugin) Provision(ctx caddy.Context) error {
 			_, _ = appConfigs.Delete("counter")
 			counter--
 			appConfigs.LoadOrStore("counter", counter)
-		} else {
-			sc := staticConfig
-			s.Configuration = &sc
 		}
 	}
 	s.Retriever = plugins.DefaultSouinPluginInitializerFromConfiguration(s.Configuration)
@@ -153,8 +190,8 @@ func (s *SouinCaddyPlugin) Provision(ctx caddy.Context) error {
 	return nil
 }
 
-func parseCaddyfileGlobalOption(h *caddyfile.Dispenser) (interface{}, error) {
-	var souin SouinCaddyPlugin
+func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, i interface{}) (interface{}, error) {
+	souinApp := new(SouinApp)
 	cfg := &Configuration{
 		DefaultCache: &DefaultCache{
 			Distributed: false,
@@ -167,10 +204,6 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser) (interface{}, error) {
 		for nesting := h.Nesting(); h.NextBlock(nesting); {
 			rootOption := h.Val()
 			switch rootOption {
-			case "distributed":
-				args := h.RemainingArgs()
-				distributed, _ := strconv.ParseBool(args[0])
-				cfg.DefaultCache.Distributed = distributed
 			case "headers":
 				args := h.RemainingArgs()
 				cfg.DefaultCache.Headers = append(cfg.DefaultCache.Headers, args...)
@@ -197,24 +230,18 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser) (interface{}, error) {
 		}
 	}
 
-	souin.Configuration = cfg
-	staticConfig = *cfg
-	return nil, nil
+	souinApp.DefaultCache = cfg.DefaultCache
+
+	return httpcaddyfile.App{
+		Name:  moduleName,
+		Value: caddyconfig.JSON(souinApp, nil),
+	}, nil
 }
 
 func parseCaddyfileHandlerDirective(h httpcaddyfile.Helper) (caddyhttp.MiddlewareHandler, error) {
-	dc := DefaultCache{
-		Distributed: staticConfig.DefaultCache.Distributed,
-		Headers:     staticConfig.DefaultCache.Headers,
-		Olric:       staticConfig.DefaultCache.Olric,
-		Regex:       staticConfig.DefaultCache.Regex,
-		TTL:         staticConfig.DefaultCache.TTL,
-	}
+	dc := DefaultCache{}
 	sc := Configuration{
 		DefaultCache: &dc,
-		URLs:         staticConfig.URLs,
-		LogLevel:     staticConfig.LogLevel,
-		logger:       staticConfig.logger,
 	}
 
 	for h.Next() {
