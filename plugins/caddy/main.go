@@ -31,10 +31,7 @@ func init() {
 	httpcaddyfile.RegisterHandlerDirective(moduleName, parseCaddyfileHandlerDirective)
 }
 
-var (
-	appCounter   = 0
-	appConfigs   *caddy.UsagePool
-)
+var appConfigs   *caddy.UsagePool
 
 // SouinCaddyPlugin declaration.
 type SouinCaddyPlugin struct {
@@ -66,7 +63,7 @@ type getterContext struct {
 }
 
 // ServeHTTP implements caddyhttp.MiddlewareHandler.
-func (s SouinCaddyPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request, next caddyhttp.Handler) error {
+func (s *SouinCaddyPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request, next caddyhttp.Handler) error {
 	getterCtx := getterContext{rw, req, next}
 	ctx := context.WithValue(req.Context(), getterContextCtxKey, getterCtx)
 	req = req.WithContext(ctx)
@@ -174,17 +171,6 @@ func (s *SouinCaddyPlugin) Provision(ctx caddy.Context) error {
 			return new(bytes.Buffer)
 		},
 	}
-	if s.Configuration == nil {
-		c, _, _ := appConfigs.LoadOrNew("counter", nil)
-		if c != nil {
-			counter := c.(int)
-			config, _, _ := appConfigs.LoadOrNew(appCounter - counter, nil)
-			s.Configuration, _ = config.(*Configuration)
-			_, _ = appConfigs.Delete("counter")
-			counter--
-			appConfigs.LoadOrStore("counter", counter)
-		}
-	}
 	s.Retriever = plugins.DefaultSouinPluginInitializerFromConfiguration(s.Configuration)
 	s.RequestCoalescing = coalescing.Initialize()
 	return nil
@@ -253,11 +239,6 @@ func parseCaddyfileHandlerDirective(h httpcaddyfile.Helper) (caddyhttp.Middlewar
 			sc.DefaultCache.TTL = h.RemainingArgs()[0]
 		}
 	}
-
-	appConfigs.LoadOrStore(appCounter, &sc)
-	_, _ = appConfigs.Delete("counter")
-	appConfigs.LoadOrStore("counter", appCounter)
-	appCounter++
 
 	return &SouinCaddyPlugin{
 		Configuration: &sc,
