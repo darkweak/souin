@@ -45,7 +45,7 @@ default_cache: # Required
   port: # Ports on which Souin will be exposed
     web: 80
     tls: 443
-  ttl: 10 # Default TTL
+  ttl: 10s # Default TTL
 reverse_proxy_url: 'http://traefik' # If it's in the same network you can use http://your-service, otherwise just use https://yourdomain.com
 ```
 This is a fully working minimal configuration for a Souin instance
@@ -78,18 +78,19 @@ default_cache:
     url: 'olric:3320' # Olric server
   regex:
     exclude: 'ARegexHere' # Regex to exclude from cache
+  ttl: 1000s # Default TTL
 log_level: INFO # Logs verbosity [ DEBUG, INFO, WARN, ERROR, DPANIC, PANIC, FATAL ], case do not matter
 ssl_providers: # The {providers}.json to use
   - traefik
 urls:
   'https:\/\/domain.com\/first-.+': # First regex route configuration
-    ttl: 1000 # Override default TTL
+    ttl: 1000s # Override default TTL
   'https:\/\/domain.com\/second-route': # Second regex route configuration
-    ttl: 10 # Override default TTL
+    ttl: 10s # Override default TTL
     headers: # Override default headers
     - Authorization
   'https?:\/\/mysubdomain\.domain\.com': # Third regex route configuration
-    ttl: 50 # Override default TTL
+    ttl: 50s # Override default TTL
     headers: # Override default headers
     - Authorization
     - 'Content-Type'
