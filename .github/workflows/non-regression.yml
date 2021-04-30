@@ -1,0 +1,39 @@
+name: Build container and validate lint/tests
+
+on: [push]
+
+jobs:
+  checkout-code-and-validate:
+    name: Checkout code
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Install Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go-version }}
+      - name: Build the stack
+        run: docker network create your_network || true
+      - name: Prepare the stack
+        run: cp Dockerfile-dev Dockerfile && cp docker-compose.yml.test docker-compose.yml
+      - name: Build the stack
+        run: docker-compose up -d --build --force-recreate --remove-orphans
+      - name: golangci-lint
+        uses: reviewdog/action-golangci-lint@v1
+      - name: Test
+        run: docker-compose exec -T souin go test -v ./...
+  validate-prod-container-building:
+    needs: checkout-code-and-validate
+    name: Validate that the container build for prod
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build the stack
+        run: docker network create your_network || true
+      - name: Prepare the stack
+        run: cp Dockerfile-prod Dockerfile && cp docker-compose.yml.prod docker-compose.yml
+      - name: Build the stack
+        run: docker-compose up -d --build --force-recreate --remove-orphans
+      - name: Souin container healthceck
+        run: docker-compose exec -T souin ls

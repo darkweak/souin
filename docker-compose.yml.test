@@ -1,0 +1,30 @@
+version: '3.4'
+
+x-networks: &networks
+  networks:
+    - your_network
+
+services:
+  souin:
+    build:
+      context: .
+      target: souin
+    ports:
+      - 80:80
+      - 443:443
+    environment:
+      GOPATH: /app
+    volumes:
+      - ./configuration/configuration.yml:/configuration.yml
+    <<: *networks
+
+  olric:
+    build:
+      context: ./olric
+      dockerfile: Dockerfile-olric
+      target: olric
+    restart: on-failure
+    <<: *networks
+networks:
+  your_network:
+    external: true
