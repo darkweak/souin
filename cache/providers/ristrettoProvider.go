@@ -1,10 +1,10 @@
 package providers
 
 import (
+	"fmt"
 	"github.com/darkweak/souin/cache/keysaver"
 	t "github.com/darkweak/souin/configurationtypes"
 	"github.com/dgraph-io/ristretto"
-	"strconv"
 	"time"
 )
 
@@ -55,8 +55,12 @@ func (provider *Ristretto) Get(key string) []byte {
 // Set method will store the response in Ristretto provider
 func (provider *Ristretto) Set(key string, value []byte, url t.URL, duration time.Duration) {
 	if duration == 0 {
-		ttl, _ := strconv.Atoi(url.TTL)
-		duration = time.Duration(ttl) * time.Second
+		ttl, err := time.ParseDuration(url.TTL)
+		if err != nil {
+			ttl = 0
+			fmt.Println(err)
+		}
+		duration = ttl
 	}
 	isSet := provider.SetWithTTL(key, value, 1, duration)
 	if !isSet {

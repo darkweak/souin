@@ -17,18 +17,18 @@ default_cache:
     tls: 443
   regex:
     exclude: 'ARegexHere'
-  ttl: 10
+  ttl: 10s
 log_level: debug
 reverse_proxy_url: 'http://traefik'
 ssl_providers:
   - traefik
 urls:
   'domain.com/testing':
-    ttl: 100
+    ttl: 100s
     headers:
       - Authorization
   'mysubdomain.domain.com':
-    ttl: 50
+    ttl: 50s
     headers:
       - Authorization
       - 'Content-Type'
