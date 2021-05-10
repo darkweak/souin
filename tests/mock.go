@@ -67,6 +67,7 @@ api:
   souin:
     enable: true
 default_cache:
+  distributed: true
   headers:
     - Authorization
   olric:
@@ -151,6 +152,7 @@ api:
   souin:
     enable: true
 default_cache:
+  distributed: true
   headers:
     - Authorization
   olric:
