@@ -28,6 +28,7 @@ type URL struct {
 //CacheProvider config
 type CacheProvider struct {
 	URL string `yaml:"url"`
+	Path string `yaml:"path"`
 }
 
 //DefaultCache configuration
