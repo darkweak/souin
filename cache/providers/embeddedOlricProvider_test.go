@@ -12,44 +12,6 @@ import (
 
 const EMBEDDEDOLRICVALUE = "My first data"
 
-const olricConfiguration string = `
-olricd:
-  bindAddr: "0.0.0.0"
-  bindPort: 3320
-  serializer: "msgpack"
-  keepAlivePeriod: "300s"
-  bootstrapTimeout: "5s"
-  partitionCount:  271
-  replicaCount: 2
-  writeQuorum: 1
-  readQuorum: 1
-  readRepair: false
-  replicationMode: 1 # sync mode. for async, set 1
-  tableSize: 1048576 # 1MB in bytes
-  memberCountQuorum: 1
-
-client:
-  dialTimeout: "-1s"
-  readTimeout: "3s"
-  writeTimeout: "3s"
-  keepAlive: "15s"
-  minConn: 1
-  maxConn: 100
-
-logging:
-  verbosity: 6
-  level: "DEBUG"
-  output: "stderr"
-
-memberlist:
-  environment: "local"
-  bindAddr: "0.0.0.0"
-  bindPort: 3322
-  enableCompression: false
-  joinRetryInterval: "1s"
-  maxJoinAttempts: 10
-`
-
 func getEmbeddedOlricClientAndMatchedURL(key string) (types.AbstractProviderInterface, configurationtypes.URL) {
 	return tests.GetCacheProviderClientAndMatchedURL(
 		key,

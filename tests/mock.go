@@ -96,7 +96,7 @@ urls:
 // EmbeddedOlricConfiguration is the olric included configuration
 func EmbeddedOlricConfiguration() string {
 	path := "/tmp/olric.yml"
-	ioutil.WriteFile(
+	_ = ioutil.WriteFile(
 		path,
 		[]byte(
 			`

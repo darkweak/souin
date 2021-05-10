@@ -131,6 +131,5 @@ func (provider *EmbeddedOlric) Init() error {
 
 // Reset method will reset or close provider
 func (provider *EmbeddedOlric) Reset() {
-	_ = provider.dm.Destroy()
 	_ = provider.db.Shutdown(context.Background())
 }
