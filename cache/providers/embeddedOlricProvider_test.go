@@ -12,11 +12,11 @@ import (
 
 const EMBEDDEDOLRICVALUE = "My first data"
 
-func getEmbeddedOlricClientAndMatchedURL(key string) (types.AbstractProviderInterface, configurationtypes.URL) {
+func mockEmbeddedConfiguration(c func() string, key string) (types.AbstractProviderInterface, configurationtypes.URL) {
 	return tests.GetCacheProviderClientAndMatchedURL(
 		key,
 		func() configurationtypes.AbstractConfigurationInterface {
-			return tests.MockConfiguration(tests.EmbeddedOlricConfiguration)
+			return tests.MockConfiguration(c)
 		},
 		func(config configurationtypes.AbstractConfigurationInterface) (types.AbstractProviderInterface, error) {
 			provider, _ := EmbeddedOlricConnectionFactory(config)
@@ -27,8 +27,27 @@ func getEmbeddedOlricClientAndMatchedURL(key string) (types.AbstractProviderInte
 	)
 }
 
+func getEmbeddedOlricClientAndMatchedURL(key string) (types.AbstractProviderInterface, configurationtypes.URL) {
+	return mockEmbeddedConfiguration(tests.EmbeddedOlricConfiguration, key)
+}
+
+func getEmbeddedOlricWithoutYAML(key string) (types.AbstractProviderInterface, configurationtypes.URL) {
+	return mockEmbeddedConfiguration(tests.EmbeddedOlricPlainConfigurationWithoutAdditionalYAML, key)
+}
+
 func TestIShouldBeAbleToReadAndWriteDataInEmbeddedOlric(t *testing.T) {
 	client, u := getEmbeddedOlricClientAndMatchedURL("Test")
+	defer client.Reset()
+	client.Set("Test", []byte(EMBEDDEDOLRICVALUE), u, time.Duration(10)*time.Second)
+	time.Sleep(3 * time.Second)
+	res := client.Get("Test")
+	if EMBEDDEDOLRICVALUE != string(res) {
+		errors.GenerateError(t, fmt.Sprintf("%s not corresponding to %s", res, EMBEDDEDOLRICVALUE))
+	}
+}
+
+func TestIShouldBeAbleToReadAndWriteDataInEmbeddedOlricWithoutYAML(t *testing.T) {
+	client, u := getEmbeddedOlricWithoutYAML("Test")
 	defer client.Reset()
 	client.Set("Test", []byte(EMBEDDEDOLRICVALUE), u, time.Duration(10)*time.Second)
 	time.Sleep(3 * time.Second)

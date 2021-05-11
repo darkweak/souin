@@ -55,9 +55,8 @@ urls:
 `
 }
 
-// OlricConfiguration is the olric included configuration
-func OlricConfiguration() string {
-	return `
+func baseEmbeddedOlricConfiguration(path string) string {
+	return fmt.Sprintf(`
 api:
   basepath: /souin-api
   security:
@@ -73,7 +72,7 @@ default_cache:
   headers:
     - Authorization
   olric:
-    url: 'olric:3320'
+    %s
   port:
     web: 80
     tls: 443
@@ -93,7 +92,53 @@ urls:
     headers:
       - Authorization
       - 'Content-Type'
-`
+`, path)
+}
+
+// OlricConfiguration is the olric included configuration
+func OlricConfiguration() string {
+	return baseEmbeddedOlricConfiguration(fmt.Sprintf("url: '%s'", "olric:3320"))
+}
+
+func EmbeddedOlricPlainConfigurationWithoutAdditionalYAML() string {
+	return baseEmbeddedOlricConfiguration(`
+    configuration:
+      olricd:
+        bindAddr: "0.0.0.0"
+        bindPort: 3320
+        serializer: "msgpack"
+        keepAlivePeriod: "20s"
+        bootstrapTimeout: "5s"
+        partitionCount:  271
+        replicaCount: 2
+        writeQuorum: 1
+        readQuorum: 1
+        readRepair: false
+        replicationMode: 1 # sync mode. for async, set 1
+        tableSize: 1048576 # 1MB in bytes
+        memberCountQuorum: 1
+      
+      client:
+        dialTimeout: "-1s"
+        readTimeout: "30s"
+        writeTimeout: "30s"
+        keepAlive: "150s"
+        minConn: 1
+        maxConn: 100
+      
+      logging:
+        verbosity: 6
+        level: "DEBUG"
+        output: "stderr"
+      
+      memberlist:
+        environment: "local"
+        bindAddr: "0.0.0.0"
+        bindPort: 3322
+        enableCompression: false
+        joinRetryInterval: "10s"
+        maxJoinAttempts: 2
+`)
 }
 
 // EmbeddedOlricConfiguration is the olric included configuration
@@ -142,43 +187,7 @@ memberlist:
 		0644,
 )
 
-	return fmt.Sprintf(`
-api:
-  basepath: /souin-api
-  security:
-    secret: your_secret_key
-    enable: true
-    users:
-      - username: user1
-        password: test
-  souin:
-    enable: true
-default_cache:
-  distributed: true
-  headers:
-    - Authorization
-  olric:
-    path: '%s'
-  port:
-    web: 80
-    tls: 443
-  regex:
-    exclude: 'ARegexHere'
-  ttl: 1000
-reverse_proxy_url: 'http://domain.com:81'
-ssl_providers:
-  - traefik
-urls:
-  'domain.com/':
-    ttl: 1000
-    headers:
-      - Authorization
-  'mysubdomain.domain.com':
-    ttl: 50
-    headers:
-      - Authorization
-      - 'Content-Type'
-`, path)
+	return baseEmbeddedOlricConfiguration(fmt.Sprintf("path: '%s'", path))
 }
 
 // MockConfiguration is an helper to mock the configuration
