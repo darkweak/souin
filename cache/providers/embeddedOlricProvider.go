@@ -7,6 +7,7 @@ import (
 	"github.com/buraksezer/olric/config"
 	"github.com/darkweak/souin/cache/keysaver"
 	t "github.com/darkweak/souin/configurationtypes"
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 	"io/ioutil"
@@ -29,7 +30,7 @@ func tryToLoadConfiguration(olricInstance *config.Config, olricConfiguration t.C
 			isAlreadyLoaded = true
 		}
 	} else if olricConfiguration.Configuration != nil {
-		tmpFile := "/tmp/souin-olric.yml"
+		tmpFile := "/tmp/" + uuid.NewString() + ".yml"
 		yamlConfig, e := yaml.Marshal(olricConfiguration.Configuration)
 		defer func() {
 			if e = os.RemoveAll(tmpFile); e != nil {

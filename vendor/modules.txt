@@ -6,7 +6,6 @@ github.com/buraksezer/consistent
 ## explicit
 github.com/buraksezer/olric
 github.com/buraksezer/olric/client
-github.com/buraksezer/olric/cmd/olric-load/loader
 github.com/buraksezer/olric/config
 github.com/buraksezer/olric/config/internal/loader
 github.com/buraksezer/olric/hasher
@@ -39,6 +38,9 @@ github.com/fsnotify/fsnotify
 github.com/golang/protobuf/proto
 # github.com/google/btree v0.0.0-20180813153112-4030bb1f1f0c
 github.com/google/btree
+# github.com/google/uuid v1.2.0
+## explicit
+github.com/google/uuid
 # github.com/hashicorp/errwrap v1.0.0
 github.com/hashicorp/errwrap
 # github.com/hashicorp/go-immutable-radix v1.0.0
