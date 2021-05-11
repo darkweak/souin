@@ -61,7 +61,7 @@ func (provider *Olric) Get(key string) []byte {
 	return val2.([]byte)
 }
 
-// Set method will store the response in Redis provider
+// Set method will store the response in Olric provider
 func (provider *Olric) Set(key string, value []byte, url t.URL, duration time.Duration) {
 	if duration == 0 {
 		ttl, err := time.ParseDuration(url.TTL)
@@ -84,7 +84,7 @@ func (provider *Olric) Set(key string, value []byte, url t.URL, duration time.Du
 	}
 }
 
-// Delete method will delete the response in Redis provider if exists corresponding to key param
+// Delete method will delete the response in Olric provider if exists corresponding to key param
 func (provider *Olric) Delete(key string) {
 	go func() {
 		err := provider.dm.Delete(key)
