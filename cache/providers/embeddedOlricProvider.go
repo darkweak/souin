@@ -7,6 +7,10 @@ import (
 	"github.com/buraksezer/olric/config"
 	"github.com/darkweak/souin/cache/keysaver"
 	t "github.com/darkweak/souin/configurationtypes"
+	"go.uber.org/zap"
+	"gopkg.in/yaml.v3"
+	"io/ioutil"
+	"os"
 	"time"
 )
 
@@ -17,22 +21,49 @@ type EmbeddedOlric struct {
 	keySaver *keysaver.ClearKey
 }
 
+func tryToLoadConfiguration(olricInstance *config.Config, olricConfiguration t.CacheProvider, logger *zap.Logger) bool {
+	var e error
+	isAlreadyLoaded := false
+	if olricConfiguration.Configuration == nil && olricConfiguration.Path != "" {
+		if olricInstance, e = config.Load(olricConfiguration.Path); e == nil {
+			isAlreadyLoaded = true
+		}
+	} else if olricConfiguration.Configuration != nil {
+		tmpFile := "/tmp/souin-olric.yml"
+		yamlConfig, e := yaml.Marshal(olricConfiguration.Configuration)
+		defer func() {
+			if e = os.RemoveAll(tmpFile); e != nil {
+				logger.Error("Impossible to remove the temporary file")
+			}
+		}()
+		if e = ioutil.WriteFile(
+			tmpFile,
+			yamlConfig,
+			0644,
+		); e != nil {
+			logger.Error("Impossible to create the embedded Olric config from the given one")
+		}
+
+		if olricInstance, e = config.Load(tmpFile); e == nil {
+			isAlreadyLoaded = true
+		} else {
+			logger.Error("Impossible to create the embedded Olric config from the given one")
+		}
+	}
+
+	return isAlreadyLoaded
+}
+
 // EmbeddedOlricConnectionFactory function create new EmbeddedOlric instance
 func EmbeddedOlricConnectionFactory(configuration t.AbstractConfigurationInterface) (*EmbeddedOlric, error) {
-	olricConfiguration := configuration.GetDefaultCache().GetOlric()
 	var keySaver *keysaver.ClearKey
 	if configuration.GetAPI().Souin.Enable {
 		keySaver = keysaver.NewClearKey()
 	}
 
 	var olricInstance *config.Config
-	var e error
-	isAlreadyLoaded := false
-	if olricInstance, e = config.Load(olricConfiguration.Path); e != nil {
-		isAlreadyLoaded = true
-	}
 
-	if !isAlreadyLoaded {
+	if !tryToLoadConfiguration(olricInstance, configuration.GetDefaultCache().GetOlric(), configuration.GetLogger()) {
 		olricInstance = config.New("local")
 		olricInstance.Cache.MaxInuse = 512 << 20
 	}
@@ -40,7 +71,7 @@ func EmbeddedOlricConnectionFactory(configuration t.AbstractConfigurationInterfa
 	started, cancel := context.WithCancel(context.Background())
 	olricInstance.Started = func() {
 		defer cancel()
-		fmt.Println("Embedded Olric is ready")
+		configuration.GetLogger().Info("Embedded Olric is ready")
 	}
 
 	db, err := olric.New(olricInstance)
@@ -48,13 +79,17 @@ func EmbeddedOlricConnectionFactory(configuration t.AbstractConfigurationInterfa
 		return nil, err
 	}
 
+	ch := make(chan error, 1)
 	go func() {
 		if err = db.Start(); err != nil {
 			fmt.Println(fmt.Sprintf("Impossible to start the embedded Olric instance: %v", err))
+			ch <- err
 		}
 	}()
 
 	select {
+	case err = <-ch:
+		return nil, err
 	case <-started.Done():
 	}
 	dm, e := db.NewDMap("souin-map")

@@ -27,8 +27,9 @@ type URL struct {
 
 //CacheProvider config
 type CacheProvider struct {
-	URL string `yaml:"url"`
-	Path string `yaml:"path"`
+	URL           string      `yaml:"url" json:"url"`
+	Path          string      `yaml:"path" json:"path"`
+	Configuration interface{} `yaml:"configuration" json:"configuration"`
 }
 
 //DefaultCache configuration
