@@ -5,6 +5,8 @@ import (
 	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/configuration"
 	"github.com/darkweak/souin/configurationtypes"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -186,6 +188,27 @@ func MockConfiguration(configurationToLoad func() string) *configuration.Configu
 	if e != nil {
 		log.Fatal(e)
 	}
+	cfg := zap.Config{
+		Encoding:         "json",
+		Level:            zap.NewAtomicLevelAt(zapcore.DebugLevel),
+		OutputPaths:      []string{"stderr"},
+		ErrorOutputPaths: []string{"stderr"},
+		EncoderConfig: zapcore.EncoderConfig{
+			MessageKey: "message",
+
+			LevelKey:    "level",
+			EncodeLevel: zapcore.CapitalLevelEncoder,
+
+			TimeKey:    "time",
+			EncodeTime: zapcore.ISO8601TimeEncoder,
+
+			CallerKey:    "caller",
+			EncodeCaller: zapcore.ShortCallerEncoder,
+		},
+	}
+	logger, _ := cfg.Build()
+	config.SetLogger(logger)
+
 	return &config
 }
 

@@ -21,7 +21,7 @@ type EmbeddedOlric struct {
 	keySaver *keysaver.ClearKey
 }
 
-func tryToLoadConfiguration(olricInstance *config.Config, olricConfiguration t.CacheProvider, logger *zap.Logger) bool {
+func tryToLoadConfiguration(olricInstance *config.Config, olricConfiguration t.CacheProvider, logger *zap.Logger) (*config.Config, bool) {
 	var e error
 	isAlreadyLoaded := false
 	if olricConfiguration.Configuration == nil && olricConfiguration.Path != "" {
@@ -51,7 +51,7 @@ func tryToLoadConfiguration(olricInstance *config.Config, olricConfiguration t.C
 		}
 	}
 
-	return isAlreadyLoaded
+	return olricInstance, isAlreadyLoaded
 }
 
 // EmbeddedOlricConnectionFactory function create new EmbeddedOlric instance
@@ -62,8 +62,9 @@ func EmbeddedOlricConnectionFactory(configuration t.AbstractConfigurationInterfa
 	}
 
 	var olricInstance *config.Config
+	loaded := false
 
-	if !tryToLoadConfiguration(olricInstance, configuration.GetDefaultCache().GetOlric(), configuration.GetLogger()) {
+	if olricInstance, loaded = tryToLoadConfiguration(olricInstance, configuration.GetDefaultCache().GetOlric(), configuration.GetLogger()); !loaded {
 		olricInstance = config.New("local")
 		olricInstance.Cache.MaxInuse = 512 << 20
 	}
