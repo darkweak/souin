@@ -116,6 +116,7 @@ func DefaultSouinPluginInitializerFromConfiguration(c configurationtypes.Abstrac
 		RegexpUrls:    regexpUrls,
 		Transport:     transport,
 	}
+	retriever.Transport.SetURL(retriever.MatchedURL)
 	retriever.GetConfiguration().GetLogger().Debug("Souin configuration is now loaded")
 
 	return retriever
