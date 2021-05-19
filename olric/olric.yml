@@ -1,17 +1,21 @@
 olricd:
-  bindAddr: "0.0.0.0"
+  bindAddr: 0.0.0.0
   bindPort: 3320
-  serializer: "msgpack"
-  keepAlivePeriod: "300s"
-  bootstrapTimeout: "5s"
-  partitionCount:  271
+  serializer: msgpack
+  keepAlivePeriod: 300s
+  bootstrapTimeout: 5s
+  partitionCount: 271
   replicaCount: 2
   writeQuorum: 1
   readQuorum: 1
   readRepair: false
-  replicationMode: 1 # sync mode. for async, set 1
-  tableSize: 1048576 # 1MB in bytes
+  replicationMode: 0 # sync mode. for async, set 1
   memberCountQuorum: 1
+
+storageEngines:
+  config:
+    kvstore:
+      tableSize: 102134
 
 client:
   dialTimeout: "-1s"

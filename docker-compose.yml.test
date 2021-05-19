@@ -9,6 +9,8 @@ services:
     build:
       context: .
       target: souin
+    depends_on:
+      - olric
     ports:
       - 80:80
       - 443:443
