@@ -9,7 +9,11 @@ import (
 func InitializeProvider(configuration configurationtypes.AbstractConfigurationInterface) types.AbstractProviderInterface {
 	var r types.AbstractProviderInterface
 	if configuration.GetDefaultCache().GetDistributed() {
-		r, _ = OlricConnectionFactory(configuration)
+		if configuration.GetDefaultCache().GetOlric().URL != "" {
+			r, _ = OlricConnectionFactory(configuration)
+		} else {
+			r, _ = EmbeddedOlricConnectionFactory(configuration)
+		}
 	} else {
 		r, _ = RistrettoConnectionFactory(configuration)
 	}
