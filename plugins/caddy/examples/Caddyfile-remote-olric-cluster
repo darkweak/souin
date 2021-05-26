@@ -1,0 +1,34 @@
+{
+    order cache before rewrite
+    cache {
+        headers Content-Type Authorization
+        log_level info
+        olric {
+            url olric:3320
+        }
+        ttl 1000s
+    }
+}
+
+80
+
+@match path /test1*
+@match2 path /test2*
+@matchdefault path /default
+
+cache @match {
+    ttl 30s
+    headers Cookie
+}
+
+cache @match2 {
+    ttl 50s
+    headers Authorization
+}
+
+cache @matchdefault {
+    ttl 25s
+}
+
+cache * {
+}
