@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/darkweak/souin/api/auth"
 	"github.com/darkweak/souin/cache/types"
+	"github.com/darkweak/souin/cache/ykeys"
 	"github.com/darkweak/souin/configurationtypes"
 	"net/http"
 	"regexp"
@@ -16,9 +17,10 @@ type SouinAPI struct {
 	enabled  bool
 	provider types.AbstractProviderInterface
 	security *auth.SecurityAPI
+	ykeyStorage *ykeys.YKeyStorage
 }
 
-func initializeSouin(provider types.AbstractProviderInterface, configuration configurationtypes.AbstractConfigurationInterface, api *auth.SecurityAPI) *SouinAPI {
+func initializeSouin(provider types.AbstractProviderInterface, configuration configurationtypes.AbstractConfigurationInterface, api *auth.SecurityAPI, ykeyStorage *ykeys.YKeyStorage) *SouinAPI {
 	basePath := configuration.GetAPI().Souin.BasePath
 	enabled := configuration.GetAPI().Souin.Enable
 	var security *auth.SecurityAPI
@@ -33,6 +35,7 @@ func initializeSouin(provider types.AbstractProviderInterface, configuration con
 		enabled,
 		provider,
 		security,
+		ykeyStorage,
 	}
 }
 
@@ -42,6 +45,13 @@ func (s *SouinAPI) BulkDelete(rg *regexp.Regexp) {
 		if rg.Match([]byte(key)) {
 			s.Delete(key)
 		}
+	}
+}
+
+func (s *SouinAPI) invalidateFromYKey(key string) {
+	urls := s.ykeyStorage.InvalidateTags([]string{key})
+	for _, u := range urls {
+		s.provider.Delete(u)
 	}
 }
 
@@ -84,7 +94,10 @@ func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 	case "PURGE":
-		if compile {
+		query := r.URL.Query().Get("ykey")
+		if query != "" {
+			s.invalidateFromYKey(query)
+		} else if compile {
 			submatch := regexp.MustCompile(fmt.Sprintf("%s/(.+)", s.GetBasePath())).FindAllStringSubmatch(r.RequestURI, -1)[0][1]
 			s.BulkDelete(regexp.MustCompile(submatch))
 		}

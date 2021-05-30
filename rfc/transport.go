@@ -51,6 +51,11 @@ func (t *VaryTransport) GetCoalescingLayerStorage() *types.CoalescingLayerStorag
 	return t.CoalescingLayerStorage
 }
 
+// GetYkeyStorage get the ykeys storage
+func (t *VaryTransport) GetYkeyStorage() *ykeys.YKeyStorage {
+	return t.YkeyStorage
+}
+
 // SetCache set the cache
 func (t *VaryTransport) SetCache(key string, resp *http.Response) {
 	if respBytes, err := httputil.DumpResponse(resp, true); err == nil {

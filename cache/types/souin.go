@@ -15,6 +15,7 @@ type TransportInterface interface {
 	UpdateCacheEventually(req *http.Request) (resp *http.Response, err error)
 	GetVaryLayerStorage() *VaryLayerStorage
 	GetCoalescingLayerStorage() *CoalescingLayerStorage
+	GetYkeyStorage() *ykeys.YKeyStorage
 }
 
 // Transport is an implementation of http.RoundTripper that will return values from a cache
