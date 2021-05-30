@@ -1,6 +1,7 @@
 package types
 
 import (
+	"github.com/darkweak/souin/cache/ykeys"
 	"github.com/darkweak/souin/configurationtypes"
 	"net/http"
 	"regexp"
@@ -28,6 +29,7 @@ type Transport struct {
 	MarkCachedResponses    bool
 	VaryLayerStorage       *VaryLayerStorage
 	CoalescingLayerStorage *CoalescingLayerStorage
+	YkeyStorage            *ykeys.YKeyStorage
 }
 
 // RetrieverResponsePropertiesInterface interface

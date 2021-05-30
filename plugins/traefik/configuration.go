@@ -13,6 +13,7 @@ type Configuration struct {
 	URLs         map[string]configurationtypes.URL `yaml:"urls"`
 	LogLevel     string                            `yaml:"log_level"`
 	logger       *zap.Logger
+	Ykeys        map[string]configurationtypes.YKey `yaml:"ykeys"`
 }
 
 // Parse configuration
@@ -51,4 +52,9 @@ func (c *Configuration) GetLogger() *zap.Logger {
 // SetLogger set the logger
 func (c *Configuration) SetLogger(l *zap.Logger) {
 	c.logger = l
+}
+
+// GetYkeys get the ykeys list
+func (c *Configuration) GetYkeys() map[string]configurationtypes.YKey {
+	return c.Ykeys
 }

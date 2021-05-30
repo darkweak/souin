@@ -52,6 +52,13 @@ urls:
     headers:
       - Authorization
       - 'Content-Type'
+ykeys:
+  The_First_Test:
+    headers:
+      Authorization: '.+'
+      Content-Type: '.+'
+  The_Second_Test:
+    url: 'the/second/.+'
 `
 }
 

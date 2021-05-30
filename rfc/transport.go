@@ -2,6 +2,7 @@ package rfc
 
 import (
 	"github.com/darkweak/souin/cache/types"
+	"github.com/darkweak/souin/cache/ykeys"
 	"github.com/darkweak/souin/configurationtypes"
 	"net/http"
 	"net/http/httputil"
@@ -20,12 +21,13 @@ func IsVaryCacheable(req *http.Request) bool {
 
 // NewTransport returns a new Transport with the
 // provided Cache implementation and MarkCachedResponses set to true
-func NewTransport(p types.AbstractProviderInterface) *VaryTransport {
+func NewTransport(p types.AbstractProviderInterface, ykeyStorage *ykeys.YKeyStorage) *VaryTransport {
 	return &VaryTransport{
 		Provider:               p,
 		VaryLayerStorage:       types.InitializeVaryLayerStorage(),
 		CoalescingLayerStorage: types.InitializeCoalescingLayerStorage(),
 		MarkCachedResponses:    true,
+		YkeyStorage:            ykeyStorage,
 	}
 }
 
@@ -52,6 +54,9 @@ func (t *VaryTransport) GetCoalescingLayerStorage() *types.CoalescingLayerStorag
 // SetCache set the cache
 func (t *VaryTransport) SetCache(key string, resp *http.Response) {
 	if respBytes, err := httputil.DumpResponse(resp, true); err == nil {
+		go func() {
+			t.YkeyStorage.AddToTags(key, t.YkeyStorage.GetValidatedTags(key, resp.Header))
+		}()
 		t.Provider.Set(key, respBytes, t.ConfigurationURL, time.Duration(0))
 	}
 }
