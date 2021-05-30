@@ -3,6 +3,7 @@ package api
 import (
 	"github.com/darkweak/souin/api/auth"
 	"github.com/darkweak/souin/cache/providers"
+	"github.com/darkweak/souin/cache/ykeys"
 	"github.com/darkweak/souin/errors"
 	"github.com/darkweak/souin/tests"
 	"regexp"
@@ -19,6 +20,7 @@ func mockSouinAPI() *SouinAPI {
 		true,
 		prs,
 		security,
+		ykeys.InitializeYKeys(config.Ykeys),
 	}
 }
 

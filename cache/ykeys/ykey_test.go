@@ -50,6 +50,7 @@ func TestYKeyStorage_AddToTags(t *testing.T) {
 	url := "http://the.url.com"
 
 	r := InitializeYKeys(baseYkeys)
+	time.Sleep(200*time.Millisecond)
 	r.AddToTags(url, []string{FIRST_KEY})
 	time.Sleep(200*time.Millisecond)
 	res, _ := r.Cache.Get(FIRST_KEY)
@@ -96,6 +97,7 @@ func TestYKeyStorage_InvalidateTags(t *testing.T) {
 	url4 := "http://the.url4.com"
 
 	r := InitializeYKeys(baseYkeys)
+	time.Sleep(200*time.Millisecond)
 	r.AddToTags(url1, []string{FIRST_KEY, SECOND_KEY})
 	r.AddToTags(url2, []string{FIRST_KEY, SECOND_KEY})
 	r.AddToTags(url3, []string{FIRST_KEY, THIRD_KEY})
@@ -140,9 +142,13 @@ func TestYKeyStorage_InvalidateTagURLs(t *testing.T) {
 	url4 := "http://the.url4.com"
 
 	r := InitializeYKeys(baseYkeys)
+	time.Sleep(200*time.Millisecond)
 	r.AddToTags(url1, []string{FIRST_KEY, SECOND_KEY})
+	time.Sleep(200*time.Millisecond)
 	r.AddToTags(url2, []string{FIRST_KEY, SECOND_KEY})
+	time.Sleep(200*time.Millisecond)
 	r.AddToTags(url3, []string{FIRST_KEY, THIRD_KEY})
+	time.Sleep(200*time.Millisecond)
 	r.AddToTags(url4, []string{THIRD_KEY, FOURTH_KEY})
 
 	urls := r.InvalidateTagURLs(fmt.Sprintf("%s,%s", url1, url3))
