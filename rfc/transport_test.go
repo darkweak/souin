@@ -1,13 +1,16 @@
 package rfc
 
 import (
+	"fmt"
 	"github.com/darkweak/souin/cache/providers"
+	"github.com/darkweak/souin/cache/ykeys"
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/errors"
 	"github.com/darkweak/souin/tests"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 )
 
 func TestIsVaryCacheable(t *testing.T) {
@@ -41,7 +44,7 @@ func TestVaryTransport_GetProvider(t *testing.T) {
 	c := tests.MockConfiguration(tests.BaseConfiguration)
 	prs := providers.InitializeProvider(c)
 
-	tr := NewTransport(prs)
+	tr := NewTransport(prs, ykeys.InitializeYKeys(c.Ykeys))
 	if tr.GetProvider() == nil {
 		errors.GenerateError(t, "Provider should exist")
 	}
@@ -55,7 +58,7 @@ func TestVaryTransport_SetURL(t *testing.T) {
 		Headers: config.GetDefaultCache().GetHeaders(),
 	}
 
-	tr := NewTransport(prs)
+	tr := NewTransport(prs, ykeys.InitializeYKeys(config.Ykeys))
 	tr.SetURL(matchedURL)
 
 	if len(tr.ConfigurationURL.Headers) != len(matchedURL.Headers) || tr.ConfigurationURL.TTL != matchedURL.TTL {
@@ -69,6 +72,16 @@ func TestVaryTransport_SetCache(t *testing.T) {
 	key := GetCacheKey(req)
 	config := tests.MockConfiguration(tests.BaseConfiguration)
 	prs := providers.InitializeProvider(config)
-	tr := NewTransport(prs)
+	tr := NewTransport(prs, ykeys.InitializeYKeys(config.Ykeys))
 	tr.SetCache(key, res)
+	time.Sleep(1*time.Second)
+	if v, e := tr.YkeyStorage.Get("The_Third_Test"); v.(string) != key || !e {
+		errors.GenerateError(t, fmt.Sprintf("The url %s should be part of the %s tag", key, "The_Third_Test"))
+	}
+	if v, e := tr.YkeyStorage.Get("The_First_Test"); v.(string) != "" || !e {
+		errors.GenerateError(t, fmt.Sprintf("The url %s shouldn't be part of the %s tag", key, "The_First_Test"))
+	}
+	if v, e := tr.YkeyStorage.Get("The_Second_Test"); v.(string) != "" || !e {
+		errors.GenerateError(t, fmt.Sprintf("The url %s shouldn't be part of the %s tag", key, "The_Second_Test"))
+	}
 }

@@ -59,6 +59,7 @@ ykeys:
       Content-Type: '.+'
   The_Second_Test:
     url: 'the/second/.+'
+  The_Third_Test:
 `
 }
 
