@@ -55,6 +55,7 @@ func DefaultSouinPluginCallback(
 			for k, v := range response.Response.Header {
 				res.Header().Set(k, v[0])
 			}
+			res.WriteHeader(response.Response.StatusCode)
 			b, _ := ioutil.ReadAll(response.Response.Body)
 			_, _ = res.Write(b)
 			return
