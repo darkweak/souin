@@ -11,18 +11,18 @@ import (
 	"time"
 )
 
-const RISTRETTOVALUE = "My first data"
+const BADGERVALUE = "My first data"
 const BYTEKEY = "MyByteKey"
 const NONEXISTENTKEY = "NonexistentKey"
 
-func getRistrettoClientAndMatchedURL(key string) (types.AbstractProviderInterface, configurationtypes.URL) {
+func getBadgerClientAndMatchedURL(key string) (types.AbstractProviderInterface, configurationtypes.URL) {
 	return tests.GetCacheProviderClientAndMatchedURL(
 		key,
 		func() configurationtypes.AbstractConfigurationInterface {
 			return tests.MockConfiguration(tests.BaseConfiguration)
 		},
 		func(config configurationtypes.AbstractConfigurationInterface) (types.AbstractProviderInterface, error) {
-			provider, _ := RistrettoConnectionFactory(config)
+			provider, _ := BadgerConnectionFactory(config)
 			_ = provider.Init()
 
 			return provider, nil
@@ -30,45 +30,45 @@ func getRistrettoClientAndMatchedURL(key string) (types.AbstractProviderInterfac
 	)
 }
 
-func TestRistrettoConnectionFactory(t *testing.T) {
+func TestBadgerConnectionFactory(t *testing.T) {
 	c := tests.MockConfiguration(tests.BaseConfiguration)
-	r, err := RistrettoConnectionFactory(c)
+	r, err := BadgerConnectionFactory(c)
 
 	if nil != err {
 		errors.GenerateError(t, "Shouldn't have panic")
 	}
 
 	if nil == r {
-		errors.GenerateError(t, "Ristretto should be instanciated")
+		errors.GenerateError(t, "Badger should be instanciated")
 	}
 }
 
-func TestIShouldBeAbleToReadAndWriteDataInRistretto(t *testing.T) {
-	client, matchedURL := getRistrettoClientAndMatchedURL("Test")
+func TestIShouldBeAbleToReadAndWriteDataInBadger(t *testing.T) {
+	client, matchedURL := getBadgerClientAndMatchedURL("Test")
 
-	client.Set("Test", []byte(RISTRETTOVALUE), matchedURL, time.Duration(20)*time.Second)
+	client.Set("Test", []byte(BADGERVALUE), matchedURL, time.Duration(20)*time.Second)
 	time.Sleep(1 * time.Second)
 
 	res := client.Get("Test")
 	if res == nil || len(res) <= 0 {
-		errors.GenerateError(t, fmt.Sprintf("Key %s should exist", RISTRETTOVALUE))
+		errors.GenerateError(t, fmt.Sprintf("Key %s should exist", BADGERVALUE))
 	}
-	if RISTRETTOVALUE != string(res) {
-		errors.GenerateError(t, fmt.Sprintf("%s not corresponding to %s", string(res), RISTRETTOVALUE))
+	if BADGERVALUE != string(res) {
+		errors.GenerateError(t, fmt.Sprintf("%s not corresponding to %s", string(res), BADGERVALUE))
 	}
 }
 
-func TestRistretto_GetRequestInCache(t *testing.T) {
+func TestBadger_GetRequestInCache(t *testing.T) {
 	c := tests.MockConfiguration(tests.BaseConfiguration)
-	client, _ := RistrettoConnectionFactory(c)
+	client, _ := BadgerConnectionFactory(c)
 	res := client.Get(NONEXISTENTKEY)
 	if 0 < len(res) {
 		errors.GenerateError(t, fmt.Sprintf("Key %s should not exist", NONEXISTENTKEY))
 	}
 }
 
-func TestRistretto_GetSetRequestInCache_OneByte(t *testing.T) {
-	client, matchedURL := getRistrettoClientAndMatchedURL(BYTEKEY)
+func TestBadger_GetSetRequestInCache_OneByte(t *testing.T) {
+	client, matchedURL := getBadgerClientAndMatchedURL(BYTEKEY)
 	client.Set(BYTEKEY, []byte("A"), matchedURL, time.Duration(20)*time.Second)
 	time.Sleep(1 * time.Second)
 
@@ -96,29 +96,21 @@ func setValueThenVerify(client types.AbstractProviderInterface, key string, valu
 	verifyNewValueAfterSet(client, key, value, t)
 }
 
-func TestRistretto_SetRequestInCache_TTL(t *testing.T) {
+func TestBadger_SetRequestInCache_TTL(t *testing.T) {
 	key := "MyEmptyKey"
-	client, matchedURL := getRistrettoClientAndMatchedURL(key)
+	client, matchedURL := getBadgerClientAndMatchedURL(key)
 	nv := []byte("Hello world")
 	setValueThenVerify(client, key, nv, matchedURL, time.Duration(20)*time.Second, t)
 }
 
-func TestRistretto_SetRequestInCache_NoTTL(t *testing.T) {
-	client, matchedURL := getRistrettoClientAndMatchedURL(BYTEKEY)
+func TestBadger_SetRequestInCache_NoTTL(t *testing.T) {
+	client, matchedURL := getBadgerClientAndMatchedURL(BYTEKEY)
 	nv := []byte("New value")
 	setValueThenVerify(client, BYTEKEY, nv, matchedURL, 0, t)
 }
 
-func TestRistretto_SetRequestInCache_NegativeTTL(t *testing.T) {
-	client, matchedURL := getRistrettoClientAndMatchedURL(BYTEKEY)
-	nv := []byte("New value")
-	tests.ValidatePanic(t, func() {
-		setValueThenVerify(client, BYTEKEY, nv, matchedURL, time.Duration(-20)*time.Second, t)
-	})
-}
-
-func TestRistretto_DeleteRequestInCache(t *testing.T) {
-	client, _ := RistrettoConnectionFactory(tests.MockConfiguration(tests.BaseConfiguration))
+func TestBadger_DeleteRequestInCache(t *testing.T) {
+	client, _ := BadgerConnectionFactory(tests.MockConfiguration(tests.BaseConfiguration))
 	client.Delete(BYTEKEY)
 	time.Sleep(1 * time.Second)
 	if 0 < len(client.Get(BYTEKEY)) {
@@ -126,11 +118,11 @@ func TestRistretto_DeleteRequestInCache(t *testing.T) {
 	}
 }
 
-func TestRistretto_Init(t *testing.T) {
-	client, _ := RistrettoConnectionFactory(tests.MockConfiguration(tests.BaseConfiguration))
+func TestBadger_Init(t *testing.T) {
+	client, _ := BadgerConnectionFactory(tests.MockConfiguration(tests.BaseConfiguration))
 	err := client.Init()
 
 	if nil != err {
-		errors.GenerateError(t, "Impossible to init Ristretto provider")
+		errors.GenerateError(t, "Impossible to init Badger provider")
 	}
 }

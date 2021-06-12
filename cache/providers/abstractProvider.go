@@ -15,7 +15,7 @@ func InitializeProvider(configuration configurationtypes.AbstractConfigurationIn
 			r, _ = EmbeddedOlricConnectionFactory(configuration)
 		}
 	} else {
-		r, _ = RistrettoConnectionFactory(configuration)
+		r, _ = BadgerConnectionFactory(configuration)
 	}
 	e := r.Init()
 	if e != nil {

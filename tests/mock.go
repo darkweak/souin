@@ -40,15 +40,15 @@ default_cache:
     tls: 443
   regex:
     exclude: 'ARegexHere'
-  ttl: 1000
+  ttl: 1000s
 reverse_proxy_url: 'http://domain.com:81'
 urls:
   'domain.com/':
-    ttl: 1000
+    ttl: 1000s
     headers:
       - Authorization
   'mysubdomain.domain.com':
-    ttl: 50
+    ttl: 50s
     headers:
       - Authorization
       - 'Content-Type'
@@ -78,17 +78,17 @@ default_cache:
     tls: 443
   regex:
     exclude: 'ARegexHere'
-  ttl: 1000
+  ttl: 1000s
 reverse_proxy_url: 'http://domain.com:81'
 ssl_providers:
   - traefik
 urls:
   'domain.com/':
-    ttl: 1000
+    ttl: 1000s
     headers:
       - Authorization
   'mysubdomain.domain.com':
-    ttl: 50
+    ttl: 50s
     headers:
       - Authorization
       - 'Content-Type'
