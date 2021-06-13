@@ -38,9 +38,10 @@ type SouinCaddyPlugin struct {
 	logger        *zap.Logger
 	LogLevel      string `json:"log_level,omitempty"`
 	bufPool       sync.Pool
-	Headers       []string `json:"headers,omitempty"`
-	Olric         configurationtypes.CacheProvider `json:"olric,omitempty"`
-	TTL           string `json:"ttl,omitempty"`
+	Headers       []string                           `json:"headers,omitempty"`
+	Olric         configurationtypes.CacheProvider   `json:"olric,omitempty"`
+	TTL           string                             `json:"ttl,omitempty"`
+	ykeys         map[string]configurationtypes.YKey `json:"ykeys,omitempty"`
 }
 
 // CaddyModule returns the Caddy module information.
@@ -127,8 +128,8 @@ func (s *SouinCaddyPlugin) FromApp(app *SouinApp) error {
 
 	if s.Configuration.DefaultCache == nil {
 		s.Configuration.DefaultCache = &DefaultCache{
-			Headers:     app.Headers,
-			TTL:         app.TTL,
+			Headers: app.Headers,
+			TTL:     app.TTL,
 		}
 	} else {
 		dc := s.Configuration.DefaultCache

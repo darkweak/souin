@@ -3,6 +3,7 @@ package rfc
 import (
 	"fmt"
 	"github.com/darkweak/souin/cache/providers"
+	"github.com/darkweak/souin/cache/ykeys"
 	"github.com/darkweak/souin/errors"
 	"github.com/darkweak/souin/tests"
 	"net/http/httptest"
@@ -12,7 +13,7 @@ import (
 func TestVaryMatches(t *testing.T) {
 	c := tests.MockConfiguration(tests.BaseConfiguration)
 	prs := providers.InitializeProvider(c)
-	tr := NewTransport(prs)
+	tr := NewTransport(prs, ykeys.InitializeYKeys(c.Ykeys))
 
 	r := httptest.NewRequest("GET", "http://domain.com/testing", nil)
 	res := httptest.NewRecorder().Result()

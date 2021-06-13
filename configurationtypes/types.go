@@ -104,6 +104,11 @@ type API struct {
 	Security SecurityAPI `yaml:"security"`
 }
 
+type YKey struct {
+	URL     string            `yaml:"url"`
+	Headers map[string]string `yaml:"headers"`
+}
+
 // AbstractConfigurationInterface interface
 type AbstractConfigurationInterface interface {
 	GetUrls() map[string]URL
@@ -112,4 +117,5 @@ type AbstractConfigurationInterface interface {
 	GetLogLevel() string
 	GetLogger() *zap.Logger
 	SetLogger(*zap.Logger)
+	GetYkeys() map[string]YKey
 }

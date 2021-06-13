@@ -4,6 +4,7 @@ import (
 	"github.com/darkweak/souin/cache/coalescing"
 	"github.com/darkweak/souin/cache/providers"
 	"github.com/darkweak/souin/cache/types"
+	"github.com/darkweak/souin/cache/ykeys"
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/helpers"
 	"github.com/darkweak/souin/rfc"
@@ -104,7 +105,7 @@ func DefaultSouinPluginInitializerFromConfiguration(c configurationtypes.Abstrac
 	c.GetLogger().Debug("Provider initialized")
 	regexpUrls := helpers.InitializeRegexp(c)
 	var transport types.TransportInterface
-	transport = rfc.NewTransport(provider)
+	transport = rfc.NewTransport(provider, ykeys.InitializeYKeys(c.GetYkeys()))
 	c.GetLogger().Debug("Transport initialized")
 
 	retriever := &types.RetrieverResponseProperties{
