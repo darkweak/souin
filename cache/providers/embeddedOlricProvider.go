@@ -98,7 +98,16 @@ func EmbeddedOlricConnectionFactory(configuration t.AbstractConfigurationInterfa
 
 // ListKeys method returns the list of existing keys
 func (provider *EmbeddedOlric) ListKeys() []string {
-	c, err := provider.dm.Query(query.M{"$onKey": query.M{"$regexMatch": "",}})
+	c, err := provider.dm.Query(query.M{
+		"$onKey": query.M{
+			"$regexMatch": "",
+			"$options": query.M{
+				"$onValue": query.M{
+					"$ignore": true,
+				},
+			},
+		},
+	})
 	defer c.Close()
 	if err != nil {
 		fmt.Println(fmt.Sprintf("An error occurred while trying to list keys in Olric: %s", err))
@@ -146,6 +155,35 @@ func (provider *EmbeddedOlric) Set(key string, value []byte, url t.URL, duration
 func (provider *EmbeddedOlric) Delete(key string) {
 	go func() {
 		err := provider.dm.Delete(key)
+		if err != nil {
+			panic(err)
+		}
+	}()
+}
+
+// DeleteMany method will delete the responses in EmbeddedOlric provider if exists corresponding to the regex key param
+func (provider *EmbeddedOlric) DeleteMany(key string) {
+	go func() {
+		c, err := provider.dm.Query(query.M{
+			"$onKey": query.M{
+				"$regexMatch": key,
+				"$options": query.M{
+					"$onValue": query.M{
+						"$ignore": true,
+					},
+				},
+			},
+		})
+
+		if c == nil || err != nil {
+			return
+		}
+
+		err = c.Range(func(key string, _ interface{}) bool {
+			provider.Delete(key)
+			return true
+		})
+
 		if err != nil {
 			panic(err)
 		}

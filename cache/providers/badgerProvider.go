@@ -4,6 +4,7 @@ import (
 	"fmt"
 	t "github.com/darkweak/souin/configurationtypes"
 	badger "github.com/dgraph-io/badger/v3"
+	"regexp"
 	"time"
 )
 
@@ -89,6 +90,29 @@ func (provider *Badger) Delete(key string) {
 	go func() {
 		_ = provider.DB.DropPrefix([]byte(key))
 	}()
+}
+
+// DeleteMany method will delete the responses in Badger provider if exists corresponding to the regex key param
+func (provider *Badger) DeleteMany(key string) {
+	re, e := regexp.Compile(key)
+
+	if e != nil {
+		return
+	}
+
+	_ = provider.DB.View(func(txn *badger.Txn) error {
+		opts := badger.DefaultIteratorOptions
+		opts.PrefetchValues = false
+		it := txn.NewIterator(opts)
+		defer it.Close()
+		for it.Rewind(); it.Valid(); it.Next() {
+			k := string(it.Item().Key())
+			if re.MatchString(k) {
+				provider.Delete(k)
+			}
+		}
+		return nil
+	})
 }
 
 // Init method will
