@@ -5,7 +5,6 @@ import (
 	"github.com/darkweak/souin/cache/providers"
 	"github.com/darkweak/souin/errors"
 	"github.com/darkweak/souin/tests"
-	"regexp"
 	"testing"
 	"time"
 )
@@ -30,8 +29,8 @@ func TestSouinAPI_BulkDelete(t *testing.T) {
 	if len(souinMock.GetAll()) != 2 {
 		errors.GenerateError(t, "Souin API should have a record")
 	}
-	souinMock.BulkDelete(regexp.MustCompile(".+"))
-	time.Sleep(5 * time.Second)
+	souinMock.BulkDelete(".+")
+	time.Sleep(2 * time.Second)
 	if len(souinMock.GetAll()) != 0 {
 		errors.GenerateError(t, "Souin API shouldn't have a record")
 	}

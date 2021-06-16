@@ -37,12 +37,8 @@ func initializeSouin(provider types.AbstractProviderInterface, configuration con
 }
 
 // BulkDelete allow user to delete multiple items with regexp
-func (s *SouinAPI) BulkDelete(rg *regexp.Regexp) {
-	for _, key := range s.GetAll() {
-		if rg.Match([]byte(key)) {
-			s.Delete(key)
-		}
-	}
+func (s *SouinAPI) BulkDelete(key string) {
+	s.provider.DeleteMany(key)
 }
 
 // Delete will delete a record into the provider cache system and will update the Souin API if enabled
@@ -86,7 +82,7 @@ func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 	case "PURGE":
 		if compile {
 			submatch := regexp.MustCompile(fmt.Sprintf("%s/(.+)", s.GetBasePath())).FindAllStringSubmatch(r.RequestURI, -1)[0][1]
-			s.BulkDelete(regexp.MustCompile(submatch))
+			s.BulkDelete(submatch)
 		}
 		w.WriteHeader(http.StatusNoContent)
 	default:

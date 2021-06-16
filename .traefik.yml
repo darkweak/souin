@@ -10,9 +10,9 @@ testData:
       - Authorization
     regex:
       exclude: 'ARegexHere'
-    ttl: 1000
+    ttl: 1000s
   urls:
     'domain.com/':
-      ttl: 1000
+      ttl: 1000s
       headers:
         - Authorization

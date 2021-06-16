@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/buraksezer/olric/client"
 	"github.com/buraksezer/olric/config"
-	"github.com/darkweak/souin/cache/keysaver"
+	"github.com/buraksezer/olric/query"
 	t "github.com/darkweak/souin/configurationtypes"
 	"time"
 )
@@ -13,16 +13,10 @@ import (
 type Olric struct {
 	*client.Client
 	dm       *client.DMap
-	keySaver *keysaver.ClearKey
 }
 
 // OlricConnectionFactory function create new Olric instance
 func OlricConnectionFactory(configuration t.AbstractConfigurationInterface) (*Olric, error) {
-	var keySaver *keysaver.ClearKey
-	if configuration.GetAPI().Souin.Enable {
-		keySaver = keysaver.NewClearKey()
-	}
-
 	c, err := client.New(&client.Config{
 		Servers: []string{configuration.GetDefaultCache().GetOlric().URL},
 		Client: &config.Client{
@@ -38,16 +32,34 @@ func OlricConnectionFactory(configuration t.AbstractConfigurationInterface) (*Ol
 	return &Olric{
 		c,
 		nil,
-		keySaver,
 	}, nil
 }
 
 // ListKeys method returns the list of existing keys
 func (provider *Olric) ListKeys() []string {
-	if nil != provider.keySaver {
-		return provider.keySaver.ListKeys()
+	c, err := provider.dm.Query(query.M{
+		"$onKey": query.M{
+			"$regexMatch": "",
+			"$options": query.M{
+				"$onValue": query.M{
+					"$ignore": true,
+				},
+			},
+		},
+	})
+	if err != nil {
+		fmt.Println(fmt.Sprintf("An error occurred while trying to list keys in Olric: %s", err))
+		return []string{}
 	}
-	return []string{}
+	defer c.Close()
+
+	keys := []string{}
+	err = c.Range(func(key string, _ interface{}) bool {
+		keys = append(keys, key)
+		return true
+	})
+
+	return keys
 }
 
 // Get method returns the populated response if exists, empty response then
@@ -75,12 +87,6 @@ func (provider *Olric) Set(key string, value []byte, url t.URL, duration time.Du
 	err := provider.dm.PutEx(key, value, duration)
 	if err != nil {
 		panic(err)
-	} else {
-		go func() {
-			if nil != provider.keySaver {
-				provider.keySaver.AddKey(key)
-			}
-		}()
 	}
 }
 
@@ -90,12 +96,35 @@ func (provider *Olric) Delete(key string) {
 		err := provider.dm.Delete(key)
 		if err != nil {
 			panic(err)
-		} else {
-			go func() {
-				if nil != provider.keySaver {
-					provider.keySaver.DelKey(key, 0)
-				}
-			}()
+		}
+	}()
+}
+
+// DeleteMany method will delete the responses in Olric provider if exists corresponding to the regex key param
+func (provider *Olric) DeleteMany(key string) {
+	go func() {
+		c, err := provider.dm.Query(query.M{
+			"$onKey": query.M{
+				"$regexMatch": key,
+				"$options": query.M{
+					"$onValue": query.M{
+						"$ignore": true,
+					},
+				},
+			},
+		})
+
+		if c == nil || err != nil {
+			return
+		}
+
+		err = c.Range(func(key string, _ interface{}) bool {
+			provider.Delete(key)
+			return true
+		})
+
+		if err != nil {
+			panic(err)
 		}
 	}()
 }
