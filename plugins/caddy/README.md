@@ -20,4 +20,3 @@ See the [Souin](https://github.com/darkweak/souin) configuration for the full co
 ## TODO
 
 * [ ] Improve the API and add relevant endpoints
-* [ ] Add support for cache tags (similar to Varnish ykey)

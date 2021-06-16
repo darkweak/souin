@@ -40,7 +40,7 @@ func TestInitializeYKeys(t *testing.T) {
 		errors.GenerateError(t, "Ristretto should be instanciated")
 	}
 
-	if nil == r || nil == r.keySaver {
+	if nil == r || nil == r.Keys {
 		errors.GenerateError(t, "The key saver should be instanciated")
 	}
 }

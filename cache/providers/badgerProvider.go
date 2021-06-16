@@ -14,7 +14,7 @@ type Badger struct {
 }
 
 // BadgerConnectionFactory function create new Badger instance
-func BadgerConnectionFactory(c t.AbstractConfigurationInterface) (*Badger, error) {
+func BadgerConnectionFactory(_ t.AbstractConfigurationInterface) (*Badger, error) {
 	db, _ := badger.Open(badger.DefaultOptions("").WithInMemory(true))
 
 	return &Badger{db}, nil

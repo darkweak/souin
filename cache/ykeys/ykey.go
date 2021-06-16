@@ -2,7 +2,6 @@ package ykeys
 
 import (
 	"fmt"
-	"github.com/darkweak/souin/cache/keysaver"
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/dgraph-io/ristretto"
 	"net/http"
@@ -37,7 +36,6 @@ import (
 // YKeyStorage is the layer for YKey support storage
 type YKeyStorage struct {
 	*ristretto.Cache
-	keySaver *keysaver.ClearKey
 	Keys     map[string]configurationtypes.YKey
 }
 
@@ -48,14 +46,8 @@ func InitializeYKeys(keys map[string]configurationtypes.YKey) *YKeyStorage {
 		MaxCost:     1 << 30,
 		BufferItems: 64,
 	})
-	keySaver := keysaver.NewClearKey()
 
-	for key, _ := range keys {
-		storage.Set(key, "", 1)
-		keySaver.AddKey(key)
-	}
-
-	return &YKeyStorage{Cache: storage, keySaver: keySaver, Keys: keys}
+	return &YKeyStorage{Cache: storage, Keys: keys}
 }
 
 func (y *YKeyStorage) GetValidatedTags(key string, headers http.Header) []string {
@@ -106,7 +98,7 @@ func (y *YKeyStorage) InvalidateTagURLs(urls string) []string {
 
 func (y *YKeyStorage) invalidateURL(url string) {
 	urlRegexp := regexp.MustCompile(fmt.Sprintf("(%s,)|(,%s$)|(^%s$)", url, url, url))
-	for _, key := range y.keySaver.ListKeys() {
+	for key, _ := range y.Keys {
 		v, _ := y.Cache.Get(key)
 		if urlRegexp.MatchString(v.(string)) {
 			y.Set(key, urlRegexp.ReplaceAllString(v.(string), ""), 1)
