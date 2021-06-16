@@ -16,7 +16,7 @@ func TestInitializeCoalescingLayerStorage(t *testing.T) {
 	r := InitializeCoalescingLayerStorage()
 
 	if nil == r || nil == r.Cache {
-		errors.GenerateError(t, "Ristretto should be instanciated")
+		errors.GenerateError(t, "Ristretto should be instantiated")
 	}
 }
 

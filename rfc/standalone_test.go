@@ -197,7 +197,7 @@ func TestCanStaleOnError_Res(t *testing.T) {
 		errors.GenerateError(t, fmt.Sprintf("It should stale while testing %s", ""))
 	}
 
-	setCacheControlStaleOnHeader(resHeader, "10000000")
+	setCacheControlStaleOnHeader(resHeader, "100000000")
 	resHeader.Add("Date", "Mon, 08 Feb 2021 15:04:05 MST")
 	if !canStaleOnError(resHeader, reqHeader) {
 		errors.GenerateError(t, fmt.Sprintf("It should stale while testing %s", "10000000"))
