@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"github.com/darkweak/souin/api/auth"
 	"github.com/darkweak/souin/cache/providers"
 	"github.com/darkweak/souin/cache/ykeys"
@@ -32,7 +33,8 @@ func TestSouinAPI_BulkDelete(t *testing.T) {
 		errors.GenerateError(t, "Souin API should have a record")
 	}
 	souinMock.BulkDelete(".+")
-	time.Sleep(3 * time.Second)
+	time.Sleep(5 * time.Second)
+	fmt.Printf("Keys list => %v \n", souinMock.GetAll())
 	if len(souinMock.GetAll()) != 0 {
 		errors.GenerateError(t, "Souin API shouldn't have a record")
 	}
