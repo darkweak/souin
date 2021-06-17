@@ -23,10 +23,6 @@ build-dev: env-dev ## Build containers with dev env vars
 	$(DC_BUILD) souin
 	$(MAKE) up
 
-build-dev: env-dev ## Build containers with dev env vars
-	$(DC_BUILD) souin
-	$(MAKE) up
-
 coverage: ## Show code coverage
 	$(DC_EXEC) souin go test ./... -coverprofile cover.out
 	$(DC_EXEC) souin go tool cover -func cover.out
