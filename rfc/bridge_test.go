@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/darkweak/souin/cache/providers"
 	"github.com/darkweak/souin/cache/types"
+	"github.com/darkweak/souin/cache/ykeys"
 	"github.com/darkweak/souin/errors"
 	"github.com/darkweak/souin/tests"
 	"net/http"
@@ -11,18 +12,19 @@ import (
 	"testing"
 )
 
-func commonInitializer() (*http.Request, types.AbstractProviderInterface) {
+func commonInitializer() (*http.Request, types.AbstractProviderInterface, *VaryTransport) {
 	c := tests.MockConfiguration(tests.BaseConfiguration)
 	prs := providers.InitializeProvider(c)
 	r := httptest.NewRequest("GET", "http://domain.com/testing", nil)
 	httptest.NewRecorder()
 
-	return r, prs
+
+	return r, prs, NewTransport(prs, ykeys.InitializeYKeys(c.Ykeys))
 }
 
 func TestCachedResponse_WithUpdate(t *testing.T) {
-	r, c := commonInitializer()
-	res, err := CachedResponse(c, r, GetCacheKey(r), NewTransport(c), true)
+	r, c, v := commonInitializer()
+	res, err := CachedResponse(c, r, GetCacheKey(r), v, true)
 
 	if err != nil {
 		errors.GenerateError(t, "CachedResponse cannot throw error")
@@ -38,9 +40,9 @@ func TestCachedResponse_WithUpdate(t *testing.T) {
 }
 
 func TestCachedResponse_WithoutUpdate(t *testing.T) {
-	r, c := commonInitializer()
+	r, c, v := commonInitializer()
 	key := GetCacheKey(r)
-	res, err := CachedResponse(c, r, key, NewTransport(c), false)
+	res, err := CachedResponse(c, r, key, v, false)
 
 	if err != nil {
 		errors.GenerateError(t, "CachedResponse cannot throw error")

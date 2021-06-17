@@ -3,6 +3,7 @@ package api
 import (
 	"github.com/darkweak/souin/api/auth"
 	"github.com/darkweak/souin/cache/providers"
+	"github.com/darkweak/souin/cache/ykeys"
 	"github.com/darkweak/souin/errors"
 	"github.com/darkweak/souin/tests"
 	"testing"
@@ -18,19 +19,19 @@ func mockSouinAPI() *SouinAPI {
 		true,
 		prs,
 		security,
+		ykeys.InitializeYKeys(config.Ykeys),
 	}
 }
 
 func TestSouinAPI_BulkDelete(t *testing.T) {
 	souinMock := mockSouinAPI()
-	souinMock.provider.Set("key", []byte("value"), tests.GetMatchedURL("key"), 20*time.Second)
-	souinMock.provider.Set("key2", []byte("value"), tests.GetMatchedURL("key"), 20*time.Second)
+	souinMock.provider.Set("firstKey", []byte("value"), tests.GetMatchedURL("firstKey"), 20*time.Second)
+	souinMock.provider.Set("secondKey", []byte("value"), tests.GetMatchedURL("secondKey"), 20*time.Second)
 	time.Sleep(3 * time.Second)
 	if len(souinMock.GetAll()) != 2 {
 		errors.GenerateError(t, "Souin API should have a record")
 	}
 	souinMock.BulkDelete(".+")
-	time.Sleep(2 * time.Second)
 	if len(souinMock.GetAll()) != 0 {
 		errors.GenerateError(t, "Souin API shouldn't have a record")
 	}

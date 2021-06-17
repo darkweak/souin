@@ -21,6 +21,7 @@
   8.1. [Caddy module](#caddy-module)  
   8.2. [Træfik plugin](#træfik-plugin)  
   8.3. [Prestashop plugin](#prestashop-plugin)  
+  8.3. [Wordpress plugin](#wordpress-plugin)  
 9. [Credits](#credits)
 
 [![Travis CI](https://travis-ci.com/Darkweak/Souin.svg?branch=master)](https://travis-ci.com/Darkweak/Souin)
@@ -30,8 +31,8 @@
 ## Project description
 Souin is a new cache system suitable for every reverse-proxy. It will be placed on top of your current reverse-proxy whether it's Apache, Nginx or Traefik.  
 Since it's written in go, it can be deployed on any server and thanks to the docker integration, it will be easy to install on top of a Swarm, or a kubernetes instance.  
-It's RFC compatible, supporting Vary, request coalescing and other specifications related to the [RFC-7234](https://tools.ietf.org/html/rfc7234)  
-It also supports the [Cache-Status HTTP response header](https://httpwg.org/http-extensions/draft-ietf-httpbis-cache-header.html)
+It's RFC compatible, supporting Vary, request coalescing and other specifications related to the [RFC-7234](https://tools.ietf.org/html/rfc7234).  
+It also supports the [Cache-Status HTTP response header](https://httpwg.org/http-extensions/draft-ietf-httpbis-cache-header.html) and the YKey group such as Varnish.
 
 ## Disclaimer
 If you need redis or other custom cache providers, you have to use the fully-featured version. You can read the documentation, on [the fully-featured branch](https://github.com/Darkweak/Souin/tree/full-version) to understand the specific parts.
@@ -94,22 +95,33 @@ urls:
     headers: # Override default headers
     - Authorization
     - 'Content-Type'
+ykeys:
+  The_First_Test:
+    headers:
+      Content-Type: '.+'
+  The_Second_Test:
+    url: 'the/second/.+'
+  The_Third_Test:
+  The_Fourth_Test:
 ```
 
-|  Key                               |  Description                                                  |  Value example                                                                |
-|:----------------------------------:|:-------------------------------------------------------------:|:-----------------------------------------------------------------------------:|
-| `api.basepath`                     | BasePath for all APIs to avoid conflicts                      | `/your-non-conflicting-route`<br/><br/>`(default: /souin-api)`                |
-| `api.{api}.enable`                 | Enable the new API with related routes                        | `true`<br/><br/>`(default: false)`                                            |
-| `api.security.secret`              | JWT secret key                                                | `Any_charCanW0rk123`                                                          |
-| `api.security.users`               | Array of authorized users with username x password combo      | `- username: admin`<br/><br/>`  password: admin`                              |
-| `api.souin.security`               | Enable JWT validation to access the resource                  | `true`<br/><br/>`(default: false)`                                            |
-| `default_cache.headers`            | List of headers to include to the cache                       | `- Authorization`<br/><br/>`- Content-Type`<br/><br/>`- X-Additional-Header`  |
-| `default_cache.regex.exclude`      | The regex used to prevent paths being cached                  | `^[A-z]+.*$`                                                                  |
-| `log_level`                        | The log level                                                 | `One of DEBUG, INFO, WARN, ERROR, DPANIC, PANIC, FATAL it's case insensitive` |
-| `ssl_providers`                    | List of your providers handling certificates                  | `- traefik`<br/><br/>`- nginx`<br/><br/>`- apache`                            |
-| `urls.{your url or regex}`         | List of your custom configuration depending each URL or regex | 'https:\/\/yourdomain.com'                                                    |
-| `urls.{your url or regex}.ttl`     | Override the default TTL if defined                           | 99999                                                                         |
-| `urls.{your url or regex}.headers` | Override the default headers if defined                       | `- Authorization`<br/><br/>`- 'Content-Type'`                                 |
+|  Key                                     |  Description                                                                      |  Value example                                                                |
+|:----------------------------------------:|:---------------------------------------------------------------------------------:|:-----------------------------------------------------------------------------:|
+| `api.basepath`                           | BasePath for all APIs to avoid conflicts                                          | `/your-non-conflicting-route`<br/><br/>`(default: /souin-api)`                |
+| `api.{api}.enable`                       | Enable the new API with related routes                                            | `true`<br/><br/>`(default: false)`                                            |
+| `api.security.secret`                    | JWT secret key                                                                    | `Any_charCanW0rk123`                                                          |
+| `api.security.users`                     | Array of authorized users with username x password combo                          | `- username: admin`<br/><br/>`  password: admin`                              |
+| `api.souin.security`                     | Enable JWT validation to access the resource                                      | `true`<br/><br/>`(default: false)`                                            |
+| `default_cache.headers`                  | List of headers to include to the cache                                           | `- Authorization`<br/><br/>`- Content-Type`<br/><br/>`- X-Additional-Header`  |
+| `default_cache.regex.exclude`            | The regex used to prevent paths being cached                                      | `^[A-z]+.*$`                                                                  |
+| `log_level`                              | The log level                                                                     | `One of DEBUG, INFO, WARN, ERROR, DPANIC, PANIC, FATAL it's case insensitive` |
+| `ssl_providers`                          | List of your providers handling certificates                                      | `- traefik`<br/><br/>`- nginx`<br/><br/>`- apache`                            |
+| `urls.{your url or regex}`               | List of your custom configuration depending each URL or regex                     | 'https:\/\/yourdomain.com'                                                    |
+| `urls.{your url or regex}.ttl`           | Override the default TTL if defined                                               | 99999                                                                         |
+| `urls.{your url or regex}.headers`       | Override the default headers if defined                                           | `- Authorization`<br/><br/>`- 'Content-Type'`                                 |
+| `ykeys.{key name}.headers`               | Headers that should match to be part of the ykey group                            | `Authorization: ey.+`<br/><br/>`Content-Type: json`                           |
+| `ykeys.{key name}.headers.{header name}` | Header name that should be present a match the regex to be part of the ykey group | `Content-Type: json`                                                          |
+| `ykeys.{key name}.url`                   | Url that should match to be part of the ykey group                                | `.+`                                                                          |
 
 ## APIs
 All endpoints are accessible through the `api.basepath` configuration line or by default through `/souin-api` to avoid named route conflicts. Be sure to define an unused route to not break your existing application.
@@ -122,6 +134,7 @@ The base path for the souin API is `/souin`.
 |:-------:|:-----------------:|:-----------------------------------------------------------------------------------------|
 | `GET`   | `/`               | List stored keys cache                                                                   |
 | `PURGE` | `/{id or regexp}` | Purge selected item(s) depending. The parameter can be either a specific key or a regexp |
+| `PURGE` | `?ykey={key}`     | Purge selected item(s) corresponding to the target ykey such as Varnish                  |
 
 ### Security API
 Security API allows users to protect other APIs with JWT authentication.  
@@ -151,7 +164,6 @@ Supported providers
 ### Cache invalidation
 The cache invalidation is built for CRUD requests, if you're doing a GET HTTP request, it will serve the cached response when it exists, otherwise the reverse-proxy response will be served.  
 If you're doing a POST, PUT, PATCH or DELETE HTTP request, the related cache GET request, and the list endpoint will be dropped.  
-It works very well with plain [API Platform](https://api-platform.com) integration (except for custom actions at the moment) and CRUD routes.
 It also supports invalidation via [Souin API](#souin-api) to invalidate the cache programmatically.
 
 ## Examples
@@ -249,7 +261,10 @@ Alternatively, you can go to [the xcaddy builder website](https://xcaddy.tech) t
 Currenly not available because Træfik uses Yaegi to analyse the plugin, which prevents the usage of unsafe libraries unless you're a developper. An example can be found [here](https://github.com/darkweak/souin/tree/master/plugins/traefik) nonetheless.
 
 ### Prestashop plugin
-A repository called [prestashop-souin](https://github.com/lucmichalski/prestashop-souin) has been started by [lucmichalski](https://github.com/lucmichalski). Any help will be appreciated to make it working as soon as possible.
+A repository called [prestashop-souin](https://github.com/lucmichalski/prestashop-souin) has been started by [lucmichalski](https://github.com/lucmichalski). You can manage your Souin instance through the admin panel UI.
+
+### Wordpress plugin
+A repository called [wordpress-souin](https://github.com/Darkweak/wordpress-souin) to be able to manage your Souin instance through the admin panel UI.
 
 
 ## Credits
@@ -260,3 +275,4 @@ Thanks to these users for contributing or helping this project in any way
 * [Sata51](https://github.com/sata51)
 * [Pierre Diancourt](https://github.com/pierrediancourt)
 * [Burak Sezer](https://github.com/buraksezer)
+* [lucmichalski](https://github.com/lucmichalski)

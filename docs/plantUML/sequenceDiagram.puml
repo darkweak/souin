@@ -15,10 +15,12 @@ loop User requests
   activate User
   Souin -> Memory: GetRequestInCache()
   Souin <-- Memory: *Response
-  group if the response from cache is not valid
+  alt the response from cache is not valid
     Souin -> ReverseProxy: GetRequestInReverseProxy()
     Souin <-- ReverseProxy: *Response
-    Souin -> Memory: SetRequestInCache()
+    alt the response from the reverse-proxy is cacheable
+      Souin -> Memory: SetRequestInCache()
+    end
   end
 Souin -> User : response
 deactivate User

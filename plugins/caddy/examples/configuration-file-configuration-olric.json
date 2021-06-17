@@ -7,44 +7,7 @@
       ],
       "log_level": "info",
       "olric": {
-        "configuration": {
-          "olricd": {
-            "bindAddr": "0.0.0.0",
-            "bindPort": 3320,
-            "serializer": "msgpack",
-            "keepAlivePeriod": "20s",
-            "bootstrapTimeout": "5s",
-            "partitionCount":  271,
-            "replicaCount": 2,
-            "writeQuorum": 1,
-            "readQuorum": 1,
-            "readRepair": false,
-            "replicationMode": 1,
-            "tableSize": 1048576,
-            "memberCountQuorum": 1
-          },
-          "client": {
-            "dialTimeout": "-1s",
-            "readTimeout": "30s",
-            "writeTimeout": "30s",
-            "keepAlive": "150s",
-            "minConn": 1,
-            "maxConn": 100
-          },
-          "logging": {
-            "verbosity": 6,
-            "level": "DEBUG",
-            "output": "stderr"
-          },
-          "memberlist": {
-            "environment": "local",
-            "bindAddr": "0.0.0.0",
-            "bindPort": 3322,
-            "enableCompression": false,
-            "joinRetryInterval": "10s",
-            "maxJoinAttempts": 2
-          }
-        }
+        "path": "path/to/olric.yml"
       },
       "ttl": "1000s"
     },
