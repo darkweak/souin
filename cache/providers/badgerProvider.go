@@ -14,7 +14,7 @@ type Badger struct {
 }
 
 // BadgerConnectionFactory function create new Badger instance
-func BadgerConnectionFactory(c t.AbstractConfigurationInterface) (*Badger, error) {
+func BadgerConnectionFactory(_ t.AbstractConfigurationInterface) (*Badger, error) {
 	db, _ := badger.Open(badger.DefaultOptions("").WithInMemory(true))
 
 	return &Badger{db}, nil
@@ -87,9 +87,7 @@ func (provider *Badger) Set(key string, value []byte, url t.URL, duration time.D
 
 // Delete method will delete the response in Badger provider if exists corresponding to key param
 func (provider *Badger) Delete(key string) {
-	go func() {
-		_ = provider.DB.DropPrefix([]byte(key))
-	}()
+	_ = provider.DB.DropPrefix([]byte(key))
 }
 
 // DeleteMany method will delete the responses in Badger provider if exists corresponding to the regex key param

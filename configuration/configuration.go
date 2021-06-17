@@ -10,13 +10,14 @@ import (
 
 //Configuration holder
 type Configuration struct {
-	DefaultCache    *configurationtypes.DefaultCache  `yaml:"default_cache"`
-	API             configurationtypes.API            `yaml:"api"`
-	ReverseProxyURL string                            `yaml:"reverse_proxy_url"`
-	SSLProviders    []string                          `yaml:"ssl_providers"`
-	URLs            map[string]configurationtypes.URL `yaml:"urls"`
-	LogLevel        string                            `yaml:"log_level"`
+	DefaultCache    *configurationtypes.DefaultCache   `yaml:"default_cache"`
+	API             configurationtypes.API             `yaml:"api"`
+	ReverseProxyURL string                             `yaml:"reverse_proxy_url"`
+	SSLProviders    []string                           `yaml:"ssl_providers"`
+	URLs            map[string]configurationtypes.URL  `yaml:"urls"`
+	LogLevel        string                             `yaml:"log_level"`
 	logger          *zap.Logger
+	Ykeys           map[string]configurationtypes.YKey `yaml:"ykeys"`
 }
 
 func readFile(path string) []byte {
@@ -73,6 +74,11 @@ func (c *Configuration) GetLogger() *zap.Logger {
 // SetLogger set the logger
 func (c *Configuration) SetLogger(l *zap.Logger) {
 	c.logger = l
+}
+
+// GetYkeys get the ykeys list
+func (c *Configuration) GetYkeys() map[string]configurationtypes.YKey {
+	return c.Ykeys
 }
 
 // GetConfiguration allow to retrieve Souin configuration through yaml file

@@ -1,6 +1,7 @@
 package types
 
 import (
+	"github.com/darkweak/souin/cache/ykeys"
 	"github.com/darkweak/souin/configurationtypes"
 	"net/http"
 	"regexp"
@@ -14,6 +15,7 @@ type TransportInterface interface {
 	UpdateCacheEventually(req *http.Request) (resp *http.Response, err error)
 	GetVaryLayerStorage() *VaryLayerStorage
 	GetCoalescingLayerStorage() *CoalescingLayerStorage
+	GetYkeyStorage() *ykeys.YKeyStorage
 }
 
 // Transport is an implementation of http.RoundTripper that will return values from a cache
@@ -28,6 +30,7 @@ type Transport struct {
 	MarkCachedResponses    bool
 	VaryLayerStorage       *VaryLayerStorage
 	CoalescingLayerStorage *CoalescingLayerStorage
+	YkeyStorage            *ykeys.YKeyStorage
 }
 
 // RetrieverResponsePropertiesInterface interface

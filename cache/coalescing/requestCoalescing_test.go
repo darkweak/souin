@@ -3,6 +3,7 @@ package coalescing
 import (
 	"github.com/darkweak/souin/cache/providers"
 	"github.com/darkweak/souin/cache/types"
+	"github.com/darkweak/souin/cache/ykeys"
 	"github.com/darkweak/souin/helpers"
 	"github.com/darkweak/souin/rfc"
 	"github.com/darkweak/souin/tests"
@@ -20,7 +21,7 @@ func commonInitializer() (*httptest.ResponseRecorder, *http.Request, *types.Retr
 		Provider:      prs,
 		MatchedURL:    tests.GetMatchedURL(tests.PATH),
 		RegexpUrls:    regexpUrls,
-		Transport:     rfc.NewTransport(prs),
+		Transport:     rfc.NewTransport(prs, ykeys.InitializeYKeys(c.Ykeys)),
 	}
 	r := httptest.NewRequest("GET", "http://"+tests.DOMAIN+tests.PATH, nil)
 	w := httptest.NewRecorder()

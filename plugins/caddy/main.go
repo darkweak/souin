@@ -22,7 +22,7 @@ import (
 type key string
 
 const getterContextCtxKey key = "getter_context"
-const moduleName = "souin_cache"
+const moduleName = "cache"
 const moduleID caddy.ModuleID = "http.handlers." + moduleName
 
 func init() {
@@ -38,9 +38,10 @@ type SouinCaddyPlugin struct {
 	logger        *zap.Logger
 	LogLevel      string `json:"log_level,omitempty"`
 	bufPool       sync.Pool
-	Headers       []string `json:"headers,omitempty"`
-	Olric         configurationtypes.CacheProvider `json:"olric,omitempty"`
-	TTL           string `json:"ttl,omitempty"`
+	Headers       []string                           `json:"headers,omitempty"`
+	Olric         configurationtypes.CacheProvider   `json:"olric,omitempty"`
+	TTL           string                             `json:"ttl,omitempty"`
+	ykeys         map[string]configurationtypes.YKey `json:"ykeys,omitempty"`
 }
 
 // CaddyModule returns the Caddy module information.
@@ -93,7 +94,7 @@ func (s *SouinCaddyPlugin) configurationPropertyMapper() error {
 		return nil
 	}
 	defaultCache := &DefaultCache{
-		Distributed: s.Olric.URL != "",
+		Distributed: s.Olric.URL != "" || s.Olric.Path != "" || s.Olric.Configuration != nil,
 		Headers:     s.Headers,
 		Olric:       s.Olric,
 		TTL:         s.TTL,
@@ -127,8 +128,8 @@ func (s *SouinCaddyPlugin) FromApp(app *SouinApp) error {
 
 	if s.Configuration.DefaultCache == nil {
 		s.Configuration.DefaultCache = &DefaultCache{
-			Headers:     app.Headers,
-			TTL:         app.TTL,
+			Headers: app.Headers,
+			TTL:     app.TTL,
 		}
 	} else {
 		dc := s.Configuration.DefaultCache
@@ -139,7 +140,8 @@ func (s *SouinCaddyPlugin) FromApp(app *SouinApp) error {
 		if dc.TTL == "" {
 			s.Configuration.DefaultCache.TTL = appDc.TTL
 		}
-		if dc.Olric.URL == "" {
+		if dc.Olric.URL == "" || dc.Olric.Path == "" || dc.Olric.Configuration == nil {
+			s.Configuration.DefaultCache.Distributed = appDc.Distributed
 			s.Configuration.DefaultCache.Olric = appDc.Olric
 		}
 	}
@@ -171,6 +173,24 @@ func (s *SouinCaddyPlugin) Provision(ctx caddy.Context) error {
 	return nil
 }
 
+func parseCaddyfileRecursively(h *caddyfile.Dispenser) interface{} {
+	input := make(map[string]interface{})
+	for nesting := h.Nesting(); h.NextBlock(nesting); {
+		val := h.Val()
+		if val == "}" || val == "{" {
+			continue
+		}
+		args := h.RemainingArgs()
+		if len(args) > 0 {
+			input[val] = args[0]
+		} else {
+			input[val] = parseCaddyfileRecursively(h)
+		}
+	}
+
+	return input
+}
+
 func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interface{}, error) {
 	souinApp := new(SouinApp)
 	cfg := &Configuration{
@@ -192,6 +212,7 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 				args := h.RemainingArgs()
 				cfg.LogLevel = args[0]
 			case "olric":
+				cfg.DefaultCache.Distributed = true
 				provider := configurationtypes.CacheProvider{}
 				for nesting := h.Nesting(); h.NextBlock(nesting); {
 					directive := h.Val()
@@ -199,6 +220,11 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 					case "url":
 						urlArgs := h.RemainingArgs()
 						provider.URL = urlArgs[0]
+					case "path":
+						urlArgs := h.RemainingArgs()
+						provider.Path = urlArgs[0]
+					case "configuration":
+						provider.Configuration = parseCaddyfileRecursively(h)
 					}
 				}
 				cfg.DefaultCache.Olric = provider
