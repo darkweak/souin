@@ -34,7 +34,7 @@ func TestSouinAPI_BulkDelete(t *testing.T) {
 	}
 	souinMock.BulkDelete(".+")
 	fmt.Printf("Keys list => %v \n", souinMock.GetAll())
-	time.Sleep(5 * time.Second)
+	time.Sleep(10 * time.Second)
 	fmt.Printf("Keys list => %v \n", souinMock.GetAll())
 	if len(souinMock.GetAll()) != 0 {
 		errors.GenerateError(t, "Souin API shouldn't have a record")
