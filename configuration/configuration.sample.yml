@@ -37,3 +37,11 @@ urls:
     headers: # Override default headers
     - Authorization
     - 'Content-Type'
+ykeys: # The ykeys section is here to group cache requests
+  The_First_Test: # The key name. You can invalidate it by sending a PURGE request on the souin api with the query param ykey=The_First_Test
+    headers: # Headers that should match to be part of this group
+      Content-Type: '.+' # Regex supported
+  The_Second_Test: # The key name. You can invalidate it by sending a PURGE request on the souin api with the query param ykey=The_Second_Test
+    url: 'the/second/.+' # Url that should match to be part of this group
+  The_Third_Test: # The key name. You can invalidate it by sending a PURGE request on the souin api with the query param ykey=The_Third_Test
+  The_Fourth_Test: # The key name. You can invalidate it by sending a PURGE request on the souin api with the query param ykey=The_Fourth_Test
