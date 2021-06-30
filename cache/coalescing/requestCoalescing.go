@@ -40,7 +40,7 @@ func (r *RequestCoalescing) Temporise(req *http.Request, rw http.ResponseWriter,
 func Initialize() *RequestCoalescing {
 	var requestGroup singleflight.Group
 	return &RequestCoalescing{
-		requestGroup: requestGroup,
+		requestGroup: &requestGroup,
 	}
 }
 

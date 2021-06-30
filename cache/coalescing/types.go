@@ -13,7 +13,7 @@ type RequestCoalescingChannelItem struct {
 
 // RequestCoalescing handle channels map
 type RequestCoalescing struct {
-	requestGroup singleflight.Group
+	requestGroup *singleflight.Group
 }
 
 // RequestCoalescingInterface is the interface

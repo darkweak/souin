@@ -47,7 +47,7 @@ func InitializeYKeys(keys map[string]configurationtypes.YKey) *YKeyStorage {
 		BufferItems: 64,
 	})
 
-	for key, _ := range keys {
+	for key := range keys {
 		storage.Set(key, "", 1)
 	}
 

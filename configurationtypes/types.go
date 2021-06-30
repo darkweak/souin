@@ -102,7 +102,7 @@ type SecurityAPI struct {
 
 // API structure contains all additional endpoints
 type API struct {
-	BasePath string      `yaml:basepath`
+	BasePath string      `yaml:"basepath"`
 	Souin    APIEndpoint `yaml:"souin"`
 	Security SecurityAPI `yaml:"security"`
 }
