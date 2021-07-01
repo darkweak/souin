@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/darkweak/souin/cache/providers"
 	"io"
 	"net/http"
 	"strings"
@@ -22,7 +23,7 @@ func GetVariedCacheKey(req *http.Request, headers []string) string {
 	for _, v := range headers {
 		str += fmt.Sprintf("%s:%s", v, req.Header.Get(v))
 	}
-	return fmt.Sprintf("%s-[%s]", GetCacheKey(req), strings.Join(headers[:], ";"))
+	return fmt.Sprintf("%s%s%s", GetCacheKey(req), providers.VarySeparator, strings.Join(headers[:], ";"))
 }
 
 // getFreshness will return one of fresh/stale/transparent based on the cache-control
