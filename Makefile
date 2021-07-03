@@ -13,7 +13,7 @@ build-and-run-caddy-json:  ## Run caddy binary with the json configuration
 	cd plugins/caddy && ./caddy run --config ./configuration.json
 
 build-and-run-tyk:  ## Run caddy binary with the json configuration
-	cd plugins/tyk && go mod vendor && docker run --rm -v `pwd`:/plugin-source -v `pwd`/vendor:/go/src/vendor tykio/tyk-plugin-compiler:v2.9.4.1 souin-plugin.so
+	cd plugins/tyk && go mod tidy && go mod download && go mod vendor && docker-compose up --remove-orphans --build --force-recreate
 
 build-app: env-prod ## Build containers with prod env vars
 	$(DC_BUILD) souin
