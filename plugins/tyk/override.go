@@ -4,23 +4,21 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/TykTechnologies/tyk/apidef"
-	"github.com/darkweak/souin/configurationtypes"
-	"io"
-	"os"
+	"io/ioutil"
 	"path/filepath"
 )
 
 type souinAPIDefinition struct {
 	*apidef.APIDefinition
-	Configuration configurationtypes.AbstractConfigurationInterface
+	Souin Configuration `json:"souin,omitempty"`
 }
 
-func parseSouinDefinition(r io.Reader) *souinAPIDefinition {
-	def := &souinAPIDefinition{}
-	if err := json.NewDecoder(r).Decode(def); err != nil {
+func parseSouinDefinition(b []byte) *souinAPIDefinition {
+	def := souinAPIDefinition{}
+	if err := json.Unmarshal(b, &def); err != nil {
 		fmt.Println("[RPC] --> Couldn't unmarshal api configuration: ", err)
 	}
-	return def
+	return &def
 }
 
 func merge(a, b interface{}) interface{} {
@@ -35,17 +33,18 @@ func merge(a, b interface{}) interface{} {
 	return a
 }
 
-func fromDir(dir string) Configuration {
-	var c Configuration
+func fromDir(dir string) map[string]Configuration {
+	c := make(map[string]Configuration)
 	paths, _ := filepath.Glob(filepath.Join(dir, "*.json"))
 	for _, path := range paths {
 		fmt.Println("Loading API Specification from ", path)
-		f, err := os.Open(path)
+		f, err := ioutil.ReadFile(path)
 		if err != nil {
 			fmt.Println("Couldn't open api configuration file: ", err)
 			continue
 		}
-		merge(&c, parseSouinDefinition(f))
+		def := parseSouinDefinition(f)
+		c[def.APIID] = def.Souin
 	}
 	return c
 }

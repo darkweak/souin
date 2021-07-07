@@ -1,8 +1,8 @@
 package main
 
 import (
-	"encoding/json"
-	"github.com/TykTechnologies/tyk/config"
+	"fmt"
+	"github.com/TykTechnologies/tyk/ctx"
 	"net/http"
 )
 
@@ -23,23 +23,36 @@ func SouinRequestHandler(rw http.ResponseWriter, r *http.Request) {
 //
 	//	return e
 	//})
-
-	b, _ := json.Marshal(s)
-	rw.Write(b)
+	fmt.Println("Start souin handler")
+	fmt.Printf("%+v\n", r)
+	fmt.Printf("%+v\n", s)
+	session := ctx.GetSession(r)
+	fmt.Printf("%+v\n", session)
+	fmt.Println("Developer ID:", session.MetaData["tyk_developer_id"])
+	fmt.Println("Developer Email:", session.MetaData["tyk_developer_email"])
+	apidef := ctx.GetDefinition(r)
+	fmt.Println("API name is", apidef.Name)
+	//currentAPI := ctx.GetDefinition(r).APIID
+	fmt.Printf("===== START =====")
+	for i := 1; i < 24; i++ {
+		fmt.Printf("%+v\n", r.Context().Value(i))
+	}
+	fmt.Printf("===== STOP =====")
+	//rw.Write([]byte("\n"))
+	//rw.Write([]byte(fmt.Sprintf("%+v\n", s.configurations[currentAPI])))
 }
 
 func init() {
-	c := fromDir(config.Global().AppPath)
-	s.Configuration = &c
+	s.configurations = fromDir("/opt/tyk-gateway/apps")
 }
 
 type souinInstance struct {
-	Configuration *Configuration
+	configurations map[string]Configuration
 }
 
 // plugin internal state and implementation
 var (
-	s *souinInstance
+	s souinInstance
 )
 
 func main() {}

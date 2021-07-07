@@ -5,11 +5,14 @@ go 1.15
 require (
 	github.com/HdrHistogram/hdrhistogram-go v1.1.0 // indirect
 	github.com/TykTechnologies/gojsonschema v0.0.0-20170222154038-dcb3e4bb7990 // indirect
+	github.com/TykTechnologies/murmur3 v0.0.0-20190927072507-ba59b2844ad7 // indirect
 	github.com/TykTechnologies/tyk v2.9.5+incompatible
+	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/clbanning/mxj v1.8.4 // indirect
 	github.com/darkweak/souin v1.5.2
 	github.com/franela/goblin v0.0.0-20210519012713-85d372ac71e2 // indirect
 	github.com/franela/goreq v0.0.0-20171204163338-bcd34c9993f8 // indirect
+	github.com/go-redis/redis v6.15.9+incompatible // indirect
 	github.com/hashicorp/terraform v1.0.1 // indirect
 	github.com/kelseyhightower/envconfig v1.4.0 // indirect
 	github.com/lonelycode/go-uuid v0.0.0-20141202165402-ed3ca8a15a93 // indirect
