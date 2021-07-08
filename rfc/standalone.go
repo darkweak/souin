@@ -22,7 +22,7 @@ func GetVariedCacheKey(req *http.Request, headers []string) string {
 	for i, v := range headers {
 		headers[i] = fmt.Sprintf("%s:%s", v, req.Header.Get(v))
 	}
-	return fmt.Sprintf("%s%s%s", GetCacheKey(req), providers.VarySeparator, strings.Join(headers, ";"))
+	return GetCacheKey(req) + providers.VarySeparator + strings.Join(headers, ";")
 }
 
 // getFreshness will return one of fresh/stale/transparent based on the cache-control
