@@ -12,7 +12,9 @@ import (
 
 // Temporise will run one call to proxy then use the response for other requests that couldn't reach cached response
 func (r *RequestCoalescing) Temporise(req *http.Request, rw http.ResponseWriter, nextMiddleware func(http.ResponseWriter, *http.Request) error) {
-	ch := r.requestGroup.DoChan(rfc.GetCacheKey(req), func() (interface{}, error) {
+	key := rfc.GetCacheKey(req)
+	ch := r.requestGroup.DoChan(key, func() (interface{}, error) {
+		defer r.requestGroup.Forget(key)
 		e := nextMiddleware(rw, req)
 
 		return nil, e

@@ -34,13 +34,13 @@ func varyVoter(baseKey string, req *http.Request, currentKey string) bool {
 	}
 
 	if strings.Contains(currentKey, VarySeparator) {
-		list := currentKey[(strings.LastIndex(currentKey, VarySeparator) + 1):]
+		list := currentKey[(strings.LastIndex(currentKey, VarySeparator) + len(VarySeparator)):]
 		if len(list) == 0 {
 			return false
 		}
 
 		for _, item := range strings.Split(list, ";") {
-			index := strings.LastIndex(currentKey, ":")
+			index := strings.LastIndex(item, ":")
 			if req.Header.Get(item[:index]) != item[index+1:] {
 				return false
 			}

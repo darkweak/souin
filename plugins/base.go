@@ -65,7 +65,6 @@ func DefaultSouinPluginCallback(
 	} else {
 		_ = nextMiddleware(res, req)
 	}
-	close(coalesceable)
 }
 
 // DefaultSouinPluginInitializerFromConfiguration is the default initialization for plugins
