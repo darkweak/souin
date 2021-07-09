@@ -37,11 +37,11 @@ type SouinCaddyPlugin struct {
 	Configuration *Configuration
 	logger        *zap.Logger
 	LogLevel      string `json:"log_level,omitempty"`
-	bufPool       sync.Pool
+	bufPool       *sync.Pool
 	Headers       []string                           `json:"headers,omitempty"`
 	Olric         configurationtypes.CacheProvider   `json:"olric,omitempty"`
 	TTL           string                             `json:"ttl,omitempty"`
-	ykeys         map[string]configurationtypes.YKey `json:"ykeys,omitempty"`
+	YKeys         map[string]configurationtypes.YKey `json:"ykeys,omitempty"`
 }
 
 // CaddyModule returns the Caddy module information.
@@ -105,6 +105,7 @@ func (s *SouinCaddyPlugin) configurationPropertyMapper() error {
 			LogLevel:     s.LogLevel,
 		}
 	}
+	s.Configuration.Ykeys = s.YKeys
 	s.Configuration.DefaultCache = defaultCache
 	return nil
 }
@@ -163,7 +164,7 @@ func (s *SouinCaddyPlugin) Provision(ctx caddy.Context) error {
 		return err
 	}
 
-	s.bufPool = sync.Pool{
+	s.bufPool = &sync.Pool{
 		New: func() interface{} {
 			return new(bytes.Buffer)
 		},

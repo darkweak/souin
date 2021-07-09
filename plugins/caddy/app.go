@@ -4,6 +4,7 @@ import (
 	"github.com/caddyserver/caddy/v2"
 )
 
+// SouinApp contains the whole Souin necessary items
 type SouinApp struct {
 	*DefaultCache
 	LogLevel string `json:"log_level,omitempty"`
@@ -32,7 +33,7 @@ func (s SouinApp) Stop() error {
 }
 
 // CaddyModule implements caddy.ModuleInfo
-func (a SouinApp) CaddyModule() caddy.ModuleInfo {
+func (s SouinApp) CaddyModule() caddy.ModuleInfo {
 	return caddy.ModuleInfo{
 		ID:  moduleName,
 		New: func() caddy.Module { return new(SouinApp) },

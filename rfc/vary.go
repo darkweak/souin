@@ -23,9 +23,6 @@ func validateVary(req *http.Request, resp *http.Response, key string, t *VaryTra
 		variedHeaders := headerAllCommaSepValues(resp.Header, "vary")
 		cacheKey := key
 		if len(variedHeaders) > 0 {
-			go func() {
-				t.VaryLayerStorage.Set(key, variedHeaders)
-			}()
 			cacheKey = GetVariedCacheKey(req, variedHeaders)
 		}
 		switch req.Method {
