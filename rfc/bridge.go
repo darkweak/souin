@@ -17,7 +17,7 @@ const (
 // otherwise.
 func CachedResponse(c types.AbstractProviderInterface, req *http.Request, cachedKey string, transport types.TransportInterface, update bool) (types.ReverseResponse, error) {
 	clonedReq := cloneRequest(req)
-	cachedVal := c.Get(cachedKey)
+	cachedVal := c.Prefix(cachedKey, req)
 	b := bytes.NewBuffer(cachedVal)
 	response, _ := http.ReadResponse(bufio.NewReader(b), clonedReq)
 	if update && nil != response && ValidateCacheControl(response) {
@@ -61,10 +61,6 @@ func (t *VaryTransport) BaseRoundTrip(req *http.Request, shouldReUpdate bool) (s
 	cacheable := IsVaryCacheable(req)
 	cachedResp := req.Response
 	if cacheable {
-		varied := t.GetVaryLayerStorage().Get(cacheKey)
-		if len(varied) != 0 {
-			cacheKey = GetVariedCacheKey(req, varied)
-		}
 		cr, _ := CachedResponse(t.GetProvider(), req, cacheKey, t, shouldReUpdate)
 		if cr.Response != nil {
 			cachedResp = cr.Response

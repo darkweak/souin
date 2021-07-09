@@ -27,10 +27,6 @@ func DefaultSouinPluginCallback(
 
 	go func() {
 		cacheKey := rfc.GetCacheKey(req)
-		varied := retriever.GetTransport().GetVaryLayerStorage().Get(cacheKey)
-		if len(varied) != 0 {
-			cacheKey = rfc.GetVariedCacheKey(req, varied)
-		}
 		go func() {
 			coalesceable <- retriever.GetTransport().GetCoalescingLayerStorage().Exists(cacheKey)
 		}()
@@ -69,7 +65,6 @@ func DefaultSouinPluginCallback(
 	} else {
 		_ = nextMiddleware(res, req)
 	}
-	close(coalesceable)
 }
 
 // DefaultSouinPluginInitializerFromConfiguration is the default initialization for plugins

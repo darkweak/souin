@@ -4,6 +4,7 @@ import (
 	"fmt"
 	t "github.com/darkweak/souin/configurationtypes"
 	badger "github.com/dgraph-io/badger/v3"
+	"net/http"
 	"regexp"
 	"time"
 )
@@ -59,6 +60,28 @@ func (provider *Badger) Get(key string) []byte {
 
 	_ = item.Value(func(val []byte) error {
 		result = val
+		return nil
+	})
+
+	return result
+}
+
+// Prefix method returns the populated response if exists, empty response then
+func (provider *Badger) Prefix(key string, req *http.Request) []byte {
+	var result []byte
+
+	_ = provider.DB.View(func(txn *badger.Txn) error {
+		prefix := []byte(key)
+		it := txn.NewIterator(badger.DefaultIteratorOptions)
+		defer it.Close()
+		for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
+			if varyVoter(key, req, string(it.Item().Key())) {
+				_ = it.Item().Value(func(val []byte) error {
+					result = val
+					return nil
+				})
+			}
+		}
 		return nil
 	})
 

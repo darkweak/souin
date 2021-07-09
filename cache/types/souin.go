@@ -13,7 +13,6 @@ type TransportInterface interface {
 	RoundTrip(req *http.Request) (resp *http.Response, err error)
 	SetURL(url configurationtypes.URL)
 	UpdateCacheEventually(req *http.Request) (resp *http.Response, err error)
-	GetVaryLayerStorage() *VaryLayerStorage
 	GetCoalescingLayerStorage() *CoalescingLayerStorage
 	GetYkeyStorage() *ykeys.YKeyStorage
 }
@@ -28,7 +27,6 @@ type Transport struct {
 	Provider               AbstractProviderInterface
 	ConfigurationURL       configurationtypes.URL
 	MarkCachedResponses    bool
-	VaryLayerStorage       *VaryLayerStorage
 	CoalescingLayerStorage *CoalescingLayerStorage
 	YkeyStorage            *ykeys.YKeyStorage
 }

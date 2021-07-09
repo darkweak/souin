@@ -6,6 +6,7 @@ import (
 	"github.com/buraksezer/olric/config"
 	"github.com/buraksezer/olric/query"
 	t "github.com/darkweak/souin/configurationtypes"
+	"net/http"
 	"time"
 )
 
@@ -60,6 +61,33 @@ func (provider *Olric) ListKeys() []string {
 	})
 
 	return keys
+}
+
+// Prefix method returns the populated response if exists, empty response then
+func (provider *Olric) Prefix(key string, req *http.Request) []byte {
+	c, err := provider.dm.Query(query.M{
+		"$onKey": query.M{
+			"$regexMatch": "^" + key,
+		},
+	})
+
+	if err != nil {
+		fmt.Println(fmt.Sprintf("An error occurred while trying to retrieve data in Olric: %s", err))
+		return []byte{}
+	}
+	defer c.Close()
+
+	res := []byte{}
+	err = c.Range(func(k string, v interface{}) bool {
+		if varyVoter(key, req, k) {
+			res = v.([]byte)
+			return false
+		}
+
+		return true
+	})
+
+	return res
 }
 
 // Get method returns the populated response if exists, empty response then

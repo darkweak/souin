@@ -24,7 +24,6 @@ func IsVaryCacheable(req *http.Request) bool {
 func NewTransport(p types.AbstractProviderInterface, ykeyStorage *ykeys.YKeyStorage) *VaryTransport {
 	return &VaryTransport{
 		Provider:               p,
-		VaryLayerStorage:       types.InitializeVaryLayerStorage(),
 		CoalescingLayerStorage: types.InitializeCoalescingLayerStorage(),
 		MarkCachedResponses:    true,
 		YkeyStorage:            ykeyStorage,
@@ -39,11 +38,6 @@ func (t *VaryTransport) GetProvider() types.AbstractProviderInterface {
 // SetURL set the URL
 func (t *VaryTransport) SetURL(url configurationtypes.URL) {
 	t.ConfigurationURL = url
-}
-
-// GetVaryLayerStorage get the vary layer storagecache/coalescing/requestCoalescing_test.go
-func (t *VaryTransport) GetVaryLayerStorage() *types.VaryLayerStorage {
-	return t.VaryLayerStorage
 }
 
 // GetCoalescingLayerStorage get the coalescing layer storage
