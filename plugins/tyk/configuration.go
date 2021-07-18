@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/darkweak/souin/configurationtypes"
+	"go.uber.org/zap"
 )
 
 // DefaultCache the struct
@@ -44,7 +45,7 @@ type Configuration struct {
 	API          configurationtypes.API            `json:"api,omitempty"`
 	URLs         map[string]configurationtypes.URL `json:"urls,omitempty"`
 	LogLevel     string                            `json:"log_level,omitempty"`
-	logger       interface{}
+	logger       *zap.Logger
 	Ykeys        map[string]configurationtypes.YKey `json:"ykeys,omitempty"`
 }
 
@@ -69,12 +70,12 @@ func (c *Configuration) GetLogLevel() string {
 }
 
 // GetLogger get the logger
-func (c *Configuration) GetLogger() interface{} {
+func (c *Configuration) GetLogger() *zap.Logger {
 	return c.logger
 }
 
 // SetLogger set the logger
-func (c *Configuration) SetLogger(l interface{}) {
+func (c *Configuration) SetLogger(l *zap.Logger) {
 	c.logger = l
 }
 

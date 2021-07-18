@@ -4,8 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/TykTechnologies/tyk/apidef"
+	"github.com/darkweak/souin/cache/coalescing"
+	"github.com/darkweak/souin/plugins"
 	"io/ioutil"
 	"path/filepath"
+	"reflect"
+	"unsafe"
 )
 
 type souinAPIDefinition struct {
@@ -21,20 +25,35 @@ func parseSouinDefinition(b []byte) *souinAPIDefinition {
 	return &def
 }
 
-func merge(a, b interface{}) interface{} {
-	jb, err := json.Marshal(b)
-	if err != nil {
-		fmt.Println("Marshal error b:", err)
+func apiDefinitionRetriever(currentCtx interface{}) *apidef.APIDefinition {
+	contextValues := reflect.ValueOf(currentCtx).Elem()
+	contextKeys := reflect.TypeOf(currentCtx).Elem()
+
+	if contextKeys.Kind() == reflect.Struct {
+		for i := 0; i < contextValues.NumField(); i++ {
+			rv := contextValues.Field(i)
+			reflectValue := reflect.NewAt(rv.Type(), unsafe.Pointer(rv.UnsafeAddr())).Elem().Interface()
+
+			reflectField := contextKeys.Field(i)
+
+			if reflectField.Name == "Context" {
+				apiDefinitionRetriever(reflectValue)
+			} else if fmt.Sprintf("%T", reflectValue) == "*apidef.APIDefinition" {
+				apidefinition := apidef.APIDefinition{}
+				b, _ := json.Marshal(reflectValue)
+				e := json.Unmarshal(b, &apidefinition)
+				if e == nil {
+					return &apidefinition
+				}
+			}
+		}
 	}
-	err = json.Unmarshal(jb, &a)
-	if err != nil {
-		fmt.Println("Unmarshal error b-a:", err)
-	}
-	return a
+
+	return nil
 }
 
-func fromDir(dir string) map[string]Configuration {
-	c := make(map[string]Configuration)
+func fromDir(dir string) map[string]souinInstance {
+	c := make(map[string]souinInstance)
 	paths, _ := filepath.Glob(filepath.Join(dir, "*.json"))
 	for _, path := range paths {
 		fmt.Println("Loading API Specification from ", path)
@@ -44,7 +63,13 @@ func fromDir(dir string) map[string]Configuration {
 			continue
 		}
 		def := parseSouinDefinition(f)
-		c[def.APIID] = def.Souin
+		config := &def.Souin
+
+		c[def.APIID] = souinInstance{
+			Retriever:         plugins.DefaultSouinPluginInitializerFromConfiguration(config),
+			RequestCoalescing: coalescing.Initialize(),
+			Configuration:     config,
+		}
 	}
 	return c
 }
