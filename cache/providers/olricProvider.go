@@ -104,12 +104,7 @@ func (provider *Olric) Get(key string) []byte {
 // Set method will store the response in Olric provider
 func (provider *Olric) Set(key string, value []byte, url t.URL, duration time.Duration) {
 	if duration == 0 {
-		ttl, err := time.ParseDuration(url.TTL)
-		if err != nil {
-			ttl = 0
-			fmt.Println(err)
-		}
-		duration = ttl
+		duration = url.TTL
 	}
 
 	err := provider.dm.PutEx(key, value, duration)

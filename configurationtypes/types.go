@@ -1,6 +1,9 @@
 package configurationtypes
 
-import "go.uber.org/zap"
+import (
+	"go.uber.org/zap"
+	"time"
+)
 
 // Port config
 type Port struct {
@@ -21,8 +24,8 @@ type Regex struct {
 
 //URL configuration
 type URL struct {
-	TTL     string   `yaml:"ttl"`
-	Headers []string `yaml:"headers"`
+	TTL     time.Duration `yaml:"ttl"`
+	Headers []string      `yaml:"headers"`
 }
 
 //CacheProvider config
@@ -39,7 +42,7 @@ type DefaultCache struct {
 	Olric       CacheProvider `yaml:"olric"`
 	Port        Port          `yaml:"port"`
 	Regex       Regex         `yaml:"regex"`
-	TTL         string        `yaml:"ttl"`
+	TTL         time.Duration `yaml:"ttl"`
 }
 
 // GetDistributed returns if it uses Olric or not as provider
@@ -63,7 +66,7 @@ func (d *DefaultCache) GetRegex() Regex {
 }
 
 // GetTTL returns the default TTL
-func (d *DefaultCache) GetTTL() string {
+func (d *DefaultCache) GetTTL() time.Duration {
 	return d.TTL
 }
 
@@ -73,7 +76,7 @@ type DefaultCacheInterface interface {
 	GetOlric() CacheProvider
 	GetHeaders() []string
 	GetRegex() Regex
-	GetTTL() string
+	GetTTL() time.Duration
 }
 
 // APIEndpoint is the minimal structure to define an endpoint

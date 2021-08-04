@@ -61,7 +61,7 @@ func ServeResponse(
 	}
 	if "" != regexpURL {
 		u := retriever.GetConfiguration().GetUrls()[regexpURL]
-		if u.TTL != "" {
+		if u.TTL != 0 {
 			url.TTL = u.TTL
 		}
 		if len(u.Headers) != 0 {

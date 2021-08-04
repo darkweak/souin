@@ -3,6 +3,7 @@ package caddy
 import (
 	"github.com/darkweak/souin/configurationtypes"
 	"go.uber.org/zap"
+	"time"
 )
 
 // DefaultCache the struct
@@ -11,7 +12,7 @@ type DefaultCache struct {
 	Headers     []string
 	Olric       configurationtypes.CacheProvider
 	Regex       configurationtypes.Regex
-	TTL         string
+	TTL         time.Duration
 }
 
 // GetDistributed returns if it uses Olric or not as provider
@@ -35,7 +36,7 @@ func (d *DefaultCache) GetRegex() configurationtypes.Regex {
 }
 
 // GetTTL returns the default TTL
-func (d *DefaultCache) GetTTL() string {
+func (d *DefaultCache) GetTTL() time.Duration {
 	return d.TTL
 }
 
