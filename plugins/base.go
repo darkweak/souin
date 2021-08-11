@@ -97,15 +97,15 @@ func DefaultSouinPluginInitializerFromConfiguration(c configurationtypes.Abstrac
 	c.SetLogger(logger)
 
 	provider := providers.InitializeProvider(c)
-	c.GetLogger().Debug("Provider initialized")
+	c.GetLogger().Debug("Provider initialized.")
 	regexpUrls := helpers.InitializeRegexp(c)
 	var transport types.TransportInterface
 	transport = rfc.NewTransport(provider, ykeys.InitializeYKeys(c.GetYkeys()))
-	c.GetLogger().Debug("Transport initialized")
+	c.GetLogger().Debug("Transport initialized.")
 
 	retriever := &types.RetrieverResponseProperties{
 		MatchedURL: configurationtypes.URL{
-			TTL:     c.GetDefaultCache().GetTTL(),
+			TTL:     configurationtypes.Duration{Duration: c.GetDefaultCache().GetTTL()},
 			Headers: c.GetDefaultCache().GetHeaders(),
 		},
 		Provider:      provider,
@@ -114,7 +114,7 @@ func DefaultSouinPluginInitializerFromConfiguration(c configurationtypes.Abstrac
 		Transport:     transport,
 	}
 	retriever.Transport.SetURL(retriever.MatchedURL)
-	retriever.GetConfiguration().GetLogger().Debug("Souin configuration is now loaded")
+	retriever.GetConfiguration().GetLogger().Debug("Souin configuration is now loaded.")
 
 	return retriever
 }

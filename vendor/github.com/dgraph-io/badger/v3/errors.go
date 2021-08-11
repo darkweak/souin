@@ -55,6 +55,9 @@ var (
 	// reserved for internal usage.
 	ErrInvalidKey = errors.New("Key is using a reserved !badger! prefix")
 
+	// ErrBannedKey is returned if the read/write key belongs to any banned namespace.
+	ErrBannedKey = errors.New("Key is using the banned prefix")
+
 	// ErrThresholdZero is returned if threshold is set to zero, and value log GC is called.
 	// In such a case, GC can't be run.
 	ErrThresholdZero = errors.New(
@@ -76,15 +79,16 @@ var (
 	ErrManagedTxn = errors.New(
 		"Invalid API request. Not allowed to perform this action using ManagedDB")
 
+	// ErrNamespaceMode is returned if the user tries to use an API which is allowed only when
+	// NamespaceOffset is non-negative.
+	ErrNamespaceMode = errors.New(
+		"Invalid API request. Not allowed to perform this action when NamespaceMode is not set.")
+
 	// ErrInvalidDump if a data dump made previously cannot be loaded into the database.
 	ErrInvalidDump = errors.New("Data dump cannot be read")
 
 	// ErrZeroBandwidth is returned if the user passes in zero bandwidth for sequence.
 	ErrZeroBandwidth = errors.New("Bandwidth must be greater than zero")
-
-	// ErrInvalidLoadingMode is returned when opt.ValueLogLoadingMode option is not
-	// within the valid range
-	ErrInvalidLoadingMode = errors.New("Invalid ValueLogLoadingMode, must be FileIO or MemoryMap")
 
 	// ErrWindowsNotSupported is returned when opt.ReadOnly is used on Windows
 	ErrWindowsNotSupported = errors.New("Read-only mode is not supported on Windows")

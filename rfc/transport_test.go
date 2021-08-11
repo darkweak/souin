@@ -54,7 +54,7 @@ func TestVaryTransport_SetURL(t *testing.T) {
 	config := tests.MockConfiguration(tests.BaseConfiguration)
 	prs := providers.InitializeProvider(config)
 	matchedURL := configurationtypes.URL{
-		TTL:     config.GetDefaultCache().GetTTL(),
+		TTL:     configurationtypes.Duration{Duration: config.GetDefaultCache().GetTTL()},
 		Headers: config.GetDefaultCache().GetHeaders(),
 	}
 
@@ -74,7 +74,7 @@ func TestVaryTransport_SetCache(t *testing.T) {
 	prs := providers.InitializeProvider(config)
 	tr := NewTransport(prs, ykeys.InitializeYKeys(config.Ykeys))
 	tr.SetCache(key, res)
-	time.Sleep(1*time.Second)
+	time.Sleep(1 * time.Second)
 	if v, e := tr.YkeyStorage.Get("The_Third_Test"); v.(string) != key || !e {
 		errors.GenerateError(t, fmt.Sprintf("The url %s should be part of the %s tag", key, "The_Third_Test"))
 	}

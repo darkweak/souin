@@ -24,7 +24,7 @@ func BadgerConnectionFactory(_ t.AbstractConfigurationInterface) (*Badger, error
 // ListKeys method returns the list of existing keys
 func (provider *Badger) ListKeys() []string {
 	keys := []string{}
-	
+
 	e := provider.DB.View(func(txn *badger.Txn) error {
 		opts := badger.DefaultIteratorOptions
 		opts.PrefetchValues = false
@@ -91,7 +91,7 @@ func (provider *Badger) Prefix(key string, req *http.Request) []byte {
 // Set method will store the response in Badger provider
 func (provider *Badger) Set(key string, value []byte, url t.URL, duration time.Duration) {
 	if duration == 0 {
-		duration = url.TTL
+		duration = url.TTL.Duration
 	}
 
 	err := provider.DB.Update(func(txn *badger.Txn) error {

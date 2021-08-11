@@ -108,6 +108,7 @@ func OlricConfiguration() string {
 	return baseEmbeddedOlricConfiguration(fmt.Sprintf("url: '%s'", "olric:3320"))
 }
 
+// EmbeddedOlricPlainConfigurationWithoutAdditionalYAML simulate the configuration for the embedded Olric storage
 func EmbeddedOlricPlainConfigurationWithoutAdditionalYAML() string {
 	return baseEmbeddedOlricConfiguration(`
     configuration:
@@ -263,7 +264,7 @@ func GetCacheProviderClientAndMatchedURL(key string, configurationMocker func() 
 	regexpUrls := MockInitializeRegexp(config)
 	regexpURL := regexpUrls.FindString(key)
 	matchedURL := configurationtypes.URL{
-		TTL:     config.GetDefaultCache().GetTTL(),
+		TTL:     configurationtypes.Duration{Duration: config.GetDefaultCache().GetTTL()},
 		Headers: config.GetDefaultCache().GetHeaders(),
 	}
 	if "" != regexpURL {

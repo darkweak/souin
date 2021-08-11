@@ -8,7 +8,6 @@ import (
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
 	"github.com/caddyserver/caddy/v2/caddyconfig/httpcaddyfile"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
-	"github.com/darkweak/souin/cache/coalescing"
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/plugins"
 	"github.com/darkweak/souin/rfc"
@@ -171,7 +170,7 @@ func (s *SouinCaddyPlugin) Provision(ctx caddy.Context) error {
 		},
 	}
 	s.Retriever = plugins.DefaultSouinPluginInitializerFromConfiguration(s.Configuration)
-	s.RequestCoalescing = coalescing.Initialize()
+	// s.RequestCoalescing = coalescing.Initialize()
 	return nil
 }
 

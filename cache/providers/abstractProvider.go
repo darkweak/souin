@@ -7,6 +7,7 @@ import (
 	"strings"
 )
 
+// VarySeparator will separate vary headers from the plain URL
 const VarySeparator = "{-VARY-}"
 
 // InitializeProvider allow to generate the providers array according to the configuration

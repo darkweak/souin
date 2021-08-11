@@ -1,10 +1,12 @@
 package coalescing
 
 import (
+	"context"
+	"fmt"
 	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/rfc"
-	"golang.org/x/sync/singleflight"
+	"github.com/go-chi/stampede"
 	"net/http"
 	"strings"
 	"time"
@@ -12,35 +14,20 @@ import (
 
 // Temporise will run one call to proxy then use the response for other requests that couldn't reach cached response
 func (r *RequestCoalescing) Temporise(req *http.Request, rw http.ResponseWriter, nextMiddleware func(http.ResponseWriter, *http.Request) error) {
-	key := rfc.GetCacheKey(req)
-	ch := r.requestGroup.DoChan(key, func() (interface{}, error) {
-		defer r.requestGroup.Forget(key)
-		e := nextMiddleware(rw, req)
-
-		return nil, e
+	_, e := r.Cache.Get(context.Background(), rfc.GetCacheKey(req), func(ctx context.Context) (interface{}, error) {
+		return nil, nextMiddleware(rw, req)
 	})
 
-	timeout := time.After(60 * time.Second)
-
-	var result singleflight.Result
-	select {
-	case <-timeout:
+	fmt.Println(e)
+	if e != nil {
 		http.Error(rw, "Gateway Timeout", http.StatusGatewayTimeout)
-		return
-	case result = <-ch:
-	}
-
-	if result.Err != nil {
-		http.Error(rw, result.Err.Error(), http.StatusInternalServerError)
-		return
 	}
 }
 
 // Initialize will return RequestCoalescing instance
 func Initialize() *RequestCoalescing {
-	var requestGroup singleflight.Group
 	return &RequestCoalescing{
-		requestGroup: requestGroup,
+		stampede.NewCache(512, 1*time.Second, 2*time.Second),
 	}
 }
 
@@ -56,12 +43,12 @@ func ServeResponse(
 	path := req.Host + req.URL.Path
 	regexpURL := retriever.GetRegexpUrls().FindString(path)
 	url := configurationtypes.URL{
-		TTL:     retriever.GetConfiguration().GetDefaultCache().GetTTL(),
+		TTL:     configurationtypes.Duration{Duration: retriever.GetConfiguration().GetDefaultCache().GetTTL()},
 		Headers: retriever.GetConfiguration().GetDefaultCache().GetHeaders(),
 	}
 	if "" != regexpURL {
 		u := retriever.GetConfiguration().GetUrls()[regexpURL]
-		if u.TTL != 0 {
+		if u.TTL.Duration != 0 {
 			url.TTL = u.TTL
 		}
 		if len(u.Headers) != 0 {

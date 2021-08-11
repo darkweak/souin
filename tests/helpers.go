@@ -12,7 +12,7 @@ func GetMatchedURL(key string) configurationtypes.URL {
 	regexpUrls := MockInitializeRegexp(config)
 	regexpURL := regexpUrls.FindString(key)
 	matchedURL := configurationtypes.URL{
-		TTL:     config.GetDefaultCache().GetTTL(),
+		TTL:     configurationtypes.Duration{Duration: config.GetDefaultCache().GetTTL()},
 		Headers: config.GetDefaultCache().GetHeaders(),
 	}
 	if "" != regexpURL {

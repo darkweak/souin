@@ -12,6 +12,10 @@ build-and-run-caddy-json:  ## Run caddy binary with the json configuration
 	$(MAKE) build-caddy
 	cd plugins/caddy && ./caddy run --config ./configuration.json
 
+build-and-run-tyk:  ## Run caddy binary with the json configuration
+	cd plugins/tyk && $(MAKE) prepare && \
+	docker-compose up --remove-orphans --build --force-recreate
+
 build-app: env-prod ## Build containers with prod env vars
 	$(DC_BUILD) souin
 	$(MAKE) up
