@@ -1,10 +1,13 @@
 package main
 
 import (
-	"fmt"
 	"github.com/darkweak/souin/cache/coalescing"
 	"github.com/darkweak/souin/cache/types"
+	"github.com/darkweak/souin/plugins"
+	"github.com/darkweak/souin/rfc"
+	"io"
 	"net/http"
+	"net/http/httptest"
 	"time"
 )
 
@@ -16,25 +19,23 @@ func SouinRequestHandler(rw http.ResponseWriter, r *http.Request) {
 	if def != nil {
 		currentAPI = def.APIID
 	}
+	currentInstance := s.configurations[currentAPI]
 	r.Header.Set("Date", time.Now().UTC().Format(time.RFC1123))
-	//plugins.DefaultSouinPluginCallback(rw, r, s.Retriever, s.RequestCoalescing, func(_ http.ResponseWriter, _ *http.Request) error {
-	//	recorder := httptest.NewRecorder()
-	//	var e error
-	//
-	//	response := recorder.Result()
-	//	r.Response = response
-	//	response, e = s.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(r)
-	//	if e != nil {
-	//		return e
-	//	}
-	//
-	//	_, e = io.Copy(rw, response.Body)
-	//
-	//	return e
-	//})
-	fmt.Println("Start souin handler")
+	plugins.DefaultSouinPluginCallback(rw, r, currentInstance.Retriever, currentInstance.RequestCoalescing, func(_ http.ResponseWriter, _ *http.Request) error {
+		recorder := httptest.NewRecorder()
+		var e error
 
-	rw.Write([]byte(fmt.Sprintf("%+v\n", s.configurations[currentAPI])))
+		response := recorder.Result()
+		r.Response = response
+		response, e = currentInstance.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(r)
+		if e != nil {
+			return e
+		}
+
+		_, e = io.Copy(rw, response.Body)
+
+		return e
+	})
 }
 
 func init() {

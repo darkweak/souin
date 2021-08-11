@@ -184,27 +184,27 @@ func TestYKeyStorage_InvalidateTagURLs(t *testing.T) {
 func TestYKeyStorage_GetValidatedTags(t *testing.T) {
 	baseYkeys := mockYkeys()
 	r := InitializeYKeys(baseYkeys)
-	baseUrl := "http://the.url.com"
-	invalidUrl := "http://domain.com/test/the/second"
-	validUrl := invalidUrl + "/anything"
-	if len(r.GetValidatedTags(baseUrl, nil)) != 2 {
-		errors.GenerateError(t, fmt.Sprintf("The url %s without headers should be candidate for %v tags, %v given", baseUrl, []string{ThirdKey, FourthKey}, r.GetValidatedTags(baseUrl, nil)))
+	baseURL := "http://the.url.com"
+	invalidURL := "http://domain.com/test/the/second"
+	validURL := invalidURL + "/anything"
+	if len(r.GetValidatedTags(baseURL, nil)) != 2 {
+		errors.GenerateError(t, fmt.Sprintf("The url %s without headers should be candidate for %v tags, %v given", baseURL, []string{ThirdKey, FourthKey}, r.GetValidatedTags(baseURL, nil)))
 	}
-	if len(r.GetValidatedTags(invalidUrl, nil)) != 2 {
-		errors.GenerateError(t, fmt.Sprintf("The url %s without headers should be candidate for %v tags, %v given", baseUrl, []string{ThirdKey, FourthKey}, r.GetValidatedTags(baseUrl, nil)))
+	if len(r.GetValidatedTags(invalidURL, nil)) != 2 {
+		errors.GenerateError(t, fmt.Sprintf("The url %s without headers should be candidate for %v tags, %v given", baseURL, []string{ThirdKey, FourthKey}, r.GetValidatedTags(baseURL, nil)))
 	}
-	if len(r.GetValidatedTags(validUrl, nil)) != 3 {
-		errors.GenerateError(t, fmt.Sprintf("The url %s without headers should be candidate for %v tags, %v given", baseUrl, []string{SecondKey, ThirdKey, FourthKey}, r.GetValidatedTags(baseUrl, nil)))
+	if len(r.GetValidatedTags(validURL, nil)) != 3 {
+		errors.GenerateError(t, fmt.Sprintf("The url %s without headers should be candidate for %v tags, %v given", baseURL, []string{SecondKey, ThirdKey, FourthKey}, r.GetValidatedTags(baseURL, nil)))
 	}
 
 	var headers http.Header
 	headers = http.Header{}
 	headers.Set("Authorization", "anything")
 	headers.Set("Content-Type", "any value here")
-	if len(r.GetValidatedTags(baseUrl, headers)) != 3 {
-		errors.GenerateError(t, fmt.Sprintf("The url %s with headers %v should be candidate for %v tags, %v given", baseUrl, headers, []string{FirstKey, ThirdKey, FourthKey}, r.GetValidatedTags(baseUrl, nil)))
+	if len(r.GetValidatedTags(baseURL, headers)) != 3 {
+		errors.GenerateError(t, fmt.Sprintf("The url %s with headers %v should be candidate for %v tags, %v given", baseURL, headers, []string{FirstKey, ThirdKey, FourthKey}, r.GetValidatedTags(baseURL, nil)))
 	}
-	if len(r.GetValidatedTags(validUrl, headers)) != 4 {
-		errors.GenerateError(t, fmt.Sprintf("The url %s with headers %v should be candidate for %v tags, %v given", baseUrl, headers, []string{FirstKey, SecondKey, ThirdKey, FourthKey}, r.GetValidatedTags(baseUrl, nil)))
+	if len(r.GetValidatedTags(validURL, headers)) != 4 {
+		errors.GenerateError(t, fmt.Sprintf("The url %s with headers %v should be candidate for %v tags, %v given", validURL, headers, []string{FirstKey, SecondKey, ThirdKey, FourthKey}, r.GetValidatedTags(validURL, nil)))
 	}
 }

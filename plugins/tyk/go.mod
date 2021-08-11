@@ -16,11 +16,11 @@ require (
 	github.com/pmylund/go-cache v2.1.0+incompatible // indirect
 	github.com/x-cray/logrus-prefixed-formatter v0.5.2 // indirect
 	github.com/xeipuuv/gojsonschema v1.2.0 // indirect
-	go.uber.org/zap v1.16.0
+	go.uber.org/zap v1.19.0
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22 // indirect
 )
 
 replace (
-	github.com/darkweak/souin v1.5.2 => ../..
+	github.com/darkweak/souin => ../..
 	github.com/hashicorp/terraform v1.0.1 => github.com/hashicorp/terraform v0.14.11
 )

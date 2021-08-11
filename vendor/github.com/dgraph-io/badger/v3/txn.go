@@ -160,12 +160,12 @@ func (o *oracle) hasConflict(txn *Txn) bool {
 	return false
 }
 
-func (o *oracle) newCommitTs(txn *Txn) uint64 {
+func (o *oracle) newCommitTs(txn *Txn) (uint64, bool) {
 	o.Lock()
 	defer o.Unlock()
 
 	if o.hasConflict(txn) {
-		return 0
+		return 0, true
 	}
 
 	var ts uint64
@@ -194,7 +194,7 @@ func (o *oracle) newCommitTs(txn *Txn) uint64 {
 		})
 	}
 
-	return ts
+	return ts, false
 }
 
 func (o *oracle) doneRead(txn *Txn) {
@@ -345,7 +345,7 @@ func (txn *Txn) newPendingWritesIterator(reversed bool) *pendingWritesIterator {
 func (txn *Txn) checkSize(e *Entry) error {
 	count := txn.count + 1
 	// Extra bytes for the version in key.
-	size := txn.size + int64(e.estimateSize(txn.db.opt.ValueThreshold)) + 10
+	size := txn.size + e.estimateSizeAndSetThreshold(txn.db.valueThreshold()) + 10
 	if count >= txn.db.opt.maxBatchCount || size >= txn.db.opt.maxBatchSize {
 		return ErrTxnTooBig
 	}
@@ -377,8 +377,12 @@ func (txn *Txn) modify(e *Entry) error {
 		return exceedsSize("Key", maxKeySize, e.Key)
 	case int64(len(e.Value)) > txn.db.opt.ValueLogFileSize:
 		return exceedsSize("Value", txn.db.opt.ValueLogFileSize, e.Value)
-	case txn.db.opt.InMemory && len(e.Value) > txn.db.opt.ValueThreshold:
-		return exceedsSize("Value", int64(txn.db.opt.ValueThreshold), e.Value)
+	case txn.db.opt.InMemory && int64(len(e.Value)) > txn.db.valueThreshold():
+		return exceedsSize("Value", txn.db.valueThreshold(), e.Value)
+	}
+
+	if err := txn.db.isBanned(e.Key); err != nil {
+		return err
 	}
 
 	if err := txn.checkSize(e); err != nil {
@@ -442,6 +446,10 @@ func (txn *Txn) Get(key []byte) (item *Item, rerr error) {
 		return nil, ErrEmptyKey
 	} else if txn.discarded {
 		return nil, ErrDiscardedTxn
+	}
+
+	if err := txn.db.isBanned(key); err != nil {
+		return nil, err
 	}
 
 	item = new(Item)
@@ -529,10 +537,8 @@ func (txn *Txn) commitAndSend() (func() error, error) {
 	orc.writeChLock.Lock()
 	defer orc.writeChLock.Unlock()
 
-	commitTs := orc.newCommitTs(txn)
-	// The commitTs can be zero if the transaction is running in managed mode.
-	// Individual entries might have their own timestamps.
-	if commitTs == 0 && !txn.db.opt.managedTxns {
+	commitTs, conflict := orc.newCommitTs(txn)
+	if conflict {
 		return nil, ErrConflict
 	}
 

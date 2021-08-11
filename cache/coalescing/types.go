@@ -1,19 +1,13 @@
 package coalescing
 
 import (
-	"golang.org/x/sync/singleflight"
+	"github.com/go-chi/stampede"
 	"net/http"
 )
 
-// RequestCoalescingChannelItem is the item sent to the channel
-type RequestCoalescingChannelItem struct {
-	Rq *http.Request
-	Rw http.ResponseWriter
-}
-
-// RequestCoalescing handle channels map
+// RequestCoalescing handle the coalescing system
 type RequestCoalescing struct {
-	requestGroup *singleflight.Group
+	*stampede.Cache
 }
 
 // RequestCoalescingInterface is the interface

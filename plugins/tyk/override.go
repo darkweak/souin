@@ -6,6 +6,8 @@ import (
 	"github.com/TykTechnologies/tyk/apidef"
 	"github.com/darkweak/souin/cache/coalescing"
 	"github.com/darkweak/souin/plugins"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	"io/ioutil"
 	"path/filepath"
 	"reflect"
@@ -22,6 +24,28 @@ func parseSouinDefinition(b []byte) *souinAPIDefinition {
 	if err := json.Unmarshal(b, &def); err != nil {
 		fmt.Println("[RPC] --> Couldn't unmarshal api configuration: ", err)
 	}
+	fmt.Println(def.Souin.DefaultCache)
+	fmt.Println(def.Souin.DefaultCache.TTL)
+	cfg := zap.Config{
+		Encoding:         "json",
+		Level:            zap.NewAtomicLevelAt(zapcore.DebugLevel),
+		OutputPaths:      []string{"stderr"},
+		ErrorOutputPaths: []string{"stderr"},
+		EncoderConfig: zapcore.EncoderConfig{
+			MessageKey: "message",
+
+			LevelKey:    "level",
+			EncodeLevel: zapcore.CapitalLevelEncoder,
+
+			TimeKey:    "time",
+			EncodeTime: zapcore.ISO8601TimeEncoder,
+
+			CallerKey:    "caller",
+			EncodeCaller: zapcore.ShortCallerEncoder,
+		},
+	}
+	logger, _ := cfg.Build()
+	def.Souin.logger = logger
 	return &def
 }
 
@@ -56,18 +80,16 @@ func fromDir(dir string) map[string]souinInstance {
 	c := make(map[string]souinInstance)
 	paths, _ := filepath.Glob(filepath.Join(dir, "*.json"))
 	for _, path := range paths {
-		fmt.Println("Loading API Specification from ", path)
 		f, err := ioutil.ReadFile(path)
 		if err != nil {
-			fmt.Println("Couldn't open api configuration file: ", err)
 			continue
 		}
 		def := parseSouinDefinition(f)
 		config := &def.Souin
 
 		c[def.APIID] = souinInstance{
-			Retriever:         plugins.DefaultSouinPluginInitializerFromConfiguration(config),
 			RequestCoalescing: coalescing.Initialize(),
+			Retriever:         plugins.DefaultSouinPluginInitializerFromConfiguration(config),
 			Configuration:     config,
 		}
 	}

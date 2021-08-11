@@ -1,9 +1,33 @@
 package main
 
 import (
+	"encoding/json"
 	"github.com/darkweak/souin/configurationtypes"
 	"go.uber.org/zap"
+	"time"
 )
+
+type Duration struct {
+	time.Duration
+}
+
+func (d Duration) MarshalJSON() ([]byte, error) {
+	return json.Marshal(d.String())
+}
+
+func (d *Duration) UnmarshalJSON(b []byte) error {
+	if b[0] == '"' {
+		sd := string(b[1 : len(b)-1])
+		d.Duration, _ = time.ParseDuration(sd)
+		return nil
+	}
+
+	var id int64
+	id, _ = json.Number(string(b)).Int64()
+	d.Duration = time.Duration(id)
+
+	return nil
+}
 
 // DefaultCache the struct
 type DefaultCache struct {
@@ -11,7 +35,7 @@ type DefaultCache struct {
 	Headers     []string                         `json:"api,omitempty"`
 	Olric       configurationtypes.CacheProvider `json:"olric,omitempty"`
 	Regex       configurationtypes.Regex         `json:"regex,omitempty"`
-	TTL         string                           `json:"ttl,omitempty"`
+	TTL         Duration                         `json:"ttl,omitempty"`
 }
 
 // GetDistributed returns if it uses Olric or not as provider
@@ -35,8 +59,8 @@ func (d *DefaultCache) GetRegex() configurationtypes.Regex {
 }
 
 // GetTTL returns the default TTL
-func (d *DefaultCache) GetTTL() string {
-	return d.TTL
+func (d *DefaultCache) GetTTL() time.Duration {
+	return d.TTL.Duration
 }
 
 //Configuration holder

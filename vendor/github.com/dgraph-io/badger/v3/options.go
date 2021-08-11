@@ -17,8 +17,15 @@
 package badger
 
 import (
+	"fmt"
 	"os"
+	"reflect"
+	"strconv"
+	"strings"
 	"time"
+
+	"github.com/dgraph-io/ristretto/z"
+	"github.com/pkg/errors"
 
 	"github.com/dgraph-io/badger/v3/options"
 	"github.com/dgraph-io/badger/v3/table"
@@ -48,6 +55,9 @@ type Options struct {
 	Logger            Logger
 	Compression       options.CompressionType
 	InMemory          bool
+	MetricsEnabled    bool
+	// Sets the Stream.numGo field
+	NumGoroutines int
 
 	// Fine tuning options.
 
@@ -58,7 +68,8 @@ type Options struct {
 	TableSizeMultiplier int
 	MaxLevels           int
 
-	ValueThreshold int
+	VLogPercentile float64
+	ValueThreshold int64
 	NumMemtables   int
 	// Changing BlockSize across DB runs will not break badger. The block size is
 	// read from the block index stored at the end of the table.
@@ -75,6 +86,7 @@ type Options struct {
 
 	NumCompactors        int
 	CompactL0OnClose     bool
+	LmaxCompaction       bool
 	ZSTDCompressionLevel int
 
 	// When set, checksum will be validated for each entry read from the value log file.
@@ -84,7 +96,7 @@ type Options struct {
 	EncryptionKey                 []byte        // encryption key
 	EncryptionKeyRotationDuration time.Duration // key rotation duration
 
-	// BypassLockGaurd will bypass the lock guard on badger. Bypassing lock
+	// BypassLockGuard will bypass the lock guard on badger. Bypassing lock
 	// guard can cause data corruption if multiple badger instances are using
 	// the same directory. Use this options with caution.
 	BypassLockGuard bool
@@ -97,6 +109,9 @@ type Options struct {
 	// conflict detection is disabled.
 	DetectConflicts bool
 
+	// NamespaceOffset specifies the offset from where the next 8 bytes contains the namespace.
+	NamespaceOffset int
+
 	// Transaction start and commit timestamps are managed by end-user.
 	// This is only useful for databases built on top of Badger (like Dgraph).
 	// Not recommended for most users.
@@ -106,6 +121,8 @@ type Options struct {
 	// ------------------------------
 	maxBatchCount int64 // max entries in batch
 	maxBatchSize  int64 // max batch size in bytes
+
+	maxValueThreshold float64
 }
 
 // DefaultOptions sets a list of recommended options for good performance.
@@ -121,6 +138,8 @@ func DefaultOptions(path string) Options {
 		TableSizeMultiplier: 2,
 		LevelSizeMultiplier: 10,
 		MaxLevels:           7,
+		NumGoroutines:       8,
+		MetricsEnabled:      true,
 
 		NumCompactors:           4, // Run at least 2 compactors. Zero-th compactor prioritizes L0.
 		NumLevelZeroTables:      5,
@@ -140,6 +159,7 @@ func DefaultOptions(path string) Options {
 		// compression is ratio supposed to increase with increasing compression level but since the
 		// input for compression algorithm is small (4 KB), we don't get significant benefit at
 		// level 3.
+		// NOTE: The benchmarks are with DataDog ZSTD that requires CGO. Hence, no longer valid.
 		// no_compression-16              10	 502848865 ns/op	 165.46 MB/s	-
 		// zstd_compression/level_1-16     7	 739037966 ns/op	 112.58 MB/s	2.93
 		// zstd_compression/level_3-16     7	 756950250 ns/op	 109.91 MB/s	2.72
@@ -153,12 +173,16 @@ func DefaultOptions(path string) Options {
 		// -1 so 2*ValueLogFileSize won't overflow on 32-bit systems.
 		ValueLogFileSize: 1<<30 - 1,
 
-		ValueLogMaxEntries:            1000000,
-		ValueThreshold:                1 << 10, // 1 KB.
+		ValueLogMaxEntries: 1000000,
+
+		VLogPercentile: 0.0,
+		ValueThreshold: maxValueThreshold,
+
 		Logger:                        defaultLogger(INFO),
 		EncryptionKey:                 []byte{},
 		EncryptionKeyRotationDuration: 10 * 24 * time.Hour, // Default 10 days.
 		DetectConflicts:               true,
+		NamespaceOffset:               -1,
 	}
 }
 
@@ -168,6 +192,7 @@ func buildTableOptions(db *DB) table.Options {
 	y.Check(err)
 	return table.Options{
 		ReadOnly:             opt.ReadOnly,
+		MetricsEnabled:       db.opt.MetricsEnabled,
 		TableSize:            uint64(opt.BaseTableSize),
 		BlockSize:            opt.BlockSize,
 		BloomFalsePositive:   opt.BloomFalsePositive,
@@ -201,6 +226,134 @@ func LSMOnlyOptions(path string) Options {
 	// of performance reasons, 1KB would be a good option too, allowing
 	// values smaller than 1KB to be collocated with the keys in the LSM tree.
 	return DefaultOptions(path).WithValueThreshold(maxValueThreshold /* 1 MB */)
+}
+
+// parseCompression returns badger.compressionType and compression level given compression string
+// of format compression-type:compression-level
+func parseCompression(cStr string) (options.CompressionType, int, error) {
+	cStrSplit := strings.Split(cStr, ":")
+	cType := cStrSplit[0]
+	level := 3
+
+	var err error
+	if len(cStrSplit) == 2 {
+		level, err = strconv.Atoi(cStrSplit[1])
+		y.Check(err)
+		if level <= 0 {
+			return 0, 0,
+				errors.Errorf("ERROR: compression level(%v) must be greater than zero", level)
+		}
+	} else if len(cStrSplit) > 2 {
+		return 0, 0, errors.Errorf("ERROR: Invalid badger.compression argument")
+	}
+	switch cType {
+	case "zstd":
+		return options.ZSTD, level, nil
+	case "snappy":
+		return options.Snappy, 0, nil
+	case "none":
+		return options.None, 0, nil
+	}
+	return 0, 0, errors.Errorf("ERROR: compression type (%s) invalid", cType)
+}
+
+// generateSuperFlag generates an identical SuperFlag string from the provided Options.
+func generateSuperFlag(options Options) string {
+	superflag := ""
+	v := reflect.ValueOf(&options).Elem()
+	optionsStruct := v.Type()
+	for i := 0; i < v.NumField(); i++ {
+		if field := v.Field(i); field.CanInterface() {
+			name := strings.ToLower(optionsStruct.Field(i).Name)
+			kind := v.Field(i).Kind()
+			switch kind {
+			case reflect.Bool:
+				superflag += name + "="
+				superflag += fmt.Sprintf("%v; ", field.Bool())
+			case reflect.Int, reflect.Int64:
+				superflag += name + "="
+				superflag += fmt.Sprintf("%v; ", field.Int())
+			case reflect.Uint32, reflect.Uint64:
+				superflag += name + "="
+				superflag += fmt.Sprintf("%v; ", field.Uint())
+			case reflect.Float64:
+				superflag += name + "="
+				superflag += fmt.Sprintf("%v; ", field.Float())
+			case reflect.String:
+				superflag += name + "="
+				superflag += fmt.Sprintf("%v; ", field.String())
+			default:
+				continue
+			}
+		}
+	}
+	return superflag
+}
+
+// FromSuperFlag fills Options fields for each flag within the superflag. For
+// example, replacing the default Options.NumGoroutines:
+//
+//	options := FromSuperFlag("numgoroutines=4", DefaultOptions(""))
+//
+// It's important to note that if you pass an empty Options struct, FromSuperFlag
+// will not fill it with default values. FromSuperFlag only writes to the fields
+// present within the superflag string (case insensitive).
+//
+// It specially handles compression subflag.
+// Valid options are {none,snappy,zstd:<level>}
+// Example: compression=zstd:3;
+// Unsupported: Options.Logger, Options.EncryptionKey
+func (opt Options) FromSuperFlag(superflag string) Options {
+	// currentOptions act as a default value for the options superflag.
+	currentOptions := generateSuperFlag(opt)
+	currentOptions += "compression=;"
+
+	flags := z.NewSuperFlag(superflag).MergeAndCheckDefault(currentOptions)
+	v := reflect.ValueOf(&opt).Elem()
+	optionsStruct := v.Type()
+	for i := 0; i < v.NumField(); i++ {
+		// only iterate over exported fields
+		if field := v.Field(i); field.CanInterface() {
+			// z.SuperFlag stores keys as lowercase, keep everything case
+			// insensitive
+			name := strings.ToLower(optionsStruct.Field(i).Name)
+			if name == "compression" {
+				// We will specially handle this later. Skip it here.
+				continue
+			}
+			kind := v.Field(i).Kind()
+			switch kind {
+			case reflect.Bool:
+				field.SetBool(flags.GetBool(name))
+			case reflect.Int, reflect.Int64:
+				field.SetInt(flags.GetInt64(name))
+			case reflect.Uint32, reflect.Uint64:
+				field.SetUint(uint64(flags.GetUint64(name)))
+			case reflect.Float64:
+				field.SetFloat(flags.GetFloat64(name))
+			case reflect.String:
+				field.SetString(flags.GetString(name))
+			}
+		}
+	}
+
+	// Only update the options for special flags that were present in the input superflag.
+	inputFlag := z.NewSuperFlag(superflag)
+	if inputFlag.Has("compression") {
+		ctype, clevel, err := parseCompression(flags.GetString("compression"))
+		switch err {
+		case nil:
+			opt.Compression = ctype
+			opt.ZSTDCompressionLevel = clevel
+		default:
+			ctype = options.CompressionType(flags.GetUint32("compression"))
+			y.AssertTruef(ctype <= 2, "ERROR: Invalid format or compression type. Got: %s",
+				flags.GetString("compression"))
+			opt.Compression = ctype
+		}
+	}
+
+	return opt
 }
 
 // WithDir returns a new Options value with Dir set to the given value.
@@ -247,6 +400,14 @@ func (opt Options) WithNumVersionsToKeep(val int) Options {
 	return opt
 }
 
+// WithNumGoroutines sets the number of goroutines to be used in Stream.
+//
+// The default value of NumGoroutines is 8.
+func (opt Options) WithNumGoroutines(val int) Options {
+	opt.NumGoroutines = val
+	return opt
+}
+
 // WithReadOnly returns a new Options value with ReadOnly set to the given value.
 //
 // When ReadOnly is true the DB will be opened on read-only mode.
@@ -257,6 +418,21 @@ func (opt Options) WithNumVersionsToKeep(val int) Options {
 // The default value of ReadOnly is false.
 func (opt Options) WithReadOnly(val bool) Options {
 	opt.ReadOnly = val
+	return opt
+}
+
+// WithMetricsEnabled returns a new Options value with MetricsEnabled set to the given value.
+//
+// When MetricsEnabled is set to false, then the DB will be opened and no badger metrics
+// will be logged. Metrics are defined in metric.go file.
+//
+// This flag is useful for use cases like in Dgraph where we open temporary badger instances to
+// index data. In those cases we don't want badger metrics to be polluted with the noise from
+// those temporary instances.
+//
+// Default value is set to true
+func (opt Options) WithMetricsEnabled(val bool) Options {
+	opt.MetricsEnabled = val
 	return opt
 }
 
@@ -319,9 +495,26 @@ func (opt Options) WithMaxLevels(val int) Options {
 // ValueThreshold sets the threshold used to decide whether a value is stored directly in the LSM
 // tree or separately in the log value files.
 //
-// The default value of ValueThreshold is 1 KB, but LSMOnlyOptions sets it to maxValueThreshold.
-func (opt Options) WithValueThreshold(val int) Options {
+// The default value of ValueThreshold is 1 MB, but LSMOnlyOptions sets it to maxValueThreshold.
+func (opt Options) WithValueThreshold(val int64) Options {
 	opt.ValueThreshold = val
+	return opt
+}
+
+// WithVLogPercentile returns a new Options value with ValLogPercentile set to given value.
+//
+// VLogPercentile with 0.0 means no dynamic thresholding is enabled.
+// MinThreshold value will always act as the value threshold.
+//
+// VLogPercentile with value 0.99 means 99 percentile of value will be put in LSM tree
+// and only 1 percent in vlog. The value threshold will be dynamically updated within the range of
+// [ValueThreshold, Options.maxValueThreshold]
+//
+// Say VLogPercentile with 1.0 means threshold will eventually set to Options.maxValueThreshold
+//
+// The default value of VLogPercentile is 0.0.
+func (opt Options) WithVLogPercentile(t float64) Options {
+	opt.VLogPercentile = t
 	return opt
 }
 
@@ -520,6 +713,7 @@ func (opt Options) WithInMemory(b bool) Options {
 // algorithm is small (4 KB), we don't get significant benefit at level 3. It is advised to write
 // your own benchmarks before choosing a compression algorithm or level.
 //
+// NOTE: The benchmarks are with DataDog ZSTD that requires CGO. Hence, no longer valid.
 // no_compression-16              10	 502848865 ns/op	 165.46 MB/s	-
 // zstd_compression/level_1-16     7	 739037966 ns/op	 112.58 MB/s	2.93
 // zstd_compression/level_3-16     7	 756950250 ns/op	 109.91 MB/s	2.72
@@ -572,6 +766,16 @@ func (opt Options) WithIndexCacheSize(size int64) Options {
 // The default value of Detect conflicts is True.
 func (opt Options) WithDetectConflicts(b bool) Options {
 	opt.DetectConflicts = b
+	return opt
+}
+
+// WithNamespaceOffset returns a new Options value with NamespaceOffset set to the given value. DB
+// will expect the namespace in each key at the 8 bytes starting from NamespaceOffset. A negative
+// value means that namespace is not stored in the key.
+//
+// The default value for NamespaceOffset is -1.
+func (opt Options) WithNamespaceOffset(offset int) Options {
+	opt.NamespaceOffset = offset
 	return opt
 }
 

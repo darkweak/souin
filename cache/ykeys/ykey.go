@@ -54,6 +54,7 @@ func InitializeYKeys(keys map[string]configurationtypes.YKey) *YKeyStorage {
 	return &YKeyStorage{Cache: storage, Keys: keys}
 }
 
+// GetValidatedTags returns the validated tags based on the key x headers
 func (y *YKeyStorage) GetValidatedTags(key string, headers http.Header) []string {
 	var tags []string
 	for k, v := range y.Keys {
@@ -80,7 +81,7 @@ func (y *YKeyStorage) GetValidatedTags(key string, headers http.Header) []string
 	return tags
 }
 
-// InvalidateTags
+// InvalidateTags invalidate a tag list
 func (y *YKeyStorage) InvalidateTags(tags []string) []string {
 	var u []string
 	for _, tag := range tags {
@@ -92,6 +93,7 @@ func (y *YKeyStorage) InvalidateTags(tags []string) []string {
 	return u
 }
 
+// InvalidateTagURLs invalidate URLs in the stored map
 func (y *YKeyStorage) InvalidateTagURLs(urls string) []string {
 	u := strings.Split(urls, ",")
 	for _, url := range u {
@@ -102,7 +104,7 @@ func (y *YKeyStorage) InvalidateTagURLs(urls string) []string {
 
 func (y *YKeyStorage) invalidateURL(url string) {
 	urlRegexp := regexp.MustCompile(fmt.Sprintf("(%s,)|(,%s$)|(^%s$)", url, url, url))
-	for key, _ := range y.Keys {
+	for key := range y.Keys {
 		v, _ := y.Cache.Get(key)
 		if urlRegexp.MatchString(v.(string)) {
 			y.Set(key, urlRegexp.ReplaceAllString(v.(string), ""), 1)
@@ -110,6 +112,7 @@ func (y *YKeyStorage) invalidateURL(url string) {
 	}
 }
 
+// AddToTags add an URL to a tag list
 func (y *YKeyStorage) AddToTags(url string, tags []string) {
 	for _, tag := range tags {
 		y.addToTag(url, tag)
