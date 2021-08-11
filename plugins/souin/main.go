@@ -7,6 +7,7 @@ import (
 	"github.com/darkweak/souin/cache/coalescing"
 	"github.com/darkweak/souin/cache/service"
 	"github.com/darkweak/souin/configuration"
+	"github.com/darkweak/souin/errors"
 	"github.com/darkweak/souin/plugins"
 	souintypes "github.com/darkweak/souin/plugins/souin/types"
 	"github.com/darkweak/souin/providers"
@@ -74,7 +75,7 @@ func main() {
 	}
 	for _, endpoint := range api.Initialize(retriever.Provider, c, retriever.GetTransport().GetYkeyStorage()) {
 		if endpoint.IsEnabled() {
-			c.GetLogger().Info(fmt.Sprintf("Enabling %s%s endpoint", basePathAPIS, endpoint.GetBasePath()))
+			c.GetLogger().Info(fmt.Sprintf("Enabling %s%s endpoint.", basePathAPIS, endpoint.GetBasePath()))
 			http.HandleFunc(fmt.Sprintf("%s%s", basePathAPIS, endpoint.GetBasePath()), endpoint.HandleRequest)
 			http.HandleFunc(fmt.Sprintf("%s%s/", basePathAPIS, endpoint.GetBasePath()), endpoint.HandleRequest)
 		}
@@ -84,7 +85,13 @@ func main() {
 		request.Header.Set("Date", time.Now().UTC().Format(time.RFC1123))
 		coalescing.ServeResponse(writer, request, retriever, plugins.DefaultSouinPluginCallback, rc, func(w http.ResponseWriter, r *http.Request) error {
 			rr := service.RequestReverseProxy(r, *retriever)
-			rr.Proxy.ServeHTTP(w, r)
+			select {
+			case <-r.Context().Done():
+				c.GetLogger().Debug("The request was canceled by the user.")
+				return &errors.CanceledRequestContextError{}
+			default:
+				rr.Proxy.ServeHTTP(w, r)
+			}
 			return nil
 		})
 	})

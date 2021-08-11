@@ -1,9 +1,41 @@
 package configurationtypes
 
 import (
+	"encoding/json"
 	"go.uber.org/zap"
+	"gopkg.in/yaml.v3"
 	"time"
 )
+
+// Duration is the super object to wrap the duration and be able to parse it from the configuration
+type Duration struct {
+	time.Duration
+}
+
+// MarshalYAML transform the Duration into a time.duration object
+func (d Duration) MarshalYAML() (interface{}, error) {
+	return yaml.Marshal(d.String())
+}
+
+// UnmarshalYAML parse the time.duration into a Duration object
+func (d *Duration) UnmarshalYAML(b *yaml.Node) error {
+	var e error
+	d.Duration, e = time.ParseDuration(b.Value)
+
+	return e
+}
+
+// MarshalJSON transform the Duration into a time.duration object
+func (d Duration) MarshalJSON() ([]byte, error) {
+	return json.Marshal(d.String())
+}
+
+// UnmarshalJSON parse the time.duration into a Duration object
+func (d *Duration) UnmarshalJSON(b []byte) error {
+	sd := string(b[1 : len(b)-1])
+	d.Duration, _ = time.ParseDuration(sd)
+	return nil
+}
 
 // Port config
 type Port struct {
@@ -24,8 +56,8 @@ type Regex struct {
 
 //URL configuration
 type URL struct {
-	TTL     time.Duration `yaml:"ttl"`
-	Headers []string      `yaml:"headers"`
+	TTL     Duration `yaml:"ttl"`
+	Headers []string `yaml:"headers"`
 }
 
 //CacheProvider config
@@ -42,7 +74,7 @@ type DefaultCache struct {
 	Olric       CacheProvider `yaml:"olric"`
 	Port        Port          `yaml:"port"`
 	Regex       Regex         `yaml:"regex"`
-	TTL         time.Duration `yaml:"ttl"`
+	TTL         Duration      `yaml:"ttl"`
 }
 
 // GetDistributed returns if it uses Olric or not as provider
@@ -67,7 +99,7 @@ func (d *DefaultCache) GetRegex() Regex {
 
 // GetTTL returns the default TTL
 func (d *DefaultCache) GetTTL() time.Duration {
-	return d.TTL
+	return d.TTL.Duration
 }
 
 // DefaultCacheInterface interface
@@ -102,11 +134,12 @@ type SecurityAPI struct {
 
 // API structure contains all additional endpoints
 type API struct {
-	BasePath string      `yaml:basepath`
+	BasePath string      `yaml:"basepath"`
 	Souin    APIEndpoint `yaml:"souin"`
 	Security SecurityAPI `yaml:"security"`
 }
 
+// YKey structure define the way ykeys are stored
 type YKey struct {
 	URL     string            `yaml:"url"`
 	Headers map[string]string `yaml:"headers"`
