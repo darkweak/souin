@@ -1,6 +1,6 @@
 .PHONY: prepare
 
-SOUIN=vendor/github.com/darkweak/plugins/traefik
+SOUIN=vendor/github.com/darkweak/souin
 CACHE=$(SOUIN)/cache
 
 prepare: ## Prepare tyk plugin

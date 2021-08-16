@@ -9,26 +9,26 @@ import (
 	"time"
 )
 
-// Badger provider type
-type Badger struct {
+// Cache provider type
+type Cache struct {
 	*cache.Cache
 }
 
-// BadgerConnectionFactory function create new Badger instance
-func BadgerConnectionFactory(_ t.AbstractConfigurationInterface) (*Badger, error) {
+// CacheConnectionFactory function create new Cache instance
+func CacheConnectionFactory(_ t.AbstractConfigurationInterface) (*Cache, error) {
 	c := cache.New(1*time.Second, 2*time.Second)
-	return &Badger{c}, nil
+	return &Cache{c}, nil
 }
 
 // ListKeys method returns the list of existing keys
-func (provider *Badger) ListKeys() []string {
+func (provider *Cache) ListKeys() []string {
 	keys := []string{}
 
 	return keys
 }
 
 // Get method returns the populated response if exists, empty response then
-func (provider *Badger) Get(key string) []byte {
+func (provider *Cache) Get(key string) []byte {
 	result, found := provider.Cache.Get(key)
 
 	if !found {
@@ -39,7 +39,7 @@ func (provider *Badger) Get(key string) []byte {
 }
 
 // Prefix method returns the populated response if exists, empty response then
-func (provider *Badger) Prefix(key string, req *http.Request) []byte {
+func (provider *Cache) Prefix(key string, req *http.Request) []byte {
 	var result []byte
 
 	for k, v := range provider.Items() {
@@ -59,8 +59,8 @@ func (provider *Badger) Prefix(key string, req *http.Request) []byte {
 	return result
 }
 
-// Set method will store the response in Badger provider
-func (provider *Badger) Set(key string, value []byte, url t.URL, duration time.Duration) {
+// Set method will store the response in Cache provider
+func (provider *Cache) Set(key string, value []byte, url t.URL, duration time.Duration) {
 	if duration == 0 {
 		duration = url.TTL.Duration
 	}
@@ -68,13 +68,13 @@ func (provider *Badger) Set(key string, value []byte, url t.URL, duration time.D
 	provider.Cache.Set(key, value, duration)
 }
 
-// Delete method will delete the response in Badger provider if exists corresponding to key param
-func (provider *Badger) Delete(key string) {
+// Delete method will delete the response in Cache provider if exists corresponding to key param
+func (provider *Cache) Delete(key string) {
 	provider.Cache.Delete(key)
 }
 
-// DeleteMany method will delete the responses in Badger provider if exists corresponding to the regex key param
-func (provider *Badger) DeleteMany(key string) {
+// DeleteMany method will delete the responses in Cache provider if exists corresponding to the regex key param
+func (provider *Cache) DeleteMany(key string) {
 	re, e := regexp.Compile(key)
 
 	if e != nil {
@@ -89,11 +89,11 @@ func (provider *Badger) DeleteMany(key string) {
 }
 
 // Init method will
-func (provider *Badger) Init() error {
+func (provider *Cache) Init() error {
 	return nil
 }
 
 // Reset method will reset or close provider
-func (provider *Badger) Reset() {
+func (provider *Cache) Reset() {
 	provider.Cache.Flush()
 }

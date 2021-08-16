@@ -1,6 +1,4 @@
 providers:
-  docker:
-    endpoint: unix:///var/run/docker.sock
   file:
     filename: /souin-configuration.yaml
     watch: true

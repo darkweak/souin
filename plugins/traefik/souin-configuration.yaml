@@ -1,4 +1,20 @@
 http:
+  routers:
+    whoami:
+      middlewares:
+        - souin
+      entrypoints:
+        - http
+      service: whoami
+      rule: Host(`domain.com`)
+
+  services:
+    whoami:
+      loadBalancer:
+        servers:
+          - url: http://whoami
+        passHostHeader: false
+
   middlewares:
     souin:
       plugin:

@@ -10,8 +10,8 @@ import (
 const VarySeparator = "{-VARY-}"
 
 // InitializeProvider allow to generate the providers array according to the configuration
-func InitializeProvider(configuration configurationtypes.AbstractConfigurationInterface) *Badger {
-	r, _ := BadgerConnectionFactory(configuration)
+func InitializeProvider(configuration configurationtypes.AbstractConfigurationInterface) *Cache {
+	r, _ := CacheConnectionFactory(configuration)
 	e := r.Init()
 	if e != nil {
 		panic(e)

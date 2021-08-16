@@ -1,6 +1,7 @@
 package configurationtypes
 
 import (
+	"encoding/json"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 	"time"
@@ -22,6 +23,18 @@ func (d Duration) UnmarshalYAML(b *yaml.Node) error {
 	d.Duration, e = time.ParseDuration(b.Value)
 
 	return e
+}
+
+// MarshalJSON transform the Duration into a time.duration object
+func (d Duration) MarshalJSON() ([]byte, error) {
+	return json.Marshal(d.String())
+}
+
+// UnmarshalJSON parse the time.duration into a Duration object
+func (d *Duration) UnmarshalJSON(b []byte) error {
+	sd := string(b[1 : len(b)-1])
+	d.Duration, _ = time.ParseDuration(sd)
+	return nil
 }
 
 // Port config

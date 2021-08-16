@@ -1,4 +1,4 @@
-package souin
+package traefik
 
 import (
 	"bytes"

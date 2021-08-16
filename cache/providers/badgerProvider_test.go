@@ -106,7 +106,9 @@ func TestBadger_SetRequestInCache_TTL(t *testing.T) {
 func TestBadger_SetRequestInCache_NoTTL(t *testing.T) {
 	client, matchedURL := getBadgerClientAndMatchedURL(BYTEKEY)
 	nv := []byte("New value")
-	setValueThenVerify(client, BYTEKEY, nv, matchedURL, 0, t)
+	client.Set(BYTEKEY, nv, matchedURL, 0)
+	time.Sleep(1 * time.Second)
+	verifyNewValueAfterSet(client, BYTEKEY, []byte{}, t)
 }
 
 func TestBadger_DeleteRequestInCache(t *testing.T) {
