@@ -1,0 +1,31 @@
+http:
+  middlewares:
+    souin:
+      plugin:
+        souin-plugin:
+          default_cache:
+            headers:
+              - Authorization
+              - Content-Type
+            regex:
+              exclude: 'ARegexHere'
+            ttl: 10s
+          log_level: debug
+          urls:
+            'domain.com/testing':
+              ttl: 2s
+              headers:
+                - Authorization
+            'mysubdomain.domain.com':
+              ttl: 50s
+              headers:
+                - Authorization
+                - 'Content-Type'
+          ykeys:
+            The_First_Test:
+              headers:
+                Content-Type: '.+'
+            The_Second_Test:
+              url: 'the/second/.+'
+            The_Third_Test:
+            The_Fourth_Test:

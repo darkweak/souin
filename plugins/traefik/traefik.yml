@@ -1,0 +1,24 @@
+providers:
+  docker:
+    endpoint: unix:///var/run/docker.sock
+  file:
+    filename: /souin-configuration.yaml
+    watch: true
+
+api:
+  dashboard: true
+  debug: true
+  insecure: true
+
+pilot:
+  token: 75223eaf-380a-4c16-840d-2b3ee4a2765a
+
+experimental:
+  localPlugins:
+    souin-plugin:
+      moduleName: github.com/darkweak/souin
+
+log:
+  level: DEBUG
+
+accessLog: {}

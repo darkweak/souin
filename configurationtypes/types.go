@@ -18,7 +18,7 @@ func (d Duration) MarshalYAML() (interface{}, error) {
 }
 
 // UnmarshalYAML parse the time.duration into a Duration object
-func (d *Duration) UnmarshalYAML(b *yaml.Node) error {
+func (d Duration) UnmarshalYAML(b *yaml.Node) error {
 	var e error
 	d.Duration, e = time.ParseDuration(b.Value)
 
@@ -39,42 +39,42 @@ func (d *Duration) UnmarshalJSON(b []byte) error {
 
 // Port config
 type Port struct {
-	Web string `yaml:"web"`
-	TLS string `yaml:"tls"`
+	Web string `json:"web" yaml:"web"`
+	TLS string `json:"tls" yaml:"tls"`
 }
 
 //Cache config
 type Cache struct {
-	Headers []string `yaml:"headers"`
-	Port    Port     `yaml:"port"`
+	Headers []string `json:"headers" yaml:"headers"`
+	Port    Port     `json:"port" yaml:"port"`
 }
 
 //Regex config
 type Regex struct {
-	Exclude string `yaml:"exclude"`
+	Exclude string `json:"exclude" yaml:"exclude"`
 }
 
 //URL configuration
 type URL struct {
-	TTL     Duration `yaml:"ttl"`
-	Headers []string `yaml:"headers"`
+	TTL     Duration `json:"ttl" yaml:"ttl"`
+	Headers []string `json:"headers" yaml:"headers"`
 }
 
 //CacheProvider config
 type CacheProvider struct {
-	URL           string      `yaml:"url" json:"url"`
-	Path          string      `yaml:"path" json:"path"`
-	Configuration interface{} `yaml:"configuration" json:"configuration"`
+	URL           string      `json:"url" yaml:"url"`
+	Path          string      `json:"path" yaml:"path"`
+	Configuration interface{} `json:"configuration" yaml:"configuration"`
 }
 
 //DefaultCache configuration
 type DefaultCache struct {
-	Distributed bool          `yaml:"distributed"`
-	Headers     []string      `yaml:"headers"`
-	Olric       CacheProvider `yaml:"olric"`
-	Port        Port          `yaml:"port"`
-	Regex       Regex         `yaml:"regex"`
-	TTL         Duration      `yaml:"ttl"`
+	Distributed bool          `json:"distributed" yaml:"distributed"`
+	Headers     []string      `json:"headers" yaml:"headers"`
+	Olric       CacheProvider `json:"olric" yaml:"olric"`
+	Port        Port          `json:"port" yaml:"port"`
+	Regex       Regex         `json:"regex" yaml:"regex"`
+	TTL         Duration      `json:"ttl" yaml:"ttl"`
 }
 
 // GetDistributed returns if it uses Olric or not as provider
@@ -113,36 +113,36 @@ type DefaultCacheInterface interface {
 
 // APIEndpoint is the minimal structure to define an endpoint
 type APIEndpoint struct {
-	BasePath string `yaml:"basepath"`
-	Enable   bool   `yaml:"enable"`
-	Security bool   `yaml:"security"`
+	BasePath string `json:"basepath" yaml:"basepath"`
+	Enable   bool   `json:"enable" yaml:"enable"`
+	Security bool   `json:"security" yaml:"security"`
 }
 
 // User is the minimal structure to define a user
 type User struct {
-	Username string `yaml:"username"`
-	Password string `yaml:"password"`
+	Username string `json:"username" yaml:"username"`
+	Password string `json:"password" yaml:"password"`
 }
 
 // SecurityAPI object contains informations related to the endpoints
 type SecurityAPI struct {
-	BasePath string `yaml:"basepath"`
-	Enable   bool   `yaml:"enable"`
-	Secret   string `yaml:"secret"`
-	Users    []User `yaml:"users"`
+	BasePath string `json:"basepath" yaml:"basepath"`
+	Enable   bool   `json:"enable" yaml:"enable"`
+	Secret   string `json:"secret" yaml:"secret"`
+	Users    []User `json:"users" yaml:"users"`
 }
 
 // API structure contains all additional endpoints
 type API struct {
-	BasePath string      `yaml:"basepath"`
-	Souin    APIEndpoint `yaml:"souin"`
-	Security SecurityAPI `yaml:"security"`
+	BasePath string      `json:"basepath" yaml:"basepath"`
+	Souin    APIEndpoint `json:"souin" yaml:"souin"`
+	Security SecurityAPI `json:"security" yaml:"security"`
 }
 
 // YKey structure define the way ykeys are stored
 type YKey struct {
-	URL     string            `yaml:"url"`
-	Headers map[string]string `yaml:"headers"`
+	URL     string            `json:"url" yaml:"url"`
+	Headers map[string]string `json:"headers" yaml:"headers"`
 }
 
 // AbstractConfigurationInterface interface
