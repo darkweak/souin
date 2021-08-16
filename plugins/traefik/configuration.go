@@ -3,25 +3,16 @@ package traefik
 import (
 	"github.com/darkweak/souin/configurationtypes"
 	"go.uber.org/zap"
-	"gopkg.in/yaml.v3"
 )
 
 //Configuration holder
 type Configuration struct {
-	DefaultCache *configurationtypes.DefaultCache  `yaml:"default_cache"`
-	API          configurationtypes.API            `yaml:"api"`
-	URLs         map[string]configurationtypes.URL `yaml:"urls"`
-	LogLevel     string                            `yaml:"log_level"`
-	logger       *zap.Logger
-	Ykeys        map[string]configurationtypes.YKey `yaml:"ykeys"`
-}
-
-// Parse configuration
-func (c *Configuration) Parse(data []byte) error {
-	if err := yaml.Unmarshal(data, c); err != nil {
-		return err
-	}
-	return nil
+	DefaultCache *configurationtypes.DefaultCache  `json:"default_cache" yaml:"default_cache"`
+	API          configurationtypes.API            `json:"api" yaml:"api"`
+	URLs         map[string]configurationtypes.URL `json:"urls" yaml:"urls"`
+	LogLevel     string                            `json:"log_level" yaml:"log_level"`
+	Logger       *zap.Logger
+	Ykeys        map[string]configurationtypes.YKey `json:"ykeys" yaml:"ykeys"`
 }
 
 // GetUrls get the urls list in the configuration
@@ -46,12 +37,12 @@ func (c *Configuration) GetLogLevel() string {
 
 // GetLogger get the logger
 func (c *Configuration) GetLogger() *zap.Logger {
-	return c.logger
+	return c.Logger
 }
 
 // SetLogger set the logger
 func (c *Configuration) SetLogger(l *zap.Logger) {
-	c.logger = l
+	c.Logger = l
 }
 
 // GetYkeys get the ykeys list

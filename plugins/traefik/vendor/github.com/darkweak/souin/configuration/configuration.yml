@@ -1,0 +1,42 @@
+api:
+  basepath: /souin-api
+  security:
+    secret: your_secret_key
+    enable: true
+    users:
+      - username: user1
+        password: test
+  souin:
+    security: false
+    enable: true
+default_cache:
+  headers:
+    - Authorization
+  port:
+    web: 80
+    tls: 443
+  regex:
+    exclude: 'ARegexHere'
+  ttl: 10s
+log_level: debug
+reverse_proxy_url: 'http://domain.com:81'
+ssl_providers:
+  - traefik
+urls:
+  'domain.com/testing':
+    ttl: 100s
+    headers:
+      - Authorization
+  'mysubdomain.domain.com':
+    ttl: 50s
+    headers:
+      - Authorization
+      - 'Content-Type'
+ykeys:
+  The_First_Test:
+    headers:
+      Content-Type: '.+'
+  The_Second_Test:
+    url: 'the/second/.+'
+  The_Third_Test:
+  The_Fourth_Test:

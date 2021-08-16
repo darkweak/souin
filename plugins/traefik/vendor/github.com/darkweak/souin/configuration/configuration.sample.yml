@@ -1,0 +1,47 @@
+api:
+  basepath: /souin-api # Default route basepath for every additional APIs to avoid conflicts with existing routes
+  security: # Secure your APIs
+    secret: your_secret_key # JWT secret key
+    enable: true # Required to enable the endpoints
+    users: # Users declaration
+      - username: user1
+        password: test
+  souin: # Souin listing keys and cache management
+    security: true # Enable JWT Authentication token
+    enable: true # Enable the endpoints
+default_cache: # Required part
+  distributed: true # Use Olric distributed storage
+  headers: # Default headers concatenated in stored keys
+    - Authorization
+  olric: # If distributed is set to true, you have to define the olric part
+    url: 'olric:3320' # Olric server
+  port: # Ports to expose Souin
+    web: 80
+    tls: 443
+  regex: # Regex configuration
+    exclude: 'ARegexHere' # Regex to exclude from cache
+  ttl: 10s # Default TTL
+log_level: INFO # Logs verbosity [ DEBUG, INFO, WARN, ERROR, DPANIC, PANIC, FATAL, debug, info, warn, error, dpanic, panic, fatal ]
+reverse_proxy_url: 'http://traefik' # If it's in the same network you can use http://your-service. Then just use https://yourdomain.com
+ssl_providers: # The {providers}.json to usee
+  - traefik
+urls:
+  'https:\/\/domain.com\/first-.+': # First regex route configuration
+    ttl: 1000s # Override default TTL
+  'https:\/\/domain.com\/second-route': # Second regex route configuration
+    ttl: 10s # Override default TTL
+    headers: # Override default headers
+    - Authorization
+  'https?:\/\/mysubdomain\.domain\.com': # Third regex route configuration
+    ttl: 50s
+    headers: # Override default headers
+    - Authorization
+    - 'Content-Type'
+ykeys: # The ykeys section is here to group cache requests
+  The_First_Test: # The key name. You can invalidate it by sending a PURGE request on the souin api with the query param ykey=The_First_Test
+    headers: # Headers that should match to be part of this group
+      Content-Type: '.+' # Regex supported
+  The_Second_Test: # The key name. You can invalidate it by sending a PURGE request on the souin api with the query param ykey=The_Second_Test
+    url: 'the/second/.+' # Url that should match to be part of this group
+  The_Third_Test: # The key name. You can invalidate it by sending a PURGE request on the souin api with the query param ykey=The_Third_Test
+  The_Fourth_Test: # The key name. You can invalidate it by sending a PURGE request on the souin api with the query param ykey=The_Fourth_Test

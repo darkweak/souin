@@ -24,8 +24,6 @@ func parseSouinDefinition(b []byte) *souinAPIDefinition {
 	if err := json.Unmarshal(b, &def); err != nil {
 		fmt.Println("[RPC] --> Couldn't unmarshal api configuration: ", err)
 	}
-	fmt.Println(def.Souin.DefaultCache)
-	fmt.Println(def.Souin.DefaultCache.TTL)
 	cfg := zap.Config{
 		Encoding:         "json",
 		Level:            zap.NewAtomicLevelAt(zapcore.DebugLevel),
