@@ -31,11 +31,17 @@ func (d *Duration) UnmarshalJSON(b []byte) error {
 
 // DefaultCache the struct
 type DefaultCache struct {
+	Badger       configurationtypes.CacheProvider `json:"badger,omitempty"`
 	Distributed bool
 	Headers     []string                         `json:"api,omitempty"`
 	Olric       configurationtypes.CacheProvider `json:"olric,omitempty"`
 	Regex       configurationtypes.Regex         `json:"regex,omitempty"`
 	TTL         Duration                         `json:"ttl,omitempty"`
+}
+
+// GetBadger returns the Badger configuration
+func (d *DefaultCache) GetBadger() configurationtypes.CacheProvider {
+	return d.Badger
 }
 
 // GetDistributed returns if it uses Olric or not as provider

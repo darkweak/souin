@@ -4,6 +4,7 @@ import (
 	"fmt"
 	t "github.com/darkweak/souin/configurationtypes"
 	badger "github.com/dgraph-io/badger/v3"
+	"github.com/imdario/mergo"
 	"net/http"
 	"regexp"
 	"time"
@@ -15,8 +16,17 @@ type Badger struct {
 }
 
 // BadgerConnectionFactory function create new Badger instance
-func BadgerConnectionFactory(_ t.AbstractConfigurationInterface) (*Badger, error) {
-	db, _ := badger.Open(badger.DefaultOptions("").WithInMemory(true))
+func BadgerConnectionFactory(c t.AbstractConfigurationInterface) (*Badger, error) {
+	badgerConfiguration := c.GetDefaultCache().GetBadger()
+	badgerOptions := badger.DefaultOptions(badgerConfiguration.Path)
+	if badgerConfiguration.Configuration != nil {
+		if err := mergo.Merge(&badgerOptions, c.GetDefaultCache().GetBadger().Configuration.(badger.Options), mergo.WithOverride); err != nil {
+			fmt.Println("An error occurred during the badgerOptions merge from the default options with your configuration.")
+		}
+	} else {
+		badgerOptions.WithInMemory(true)
+	}
+	db, _ := badger.Open(badgerOptions)
 
 	return &Badger{db}, nil
 }
