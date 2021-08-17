@@ -8,11 +8,17 @@ import (
 
 // DefaultCache the struct
 type DefaultCache struct {
+	Badger       configurationtypes.CacheProvider
 	Distributed bool
 	Headers     []string
 	Olric       configurationtypes.CacheProvider
 	Regex       configurationtypes.Regex
 	TTL         time.Duration
+}
+
+// GetBadger returns the Badger configuration
+func (d *DefaultCache) GetBadger() configurationtypes.CacheProvider {
+	return d.Badger
 }
 
 // GetDistributed returns if it uses Olric or not as provider

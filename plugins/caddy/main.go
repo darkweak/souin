@@ -39,6 +39,7 @@ type SouinCaddyPlugin struct {
 	LogLevel      string `json:"log_level,omitempty"`
 	bufPool       *sync.Pool
 	Headers       []string                           `json:"headers,omitempty"`
+	Badger        configurationtypes.CacheProvider   `json:"badger,omitempty"`
 	Olric         configurationtypes.CacheProvider   `json:"olric,omitempty"`
 	TTL           time.Duration                      `json:"ttl,omitempty"`
 	YKeys         map[string]configurationtypes.YKey `json:"ykeys,omitempty"`
@@ -94,6 +95,7 @@ func (s *SouinCaddyPlugin) configurationPropertyMapper() error {
 		return nil
 	}
 	defaultCache := &DefaultCache{
+		Badger:      s.Badger,
 		Distributed: s.Olric.URL != "" || s.Olric.Path != "" || s.Olric.Configuration != nil,
 		Headers:     s.Headers,
 		Olric:       s.Olric,
@@ -144,6 +146,9 @@ func (s *SouinCaddyPlugin) FromApp(app *SouinApp) error {
 		if dc.Olric.URL == "" || dc.Olric.Path == "" || dc.Olric.Configuration == nil {
 			s.Configuration.DefaultCache.Distributed = appDc.Distributed
 			s.Configuration.DefaultCache.Olric = appDc.Olric
+		}
+		if dc.Badger.Path == "" || dc.Badger.Configuration == nil {
+			s.Configuration.DefaultCache.Badger = appDc.Badger
 		}
 	}
 
@@ -212,6 +217,19 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 			case "log_level":
 				args := h.RemainingArgs()
 				cfg.LogLevel = args[0]
+			case "badger":
+				provider := configurationtypes.CacheProvider{}
+				for nesting := h.Nesting(); h.NextBlock(nesting); {
+					directive := h.Val()
+					switch directive {
+					case "path":
+						urlArgs := h.RemainingArgs()
+						provider.Path = urlArgs[0]
+					case "configuration":
+						provider.Configuration = parseCaddyfileRecursively(h)
+					}
+				}
+				cfg.DefaultCache.Badger = provider
 			case "olric":
 				cfg.DefaultCache.Distributed = true
 				provider := configurationtypes.CacheProvider{}

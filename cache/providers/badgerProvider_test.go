@@ -30,6 +30,20 @@ func getBadgerClientAndMatchedURL(key string) (types.AbstractProviderInterface, 
 	)
 }
 
+// This test ensure that Badger options are override by the Souin configuration
+func TestCustomBadgerConnectionFactory(t *testing.T) {
+	c := tests.MockConfiguration(tests.BadgerConfiguration)
+	r, err := BadgerConnectionFactory(c)
+
+	if nil != err {
+		errors.GenerateError(t, "Shouldn't have panic")
+	}
+
+	if nil == r {
+		errors.GenerateError(t, "Badger should be instanciated")
+	}
+}
+
 func TestBadgerConnectionFactory(t *testing.T) {
 	c := tests.MockConfiguration(tests.BaseConfiguration)
 	r, err := BadgerConnectionFactory(c)
@@ -46,6 +60,7 @@ func TestBadgerConnectionFactory(t *testing.T) {
 func TestIShouldBeAbleToReadAndWriteDataInBadger(t *testing.T) {
 	client, matchedURL := getBadgerClientAndMatchedURL("Test")
 
+	fmt.Println(client, matchedURL)
 	client.Set("Test", []byte(BADGERVALUE), matchedURL, time.Duration(20)*time.Second)
 	time.Sleep(1 * time.Second)
 

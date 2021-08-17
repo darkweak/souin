@@ -2,7 +2,7 @@ package auth
 
 import (
 	"encoding/json"
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt"
 	"net/http"
 	"time"
 )
