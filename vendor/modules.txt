@@ -41,9 +41,6 @@ github.com/dgraph-io/badger/v3/y
 github.com/dgraph-io/ristretto
 github.com/dgraph-io/ristretto/z
 github.com/dgraph-io/ristretto/z/simd
-# github.com/dgrijalva/jwt-go v3.2.0+incompatible
-## explicit
-github.com/dgrijalva/jwt-go
 # github.com/dustin/go-humanize v1.0.0
 github.com/dustin/go-humanize
 # github.com/fsnotify/fsnotify v1.4.9
@@ -55,6 +52,9 @@ github.com/go-chi/stampede
 github.com/go-chi/stampede/singleflight
 # github.com/gogo/protobuf v1.3.2
 github.com/gogo/protobuf/proto
+# github.com/golang-jwt/jwt v3.2.2+incompatible
+## explicit
+github.com/golang-jwt/jwt
 # github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 github.com/golang/glog
 # github.com/golang/groupcache v0.0.0-20190702054246-869f871628b6
