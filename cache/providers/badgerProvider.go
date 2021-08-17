@@ -1,9 +1,11 @@
 package providers
 
 import (
+	"encoding/json"
 	"fmt"
 	t "github.com/darkweak/souin/configurationtypes"
 	badger "github.com/dgraph-io/badger/v3"
+	"github.com/imdario/mergo"
 	"net/http"
 	"regexp"
 	"time"
@@ -15,8 +17,24 @@ type Badger struct {
 }
 
 // BadgerConnectionFactory function create new Badger instance
-func BadgerConnectionFactory(_ t.AbstractConfigurationInterface) (*Badger, error) {
-	db, _ := badger.Open(badger.DefaultOptions("").WithInMemory(true))
+func BadgerConnectionFactory(c t.AbstractConfigurationInterface) (*Badger, error) {
+	badgerConfiguration := c.GetDefaultCache().GetBadger()
+	badgerOptions := badger.DefaultOptions(badgerConfiguration.Path)
+	if badgerConfiguration.Configuration != nil {
+		var parsedBadger badger.Options
+		if b, e := json.Marshal(badgerConfiguration.Configuration); e == nil {
+			if e = json.Unmarshal(b, &parsedBadger); e != nil {
+				fmt.Println("Impossible to parse the configuration for the default provider (Badger)")
+			}
+		}
+
+		if err := mergo.Merge(&badgerOptions, parsedBadger, mergo.WithOverride); err != nil {
+			fmt.Println("An error occurred during the badgerOptions merge from the default options with your configuration.")
+		}
+	} else {
+		badgerOptions = badgerOptions.WithInMemory(true)
+	}
+	db, _ := badger.Open(badgerOptions)
 
 	return &Badger{db}, nil
 }

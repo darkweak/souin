@@ -69,12 +69,18 @@ type CacheProvider struct {
 
 //DefaultCache configuration
 type DefaultCache struct {
+	Badger      CacheProvider `json:"badger" yaml:"badger"`
 	Distributed bool          `json:"distributed" yaml:"distributed"`
 	Headers     []string      `json:"headers" yaml:"headers"`
 	Olric       CacheProvider `json:"olric" yaml:"olric"`
 	Port        Port          `json:"port" yaml:"port"`
 	Regex       Regex         `json:"regex" yaml:"regex"`
 	TTL         Duration      `json:"ttl" yaml:"ttl"`
+}
+
+// GetBadger returns the Badger configuration
+func (d *DefaultCache) GetBadger() CacheProvider {
+	return d.Badger
 }
 
 // GetDistributed returns if it uses Olric or not as provider
@@ -104,6 +110,7 @@ func (d *DefaultCache) GetTTL() time.Duration {
 
 // DefaultCacheInterface interface
 type DefaultCacheInterface interface {
+	GetBadger() CacheProvider
 	GetDistributed() bool
 	GetOlric() CacheProvider
 	GetHeaders() []string
