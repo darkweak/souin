@@ -4,10 +4,11 @@ SOUIN=vendor/github.com/darkweak/souin
 CACHE=$(SOUIN)/cache
 
 prepare: ## Prepare tyk plugin
-	go mod tidy && \
-	go mod download && \
-	go mod vendor && \
-	$(MAKE) replace && \
+	go mod tidy
+	go mod download
+	go mod vendor
+	$(MAKE) replace
+	cp docker-compose.yml.test docker-compose.yml
 	docker-compose up -d
 
 copy-to: ## Copy from to
