@@ -8,9 +8,7 @@ prepare: ## Prepare tyk plugin
 	go mod download && \
 	go mod vendor && \
 	$(MAKE) replace && \
-	docker-compose up -d whoami
-	clear
-	docker-compose up traefik
+	docker-compose up -d
 
 copy-to: ## Copy from to
 	rm -rf $(base)/$(target)

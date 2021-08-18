@@ -51,8 +51,7 @@ type Options struct {
 	// Options for Opening/Building Table.
 
 	// Open tables in read only mode.
-	ReadOnly       bool
-	MetricsEnabled bool
+	ReadOnly bool
 
 	// Maximum size of the table.
 	TableSize     uint64
@@ -90,7 +89,6 @@ type TableInterface interface {
 	Smallest() []byte
 	Biggest() []byte
 	DoesNotHave(hash uint32) bool
-	MaxVersion() uint64
 }
 
 // Table represents a loaded table file with the info we have about it.
@@ -108,8 +106,10 @@ type Table struct {
 	smallest, biggest []byte // Smallest and largest keys (with timestamps).
 	id                uint64 // file id, part of filename
 
-	Checksum       []byte
-	CreatedAt      time.Time
+	Checksum  []byte
+	CreatedAt time.Time
+	// Stores the total size of key-values stored in this table (including the size on vlog).
+	onDiskSize     uint32
 	indexStart     int
 	indexLen       int
 	hasBloomFilter bool
@@ -661,9 +661,6 @@ func (t *Table) IndexSize() int {
 // Size is its file size in bytes
 func (t *Table) Size() int64 { return int64(t.tableSize) }
 
-// StaleDataSize is the amount of stale data (that can be dropped by a compaction )in this SST.
-func (t *Table) StaleDataSize() uint32 { return t.fetchIndex().StaleDataSize() }
-
 // Smallest is its smallest key, or nil if there are none
 func (t *Table) Smallest() []byte { return t.smallest }
 
@@ -683,12 +680,12 @@ func (t *Table) DoesNotHave(hash uint32) bool {
 		return false
 	}
 
-	y.NumLSMBloomHitsAdd(t.opt.MetricsEnabled, "DoesNotHave_ALL", 1)
+	y.NumLSMBloomHits.Add("DoesNotHave_ALL", 1)
 	index := t.fetchIndex()
 	bf := index.BloomFilterBytes()
 	mayContain := y.Filter(bf).MayContain(hash)
 	if !mayContain {
-		y.NumLSMBloomHitsAdd(t.opt.MetricsEnabled, "DoesNotHave_HIT", 1)
+		y.NumLSMBloomHits.Add("DoesNotHave_HIT", 1)
 	}
 	return !mayContain
 }
@@ -756,7 +753,7 @@ func (t *Table) decrypt(data []byte, viaCalloc bool) ([]byte, error) {
 
 	var dst []byte
 	if viaCalloc {
-		dst = z.Calloc(len(data), "Table.Decrypt")
+		dst = z.Calloc(len(data))
 	} else {
 		dst = make([]byte, len(data))
 	}
@@ -807,9 +804,9 @@ func (t *Table) decompress(b *block) error {
 		return nil
 	case options.Snappy:
 		if sz, err := snappy.DecodedLen(b.data); err == nil {
-			dst = z.Calloc(sz, "Table.Decompress")
+			dst = z.Calloc(sz)
 		} else {
-			dst = z.Calloc(len(b.data) * 4, "Table.Decompress") // Take a guess.
+			dst = z.Calloc(len(b.data) * 4) // Take a guess.
 		}
 		b.data, err = snappy.Decode(dst, b.data)
 		if err != nil {
@@ -818,7 +815,7 @@ func (t *Table) decompress(b *block) error {
 		}
 	case options.ZSTD:
 		sz := int(float64(t.opt.BlockSize) * 1.2)
-		dst = z.Calloc(sz, "Table.Decompress")
+		dst = z.Calloc(sz)
 		b.data, err = y.ZSTDDecompress(dst, b.data)
 		if err != nil {
 			z.Free(dst)

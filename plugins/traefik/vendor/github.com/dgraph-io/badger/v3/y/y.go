@@ -25,7 +25,6 @@ import (
 	"math"
 	"os"
 	"reflect"
-	"strconv"
 	"sync"
 	"time"
 	"unsafe"
@@ -39,6 +38,11 @@ var (
 	// ErrEOF indicates an end of file when trying to read from a memory mapped file
 	// and encountering the end of slice.
 	ErrEOF = errors.New("ErrEOF: End of file")
+
+	// ErrZstdCgo indicates that badger was built without cgo but ZSTD
+	// compression algorithm is being used for compression. ZSTD cannot work
+	// without CGO.
+	ErrZstdCgo = errors.New("ErrZstdCgo: zstd compression requires building badger with cgo enabled")
 
 	// ErrCommitAfterFinish indicates that write batch commit was called after
 	// finish
@@ -295,44 +299,6 @@ func BytesToU32Slice(b []byte) []uint32 {
 	return u32s
 }
 
-// U64ToBytes converts the given Uint64 to bytes
-func U64ToBytes(v uint64) []byte {
-	var uBuf [8]byte
-	binary.BigEndian.PutUint64(uBuf[:], v)
-	return uBuf[:]
-}
-
-// BytesToU64 converts the given byte slice to uint64
-func BytesToU64(b []byte) uint64 {
-	return binary.BigEndian.Uint64(b)
-}
-
-// U64SliceToBytes converts the given Uint64 slice to byte slice
-func U64SliceToBytes(u64s []uint64) []byte {
-	if len(u64s) == 0 {
-		return nil
-	}
-	var b []byte
-	hdr := (*reflect.SliceHeader)(unsafe.Pointer(&b))
-	hdr.Len = len(u64s) * 8
-	hdr.Cap = hdr.Len
-	hdr.Data = uintptr(unsafe.Pointer(&u64s[0]))
-	return b
-}
-
-// BytesToU64Slice converts the given byte slice to uint64 slice
-func BytesToU64Slice(b []byte) []uint64 {
-	if len(b) == 0 {
-		return nil
-	}
-	var u64s []uint64
-	hdr := (*reflect.SliceHeader)(unsafe.Pointer(&u64s))
-	hdr.Len = len(b) / 8
-	hdr.Cap = hdr.Len
-	hdr.Data = uintptr(unsafe.Pointer(&b[0]))
-	return u64s
-}
-
 // page struct contains one underlying buffer.
 type page struct {
 	buf []byte
@@ -510,73 +476,4 @@ func NewKV(alloc *z.Allocator) *pb.KV {
 	}
 	b := alloc.AllocateAligned(kvsz)
 	return (*pb.KV)(unsafe.Pointer(&b[0]))
-}
-
-// IBytesToString converts size in bytes to human readable format.
-// The code is taken from humanize library and changed to provide
-// value upto custom decimal precision.
-// IBytesToString(12312412, 1) -> 11.7 MiB
-func IBytesToString(size uint64, precision int) string {
-	sizes := []string{"B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB"}
-	base := float64(1024)
-	if size < 10 {
-		return fmt.Sprintf("%d B", size)
-	}
-	e := math.Floor(math.Log(float64(size)) / math.Log(base))
-	suffix := sizes[int(e)]
-	val := float64(size) / math.Pow(base, e)
-	f := "%." + strconv.Itoa(precision) + "f %s"
-
-	return fmt.Sprintf(f, val, suffix)
-}
-
-type RateMonitor struct {
-	start       time.Time
-	lastSent    uint64
-	lastCapture time.Time
-	rates       []float64
-	idx         int
-}
-
-func NewRateMonitor(numSamples int) *RateMonitor {
-	return &RateMonitor{
-		start: time.Now(),
-		rates: make([]float64, numSamples),
-	}
-}
-
-const minRate = 0.0001
-
-// Capture captures the current number of sent bytes. This number should be monotonically
-// increasing.
-func (rm *RateMonitor) Capture(sent uint64) {
-	diff := sent - rm.lastSent
-	dur := time.Since(rm.lastCapture)
-	rm.lastCapture, rm.lastSent = time.Now(), sent
-
-	rate := float64(diff) / dur.Seconds()
-	if rate < minRate {
-		rate = minRate
-	}
-	rm.rates[rm.idx] = rate
-	rm.idx = (rm.idx + 1) % len(rm.rates)
-}
-
-// Rate returns the average rate of transmission smoothed out by the number of samples.
-func (rm *RateMonitor) Rate() uint64 {
-	var total float64
-	var den float64
-	for _, r := range rm.rates {
-		if r < minRate {
-			// Ignore this. We always set minRate, so this is a zero.
-			// Typically at the start of the rate monitor, we'd have zeros.
-			continue
-		}
-		total += r
-		den += 1.0
-	}
-	if den < minRate {
-		return 0
-	}
-	return uint64(total / den)
 }

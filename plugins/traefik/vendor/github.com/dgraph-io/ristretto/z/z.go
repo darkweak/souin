@@ -20,7 +20,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/cespare/xxhash/v2"
+	"github.com/cespare/xxhash"
 )
 
 // TODO: Figure out a way to re-use memhash for the second uint64 hash, we

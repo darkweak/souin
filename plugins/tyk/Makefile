@@ -1,10 +1,14 @@
 .PHONY: prepare
 
 prepare: ## Prepare tyk plugin
-	go mod tidy && \
-	go mod download && \
-	go mod vendor && \
+	go mod tidy
+	go mod download
+	go mod vendor
 	$(MAKE) replace
+	cp docker-compose.yml.test docker-compose.yml
+	docker-compose up tyk-builder
+	mv souin-plugin.so ./samples/middleware/
+	docker-compose up -d --remove-orphans --build tyk-pump tyk-gateway
 
 # TODO find another way to do that
 replace: ## Replace sources in the vendor folder deeper than the go mod replace
