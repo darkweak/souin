@@ -119,7 +119,7 @@ func (provider *EmbeddedOlric) ListKeys() []string {
 	}
 
 	keys := []string{}
-	err = c.Range(func(key string, _ interface{}) bool {
+	_ = c.Range(func(key string, _ interface{}) bool {
 		keys = append(keys, key)
 		return true
 	})
@@ -143,7 +143,7 @@ func (provider *EmbeddedOlric) Prefix(key string, req *http.Request) []byte {
 	}
 
 	res := []byte{}
-	err = c.Range(func(k string, v interface{}) bool {
+	_ = c.Range(func(k string, v interface{}) bool {
 		if varyVoter(key, req, k) {
 			res = v.([]byte)
 			return false

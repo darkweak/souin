@@ -19,6 +19,6 @@ func TestInitialize(t *testing.T) {
 		errors.GenerateError(t, fmt.Sprintf("Endpoints length should be 1, %d received", len(endpoints)))
 	}
 	if !endpoints[0].IsEnabled() {
-		errors.GenerateError(t, fmt.Sprintf("Endpoint should be enabled"))
+		errors.GenerateError(t, "Endpoint should be enabled")
 	}
 }

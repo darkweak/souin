@@ -100,8 +100,7 @@ func DefaultSouinPluginInitializerFromConfiguration(c configurationtypes.Abstrac
 	provider := providers.InitializeProvider(c)
 	c.GetLogger().Debug("Provider initialized.")
 	regexpUrls := helpers.InitializeRegexp(c)
-	var transport types.TransportInterface
-	transport = rfc.NewTransport(provider, ykeys.InitializeYKeys(c.GetYkeys()))
+	transport := rfc.NewTransport(provider, ykeys.InitializeYKeys(c.GetYkeys()))
 	c.GetLogger().Debug("Transport initialized.")
 
 	retriever := &types.RetrieverResponseProperties{

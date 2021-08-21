@@ -100,7 +100,7 @@ func commonVaryMatchesVerification(cachedResp *http.Response, req *http.Request)
 				req2.Header.Set("if-modified-since", lastModified)
 			}
 			if req2 != nil {
-				req = req2
+				req = req2 // nolint
 			}
 		}
 	}
@@ -161,7 +161,7 @@ func (t *VaryTransport) RoundTrip(req *http.Request) (resp *http.Response, err e
 			for _, header := range endToEndHeaders {
 				cachedResp.Header[header] = resp.Header[header]
 			}
-			resp = cachedResp
+			resp = cachedResp // nolint
 		} else if (err != nil || resp.StatusCode >= 500) &&
 			req.Method == http.MethodGet && canStaleOnError(cachedResp.Header, req.Header) {
 			// In case of transport failure and stale-if-error activated, returns cached content
@@ -181,7 +181,7 @@ func (t *VaryTransport) RoundTrip(req *http.Request) (resp *http.Response, err e
 		}
 		resp.Header.Set("Cache-Status", "Souin; fwd=uri-miss")
 	}
-	resp, err = transport.RoundTrip(req)
+	resp, _ = transport.RoundTrip(req)
 	if !(cacheable && validateVary(req, resp, cacheKey, t)) {
 		go func() {
 			t.CoalescingLayerStorage.Set(cacheKey)
