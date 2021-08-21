@@ -2,11 +2,11 @@ package main
 
 import (
 	"encoding/json"
+	"time"
+
 	"github.com/darkweak/souin/configurationtypes"
 	"go.uber.org/zap"
-	"time"
 )
-
 
 // Duration is the super object to handle durations in the configuration
 type Duration struct {
@@ -35,7 +35,7 @@ func (d *Duration) UnmarshalJSON(b []byte) error {
 
 // DefaultCache the struct
 type DefaultCache struct {
-	Badger       configurationtypes.CacheProvider `json:"badger,omitempty"`
+	Badger      configurationtypes.CacheProvider `json:"badger,omitempty"`
 	Distributed bool
 	Headers     []string                         `json:"api,omitempty"`
 	Olric       configurationtypes.CacheProvider `json:"olric,omitempty"`

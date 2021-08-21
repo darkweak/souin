@@ -2,12 +2,13 @@ package service
 
 import (
 	"bytes"
-	"github.com/darkweak/souin/cache/types"
-	souintypes "github.com/darkweak/souin/plugins/souin/types"
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
 	"strconv"
+
+	"github.com/darkweak/souin/cache/types"
+	souintypes "github.com/darkweak/souin/plugins/souin/types"
 )
 
 func responseBodyExtractor(resp *http.Response) []byte {

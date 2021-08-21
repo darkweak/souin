@@ -1,10 +1,11 @@
 package providers
 
 import (
+	"testing"
+
 	"github.com/darkweak/souin/errors"
 	"github.com/darkweak/souin/helpers"
 	"github.com/darkweak/souin/tests"
-	"testing"
 )
 
 func TestInitializeProvider(t *testing.T) {

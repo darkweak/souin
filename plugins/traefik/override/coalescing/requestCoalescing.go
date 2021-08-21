@@ -1,10 +1,11 @@
 package coalescing
 
 import (
-	"github.com/darkweak/souin/cache/types"
-	"github.com/darkweak/souin/configurationtypes"
 	"net/http"
 	"strings"
+
+	"github.com/darkweak/souin/cache/types"
+	"github.com/darkweak/souin/configurationtypes"
 )
 
 // Temporize will run one call to proxy then use the response for other requests that couldn't reach cached response

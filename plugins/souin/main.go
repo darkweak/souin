@@ -3,6 +3,11 @@ package main
 import (
 	"crypto/tls"
 	"fmt"
+	"net"
+	"net/http"
+	"net/url"
+	"time"
+
 	"github.com/darkweak/souin/api"
 	"github.com/darkweak/souin/cache/coalescing"
 	"github.com/darkweak/souin/cache/service"
@@ -11,10 +16,6 @@ import (
 	"github.com/darkweak/souin/plugins"
 	souintypes "github.com/darkweak/souin/plugins/souin/types"
 	"github.com/darkweak/souin/providers"
-	"net"
-	"net/http"
-	"net/url"
-	"time"
 )
 
 func souinPluginInitializerFromConfiguration(c *configuration.Configuration) *souintypes.SouinRetrieverResponseProperties {
@@ -56,7 +57,7 @@ func main() {
 	rc := coalescing.Initialize()
 	configChannel := make(chan int)
 	tlsConfig := &tls.Config{
-		Certificates:       make([]tls.Certificate, 0),
+		Certificates: make([]tls.Certificate, 0),
 	}
 	v, _ := tls.LoadX509KeyPair("./default/server.crt", "./default/server.key")
 	tlsConfig.Certificates = append(tlsConfig.Certificates, v)

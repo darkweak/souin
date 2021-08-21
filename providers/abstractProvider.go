@@ -5,11 +5,12 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/darkweak/souin/configuration"
-	"github.com/fsnotify/fsnotify"
 	"io/ioutil"
 	"log"
 	"strings"
+
+	"github.com/darkweak/souin/configuration"
+	"github.com/fsnotify/fsnotify"
 )
 
 // CommonProvider contains a Certificate map

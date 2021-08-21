@@ -5,7 +5,7 @@ import (
 )
 
 // RequestCoalescing handle the coalescing system
-type RequestCoalescing struct {}
+type RequestCoalescing struct{}
 
 // RequestCoalescingInterface is the interface
 type RequestCoalescingInterface interface {

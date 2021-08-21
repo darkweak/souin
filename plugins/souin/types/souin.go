@@ -1,10 +1,11 @@
 package types
 
 import (
-	"github.com/darkweak/souin/cache/types"
-	"github.com/darkweak/souin/configurationtypes"
 	"net/url"
 	"regexp"
+
+	"github.com/darkweak/souin/cache/types"
+	"github.com/darkweak/souin/configurationtypes"
 )
 
 // SouinRetrieverResponseProperties struct

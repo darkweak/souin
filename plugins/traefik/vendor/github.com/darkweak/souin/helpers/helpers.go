@@ -1,8 +1,9 @@
 package helpers
 
 import (
-	configurationtypes "github.com/darkweak/souin/configurationtypes"
 	"regexp"
+
+	configurationtypes "github.com/darkweak/souin/configurationtypes"
 )
 
 // InitializeRegexp will generate one strong regex from your urls defined in the configuration.yml

@@ -3,6 +3,11 @@ package providers
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"os"
+	"time"
+
 	"github.com/buraksezer/olric"
 	"github.com/buraksezer/olric/config"
 	"github.com/buraksezer/olric/query"
@@ -10,10 +15,6 @@ import (
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
-	"io/ioutil"
-	"net/http"
-	"os"
-	"time"
 )
 
 // EmbeddedOlric provider type

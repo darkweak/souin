@@ -2,11 +2,12 @@ package ykeys
 
 import (
 	"fmt"
-	"github.com/darkweak/souin/configurationtypes"
-	"github.com/dgraph-io/ristretto"
 	"net/http"
 	"regexp"
 	"strings"
+
+	"github.com/darkweak/souin/configurationtypes"
+	"github.com/dgraph-io/ristretto"
 )
 
 // The YKey system is like the Varnish one. You can invalidate cache from ykey based instead of the regexp or the plain

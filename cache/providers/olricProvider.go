@@ -2,12 +2,13 @@ package providers
 
 import (
 	"fmt"
+	"net/http"
+	"time"
+
 	"github.com/buraksezer/olric/client"
 	"github.com/buraksezer/olric/config"
 	"github.com/buraksezer/olric/query"
 	t "github.com/darkweak/souin/configurationtypes"
-	"net/http"
-	"time"
 )
 
 // Olric provider type

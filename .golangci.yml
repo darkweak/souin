@@ -6,16 +6,15 @@ linters-settings:
 linters:
   disable-all: true
   enable:
-    - bodyclose
     - deadcode
     - errcheck
     - gofmt
-    - goimports
-    - gosec
+#    - goimports
+#    - gosec
     - govet
-    - ineffassign
+#    - ineffassign
     - misspell
-    - staticcheck
+#    - staticcheck
     - structcheck
     - typecheck
     - unconvert

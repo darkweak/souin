@@ -3,6 +3,12 @@ package caddy
 import (
 	"bytes"
 	"context"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"sync"
+	"time"
+
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
@@ -12,11 +18,6 @@ import (
 	"github.com/darkweak/souin/plugins"
 	"github.com/darkweak/souin/rfc"
 	"go.uber.org/zap"
-	"io"
-	"net/http"
-	"net/http/httptest"
-	"sync"
-	"time"
 )
 
 type key string

@@ -1,11 +1,12 @@
 package configuration
 
 import (
+	"io/ioutil"
+	"log"
+
 	"github.com/darkweak/souin/configurationtypes"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
-	"io/ioutil"
-	"log"
 )
 
 //Configuration holder

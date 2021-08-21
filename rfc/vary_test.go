@@ -2,12 +2,13 @@ package rfc
 
 import (
 	"fmt"
+	"net/http/httptest"
+	"testing"
+
 	"github.com/darkweak/souin/cache/providers"
 	"github.com/darkweak/souin/cache/ykeys"
 	"github.com/darkweak/souin/errors"
 	"github.com/darkweak/souin/tests"
-	"net/http/httptest"
-	"testing"
 )
 
 func TestVaryMatches(t *testing.T) {

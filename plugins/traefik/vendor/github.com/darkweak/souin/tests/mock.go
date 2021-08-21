@@ -2,15 +2,16 @@ package tests
 
 import (
 	"fmt"
+	"io/ioutil"
+	"log"
+	"net/http"
+	"regexp"
+
 	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/configuration"
 	"github.com/darkweak/souin/configurationtypes"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"io/ioutil"
-	"log"
-	"net/http"
-	"regexp"
 )
 
 // DOMAIN is the domain constant
@@ -238,7 +239,7 @@ memberlist:
   joinRetryInterval: "1s"
   maxJoinAttempts: 10
 `),
-		0644,
+		0600,
 	)
 
 	return baseEmbeddedOlricConfiguration(fmt.Sprintf("path: '%s'", path))

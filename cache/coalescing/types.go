@@ -1,8 +1,9 @@
 package coalescing
 
 import (
-	"github.com/go-chi/stampede"
 	"net/http"
+
+	"github.com/go-chi/stampede"
 )
 
 // RequestCoalescing handle the coalescing system

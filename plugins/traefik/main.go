@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"github.com/darkweak/souin/configurationtypes"
-	"github.com/darkweak/souin/rfc"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/darkweak/souin/configurationtypes"
+	"github.com/darkweak/souin/rfc"
 )
 
 // SouinTraefikPlugin declaration.
@@ -140,7 +141,7 @@ const getterContextCtxKey key = "getter_context"
 func (s *SouinTraefikPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	customRW := &customWriter{
 		ResponseWriter: rw,
-		response: &http.Response{},
+		response:       &http.Response{},
 	}
 	buf := bufPool.Get().(*bytes.Buffer)
 	buf.Reset()

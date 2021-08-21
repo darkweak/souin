@@ -2,9 +2,10 @@ package configurationtypes
 
 import (
 	"encoding/json"
+	"time"
+
 	"go.uber.org/zap"
 	yaml "gopkg.in/yaml.v3"
-	"time"
 )
 
 // Duration is the super object to wrap the duration and be able to parse it from the configuration

@@ -3,8 +3,9 @@ package rfc
 import (
 	"bufio"
 	"bytes"
-	"github.com/darkweak/souin/cache/types"
 	"net/http"
+
+	"github.com/darkweak/souin/cache/types"
 )
 
 const (

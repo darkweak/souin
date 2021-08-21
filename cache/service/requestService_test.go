@@ -2,9 +2,6 @@ package service
 
 import (
 	"fmt"
-	"github.com/darkweak/souin/configurationtypes"
-	souintypes "github.com/darkweak/souin/plugins/souin/types"
-	"github.com/darkweak/souin/tests"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -12,6 +9,10 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/darkweak/souin/configurationtypes"
+	souintypes "github.com/darkweak/souin/plugins/souin/types"
+	"github.com/darkweak/souin/tests"
 
 	"github.com/darkweak/souin/cache/providers"
 	"github.com/darkweak/souin/cache/types"

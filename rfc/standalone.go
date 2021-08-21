@@ -5,11 +5,12 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/darkweak/souin/cache/providers"
 	"io"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/darkweak/souin/cache/providers"
 )
 
 // GetCacheKey returns the cache key for req.
