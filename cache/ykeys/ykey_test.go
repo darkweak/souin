@@ -198,8 +198,7 @@ func TestYKeyStorage_GetValidatedTags(t *testing.T) {
 		errors.GenerateError(t, fmt.Sprintf("The url %s without headers should be candidate for %v tags, %v given", baseURL, []string{SecondKey, ThirdKey, FourthKey}, r.GetValidatedTags(baseURL, nil)))
 	}
 
-	var headers http.Header
-	headers = http.Header{}
+	headers := http.Header{}
 	headers.Set("Authorization", "anything")
 	headers.Set("Content-Type", "any value here")
 	if len(r.GetValidatedTags(baseURL, headers)) != 3 {

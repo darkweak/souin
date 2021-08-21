@@ -41,6 +41,7 @@ func TestCheckToken(t *testing.T) {
 	}
 	if jwt == nil {
 		errors.GenerateError(t, "Token shouldn't be nil")
+		return
 	}
 	if jwt.Username != "" {
 		errors.GenerateError(t, "Token username shouldn't exist")
@@ -72,6 +73,7 @@ func TestCheckToken(t *testing.T) {
 	}
 	if jwt == nil {
 		errors.GenerateError(t, "Token shouldn't be nil")
+		return
 	}
 	if jwt.Username != "user1" {
 		errors.GenerateError(t, "Token username should exist")
@@ -103,6 +105,7 @@ func TestCheckToken(t *testing.T) {
 	}
 	if jwt == nil {
 		errors.GenerateError(t, "Token shouldn't be nil")
+		return
 	}
 	if jwt.Username != "user1" {
 		errors.GenerateError(t, "Token username should exist")
@@ -130,6 +133,7 @@ func TestCheckToken(t *testing.T) {
 	}
 	if jwt == nil {
 		errors.GenerateError(t, "Token shouldn't be nil")
+		return
 	}
 	if jwt.Username != "user1" {
 		errors.GenerateError(t, "Token username should exist")

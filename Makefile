@@ -1,6 +1,6 @@
 .PHONY: build-and-run-caddy build-and-run-caddy-json build-and-run-traefik build-and-run-tyk build-app build-caddy \
-	build-dev coverage create-network down env-dev env-prod gatling generate-plantUML health-check-prod help lint log \
-	tests up validate vendor-plugins
+	build-dev coverage create-network down env-dev env-prod gatling generate-plantUML golangci-lint health-check-prod \
+	help lint log tests up validate vendor-plugins
 
 DC=docker-compose
 DC_BUILD=$(DC) build
@@ -54,6 +54,9 @@ gatling: ## Launch gatling scenarios
 
 generate-plantUML: ## Generate plantUML diagrams
 	cd ./docs/plantUML && sh generate.sh && cd ../..
+
+golangci-lint: ## Run golangci-lint to ensure the code quality
+	docker run --rm -v $(pwd):/app -w /app golangci/golangci-lint:v1.42.0 golangci-lint run -v
 
 health-check-prod: build-app ## Production container health check
 	$(DC_EXEC) souin ls
