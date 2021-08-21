@@ -26,7 +26,7 @@ import (
 )
 
 type subscriber struct {
-	matches   []pb.Match
+	prefixes  [][]byte
 	sendCh    chan<- *pb.KVList
 	subCloser *z.Closer
 }
@@ -85,22 +85,21 @@ func (p *publisher) publishUpdates(reqs requests) {
 	for _, req := range reqs {
 		for _, e := range req.Entries {
 			ids := p.indexer.Get(e.Key)
-			if len(ids) == 0 {
-				continue
-			}
-			k := y.SafeCopy(nil, e.Key)
-			kv := &pb.KV{
-				Key:       y.ParseKey(k),
-				Value:     y.SafeCopy(nil, e.Value),
-				Meta:      []byte{e.UserMeta},
-				ExpiresAt: e.ExpiresAt,
-				Version:   y.ParseTs(k),
-			}
-			for id := range ids {
-				if _, ok := batchedUpdates[id]; !ok {
-					batchedUpdates[id] = &pb.KVList{}
+			if len(ids) > 0 {
+				k := y.SafeCopy(nil, e.Key)
+				kv := &pb.KV{
+					Key:       y.ParseKey(k),
+					Value:     y.SafeCopy(nil, e.Value),
+					Meta:      []byte{e.UserMeta},
+					ExpiresAt: e.ExpiresAt,
+					Version:   y.ParseTs(k),
 				}
-				batchedUpdates[id].Kv = append(batchedUpdates[id].Kv, kv)
+				for id := range ids {
+					if _, ok := batchedUpdates[id]; !ok {
+						batchedUpdates[id] = &pb.KVList{}
+					}
+					batchedUpdates[id].Kv = append(batchedUpdates[id].Kv, kv)
+				}
 			}
 		}
 	}
@@ -110,7 +109,7 @@ func (p *publisher) publishUpdates(reqs requests) {
 	}
 }
 
-func (p *publisher) newSubscriber(c *z.Closer, matches []pb.Match) (<-chan *pb.KVList, uint64) {
+func (p *publisher) newSubscriber(c *z.Closer, prefixes ...[]byte) (<-chan *pb.KVList, uint64) {
 	p.Lock()
 	defer p.Unlock()
 	ch := make(chan *pb.KVList, 1000)
@@ -118,12 +117,12 @@ func (p *publisher) newSubscriber(c *z.Closer, matches []pb.Match) (<-chan *pb.K
 	// Increment next ID.
 	p.nextID++
 	p.subscribers[id] = subscriber{
-		matches:   matches,
+		prefixes:  prefixes,
 		sendCh:    ch,
 		subCloser: c,
 	}
-	for _, m := range matches {
-		p.indexer.AddMatch(m, id)
+	for _, prefix := range prefixes {
+		p.indexer.Add(prefix, id)
 	}
 	return ch, id
 }
@@ -133,8 +132,8 @@ func (p *publisher) cleanSubscribers() {
 	p.Lock()
 	defer p.Unlock()
 	for id, s := range p.subscribers {
-		for _, m := range s.matches {
-			p.indexer.DeleteMatch(m, id)
+		for _, prefix := range s.prefixes {
+			p.indexer.Delete(prefix, id)
 		}
 		delete(p.subscribers, id)
 		s.subCloser.SignalAndWait()
@@ -145,8 +144,8 @@ func (p *publisher) deleteSubscriber(id uint64) {
 	p.Lock()
 	defer p.Unlock()
 	if s, ok := p.subscribers[id]; ok {
-		for _, m := range s.matches {
-			p.indexer.DeleteMatch(m, id)
+		for _, prefix := range s.prefixes {
+			p.indexer.Delete(prefix, id)
 		}
 	}
 	delete(p.subscribers, id)

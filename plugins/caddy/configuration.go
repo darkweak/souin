@@ -1,14 +1,15 @@
 package caddy
 
 import (
+	"time"
+
 	"github.com/darkweak/souin/configurationtypes"
 	"go.uber.org/zap"
-	"time"
 )
 
 // DefaultCache the struct
 type DefaultCache struct {
-	Badger       configurationtypes.CacheProvider
+	Badger      configurationtypes.CacheProvider
 	Distributed bool
 	Headers     []string
 	Olric       configurationtypes.CacheProvider

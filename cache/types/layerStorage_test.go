@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/darkweak/souin/errors"
 	"time"
+
+	"github.com/darkweak/souin/errors"
 )
 
 const LAYEREDKEY = "LayeredKey"

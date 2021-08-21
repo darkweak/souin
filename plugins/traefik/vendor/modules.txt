@@ -1,3 +1,5 @@
+# github.com/DataDog/zstd v1.4.1
+github.com/DataDog/zstd
 # github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da
 github.com/armon/go-metrics
 # github.com/buraksezer/connpool v0.4.0
@@ -37,7 +39,7 @@ github.com/darkweak/souin/errors
 github.com/darkweak/souin/helpers
 github.com/darkweak/souin/rfc
 github.com/darkweak/souin/tests
-# github.com/dgraph-io/badger/v3 v3.2103.1
+# github.com/dgraph-io/badger/v3 v3.2011.1
 github.com/dgraph-io/badger/v3
 github.com/dgraph-io/badger/v3/fb
 github.com/dgraph-io/badger/v3/options
@@ -46,7 +48,7 @@ github.com/dgraph-io/badger/v3/skl
 github.com/dgraph-io/badger/v3/table
 github.com/dgraph-io/badger/v3/trie
 github.com/dgraph-io/badger/v3/y
-# github.com/dgraph-io/ristretto v0.1.0
+# github.com/dgraph-io/ristretto v0.0.4-0.20210122082011-bb5d392ed82d
 github.com/dgraph-io/ristretto
 github.com/dgraph-io/ristretto/z
 github.com/dgraph-io/ristretto/z/simd
@@ -55,15 +57,11 @@ github.com/dustin/go-humanize
 # github.com/go-chi/stampede v0.4.5
 github.com/go-chi/stampede
 github.com/go-chi/stampede/singleflight
-# github.com/gogo/protobuf v1.3.2
-github.com/gogo/protobuf/proto
-# github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
-github.com/golang/glog
 # github.com/golang/groupcache v0.0.0-20190702054246-869f871628b6
 github.com/golang/groupcache/lru
 # github.com/golang/protobuf v1.3.1
 github.com/golang/protobuf/proto
-# github.com/golang/snappy v0.0.3
+# github.com/golang/snappy v0.0.1
 github.com/golang/snappy
 # github.com/google/btree v0.0.0-20180813153112-4030bb1f1f0c
 github.com/google/btree
@@ -90,11 +88,6 @@ github.com/hashicorp/logutils
 github.com/hashicorp/memberlist
 # github.com/imdario/mergo v0.3.12
 github.com/imdario/mergo
-# github.com/klauspost/compress v1.12.3
-github.com/klauspost/compress/fse
-github.com/klauspost/compress/huff0
-github.com/klauspost/compress/zstd
-github.com/klauspost/compress/zstd/internal/xxhash
 # github.com/miekg/dns v1.1.31
 github.com/miekg/dns
 # github.com/patrickmn/go-cache v2.1.0+incompatible

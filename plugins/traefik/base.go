@@ -1,6 +1,9 @@
 package traefik
 
 import (
+	"io/ioutil"
+	"net/http"
+
 	"github.com/darkweak/souin/cache/coalescing"
 	"github.com/darkweak/souin/cache/providers"
 	"github.com/darkweak/souin/cache/types"
@@ -8,8 +11,6 @@ import (
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/helpers"
 	"github.com/darkweak/souin/rfc"
-	"io/ioutil"
-	"net/http"
 )
 
 // DefaultSouinPluginCallback is the default callback for plugins

@@ -147,31 +147,18 @@ type Entry struct {
 	meta      byte
 
 	// Fields maintained internally.
-	hlen         int // Length of the header.
-	valThreshold int64
+	hlen int // Length of the header.
 }
 
 func (e *Entry) isZero() bool {
 	return len(e.Key) == 0
 }
 
-func (e *Entry) estimateSizeAndSetThreshold(threshold int64) int64 {
-	if e.valThreshold == 0 {
-		e.valThreshold = threshold
+func (e *Entry) estimateSize(threshold int) int {
+	if len(e.Value) < threshold {
+		return len(e.Key) + len(e.Value) + 2 // Meta, UserMeta
 	}
-	k := int64(len(e.Key))
-	v := int64(len(e.Value))
-	if v < e.valThreshold {
-		return k + v + 2 // Meta, UserMeta
-	}
-	return k + 12 + 2 // 12 for ValuePointer, 2 for metas.
-}
-
-func (e *Entry) skipVlogAndSetThreshold(threshold int64) bool {
-	if e.valThreshold == 0 {
-		e.valThreshold = threshold
-	}
-	return int64(len(e.Value)) < e.valThreshold
+	return len(e.Key) + 12 + 2 // 12 for ValuePointer, 2 for metas.
 }
 
 func (e Entry) print(prefix string) {

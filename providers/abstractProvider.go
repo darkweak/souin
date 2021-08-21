@@ -5,11 +5,12 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/darkweak/souin/configuration"
-	"github.com/fsnotify/fsnotify"
 	"io/ioutil"
 	"log"
 	"strings"
+
+	"github.com/darkweak/souin/configuration"
+	"github.com/fsnotify/fsnotify"
 )
 
 // CommonProvider contains a Certificate map
@@ -52,13 +53,13 @@ func (c *CommonProvider) LoadFromConfigFile(tlsconfig *tls.Config, configChannel
 	}
 
 	for _, i := range certificates.Certificates {
-		decodedKey, err := base64.StdEncoding.DecodeString(i.Key)
-		if err != nil {
-			fmt.Println(err)
+		decodedKey, er := base64.StdEncoding.DecodeString(i.Key)
+		if er != nil {
+			fmt.Println(er)
 		}
-		decodedCertificates, err := base64.StdEncoding.DecodeString(i.Certificate)
-		if err != nil {
-			fmt.Println(err)
+		decodedCertificates, e := base64.StdEncoding.DecodeString(i.Certificate)
+		if e != nil {
+			fmt.Println(e)
 		}
 		splittedCertificates := strings.Split(string(decodedCertificates), "\n\n")
 

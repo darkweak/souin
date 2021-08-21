@@ -9,6 +9,7 @@ func GenerateError(t *testing.T, text string) {
 	t.Errorf("An error occurred : %s", text)
 }
 
+// CanceledRequestContextError is the error to handle request cancellation
 type CanceledRequestContextError struct{}
 
 func (c *CanceledRequestContextError) Error() string {

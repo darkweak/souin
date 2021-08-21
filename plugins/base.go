@@ -1,6 +1,9 @@
 package plugins
 
 import (
+	"io/ioutil"
+	"net/http"
+
 	"github.com/darkweak/souin/cache/coalescing"
 	"github.com/darkweak/souin/cache/providers"
 	"github.com/darkweak/souin/cache/types"
@@ -10,8 +13,6 @@ import (
 	"github.com/darkweak/souin/rfc"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"io/ioutil"
-	"net/http"
 )
 
 // DefaultSouinPluginCallback is the default callback for plugins
@@ -61,7 +62,7 @@ func DefaultSouinPluginCallback(
 
 	close(responses)
 	if <-coalesceable {
-		rc.Temporise(req, res, nextMiddleware)
+		rc.Temporize(req, res, nextMiddleware)
 	} else {
 		_ = nextMiddleware(res, req)
 	}

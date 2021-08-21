@@ -2,9 +2,10 @@ package rfc
 
 import (
 	"fmt"
-	"github.com/darkweak/souin/errors"
 	"net/http"
 	"testing"
+
+	"github.com/darkweak/souin/errors"
 )
 
 func TestHitCache(t *testing.T) {

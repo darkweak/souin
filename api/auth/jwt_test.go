@@ -31,7 +31,7 @@ func TestCheckToken(t *testing.T) {
 	http.SetCookie(w, &http.Cookie{Name: tests.GetTokenName(), Value: "badvalue"})
 	r = &http.Request{
 		Header: http.Header{
-			"Cookie": w.HeaderMap["Set-Cookie"],
+			"Cookie": w.Header()["Set-Cookie"],
 		},
 	}
 	w = httptest.NewRecorder()
@@ -62,7 +62,7 @@ func TestCheckToken(t *testing.T) {
 	})
 	r = &http.Request{
 		Header: http.Header{
-			"Cookie": w.HeaderMap["Set-Cookie"],
+			"Cookie": w.Header()["Set-Cookie"],
 		},
 	}
 	w = httptest.NewRecorder()
@@ -93,7 +93,7 @@ func TestCheckToken(t *testing.T) {
 	})
 	r = &http.Request{
 		Header: http.Header{
-			"Cookie": w.HeaderMap["Set-Cookie"],
+			"Cookie": w.Header()["Set-Cookie"],
 		},
 	}
 	w = httptest.NewRecorder()
@@ -121,7 +121,7 @@ func TestCheckToken(t *testing.T) {
 	http.SetCookie(w, tests.GetValidToken())
 	r = &http.Request{
 		Header: http.Header{
-			"Cookie": w.HeaderMap["Set-Cookie"],
+			"Cookie": w.Header()["Set-Cookie"],
 		},
 	}
 	jwt, err = CheckToken(security, w, r)

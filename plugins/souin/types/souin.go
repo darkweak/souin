@@ -1,10 +1,11 @@
 package types
 
 import (
-	"github.com/darkweak/souin/cache/types"
-	"github.com/darkweak/souin/configurationtypes"
 	"net/url"
 	"regexp"
+
+	"github.com/darkweak/souin/cache/types"
+	"github.com/darkweak/souin/configurationtypes"
 )
 
 // SouinRetrieverResponseProperties struct
@@ -20,22 +21,22 @@ func (r *SouinRetrieverResponseProperties) GetProvider() types.AbstractProviderI
 
 // GetConfiguration get the configuration
 func (r *SouinRetrieverResponseProperties) GetConfiguration() configurationtypes.AbstractConfigurationInterface {
-	return r.Configuration
+	return r.RetrieverResponseProperties.Configuration
 }
 
 // GetMatchedURL get the matched url
 func (r *SouinRetrieverResponseProperties) GetMatchedURL() configurationtypes.URL {
-	return r.MatchedURL
+	return r.RetrieverResponseProperties.MatchedURL
 }
 
 // SetMatchedURL set the matched url
 func (r *SouinRetrieverResponseProperties) SetMatchedURL(url configurationtypes.URL) {
-	r.MatchedURL = url
+	r.RetrieverResponseProperties.MatchedURL = url
 }
 
 // GetRegexpUrls get the regexp urls
 func (r *SouinRetrieverResponseProperties) GetRegexpUrls() *regexp.Regexp {
-	return &r.RegexpUrls
+	return &r.RetrieverResponseProperties.RegexpUrls
 }
 
 // GetReverseProxyURL get the reverse proxy url
@@ -45,10 +46,10 @@ func (r *SouinRetrieverResponseProperties) GetReverseProxyURL() *url.URL {
 
 // GetTransport get the transport according to the RFC
 func (r *SouinRetrieverResponseProperties) GetTransport() types.TransportInterface {
-	return r.Transport
+	return r.RetrieverResponseProperties.Transport
 }
 
 // SetTransport set the transport
 func (r *SouinRetrieverResponseProperties) SetTransport(transportInterface types.TransportInterface) {
-	r.Transport = transportInterface
+	r.RetrieverResponseProperties.Transport = transportInterface
 }

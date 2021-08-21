@@ -1,10 +1,11 @@
 package types
 
 import (
-	"github.com/darkweak/souin/cache/ykeys"
-	"github.com/darkweak/souin/configurationtypes"
 	"net/http"
 	"regexp"
+
+	"github.com/darkweak/souin/cache/ykeys"
+	"github.com/darkweak/souin/configurationtypes"
 )
 
 // TransportInterface interface

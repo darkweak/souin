@@ -2,14 +2,13 @@ package service
 
 import (
 	"bytes"
-	"github.com/darkweak/souin/cache/types"
-	"github.com/darkweak/souin/configurationtypes"
-	souintypes "github.com/darkweak/souin/plugins/souin/types"
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
 	"strconv"
-	"strings"
+
+	"github.com/darkweak/souin/cache/types"
+	souintypes "github.com/darkweak/souin/plugins/souin/types"
 )
 
 func responseBodyExtractor(resp *http.Response) []byte {
@@ -23,16 +22,6 @@ func responseBodyExtractor(resp *http.Response) []byte {
 	}
 
 	return b
-}
-
-func getKeyFromResponse(resp *http.Response, u configurationtypes.URL) string {
-	headers := ""
-	if u.Headers != nil && len(u.Headers) > 0 {
-		for _, h := range u.Headers {
-			headers += strings.ReplaceAll(resp.Request.Header.Get(h), " ", "")
-		}
-	}
-	return resp.Request.Host + resp.Request.URL.Path + headers
 }
 
 // RewriteResponse rewrite the response
