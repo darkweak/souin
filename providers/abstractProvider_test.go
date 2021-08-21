@@ -12,7 +12,6 @@ func TestInitProviders(t *testing.T) {
 	configChannel := make(chan int)
 	config := &tls.Config{
 		Certificates:       make([]tls.Certificate, 0),
-		InsecureSkipVerify: true,
 	}
 	v, _ := tls.LoadX509KeyPair("server.crt", "server.key")
 	config.Certificates = append(config.Certificates, v)
@@ -40,7 +39,6 @@ func TestCommonProvider_LoadFromConfigFile2(t *testing.T) {
 	configChannel := make(chan int)
 	config := &tls.Config{
 		Certificates:       make([]tls.Certificate, 0),
-		InsecureSkipVerify: true,
 	}
 
 	var providers []CommonProvider
@@ -58,7 +56,6 @@ func TestCommonProvider_LoadFromConfigFile3(t *testing.T) {
 	configChannel := make(chan int)
 	config := &tls.Config{
 		Certificates:       make([]tls.Certificate, 0),
-		InsecureSkipVerify: true,
 	}
 
 	var providers []CommonProvider
@@ -77,7 +74,6 @@ func TestCommonProvider_LoadFromConfigFile4(t *testing.T) {
 	v, _ := tls.LoadX509KeyPair("server.crt", "server.key")
 	config := &tls.Config{
 		Certificates:       []tls.Certificate{v},
-		InsecureSkipVerify: true,
 	}
 
 	var providers []CommonProvider

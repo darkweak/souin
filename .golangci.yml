@@ -1,0 +1,53 @@
+linters-settings:
+  errcheck:
+    ignore: fmt:.*,io/ioutil:^Read.*,go.uber.org/zap/zapcore:^Add.*
+    ignoretests: true
+
+linters:
+  disable-all: true
+  enable:
+    - bodyclose
+    - deadcode
+    - errcheck
+    - gofmt
+    - goimports
+    - gosec
+    - govet
+    - ineffassign
+    - misspell
+    - staticcheck
+    - structcheck
+    - typecheck
+    - unconvert
+    - unused
+    - varcheck
+
+run:
+  deadline: 5m
+  issues-exit-code: 1
+  tests: false
+  skip-dirs:
+    - configurationtypes
+    - plugins/traefik/vendor
+    - plugins/tyk/vendor
+
+output:
+  format: 'colored-line-number'
+  print-issued-lines: true
+  print-linter-name: true
+
+issues:
+  exclude-rules:
+    - text: "G107" # G107: Url provided to HTTP request as taint input
+      linters:
+        - gosec
+    - text: "G203" # G203: Use of unescaped data in HTML templates
+      linters:
+        - gosec
+    - text: "G204" # G204: Audit use of command execution
+      linters:
+        - gosec
+    - path: modules/caddyhttp/reverseproxy/selectionpolicies.go
+      text: "G404" # G404: Insecure random number source (rand)
+      linters:
+        - gosec

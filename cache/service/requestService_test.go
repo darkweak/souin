@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"github.com/darkweak/souin/configurationtypes"
 	souintypes "github.com/darkweak/souin/plugins/souin/types"
 	"github.com/darkweak/souin/tests"
 	"io/ioutil"
@@ -79,6 +80,16 @@ func mockResponse(path string, method string, body string, code int) *http.Respo
 	}
 }
 
+func getKeyFromResponse(resp *http.Response, u configurationtypes.URL) string {
+	headers := ""
+	if u.Headers != nil && len(u.Headers) > 0 {
+		for _, h := range u.Headers {
+			headers += strings.ReplaceAll(resp.Request.Header.Get(h), " ", "")
+		}
+	}
+	return resp.Request.Host + resp.Request.URL.Path + headers
+}
+
 func TestGetKeyFromResponse(t *testing.T) {
 	resp := getKeyFromResponse(mockResponse(tests.PATH, http.MethodGet, "", 200), tests.GetMatchedURL(tests.PATH))
 	urlCollapsed := tests.DOMAIN + tests.PATH
@@ -88,12 +99,7 @@ func TestGetKeyFromResponse(t *testing.T) {
 }
 
 func shouldNotHaveKey(pathname string, pr types.AbstractProviderInterface) bool {
-	r := pr.Get(pathname)
-	if 0 < len(r) {
-		return false
-	}
-
-	return true
+	return 0 >= len(pr.Get(pathname))
 }
 
 func mockRewriteResponse(method string, body string, path string, code int) []byte {

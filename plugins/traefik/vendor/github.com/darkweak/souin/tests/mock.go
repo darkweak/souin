@@ -63,7 +63,6 @@ ykeys:
 `
 }
 
-
 // BadgerConfiguration simulate the configuration for the Badger storage
 func BadgerConfiguration() string {
 	return `
@@ -240,7 +239,7 @@ memberlist:
   maxJoinAttempts: 10
 `),
 		0644,
-)
+	)
 
 	return baseEmbeddedOlricConfiguration(fmt.Sprintf("path: '%s'", path))
 }

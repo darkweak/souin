@@ -7,8 +7,8 @@ import (
 	"strings"
 )
 
-// Temporise will run one call to proxy then use the response for other requests that couldn't reach cached response
-func (r *RequestCoalescing) Temporise(req *http.Request, rw http.ResponseWriter, nextMiddleware func(http.ResponseWriter, *http.Request) error) {
+// Temporize will run one call to proxy then use the response for other requests that couldn't reach cached response
+func (r *RequestCoalescing) Temporize(req *http.Request, rw http.ResponseWriter, nextMiddleware func(http.ResponseWriter, *http.Request) error) {
 	_ = nextMiddleware(rw, req)
 }
 

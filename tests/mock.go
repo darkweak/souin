@@ -63,7 +63,6 @@ ykeys:
 `
 }
 
-
 // BadgerConfiguration simulate the configuration for the Badger storage
 func BadgerConfiguration() string {
 	return `
@@ -239,8 +238,8 @@ memberlist:
   joinRetryInterval: "1s"
   maxJoinAttempts: 10
 `),
-		0644,
-)
+		0600,
+	)
 
 	return baseEmbeddedOlricConfiguration(fmt.Sprintf("path: '%s'", path))
 }

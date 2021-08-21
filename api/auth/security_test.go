@@ -101,7 +101,7 @@ func TestSecurityAPI_HandleRequest(t *testing.T) {
 	http.SetCookie(w, tests.GetValidToken())
 	r = &http.Request{
 		Header: http.Header{
-			"Cookie": w.HeaderMap["Set-Cookie"],
+			"Cookie": w.Header()["Set-Cookie"],
 		},
 	}
 	security.HandleRequest(w, r)

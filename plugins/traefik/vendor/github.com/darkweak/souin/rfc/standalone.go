@@ -190,9 +190,9 @@ func canStore(reqCacheControl, respCacheControl cacheControl) (canStore bool) {
 }
 
 func newGatewayTimeoutResponse(req *http.Request) *http.Response {
-	var braw bytes.Buffer
-	braw.WriteString("HTTP/1.1 504 Gateway Timeout\r\n\r\n")
-	resp, _ := http.ReadResponse(bufio.NewReader(&braw), req)
+	var b bytes.Buffer
+	b.WriteString("HTTP/1.1 504 Gateway Timeout\r\n\r\n")
+	resp, _ := http.ReadResponse(bufio.NewReader(&b), req)
 	return resp
 }
 

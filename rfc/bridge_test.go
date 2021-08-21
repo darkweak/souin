@@ -18,7 +18,6 @@ func commonInitializer() (*http.Request, types.AbstractProviderInterface, *VaryT
 	r := httptest.NewRequest("GET", "http://domain.com/testing", nil)
 	httptest.NewRecorder()
 
-
 	return r, prs, NewTransport(prs, ykeys.InitializeYKeys(c.Ykeys))
 }
 

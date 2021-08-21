@@ -1,10 +1,6 @@
-.PHONY: prepare
+.PHONY: prepare replace vendor
 
-prepare: ## Prepare tyk plugin
-	go mod tidy
-	go mod download
-	go mod vendor
-	$(MAKE) replace
+prepare: vendor ## Prepare tyk plugin
 	cp docker-compose.yml.test docker-compose.yml
 	docker-compose up tyk-builder
 	mv souin-plugin.so ./samples/middleware/
@@ -14,3 +10,9 @@ prepare: ## Prepare tyk plugin
 replace: ## Replace sources in the vendor folder deeper than the go mod replace
 	rm -rf vendor/github.com/darkweak/souin/cache/providers
 	scp -r override/providers vendor/github.com/darkweak/souin/cache
+
+vendor: ## Generate vendors for the plugin
+	go mod tidy
+	go mod download
+	go mod vendor
+	$(MAKE) replace

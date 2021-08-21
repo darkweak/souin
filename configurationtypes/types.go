@@ -3,7 +3,7 @@ package configurationtypes
 import (
 	"encoding/json"
 	"go.uber.org/zap"
-	"gopkg.in/yaml.v3"
+	yaml "gopkg.in/yaml.v3"
 	"time"
 )
 
@@ -14,7 +14,7 @@ type Duration struct {
 
 // MarshalYAML transform the Duration into a time.duration object
 func (d Duration) MarshalYAML() (interface{}, error) {
-	return yaml.Marshal(d.String())
+	return yaml.Marshal(d.Duration.String())
 }
 
 // UnmarshalYAML parse the time.duration into a Duration object
@@ -27,7 +27,7 @@ func (d Duration) UnmarshalYAML(b *yaml.Node) error {
 
 // MarshalJSON transform the Duration into a time.duration object
 func (d Duration) MarshalJSON() ([]byte, error) {
-	return json.Marshal(d.String())
+	return json.Marshal(d.Duration.String())
 }
 
 // UnmarshalJSON parse the time.duration into a Duration object

@@ -1,4 +1,6 @@
-.PHONY: build-and-run-caddy build-and-run-caddy-json build-and-run-traefik build-and-run-tyk build-app build-caddy build-dev coverage create-network down env-dev env-prod gatling generate-plantUML health-check-prod help lint log tests up validate
+.PHONY: build-and-run-caddy build-and-run-caddy-json build-and-run-traefik build-and-run-tyk build-app build-caddy \
+	build-dev coverage create-network down env-dev env-prod gatling generate-plantUML health-check-prod help lint log \
+	tests up validate vendor-plugins
 
 DC=docker-compose
 DC_BUILD=$(DC) build
@@ -72,3 +74,7 @@ up: ## Up containers
 	$(DC) up -d --remove-orphans
 
 validate: lint tests down health-check-prod ## Run lint, tests and ensure prod can build
+
+vendor-plugins: ## Generate and prepare vendors for each plugin
+	cd plugins/tyk && $(MAKE) vendor
+	cd plugins/traefik && $(MAKE) vendor

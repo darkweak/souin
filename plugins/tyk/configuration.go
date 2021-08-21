@@ -7,14 +7,18 @@ import (
 	"time"
 )
 
+
+// Duration is the super object to handle durations in the configuration
 type Duration struct {
 	time.Duration
 }
 
+// MarshalJSON will marshall the duration into a string duration
 func (d Duration) MarshalJSON() ([]byte, error) {
 	return json.Marshal(d.String())
 }
 
+// UnmarshalJSON will unmarshall the string duration into a time.Duration
 func (d *Duration) UnmarshalJSON(b []byte) error {
 	if b[0] == '"' {
 		sd := string(b[1 : len(b)-1])

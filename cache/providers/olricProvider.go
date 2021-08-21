@@ -13,7 +13,7 @@ import (
 // Olric provider type
 type Olric struct {
 	*client.Client
-	dm       *client.DMap
+	dm *client.DMap
 }
 
 // OlricConnectionFactory function create new Olric instance
@@ -48,14 +48,16 @@ func (provider *Olric) ListKeys() []string {
 			},
 		},
 	})
+	if c != nil {
+		defer c.Close()
+	}
 	if err != nil {
-		fmt.Println(fmt.Sprintf("An error occurred while trying to list keys in Olric: %s", err))
+		fmt.Printf("An error occurred while trying to list keys in Olric: %s\n", err)
 		return []string{}
 	}
-	defer c.Close()
 
 	keys := []string{}
-	err = c.Range(func(key string, _ interface{}) bool {
+	_ = c.Range(func(key string, _ interface{}) bool {
 		keys = append(keys, key)
 		return true
 	})
@@ -70,15 +72,16 @@ func (provider *Olric) Prefix(key string, req *http.Request) []byte {
 			"$regexMatch": "^" + key,
 		},
 	})
-
+	if c != nil {
+		defer c.Close()
+	}
 	if err != nil {
-		fmt.Println(fmt.Sprintf("An error occurred while trying to retrieve data in Olric: %s", err))
+		fmt.Printf("An error occurred while trying to retrieve data in Olric: %s\n", err)
 		return []byte{}
 	}
-	defer c.Close()
 
 	res := []byte{}
-	err = c.Range(func(k string, v interface{}) bool {
+	_ = c.Range(func(k string, v interface{}) bool {
 		if varyVoter(key, req, k) {
 			res = v.([]byte)
 			return false

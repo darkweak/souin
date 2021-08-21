@@ -26,6 +26,7 @@ var bufPool = sync.Pool{
 	},
 }
 
+// TestConfiguration is the temporary configuration for Træfik
 type TestConfiguration map[string]interface{}
 
 // CreateConfig creates the default plugin configuration.
@@ -77,18 +78,18 @@ func parseConfiguration(c map[string]interface{}) Configuration {
 			urls := v.(map[string]interface{})
 
 			for urlK, urlV := range urls {
-				currentUrl := configurationtypes.URL{
+				currentURL := configurationtypes.URL{
 					TTL:     configurationtypes.Duration{},
 					Headers: nil,
 				}
 				currentValue := urlV.(map[string]interface{})
-				currentUrl.Headers = strings.Split(currentValue["headers"].(string), ",")
+				currentURL.Headers = strings.Split(currentValue["headers"].(string), ",")
 				d := currentValue["ttl"].(string)
 				ttl, err := time.ParseDuration(d)
 				if err == nil {
-					currentUrl.TTL = configurationtypes.Duration{Duration: ttl}
+					currentURL.TTL = configurationtypes.Duration{Duration: ttl}
 				}
-				u[urlK] = currentUrl
+				u[urlK] = currentURL
 			}
 			configuration.URLs = u
 		case "ykeys":

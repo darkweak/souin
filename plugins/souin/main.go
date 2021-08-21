@@ -43,9 +43,8 @@ func startServer(config *tls.Config) (net.Listener, *http.Server) {
 		fmt.Println(err)
 	}
 	go func() {
-		err := server.Serve(listener)
-		if nil != err {
-			fmt.Println(err)
+		if e := server.Serve(listener); nil != e {
+			fmt.Println(e)
 		}
 	}()
 
@@ -58,7 +57,6 @@ func main() {
 	configChannel := make(chan int)
 	tlsConfig := &tls.Config{
 		Certificates:       make([]tls.Certificate, 0),
-		InsecureSkipVerify: true,
 	}
 	v, _ := tls.LoadX509KeyPair("./default/server.crt", "./default/server.key")
 	tlsConfig.Certificates = append(tlsConfig.Certificates, v)
@@ -98,11 +96,9 @@ func main() {
 	go func() {
 		listener, _ := startServer(tlsConfig)
 		for {
-			select {
-			case <-configChannel:
-				_ = listener.Close()
-				listener, _ = startServer(tlsConfig)
-			}
+			<-configChannel
+			_ = listener.Close()
+			listener, _ = startServer(tlsConfig)
 		}
 	}()
 

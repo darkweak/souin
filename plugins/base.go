@@ -61,7 +61,7 @@ func DefaultSouinPluginCallback(
 
 	close(responses)
 	if <-coalesceable {
-		rc.Temporise(req, res, nextMiddleware)
+		rc.Temporize(req, res, nextMiddleware)
 	} else {
 		_ = nextMiddleware(res, req)
 	}

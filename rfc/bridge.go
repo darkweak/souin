@@ -108,7 +108,7 @@ func commonVaryMatchesVerification(cachedResp *http.Response, req *http.Request)
 }
 
 // UpdateCacheEventually will handle Request and update the previous one in the cache provider
-func (t *VaryTransport) UpdateCacheEventually(req *http.Request) (resp *http.Response, err error) {
+func (t *VaryTransport) UpdateCacheEventually(req *http.Request) (*http.Response, error) {
 	cacheKey, cacheable, cachedResp := t.BaseRoundTrip(req, false)
 
 	if cacheable && cachedResp != nil {
@@ -117,12 +117,12 @@ func (t *VaryTransport) UpdateCacheEventually(req *http.Request) (resp *http.Res
 			return r, nil
 		}
 	} else {
-		if resp, err = commonCacheControl(req, t.RoundTrip); err != nil {
+		if _, err := commonCacheControl(req, t.RoundTrip); err != nil {
 			return nil, err
 		}
 	}
 
-	resp = cachedResp
+	resp := cachedResp
 	if cacheable {
 		_ = validateVary(req, resp, cacheKey, t)
 	}
