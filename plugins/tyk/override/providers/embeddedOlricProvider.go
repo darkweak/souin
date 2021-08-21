@@ -3,6 +3,11 @@ package providers
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"os"
+	"time"
+
 	"github.com/buraksezer/olric"
 	"github.com/buraksezer/olric/config"
 	"github.com/buraksezer/olric/query"
@@ -10,16 +15,12 @@ import (
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
-	"io/ioutil"
-	"net/http"
-	"os"
-	"time"
 )
 
 // EmbeddedOlric provider type
 type EmbeddedOlric struct {
-	dm       *olric.DMap
-	db       *olric.Olric
+	dm *olric.DMap
+	db *olric.Olric
 }
 
 func tryToLoadConfiguration(olricInstance *config.Config, olricConfiguration t.CacheProvider, logger *zap.Logger) (*config.Config, bool) {
@@ -40,7 +41,7 @@ func tryToLoadConfiguration(olricInstance *config.Config, olricConfiguration t.C
 		if e = ioutil.WriteFile(
 			tmpFile,
 			yamlConfig,
-			0644,
+			0600,
 		); e != nil {
 			logger.Error("Impossible to create the embedded Olric config from the given one")
 		}
@@ -79,7 +80,7 @@ func EmbeddedOlricConnectionFactory(configuration t.AbstractConfigurationInterfa
 	ch := make(chan error, 1)
 	go func() {
 		if err = db.Start(); err != nil {
-			fmt.Println(fmt.Sprintf("Impossible to start the embedded Olric instance: %v", err))
+			fmt.Printf("Impossible to start the embedded Olric instance: %v\n", err)
 			ch <- err
 		}
 	}()
@@ -109,14 +110,16 @@ func (provider *EmbeddedOlric) ListKeys() []string {
 			},
 		},
 	})
-	defer c.Close()
+	if c != nil {
+		defer c.Close()
+	}
 	if err != nil {
-		fmt.Println(fmt.Sprintf("An error occurred while trying to list keys in Olric: %s", err))
+		fmt.Printf("An error occurred while trying to list keys in Olric: %s\n", err)
 		return []string{}
 	}
 
 	keys := []string{}
-	err = c.Range(func(key string, _ interface{}) bool {
+	_ = c.Range(func(key string, _ interface{}) bool {
 		keys = append(keys, key)
 		return true
 	})
@@ -133,13 +136,14 @@ func (provider *EmbeddedOlric) Prefix(key string, req *http.Request) []byte {
 	})
 
 	if err != nil {
-		fmt.Println(fmt.Sprintf("An error occurred while trying to retrieve data in Olric: %s", err))
+		fmt.Printf("An error occurred while trying to retrieve data in Olric: %s\n", err)
 		return []byte{}
 	}
-	defer c.Close()
-
+	if c != nil {
+		defer c.Close()
+	}
 	res := []byte{}
-	err = c.Range(func(k string, v interface{}) bool {
+	_ = c.Range(func(k string, v interface{}) bool {
 		if varyVoter(key, req, k) {
 			res = v.([]byte)
 			return false

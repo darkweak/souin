@@ -3,8 +3,19 @@ name: Build container and validate lint/tests
 on: [push]
 
 jobs:
+  lint-validation:
+    name: Validate Go code linting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Install Go
+        uses: actions/setup-go@v2
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v2
   checkout-code-and-validate:
-    name: Checkout code
+    needs: lint-validation
+    name: Checkout code and validate tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -19,8 +30,6 @@ jobs:
         run: cp Dockerfile-dev Dockerfile && cp docker-compose.yml.test docker-compose.yml
       - name: Build the stack
         run: docker-compose up -d --build --force-recreate --remove-orphans
-      - name: golangci-lint
-        uses: reviewdog/action-golangci-lint@v1
       - name: Test
         run: docker-compose exec -T souin go test -v ./...
   validate-prod-container-building:

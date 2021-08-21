@@ -3,12 +3,13 @@ package rfc
 import (
 	"bytes"
 	"fmt"
-	"github.com/darkweak/souin/errors"
-	"github.com/darkweak/souin/tests"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/darkweak/souin/errors"
+	"github.com/darkweak/souin/tests"
 )
 
 func TestGetFreshness_Date(t *testing.T) {

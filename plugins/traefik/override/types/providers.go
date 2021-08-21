@@ -1,9 +1,10 @@
 package types
 
 import (
-	"github.com/darkweak/souin/configurationtypes"
 	"net/http"
 	"time"
+
+	"github.com/darkweak/souin/configurationtypes"
 )
 
 // AbstractProviderInterface should be implemented in any providers

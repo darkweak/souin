@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/darkweak/souin/api/auth"
 	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/cache/ykeys"
@@ -13,10 +12,10 @@ import (
 
 // SouinAPI object contains informations related to the endpoints
 type SouinAPI struct {
-	basePath string
-	enabled  bool
-	provider types.AbstractProviderInterface
-	security *auth.SecurityAPI
+	basePath    string
+	enabled     bool
+	provider    types.AbstractProviderInterface
+	security    *auth.SecurityAPI
 	ykeyStorage *ykeys.YKeyStorage
 }
 
@@ -76,11 +75,11 @@ func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 	res := []byte{}
 	if s.security != nil {
 		if _, err := auth.CheckToken(s.security, w, r); err != nil {
-			w.Write(res)
+			_, _ = w.Write(res)
 			return
 		}
 	}
-	compile := regexp.MustCompile(fmt.Sprintf("%s/.+", s.GetBasePath())).FindString(r.RequestURI) != ""
+	compile := regexp.MustCompile(s.GetBasePath()+"/.+").FindString(r.RequestURI) != ""
 	switch r.Method {
 	case http.MethodGet:
 		if compile {
@@ -94,11 +93,11 @@ func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 		if query != "" {
 			s.invalidateFromYKey(query)
 		} else if compile {
-			submatch := regexp.MustCompile(fmt.Sprintf("%s/(.+)", s.GetBasePath())).FindAllStringSubmatch(r.RequestURI, -1)[0][1]
+			submatch := regexp.MustCompile(s.GetBasePath()+"/(.+)").FindAllStringSubmatch(r.RequestURI, -1)[0][1]
 			s.BulkDelete(submatch)
 		}
 		w.WriteHeader(http.StatusNoContent)
 	default:
 	}
-	w.Write(res)
+	_, _ = w.Write(res)
 }

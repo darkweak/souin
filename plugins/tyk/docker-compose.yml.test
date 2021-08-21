@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  tyk-builder:
+    image: tykio/tyk-plugin-compiler:v3.2.2-rc4
+    command: souin-plugin.so
+    volumes:
+      - .:/plugin-source
+
+  tyk-gateway:
+    image: tykio/tyk-gateway:v3.2.2-rc4
+    ports:
+      - "8080:8080"
+    depends_on:
+      - tyk-redis
+    volumes:
+      - ./samples/confs/tyk.conf:/opt/tyk-gateway/tyk.conf
+      - ./samples/middleware:/opt/tyk-gateway/middleware
+      - ./samples/apps:/opt/tyk-gateway/apps
+  tyk-pump:
+    image: tykio/tyk-pump-docker-pub:latest
+    depends_on:
+      - tyk-redis
+      - tyk-mongo
+      - tyk-gateway
+    volumes:
+      - ./samples/confs/pump.conf:/opt/tyk-pump/pump.conf
+  tyk-redis:
+    image: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+  tyk-mongo:
+    image: mongo:3.2
+    command: [ "mongod", "--smallfiles" ]
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+volumes:
+  redis-data:
+  mongo-data:

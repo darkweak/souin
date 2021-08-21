@@ -2,13 +2,14 @@ package ykeys
 
 import (
 	"fmt"
-	"github.com/darkweak/souin/configuration"
-	"github.com/darkweak/souin/configurationtypes"
-	"github.com/darkweak/souin/errors"
 	"net/http"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/darkweak/souin/configuration"
+	"github.com/darkweak/souin/configurationtypes"
+	"github.com/darkweak/souin/errors"
 )
 
 const FirstKey = "The_First_Test"
@@ -50,9 +51,9 @@ func TestYKeyStorage_AddToTags(t *testing.T) {
 	url := "http://the.url.com"
 
 	r := InitializeYKeys(baseYkeys)
-	time.Sleep(200*time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 	r.AddToTags(url, []string{FirstKey})
-	time.Sleep(200*time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 	res, _ := r.Cache.Get(FirstKey)
 	if !strings.Contains(res.(string), url) {
 		errors.GenerateError(t, fmt.Sprintf("R1 => The key %s should contains the url %s, %s given", FirstKey, url, res))
@@ -61,7 +62,7 @@ func TestYKeyStorage_AddToTags(t *testing.T) {
 	r.AddToTags(url, []string{FirstKey, SecondKey})
 	r.AddToTags("http://domain.com", []string{FirstKey})
 
-	time.Sleep(200*time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 	res, _ = r.Cache.Get(FirstKey)
 	if !strings.Contains(res.(string), url) {
 		errors.GenerateError(t, fmt.Sprintf("R2 => The key %s should contains the url %s, %s given", FirstKey, url, res))
@@ -70,7 +71,7 @@ func TestYKeyStorage_AddToTags(t *testing.T) {
 		errors.GenerateError(t, fmt.Sprintf("R2 => The key %s should contains 2 records, %d given", FirstKey, len(strings.Split(res.(string), ","))))
 	}
 
-	time.Sleep(200*time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 	res, _ = r.Cache.Get(SecondKey)
 	if !strings.Contains(res.(string), url) {
 		errors.GenerateError(t, fmt.Sprintf("R2 => The key %s should contains the url %s, %s given", SecondKey, url, res))
@@ -82,7 +83,7 @@ func TestYKeyStorage_AddToTags(t *testing.T) {
 	r.AddToTags(url, []string{FirstKey})
 	r.AddToTags(url, []string{FirstKey})
 	r.AddToTags("http://domain.com", []string{FirstKey})
-	time.Sleep(200*time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 	res, _ = r.Cache.Get(FirstKey)
 	if len(strings.Split(res.(string), ",")) != 2 {
 		errors.GenerateError(t, fmt.Sprintf("R3 => The key %s should contains 2 records, %d given", FirstKey, len(strings.Split(res.(string), ","))))
@@ -97,7 +98,7 @@ func TestYKeyStorage_InvalidateTags(t *testing.T) {
 	url4 := "http://the.url4.com"
 
 	r := InitializeYKeys(baseYkeys)
-	time.Sleep(200*time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 	r.AddToTags(url1, []string{FirstKey, SecondKey})
 	r.AddToTags(url2, []string{FirstKey, SecondKey})
 	r.AddToTags(url3, []string{FirstKey, ThirdKey})
@@ -109,25 +110,25 @@ func TestYKeyStorage_InvalidateTags(t *testing.T) {
 		errors.GenerateError(t, fmt.Sprintf("It should have 3 urls to remove (e.g. [http://the.url1.com http://the.url2.com http://the.url3.com]), %v given", urls))
 	}
 
-	time.Sleep(200*time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 	res, _ := r.Cache.Get(FirstKey)
 	if res.(string) != "" {
 		errors.GenerateError(t, "The FIRST_KEY should be empty")
 	}
 
-	time.Sleep(200*time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 	res, _ = r.Cache.Get(SecondKey)
 	if res.(string) != "" {
 		errors.GenerateError(t, "The SECOND_KEY should be empty")
 	}
 
-	time.Sleep(200*time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 	res, _ = r.Cache.Get(ThirdKey)
 	if res.(string) != url4 {
 		errors.GenerateError(t, "The THIRD_KEY should be equals to http://the.url4.com")
 	}
 
-	time.Sleep(200*time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 	res, _ = r.Cache.Get(FourthKey)
 	if res.(string) != url4 {
 		errors.GenerateError(t, "The FOURTH_KEY should be equals to http://the.url4.com")
@@ -142,13 +143,13 @@ func TestYKeyStorage_InvalidateTagURLs(t *testing.T) {
 	url4 := "http://the.url4.com"
 
 	r := InitializeYKeys(baseYkeys)
-	time.Sleep(200*time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 	r.AddToTags(url1, []string{FirstKey, SecondKey})
-	time.Sleep(200*time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 	r.AddToTags(url2, []string{FirstKey, SecondKey})
-	time.Sleep(200*time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 	r.AddToTags(url3, []string{FirstKey, ThirdKey})
-	time.Sleep(200*time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 	r.AddToTags(url4, []string{ThirdKey, FourthKey})
 
 	urls := r.InvalidateTagURLs(fmt.Sprintf("%s,%s", url1, url3))
@@ -156,25 +157,25 @@ func TestYKeyStorage_InvalidateTagURLs(t *testing.T) {
 		errors.GenerateError(t, "It should have 2 urls to remove (e.g. [http://the.url1.com http://the.url3.com])")
 	}
 
-	time.Sleep(200*time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 	res, _ := r.Cache.Get(FirstKey)
 	if res.(string) != url2 {
 		errors.GenerateError(t, "The FIRST_KEY should be equals to http://the.url2.com")
 	}
 
-	time.Sleep(200*time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 	res, _ = r.Cache.Get(SecondKey)
 	if res.(string) != url2 {
 		errors.GenerateError(t, "The SECOND_KEY should be equals to http://the.url2.com")
 	}
 
-	time.Sleep(200*time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 	res, _ = r.Cache.Get(ThirdKey)
 	if res.(string) != url4 {
 		errors.GenerateError(t, "The THIRD_KEY should be equals to http://the.url4.com")
 	}
 
-	time.Sleep(200*time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 	res, _ = r.Cache.Get(FourthKey)
 	if res.(string) != url4 {
 		errors.GenerateError(t, "The FOURTH_KEY should be equals to http://the.url4.com")

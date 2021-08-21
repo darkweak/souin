@@ -3,6 +3,11 @@ package main
 import (
 	"crypto/tls"
 	"fmt"
+	"net"
+	"net/http"
+	"net/url"
+	"time"
+
 	"github.com/darkweak/souin/api"
 	"github.com/darkweak/souin/cache/coalescing"
 	"github.com/darkweak/souin/cache/service"
@@ -11,10 +16,6 @@ import (
 	"github.com/darkweak/souin/plugins"
 	souintypes "github.com/darkweak/souin/plugins/souin/types"
 	"github.com/darkweak/souin/providers"
-	"net"
-	"net/http"
-	"net/url"
-	"time"
 )
 
 func souinPluginInitializerFromConfiguration(c *configuration.Configuration) *souintypes.SouinRetrieverResponseProperties {
@@ -43,9 +44,8 @@ func startServer(config *tls.Config) (net.Listener, *http.Server) {
 		fmt.Println(err)
 	}
 	go func() {
-		err := server.Serve(listener)
-		if nil != err {
-			fmt.Println(err)
+		if e := server.Serve(listener); nil != e {
+			fmt.Println(e)
 		}
 	}()
 
@@ -57,8 +57,7 @@ func main() {
 	rc := coalescing.Initialize()
 	configChannel := make(chan int)
 	tlsConfig := &tls.Config{
-		Certificates:       make([]tls.Certificate, 0),
-		InsecureSkipVerify: true,
+		Certificates: make([]tls.Certificate, 0),
 	}
 	v, _ := tls.LoadX509KeyPair("./default/server.crt", "./default/server.key")
 	tlsConfig.Certificates = append(tlsConfig.Certificates, v)
@@ -98,11 +97,9 @@ func main() {
 	go func() {
 		listener, _ := startServer(tlsConfig)
 		for {
-			select {
-			case <-configChannel:
-				_ = listener.Close()
-				listener, _ = startServer(tlsConfig)
-			}
+			<-configChannel
+			_ = listener.Close()
+			listener, _ = startServer(tlsConfig)
 		}
 	}()
 

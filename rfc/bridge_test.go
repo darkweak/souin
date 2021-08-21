@@ -2,14 +2,15 @@ package rfc
 
 import (
 	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
 	"github.com/darkweak/souin/cache/providers"
 	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/cache/ykeys"
 	"github.com/darkweak/souin/errors"
 	"github.com/darkweak/souin/tests"
-	"net/http"
-	"net/http/httptest"
-	"testing"
 )
 
 func commonInitializer() (*http.Request, types.AbstractProviderInterface, *VaryTransport) {
@@ -17,7 +18,6 @@ func commonInitializer() (*http.Request, types.AbstractProviderInterface, *VaryT
 	prs := providers.InitializeProvider(c)
 	r := httptest.NewRequest("GET", "http://domain.com/testing", nil)
 	httptest.NewRecorder()
-
 
 	return r, prs, NewTransport(prs, ykeys.InitializeYKeys(c.Ykeys))
 }

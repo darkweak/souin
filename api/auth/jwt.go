@@ -82,11 +82,11 @@ func CheckToken(security *SecurityAPI, w http.ResponseWriter, r *http.Request) (
 	}
 	tknStr := c.Value
 	claims := &JwtProvider{}
-	tkn, err := jwt.ParseWithClaims(tknStr, claims, func(token *jwt.Token) (interface{}, error) {
+	tkn, e := jwt.ParseWithClaims(tknStr, claims, func(token *jwt.Token) (interface{}, error) {
 		return security.secret, nil
 	})
-	if err != nil {
-		if jwt.ErrSignatureInvalid.Error() == err.Error() {
+	if e != nil {
+		if jwt.ErrSignatureInvalid.Error() == e.Error() {
 			w.WriteHeader(http.StatusUnauthorized)
 			return claims, &signatureError{}
 		}

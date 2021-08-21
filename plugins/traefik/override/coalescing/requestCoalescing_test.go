@@ -1,15 +1,16 @@
 package coalescing
 
 import (
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
 	"github.com/darkweak/souin/cache/providers"
 	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/cache/ykeys"
 	"github.com/darkweak/souin/helpers"
 	"github.com/darkweak/souin/rfc"
 	"github.com/darkweak/souin/tests"
-	"net/http"
-	"net/http/httptest"
-	"testing"
 )
 
 func commonInitializer() (*httptest.ResponseRecorder, *http.Request, *types.RetrieverResponseProperties) {

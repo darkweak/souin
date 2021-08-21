@@ -5,11 +5,12 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/darkweak/souin/cache/providers"
 	"io"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/darkweak/souin/cache/providers"
 )
 
 // GetCacheKey returns the cache key for req.
@@ -30,10 +31,10 @@ func GetVariedCacheKey(req *http.Request, headers []string) string {
 //
 // fresh indicates the response can be returned
 // stale indicates that the response needs validating before it is returned
-// transparent indicates the response should not be used to fulfil the request
+// transparent indicates the response should not be used to fulfill the request
 //
 // Because this is only a private cache, 'public' and 'private' in cache-control aren't
-// signficant. Similarly, smax-age isn't used.
+// significant. Similarly, smax-age isn't used.
 func getFreshness(respHeaders, reqHeaders http.Header) (freshness int) {
 	respCacheControl := parseCacheControl(respHeaders)
 	reqCacheControl := parseCacheControl(reqHeaders)
@@ -66,8 +67,8 @@ func getFreshness(respHeaders, reqHeaders http.Header) (freshness int) {
 	} else {
 		expiresHeader := respHeaders.Get("Expires")
 		if expiresHeader != "" {
-			expires, err := time.Parse(time.RFC1123, expiresHeader)
-			if err != nil {
+			expires, e := time.Parse(time.RFC1123, expiresHeader)
+			if e != nil {
 				lifetime = zeroDuration
 			} else {
 				lifetime = expires.Sub(date)
@@ -84,8 +85,8 @@ func getFreshness(respHeaders, reqHeaders http.Header) (freshness int) {
 	}
 	if minfresh, ok := reqCacheControl["min-fresh"]; ok {
 		//  the client wants a response that will still be fresh for at least the specified number of seconds.
-		minfreshDuration, err := time.ParseDuration(minfresh + "s")
-		if err == nil {
+		minfreshDuration, e := time.ParseDuration(minfresh + "s")
+		if e == nil {
 			currentAge = currentAge + minfreshDuration
 		}
 	}
@@ -102,8 +103,8 @@ func getFreshness(respHeaders, reqHeaders http.Header) (freshness int) {
 		if maxstale == "" {
 			return fresh
 		}
-		maxstaleDuration, err := time.ParseDuration(maxstale + "s")
-		if err == nil {
+		maxstaleDuration, e := time.ParseDuration(maxstale + "s")
+		if e == nil {
 			currentAge = currentAge - maxstaleDuration
 		}
 	}
@@ -190,9 +191,9 @@ func canStore(reqCacheControl, respCacheControl cacheControl) (canStore bool) {
 }
 
 func newGatewayTimeoutResponse(req *http.Request) *http.Response {
-	var braw bytes.Buffer
-	braw.WriteString("HTTP/1.1 504 Gateway Timeout\r\n\r\n")
-	resp, _ := http.ReadResponse(bufio.NewReader(&braw), req)
+	var b bytes.Buffer
+	b.WriteString("HTTP/1.1 504 Gateway Timeout\r\n\r\n")
+	resp, _ := http.ReadResponse(bufio.NewReader(&b), req)
 	return resp
 }
 
@@ -263,9 +264,9 @@ func cloneRequest(r *http.Request) *http.Request {
 // (http://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.2),
 // values from multiple occurrences of a header should be concatenated, if
 // the header's value is a comma-separated list.
-func headerAllCommaSepValues(headers http.Header, name string) []string {
+func headerAllCommaSepValues(headers http.Header) []string {
 	var vals []string
-	for _, val := range headers[http.CanonicalHeaderKey(name)] {
+	for _, val := range headers[http.CanonicalHeaderKey("vary")] {
 		fields := strings.Split(val, ",")
 		for i, f := range fields {
 			fields[i] = strings.TrimSpace(f)

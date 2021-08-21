@@ -1,10 +1,11 @@
 package rfc
 
 import (
-	"github.com/pquerna/cachecontrol/cacheobject"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/pquerna/cachecontrol/cacheobject"
 )
 
 var emptyHeaders = []string{"Expires", "Last-Modified"}

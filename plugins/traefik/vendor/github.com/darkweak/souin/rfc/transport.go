@@ -1,12 +1,13 @@
 package rfc
 
 import (
-	"github.com/darkweak/souin/cache/types"
-	"github.com/darkweak/souin/cache/ykeys"
-	"github.com/darkweak/souin/configurationtypes"
 	"net/http"
 	"net/http/httputil"
 	"time"
+
+	"github.com/darkweak/souin/cache/types"
+	"github.com/darkweak/souin/cache/ykeys"
+	"github.com/darkweak/souin/configurationtypes"
 )
 
 // VaryTransport type

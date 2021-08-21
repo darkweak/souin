@@ -2,13 +2,15 @@ package providers
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/tests"
-	"testing"
+
+	"time"
 
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/errors"
-	"time"
 )
 
 const BADGERVALUE = "My first data"

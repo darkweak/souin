@@ -70,9 +70,6 @@ func (op *MergeOperator) iterateAndMerge() (newVal []byte, latest uint64, err er
 	var numVersions int
 	for it.Rewind(); it.Valid(); it.Next() {
 		item := it.Item()
-		if item.IsDeletedOrExpired() {
-			break
-		}
 		numVersions++
 		if numVersions == 1 {
 			// This should be the newVal, considering this is the latest version.

@@ -2,15 +2,16 @@ package rfc
 
 import (
 	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
+
 	"github.com/darkweak/souin/cache/providers"
 	"github.com/darkweak/souin/cache/ykeys"
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/errors"
 	"github.com/darkweak/souin/tests"
-	"net/http"
-	"net/http/httptest"
-	"testing"
-	"time"
 )
 
 func TestIsVaryCacheable(t *testing.T) {

@@ -9,7 +9,7 @@ import (
 // varyMatches will return false unless all of the cached values for the headers listed in Vary
 // match the new request
 func varyMatches(cachedResp *http.Response, req *http.Request) bool {
-	for _, header := range headerAllCommaSepValues(cachedResp.Header, "vary") {
+	for _, header := range headerAllCommaSepValues(cachedResp.Header) {
 		header = http.CanonicalHeaderKey(header)
 		if header == "" || req.Header.Get(header) == "" {
 			return false
@@ -20,7 +20,7 @@ func varyMatches(cachedResp *http.Response, req *http.Request) bool {
 
 func validateVary(req *http.Request, resp *http.Response, key string, t *VaryTransport) bool {
 	if resp != nil && canStore(parseCacheControl(req.Header), parseCacheControl(resp.Header)) {
-		variedHeaders := headerAllCommaSepValues(resp.Header, "vary")
+		variedHeaders := headerAllCommaSepValues(resp.Header)
 		cacheKey := key
 		if len(variedHeaders) > 0 {
 			cacheKey = GetVariedCacheKey(req, variedHeaders)

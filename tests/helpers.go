@@ -1,9 +1,10 @@
 package tests
 
 import (
+	"testing"
+
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/errors"
-	"testing"
 )
 
 // GetMatchedURL is an helper to mock the matchedURL

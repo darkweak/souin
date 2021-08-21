@@ -3,16 +3,16 @@ package providers
 import (
 	"crypto/tls"
 	"fmt"
+	"testing"
+
 	"github.com/darkweak/souin/errors"
 	"github.com/darkweak/souin/tests"
-	"testing"
 )
 
 func TestInitProviders(t *testing.T) {
 	configChannel := make(chan int)
 	config := &tls.Config{
-		Certificates:       make([]tls.Certificate, 0),
-		InsecureSkipVerify: true,
+		Certificates: make([]tls.Certificate, 0),
 	}
 	v, _ := tls.LoadX509KeyPair("server.crt", "server.key")
 	config.Certificates = append(config.Certificates, v)
@@ -39,8 +39,7 @@ func TestCommonProvider_LoadFromConfigFile(t *testing.T) {
 func TestCommonProvider_LoadFromConfigFile2(t *testing.T) {
 	configChannel := make(chan int)
 	config := &tls.Config{
-		Certificates:       make([]tls.Certificate, 0),
-		InsecureSkipVerify: true,
+		Certificates: make([]tls.Certificate, 0),
 	}
 
 	var providers []CommonProvider
@@ -57,8 +56,7 @@ func TestCommonProvider_LoadFromConfigFile2(t *testing.T) {
 func TestCommonProvider_LoadFromConfigFile3(t *testing.T) {
 	configChannel := make(chan int)
 	config := &tls.Config{
-		Certificates:       make([]tls.Certificate, 0),
-		InsecureSkipVerify: true,
+		Certificates: make([]tls.Certificate, 0),
 	}
 
 	var providers []CommonProvider
@@ -76,8 +74,7 @@ func TestCommonProvider_LoadFromConfigFile4(t *testing.T) {
 	configChannel := make(chan int)
 	v, _ := tls.LoadX509KeyPair("server.crt", "server.key")
 	config := &tls.Config{
-		Certificates:       []tls.Certificate{v},
-		InsecureSkipVerify: true,
+		Certificates: []tls.Certificate{v},
 	}
 
 	var providers []CommonProvider

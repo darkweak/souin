@@ -1,15 +1,11 @@
 package auth
 
-import (
-	"fmt"
-)
-
 type tokenError struct {
 	found bool
 }
 
 func generateMessage(s string) string {
-	return fmt.Sprintf("An error occurred, %s", s)
+	return "An error occurred, " + s
 }
 
 func (t *tokenError) Error() string {

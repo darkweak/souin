@@ -3,17 +3,18 @@ package coalescing
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"strings"
+	"time"
+
 	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/rfc"
 	"github.com/go-chi/stampede"
-	"net/http"
-	"strings"
-	"time"
 )
 
-// Temporise will run one call to proxy then use the response for other requests that couldn't reach cached response
-func (r *RequestCoalescing) Temporise(req *http.Request, rw http.ResponseWriter, nextMiddleware func(http.ResponseWriter, *http.Request) error) {
+// Temporize will run one call to proxy then use the response for other requests that couldn't reach cached response
+func (r *RequestCoalescing) Temporize(req *http.Request, rw http.ResponseWriter, nextMiddleware func(http.ResponseWriter, *http.Request) error) {
 	_, e := r.Cache.Get(context.Background(), rfc.GetCacheKey(req), func(ctx context.Context) (interface{}, error) {
 		return nil, nextMiddleware(rw, req)
 	})

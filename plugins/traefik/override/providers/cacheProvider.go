@@ -1,12 +1,13 @@
 package providers
 
 import (
-	t "github.com/darkweak/souin/configurationtypes"
-	"github.com/patrickmn/go-cache"
 	"net/http"
 	"regexp"
 	"strings"
 	"time"
+
+	t "github.com/darkweak/souin/configurationtypes"
+	"github.com/patrickmn/go-cache"
 )
 
 // Cache provider type

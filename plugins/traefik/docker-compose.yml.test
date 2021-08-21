@@ -1,0 +1,19 @@
+version: '3.4'
+
+services:
+  traefik:
+    image: traefik:v2.5.0
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ../..:/plugins-local/src/github.com/darkweak/souin
+      - ./traefik.yml:/traefik.yml
+      - ./souin-configuration.yaml:/souin-configuration.yaml
+    environment:
+      GOPATH: /plugins-local
+    ports:
+      - 80:80
+
+  whoami:
+    image: traefik/whoami
+    labels:
+      - traefik.http.routers.whoami.rule=Host(`domain.com`)

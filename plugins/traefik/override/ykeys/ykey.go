@@ -1,9 +1,10 @@
 package ykeys
 
 import (
-	"github.com/darkweak/souin/configurationtypes"
 	"net/http"
 	"strings"
+
+	"github.com/darkweak/souin/configurationtypes"
 )
 
 // The YKey system is like the Varnish one. You can invalidate cache from ykey based instead of the regexp or the plain
@@ -32,7 +33,7 @@ import (
 
 // YKeyStorage is the layer for YKey support storage
 type YKeyStorage struct {
-	Keys     map[string]configurationtypes.YKey
+	Keys map[string]configurationtypes.YKey
 }
 
 // InitializeYKeys will initialize the ykey storage system

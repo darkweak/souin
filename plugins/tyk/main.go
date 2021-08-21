@@ -1,16 +1,18 @@
 package main
 
 import (
-	"github.com/darkweak/souin/cache/coalescing"
-	"github.com/darkweak/souin/cache/types"
-	"github.com/darkweak/souin/plugins"
-	"github.com/darkweak/souin/rfc"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"time"
+
+	"github.com/darkweak/souin/cache/coalescing"
+	"github.com/darkweak/souin/cache/types"
+	"github.com/darkweak/souin/plugins"
+	"github.com/darkweak/souin/rfc"
 )
 
+// SouinRequestHandler handle the Tyk request
 func SouinRequestHandler(rw http.ResponseWriter, r *http.Request) {
 	// TODO remove these lines once Tyk patch the
 	// ctx.GetDefinition(r)

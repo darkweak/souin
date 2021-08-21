@@ -1,4 +1,6 @@
-.PHONY: build-and-run-caddy build-and-run-caddy-json build-app build-caddy build-dev coverage create-network down env-dev env-prod gatling generate-plantUML health-check-prod help lint log tests up validate
+.PHONY: build-and-run-caddy build-and-run-caddy-json build-and-run-traefik build-and-run-tyk build-app build-caddy \
+	build-dev coverage create-network down env-dev env-prod gatling generate-plantUML health-check-prod help lint log \
+	tests up validate vendor-plugins
 
 DC=docker-compose
 DC_BUILD=$(DC) build
@@ -12,9 +14,11 @@ build-and-run-caddy-json:  ## Run caddy binary with the json configuration
 	$(MAKE) build-caddy
 	cd plugins/caddy && ./caddy run --config ./configuration.json
 
-build-and-run-tyk:  ## Run caddy binary with the json configuration
-	cd plugins/tyk && $(MAKE) prepare && \
-	docker-compose up --remove-orphans --build --force-recreate
+build-and-run-traefik:  ## Run træfik with Souin as plugin
+	cd plugins/traefik && $(MAKE) prepare
+
+build-and-run-tyk:  ## Run tyk with Souin as middleware
+	cd plugins/tyk && $(MAKE) prepare
 
 build-app: env-prod ## Build containers with prod env vars
 	$(DC_BUILD) souin
@@ -70,3 +74,7 @@ up: ## Up containers
 	$(DC) up -d --remove-orphans
 
 validate: lint tests down health-check-prod ## Run lint, tests and ensure prod can build
+
+vendor-plugins: ## Generate and prepare vendors for each plugin
+	cd plugins/tyk && $(MAKE) vendor
+	cd plugins/traefik && $(MAKE) vendor

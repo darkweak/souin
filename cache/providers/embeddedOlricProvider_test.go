@@ -2,12 +2,13 @@ package providers
 
 import (
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/errors"
 	"github.com/darkweak/souin/tests"
-	"testing"
-	"time"
 )
 
 const EMBEDDEDOLRICVALUE = "My first data"

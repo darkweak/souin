@@ -1,10 +1,11 @@
 package providers
 
 import (
-	"github.com/darkweak/souin/cache/types"
-	"github.com/darkweak/souin/configurationtypes"
 	"net/http"
 	"strings"
+
+	"github.com/darkweak/souin/cache/types"
+	"github.com/darkweak/souin/configurationtypes"
 )
 
 // VarySeparator will separate vary headers from the plain URL

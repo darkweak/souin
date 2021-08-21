@@ -3,15 +3,16 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"path/filepath"
+	"reflect"
+	"unsafe"
+
 	"github.com/TykTechnologies/tyk/apidef"
 	"github.com/darkweak/souin/cache/coalescing"
 	"github.com/darkweak/souin/plugins"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"io/ioutil"
-	"path/filepath"
-	"reflect"
-	"unsafe"
 )
 
 type souinAPIDefinition struct {

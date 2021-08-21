@@ -1,7 +1,7 @@
 package types
 
 // CoalescingLayerStorage is the layer to be able to not coalesce uncoalesceable request
-type CoalescingLayerStorage struct {}
+type CoalescingLayerStorage struct{}
 
 // InitializeCoalescingLayerStorage initialize the storage
 func InitializeCoalescingLayerStorage() *CoalescingLayerStorage {

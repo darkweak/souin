@@ -15,6 +15,9 @@ import "C"
 import (
 	"bytes"
 	"fmt"
+	"runtime"
+	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"unsafe"
@@ -41,10 +44,12 @@ func throw(s string)
 // Compile Go program with `go build -tags=jemalloc` to enable this.
 
 type dalloc struct {
-	t  string
+	f  string
+	no int
 	sz int
 }
 
+// Enabled via 'leak' build flag.
 var dallocsMu sync.Mutex
 var dallocs map[unsafe.Pointer]*dalloc
 
@@ -53,7 +58,7 @@ func init() {
 	dallocs = make(map[unsafe.Pointer]*dalloc)
 }
 
-func Calloc(n int, tag string) []byte {
+func Calloc(n int) []byte {
 	if n == 0 {
 		return make([]byte, 0)
 	}
@@ -77,22 +82,37 @@ func Calloc(n int, tag string) []byte {
 		// it cannot allocate memory.
 		throw("out of memory")
 	}
-
 	uptr := unsafe.Pointer(ptr)
-	dallocsMu.Lock()
-	dallocs[uptr] = &dalloc{
-		t:  tag,
-		sz: n,
+
+	if dallocs != nil {
+		// If leak detection is enabled.
+		for i := 1; ; i++ {
+			_, f, l, ok := runtime.Caller(i)
+			if !ok {
+				break
+			}
+			if strings.Contains(f, "/ristretto") {
+				continue
+			}
+
+			dallocsMu.Lock()
+			dallocs[uptr] = &dalloc{
+				f:  f,
+				no: l,
+				sz: n,
+			}
+			dallocsMu.Unlock()
+			break
+		}
 	}
-	dallocsMu.Unlock()
 	atomic.AddInt64(&numBytes, int64(n))
 	// Interpret the C pointer as a pointer to a Go array, then slice.
 	return (*[MaxArrayLen]byte)(uptr)[:n:n]
 }
 
 // CallocNoRef does the exact same thing as Calloc with jemalloc enabled.
-func CallocNoRef(n int, tag string) []byte {
-	return Calloc(n, tag)
+func CallocNoRef(n int) []byte {
+	return Calloc(n)
 }
 
 // Free frees the specified slice.
@@ -102,9 +122,13 @@ func Free(b []byte) {
 		ptr := unsafe.Pointer(&b[0])
 		C.je_free(ptr)
 		atomic.AddInt64(&numBytes, -int64(sz))
-		dallocsMu.Lock()
-		delete(dallocs, ptr)
-		dallocsMu.Unlock()
+
+		if dallocs != nil {
+			// If leak detection is enabled.
+			dallocsMu.Lock()
+			delete(dallocs, ptr)
+			dallocsMu.Unlock()
+		}
 	}
 }
 
@@ -119,7 +143,7 @@ func Leaks() string {
 	}
 	m := make(map[string]int)
 	for _, da := range dallocs {
-		m[da.t] += da.sz
+		m[da.f+":"+strconv.Itoa(da.no)] += da.sz
 	}
 	var buf bytes.Buffer
 	fmt.Fprintf(&buf, "Allocations:\n")
@@ -161,7 +185,7 @@ func fetchStat(s string) uint64 {
 		unsafe.Pointer(&out),             // Variable to store the output.
 		(*C.size_t)(unsafe.Pointer(&sz)), // Size of the output variable.
 		nil,                              // Input variable used to set a value.
-		0) // Size of the input variable.
+		0)                                // Size of the input variable.
 	return out
 }
 

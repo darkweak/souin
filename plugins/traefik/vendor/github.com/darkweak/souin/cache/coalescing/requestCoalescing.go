@@ -1,14 +1,15 @@
 package coalescing
 
 import (
-	"github.com/darkweak/souin/cache/types"
-	"github.com/darkweak/souin/configurationtypes"
 	"net/http"
 	"strings"
+
+	"github.com/darkweak/souin/cache/types"
+	"github.com/darkweak/souin/configurationtypes"
 )
 
-// Temporise will run one call to proxy then use the response for other requests that couldn't reach cached response
-func (r *RequestCoalescing) Temporise(req *http.Request, rw http.ResponseWriter, nextMiddleware func(http.ResponseWriter, *http.Request) error) {
+// Temporize will run one call to proxy then use the response for other requests that couldn't reach cached response
+func (r *RequestCoalescing) Temporize(req *http.Request, rw http.ResponseWriter, nextMiddleware func(http.ResponseWriter, *http.Request) error) {
 	_ = nextMiddleware(rw, req)
 }
 

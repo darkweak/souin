@@ -3,12 +3,13 @@ package providers
 import (
 	"encoding/json"
 	"fmt"
-	t "github.com/darkweak/souin/configurationtypes"
-	badger "github.com/dgraph-io/badger/v3"
-	"github.com/imdario/mergo"
 	"net/http"
 	"regexp"
 	"time"
+
+	t "github.com/darkweak/souin/configurationtypes"
+	badger "github.com/dgraph-io/badger/v3"
+	"github.com/imdario/mergo"
 )
 
 // Badger provider type

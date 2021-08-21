@@ -62,9 +62,9 @@ func (s *SecurityAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 		} else if regexp.MustCompile(fmt.Sprintf("%s/refresh", s.GetBasePath())).FindString(r.RequestURI) != "" {
 			s.refresh(w, r)
 		} else {
-			w.Write([]byte{})
+			_, _ = w.Write([]byte{})
 		}
 	default:
-		w.Write([]byte{})
+		_, _ = w.Write([]byte{})
 	}
 }

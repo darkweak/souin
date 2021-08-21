@@ -43,9 +43,8 @@ import (
 )
 
 var (
-	badgerPrefix = []byte("!badger!")       // Prefix for internal keys used by badger.
-	txnKey       = []byte("!badger!txn")    // For indicating end of entries in txn.
-	bannedNsKey  = []byte("!badger!banned") // For storing the banned namespaces.
+	badgerPrefix = []byte("!badger!")    // Prefix for internal keys used by badger.
+	txnKey       = []byte("!badger!txn") // For indicating end of entries in txn.
 )
 
 const (
@@ -62,38 +61,10 @@ type closers struct {
 	cacheHealth *z.Closer
 }
 
-type lockedKeys struct {
-	sync.RWMutex
-	keys map[uint64]struct{}
-}
-
-func (lk *lockedKeys) add(key uint64) {
-	lk.Lock()
-	defer lk.Unlock()
-	lk.keys[key] = struct{}{}
-}
-
-func (lk *lockedKeys) has(key uint64) bool {
-	lk.RLock()
-	defer lk.RUnlock()
-	_, ok := lk.keys[key]
-	return ok
-}
-
-func (lk *lockedKeys) all() []uint64 {
-	lk.RLock()
-	defer lk.RUnlock()
-	keys := make([]uint64, 0, len(lk.keys))
-	for key := range lk.keys {
-		keys = append(keys, key)
-	}
-	return keys
-}
-
 // DB provides the various functions required to interact with Badger.
 // DB is thread-safe.
 type DB struct {
-	lock sync.RWMutex // Guards list of inmemory tables, not individual reads and writes.
+	sync.RWMutex // Guards list of inmemory tables, not individual reads and writes.
 
 	dirLockGuard *directoryLockGuard
 	// nil if Dir and ValueDir are the same
@@ -118,9 +89,7 @@ type DB struct {
 	blockWrites int32
 	isClosed    uint32
 
-	orc              *oracle
-	bannedNamespaces *lockedKeys
-	threshold        *vlogThreshold
+	orc *oracle
 
 	pub        *publisher
 	registry   *KeyRegistry
@@ -147,12 +116,6 @@ func checkAndSetOptions(opt *Options) error {
 	opt.maxBatchSize = (15 * opt.MemTableSize) / 100
 	opt.maxBatchCount = opt.maxBatchSize / int64(skl.MaxNodeSize)
 
-	// This is the maximum value, vlogThreshold can have if dynamic thresholding is enabled.
-	opt.maxValueThreshold = math.Min(maxValueThreshold, float64(opt.maxBatchSize))
-	if opt.VLogPercentile < 0.0 || opt.VLogPercentile > 1.0 {
-		return errors.New("vlogPercentile must be within range of 0.0-1.0")
-	}
-
 	// We are limiting opt.ValueThreshold to maxValueThreshold for now.
 	if opt.ValueThreshold > maxValueThreshold {
 		return errors.Errorf("Invalid ValueThreshold, must be less or equal to %d",
@@ -161,7 +124,7 @@ func checkAndSetOptions(opt *Options) error {
 
 	// If ValueThreshold is greater than opt.maxBatchSize, we won't be able to push any data using
 	// the transaction APIs. Transaction batches entries into batches of size opt.maxBatchSize.
-	if opt.ValueThreshold > opt.maxBatchSize {
+	if int64(opt.ValueThreshold) > opt.maxBatchSize {
 		return errors.Errorf("Valuethreshold %d greater than max batch size of %d. Either "+
 			"reduce opt.ValueThreshold or increase opt.MaxTableSize.",
 			opt.ValueThreshold, opt.maxBatchSize)
@@ -170,6 +133,11 @@ func checkAndSetOptions(opt *Options) error {
 	// overflow the uint32 when we mmap it in OpenMemtable.
 	if !(opt.ValueLogFileSize < 2<<30 && opt.ValueLogFileSize >= 1<<20) {
 		return ErrValueLogSize
+	}
+
+	// Return error if badger is built without cgo and compression is set to ZSTD.
+	if opt.Compression == options.ZSTD && !y.CgoEnabled {
+		return y.ErrZstdCgo
 	}
 
 	if opt.ReadOnly {
@@ -242,18 +210,16 @@ func Open(opt Options) (*DB, error) {
 	}()
 
 	db := &DB{
-		imm:              make([]*memTable, 0, opt.NumMemtables),
-		flushChan:        make(chan flushTask, opt.NumMemtables),
-		writeCh:          make(chan *request, kvWriteChCapacity),
-		opt:              opt,
-		manifest:         manifestFile,
-		dirLockGuard:     dirLockGuard,
-		valueDirGuard:    valueDirLockGuard,
-		orc:              newOracle(opt),
-		pub:              newPublisher(),
-		allocPool:        z.NewAllocatorPool(8),
-		bannedNamespaces: &lockedKeys{keys: make(map[uint64]struct{})},
-		threshold:        initVlogThreshold(&opt),
+		imm:           make([]*memTable, 0, opt.NumMemtables),
+		flushChan:     make(chan flushTask, opt.NumMemtables),
+		writeCh:       make(chan *request, kvWriteChCapacity),
+		opt:           opt,
+		manifest:      manifestFile,
+		dirLockGuard:  dirLockGuard,
+		valueDirGuard: valueDirLockGuard,
+		orc:           newOracle(opt),
+		pub:           newPublisher(),
+		allocPool:     z.NewAllocatorPool(8),
 	}
 	// Cleanup all the goroutines started by badger in case of an error.
 	defer func() {
@@ -377,12 +343,6 @@ func Open(opt Options) (*DB, error) {
 	db.orc.readMark.Done(db.orc.nextTxnTs)
 	db.orc.incrementNextTs()
 
-	go db.threshold.listenForValueThresholdUpdate()
-
-	if err := db.initBannedNamespaces(); err != nil {
-		return db, errors.Wrapf(err, "While setting banned keys")
-	}
-
 	db.closers.writes = z.NewCloser(1)
 	go db.doWrites(db.closers.writes)
 
@@ -400,26 +360,6 @@ func Open(opt Options) (*DB, error) {
 	return db, nil
 }
 
-// initBannedNamespaces retrieves the banned namepsaces from the DB and updates in-memory structure.
-func (db *DB) initBannedNamespaces() error {
-	if db.opt.NamespaceOffset < 0 {
-		return nil
-	}
-	return db.View(func(txn *Txn) error {
-		iopts := DefaultIteratorOptions
-		iopts.Prefix = bannedNsKey
-		iopts.PrefetchValues = false
-		iopts.InternalAccess = true
-		itr := txn.NewIterator(iopts)
-		defer itr.Close()
-		for itr.Rewind(); itr.Valid(); itr.Next() {
-			key := y.BytesToU64(itr.Item().Key()[len(bannedNsKey):])
-			db.bannedNamespaces.add(key)
-		}
-		return nil
-	})
-}
-
 func (db *DB) MaxVersion() uint64 {
 	var maxVersion uint64
 	update := func(a uint64) {
@@ -427,7 +367,7 @@ func (db *DB) MaxVersion() uint64 {
 			maxVersion = a
 		}
 	}
-	db.lock.Lock()
+	db.Lock()
 	// In read only mode, we do not create new mem table.
 	if !db.opt.ReadOnly {
 		update(db.mt.maxVersion)
@@ -435,7 +375,7 @@ func (db *DB) MaxVersion() uint64 {
 	for _, mt := range db.imm {
 		update(mt.maxVersion)
 	}
-	db.lock.Unlock()
+	db.Unlock()
 	for _, ti := range db.Tables() {
 		update(ti.MaxVersion)
 	}
@@ -577,8 +517,8 @@ func (db *DB) close() (err error) {
 			db.opt.Debugf("Flushing memtable")
 			for {
 				pushedFlushTask := func() bool {
-					db.lock.Lock()
-					defer db.lock.Unlock()
+					db.Lock()
+					defer db.Unlock()
 					y.AssertTrue(db.mt != nil)
 					select {
 					case db.flushChan <- flushTask{mt: db.mt}:
@@ -630,7 +570,6 @@ func (db *DB) close() (err error) {
 	db.indexCache.Close()
 
 	atomic.StoreUint32(&db.isClosed, 1)
-	db.threshold.close()
 
 	if db.opt.InMemory {
 		return
@@ -684,8 +623,8 @@ func (db *DB) Sync() error {
 
 // getMemtables returns the current memtables and get references.
 func (db *DB) getMemTables() ([]*memTable, func()) {
-	db.lock.RLock()
-	defer db.lock.RUnlock()
+	db.RLock()
+	defer db.RUnlock()
 
 	var tables []*memTable
 
@@ -733,10 +672,10 @@ func (db *DB) get(key []byte) (y.ValueStruct, error) {
 	var maxVs y.ValueStruct
 	version := y.ParseTs(key)
 
-	y.NumGetsAdd(db.opt.MetricsEnabled, 1)
+	y.NumGets.Add(1)
 	for i := 0; i < len(tables); i++ {
 		vs := tables[i].sl.Get(key)
-		y.NumMemtableGetsAdd(db.opt.MetricsEnabled, 1)
+		y.NumMemtableGets.Add(1)
 		if vs.Meta == 0 && vs.Value == nil {
 			continue
 		}
@@ -757,6 +696,10 @@ var requestPool = sync.Pool{
 	},
 }
 
+func (opt Options) skipVlog(e *Entry) bool {
+	return len(e.Value) < opt.ValueThreshold
+}
+
 func (db *DB) writeToLSM(b *request) error {
 	// We should check the length of b.Prts and b.Entries only when badger is not
 	// running in InMemory mode. In InMemory mode, we don't write anything to the
@@ -767,7 +710,7 @@ func (db *DB) writeToLSM(b *request) error {
 
 	for i, entry := range b.Entries {
 		var err error
-		if entry.skipVlogAndSetThreshold(db.valueThreshold()) {
+		if db.opt.skipVlog(entry) {
 			// Will include deletion / tombstone case.
 			err = db.mt.Put(entry.Key,
 				y.ValueStruct{
@@ -859,7 +802,7 @@ func (db *DB) sendToWriteCh(entries []*Entry) (*request, error) {
 	}
 	var count, size int64
 	for _, e := range entries {
-		size += e.estimateSizeAndSetThreshold(db.valueThreshold())
+		size += int64(e.estimateSize(db.opt.ValueThreshold))
 		count++
 	}
 	if count >= db.opt.maxBatchCount || size >= db.opt.maxBatchSize {
@@ -874,7 +817,7 @@ func (db *DB) sendToWriteCh(entries []*Entry) (*request, error) {
 	req.Wg.Add(1)
 	req.IncrRef()     // for db write
 	db.writeCh <- req // Handled in doWrites.
-	y.NumPutsAdd(db.opt.MetricsEnabled, int64(len(entries)))
+	y.NumPuts.Add(int64(len(entries)))
 
 	return req, nil
 }
@@ -892,7 +835,7 @@ func (db *DB) doWrites(lc *z.Closer) {
 
 	// This variable tracks the number of pending writes.
 	reqLen := new(expvar.Int)
-	y.PendingWritesSet(db.opt.MetricsEnabled, db.opt.Dir, reqLen)
+	y.PendingWrites.Set(db.opt.Dir, reqLen)
 
 	reqs := make([]*request, 0, 10)
 	for {
@@ -979,8 +922,8 @@ var errNoRoom = errors.New("No room for write")
 // ensureRoomForWrite is always called serially.
 func (db *DB) ensureRoomForWrite() error {
 	var err error
-	db.lock.Lock()
-	defer db.lock.Unlock()
+	db.Lock()
+	defer db.Unlock()
 
 	y.AssertTrue(db.mt != nil) // A nil mt indicates that DB is being closed.
 	if !db.mt.isFull() {
@@ -1084,7 +1027,7 @@ func (db *DB) flushMemtable(lc *z.Closer) error {
 			err := db.handleFlushTask(ft)
 			if err == nil {
 				// Update s.imm. Need a lock.
-				db.lock.Lock()
+				db.Lock()
 				// This is a single-threaded operation. ft.mt corresponds to the head of
 				// db.imm list. Once we flush it, we advance db.imm. The next ft.mt
 				// which would arrive here would match db.imm[0], because we acquire a
@@ -1093,7 +1036,7 @@ func (db *DB) flushMemtable(lc *z.Closer) error {
 				y.AssertTrue(ft.mt == db.imm[0])
 				db.imm = db.imm[1:]
 				ft.mt.DecrRef() // Return memory.
-				db.lock.Unlock()
+				db.Unlock()
 
 				break
 			}
@@ -1150,12 +1093,12 @@ func (db *DB) calculateSize() {
 	}
 
 	lsmSize, vlogSize := totalSize(db.opt.Dir)
-	y.LSMSizeSet(db.opt.MetricsEnabled, db.opt.Dir, newInt(lsmSize))
+	y.LSMSize.Set(db.opt.Dir, newInt(lsmSize))
 	// If valueDir is different from dir, we'd have to do another walk.
 	if db.opt.ValueDir != db.opt.Dir {
 		_, vlogSize = totalSize(db.opt.ValueDir)
 	}
-	y.VlogSizeSet(db.opt.MetricsEnabled, db.opt.ValueDir, newInt(vlogSize))
+	y.VlogSize.Set(db.opt.ValueDir, newInt(vlogSize))
 }
 
 func (db *DB) updateSize(lc *z.Closer) {
@@ -1219,18 +1162,18 @@ func (db *DB) RunValueLogGC(discardRatio float64) error {
 // Size returns the size of lsm and value log files in bytes. It can be used to decide how often to
 // call RunValueLogGC.
 func (db *DB) Size() (lsm, vlog int64) {
-	if y.LSMSizeGet(db.opt.MetricsEnabled, db.opt.Dir) == nil {
+	if y.LSMSize.Get(db.opt.Dir) == nil {
 		lsm, vlog = 0, 0
 		return
 	}
-	lsm = y.LSMSizeGet(db.opt.MetricsEnabled, db.opt.Dir).(*expvar.Int).Value()
-	vlog = y.VlogSizeGet(db.opt.MetricsEnabled, db.opt.ValueDir).(*expvar.Int).Value()
+	lsm = y.LSMSize.Get(db.opt.Dir).(*expvar.Int).Value()
+	vlog = y.VlogSize.Get(db.opt.ValueDir).(*expvar.Int).Value()
 	return
 }
 
 // Sequence represents a Badger sequence.
 type Sequence struct {
-	lock      sync.Mutex
+	sync.Mutex
 	db        *DB
 	key       []byte
 	next      uint64
@@ -1241,8 +1184,8 @@ type Sequence struct {
 // Next would return the next integer in the sequence, updating the lease by running a transaction
 // if needed.
 func (seq *Sequence) Next() (uint64, error) {
-	seq.lock.Lock()
-	defer seq.lock.Unlock()
+	seq.Lock()
+	defer seq.Unlock()
 	if seq.next >= seq.leased {
 		if err := seq.updateLease(); err != nil {
 			return 0, err
@@ -1257,8 +1200,8 @@ func (seq *Sequence) Next() (uint64, error) {
 // before closing the associated DB. However it is valid to use the sequence after
 // it was released, causing a new lease with full bandwidth.
 func (seq *Sequence) Release() error {
-	seq.lock.Lock()
-	defer seq.lock.Unlock()
+	seq.Lock()
+	defer seq.Unlock()
 	err := seq.db.Update(func(txn *Txn) error {
 		item, err := txn.Get(seq.key)
 		if err != nil {
@@ -1357,33 +1300,16 @@ func (db *DB) Levels() []LevelInfo {
 	return db.lc.getLevelInfo()
 }
 
-// EstimateSize can be used to get rough estimate of data size for a given prefix.
-func (db *DB) EstimateSize(prefix []byte) (uint64, uint64) {
-	var onDiskSize, uncompressedSize uint64
-	tables := db.Tables()
-	for _, ti := range tables {
-		if bytes.HasPrefix(ti.Left, prefix) && bytes.HasPrefix(ti.Right, prefix) {
-			onDiskSize += uint64(ti.OnDiskSize)
-			uncompressedSize += uint64(ti.UncompressedSize)
-		}
-	}
-	return onDiskSize, uncompressedSize
-}
-
-// Ranges can be used to get rough key ranges to divide up iteration over the DB. The ranges here
-// would consider the prefix, but would not necessarily start or end with the prefix. In fact, the
-// first range would have nil as left key, and the last range would have nil as the right key.
-func (db *DB) Ranges(prefix []byte, numRanges int) []*keyRange {
+// KeySplits can be used to get rough key ranges to divide up iteration over
+// the DB.
+func (db *DB) KeySplits(prefix []byte) []string {
 	var splits []string
 	tables := db.Tables()
 
 	// We just want table ranges here and not keys count.
 	for _, ti := range tables {
-		// We don't use ti.Left, because that has a tendency to store !badger keys. Skip over tables
-		// at upper levels. Only choose tables from the last level.
-		if ti.Level != db.opt.MaxLevels-1 {
-			continue
-		}
+		// We don't use ti.Left, because that has a tendency to store !badger
+		// keys.
 		if bytes.HasPrefix(ti.Right, prefix) {
 			splits = append(splits, string(ti.Right))
 		}
@@ -1424,8 +1350,8 @@ func (db *DB) Ranges(prefix []byte, numRanges int) []*keyRange {
 			_ = iter.Close()
 		}
 
-		db.lock.Lock()
-		defer db.lock.Unlock()
+		db.Lock()
+		defer db.Unlock()
 		var memTables []*memTable
 		memTables = append(memTables, db.imm...)
 		for _, mt := range memTables {
@@ -1434,56 +1360,29 @@ func (db *DB) Ranges(prefix []byte, numRanges int) []*keyRange {
 		mtSplits(db.mt)
 	}
 
-	// We have our splits now. Let's convert them to ranges.
 	sort.Strings(splits)
-	var ranges []*keyRange
-	var start []byte
-	for _, key := range splits {
-		ranges = append(ranges, &keyRange{left: start, right: y.SafeCopy(nil, []byte(key))})
-		start = y.SafeCopy(nil, []byte(key))
-	}
-	ranges = append(ranges, &keyRange{left: start})
 
-	// Figure out the approximate table size this range has to deal with.
-	for _, t := range tables {
-		tr := keyRange{left: t.Left, right: t.Right}
-		for _, r := range ranges {
-			if len(r.left) == 0 || len(r.right) == 0 {
-				continue
-			}
-			if r.overlapsWith(tr) {
-				r.size += int64(t.UncompressedSize)
-			}
+	// Limit the maximum number of splits returned by this function. We check against
+	// maxNumberSplits * 2 so that the jump variable has a value of at least two.
+	// Otherwise, the entire list would be returned without any reduction in size.
+	if len(splits) > maxNumSplits*2 {
+		newSplits := make([]string, 0)
+		jump := len(splits) / maxNumSplits
+		if jump < 2 {
+			jump = 2
 		}
-	}
 
-	var total int64
-	for _, r := range ranges {
-		total += r.size
-	}
-	if total == 0 {
-		return ranges
-	}
-	// Figure out the average size, so we know how to bin the ranges together.
-	avg := total / int64(numRanges)
-
-	var out []*keyRange
-	var i int
-	for i < len(ranges) {
-		r := ranges[i]
-		cur := &keyRange{left: r.left, size: r.size, right: r.right}
-		i++
-		for ; i < len(ranges); i++ {
-			next := ranges[i]
-			if cur.size+next.size > avg {
-				break
+		for i := 0; i < len(splits); i += jump {
+			if i >= len(splits) {
+				i = len(splits) - 1
 			}
-			cur.right = next.right
-			cur.size += next.size
+			newSplits = append(newSplits, splits[i])
 		}
-		out = append(out, cur)
+
+		splits = newSplits
 	}
-	return out
+
+	return splits
 }
 
 // MaxBatchCount returns max possible entries in batch
@@ -1569,7 +1468,7 @@ func (db *DB) Flatten(workers int) error {
 	}
 
 	hbytes := func(sz int64) string {
-		return humanize.IBytes(uint64(sz))
+		return humanize.Bytes(uint64(sz))
 	}
 
 	t := db.lc.levelTargets()
@@ -1686,8 +1585,8 @@ func (db *DB) dropAll() (func(), error) {
 		f()
 	}
 	// Block all foreign interactions with memory tables.
-	db.lock.Lock()
-	defer db.lock.Unlock()
+	db.Lock()
+	defer db.Unlock()
 
 	// Remove inmemory tables. Calling DecrRef for safety. Not sure if they're absolutely needed.
 	db.mt.DecrRef()
@@ -1714,7 +1613,7 @@ func (db *DB) dropAll() (func(), error) {
 	db.opt.Infof("Deleted %d value log files. DropAll done.\n", num)
 	db.blockCache.Clear()
 	db.indexCache.Clear()
-	db.threshold.Clear(db.opt)
+
 	return resume, nil
 }
 
@@ -1739,19 +1638,9 @@ func (db *DB) DropPrefix(prefixes ...[]byte) error {
 		return err
 	}
 	defer f()
-
-	var filtered [][]byte
-	if filtered, err = db.filterPrefixesToDrop(prefixes); err != nil {
-		return err
-	}
-	// If there is no prefix for which the data already exist, do not do anything.
-	if len(filtered) == 0 {
-		db.opt.Infof("No prefixes to drop")
-		return nil
-	}
 	// Block all foreign interactions with memory tables.
-	db.lock.Lock()
-	defer db.lock.Unlock()
+	db.Lock()
+	defer db.Unlock()
 
 	db.imm = append(db.imm, db.mt)
 	for _, memtable := range db.imm {
@@ -1762,7 +1651,7 @@ func (db *DB) DropPrefix(prefixes ...[]byte) error {
 		task := flushTask{
 			mt: memtable,
 			// Ensure that the head of value log gets persisted to disk.
-			dropPrefixes: filtered,
+			dropPrefixes: prefixes,
 		}
 		db.opt.Debugf("Flushing memtable")
 		if err := db.handleFlushTask(task); err != nil {
@@ -1780,96 +1669,29 @@ func (db *DB) DropPrefix(prefixes ...[]byte) error {
 	}
 
 	// Drop prefixes from the levels.
-	if err := db.lc.dropPrefixes(filtered); err != nil {
+	if err := db.lc.dropPrefixes(prefixes); err != nil {
 		return err
 	}
 	db.opt.Infof("DropPrefix done")
 	return nil
 }
 
-func (db *DB) filterPrefixesToDrop(prefixes [][]byte) ([][]byte, error) {
-	var filtered [][]byte
-	for _, prefix := range prefixes {
-		err := db.View(func(txn *Txn) error {
-			iopts := DefaultIteratorOptions
-			iopts.Prefix = prefix
-			iopts.PrefetchValues = false
-			itr := txn.NewIterator(iopts)
-			defer itr.Close()
-			itr.Rewind()
-			if itr.ValidForPrefix(prefix) {
-				filtered = append(filtered, prefix)
-			}
-			return nil
-		})
-		if err != nil {
-			return filtered, err
-		}
-	}
-	return filtered, nil
-}
-
-// Checks if the key is banned. Returns the respective error if the key belongs to any of the banned
-// namepspaces. Else it returns nil.
-func (db *DB) isBanned(key []byte) error {
-	if db.opt.NamespaceOffset < 0 {
-		return nil
-	}
-	if len(key) <= db.opt.NamespaceOffset+8 {
-		return nil
-	}
-	if db.bannedNamespaces.has(y.BytesToU64(key[db.opt.NamespaceOffset:])) {
-		return ErrBannedKey
-	}
-	return nil
-}
-
-// BanNamespace bans a namespace. Read/write to keys belonging to any of such namespace is denied.
-func (db *DB) BanNamespace(ns uint64) error {
-	if db.opt.NamespaceOffset < 0 {
-		return ErrNamespaceMode
-	}
-	db.opt.Infof("Banning namespace: %d", ns)
-	// First set the banned namespaces in DB and then update the in-memory structure.
-	key := y.KeyWithTs(append(bannedNsKey, y.U64ToBytes(ns)...), 1)
-	entry := []*Entry{{
-		Key:   key,
-		Value: nil,
-	}}
-	req, err := db.sendToWriteCh(entry)
-	if err != nil {
-		return err
-	}
-	if err := req.Wait(); err != nil {
-		return err
-	}
-	db.bannedNamespaces.add(ns)
-	return nil
-}
-
-// BannedNamespaces returns the list of prefixes banned for DB.
-func (db *DB) BannedNamespaces() []uint64 {
-	return db.bannedNamespaces.all()
-}
-
 // KVList contains a list of key-value pairs.
 type KVList = pb.KVList
 
-// Subscribe can be used to watch key changes for the given key prefixes and the ignore string.
+// Subscribe can be used to watch key changes for the given key prefixes.
 // At least one prefix should be passed, or an error will be returned.
 // You can use an empty prefix to monitor all changes to the DB.
-// Ignore string is the byte ranges for which prefix matching will be ignored.
-// For example: ignore = "2-3", and prefix = "abc" will match for keys "abxxc", "abdfc" etc.
 // This function blocks until the given context is done or an error occurs.
 // The given function will be called with a new KVList containing the modified keys and the
 // corresponding values.
-func (db *DB) Subscribe(ctx context.Context, cb func(kv *KVList) error, matches []pb.Match) error {
+func (db *DB) Subscribe(ctx context.Context, cb func(kv *KVList) error, prefixes ...[]byte) error {
 	if cb == nil {
 		return ErrNilCallback
 	}
 
 	c := z.NewCloser(1)
-	recvCh, id := db.pub.newSubscriber(c, matches)
+	recvCh, id := db.pub.newSubscriber(c, prefixes...)
 	slurp := func(batch *pb.KVList) error {
 		for {
 			select {
@@ -2034,10 +1856,9 @@ func (db *DB) LevelsToString() string {
 	for _, li := range levels {
 		b.WriteString(fmt.Sprintf(
 			"Level %d [%s]: NumTables: %02d. Size: %s of %s. Score: %.2f->%.2f"+
-				" StaleData: %s Target FileSize: %s\n",
+				" Target FileSize: %s\n",
 			li.Level, base(li.IsBaseLevel), li.NumTables,
-			h(li.Size), h(li.TargetSize), li.Score, li.Adjusted, h(li.StaleDatSize),
-			h(li.TargetFileSize)))
+			h(li.Size), h(li.TargetSize), li.Score, li.Adjusted, h(li.TargetFileSize)))
 	}
 	b.WriteString("Level Done\n")
 	return b.String()
