@@ -1,7 +1,6 @@
 package rfc
 
 import (
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -31,11 +30,11 @@ func TestCachedResponse_WithUpdate(t *testing.T) {
 	}
 
 	if res.Response != nil {
-		errors.GenerateError(t, fmt.Sprintf("Result from cached response should be a valid response"))
+		errors.GenerateError(t, "Result from cached response should be a valid response")
 	}
 
 	if res.Request != nil || res.Proxy != nil {
-		errors.GenerateError(t, fmt.Sprintf("Request and Proxy shouldn't be set"))
+		errors.GenerateError(t, "Request and Proxy shouldn't be set")
 	}
 }
 
@@ -49,10 +48,10 @@ func TestCachedResponse_WithoutUpdate(t *testing.T) {
 	}
 
 	if res.Response != nil {
-		errors.GenerateError(t, fmt.Sprintf("Result from cached response should be a valid response"))
+		errors.GenerateError(t, "Result from cached response should be a valid response")
 	}
 
 	if res.Request != nil || res.Proxy != nil {
-		errors.GenerateError(t, fmt.Sprintf("Request and Proxy shouldn't be set"))
+		errors.GenerateError(t, "Request and Proxy shouldn't be set")
 	}
 }

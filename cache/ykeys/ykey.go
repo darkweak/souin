@@ -62,7 +62,6 @@ func (y *YKeyStorage) GetValidatedTags(key string, headers http.Header) []string
 		valid := true
 		if v.URL != "" {
 			if r, e := regexp.MatchString(v.URL, key); !r || e != nil {
-				valid = false
 				continue
 			}
 		}
