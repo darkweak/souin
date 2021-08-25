@@ -31,9 +31,9 @@ func validateVary(req *http.Request, resp *http.Response, key string, t *VaryTra
 			resp.Body = &cachingReadCloser{
 				R: resp.Body,
 				OnEOF: func(r io.Reader) {
-					resp := *resp
-					resp.Body = ioutil.NopCloser(r)
-					t.SetCache(cacheKey, &resp)
+					re := *resp
+					re.Body = ioutil.NopCloser(r)
+					t.SetCache(cacheKey, &re)
 					go func() {
 						t.CoalescingLayerStorage.Delete(cacheKey)
 					}()

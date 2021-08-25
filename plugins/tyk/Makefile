@@ -2,6 +2,7 @@
 
 prepare: vendor ## Prepare tyk plugin
 	cp docker-compose.yml.test docker-compose.yml
+	docker-compose down --remove-orphans
 	docker-compose up tyk-builder
 	mv souin-plugin.so ./samples/middleware/
 	docker-compose up -d --remove-orphans --build tyk-pump tyk-gateway

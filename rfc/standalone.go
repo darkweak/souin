@@ -15,7 +15,7 @@ import (
 
 // GetCacheKey returns the cache key for req.
 func GetCacheKey(req *http.Request) string {
-	return fmt.Sprintf("%s-%s-%s", req.Method, req.Host, req.URL.RequestURI())
+	return fmt.Sprintf("%s-%s-%s", req.Method, req.Host, req.RequestURI)
 }
 
 // GetVariedCacheKey returns the varied cache key for req and resp.

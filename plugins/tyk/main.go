@@ -1,42 +1,69 @@
 package main
 
 import (
-	"io"
+	"context"
+	"github.com/darkweak/souin/rfc"
 	"net/http"
-	"net/http/httptest"
 	"time"
 
 	"github.com/darkweak/souin/cache/coalescing"
 	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/plugins"
-	"github.com/darkweak/souin/rfc"
 )
+
+var (
+	currentCtx context.Context = nil
+)
+
+func getInstanceFromRequest(r *http.Request) *souinInstance {
+	if currentCtx == nil {
+		currentCtx = r.Context()
+	}
+	def := apiDefinitionRetriever(currentCtx)
+	currentAPI := ""
+	if def != nil {
+		currentAPI = def.APIID
+	}
+ 	return s.configurations[currentAPI]
+}
+
+func SouinResponseHandler(rw http.ResponseWriter, res *http.Response, _ *http.Request) {
+	req := res.Request
+	req.Response = res
+	retriever := getInstanceFromRequest(req).Retriever
+
+	key := rfc.GetCacheKey(req)
+	r, _ := rfc.CachedResponse(
+		retriever.GetProvider(),
+		req,
+		key,
+		retriever.GetTransport(),
+		true,
+	)
+
+	if r.Response != nil {
+		rh := r.Response.Header
+		rfc.HitCache(&rh)
+		r.Response.Header = rh
+		for k, v := range r.Response.Header {
+			rw.Header().Set(k, v[0])
+		}
+		res = r.Response
+	} else {
+		res, _ = retriever.GetTransport().UpdateCacheEventually(req)
+	}
+
+	currentCtx = nil
+}
 
 // SouinRequestHandler handle the Tyk request
 func SouinRequestHandler(rw http.ResponseWriter, r *http.Request) {
 	// TODO remove these lines once Tyk patch the
 	// ctx.GetDefinition(r)
-	def := apiDefinitionRetriever(r.Context())
-	currentAPI := ""
-	if def != nil {
-		currentAPI = def.APIID
-	}
-	currentInstance := s.configurations[currentAPI]
+	currentInstance := getInstanceFromRequest(r)
 	r.Header.Set("Date", time.Now().UTC().Format(time.RFC1123))
-	plugins.DefaultSouinPluginCallback(rw, r, currentInstance.Retriever, currentInstance.RequestCoalescing, func(_ http.ResponseWriter, _ *http.Request) error {
-		recorder := httptest.NewRecorder()
-		var e error
-
-		response := recorder.Result()
-		r.Response = response
-		response, e = currentInstance.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(r)
-		if e != nil {
-			return e
-		}
-
-		_, e = io.Copy(rw, response.Body)
-
-		return e
+	coalescing.ServeResponse(rw, r, currentInstance.Retriever, plugins.DefaultSouinPluginCallback, currentInstance.RequestCoalescing, func(_ http.ResponseWriter, _ *http.Request) error {
+		return nil
 	})
 }
 
@@ -51,7 +78,7 @@ type souinInstance struct {
 }
 
 type souinInstances struct {
-	configurations map[string]souinInstance
+	configurations map[string]*souinInstance
 }
 
 // plugin internal state and implementation

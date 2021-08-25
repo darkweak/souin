@@ -134,14 +134,14 @@ func (provider *EmbeddedOlric) Prefix(key string, req *http.Request) []byte {
 			"$regexMatch": "^" + key,
 		},
 	})
-
+	if c != nil {
+		defer c.Close()
+	}
 	if err != nil {
 		fmt.Printf("An error occurred while trying to retrieve data in Olric: %s\n", err)
 		return []byte{}
 	}
-	if c != nil {
-		defer c.Close()
-	}
+
 	res := []byte{}
 	_ = c.Range(func(k string, v interface{}) bool {
 		if varyVoter(key, req, k) {

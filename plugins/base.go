@@ -1,8 +1,12 @@
 package plugins
 
 import (
+	"bytes"
+	"context"
 	"io/ioutil"
 	"net/http"
+	"sync"
+	"time"
 
 	"github.com/darkweak/souin/cache/coalescing"
 	"github.com/darkweak/souin/cache/providers"
@@ -14,6 +18,45 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
+
+var bufPool = sync.Pool{
+	New: func() interface{} {
+		return new(bytes.Buffer)
+	},
+}
+
+type getterContext struct {
+	rw   http.ResponseWriter
+	req  *http.Request
+	next http.Handler
+}
+
+type customWriter struct {
+	Response *http.Response
+	http.ResponseWriter
+}
+
+func (r *customWriter) Write(b []byte) (int, error) {
+	r.Response.Header = r.ResponseWriter.Header()
+	r.Response.StatusCode = http.StatusOK
+	r.Response.Body = ioutil.NopCloser(bytes.NewBuffer(b))
+	return r.ResponseWriter.Write(b)
+}
+
+type key string
+
+const getterContextCtxKey key = "getter_context"
+
+func InitializeRequest(rw http.ResponseWriter, req *http.Request, next http.Handler) *customWriter {
+	getterCtx := getterContext{rw, req, next}
+	ctx := context.WithValue(req.Context(), getterContextCtxKey, getterCtx)
+	req = req.WithContext(ctx)
+	req.Header.Set("Date", time.Now().UTC().Format(time.RFC1123))
+	return &customWriter{
+		ResponseWriter: rw,
+		Response:       &http.Response{},
+	}
+}
 
 // DefaultSouinPluginCallback is the default callback for plugins
 func DefaultSouinPluginCallback(
@@ -114,7 +157,7 @@ func DefaultSouinPluginInitializerFromConfiguration(c configurationtypes.Abstrac
 		Transport:     transport,
 	}
 	retriever.Transport.SetURL(retriever.MatchedURL)
-	retriever.GetConfiguration().GetLogger().Debug("Souin configuration is now loaded.")
+	retriever.GetConfiguration().GetLogger().Info("Souin configuration is now loaded.")
 
 	return retriever
 }
