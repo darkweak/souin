@@ -1,6 +1,8 @@
 package rfc
 
 import (
+	"fmt"
+	"github.com/pquerna/cachecontrol"
 	"net/http"
 	"net/http/httputil"
 	"time"
@@ -52,8 +54,10 @@ func (t *VaryTransport) GetYkeyStorage() *ykeys.YKeyStorage {
 }
 
 // SetCache set the cache
-func (t *VaryTransport) SetCache(key string, resp *http.Response) {
-	if respBytes, err := httputil.DumpResponse(resp, true); err == nil {
+func (t *VaryTransport) SetCache(key string, resp *http.Response, req *http.Request) {
+	r, ti, e := cachecontrol.CachableResponse(req, resp, cachecontrol.Options{})
+	fmt.Println(r, ti, e)
+	if respBytes, err := httputil.DumpResponse(resp, true); len(r) == 0 && err == nil {
 		go func() {
 			t.YkeyStorage.AddToTags(key, t.YkeyStorage.GetValidatedTags(key, resp.Header))
 		}()

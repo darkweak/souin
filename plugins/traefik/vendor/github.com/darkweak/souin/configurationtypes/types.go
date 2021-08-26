@@ -21,7 +21,7 @@ func (d Duration) MarshalYAML() (interface{}, error) {
 // UnmarshalYAML parse the time.duration into a Duration object
 func (d Duration) UnmarshalYAML(b *yaml.Node) error {
 	var e error
-	d.Duration, e = time.ParseDuration(b.Value)
+	d.Duration, e = time.ParseDuration(b.Value) // nolint
 
 	return e
 }

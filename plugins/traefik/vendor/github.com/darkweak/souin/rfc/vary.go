@@ -1,6 +1,7 @@
 package rfc
 
 import (
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -28,13 +29,13 @@ func validateVary(req *http.Request, resp *http.Response, key string, t *VaryTra
 		switch req.Method {
 		case http.MethodGet:
 			// Delay caching until EOF is reached.
-			t.SetCache(cacheKey, resp)
+			t.SetCache(cacheKey, resp, req)
 			resp.Body = &cachingReadCloser{
 				R: resp.Body,
 				OnEOF: func(r io.Reader) {
 					resp := *resp
 					resp.Body = ioutil.NopCloser(r)
-					t.SetCache(cacheKey, &resp)
+					t.SetCache(cacheKey, &resp, req)
 					go func() {
 						t.CoalescingLayerStorage.Delete(cacheKey)
 					}()

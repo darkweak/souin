@@ -1,8 +1,12 @@
 package ykeys
 
 import (
+	"fmt"
+	"github.com/patrickmn/go-cache"
 	"net/http"
+	"regexp"
 	"strings"
+	"time"
 
 	"github.com/darkweak/souin/configurationtypes"
 )
@@ -33,35 +37,90 @@ import (
 
 // YKeyStorage is the layer for YKey support storage
 type YKeyStorage struct {
+	*cache.Cache
 	Keys map[string]configurationtypes.YKey
 }
 
 // InitializeYKeys will initialize the ykey storage system
 func InitializeYKeys(keys map[string]configurationtypes.YKey) *YKeyStorage {
-	return &YKeyStorage{Keys: keys}
+	c := cache.New(1*time.Second, 2*time.Second)
+	return &YKeyStorage{Cache: c, Keys: keys}
 }
 
 // GetValidatedTags returns the validated tags based on the key x headers
 func (y *YKeyStorage) GetValidatedTags(key string, headers http.Header) []string {
 	var tags []string
+	for k, v := range y.Keys {
+		valid := true
+		if v.URL != "" {
+			if r, e := regexp.MatchString(v.URL, key); !r || e != nil {
+				continue
+			}
+		}
+		if v.Headers != nil {
+			for h, hValue := range v.Headers {
+				if res, err := regexp.MatchString(hValue, headers.Get(h)); !res || err != nil {
+					valid = false
+					break
+				}
+			}
+		}
+		if valid {
+			tags = append(tags, k)
+		}
+	}
+
 	return tags
 }
 
 // InvalidateTags invalidate a tag list
 func (y *YKeyStorage) InvalidateTags(tags []string) []string {
 	var u []string
+	for _, tag := range tags {
+		if v, e := y.Cache.Get(tag); e {
+			u = append(u, y.InvalidateTagURLs(v.(string))...)
+		}
+	}
+
 	return u
 }
 
 // InvalidateTagURLs invalidate URLs in the stored map
 func (y *YKeyStorage) InvalidateTagURLs(urls string) []string {
 	u := strings.Split(urls, ",")
+	for _, url := range u {
+		y.invalidateURL(url)
+	}
+
 	return u
 }
 
-func (y *YKeyStorage) invalidateURL(url string) {}
+func (y *YKeyStorage) invalidateURL(url string) {
+	urlRegexp := regexp.MustCompile(fmt.Sprintf("(%s,)|(,%s$)|(^%s$)", url, url, url))
+	for key := range y.Keys {
+		v, _ := y.Cache.Get(key)
+		if urlRegexp.MatchString(v.(string)) {
+			y.Set(key, urlRegexp.ReplaceAllString(v.(string), ""), 1)
+		}
+	}
+}
 
 // AddToTags add an URL to a tag list
-func (y *YKeyStorage) AddToTags(url string, tags []string) {}
+func (y *YKeyStorage) AddToTags(url string, tags []string) {
+	for _, tag := range tags {
+		y.addToTag(url, tag)
+	}
+}
 
-func (y *YKeyStorage) addToTag(url string, tag string) {}
+func (y *YKeyStorage) addToTag(url string, tag string) {
+	if v, e := y.Cache.Get(tag); e {
+		urlRegexp := regexp.MustCompile(url)
+		tmpStr := v.(string)
+		if !urlRegexp.MatchString(tmpStr) {
+			if tmpStr != "" {
+				tmpStr += ","
+			}
+			y.Cache.Set(tag, tmpStr+url, 1)
+		}
+	}
+}

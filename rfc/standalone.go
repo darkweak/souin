@@ -181,11 +181,13 @@ func getEndToEndHeaders(respHeaders http.Header) []string {
 }
 
 func canStore(reqCacheControl, respCacheControl cacheControl) (canStore bool) {
-	if _, ok := respCacheControl["no-store"]; ok {
-		return false
-	}
-	if _, ok := reqCacheControl["no-store"]; ok {
-		return false
+	for _, t := range []string{"no-cache", "no-store"} {
+		if _, ok := respCacheControl[t]; ok {
+			return false
+		}
+		if _, ok := reqCacheControl[t]; ok {
+			return false
+		}
 	}
 	return true
 }

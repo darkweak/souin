@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"io/ioutil"
 	"net/http"
 	"strings"
 	"sync"
@@ -21,14 +20,14 @@ type SouinTraefikPlugin struct {
 	SouinBasePlugin
 }
 
+// TestConfiguration is the temporary configuration for Træfik
+type TestConfiguration map[string]interface{}
+
 var bufPool = sync.Pool{
 	New: func() interface{} {
 		return new(bytes.Buffer)
 	},
 }
-
-// TestConfiguration is the temporary configuration for Træfik
-type TestConfiguration map[string]interface{}
 
 // CreateConfig creates the default plugin configuration.
 func CreateConfig() *TestConfiguration {
@@ -116,42 +115,12 @@ func New(_ context.Context, next http.Handler, config *TestConfiguration, name s
 	return s, nil
 }
 
-type getterContext struct {
-	rw   http.ResponseWriter
-	req  *http.Request
-	next http.Handler
-}
-
-type customWriter struct {
-	response *http.Response
-	http.ResponseWriter
-}
-
-func (r *customWriter) Write(b []byte) (int, error) {
-	r.response.Header = r.ResponseWriter.Header()
-	r.response.StatusCode = http.StatusOK
-	r.response.Body = ioutil.NopCloser(bytes.NewBuffer(b))
-	return r.ResponseWriter.Write(b)
-}
-
-type key string
-
-const getterContextCtxKey key = "getter_context"
-
 func (s *SouinTraefikPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	customRW := &customWriter{
-		ResponseWriter: rw,
-		response:       &http.Response{},
-	}
 	buf := bufPool.Get().(*bytes.Buffer)
 	buf.Reset()
 	defer bufPool.Put(buf)
-	getterCtx := getterContext{rw, req, s.next}
-	ctx := context.WithValue(req.Context(), getterContextCtxKey, getterCtx)
-	req = req.WithContext(ctx)
-	req.Header.Set("Date", time.Now().UTC().Format(time.RFC1123))
-	path := req.Host + req.URL.Path
-	regexpURL := s.Retriever.GetRegexpUrls().FindString(path)
+	customRW := InitializeRequest(rw, req, s.next)
+	regexpURL := s.Retriever.GetRegexpUrls().FindString(req.Host + req.URL.Path)
 	url := configurationtypes.URL{
 		TTL:     configurationtypes.Duration{Duration: s.Retriever.GetConfiguration().GetDefaultCache().GetTTL()},
 		Headers: s.Retriever.GetConfiguration().GetDefaultCache().GetHeaders(),
@@ -177,7 +146,7 @@ func (s *SouinTraefikPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request
 
 	DefaultSouinPluginCallback(rw, req, s.Retriever, s.RequestCoalescing, func(_ http.ResponseWriter, _ *http.Request) error {
 		s.next.ServeHTTP(customRW, req)
-		req.Response = customRW.response
+		req.Response = customRW.Response
 
 		_, e := s.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(req)
 

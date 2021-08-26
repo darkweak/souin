@@ -13,6 +13,7 @@ copy-file-to: ## Copy file from to
 
 prepare: vendor ## Prepare tyk plugin
 	cp docker-compose.yml.test docker-compose.yml
+	docker-compose down --remove-orphans
 	docker-compose up -d
 
 # TODO find another way to do that

@@ -1,6 +1,7 @@
 package rfc
 
 import (
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
