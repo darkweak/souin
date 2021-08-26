@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/darkweak/souin/rfc"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/darkweak/souin/cache/coalescing"
@@ -30,27 +31,33 @@ func getInstanceFromRequest(r *http.Request) *souinInstance {
 func SouinResponseHandler(rw http.ResponseWriter, res *http.Response, _ *http.Request) {
 	req := res.Request
 	req.Response = res
-	retriever := getInstanceFromRequest(req).Retriever
 
-	key := rfc.GetCacheKey(req)
-	r, _ := rfc.CachedResponse(
-		retriever.GetProvider(),
-		req,
-		key,
-		retriever.GetTransport(),
-		true,
-	)
+	if !strings.Contains(req.Header.Get("Cache-Control"), "no-cache") {
+		retriever := getInstanceFromRequest(req).Retriever
 
-	if r.Response != nil {
-		rh := r.Response.Header
-		rfc.HitCache(&rh)
-		r.Response.Header = rh
-		for k, v := range r.Response.Header {
-			rw.Header().Set(k, v[0])
+		key := rfc.GetCacheKey(req)
+		r, _ := rfc.CachedResponse(
+			retriever.GetProvider(),
+			req,
+			key,
+			retriever.GetTransport(),
+			true,
+		)
+
+		if r.Response != nil {
+			rh := r.Response.Header
+			rfc.HitCache(&rh)
+			r.Response.Header = rh
+			for _, v := range []string{"Age", "Cache-Status"} {
+				h := r.Response.Header.Get(v)
+				if h != "" {
+					rw.Header().Set(v, h)
+				}
+			}
+			res = r.Response
+		} else {
+			res, _ = retriever.GetTransport().UpdateCacheEventually(req)
 		}
-		res = r.Response
-	} else {
-		res, _ = retriever.GetTransport().UpdateCacheEventually(req)
 	}
 
 	currentCtx = nil

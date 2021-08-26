@@ -5,6 +5,7 @@ import (
 	"context"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -66,15 +67,16 @@ func DefaultSouinPluginCallback(
 	rc coalescing.RequestCoalescingInterface,
 	nextMiddleware func(w http.ResponseWriter, r *http.Request) error,
 ) {
-	responses := make(chan types.ReverseResponse)
 	coalesceable := make(chan bool)
+	responses := make(chan types.ReverseResponse)
+	cacheCandidate := http.MethodGet == req.Method && !strings.Contains(req.Header.Get("Cache-Control"), "no-cache")
 
 	go func() {
 		cacheKey := rfc.GetCacheKey(req)
 		go func() {
 			coalesceable <- retriever.GetTransport().GetCoalescingLayerStorage().Exists(cacheKey)
 		}()
-		if http.MethodGet == req.Method {
+		if cacheCandidate {
 			r, _ := rfc.CachedResponse(
 				retriever.GetProvider(),
 				req,
@@ -86,7 +88,7 @@ func DefaultSouinPluginCallback(
 		}
 	}()
 
-	if http.MethodGet == req.Method {
+	if cacheCandidate {
 		response, open := <-responses
 		if open && nil != response.Response {
 			close(responses)

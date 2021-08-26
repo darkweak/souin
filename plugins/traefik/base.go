@@ -5,6 +5,7 @@ import (
 	"context"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/darkweak/souin/cache/coalescing"
@@ -58,7 +59,7 @@ func DefaultSouinPluginCallback(
 	nextMiddleware func(w http.ResponseWriter, r *http.Request) error,
 ) {
 	cacheKey := rfc.GetCacheKey(req)
-	if http.MethodGet == req.Method {
+	if http.MethodGet == req.Method && !strings.Contains(req.Header.Get("Cache-Control"), "no-cache") {
 		r, _ := rfc.CachedResponse(
 			retriever.GetProvider(),
 			req,
