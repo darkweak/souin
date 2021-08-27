@@ -2,13 +2,6 @@ package plugins
 
 import (
 	"bytes"
-	"context"
-	"io/ioutil"
-	"net/http"
-	"strings"
-	"sync"
-	"time"
-
 	"github.com/darkweak/souin/cache/coalescing"
 	"github.com/darkweak/souin/cache/providers"
 	"github.com/darkweak/souin/cache/types"
@@ -18,45 +11,29 @@ import (
 	"github.com/darkweak/souin/rfc"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"io/ioutil"
+	"net/http"
+	"strings"
+	"sync"
 )
 
-var bufPool = sync.Pool{
-	New: func() interface{} {
-		return new(bytes.Buffer)
-	},
-}
-
-type getterContext struct {
-	rw   http.ResponseWriter
-	req  *http.Request
-	next http.Handler
-}
-
-type customWriter struct {
+type CustomWriter struct {
 	Response *http.Response
 	http.ResponseWriter
+	BufPool *sync.Pool
 }
 
-func (r *customWriter) Write(b []byte) (int, error) {
+func (r *CustomWriter) Write(b []byte) (int, error) {
+	buf := r.BufPool.Get().(*bytes.Buffer)
+	buf.Reset()
+	defer r.BufPool.Put(buf)
 	r.Response.Header = r.ResponseWriter.Header()
-	r.Response.StatusCode = http.StatusOK
-	r.Response.Body = ioutil.NopCloser(bytes.NewBuffer(b))
-	return r.ResponseWriter.Write(b)
-}
-
-type key string
-
-const getterContextCtxKey key = "getter_context"
-
-func InitializeRequest(rw http.ResponseWriter, req *http.Request, next http.Handler) *customWriter {
-	getterCtx := getterContext{rw, req, next}
-	ctx := context.WithValue(req.Context(), getterContextCtxKey, getterCtx)
-	req = req.WithContext(ctx)
-	req.Header.Set("Date", time.Now().UTC().Format(time.RFC1123))
-	return &customWriter{
-		ResponseWriter: rw,
-		Response:       &http.Response{},
+	if r.Response.StatusCode == 0 {
+		r.Response.StatusCode = http.StatusOK
 	}
+	buf.Write(b)
+	r.Response.Body = ioutil.NopCloser(buf)
+	return r.ResponseWriter.Write(buf.Bytes())
 }
 
 // DefaultSouinPluginCallback is the default callback for plugins
@@ -82,7 +59,7 @@ func DefaultSouinPluginCallback(
 				req,
 				cacheKey,
 				retriever.GetTransport(),
-				true,
+				false,
 			)
 			responses <- r
 		}
@@ -106,7 +83,7 @@ func DefaultSouinPluginCallback(
 	}
 
 	close(responses)
-	if <-coalesceable {
+	if <-coalesceable && rc != nil {
 		rc.Temporize(req, res, nextMiddleware)
 	} else {
 		_ = nextMiddleware(res, req)

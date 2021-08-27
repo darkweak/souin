@@ -3,9 +3,9 @@ package rfc
 import (
 	"bufio"
 	"bytes"
-	"net/http"
-
 	"github.com/darkweak/souin/cache/types"
+	"net/http"
+	"time"
 )
 
 const (
@@ -113,6 +113,8 @@ func (t *VaryTransport) UpdateCacheEventually(req *http.Request) (*http.Response
 	cacheKey, cacheable, cachedResp := t.BaseRoundTrip(req, false)
 
 	if cacheable && cachedResp != nil {
+		rDate, _ := time.Parse(time.RFC1123, req.Header.Get("Date"))
+		cachedResp.Header.Set("Date", rDate.Format(http.TimeFormat))
 		r := commonVaryMatchesVerification(cachedResp, req)
 		if r != nil {
 			return r, nil

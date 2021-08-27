@@ -27,6 +27,8 @@ func validateVary(req *http.Request, resp *http.Response, key string, t *VaryTra
 		}
 		switch req.Method {
 		case http.MethodGet:
+			// SetCache before EOF to set cache with a partial response then override the cache with the full one once it reach EOF
+			t.SetCache(cacheKey, resp)
 			// Delay caching until EOF is reached.
 			resp.Body = &cachingReadCloser{
 				R: resp.Body,

@@ -3,9 +3,7 @@ package caddy
 import (
 	"bytes"
 	"context"
-	"io"
 	"net/http"
-	"net/http/httptest"
 	"sync"
 	"time"
 
@@ -42,7 +40,7 @@ type SouinCaddyPlugin struct {
 	Headers       []string                           `json:"headers,omitempty"`
 	Badger        configurationtypes.CacheProvider   `json:"badger,omitempty"`
 	Olric         configurationtypes.CacheProvider   `json:"olric,omitempty"`
-	TTL           time.Duration                      `json:"ttl,omitempty"`
+	TTL           configurationtypes.Duration        `json:"ttl,omitempty"`
 	YKeys         map[string]configurationtypes.YKey `json:"ykeys,omitempty"`
 }
 
@@ -65,25 +63,22 @@ func (s *SouinCaddyPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request, 
 	getterCtx := getterContext{rw, req, next}
 	ctx := context.WithValue(req.Context(), getterContextCtxKey, getterCtx)
 	req = req.WithContext(ctx)
-	buf := s.bufPool.Get().(*bytes.Buffer)
-	buf.Reset()
-	defer s.bufPool.Put(buf)
+	req.Header.Set("Date", time.Now().UTC().Format(time.RFC1123))
 	combo := ctx.Value(getterContextCtxKey).(getterContext)
+	customWriter := &plugins.CustomWriter{
+		Response:       &http.Response{},
+		ResponseWriter: rw,
+		BufPool: s.bufPool,
+	}
+
 	plugins.DefaultSouinPluginCallback(rw, req, s.Retriever, s.RequestCoalescing, func(_ http.ResponseWriter, _ *http.Request) error {
-		recorder := httptest.NewRecorder()
-		e := combo.next.ServeHTTP(recorder, combo.req)
+		e := combo.next.ServeHTTP(customWriter, combo.req)
 		if e != nil {
 			return e
 		}
 
-		response := recorder.Result()
-		req.Response = response
-		response, e = s.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(req)
-		if e != nil {
-			return e
-		}
-
-		_, e = io.Copy(rw, response.Body)
+		combo.req.Response = customWriter.Response
+		_, e = s.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(combo.req)
 
 		return e
 	})
@@ -141,7 +136,7 @@ func (s *SouinCaddyPlugin) FromApp(app *SouinApp) error {
 		if dc.Headers == nil {
 			s.Configuration.DefaultCache.Headers = appDc.Headers
 		}
-		if dc.TTL == 0 {
+		if dc.TTL.Duration == 0 {
 			s.Configuration.DefaultCache.TTL = appDc.TTL
 		}
 		if dc.Olric.URL == "" || dc.Olric.Path == "" || dc.Olric.Configuration == nil {
@@ -252,7 +247,7 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 				args := h.RemainingArgs()
 				ttl, err := time.ParseDuration(args[0])
 				if err == nil {
-					cfg.DefaultCache.TTL = ttl
+					cfg.DefaultCache.TTL.Duration = ttl
 				}
 			default:
 				return nil, h.Errf("unsupported root directive: %s", rootOption)
@@ -282,7 +277,7 @@ func parseCaddyfileHandlerDirective(h httpcaddyfile.Helper) (caddyhttp.Middlewar
 		case "ttl":
 			ttl, err := time.ParseDuration(h.RemainingArgs()[0])
 			if err == nil {
-				sc.DefaultCache.TTL = ttl
+				sc.DefaultCache.TTL.Duration = ttl
 			}
 		}
 	}

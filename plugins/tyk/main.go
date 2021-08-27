@@ -41,7 +41,7 @@ func SouinResponseHandler(rw http.ResponseWriter, res *http.Response, _ *http.Re
 			req,
 			key,
 			retriever.GetTransport(),
-			true,
+			false,
 		)
 
 		if r.Response != nil {

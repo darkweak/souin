@@ -14,7 +14,7 @@ type DefaultCache struct {
 	Headers     []string
 	Olric       configurationtypes.CacheProvider
 	Regex       configurationtypes.Regex
-	TTL         time.Duration
+	TTL         configurationtypes.Duration
 }
 
 // GetBadger returns the Badger configuration
@@ -44,7 +44,7 @@ func (d *DefaultCache) GetRegex() configurationtypes.Regex {
 
 // GetTTL returns the default TTL
 func (d *DefaultCache) GetTTL() time.Duration {
-	return d.TTL
+	return d.TTL.Duration
 }
 
 //Configuration holder
