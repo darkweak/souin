@@ -24,6 +24,14 @@ type CustomWriter struct {
 	BufPool *sync.Pool
 }
 
+func (r *CustomWriter) WriteHeader(code int) {
+	if code == 0 {
+		code = http.StatusOK
+	}
+	r.Response.StatusCode = code
+	r.ResponseWriter.WriteHeader(code)
+}
+
 func (r *CustomWriter) Write(b []byte) (int, error) {
 	buf := r.BufPool.Get().(*bytes.Buffer)
 	buf.Reset()

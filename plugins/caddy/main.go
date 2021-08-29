@@ -77,7 +77,7 @@ func (s *SouinCaddyPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request, 
 		BufPool: s.bufPool,
 	}
 
-	plugins.DefaultSouinPluginCallback(rw, req, s.Retriever, s.RequestCoalescing, func(_ http.ResponseWriter, _ *http.Request) error {
+	plugins.DefaultSouinPluginCallback(customWriter, req, s.Retriever, s.RequestCoalescing, func(_ http.ResponseWriter, _ *http.Request) error {
 		e := combo.next.ServeHTTP(customWriter, combo.req)
 		if e != nil {
 			return e
