@@ -4,7 +4,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
+	"github.com/darkweak/souin/api"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -39,6 +42,41 @@ func parseConfiguration(c map[string]interface{}) Configuration {
 
 	for k, v := range c {
 		switch k {
+		case "api":
+			var a configurationtypes.API
+			var souinConfiguration, securityConfiguration map[string]interface{}
+			apiConfiguration := v.(map[string]interface{})
+			if apiConfiguration["souin"] != nil {
+				souinConfiguration = apiConfiguration["souin"].(map[string]interface{})
+			}
+			if apiConfiguration["security"] != nil {
+				securityConfiguration = apiConfiguration["security"].(map[string]interface{})
+			}
+			if souinConfiguration != nil {
+				a.Souin = configurationtypes.APIEndpoint{}
+				if souinConfiguration["basepath"] != nil {
+					a.Souin.BasePath = souinConfiguration["basepath"].(string)
+				}
+				if souinConfiguration["enable"] != nil {
+					a.Souin.Enable, _ = strconv.ParseBool(souinConfiguration["enable"].(string))
+				}
+				if securityConfiguration["enable"] != nil {
+					a.Souin.Security = securityConfiguration["enable"].(bool)
+				}
+			}
+			if securityConfiguration != nil {
+				a.Security = configurationtypes.SecurityAPI{}
+				if securityConfiguration["basepath"] != nil {
+					a.Security.BasePath = securityConfiguration["basepath"].(string)
+				}
+				if securityConfiguration["enable"] != nil {
+					a.Security.Enable, _ = strconv.ParseBool(securityConfiguration["enable"].(string))
+				}
+				if securityConfiguration["users"] != nil {
+					a.Security.Users = securityConfiguration["users"].([]configurationtypes.User)
+				}
+			}
+			configuration.API = a
 		case "default_cache":
 			dc := configurationtypes.DefaultCache{
 				Distributed: false,
@@ -112,10 +150,23 @@ func New(_ context.Context, next http.Handler, config *TestConfiguration, name s
 	c := parseConfiguration(*config)
 
 	s.Retriever = DefaultSouinPluginInitializerFromConfiguration(&c)
+	fmt.Println(c.API)
+	fmt.Println(c.API.Souin)
+	s.MapHandler = api.GenerateHandlerMap(&c, s.Retriever.GetProvider(), s.Retriever.GetTransport().GetYkeyStorage())
+	fmt.Println("==============================")
+	fmt.Println(s.MapHandler)
+	fmt.Println("==============================")
 	return s, nil
 }
 
 func (s *SouinTraefikPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	fmt.Println("Handle plugin")
+	if b, h := s.HandleInternally(req); b {
+
+		h(rw, req)
+		return
+	}
+
 	buf := bufPool.Get().(*bytes.Buffer)
 	buf.Reset()
 	defer bufPool.Put(buf)

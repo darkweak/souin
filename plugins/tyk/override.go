@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/darkweak/souin/api"
 	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/cache/ykeys"
 	"github.com/darkweak/souin/rfc"
@@ -100,6 +101,7 @@ func fromDir(dir string) map[string]*souinInstance {
 		retriever.Transport = rfc.NewTransport(provider, ykeys.InitializeYKeys(config.GetYkeys()))
 
 		c[def.APIID] = &souinInstance{
+			MapHandler:        api.GenerateHandlerMap(config, retriever.GetProvider(), retriever.GetTransport().GetYkeyStorage()),
 			RequestCoalescing: coalescing.Initialize(),
 			Retriever:         retriever,
 			Configuration:     config,

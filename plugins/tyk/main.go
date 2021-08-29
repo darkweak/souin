@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/darkweak/souin/api"
 	"github.com/darkweak/souin/rfc"
 	"net/http"
 	"strings"
@@ -31,10 +32,14 @@ func getInstanceFromRequest(r *http.Request) *souinInstance {
 func SouinResponseHandler(rw http.ResponseWriter, res *http.Response, _ *http.Request) {
 	req := res.Request
 	req.Response = res
+	currentInstance := getInstanceFromRequest(req)
+	if b, _ := currentInstance.HandleInternally(req); b {
+		// handler(rw, req)
+		return
+	}
 
 	if !strings.Contains(req.Header.Get("Cache-Control"), "no-cache") {
-		retriever := getInstanceFromRequest(req).Retriever
-
+		retriever := currentInstance.Retriever
 		key := rfc.GetCacheKey(req)
 		r, _ := rfc.CachedResponse(
 			retriever.GetProvider(),
@@ -68,6 +73,10 @@ func SouinRequestHandler(rw http.ResponseWriter, r *http.Request) {
 	// TODO remove these lines once Tyk patch the
 	// ctx.GetDefinition(r)
 	currentInstance := getInstanceFromRequest(r)
+	if b, handler := currentInstance.HandleInternally(r); b {
+		handler(rw, r)
+		return
+	}
 	r.Header.Set("Date", time.Now().UTC().Format(time.RFC1123))
 	coalescing.ServeResponse(rw, r, currentInstance.Retriever, plugins.DefaultSouinPluginCallback, currentInstance.RequestCoalescing, func(_ http.ResponseWriter, _ *http.Request) error {
 		return nil
@@ -82,6 +91,19 @@ type souinInstance struct {
 	RequestCoalescing coalescing.RequestCoalescingInterface
 	Retriever         types.RetrieverResponsePropertiesInterface
 	Configuration     *Configuration
+	MapHandler        *api.MapHandler
+}
+
+func (s *souinInstance) HandleInternally(r *http.Request) (bool, func(http.ResponseWriter, *http.Request)) {
+	if s.MapHandler != nil {
+		for k, souinHandler := range s.MapHandler.Handlers {
+			if strings.Contains(r.RequestURI, k) {
+				return true, souinHandler
+			}
+		}
+	}
+
+	return false, nil
 }
 
 type souinInstances struct {

@@ -3,6 +3,7 @@ package traefik
 import (
 	"bytes"
 	"context"
+	"github.com/darkweak/souin/api"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -110,4 +111,17 @@ func DefaultSouinPluginInitializerFromConfiguration(c configurationtypes.Abstrac
 type SouinBasePlugin struct {
 	Retriever         types.RetrieverResponsePropertiesInterface
 	RequestCoalescing coalescing.RequestCoalescingInterface
+	MapHandler        *api.MapHandler
+}
+
+func (s *SouinBasePlugin) HandleInternally(r *http.Request) (bool, func(http.ResponseWriter, *http.Request)) {
+	if s.MapHandler != nil {
+		for k, souinHandler := range s.MapHandler.Handlers {
+			if strings.Contains(r.RequestURI, k) {
+				return true, souinHandler
+			}
+		}
+	}
+
+	return false, nil
 }

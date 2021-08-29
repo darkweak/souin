@@ -316,7 +316,7 @@ func (w *sortedWriter) handleRequests() {
 		for i, e := range req.Entries {
 			// If badger is running in InMemory mode, len(req.Ptrs) == 0.
 			var vs y.ValueStruct
-			if w.db.opt.skipVlog(e) {
+			if e.skipVlogAndSetThreshold(w.db.valueThreshold()) {
 				vs = y.ValueStruct{
 					Value:     e.Value,
 					Meta:      e.meta,
@@ -360,6 +360,7 @@ func (w *sortedWriter) Add(key []byte, vs y.ValueStruct) error {
 	}
 
 	sameKey := y.SameKey(key, w.lastKey)
+
 	// Same keys should go into the same SSTable.
 	if !sameKey && w.builder.ReachedCapacity() {
 		if err := w.send(false); err != nil {
@@ -372,6 +373,7 @@ func (w *sortedWriter) Add(key []byte, vs y.ValueStruct) error {
 	if vs.Meta&bitValuePointer > 0 {
 		vp.Decode(vs.Value)
 	}
+
 	w.builder.Add(key, vs, vp.Len)
 	return nil
 }
@@ -452,6 +454,6 @@ func (w *sortedWriter) createTable(builder *table.Builder) error {
 	// Release the ref held by OpenTable.
 	_ = tbl.DecrRef()
 	w.db.opt.Infof("Table created: %d at level: %d for stream: %d. Size: %s\n",
-		fileID, lhandler.level, w.streamID, humanize.Bytes(uint64(tbl.Size())))
+		fileID, lhandler.level, w.streamID, humanize.IBytes(uint64(tbl.Size())))
 	return nil
 }

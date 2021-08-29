@@ -3,6 +3,7 @@ package caddy
 import (
 	"bytes"
 	"context"
+	"github.com/darkweak/souin/api"
 	"net/http"
 	"sync"
 	"time"
@@ -60,6 +61,11 @@ type getterContext struct {
 
 // ServeHTTP implements caddyhttp.MiddlewareHandler.
 func (s *SouinCaddyPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request, next caddyhttp.Handler) error {
+	if b, handler := s.HandleInternally(req); b {
+		handler(rw, req)
+		return nil
+	}
+
 	getterCtx := getterContext{rw, req, next}
 	ctx := context.WithValue(req.Context(), getterContextCtxKey, getterCtx)
 	req = req.WithContext(ctx)
@@ -172,6 +178,7 @@ func (s *SouinCaddyPlugin) Provision(ctx caddy.Context) error {
 	}
 	s.Retriever = plugins.DefaultSouinPluginInitializerFromConfiguration(s.Configuration)
 	// s.RequestCoalescing = coalescing.Initialize()
+	s.MapHandler = api.GenerateHandlerMap(s.Configuration, s.Retriever.GetProvider(), s.Retriever.GetTransport().GetYkeyStorage())
 	return nil
 }
 
