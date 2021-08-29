@@ -61,6 +61,11 @@ func (t *VaryTransport) BaseRoundTrip(req *http.Request, shouldReUpdate bool) (s
 	cacheKey := GetCacheKey(req)
 	cacheable := IsVaryCacheable(req)
 	cachedResp := req.Response
+
+	if cachedResp.Header == nil {
+		cachedResp.Header = make(http.Header)
+	}
+
 	if cacheable {
 		cr, _ := CachedResponse(t.GetProvider(), req, cacheKey, t, shouldReUpdate)
 		if cr.Response != nil {

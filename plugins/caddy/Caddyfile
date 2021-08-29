@@ -47,7 +47,7 @@
     }
 }
 
-80
+:80
 
 @match path /test1*
 @match2 path /test2*
@@ -65,7 +65,4 @@ cache @match2 {
 
 cache @matchdefault {
     ttl 25s
-}
-
-cache * {
 }
