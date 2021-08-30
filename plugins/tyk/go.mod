@@ -1,6 +1,6 @@
 module github.com/darkweak/souin/plugins/tyk
 
-go 1.15
+go 1.16
 
 require (
 	github.com/TykTechnologies/gojsonschema v0.0.0-20170222154038-dcb3e4bb7990 // indirect

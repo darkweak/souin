@@ -1,8 +1,13 @@
 package traefik
 
 import (
+	"bytes"
+	"context"
+	"github.com/darkweak/souin/api"
 	"io/ioutil"
 	"net/http"
+	"strings"
+	"time"
 
 	"github.com/darkweak/souin/cache/coalescing"
 	"github.com/darkweak/souin/cache/providers"
@@ -13,6 +18,39 @@ import (
 	"github.com/darkweak/souin/rfc"
 )
 
+type getterContext struct {
+	rw   http.ResponseWriter
+	req  *http.Request
+	next http.Handler
+}
+
+type customWriter struct {
+	Response *http.Response
+	http.ResponseWriter
+}
+
+func (r *customWriter) Write(b []byte) (int, error) {
+	r.Response.Header = r.ResponseWriter.Header()
+	r.Response.StatusCode = http.StatusOK
+	r.Response.Body = ioutil.NopCloser(bytes.NewBuffer(b))
+	return r.ResponseWriter.Write(b)
+}
+
+type key string
+
+const getterContextCtxKey key = "getter_context"
+
+func InitializeRequest(rw http.ResponseWriter, req *http.Request, next http.Handler) *customWriter {
+	getterCtx := getterContext{rw, req, next}
+	ctx := context.WithValue(req.Context(), getterContextCtxKey, getterCtx)
+	req = req.WithContext(ctx)
+	req.Header.Set("Date", time.Now().UTC().Format(time.RFC1123))
+	return &customWriter{
+		ResponseWriter: rw,
+		Response:       &http.Response{},
+	}
+}
+
 // DefaultSouinPluginCallback is the default callback for plugins
 func DefaultSouinPluginCallback(
 	res http.ResponseWriter,
@@ -21,41 +59,31 @@ func DefaultSouinPluginCallback(
 	_ coalescing.RequestCoalescingInterface,
 	nextMiddleware func(w http.ResponseWriter, r *http.Request) error,
 ) {
-	responses := make(chan types.ReverseResponse)
+	cacheKey := rfc.GetCacheKey(req)
+	if http.MethodGet == req.Method && !strings.Contains(req.Header.Get("Cache-Control"), "no-cache") {
+		r, _ := rfc.CachedResponse(
+			retriever.GetProvider(),
+			req,
+			cacheKey,
+			retriever.GetTransport(),
+			true,
+		)
 
-	go func() {
-		cacheKey := rfc.GetCacheKey(req)
-		if http.MethodGet == req.Method {
-			r, _ := rfc.CachedResponse(
-				retriever.GetProvider(),
-				req,
-				cacheKey,
-				retriever.GetTransport(),
-				true,
-			)
-			responses <- r
-		}
-	}()
-
-	if http.MethodGet == req.Method {
-		response := <-responses
-		m := response.Response
+		m := r.Response
 		if !(m == nil) {
-			close(responses)
-			rh := response.Response.Header
+			rh := r.Response.Header
 			rfc.HitCache(&rh)
-			response.Response.Header = rh
-			for k, v := range response.Response.Header {
+			r.Response.Header = rh
+			for k, v := range r.Response.Header {
 				res.Header().Set(k, v[0])
 			}
-			res.WriteHeader(response.Response.StatusCode)
-			b, _ := ioutil.ReadAll(response.Response.Body)
+			res.WriteHeader(r.Response.StatusCode)
+			b, _ := ioutil.ReadAll(r.Response.Body)
 			_, _ = res.Write(b)
 			return
 		}
 	}
 
-	close(responses)
 	_ = nextMiddleware(res, req)
 }
 
@@ -83,4 +111,17 @@ func DefaultSouinPluginInitializerFromConfiguration(c configurationtypes.Abstrac
 type SouinBasePlugin struct {
 	Retriever         types.RetrieverResponsePropertiesInterface
 	RequestCoalescing coalescing.RequestCoalescingInterface
+	MapHandler        *api.MapHandler
+}
+
+func (s *SouinBasePlugin) HandleInternally(r *http.Request) (bool, http.HandlerFunc) {
+	if s.MapHandler != nil {
+		for k, souinHandler := range *s.MapHandler.Handlers {
+			if strings.Contains(r.RequestURI, k) {
+				return true, souinHandler
+			}
+		}
+	}
+
+	return false, nil
 }

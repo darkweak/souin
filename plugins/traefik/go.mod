@@ -1,6 +1,6 @@
 module github.com/darkweak/souin/plugins/traefik
 
-go 1.15
+go 1.16
 
 replace github.com/darkweak/souin v1.5.2 => ../..
 

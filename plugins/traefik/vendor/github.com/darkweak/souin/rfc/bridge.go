@@ -3,9 +3,9 @@ package rfc
 import (
 	"bufio"
 	"bytes"
-	"net/http"
-
 	"github.com/darkweak/souin/cache/types"
+	"net/http"
+	"time"
 )
 
 const (
@@ -61,6 +61,11 @@ func (t *VaryTransport) BaseRoundTrip(req *http.Request, shouldReUpdate bool) (s
 	cacheKey := GetCacheKey(req)
 	cacheable := IsVaryCacheable(req)
 	cachedResp := req.Response
+
+	if cachedResp.Header == nil {
+		cachedResp.Header = make(http.Header)
+	}
+
 	if cacheable {
 		cr, _ := CachedResponse(t.GetProvider(), req, cacheKey, t, shouldReUpdate)
 		if cr.Response != nil {
@@ -100,7 +105,7 @@ func commonVaryMatchesVerification(cachedResp *http.Response, req *http.Request)
 				req2.Header.Set("if-modified-since", lastModified)
 			}
 			if req2 != nil {
-				req = req2
+				req = req2 // nolint
 			}
 		}
 	}
@@ -113,6 +118,8 @@ func (t *VaryTransport) UpdateCacheEventually(req *http.Request) (*http.Response
 	cacheKey, cacheable, cachedResp := t.BaseRoundTrip(req, false)
 
 	if cacheable && cachedResp != nil {
+		rDate, _ := time.Parse(time.RFC1123, req.Header.Get("Date"))
+		cachedResp.Header.Set("Date", rDate.Format(http.TimeFormat))
 		r := commonVaryMatchesVerification(cachedResp, req)
 		if r != nil {
 			return r, nil
@@ -161,7 +168,7 @@ func (t *VaryTransport) RoundTrip(req *http.Request) (resp *http.Response, err e
 			for _, header := range endToEndHeaders {
 				cachedResp.Header[header] = resp.Header[header]
 			}
-			resp = cachedResp
+			resp = cachedResp // nolint
 		} else if (err != nil || resp.StatusCode >= 500) &&
 			req.Method == http.MethodGet && canStaleOnError(cachedResp.Header, req.Header) {
 			// In case of transport failure and stale-if-error activated, returns cached content
@@ -181,7 +188,7 @@ func (t *VaryTransport) RoundTrip(req *http.Request) (resp *http.Response, err e
 		}
 		resp.Header.Set("Cache-Status", "Souin; fwd=uri-miss")
 	}
-	resp, err = transport.RoundTrip(req)
+	resp, _ = transport.RoundTrip(req)
 	if !(cacheable && validateVary(req, resp, cacheKey, t)) {
 		go func() {
 			t.CoalescingLayerStorage.Set(cacheKey)

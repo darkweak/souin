@@ -3,6 +3,10 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/darkweak/souin/api"
+	"github.com/darkweak/souin/cache/types"
+	"github.com/darkweak/souin/cache/ykeys"
+	"github.com/darkweak/souin/rfc"
 	"io/ioutil"
 	"path/filepath"
 	"reflect"
@@ -45,6 +49,8 @@ func parseSouinDefinition(b []byte) *souinAPIDefinition {
 	}
 	logger, _ := cfg.Build()
 	def.Souin.logger = logger
+	def.Souin.SetLogger(logger)
+
 	return &def
 }
 
@@ -75,8 +81,9 @@ func apiDefinitionRetriever(currentCtx interface{}) *apidef.APIDefinition {
 	return nil
 }
 
-func fromDir(dir string) map[string]souinInstance {
-	c := make(map[string]souinInstance)
+func fromDir(dir string) map[string]*souinInstance {
+	c := make(map[string]*souinInstance)
+	var provider types.AbstractProviderInterface
 	paths, _ := filepath.Glob(filepath.Join(dir, "*.json"))
 	for _, path := range paths {
 		f, err := ioutil.ReadFile(path)
@@ -85,10 +92,18 @@ func fromDir(dir string) map[string]souinInstance {
 		}
 		def := parseSouinDefinition(f)
 		config := &def.Souin
+		retriever := plugins.DefaultSouinPluginInitializerFromConfiguration(config)
+		if provider != nil {
+			retriever.Provider = provider
+		} else {
+			provider = retriever.Provider
+		}
+		retriever.Transport = rfc.NewTransport(provider, ykeys.InitializeYKeys(config.GetYkeys()))
 
-		c[def.APIID] = souinInstance{
+		c[def.APIID] = &souinInstance{
+			MapHandler:        api.GenerateHandlerMap(config, retriever.GetProvider(), retriever.GetTransport().GetYkeyStorage()),
 			RequestCoalescing: coalescing.Initialize(),
-			Retriever:         plugins.DefaultSouinPluginInitializerFromConfiguration(config),
+			Retriever:         retriever,
 			Configuration:     config,
 		}
 	}
