@@ -1,6 +1,6 @@
 module github.com/darkweak/souin
 
-go 1.15
+go 1.16
 
 require (
 	github.com/buraksezer/olric v0.3.11

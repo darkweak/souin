@@ -12,8 +12,6 @@
 
 :80
 
-respond "Hello, world!"
-
 @match path /test1*
 @match2 path /test2*
 @matchdefault path /default

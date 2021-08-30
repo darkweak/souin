@@ -26,7 +26,7 @@ type CustomWriter struct {
 
 func (r *CustomWriter) WriteHeader(code int) {
 	if code == 0 {
-		code = http.StatusOK
+		return
 	}
 	r.Response.StatusCode = code
 	r.ResponseWriter.WriteHeader(code)
