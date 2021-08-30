@@ -9,6 +9,8 @@ jobs:
     steps:
       - name: Install Go
         uses: actions/setup-go@v2
+        with:
+          go-version: 1.16
       - name: Checkout code
         uses: actions/checkout@v2
       - name: Install xcaddy
@@ -26,6 +28,8 @@ jobs:
     steps:
       - name: Install Go
         uses: actions/setup-go@v2
+        with:
+          go-version: 1.16
       - name: Checkout code
         uses: actions/checkout@v2
       - name: Build Souin as Tyk plugin
@@ -48,6 +52,8 @@ jobs:
     steps:
       - name: Install Go
         uses: actions/setup-go@v2
+        with:
+          go-version: 1.16
       - name: Checkout code
         uses: actions/checkout@v2
       - name: Build Souin as Træfik plugin

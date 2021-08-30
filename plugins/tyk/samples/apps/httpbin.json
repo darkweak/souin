@@ -12,6 +12,33 @@
       }
     }
   },
+  "custom_middleware": {
+    "pre": [],
+    "post": [
+      {
+        "name": "SouinRequestHandler",
+        "path": "/opt/tyk-gateway/middleware/souin-plugin.so"
+      }
+    ],
+    "post_key_auth": [],
+    "auth_check": {
+      "name": "",
+      "path": "",
+      "require_session": false
+    },
+    "response": [
+      {
+        "name": "SouinResponseHandler",
+        "path": "/opt/tyk-gateway/middleware/souin-plugin.so"
+      }
+    ],
+    "driver": "goplugin",
+    "id_extractor": {
+      "extract_from": "",
+      "extract_with": "",
+      "extractor_config": {}
+    }
+  },
   "proxy":{
     "listen_path":"/httpbin/",
     "target_url":"http://httpbin.org/",
@@ -19,8 +46,13 @@
   },
   "active":true,
   "souin": {
+    "api": {
+      "souin": {
+        "enable": true
+      }
+    },
     "default_cache": {
-      "ttl": "10s"
+      "ttl": "100s"
     }
   }
 }

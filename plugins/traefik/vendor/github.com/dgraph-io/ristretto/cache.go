@@ -88,8 +88,11 @@ type Config struct {
 	// accuracy and subsequent hit ratios.
 	//
 	// For example, if you expect your cache to hold 1,000,000 items when full,
-	// NumCounters should be 10,000,000 (10x). Each counter takes up 4 bits, so
-	// keeping 10,000,000 counters would require 5MB of memory.
+	// NumCounters should be 10,000,000 (10x). Each counter takes up roughly
+	// 3 bytes (4 bits for each counter * 4 copies plus about a byte per
+	// counter for the bloom filter). Note that the number of counters is
+	// internally rounded up to the nearest power of 2, so the space usage
+	// may be a little larger than 3 bytes * NumCounters.
 	NumCounters int64
 	// MaxCost can be considered as the cache capacity, in whatever units you
 	// choose to use.
@@ -149,7 +152,7 @@ type Item struct {
 	Conflict   uint64
 	Value      interface{}
 	Cost       int64
-	Expiration int64
+	Expiration time.Time
 	wg         *sync.WaitGroup
 }
 
@@ -255,7 +258,7 @@ func (c *Cache) SetWithTTL(key, value interface{}, cost int64, ttl time.Duration
 		return false
 	}
 
-	var expiration int64
+	var expiration time.Time
 	switch {
 	case ttl == 0:
 		// No expiration.
@@ -264,7 +267,7 @@ func (c *Cache) SetWithTTL(key, value interface{}, cost int64, ttl time.Duration
 		// Treat this a a no-op.
 		return false
 	default:
-		expiration = time.Now().Add(ttl).Unix()
+		expiration = time.Now().Add(ttl)
 	}
 
 	keyHash, conflictHash := c.keyToHash(key)
@@ -318,6 +321,33 @@ func (c *Cache) Del(key interface{}) {
 	}
 }
 
+// GetTTL returns the TTL for the specified key and a bool that is true if the
+// item was found and is not expired.
+func (c *Cache) GetTTL(key interface{}) (time.Duration, bool) {
+	if c == nil || key == nil {
+		return 0, false
+	}
+
+	keyHash, conflictHash := c.keyToHash(key)
+	if _, ok := c.store.Get(keyHash, conflictHash); !ok {
+		// not found
+		return 0, false
+	}
+
+	expiration := c.store.Expiration(keyHash)
+	if expiration.IsZero() {
+		// found but no expiration
+		return 0, true
+	}
+
+	if time.Now().After(expiration) {
+		// found but expired
+		return 0, false
+	}
+
+	return time.Until(expiration), true
+}
+
 // Close stops all goroutines and closes all channels.
 func (c *Cache) Close() {
 	if c == nil || c.isClosed {
@@ -348,6 +378,10 @@ loop:
 	for {
 		select {
 		case i := <-c.setBuf:
+			if i.wg != nil {
+				i.wg.Done()
+				continue
+			}
 			if i.flag != itemUpdate {
 				// In itemUpdate, the value is already set in the store.  So, no need to call
 				// onEvict here.

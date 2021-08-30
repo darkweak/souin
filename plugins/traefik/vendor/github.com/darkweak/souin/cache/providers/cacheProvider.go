@@ -23,7 +23,11 @@ func CacheConnectionFactory(_ t.AbstractConfigurationInterface) (*Cache, error) 
 
 // ListKeys method returns the list of existing keys
 func (provider *Cache) ListKeys() []string {
-	keys := []string{}
+	items := provider.Items()
+	keys := make([]string, 0, len(items))
+	for k := range items {
+		keys = append(keys, k)
+	}
 
 	return keys
 }

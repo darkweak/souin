@@ -1,9 +1,8 @@
 package plugins
 
 import (
-	"io/ioutil"
-	"net/http"
-
+	"bytes"
+	"github.com/darkweak/souin/api"
 	"github.com/darkweak/souin/cache/coalescing"
 	"github.com/darkweak/souin/cache/providers"
 	"github.com/darkweak/souin/cache/types"
@@ -13,7 +12,38 @@ import (
 	"github.com/darkweak/souin/rfc"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"io/ioutil"
+	"net/http"
+	"strings"
+	"sync"
 )
+
+type CustomWriter struct {
+	Response *http.Response
+	http.ResponseWriter
+	BufPool *sync.Pool
+}
+
+func (r *CustomWriter) WriteHeader(code int) {
+	if code == 0 {
+		return
+	}
+	r.Response.StatusCode = code
+	r.ResponseWriter.WriteHeader(code)
+}
+
+func (r *CustomWriter) Write(b []byte) (int, error) {
+	buf := r.BufPool.Get().(*bytes.Buffer)
+	buf.Reset()
+	defer r.BufPool.Put(buf)
+	r.Response.Header = r.ResponseWriter.Header()
+	if r.Response.StatusCode == 0 {
+		r.Response.StatusCode = http.StatusOK
+	}
+	buf.Write(b)
+	r.Response.Body = ioutil.NopCloser(buf)
+	return r.ResponseWriter.Write(buf.Bytes())
+}
 
 // DefaultSouinPluginCallback is the default callback for plugins
 func DefaultSouinPluginCallback(
@@ -23,27 +53,28 @@ func DefaultSouinPluginCallback(
 	rc coalescing.RequestCoalescingInterface,
 	nextMiddleware func(w http.ResponseWriter, r *http.Request) error,
 ) {
-	responses := make(chan types.ReverseResponse)
 	coalesceable := make(chan bool)
+	responses := make(chan types.ReverseResponse)
+	cacheCandidate := http.MethodGet == req.Method && !strings.Contains(req.Header.Get("Cache-Control"), "no-cache")
 
 	go func() {
 		cacheKey := rfc.GetCacheKey(req)
 		go func() {
 			coalesceable <- retriever.GetTransport().GetCoalescingLayerStorage().Exists(cacheKey)
 		}()
-		if http.MethodGet == req.Method {
+		if cacheCandidate {
 			r, _ := rfc.CachedResponse(
 				retriever.GetProvider(),
 				req,
 				cacheKey,
 				retriever.GetTransport(),
-				true,
+				false,
 			)
 			responses <- r
 		}
 	}()
 
-	if http.MethodGet == req.Method {
+	if cacheCandidate {
 		response, open := <-responses
 		if open && nil != response.Response {
 			close(responses)
@@ -61,7 +92,7 @@ func DefaultSouinPluginCallback(
 	}
 
 	close(responses)
-	if <-coalesceable {
+	if <-coalesceable && rc != nil {
 		rc.Temporize(req, res, nextMiddleware)
 	} else {
 		_ = nextMiddleware(res, req)
@@ -114,7 +145,7 @@ func DefaultSouinPluginInitializerFromConfiguration(c configurationtypes.Abstrac
 		Transport:     transport,
 	}
 	retriever.Transport.SetURL(retriever.MatchedURL)
-	retriever.GetConfiguration().GetLogger().Debug("Souin configuration is now loaded.")
+	retriever.GetConfiguration().GetLogger().Info("Souin configuration is now loaded.")
 
 	return retriever
 }
@@ -123,4 +154,17 @@ func DefaultSouinPluginInitializerFromConfiguration(c configurationtypes.Abstrac
 type SouinBasePlugin struct {
 	Retriever         types.RetrieverResponsePropertiesInterface
 	RequestCoalescing coalescing.RequestCoalescingInterface
+	MapHandler        *api.MapHandler
+}
+
+func (s *SouinBasePlugin) HandleInternally(r *http.Request) (bool, func(http.ResponseWriter, *http.Request)) {
+	if s.MapHandler != nil {
+		for k, souinHandler := range *s.MapHandler.Handlers {
+			if strings.Contains(r.RequestURI, k) {
+				return true, souinHandler
+			}
+		}
+	}
+
+	return false, nil
 }

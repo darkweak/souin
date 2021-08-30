@@ -53,14 +53,12 @@ func HitCache(h *http.Header) {
 }
 
 func manageAge(h *http.Header) {
-	var rt time.Time
-
 	utc1 := time.Now().UTC()
 	utc2 := utc1
-	date := h.Get("Date")
-	if date == "" {
+	dh := h.Get("Date")
+	if dh == "" {
 		h.Set("Date", utc1.Format(http.TimeFormat))
-	} else if validateTimeHeader(h, "Date", date) {
+	} else if validateTimeHeader(h, "Date", dh) {
 		if u, e := http.ParseTime(h.Get("Date")); e == nil {
 			utc2 = u
 		} else {
@@ -68,12 +66,7 @@ func manageAge(h *http.Header) {
 		}
 	}
 
-	ageValue := h.Get("Age")
-	correctedInitialAge := correctedInitialAge(utc1, utc2, rt, ageValue)
-
-	if ageValue != "" || correctedInitialAge != 0 {
-		h.Set("Age", ageToString(correctedInitialAge))
-	}
+	h.Set("Age", ageToString(correctedInitialAge(utc1, utc2)))
 }
 
 func setMalformedHeader(headers *http.Header, header string) {

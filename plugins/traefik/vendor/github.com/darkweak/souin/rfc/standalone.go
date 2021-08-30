@@ -15,7 +15,7 @@ import (
 
 // GetCacheKey returns the cache key for req.
 func GetCacheKey(req *http.Request) string {
-	return fmt.Sprintf("%s-%s-%s", req.Method, req.Host, req.URL.RequestURI())
+	return fmt.Sprintf("%s-%s-%s", req.Method, req.Host, req.RequestURI)
 }
 
 // GetVariedCacheKey returns the varied cache key for req and resp.
@@ -181,11 +181,13 @@ func getEndToEndHeaders(respHeaders http.Header) []string {
 }
 
 func canStore(reqCacheControl, respCacheControl cacheControl) (canStore bool) {
-	if _, ok := respCacheControl["no-store"]; ok {
-		return false
-	}
-	if _, ok := reqCacheControl["no-store"]; ok {
-		return false
+	for _, t := range []string{"no-cache", "no-store"} {
+		if _, ok := respCacheControl[t]; ok {
+			return false
+		}
+		if _, ok := reqCacheControl[t]; ok {
+			return false
+		}
 	}
 	return true
 }

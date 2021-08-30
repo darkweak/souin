@@ -4,8 +4,9 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"io/ioutil"
+	"github.com/darkweak/souin/api"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -21,14 +22,14 @@ type SouinTraefikPlugin struct {
 	SouinBasePlugin
 }
 
+// TestConfiguration is the temporary configuration for Træfik
+type TestConfiguration map[string]interface{}
+
 var bufPool = sync.Pool{
 	New: func() interface{} {
 		return new(bytes.Buffer)
 	},
 }
-
-// TestConfiguration is the temporary configuration for Træfik
-type TestConfiguration map[string]interface{}
 
 // CreateConfig creates the default plugin configuration.
 func CreateConfig() *TestConfiguration {
@@ -40,6 +41,41 @@ func parseConfiguration(c map[string]interface{}) Configuration {
 
 	for k, v := range c {
 		switch k {
+		case "api":
+			var a configurationtypes.API
+			var souinConfiguration, securityConfiguration map[string]interface{}
+			apiConfiguration := v.(map[string]interface{})
+			if apiConfiguration["souin"] != nil {
+				souinConfiguration = apiConfiguration["souin"].(map[string]interface{})
+			}
+			if apiConfiguration["security"] != nil {
+				securityConfiguration = apiConfiguration["security"].(map[string]interface{})
+			}
+			if souinConfiguration != nil {
+				a.Souin = configurationtypes.APIEndpoint{}
+				if souinConfiguration["basepath"] != nil {
+					a.Souin.BasePath = souinConfiguration["basepath"].(string)
+				}
+				if souinConfiguration["enable"] != nil {
+					a.Souin.Enable, _ = strconv.ParseBool(souinConfiguration["enable"].(string))
+				}
+				if securityConfiguration["enable"] != nil {
+					a.Souin.Security = securityConfiguration["enable"].(bool)
+				}
+			}
+			if securityConfiguration != nil {
+				a.Security = configurationtypes.SecurityAPI{}
+				if securityConfiguration["basepath"] != nil {
+					a.Security.BasePath = securityConfiguration["basepath"].(string)
+				}
+				if securityConfiguration["enable"] != nil {
+					a.Security.Enable, _ = strconv.ParseBool(securityConfiguration["enable"].(string))
+				}
+				if securityConfiguration["users"] != nil {
+					a.Security.Users = securityConfiguration["users"].([]configurationtypes.User)
+				}
+			}
+			configuration.API = a
 		case "default_cache":
 			dc := configurationtypes.DefaultCache{
 				Distributed: false,
@@ -113,45 +149,21 @@ func New(_ context.Context, next http.Handler, config *TestConfiguration, name s
 	c := parseConfiguration(*config)
 
 	s.Retriever = DefaultSouinPluginInitializerFromConfiguration(&c)
+	s.MapHandler = api.GenerateHandlerMap(&c, s.Retriever.GetProvider(), s.Retriever.GetTransport().GetYkeyStorage())
 	return s, nil
 }
 
-type getterContext struct {
-	rw   http.ResponseWriter
-	req  *http.Request
-	next http.Handler
-}
-
-type customWriter struct {
-	response *http.Response
-	http.ResponseWriter
-}
-
-func (r *customWriter) Write(b []byte) (int, error) {
-	r.response.Header = r.ResponseWriter.Header()
-	r.response.StatusCode = http.StatusOK
-	r.response.Body = ioutil.NopCloser(bytes.NewBuffer(b))
-	return r.ResponseWriter.Write(b)
-}
-
-type key string
-
-const getterContextCtxKey key = "getter_context"
-
 func (s *SouinTraefikPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	customRW := &customWriter{
-		ResponseWriter: rw,
-		response:       &http.Response{},
+	if b, h := s.HandleInternally(req); b {
+		h(rw, req)
+		return
 	}
+
 	buf := bufPool.Get().(*bytes.Buffer)
 	buf.Reset()
 	defer bufPool.Put(buf)
-	getterCtx := getterContext{rw, req, s.next}
-	ctx := context.WithValue(req.Context(), getterContextCtxKey, getterCtx)
-	req = req.WithContext(ctx)
-	req.Header.Set("Date", time.Now().UTC().Format(time.RFC1123))
-	path := req.Host + req.URL.Path
-	regexpURL := s.Retriever.GetRegexpUrls().FindString(path)
+	customRW := InitializeRequest(rw, req, s.next)
+	regexpURL := s.Retriever.GetRegexpUrls().FindString(req.Host + req.URL.Path)
 	url := configurationtypes.URL{
 		TTL:     configurationtypes.Duration{Duration: s.Retriever.GetConfiguration().GetDefaultCache().GetTTL()},
 		Headers: s.Retriever.GetConfiguration().GetDefaultCache().GetHeaders(),
@@ -177,7 +189,7 @@ func (s *SouinTraefikPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request
 
 	DefaultSouinPluginCallback(rw, req, s.Retriever, s.RequestCoalescing, func(_ http.ResponseWriter, _ *http.Request) error {
 		s.next.ServeHTTP(customRW, req)
-		req.Response = customRW.response
+		req.Response = customRW.Response
 
 		_, e := s.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(req)
 

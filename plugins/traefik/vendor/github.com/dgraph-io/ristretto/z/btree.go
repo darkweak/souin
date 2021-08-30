@@ -28,9 +28,12 @@ import (
 )
 
 var (
-	pageSize    = os.Getpagesize()
-	maxKeys     = (pageSize / 16) - 1
-	oneThird    = int(float64(maxKeys) / 3)
+	pageSize = os.Getpagesize()
+	maxKeys  = (pageSize / 16) - 1
+	oneThird = int(float64(maxKeys) / 3)
+)
+
+const (
 	absoluteMax = uint64(math.MaxUint64 - 1)
 	minSize     = 1 << 20
 )
@@ -38,6 +41,7 @@ var (
 // Tree represents the structure for custom mmaped B+ tree.
 // It supports keys in range [1, math.MaxUint64-1] and values [1, math.Uint64].
 type Tree struct {
+	buffer   *Buffer
 	data     []byte
 	nextPage uint64
 	freePage uint64
@@ -51,20 +55,120 @@ func (t *Tree) initRootNode() {
 	t.Set(absoluteMax, 0)
 }
 
-// NewTree returns a memory mapped B+ tree with given filename.
-func NewTree() *Tree {
-	t := &Tree{}
+// NewTree returns an in-memory B+ tree.
+func NewTree(tag string) *Tree {
+	const defaultTag = "tree"
+	if tag == "" {
+		tag = defaultTag
+	}
+	t := &Tree{buffer: NewBuffer(minSize, tag)}
 	t.Reset()
 	return t
 }
 
+// NewTree returns a persistent on-disk B+ tree.
+func NewTreePersistent(path string) (*Tree, error) {
+	t := &Tree{}
+	var err error
+
+	// Open the buffer from disk and set it to the maximum allocated size.
+	t.buffer, err = NewBufferPersistent(path, minSize)
+	if err != nil {
+		return nil, err
+	}
+	t.buffer.offset = uint64(len(t.buffer.buf))
+	t.data = t.buffer.Bytes()
+
+	// pageID can never be 0 if the tree has been initialized.
+	root := t.node(1)
+	isInitialized := root.pageID() != 0
+
+	if !isInitialized {
+		t.nextPage = 1
+		t.freePage = 0
+		t.initRootNode()
+	} else {
+		t.reinit()
+	}
+
+	return t, nil
+}
+
+// reinit sets the internal variables of a Tree, which are normally stored
+// in-memory, but are lost when loading from disk.
+func (t *Tree) reinit() {
+	// Calculate t.nextPage by finding the first node whose pageID is not set.
+	t.nextPage = 1
+	for int(t.nextPage)*pageSize < len(t.data) {
+		n := t.node(t.nextPage)
+		if n.pageID() == 0 {
+			break
+		}
+		t.nextPage++
+	}
+	maxPageId := t.nextPage - 1
+
+	// Calculate t.freePage by finding the page to which no other page points.
+	// This would be the head of the page linked list.
+	// tailPages[i] is true if pageId i+1 is not the head of the list.
+	tailPages := make([]bool, maxPageId)
+	// Mark all pages containing nodes as tail pages.
+	t.Iterate(func(n node) {
+		i := n.pageID() - 1
+		tailPages[i] = true
+		// If this is a leaf node, increment the stats.
+		if n.isLeaf() {
+			t.stats.NumLeafKeys += n.numKeys()
+		}
+	})
+	// pointedPages is a list of page IDs that the tail pages point to.
+	pointedPages := make([]uint64, 0)
+	for i, isTail := range tailPages {
+		if !isTail {
+			pageId := uint64(i) + 1
+			// Skip if nextPageId = 0, as that is equivalent to null page.
+			if nextPageId := t.node(pageId).uint64(0); nextPageId != 0 {
+				pointedPages = append(pointedPages, nextPageId)
+			}
+			t.stats.NumPagesFree++
+		}
+	}
+
+	// Mark all pages being pointed to as tail pages.
+	for _, pageId := range pointedPages {
+		i := pageId - 1
+		tailPages[i] = true
+	}
+	// There should only be one head page left.
+	for i, isTail := range tailPages {
+		if !isTail {
+			pageId := uint64(i) + 1
+			t.freePage = pageId
+			break
+		}
+	}
+}
+
 // Reset resets the tree and truncates it to maxSz.
 func (t *Tree) Reset() {
+	// Tree relies on uninitialized data being zeroed out, so we need to Memclr
+	// the data before using it again.
+	Memclr(t.buffer.buf)
+	t.buffer.Reset()
+	t.buffer.AllocateOffset(minSize)
+	t.data = t.buffer.Bytes()
+	t.stats = TreeStats{}
 	t.nextPage = 1
 	t.freePage = 0
-	t.data = make([]byte, minSize)
-	t.stats = TreeStats{}
 	t.initRootNode()
+}
+
+// Close releases the memory used by the tree.
+func (t *Tree) Close() error {
+	if t == nil {
+		return nil
+	}
+	return t.buffer.Release()
 }
 
 type TreeStats struct {
@@ -82,7 +186,7 @@ func (t *Tree) Stats() TreeStats {
 	numPages := int(t.nextPage - 1)
 	out := TreeStats{
 		Bytes:        numPages * pageSize,
-		Allocated:    cap(t.data),
+		Allocated:    len(t.data),
 		NumLeafKeys:  t.stats.NumLeafKeys,
 		NumPages:     numPages,
 		NumPagesFree: t.stats.NumPagesFree,
@@ -92,7 +196,7 @@ func (t *Tree) Stats() TreeStats {
 	return out
 }
 
-// BytesToU32Slice converts the given byte slice to uint32 slice
+// BytesToUint64Slice converts a byte slice to a uint64 slice.
 func BytesToUint64Slice(b []byte) []uint64 {
 	if len(b) == 0 {
 		return nil
@@ -114,16 +218,10 @@ func (t *Tree) newNode(bit uint64) node {
 		pageId = t.nextPage
 		t.nextPage++
 		offset := int(pageId) * pageSize
-		// Double the size with an upper cap of 1GB, if current buffer is insufficient.
-		if offset+pageSize > len(t.data) {
-			const oneGB = 1 << 30
-			newSz := 2 * len(t.data)
-			if newSz > len(t.data)+oneGB {
-				newSz = len(t.data) + oneGB
-			}
-			out := make([]byte, newSz)
-			copy(out, t.data)
-			t.data = out
+		reqSize := offset + pageSize
+		if reqSize > len(t.data) {
+			t.buffer.AllocateOffset(reqSize - len(t.data))
+			t.data = t.buffer.Bytes()
 		}
 	}
 	n := t.node(pageId)
@@ -261,7 +359,7 @@ func (t *Tree) DeleteBelow(ts uint64) {
 func (t *Tree) compact(n node, ts uint64) int {
 	if n.isLeaf() {
 		numKeys := n.compact(ts)
-		t.stats.NumLeafKeys += numKeys
+		t.stats.NumLeafKeys += n.numKeys()
 		return numKeys
 	}
 	// Not leaf.
@@ -273,6 +371,7 @@ func (t *Tree) compact(n node, ts uint64) int {
 		if rem := t.compact(child, ts); rem == 0 && i < N-1 {
 			// If no valid key is remaining we can drop this child. However, don't do that if this
 			// is the max key.
+			t.stats.NumLeafKeys -= child.numKeys()
 			child.setAt(0, t.freePage)
 			t.freePage = childID
 			n.setAt(valOffset(i), 0)
@@ -306,6 +405,32 @@ func (t *Tree) iterate(n node, fn func(node)) {
 func (t *Tree) Iterate(fn func(node)) {
 	root := t.node(1)
 	t.iterate(root, fn)
+}
+
+// IterateKV iterates through all keys and values in the tree.
+// If newVal is non-zero, it will be set in the tree.
+func (t *Tree) IterateKV(f func(key, val uint64) (newVal uint64)) {
+	t.Iterate(func(n node) {
+		// Only leaf nodes contain keys.
+		if !n.isLeaf() {
+			return
+		}
+
+		for i := 0; i < n.numKeys(); i++ {
+			key := n.key(i)
+			val := n.val(i)
+
+			// A zero value here means that this is a bogus entry.
+			if val == 0 {
+				continue
+			}
+
+			newVal := f(key, val)
+			if newVal != 0 {
+				n.setAt(valOffset(i), newVal)
+			}
+		}
+	})
 }
 
 func (t *Tree) print(n node, parentID uint64) {

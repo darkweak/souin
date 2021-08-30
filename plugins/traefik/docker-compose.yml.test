@@ -12,6 +12,7 @@ services:
       GOPATH: /plugins-local
     ports:
       - 80:80
+      - 8080:8080
 
   whoami:
     image: traefik/whoami

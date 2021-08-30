@@ -19,13 +19,16 @@ http:
     souin:
       plugin:
         souin-plugin:
+          api:
+            souin:
+              enable: true
           default_cache:
             headers:
               - Authorization
               - Content-Type
             regex:
               exclude: 'ARegexHere'
-            ttl: 10s
+            ttl: 100s
           log_level: debug
           urls:
             'domain.com/testing':

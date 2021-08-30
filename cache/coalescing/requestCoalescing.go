@@ -2,7 +2,6 @@ package coalescing
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -19,7 +18,6 @@ func (r *RequestCoalescing) Temporize(req *http.Request, rw http.ResponseWriter,
 		return nil, nextMiddleware(rw, req)
 	})
 
-	fmt.Println(e)
 	if e != nil {
 		http.Error(rw, "Gateway Timeout", http.StatusGatewayTimeout)
 	}
