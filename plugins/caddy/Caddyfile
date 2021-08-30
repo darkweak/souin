@@ -4,21 +4,27 @@
         level debug
     }
     cache {
+        api {
+            souin {
+                enable true
+            }
+        }
         headers Content-Type Authorization
         log_level debug
         ttl 1000s
     }
 }
 
-:80
+:4443
+respond "Hello World!"
 
 @match path /test1*
 @match2 path /test2*
 @matchdefault path /default
+@souin-api path /souin-api*
 
 cache @match {
-    ttl 30s
-    headers Cookie
+    ttl 5s
 }
 
 cache @match2 {
@@ -27,5 +33,7 @@ cache @match2 {
 }
 
 cache @matchdefault {
-    ttl 25s
+    ttl 5s
 }
+
+cache @souin-api {}

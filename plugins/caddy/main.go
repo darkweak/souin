@@ -5,7 +5,9 @@ import (
 	"context"
 	"github.com/darkweak/souin/api"
 	"github.com/darkweak/souin/cache/coalescing"
+	"github.com/darkweak/souin/cache/types"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 
@@ -132,6 +134,8 @@ func (s *SouinCaddyPlugin) FromApp(app *SouinApp) error {
 		return nil
 	}
 
+	s.Configuration.API = app.API
+
 	if s.Configuration.DefaultCache == nil {
 		s.Configuration.DefaultCache = &DefaultCache{
 			Headers: app.Headers,
@@ -178,6 +182,12 @@ func (s *SouinCaddyPlugin) Provision(ctx caddy.Context) error {
 		},
 	}
 	s.Retriever = plugins.DefaultSouinPluginInitializerFromConfiguration(s.Configuration)
+	if app.(*SouinApp).Provider == nil {
+		app.(*SouinApp).Provider = s.Retriever.GetProvider()
+	} else {
+		s.Retriever.(*types.RetrieverResponseProperties).Provider = app.(*SouinApp).Provider
+		s.Retriever.GetTransport().(*rfc.VaryTransport).Provider = app.(*SouinApp).Provider
+	}
 	s.RequestCoalescing = coalescing.Initialize()
 	s.MapHandler = api.GenerateHandlerMap(s.Configuration, s.Retriever.GetTransport().GetProvider(), s.Retriever.GetTransport().GetYkeyStorage())
 	return nil
@@ -215,6 +225,42 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 		for nesting := h.Nesting(); h.NextBlock(nesting); {
 			rootOption := h.Val()
 			switch rootOption {
+			case "api":
+				apiConfiguration := configurationtypes.API{}
+				for nesting := h.Nesting(); h.NextBlock(nesting); {
+					directive := h.Val()
+					switch directive {
+					case "basepath":
+						apiConfiguration.BasePath = h.RemainingArgs()[0]
+					case "souin":
+						apiConfiguration.Souin = configurationtypes.APIEndpoint{}
+						for nesting := h.Nesting(); h.NextBlock(nesting); {
+							directive := h.Val()
+							switch directive {
+							case "basepath":
+								apiConfiguration.Souin.BasePath = h.RemainingArgs()[0]
+							case "enable":
+								apiConfiguration.Souin.Enable, _ = strconv.ParseBool(h.RemainingArgs()[0])
+							case "security":
+								apiConfiguration.Souin.Security, _ = strconv.ParseBool(h.RemainingArgs()[0])
+							}
+						}
+					case "security":
+						apiConfiguration.Security = configurationtypes.SecurityAPI{}
+						for nesting := h.Nesting(); h.NextBlock(nesting); {
+							directive := h.Val()
+							switch directive {
+							case "basepath":
+								apiConfiguration.Security.BasePath = h.RemainingArgs()[0]
+							case "enable":
+								apiConfiguration.Security.Enable, _ = strconv.ParseBool(h.RemainingArgs()[0])
+							case "secret":
+								apiConfiguration.Security.Secret = h.RemainingArgs()[0]
+							}
+						}
+					}
+				}
+				cfg.API = apiConfiguration
 			case "headers":
 				args := h.RemainingArgs()
 				cfg.DefaultCache.Headers = append(cfg.DefaultCache.Headers, args...)
@@ -264,6 +310,7 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 	}
 
 	souinApp.DefaultCache = cfg.DefaultCache
+	souinApp.API = cfg.API
 
 	return httpcaddyfile.App{
 		Name:  moduleName,

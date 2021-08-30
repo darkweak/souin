@@ -84,3 +84,4 @@ validate: lint tests down health-check-prod ## Run lint, tests and ensure prod c
 vendor-plugins: ## Generate and prepare vendors for each plugin
 	cd plugins/tyk && $(MAKE) vendor
 	cd plugins/traefik && $(MAKE) vendor
+	cd plugins/caddy && go mod tidy && go mod download
