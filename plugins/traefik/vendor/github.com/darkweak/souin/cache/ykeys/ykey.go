@@ -44,6 +44,11 @@ type YKeyStorage struct {
 // InitializeYKeys will initialize the ykey storage system
 func InitializeYKeys(keys map[string]configurationtypes.YKey) *YKeyStorage {
 	c := cache.New(1*time.Second, 2*time.Second)
+
+	for key := range keys {
+		c.Set(key, "", 1)
+	}
+
 	return &YKeyStorage{Cache: c, Keys: keys}
 }
 

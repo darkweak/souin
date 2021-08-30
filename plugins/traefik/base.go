@@ -114,9 +114,9 @@ type SouinBasePlugin struct {
 	MapHandler        *api.MapHandler
 }
 
-func (s *SouinBasePlugin) HandleInternally(r *http.Request) (bool, func(http.ResponseWriter, *http.Request)) {
+func (s *SouinBasePlugin) HandleInternally(r *http.Request) (bool, http.HandlerFunc) {
 	if s.MapHandler != nil {
-		for k, souinHandler := range s.MapHandler.Handlers {
+		for k, souinHandler := range *s.MapHandler.Handlers {
 			if strings.Contains(r.RequestURI, k) {
 				return true, souinHandler
 			}

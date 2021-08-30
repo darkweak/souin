@@ -96,7 +96,7 @@ type souinInstance struct {
 
 func (s *souinInstance) HandleInternally(r *http.Request) (bool, func(http.ResponseWriter, *http.Request)) {
 	if s.MapHandler != nil {
-		for k, souinHandler := range s.MapHandler.Handlers {
+		for k, souinHandler := range *s.MapHandler.Handlers {
 			if strings.Contains(r.RequestURI, k) {
 				return true, souinHandler
 			}

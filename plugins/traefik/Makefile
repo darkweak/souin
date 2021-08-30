@@ -22,7 +22,6 @@ replace: ## Replace sources in the vendor folder deeper than the go mod replace
 	$(MAKE) copy-to base=$(CACHE) target=providers
 	$(MAKE) copy-to base=$(CACHE) target=types
 	$(MAKE) copy-to base=$(CACHE) target=ykeys
-	$(MAKE) copy-file-to base=$(SOUIN) target=rfc/vary.go
 
 vendor: ## Generate vendors for the plugin
 	go mod tidy

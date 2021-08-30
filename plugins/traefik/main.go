@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"github.com/darkweak/souin/api"
 	"net/http"
 	"strconv"
@@ -150,19 +149,12 @@ func New(_ context.Context, next http.Handler, config *TestConfiguration, name s
 	c := parseConfiguration(*config)
 
 	s.Retriever = DefaultSouinPluginInitializerFromConfiguration(&c)
-	fmt.Println(c.API)
-	fmt.Println(c.API.Souin)
 	s.MapHandler = api.GenerateHandlerMap(&c, s.Retriever.GetProvider(), s.Retriever.GetTransport().GetYkeyStorage())
-	fmt.Println("==============================")
-	fmt.Println(s.MapHandler)
-	fmt.Println("==============================")
 	return s, nil
 }
 
 func (s *SouinTraefikPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	fmt.Println("Handle plugin")
 	if b, h := s.HandleInternally(req); b {
-
 		h(rw, req)
 		return
 	}

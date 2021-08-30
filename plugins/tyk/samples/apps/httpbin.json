@@ -46,6 +46,11 @@
   },
   "active":true,
   "souin": {
+    "api": {
+      "souin": {
+        "enable": true
+      }
+    },
     "default_cache": {
       "ttl": "100s"
     }

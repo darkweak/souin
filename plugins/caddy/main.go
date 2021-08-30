@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"github.com/darkweak/souin/api"
+	"github.com/darkweak/souin/cache/coalescing"
 	"net/http"
 	"sync"
 	"time"
@@ -177,8 +178,8 @@ func (s *SouinCaddyPlugin) Provision(ctx caddy.Context) error {
 		},
 	}
 	s.Retriever = plugins.DefaultSouinPluginInitializerFromConfiguration(s.Configuration)
-	// s.RequestCoalescing = coalescing.Initialize()
-	s.MapHandler = api.GenerateHandlerMap(s.Configuration, s.Retriever.GetProvider(), s.Retriever.GetTransport().GetYkeyStorage())
+	s.RequestCoalescing = coalescing.Initialize()
+	s.MapHandler = api.GenerateHandlerMap(s.Configuration, s.Retriever.GetTransport().GetProvider(), s.Retriever.GetTransport().GetYkeyStorage())
 	return nil
 }
 

@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"github.com/darkweak/souin/api/auth"
 	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/cache/ykeys"
@@ -10,7 +9,7 @@ import (
 )
 
 type MapHandler struct {
-	Handlers map[string]func(http.ResponseWriter, *http.Request)
+	Handlers *map[string]http.HandlerFunc
 }
 
 func GenerateHandlerMap(
@@ -18,7 +17,7 @@ func GenerateHandlerMap(
 	provider types.AbstractProviderInterface,
 	ykeyStorage *ykeys.YKeyStorage,
 ) *MapHandler {
-	hm := make(map[string]func(http.ResponseWriter, *http.Request))
+	hm := make(map[string]http.HandlerFunc)
 	shouldEnable := false
 
 	souinAPI := configuration.GetAPI()
@@ -30,16 +29,12 @@ func GenerateHandlerMap(
 	for _, endpoint := range Initialize(provider, configuration, ykeyStorage) {
 		if endpoint.IsEnabled() {
 			shouldEnable = true
-			hm[basePathAPIS + endpoint.GetBasePath()] = endpoint.HandleRequest
+			hm[basePathAPIS + endpoint.GetBasePath()] = endpoint.(*SouinAPI).HandleRequest
 		}
 	}
 
-	fmt.Printf("%T => %+v", hm, hm)
-
 	if shouldEnable {
-		return &MapHandler{
-			Handlers: hm,
-		}
+		return &MapHandler{Handlers: &hm}
 	}
 
 	return nil
