@@ -52,7 +52,7 @@
       }
     },
     "default_cache": {
-      "ttl": "100s"
+      "ttl": "5s"
     }
   }
 }

@@ -7,6 +7,9 @@ jobs:
     name: Check that Souin build as caddy module
     runs-on: ubuntu-latest
     steps:
+      - name: Add domain.com host to /etc/hosts
+        run: |
+          sudo echo "127.0.0.1 domain.com" | sudo tee -a /etc/hosts
       - name: Install Go
         uses: actions/setup-go@v2
         with:
@@ -22,6 +25,15 @@ jobs:
           sudo apt install xcaddy
       - name: Build Souin as caddy module
         run: cd plugins/caddy && xcaddy build --with github.com/darkweak/souin/plugins/caddy=./ --with github.com/darkweak/souin@latest=../..
+      - name: Run detached caddy
+        run: cd plugins/caddy && ./caddy run &
+      - name: Run Caddy E2E tests
+        uses: anthonyvscode/newman-action@v1
+        with:
+          collection: "docs/e2e/Souin E2E.postman_collection.json"
+          folder: Caddy
+          reporters: cli
+          delayRequest: 5000
   build-tyk-validator:
     name: Check that Souin build as Tyk middleware
     runs-on: ubuntu-latest
@@ -46,10 +58,20 @@ jobs:
           expected: '[INFO] Olric bindAddr'
           actual: ${{ env.TYK_DC_RESULT }}
           comparison: contains
+      - name: Run Tyk E2E tests
+        uses: anthonyvscode/newman-action@v1
+        with:
+          collection: "docs/e2e/Souin E2E.postman_collection.json"
+          folder: Tyk
+          reporters: cli
+          delayRequest: 5000
   build-traefik-validator:
     name: Check that Souin build as Træfik plugin
     runs-on: ubuntu-latest
     steps:
+      - name: Add domain.com host to /etc/hosts
+        run: |
+          sudo echo "127.0.0.1 domain.com" | sudo tee -a /etc/hosts
       - name: Install Go
         uses: actions/setup-go@v2
         with:
@@ -78,3 +100,10 @@ jobs:
           expected: '"middlewares\":{\"souin\":{\"plugin\":{\"souin-plugin'
           actual: ${{ env.TRAEFIK_MIDDLEWARE_RESULT }}
           comparison: contains
+      - name: Run Træfik E2E tests
+        uses: anthonyvscode/newman-action@v1
+        with:
+          collection: "docs/e2e/Souin E2E.postman_collection.json"
+          folder: Traefik
+          reporters: cli
+          delayRequest: 5000

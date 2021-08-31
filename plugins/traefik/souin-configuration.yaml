@@ -28,11 +28,11 @@ http:
               - Content-Type
             regex:
               exclude: 'ARegexHere'
-            ttl: 100s
+            ttl: 5s
           log_level: debug
           urls:
             'domain.com/testing':
-              ttl: 2s
+              ttl: 5s
               headers:
                 - Authorization
             'mysubdomain.domain.com':
