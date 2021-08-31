@@ -2,12 +2,16 @@ package caddy
 
 import (
 	"github.com/caddyserver/caddy/v2"
+	"github.com/darkweak/souin/cache/types"
+	"github.com/darkweak/souin/configurationtypes"
 )
 
 // SouinApp contains the whole Souin necessary items
 type SouinApp struct {
 	*DefaultCache
-	LogLevel string `json:"log_level,omitempty"`
+	Provider types.AbstractProviderInterface
+	API      configurationtypes.API `json:"api,omitempty"`
+	LogLevel string                 `json:"log_level,omitempty"`
 }
 
 func init() {

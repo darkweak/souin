@@ -1,0 +1,486 @@
+{
+	"info": {
+		"_postman_id": "701efdfd-3e8c-4786-8ba3-bfd5871d6293",
+		"name": "Souin E2E",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Caddy",
+			"item": [
+				{
+					"name": "Default",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'caddy_url')}/default`)"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cache-Control",
+								"value": "",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{caddy_url}}/default",
+							"host": [
+								"{{caddy_url}}"
+							],
+							"path": [
+								"default"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Souin api",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.souinAPI.listKeys(pm, 'GET-localhost:4443-/test1', utils.getVar(pm, 'caddy_url'), '/test1')"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cache-Control",
+								"value": "",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{caddy_url}}{{souin_base_api}}{{souin_api}}",
+							"host": [
+								"{{caddy_url}}{{souin_base_api}}{{souin_api}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Default no cache",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'caddy_url')}/default`, 'no-cache')"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{caddy_url}}/default",
+							"host": [
+								"{{caddy_url}}"
+							],
+							"path": [
+								"default"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Default no store",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'caddy_url')}/default`, 'no-store')"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cache-Control",
+								"value": "no-cache",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{caddy_url}}/default",
+							"host": [
+								"{{caddy_url}}"
+							],
+							"path": [
+								"default"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "Traefik",
+			"item": [
+				{
+					"name": "Default",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.baseEndpoint(pm, utils.getVar(pm, 'traefik_url'))"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cache-Control",
+								"value": "",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{traefik_url}}",
+							"host": [
+								"{{traefik_url}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Souin api",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.souinAPI.listKeys(pm, 'GET-domain.com-/', utils.getVar(pm, 'traefik_url'), '/')"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cache-Control",
+								"value": "",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{traefik_url}}{{souin_base_api}}{{souin_api}}",
+							"host": [
+								"{{traefik_url}}{{souin_base_api}}{{souin_api}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Default no cache",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.baseEndpoint(pm, utils.getVar(pm, 'traefik_url'), 'no-cache')"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{traefik_url}}",
+							"host": [
+								"{{traefik_url}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Default no store",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.baseEndpoint(pm, utils.getVar(pm, 'traefik_url'), 'no-store')"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{traefik_url}}",
+							"host": [
+								"{{traefik_url}}"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "Tyk",
+			"item": [
+				{
+					"name": "Default",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'tyk_url')}/`)"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cache-Control",
+								"value": "",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{tyk_url}}/",
+							"host": [
+								"{{tyk_url}}"
+							],
+							"path": [
+								""
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"utils = {",
+					"    request: (url, cacheControl = '') => ({",
+					"        header: {",
+					"            'Cache-Control': cacheControl",
+					"        },",
+					"        method: 'GET',",
+					"        url,",
+					"    }),",
+					"    getVar: (pm, v) => pm.collectionVariables.get(v) || '',",
+					"    baseEndpoint: (pm, baseUrl = '', cacheControl = '') => {",
+					"        pm.test(\"Status code is 200 without Cache-Status header\", function () {",
+					"            pm.response.to.have.status(200);",
+					"            pm.response.to.not.have.header(\"Cache-Status\");",
+					"            pm.response.to.not.have.header(\"Age\");",
+					"        });",
+					"        pm.sendRequest(utils.request(baseUrl, cacheControl), function (_, response) {",
+					"            pm.test(`Status code is 200, Cache-Status and Age are ${cacheControl == '' ? '' : 'not '}present`, function () {",
+					"                    const expected = pm.expect(response);",
+					"                    expected.to.have.status(200);",
+					"",
+					"                    if (cacheControl == '') {",
+					"                        expected.to.have.header(\"Age\");",
+					"                        expected.to.have.header(\"Cache-Status\");",
+					"                    } else {",
+					"                        expected.to.not.have.header(\"Age\");",
+					"                        expected.to.not.have.header(\"Cache-Status\");",
+					"                    }",
+					"                }",
+					"            );",
+					"        });",
+					"    },",
+					"    souinAPI: {",
+					"        listKeys: (pm, baseKey, baseUrl = '', additionalPath = '', cacheControl = '') => {",
+					"            const isCached = cacheControl == ''",
+					"            pm.test(\"Ensure stored keys array is empty\", function () {",
+					"                pm.response.to.have.status(200);",
+					"                let jsonData = pm.response.json();",
+					"                pm.expect(jsonData).to.eql([]);",
+					"                pm.expect(jsonData.length).to.eql(0);",
+					"            });",
+					"            pm.sendRequest(utils.request(baseUrl + additionalPath, cacheControl), function(_, response) {",
+					"                pm.expect(response).to.have.status(200);",
+					"            });",
+					"",
+					"            pm.sendRequest(utils.request(`${baseUrl}${utils.getVar(pm, 'souin_base_api')}${utils.getVar(pm, 'souin_api')}`, cacheControl), function (_, res) {",
+					"                pm.test(`Check Souin API has ${isCached ? 'one' : 'none'} registered key after the first cache set`, function () {",
+					"                        pm.expect(res).to.have.status(200);",
+					"                        let jsonData = res.json();",
+					"                        pm.expect(jsonData.length).to.eql(isCached ? 1 : 0);",
+					"                        pm.expect(jsonData[0]).to.eql(isCached ? baseKey : undefined);",
+					"                    }",
+					"                );",
+					"",
+					"                pm.sendRequest(utils.request(baseUrl + additionalPath + 'testing', cacheControl), function() {",
+					"                    pm.sendRequest(utils.request(`${baseUrl}${utils.getVar(pm, 'souin_base_api')}${utils.getVar(pm, 'souin_api')}`, cacheControl), function (_, r) {",
+					"                        pm.test(`Check Souin API has ${isCached ? 'two' : 'none'} registered key${isCached ? 's' : ''} after the second cache set`, function () {",
+					"                            pm.expect(r).to.have.status(200);",
+					"                            pm.expect(r).to.not.have.header(\"Cache-Status\");",
+					"                            pm.expect(r).to.not.have.header(\"Age\");",
+					"                            let jsonData = r.json();",
+					"                            pm.expect(jsonData.length).to.eql(isCached ? 2 : 0);",
+					"                            pm.expect(jsonData[0]).to.eql(isCached ? baseKey : undefined);",
+					"                            pm.expect(jsonData[1]).to.eql(isCached ? `${baseKey}testing` : undefined);",
+					"                        });",
+					"                    });",
+					"                });",
+					"            });",
+					"        },",
+					"    },",
+					"}"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "caddy_url",
+			"value": "http://localhost:4443"
+		},
+		{
+			"key": "souin_api",
+			"value": "/souin"
+		},
+		{
+			"key": "souin_base_api",
+			"value": "/souin-api"
+		},
+		{
+			"key": "traefik_url",
+			"value": "http://domain.com"
+		},
+		{
+			"key": "tyk_url",
+			"value": "http://localhost:8080/httpbin"
+		}
+	]
+}
