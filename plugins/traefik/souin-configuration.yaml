@@ -32,7 +32,7 @@ http:
           log_level: debug
           urls:
             'domain.com/testing':
-              ttl: 2s
+              ttl: 10s
               headers:
                 - Authorization
             'mysubdomain.domain.com':
