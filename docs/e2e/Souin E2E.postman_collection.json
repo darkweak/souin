@@ -143,6 +143,40 @@
 						}
 					},
 					"response": []
+				},
+				{
+					"name": "Exclude regex",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'caddy_url')}/test2`, 'cache')"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cache-Control",
+								"value": "",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{caddy_url}}/test2",
+							"host": [
+								"{{caddy_url}}"
+							],
+							"path": [
+								"test2"
+							]
+						}
+					},
+					"response": []
 				}
 			],
 			"event": [
@@ -289,6 +323,40 @@
 						}
 					},
 					"response": []
+				},
+				{
+					"name": "Exclude regex",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'traefik_url')}/test_exclude_another`, 'cache')"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cache-Control",
+								"value": "",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{traefik_url}}/test_exclude_another",
+							"host": [
+								"{{traefik_url}}"
+							],
+							"path": [
+								"test_exclude_another"
+							]
+						}
+					},
+					"response": []
 				}
 			],
 			"event": [
@@ -394,7 +462,7 @@
 					"            pm.response.to.not.have.header(\"Age\");",
 					"        });",
 					"        pm.sendRequest(utils.request(baseUrl, cacheControl), function (_, response) {",
-					"            pm.test(`Status code is 200, Cache-Status and Age are ${cacheControl == '' ? '' : 'not '}present`, function () {",
+					"            pm.test(`Status code is 200, Cache-Status and Age are ${cacheControl === '' ? '' : 'not '}present`, function () {",
 					"                    const expected = pm.expect(response);",
 					"                    expected.to.have.status(200);",
 					"",
