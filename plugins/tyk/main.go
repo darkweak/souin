@@ -30,12 +30,12 @@ func getInstanceFromRequest(r *http.Request) *souinInstance {
 }
 
 func SouinResponseHandler(rw http.ResponseWriter, res *http.Response, _ *http.Request) {
-	if !plugins.IsHttp(res.Request) {
-		return
-	}
 	req := res.Request
 	req.Response = res
 	currentInstance := getInstanceFromRequest(req)
+	if !plugins.CanHandle(res.Request, currentInstance.Retriever) {
+		return
+	}
 	if b, _ := currentInstance.HandleInternally(req); b {
 		// handler(rw, req)
 		return
@@ -73,12 +73,12 @@ func SouinResponseHandler(rw http.ResponseWriter, res *http.Response, _ *http.Re
 
 // SouinRequestHandler handle the Tyk request
 func SouinRequestHandler(rw http.ResponseWriter, r *http.Request) {
-	if !plugins.IsHttp(r) {
-		return
-	}
 	// TODO remove these lines once Tyk patch the
 	// ctx.GetDefinition(r)
 	currentInstance := getInstanceFromRequest(r)
+	if !plugins.CanHandle(r, currentInstance.Retriever) {
+		return
+	}
 	if b, handler := currentInstance.HandleInternally(r); b {
 		handler(rw, r)
 		return

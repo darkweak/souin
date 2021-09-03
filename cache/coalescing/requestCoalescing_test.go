@@ -3,6 +3,7 @@ package coalescing
 import (
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"testing"
 
 	"github.com/darkweak/souin/cache/providers"
@@ -17,12 +18,17 @@ func commonInitializer() (*httptest.ResponseRecorder, *http.Request, *types.Retr
 	c := tests.MockConfiguration(tests.BaseConfiguration)
 	prs := providers.InitializeProvider(c)
 	regexpUrls := helpers.InitializeRegexp(c)
+	var excludedRegexp *regexp.Regexp = nil
+	if c.GetDefaultCache().GetRegex().Exclude != "" {
+		excludedRegexp = regexp.MustCompile(c.GetDefaultCache().GetRegex().Exclude)
+	}
 	retriever := &types.RetrieverResponseProperties{
 		Configuration: c,
 		Provider:      prs,
 		MatchedURL:    tests.GetMatchedURL(tests.PATH),
 		RegexpUrls:    regexpUrls,
 		Transport:     rfc.NewTransport(prs, ykeys.InitializeYKeys(c.Ykeys)),
+		ExcludeRegex:  excludedRegexp,
 	}
 	r := httptest.NewRequest("GET", "http://"+tests.DOMAIN+tests.PATH, nil)
 	w := httptest.NewRecorder()

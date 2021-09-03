@@ -9,6 +9,9 @@
                 enable true
             }
         }
+        regex {
+            exclude /test2.*
+        }
         headers Content-Type Authorization
         log_level debug
         ttl 1000s

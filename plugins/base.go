@@ -14,6 +14,7 @@ import (
 	"go.uber.org/zap/zapcore"
 	"io/ioutil"
 	"net/http"
+	"regexp"
 	"strings"
 	"sync"
 )
@@ -48,9 +49,9 @@ func (r *CustomWriter) Write(b []byte) (int, error) {
 	return r.ResponseWriter.Write(buf.Bytes())
 }
 
-// IsHttp detect if the request is a plain http request to not handle websocket
-func IsHttp(r *http.Request) bool {
-	return strings.HasPrefix(strings.ToLower(r.URL.Scheme), "http")
+// CanHandle detect if the request can be handled by Souin
+func CanHandle(r *http.Request, re types.RetrieverResponsePropertiesInterface) bool {
+	return r.Header.Get("Upgrade") != "websocket" && (re.GetExcludeRegexp() == nil || !re.GetExcludeRegexp().MatchString(r.RequestURI))
 }
 
 // DefaultSouinPluginCallback is the default callback for plugins
@@ -141,6 +142,10 @@ func DefaultSouinPluginInitializerFromConfiguration(c configurationtypes.Abstrac
 	regexpUrls := helpers.InitializeRegexp(c)
 	transport := rfc.NewTransport(provider, ykeys.InitializeYKeys(c.GetYkeys()))
 	c.GetLogger().Debug("Transport initialized.")
+	var excludedRegexp *regexp.Regexp = nil
+	if c.GetDefaultCache().GetRegex().Exclude != "" {
+		excludedRegexp = regexp.MustCompile(c.GetDefaultCache().GetRegex().Exclude)
+	}
 
 	retriever := &types.RetrieverResponseProperties{
 		MatchedURL: configurationtypes.URL{
@@ -151,6 +156,7 @@ func DefaultSouinPluginInitializerFromConfiguration(c configurationtypes.Abstrac
 		Configuration: c,
 		RegexpUrls:    regexpUrls,
 		Transport:     transport,
+		ExcludeRegex:  excludedRegexp,
 	}
 	retriever.Transport.SetURL(retriever.MatchedURL)
 	retriever.GetConfiguration().GetLogger().Info("Souin configuration is now loaded.")

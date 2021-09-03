@@ -154,7 +154,7 @@ func New(_ context.Context, next http.Handler, config *TestConfiguration, name s
 }
 
 func (s *SouinTraefikPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	if !strings.HasPrefix(strings.ToLower(req.URL.Scheme), "http") {
+	if req.Header.Get("Upgrade") != "websocket" && (s.Retriever.GetExcludeRegexp() == nil || !s.Retriever.GetExcludeRegexp().MatchString(req.RequestURI)) {
 		s.next.ServeHTTP(rw, req)
 	}
 
