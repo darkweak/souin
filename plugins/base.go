@@ -14,16 +14,19 @@ import (
 	"go.uber.org/zap/zapcore"
 	"io/ioutil"
 	"net/http"
+	"regexp"
 	"strings"
 	"sync"
 )
 
+// CustomWriter handles the response and provide the way to cache the value
 type CustomWriter struct {
 	Response *http.Response
 	http.ResponseWriter
 	BufPool *sync.Pool
 }
 
+// WriteHeader will write the response headers
 func (r *CustomWriter) WriteHeader(code int) {
 	if code == 0 {
 		return
@@ -32,6 +35,7 @@ func (r *CustomWriter) WriteHeader(code int) {
 	r.ResponseWriter.WriteHeader(code)
 }
 
+// Write will write the response body
 func (r *CustomWriter) Write(b []byte) (int, error) {
 	buf := r.BufPool.Get().(*bytes.Buffer)
 	buf.Reset()
@@ -43,6 +47,11 @@ func (r *CustomWriter) Write(b []byte) (int, error) {
 	buf.Write(b)
 	r.Response.Body = ioutil.NopCloser(buf)
 	return r.ResponseWriter.Write(buf.Bytes())
+}
+
+// CanHandle detect if the request can be handled by Souin
+func CanHandle(r *http.Request, re types.RetrieverResponsePropertiesInterface) bool {
+	return r.Header.Get("Upgrade") != "websocket" && (re.GetExcludeRegexp() == nil || !re.GetExcludeRegexp().MatchString(r.RequestURI))
 }
 
 // DefaultSouinPluginCallback is the default callback for plugins
@@ -133,6 +142,10 @@ func DefaultSouinPluginInitializerFromConfiguration(c configurationtypes.Abstrac
 	regexpUrls := helpers.InitializeRegexp(c)
 	transport := rfc.NewTransport(provider, ykeys.InitializeYKeys(c.GetYkeys()))
 	c.GetLogger().Debug("Transport initialized.")
+	var excludedRegexp *regexp.Regexp = nil
+	if c.GetDefaultCache().GetRegex().Exclude != "" {
+		excludedRegexp = regexp.MustCompile(c.GetDefaultCache().GetRegex().Exclude)
+	}
 
 	retriever := &types.RetrieverResponseProperties{
 		MatchedURL: configurationtypes.URL{
@@ -143,6 +156,7 @@ func DefaultSouinPluginInitializerFromConfiguration(c configurationtypes.Abstrac
 		Configuration: c,
 		RegexpUrls:    regexpUrls,
 		Transport:     transport,
+		ExcludeRegex:  excludedRegexp,
 	}
 	retriever.Transport.SetURL(retriever.MatchedURL)
 	retriever.GetConfiguration().GetLogger().Info("Souin configuration is now loaded.")

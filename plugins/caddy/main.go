@@ -64,6 +64,10 @@ type getterContext struct {
 
 // ServeHTTP implements caddyhttp.MiddlewareHandler.
 func (s *SouinCaddyPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request, next caddyhttp.Handler) error {
+	if !plugins.CanHandle(req, s.Retriever) {
+		return next.ServeHTTP(rw, req)
+	}
+
 	if b, handler := s.HandleInternally(req); b {
 		handler(rw, req)
 		return nil
@@ -157,6 +161,9 @@ func (s *SouinCaddyPlugin) FromApp(app *SouinApp) error {
 		if dc.Badger.Path == "" || dc.Badger.Configuration == nil {
 			s.Configuration.DefaultCache.Badger = appDc.Badger
 		}
+		if dc.Regex.Exclude == "" {
+			s.Configuration.DefaultCache.Regex.Exclude = appDc.Regex.Exclude
+		}
 	}
 
 	return nil
@@ -170,9 +177,10 @@ func (s *SouinCaddyPlugin) Provision(ctx caddy.Context) error {
 		return err
 	}
 
-	app, _ := ctx.App(moduleName)
+	ctxApp, _ := ctx.App(moduleName)
+	app := ctxApp.(*SouinApp)
 
-	if err := s.FromApp(app.(*SouinApp)); err != nil {
+	if err := s.FromApp(app); err != nil {
 		return err
 	}
 
@@ -182,12 +190,13 @@ func (s *SouinCaddyPlugin) Provision(ctx caddy.Context) error {
 		},
 	}
 	s.Retriever = plugins.DefaultSouinPluginInitializerFromConfiguration(s.Configuration)
-	if app.(*SouinApp).Provider == nil {
-		app.(*SouinApp).Provider = s.Retriever.GetProvider()
+	if app.Provider == nil {
+		app.Provider = s.Retriever.GetProvider()
 	} else {
-		s.Retriever.(*types.RetrieverResponseProperties).Provider = app.(*SouinApp).Provider
-		s.Retriever.GetTransport().(*rfc.VaryTransport).Provider = app.(*SouinApp).Provider
+		s.Retriever.(*types.RetrieverResponseProperties).Provider = app.Provider
+		s.Retriever.GetTransport().(*rfc.VaryTransport).Provider = app.Provider
 	}
+
 	s.RequestCoalescing = coalescing.Initialize()
 	s.MapHandler = api.GenerateHandlerMap(s.Configuration, s.Retriever.GetTransport().GetProvider(), s.Retriever.GetTransport().GetYkeyStorage())
 	return nil
@@ -261,6 +270,14 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 					}
 				}
 				cfg.API = apiConfiguration
+			case "regex":
+				for nesting := h.Nesting(); h.NextBlock(nesting); {
+					directive := h.Val()
+					switch directive {
+					case "exclude":
+						cfg.DefaultCache.Regex.Exclude = h.RemainingArgs()[0]
+					}
+				}
 			case "headers":
 				args := h.RemainingArgs()
 				cfg.DefaultCache.Headers = append(cfg.DefaultCache.Headers, args...)
