@@ -154,6 +154,10 @@ func New(_ context.Context, next http.Handler, config *TestConfiguration, name s
 }
 
 func (s *SouinTraefikPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	if !strings.HasPrefix(strings.ToLower(req.URL.Scheme), "http") {
+		s.next.ServeHTTP(rw, req)
+	}
+
 	if b, h := s.HandleInternally(req); b {
 		h(rw, req)
 		return

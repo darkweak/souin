@@ -18,12 +18,14 @@ import (
 	"sync"
 )
 
+// CustomWriter handles the response and provide the way to cache the value
 type CustomWriter struct {
 	Response *http.Response
 	http.ResponseWriter
 	BufPool *sync.Pool
 }
 
+// WriteHeader will write the response headers
 func (r *CustomWriter) WriteHeader(code int) {
 	if code == 0 {
 		return
@@ -32,6 +34,7 @@ func (r *CustomWriter) WriteHeader(code int) {
 	r.ResponseWriter.WriteHeader(code)
 }
 
+// Write will write the response body
 func (r *CustomWriter) Write(b []byte) (int, error) {
 	buf := r.BufPool.Get().(*bytes.Buffer)
 	buf.Reset()
@@ -43,6 +46,11 @@ func (r *CustomWriter) Write(b []byte) (int, error) {
 	buf.Write(b)
 	r.Response.Body = ioutil.NopCloser(buf)
 	return r.ResponseWriter.Write(buf.Bytes())
+}
+
+// IsHttp detect if the request is a plain http request to not handle websocket
+func IsHttp(r *http.Request) bool {
+	return strings.HasPrefix(strings.ToLower(r.URL.Scheme), "http")
 }
 
 // DefaultSouinPluginCallback is the default callback for plugins

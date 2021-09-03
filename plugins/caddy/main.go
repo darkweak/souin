@@ -64,6 +64,10 @@ type getterContext struct {
 
 // ServeHTTP implements caddyhttp.MiddlewareHandler.
 func (s *SouinCaddyPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request, next caddyhttp.Handler) error {
+	if !plugins.IsHttp(req) {
+		return next.ServeHTTP(rw, req)
+	}
+
 	if b, handler := s.HandleInternally(req); b {
 		handler(rw, req)
 		return nil
