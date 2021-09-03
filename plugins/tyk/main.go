@@ -33,6 +33,9 @@ func SouinResponseHandler(rw http.ResponseWriter, res *http.Response, _ *http.Re
 	req := res.Request
 	req.Response = res
 	currentInstance := getInstanceFromRequest(req)
+	if !plugins.CanHandle(res.Request, currentInstance.Retriever) {
+		return
+	}
 	if b, _ := currentInstance.HandleInternally(req); b {
 		// handler(rw, req)
 		return
@@ -73,6 +76,9 @@ func SouinRequestHandler(rw http.ResponseWriter, r *http.Request) {
 	// TODO remove these lines once Tyk patch the
 	// ctx.GetDefinition(r)
 	currentInstance := getInstanceFromRequest(r)
+	if !plugins.CanHandle(r, currentInstance.Retriever) {
+		return
+	}
 	if b, handler := currentInstance.HandleInternally(r); b {
 		handler(rw, r)
 		return

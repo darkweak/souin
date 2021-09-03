@@ -20,7 +20,7 @@ prepare: vendor ## Prepare tyk plugin
 replace: ## Replace sources in the vendor folder deeper than the go mod replace
 	$(MAKE) copy-to base=$(CACHE) target=coalescing
 	$(MAKE) copy-to base=$(CACHE) target=providers
-	$(MAKE) copy-to base=$(CACHE) target=types
+	$(MAKE) copy-file-to base=$(CACHE) target=types/layerStorage.go
 	$(MAKE) copy-to base=$(CACHE) target=ykeys
 
 vendor: ## Generate vendors for the plugin

@@ -6,6 +6,7 @@ import (
 	"github.com/darkweak/souin/api"
 	"io/ioutil"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
@@ -93,6 +94,10 @@ func DefaultSouinPluginInitializerFromConfiguration(c configurationtypes.Abstrac
 	regexpUrls := helpers.InitializeRegexp(c)
 	var transport types.TransportInterface
 	transport = rfc.NewTransport(provider, ykeys.InitializeYKeys(c.GetYkeys()))
+	var excludedRegexp *regexp.Regexp = nil
+	if c.GetDefaultCache().GetRegex().Exclude != "" {
+		excludedRegexp = regexp.MustCompile(c.GetDefaultCache().GetRegex().Exclude)
+	}
 
 	retriever := &types.RetrieverResponseProperties{
 		MatchedURL: configurationtypes.URL{
@@ -103,6 +108,7 @@ func DefaultSouinPluginInitializerFromConfiguration(c configurationtypes.Abstrac
 		Configuration: c,
 		RegexpUrls:    regexpUrls,
 		Transport:     transport,
+		ExcludeRegex:  excludedRegexp,
 	}
 	return retriever
 }

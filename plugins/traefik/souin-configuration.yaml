@@ -27,7 +27,7 @@ http:
               - Authorization
               - Content-Type
             regex:
-              exclude: 'ARegexHere'
+              exclude: '/test_exclude.*'
             ttl: 5s
           log_level: debug
           urls:

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -159,6 +160,10 @@ func TestRequestReverseProxy(t *testing.T) {
 	request := httptest.NewRequest("GET", "http://"+tests.DOMAIN+tests.PATH, nil)
 	conf := tests.MockConfiguration(tests.BaseConfiguration)
 	u, _ := url.Parse(conf.GetReverseProxyURL())
+	var excludedRegexp *regexp.Regexp = nil
+	if conf.GetDefaultCache().GetRegex().Exclude != "" {
+		excludedRegexp = regexp.MustCompile(conf.GetDefaultCache().GetRegex().Exclude)
+	}
 	response := RequestReverseProxy(
 		request,
 		souintypes.SouinRetrieverResponseProperties{
@@ -166,6 +171,7 @@ func TestRequestReverseProxy(t *testing.T) {
 				Provider:      providers.InitializeProvider(conf),
 				Configuration: conf,
 				MatchedURL:    tests.GetMatchedURL(tests.PATH),
+				ExcludeRegex:  excludedRegexp,
 			},
 			ReverseProxyURL: u,
 		},

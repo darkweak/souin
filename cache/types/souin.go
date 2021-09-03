@@ -41,6 +41,7 @@ type RetrieverResponsePropertiesInterface interface {
 	GetRegexpUrls() *regexp.Regexp
 	GetTransport() TransportInterface
 	SetTransport(TransportInterface)
+	GetExcludeRegexp() *regexp.Regexp
 }
 
 // RetrieverResponseProperties struct
@@ -50,6 +51,7 @@ type RetrieverResponseProperties struct {
 	MatchedURL    configurationtypes.URL
 	RegexpUrls    regexp.Regexp
 	Transport     TransportInterface
+	ExcludeRegex  *regexp.Regexp
 }
 
 // GetProvider interface
@@ -85,4 +87,9 @@ func (r *RetrieverResponseProperties) GetTransport() TransportInterface {
 // SetTransport set the transport
 func (r *RetrieverResponseProperties) SetTransport(transportInterface TransportInterface) {
 	r.Transport = transportInterface
+}
+
+// GetExcludeRegexp get the excluded regexp
+func (r *RetrieverResponseProperties) GetExcludeRegexp() *regexp.Regexp {
+	return r.ExcludeRegex
 }
