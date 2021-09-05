@@ -1,9 +1,11 @@
-<p align="center"><a href="https://github.com/darkweak/souin"><img src="docs/img/logo.svg?sanitize=true" alt="Souin logo"></a></p>
+![Souin logo](https://github.com/darkweak/souin/blob/master/docs/img/logo.svg)
 
 # Souin Table of Contents
 1. [Souin reverse-proxy cache](#project-description)
 2. [Configuration](#configuration)  
   2.1. [Required configuration](#required-configuration)  
+    2.1.1. [Souin as plugin](#souin-as-plugin)  
+    2.1.2. [Souin out-of-the-box](#souin-out-of-the-box)  
   2.2. [Optional configuration](#optional-configuration)
 3. [APIs](#apis)  
   3.1. [Souin API](#souin-api)  
@@ -17,15 +19,15 @@
   7.1. [Caddy module](#caddy-module)  
   7.2. [Træfik plugin](#træfik-plugin)  
   7.3. [Prestashop plugin](#prestashop-plugin)  
-  7.3. [Wordpress plugin](#wordpress-plugin)  
+  7.4. [Wordpress plugin](#wordpress-plugin)  
 9. [Credits](#credits)
 
 [![Travis CI](https://travis-ci.com/Darkweak/Souin.svg?branch=master)](https://travis-ci.com/Darkweak/Souin)
 
-# <img src="https://github.com/darkweak/souin/tree/master/docs/img/logo.svg?sanitize=true" alt="Souin logo" width="30" height="30">ouin reverse-proxy cache
+# Souin HTTP cache
 
 ## Project description
-Souin is a new cache system suitable for every reverse-proxy. It will be placed on top of your current reverse-proxy whether it's Apache, Nginx or Traefik.  
+Souin is a new HTTP cache system suitable for every reverse-proxy. It can be either placed on top of your current reverse-proxy whether it's Apache, Nginx or as plugin in your favorite reverse-proxy like Træfik, Caddy or Tyk.  
 Since it's written in go, it can be deployed on any server and thanks to the docker integration, it will be easy to install on top of a Swarm, or a kubernetes instance.  
 It's RFC compatible, supporting Vary, request coalescing, stale cache-control and other specifications related to the [RFC-7234](https://tools.ietf.org/html/rfc7234).  
 It also supports the [Cache-Status HTTP response header](https://httpwg.org/http-extensions/draft-ietf-httpbis-cache-header.html) and the YKey group such as Varnish.
@@ -34,22 +36,24 @@ It also supports the [Cache-Status HTTP response header](https://httpwg.org/http
 If you need redis or other custom cache providers, you have to use the fully-featured version. You can read the documentation, on [the fully-featured branch](https://github.com/Darkweak/Souin/tree/full-version) to understand the specific parts.
 
 ## Configuration
-The configuration file is store at `/anywhere/configuration.yml`. You can supply your own as long as you use the minimal configuration below.
+The configuration file is store at `/anywhere/configuration.yml`. You can supply your own as long as you use one of the minimal configurations below.
 
 ### Required configuration
+#### Souin as plugin
 ```yaml
 default_cache: # Required
-  port: # Ports on which Souin will be exposed
-    web: 80
-    tls: 443
+  ttl: 10s # Default TTL
+```
+
+#### Souin out-of-the-box
+```yaml
+default_cache: # Required
   ttl: 10s # Default TTL
 reverse_proxy_url: 'http://traefik' # If it's in the same network you can use http://your-service, otherwise just use https://yourdomain.com
 ```
-This is a fully working minimal configuration for a Souin instance
 
 |  Key                           |  Description                                                       |  Value example                                                                                                            |
 |:------------------------------:|:------------------------------------------------------------------:|:-------------------------------------------------------------------------------------------------------------------------:|
-| `default_cache.port.{web,tls}` | The device's local HTTP/TLS port that Souin should be listening on | Respectively `80` and `443`                                                                                               |
 | `default_cache.ttl`            | Duration to cache request (in seconds)                             | 10                                                                                                                        |
 | `reverse_proxy_url`            | The reverse-proxy's instance URL (Apache, Nginx, Træfik...)        | - `http://yourservice` (Container way)<br/>`http://localhost:81` (Local way)<br/>`http://yourdomain.com:81` (Network way) |
 
@@ -109,6 +113,7 @@ ykeys:
 | `api.security.users`                     | Array of authorized users with username x password combo                          | `- username: admin`<br/><br/>`  password: admin`                              |
 | `api.souin.security`                     | Enable JWT validation to access the resource                                      | `true`<br/><br/>`(default: false)`                                            |
 | `default_cache.headers`                  | List of headers to include to the cache                                           | `- Authorization`<br/><br/>`- Content-Type`<br/><br/>`- X-Additional-Header`  |
+| `default_cache.port.{web,tls}`           | The device's local HTTP/TLS port that Souin should be listening on                | Respectively `80` and `443`                                                   |
 | `default_cache.regex.exclude`            | The regex used to prevent paths being cached                                      | `^[A-z]+.*$`                                                                  |
 | `log_level`                              | The log level                                                                     | `One of DEBUG, INFO, WARN, ERROR, DPANIC, PANIC, FATAL it's case insensitive` |
 | `ssl_providers`                          | List of your providers handling certificates                                      | `- traefik`<br/><br/>`- nginx`<br/><br/>`- apache`                            |
@@ -145,7 +150,7 @@ The base path for the security API is `/authentication`.
 
 ### Sequence diagram
 See the sequence diagram for the minimal version below
-<img src="docs/plantUML/sequenceDiagram.svg?sanitize=true" alt="Sequence diagram">
+![Sequence diagram](https://github.com/darkweak/souin/blob/master/docs/plantUML/sequenceDiagram.svg?sanitize=true)
 
 ## Cache systems
 Supported providers
@@ -236,7 +241,7 @@ experimental:
   plugins:
     souin:
       moduleName: github.com/darkweak/souin
-      version: v1.5.5
+      version: v1.5.6
 ```
 After that you can declare either the whole configuration at once in the middleware block or by service. See the examples below.
 ```yaml
@@ -379,3 +384,4 @@ Thanks to these users for contributing or helping this project in any way
 * [Burak Sezer](https://github.com/buraksezer)
 * [Luc Michalski](https://github.com/lucmichalski)
 * [Jenaye](https://github.com/jenaye)
+* [Brennan Kinney](https://github.com/polarathene)
