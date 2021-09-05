@@ -2,14 +2,14 @@
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
 <svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="120px" height="120px" viewBox="10 10 80 80"
      content="&lt;mxfile host=&quot;www.draw.io&quot; modified=&quot;2019-11-07T14:34:12.256Z&quot; agent=&quot;Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.1 Safari/605.1.15&quot; etag=&quot;_InBym-9xhuivcIUwy2Y&quot; version=&quot;12.2.2&quot; pages=&quot;1&quot;&gt;&lt;diagram id=&quot;nl3b9Z_rlRA2oslE_mA2&quot; name=&quot;Page-1&quot;&gt;5VbLboMwEPwajpV4NIQc2/R5qPrIIcfKhS24MRgZQ0K/vqa2AYPStFVaKcoF4fF4dr0zSFjePN1cM5QndzQCYrl2tLG8C8t1Z54rng1QS8A/DSQQMxxJyOmABX4HBdoKLXEEhUHklBKOcxMMaZZByA0MMUbXJu2VErNqjmIYAYsQkTG6xBFPJBq40w6/ARwnurLjz+ROijRZ3aRIUETXPci7tLw5o5TLt3QzB9LMTs9Fnrvasts2xiDj3zlQvSzx/e3p86Pz9H7y5t6vZrfFiVKpECnVhVWzvNYTCEtWQaPhWN45ZNFZM1WxDAkqChwKMOEpUfsFR4yPGZ/wFSYdjdFVO9BACivzbc3vrWVTEI286i7vtCMVUQSaAme1oKw70ybKiKTnl8YYEMRxZcojlZ24lWsrPFAsCru2jrmSqXUKbFOhoCULQR3qezTQcSam0GSgI8YSAx/piIGjukfLG0KxvV3HH/Rr21+2FZh032CLF1lfr3rz76DPMP4gmJPdwexlMaMZDIPYT5hzABmaDjzxfpuhXUJbQrQv5/xjd25fxv2zb9Oj823XwA/liwuOzrk9Gfdnvoll92Mn6d3fsXf5AQ==&lt;/diagram&gt;&lt;/mxfile&gt;"
-     style="background-color: rgb(255, 255, 255);">
+     style="background-color: rgba(255, 255, 255, 0);">
     <defs/>
     <g>
-        <path d="M 34.79 77.89 Q 90 70 50 50 Q 10 30 65.21 22.11" fill="none" stroke="#000000" stroke-width="8"
+        <path d="M 34.79 77.89 Q 90 70 50 50 Q 10 30 65.21 22.11" fill="none" stroke="currentColor" stroke-width="8"
               stroke-miterlimit="10" pointer-events="stroke"/>
-        <path d="M 28.85 78.74 L 36.21 73.64 L 34.79 77.89 L 37.34 81.56 Z" fill="#000000" stroke="#000000"
+        <path d="M 28.85 78.74 L 36.21 73.64 L 34.79 77.89 L 37.34 81.56 Z" fill="currentColor" stroke="currentColor"
               stroke-width="8" stroke-miterlimit="10" pointer-events="all"/>
-        <path d="M 71.15 21.26 L 63.79 26.36 L 65.21 22.11 L 62.66 18.44 Z" fill="#000000" stroke="#000000"
+        <path d="M 71.15 21.26 L 63.79 26.36 L 65.21 22.11 L 62.66 18.44 Z" fill="currentColor" stroke="currentColor"
               stroke-width="8" stroke-miterlimit="10" pointer-events="all"/>
     </g>
 </svg>

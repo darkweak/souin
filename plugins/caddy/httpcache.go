@@ -1,4 +1,4 @@
-package caddy
+package httpcache
 
 import (
 	"bytes"
@@ -145,25 +145,26 @@ func (s *SouinCaddyPlugin) FromApp(app *SouinApp) error {
 			Headers: app.Headers,
 			TTL:     app.TTL,
 		}
-	} else {
-		dc := s.Configuration.DefaultCache
-		appDc := app.DefaultCache
-		if dc.Headers == nil {
-			s.Configuration.DefaultCache.Headers = appDc.Headers
-		}
-		if dc.TTL.Duration == 0 {
-			s.Configuration.DefaultCache.TTL = appDc.TTL
-		}
-		if dc.Olric.URL == "" || dc.Olric.Path == "" || dc.Olric.Configuration == nil {
-			s.Configuration.DefaultCache.Distributed = appDc.Distributed
-			s.Configuration.DefaultCache.Olric = appDc.Olric
-		}
-		if dc.Badger.Path == "" || dc.Badger.Configuration == nil {
-			s.Configuration.DefaultCache.Badger = appDc.Badger
-		}
-		if dc.Regex.Exclude == "" {
-			s.Configuration.DefaultCache.Regex.Exclude = appDc.Regex.Exclude
-		}
+		return nil
+	}
+
+	dc := s.Configuration.DefaultCache
+	appDc := app.DefaultCache
+	if dc.Headers == nil {
+		s.Configuration.DefaultCache.Headers = appDc.Headers
+	}
+	if dc.TTL.Duration == 0 {
+		s.Configuration.DefaultCache.TTL = appDc.TTL
+	}
+	if dc.Olric.URL == "" || dc.Olric.Path == "" || dc.Olric.Configuration == nil {
+		s.Configuration.DefaultCache.Distributed = appDc.Distributed
+		s.Configuration.DefaultCache.Olric = appDc.Olric
+	}
+	if dc.Badger.Path == "" || dc.Badger.Configuration == nil {
+		s.Configuration.DefaultCache.Badger = appDc.Badger
+	}
+	if dc.Regex.Exclude == "" {
+		s.Configuration.DefaultCache.Regex.Exclude = appDc.Regex.Exclude
 	}
 
 	return nil
