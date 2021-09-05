@@ -1,4 +1,4 @@
-package caddy
+package httpcache
 
 import (
 	"time"

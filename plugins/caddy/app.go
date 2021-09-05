@@ -1,6 +1,7 @@
-package caddy
+package httpcache
 
 import (
+	"errors"
 	"github.com/caddyserver/caddy/v2"
 	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/configurationtypes"
@@ -26,7 +27,7 @@ func (s *SouinApp) Provision(_ caddy.Context) error {
 // Start will start the App
 func (s SouinApp) Start() error {
 	if s.DefaultCache != nil && s.DefaultCache.GetTTL() == 0 {
-		return new(defaultCacheError)
+		return errors.New("Invalid/Incomplete default cache declaration")
 	}
 	return nil
 }

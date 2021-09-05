@@ -174,10 +174,10 @@ github.com/buraksezer/consistent v0.0.0-20191006190839-693edf70fd72/go.mod h1:OE
 github.com/buraksezer/olric v0.3.11 h1:0WaCMBSGMhmUkFtJc8X2FnNwnXqO7jviYzD7ikZgHSQ=
 github.com/buraksezer/olric v0.3.11/go.mod h1:o0fRJZTHrJJto62IApcdRd5jNkGUomTlouIEL1NGCi4=
 github.com/caarlos0/ctrlc v1.0.0/go.mod h1:CdXpj4rmq0q/1Eb44M9zi2nKB0QraNKuRGYGrrHhcQw=
-github.com/caddyserver/caddy/v2 v2.4.4 h1:QBsN1jXEsCqRpKPBb8ebVnBNgPxwL50HINWWTuZ7evU=
-github.com/caddyserver/caddy/v2 v2.4.4/go.mod h1:cZwYh3+kDWw5v/ePDTyXPeAsC8J+6sROPk3sNFObE/g=
-github.com/caddyserver/certmagic v0.14.4 h1:jlGiMUHOd7p3sgT8zHA/4wckZjIp/6ME2JWGAN5zh5E=
-github.com/caddyserver/certmagic v0.14.4/go.mod h1:/0VQ5og2Jxa5yBQ8eT80wWS7fi/DgNy1uXeXRUJ1Wj0=
+github.com/caddyserver/caddy/v2 v2.4.5 h1:P1mRs6V2cMcagSPn+NWpD+OEYUYLIf6ecOa48cFGeUg=
+github.com/caddyserver/caddy/v2 v2.4.5/go.mod h1:YhfZAAh3jWSbG6rEEOM49FwxmcbLY2fZQVlo59Sc/80=
+github.com/caddyserver/certmagic v0.14.5 h1:y4HcFzLLBMsTv8sSlAPj5K55mvntX8e8ExcmB/lhO6w=
+github.com/caddyserver/certmagic v0.14.5/go.mod h1:/0VQ5og2Jxa5yBQ8eT80wWS7fi/DgNy1uXeXRUJ1Wj0=
 github.com/campoy/unique v0.0.0-20180121183637-88950e537e7e/go.mod h1:9IOqJGCPMSc6E5ydlp5NIonxObaeu/Iub/X03EKPVYo=
 github.com/casbin/casbin/v2 v2.1.2/go.mod h1:YcPU1XXisHhLzuxH9coDNf2FbKpjGlbCg3n9yuLkIJQ=
 github.com/cavaliercoder/go-cpio v0.0.0-20180626203310-925f9528c45e/go.mod h1:oDpT4efm8tSYHXV5tHSdRvBet/b/QzxZ+XyyPehvm3A=

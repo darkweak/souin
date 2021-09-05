@@ -1,9 +1,11 @@
-<p align="center"><a href="https://github.com/darkweak/souin"><img src="docs/img/logo.svg?sanitize=true" alt="Souin logo"></a></p>
+![Souin logo](https://github.com/darkweak/souin/blob/master/docs/img/logo.svg)
 
 # Souin Table of Contents
 1. [Souin reverse-proxy cache](#project-description)
 2. [Configuration](#configuration)  
   2.1. [Required configuration](#required-configuration)  
+    2.1.1. [Souin as plugin](#souin-as-plugin)  
+    2.1.2. [Souin out-of-the-box](#souin-out-of-the-box)  
   2.2. [Optional configuration](#optional-configuration)
 3. [APIs](#apis)  
   3.1. [Souin API](#souin-api)  
@@ -13,47 +15,45 @@
 5. [Cache systems](#cache-systems)
 6. [Examples](#examples)  
   6.1. [Træfik container](#træfik-container)
-7. [SSL](#ssl)  
-  7.1. [Træfik](#træfik)  
-  7.2. [Apache](#apache)  
-  7.3. [Nginx](#nginx)  
-8. [Plugins](#plugins)  
-  8.1. [Caddy module](#caddy-module)  
-  8.2. [Træfik plugin](#træfik-plugin)  
-  8.3. [Prestashop plugin](#prestashop-plugin)  
-  8.3. [Wordpress plugin](#wordpress-plugin)  
+7. [Plugins](#plugins)  
+  7.1. [Caddy module](#caddy-module)  
+  7.2. [Træfik plugin](#træfik-plugin)  
+  7.3. [Prestashop plugin](#prestashop-plugin)  
+  7.4. [Wordpress plugin](#wordpress-plugin)  
 9. [Credits](#credits)
 
 [![Travis CI](https://travis-ci.com/Darkweak/Souin.svg?branch=master)](https://travis-ci.com/Darkweak/Souin)
 
-# <img src="docs/img/logo.svg?sanitize=true" alt="Souin logo" width="30" height="30">ouin reverse-proxy cache
+# Souin HTTP cache
 
 ## Project description
-Souin is a new cache system suitable for every reverse-proxy. It will be placed on top of your current reverse-proxy whether it's Apache, Nginx or Traefik.  
+Souin is a new HTTP cache system suitable for every reverse-proxy. It can be either placed on top of your current reverse-proxy whether it's Apache, Nginx or as plugin in your favorite reverse-proxy like Træfik, Caddy or Tyk.  
 Since it's written in go, it can be deployed on any server and thanks to the docker integration, it will be easy to install on top of a Swarm, or a kubernetes instance.  
-It's RFC compatible, supporting Vary, request coalescing and other specifications related to the [RFC-7234](https://tools.ietf.org/html/rfc7234).  
+It's RFC compatible, supporting Vary, request coalescing, stale cache-control and other specifications related to the [RFC-7234](https://tools.ietf.org/html/rfc7234).  
 It also supports the [Cache-Status HTTP response header](https://httpwg.org/http-extensions/draft-ietf-httpbis-cache-header.html) and the YKey group such as Varnish.
 
 ## Disclaimer
 If you need redis or other custom cache providers, you have to use the fully-featured version. You can read the documentation, on [the fully-featured branch](https://github.com/Darkweak/Souin/tree/full-version) to understand the specific parts.
 
 ## Configuration
-The configuration file is stored at `/anywhere/configuration.yml`. You can supply your own as long as you use the minimal configuration below.
+The configuration file is store at `/anywhere/configuration.yml`. You can supply your own as long as you use one of the minimal configurations below.
 
 ### Required configuration
+#### Souin as plugin
 ```yaml
 default_cache: # Required
-  port: # Ports on which Souin will be exposed
-    web: 80
-    tls: 443
+  ttl: 10s # Default TTL
+```
+
+#### Souin out-of-the-box
+```yaml
+default_cache: # Required
   ttl: 10s # Default TTL
 reverse_proxy_url: 'http://traefik' # If it's in the same network you can use http://your-service, otherwise just use https://yourdomain.com
 ```
-This is a fully working minimal configuration for a Souin instance
 
 |  Key                           |  Description                                                       |  Value example                                                                                                            |
 |:------------------------------:|:------------------------------------------------------------------:|:-------------------------------------------------------------------------------------------------------------------------:|
-| `default_cache.port.{web,tls}` | The device's local HTTP/TLS port that Souin should be listening on | Respectively `80` and `443`                                                                                               |
 | `default_cache.ttl`            | Duration to cache request (in seconds)                             | 10                                                                                                                        |
 | `reverse_proxy_url`            | The reverse-proxy's instance URL (Apache, Nginx, Træfik...)        | - `http://yourservice` (Container way)<br/>`http://localhost:81` (Local way)<br/>`http://yourdomain.com:81` (Network way) |
 
@@ -113,6 +113,7 @@ ykeys:
 | `api.security.users`                     | Array of authorized users with username x password combo                          | `- username: admin`<br/><br/>`  password: admin`                              |
 | `api.souin.security`                     | Enable JWT validation to access the resource                                      | `true`<br/><br/>`(default: false)`                                            |
 | `default_cache.headers`                  | List of headers to include to the cache                                           | `- Authorization`<br/><br/>`- Content-Type`<br/><br/>`- X-Additional-Header`  |
+| `default_cache.port.{web,tls}`           | The device's local HTTP/TLS port that Souin should be listening on                | Respectively `80` and `443`                                                   |
 | `default_cache.regex.exclude`            | The regex used to prevent paths being cached                                      | `^[A-z]+.*$`                                                                  |
 | `log_level`                              | The log level                                                                     | `One of DEBUG, INFO, WARN, ERROR, DPANIC, PANIC, FATAL it's case insensitive` |
 | `ssl_providers`                          | List of your providers handling certificates                                      | `- traefik`<br/><br/>`- nginx`<br/><br/>`- apache`                            |
@@ -134,7 +135,7 @@ The base path for the souin API is `/souin`.
 |:-------:|:-----------------:|:-----------------------------------------------------------------------------------------|
 | `GET`   | `/`               | List stored keys cache                                                                   |
 | `PURGE` | `/{id or regexp}` | Purge selected item(s) depending. The parameter can be either a specific key or a regexp |
-| `PURGE` | `?ykey={key}`     | Purge selected item(s) corresponding to the target ykey such as Varnish                  |
+| `PURGE` | `/?ykey={key}`    | Purge selected item(s) corresponding to the target ykey such as Varnish                  |
 
 ### Security API
 Security API allows users to protect other APIs with JWT authentication.  
@@ -149,17 +150,17 @@ The base path for the security API is `/authentication`.
 
 ### Sequence diagram
 See the sequence diagram for the minimal version below
-<img src="docs/plantUML/sequenceDiagram.svg?sanitize=true" alt="Sequence diagram">
+![Sequence diagram](https://github.com/darkweak/souin/blob/master/docs/plantUML/sequenceDiagram.svg?sanitize=true)
 
 ## Cache systems
 Supported providers
- - [Redis](https://github.com/go-redis/redis)
+ - [Badger](https://github.com/dgraph-io/badger)
  - [Olric](https://github.com/buraksezer/olric)
 
  The cache system sits on top of three providers at the moment. It provides an in-memory, redis and Olric cache systems because setting, getting, updating and deleting keys in these providers is as easy as it gets.  
  In order to do that, Redis and Olric providers need to be either on the same network as the Souin instance when using docker-compose or over the internet, then it will use by default in-memory to avoid network latency as much as possible. 
  Souin will return at first the in-memory response when it gives a non-empty response, then the olric one followed by the redis one with same condition, or fallback to the reverse proxy otherwise.
- Since 1.4.2, Souin supports [Olric](https://github.com/buraksezer/olric) to handle distributed cache.
+ Since v1.4.2, Souin supports [Olric](https://github.com/buraksezer/olric) to handle distributed cache.
 
 ### Cache invalidation
 The cache invalidation is built for CRUD requests, if you're doing a GET HTTP request, it will serve the cached response when it exists, otherwise the reverse-proxy response will be served.  
@@ -173,7 +174,7 @@ It also supports invalidation via [Souin API](#souin-api) to invalidate the cach
 
 ```yaml
 # your-traefik-instance/docker-compose.yml
-version: '3.4'
+version: '3.7'
 
 x-networks: &networks
   networks:
@@ -197,7 +198,7 @@ networks:
 
 ```yaml
 # your-souin-instance/docker-compose.yml
-version: '3.4'
+version: '3.7'
 
 x-networks: &networks
   networks:
@@ -221,44 +222,150 @@ networks:
     external: true
 ```
 
-## SSL
-
-### Træfik
-As Souin is compatible with Træfik, it can use (and it should use) `traefik.json` provided on træfik. Souin will get new/updated certs from Træfik, so your SSL certificates will be up to date as long as the Træfik ones are.
-To provide acme, you just have to map the volume as below
-```yaml
-    volumes:
-      - /anywhere/traefik.json:/ssl/traefik.json
-```
-### Apache
-Souin will listen to the `apache.json` file. You have to setup your own way to aggregate your SSL cert files and keys. Alternatively you can use a side project called [dob](https://github.com/darkweak/dob), it's also open-source and written in go
-```yaml
-    volumes:
-      - /anywhere/apache.json:/ssl/apache.json
-```
-### Nginx
-Souin will listen to the `nginx.json` file. You have to setup your own way to aggregate your SSL cert files and keys. Alternatively you can use a side project called [dob](https://github.com/darkweak/dob), it's also open-source and written in go
-```yaml
-    volumes:
-      - /anywhere/nginx.json:/ssl/nginx.json
-```
-At the moment you can't choose the path for the `*.json` file in the container, they have to be placed in the `/ssl` folder. In the future you'll be able to do that by setting one env var
-If no `*.json` file is provided to container, a default cert will be served.
-
-
 ## Plugins
 
 ### Caddy module
-You just have to refer to the [Caddy module integration folder](https://github.com/darkweak/souin/tree/master/plugins/caddy) to discover how to configure it.  
+To use Souin as caddy module, you can refer to the [Caddy module integration folder](https://github.com/darkweak/souin/tree/master/plugins/caddy) to discover how to configure it.  
 The related Caddyfile can be found [here](https://github.com/darkweak/souin/tree/master/plugins/caddy/Caddyfile).  
 Then you just have to run the following command:
 ```bash
 xcaddy build --with github.com/Darkweak/Souin/plugins/caddy
 ```
-Alternatively, you can go to [the xcaddy builder website](https://xcaddy.tech) to build your caddy instance easily.
 
 ### Træfik plugin
-Currenly not available because Træfik uses Yaegi to analyse the plugin, which prevents the usage of unsafe libraries unless you're a developper. An example can be found [here](https://github.com/darkweak/souin/tree/master/plugins/traefik) nonetheless.
+To use Souin as Træfik plugin, you can refer to the [pilot documentation](https://pilot.traefik.io/plugins/6123af58d00e6cd1260b290e/souin) and the [Træfik plugin integration folder](https://github.com/darkweak/souin/tree/master/plugins/traefik) to discover how to configure it.  
+You have to declare the `experimental` block in your traefik static configuration file.
+```yaml
+# anywhere/traefik.yml
+experimental:
+  plugins:
+    souin:
+      moduleName: github.com/darkweak/souin
+      version: v1.5.6
+```
+After that you can declare either the whole configuration at once in the middleware block or by service. See the examples below.
+```yaml
+# anywhere/dynamic-configuration
+http:
+  routers:
+    whoami:
+      middlewares:
+        - http-cache
+      service: whoami
+      rule: Host(`domain.com`)
+  middlewares:
+    http-cache:
+      plugin:
+        souin-plugin:
+          api:
+            souin:
+              enable: true
+          default_cache:
+            headers:
+              - Authorization
+              - Content-Type
+            regex:
+              exclude: '/test_exclude.*'
+            ttl: 5s
+          log_level: debug
+          urls:
+            'domain.com/testing':
+              ttl: 5s
+              headers:
+                - Authorization
+            'mysubdomain.domain.com':
+              ttl: 50s
+              headers:
+                - Authorization
+                - 'Content-Type'
+          ykeys:
+            The_First_Test:
+              headers:
+                Content-Type: '.+'
+            The_Second_Test:
+              url: 'the/second/.+'
+            The_Third_Test:
+            The_Fourth_Test:
+```
+
+```yaml
+# anywhere/docker-compose.yml
+services:
+#...
+  whoami:
+    image: traefik/whoami
+    labels:
+      # other labels...
+      - traefik.http.routers.whoami.middlewares=http-cache
+      - traefik.http.middlewares.http-cache.plugin.souin-plugin.api.souin.enable=true
+      - traefik.http.middlewares.http-cache.plugin.souin-plugin.default_cache.headers=Authorization,Content-Type
+      - traefik.http.middlewares.http-cache.plugin.souin-plugin.default_cache.ttl=10s
+      - traefik.http.middlewares.http-cache.plugin.souin-plugin.log_level=debug
+```
+
+### Tyk plugin
+To use Souin as a Tyk plugin, you can refer to the [Tyk plugin integration folder](https://github.com/darkweak/souin/tree/master/plugins/tyk) to discover how to configure it.  
+You have to define the use of Souin as `post` and `response` custom middleware. You can compile your own Souin integration using the `Makefile` and the `docker-compose` inside the [tyk integration directory](https://github.com/darkweak/souin/tree/master/plugins/tyk) and place your generated `souin-plugin.so` file inside your `middleware` directory.
+```json
+{
+  "name":"httpbin.org",
+  "api_id":"3",
+  "org_id":"3",
+  "use_keyless": true,
+  "version_data": {
+    "not_versioned": true,
+    "versions": {
+      "Default": {
+        "name": "Default",
+        "use_extended_paths": true
+      }
+    }
+  },
+  "custom_middleware": {
+    "pre": [],
+    "post": [
+      {
+        "name": "SouinRequestHandler",
+        "path": "/opt/tyk-gateway/middleware/souin-plugin.so"
+      }
+    ],
+    "post_key_auth": [],
+    "auth_check": {
+      "name": "",
+      "path": "",
+      "require_session": false
+    },
+    "response": [
+      {
+        "name": "SouinResponseHandler",
+        "path": "/opt/tyk-gateway/middleware/souin-plugin.so"
+      }
+    ],
+    "driver": "goplugin",
+    "id_extractor": {
+      "extract_from": "",
+      "extract_with": "",
+      "extractor_config": {}
+    }
+  },
+  "proxy":{
+    "listen_path":"/httpbin/",
+    "target_url":"http://httpbin.org/",
+    "strip_listen_path":true
+  },
+  "active":true,
+  "souin": {
+    "api": {
+      "souin": {
+        "enable": true
+      }
+    },
+    "default_cache": {
+      "ttl": "5s"
+    }
+  }
+}
+```
 
 ### Prestashop plugin
 A repository called [prestashop-souin](https://github.com/lucmichalski/prestashop-souin) has been started by [lucmichalski](https://github.com/lucmichalski). You can manage your Souin instance through the admin panel UI.
@@ -270,9 +377,11 @@ A repository called [wordpress-souin](https://github.com/Darkweak/wordpress-soui
 ## Credits
 
 Thanks to these users for contributing or helping this project in any way  
-* [oxodao](https://github.com/oxodao)
+* [Oxodao](https://github.com/oxodao)
 * [Deuchnord](https://github.com/deuchnord)
 * [Sata51](https://github.com/sata51)
 * [Pierre Diancourt](https://github.com/pierrediancourt)
 * [Burak Sezer](https://github.com/buraksezer)
-* [lucmichalski](https://github.com/lucmichalski)
+* [Luc Michalski](https://github.com/lucmichalski)
+* [Jenaye](https://github.com/jenaye)
+* [Brennan Kinney](https://github.com/polarathene)
