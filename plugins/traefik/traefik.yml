@@ -9,12 +9,13 @@ api:
   insecure: true
 
 pilot:
-  token: 75223eaf-380a-4c16-840d-2b3ee4a2765a
+  token: 1050f8a0-eb6f-4458-97ae-6d223afbefe6
 
 experimental:
-  localPlugins:
+  plugins:
     souin-plugin:
       moduleName: github.com/darkweak/souin
+      version: v1.5.5
 
 log:
   level: DEBUG
