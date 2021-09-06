@@ -43,6 +43,10 @@ type YKeyStorage struct {
 
 // InitializeYKeys will initialize the ykey storage system
 func InitializeYKeys(keys map[string]configurationtypes.YKey) *YKeyStorage {
+	if len(keys) == 0 {
+		return nil
+	}
+
 	c := cache.New(1*time.Second, 2*time.Second)
 
 	for key := range keys {
@@ -103,8 +107,8 @@ func (y *YKeyStorage) InvalidateTagURLs(urls string) []string {
 func (y *YKeyStorage) invalidateURL(url string) {
 	urlRegexp := regexp.MustCompile(fmt.Sprintf("(%s,)|(,%s$)|(^%s$)", url, url, url))
 	for key := range y.Keys {
-		v, _ := y.Cache.Get(key)
-		if urlRegexp.MatchString(v.(string)) {
+		v, found := y.Cache.Get(key)
+		if found && urlRegexp.MatchString(v.(string)) {
 			y.Set(key, urlRegexp.ReplaceAllString(v.(string), ""), 1)
 		}
 	}
