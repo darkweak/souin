@@ -34,6 +34,8 @@ jobs:
           folder: Caddy
           reporters: cli
           delayRequest: 5000
+      - name: Build current Souin as caddy module with referenced Souin core version
+        run: cd plugins/caddy && xcaddy build --with github.com/darkweak/souin/plugins/caddy@$(git rev-parse --short "$GITHUB_SHA")
   build-tyk-validator:
     name: Check that Souin build as Tyk middleware
     runs-on: ubuntu-latest

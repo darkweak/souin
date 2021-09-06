@@ -51,7 +51,9 @@ func commonCacheControl(req *http.Request, t func(*http.Request) (*http.Response
 
 func (t *VaryTransport) deleteCache(key string) {
 	go func() {
-		t.YkeyStorage.InvalidateTagURLs(key)
+		if t.YkeyStorage != nil {
+			t.YkeyStorage.InvalidateTagURLs(key)
+		}
 	}()
 	t.Provider.Delete(key)
 }
