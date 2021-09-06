@@ -39,12 +39,18 @@ jobs:
     name: Validate that the container build for prod
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - name: Build the stack
+      -
+        name: Checkout code
+        uses: actions/checkout@v2
+      -
+        name: Build the stack
         run: docker network create your_network || true
-      - name: Prepare the stack
+      -
+        name: Prepare the stack
         run: cp Dockerfile-prod Dockerfile && cp docker-compose.yml.prod docker-compose.yml
-      - name: Build the stack
+      -
+        name: Build the stack
         run: docker-compose up -d --build --force-recreate --remove-orphans
-      - name: Souin container healthceck
+      -
+        name: Souin container healthceck
         run: docker-compose exec -T souin ls
