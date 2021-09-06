@@ -7,27 +7,34 @@ jobs:
     name: Check that Souin build as caddy module
     runs-on: ubuntu-latest
     steps:
-      - name: Add domain.com host to /etc/hosts
+      -
+        name: Add domain.com host to /etc/hosts
         run: |
           sudo echo "127.0.0.1 domain.com" | sudo tee -a /etc/hosts
-      - name: Install Go
+      -
+        name: Install Go
         uses: actions/setup-go@v2
         with:
           go-version: 1.16
-      - name: Checkout code
+      -
+        name: Checkout code
         uses: actions/checkout@v2
-      - name: Install xcaddy
+      -
+        name: Install xcaddy
         run: |
           sudo apt install -y debian-keyring debian-archive-keyring apt-transport-https
           curl -1sLf 'https://dl.cloudsmith.io/public/caddy/xcaddy/gpg.key' | sudo apt-key add -
           curl -1sLf 'https://dl.cloudsmith.io/public/caddy/xcaddy/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-xcaddy.list
           sudo apt update
           sudo apt install xcaddy
-      - name: Build Souin as caddy module
+      -
+        name: Build Souin as caddy module
         run: cd plugins/caddy && xcaddy build --with github.com/darkweak/souin/plugins/caddy=./ --with github.com/darkweak/souin@latest=../..
-      - name: Run detached caddy
+      -
+        name: Run detached caddy
         run: cd plugins/caddy && ./caddy run &
-      - name: Run Caddy E2E tests
+      -
+        name: Run Caddy E2E tests
         uses: anthonyvscode/newman-action@v1
         with:
           collection: "docs/e2e/Souin E2E.postman_collection.json"
@@ -38,27 +45,34 @@ jobs:
     name: Check that Souin build as Tyk middleware
     runs-on: ubuntu-latest
     steps:
-      - name: Install Go
+      -
+        name: Install Go
         uses: actions/setup-go@v2
         with:
           go-version: 1.16
-      - name: Checkout code
+      -
+        name: Checkout code
         uses: actions/checkout@v2
-      - name: Build Souin as Tyk plugin
+      -
+        name: Build Souin as Tyk plugin
         run: make build-and-run-tyk
-      - name: Wait for Souin is really loaded inside Tyk as middleware
+      -
+        name: Wait for Souin is really loaded inside Tyk as middleware
         uses: jakejarvis/wait-action@master
         with:
           time: 30s
-      - name: Set logs result as environment variable
+      -
+        name: Set logs result as environment variable
         run: cd plugins/tyk && echo "TYK_DC_RESULT=$(docker-compose logs tyk-gateway | grep -i '\[INFO\] Olric bindAddr')" >> $GITHUB_ENV
-      - name: Check Olric is loaded to define if Souin is loaded too
+      -
+        name: Check Olric is loaded to define if Souin is loaded too
         uses: nick-invision/assert-action@v1
         with:
           expected: '[INFO] Olric bindAddr'
           actual: ${{ env.TYK_DC_RESULT }}
           comparison: contains
-      - name: Run Tyk E2E tests
+      -
+        name: Run Tyk E2E tests
         uses: anthonyvscode/newman-action@v1
         with:
           collection: "docs/e2e/Souin E2E.postman_collection.json"
@@ -69,38 +83,48 @@ jobs:
     name: Check that Souin build as Træfik plugin
     runs-on: ubuntu-latest
     steps:
-      - name: Add domain.com host to /etc/hosts
+      -
+        name: Add domain.com host to /etc/hosts
         run: |
           sudo echo "127.0.0.1 domain.com" | sudo tee -a /etc/hosts
-      - name: Install Go
+      -
+        name: Install Go
         uses: actions/setup-go@v2
         with:
           go-version: 1.16
-      - name: Checkout code
+      -
+        name: Checkout code
         uses: actions/checkout@v2
-      - name: Build Souin as Træfik plugin
+      -
+        name: Build Souin as Træfik plugin
         run: make build-and-run-traefik
-      - name: Wait for Souin is really loaded inside Træfik as plugin
+      -
+        name: Wait for Souin is really loaded inside Træfik as plugin
         uses: jakejarvis/wait-action@master
         with:
           time: 30s
-      - name: Set traefik logs file result as environment variable
+      -
+        name: Set traefik logs file result as environment variable
         run: cd plugins/traefik && echo "TRAEFIK_FILE_RESULT=$(docker-compose logs traefik | grep 'Starting provider \*file.Provider')" >> $GITHUB_ENV
-      - name: Check logs to define if Souin configuration is loaded too
+      -
+        name: Check logs to define if Souin configuration is loaded too
         uses: nick-invision/assert-action@v1
         with:
           expected: '/souin-configuration.yaml'
           actual: ${{ env.TRAEFIK_FILE_RESULT }}
           comparison: contains
-      - name: Set traefik logs configuration result as environment variable
+      -
+        name: Set traefik logs configuration result as environment variable
         run: cd plugins/traefik && echo "TRAEFIK_MIDDLEWARE_RESULT=$(docker-compose logs traefik | grep default_cache)" >> $GITHUB_ENV
-      - name: Check if the configuration is loaded to define if Souin is loaded too
+      -
+        name: Check if the configuration is loaded to define if Souin is loaded too
         uses: nick-invision/assert-action@v1
         with:
           expected: '"middlewares\":{\"souin\":{\"plugin\":{\"souin-plugin'
           actual: ${{ env.TRAEFIK_MIDDLEWARE_RESULT }}
           comparison: contains
-      - name: Run Træfik E2E tests
+      -
+        name: Run Træfik E2E tests
         uses: anthonyvscode/newman-action@v1
         with:
           collection: "docs/e2e/Souin E2E.postman_collection.json"

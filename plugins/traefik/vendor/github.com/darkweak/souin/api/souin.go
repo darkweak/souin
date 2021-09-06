@@ -43,8 +43,11 @@ func (s *SouinAPI) BulkDelete(key string) {
 	s.provider.DeleteMany(key)
 }
 
-func (s *SouinAPI) invalidateFromYKey(key string) {
-	urls := s.ykeyStorage.InvalidateTags([]string{key})
+func (s *SouinAPI) invalidateFromYKey(keys []string) {
+	if s.ykeyStorage == nil {
+		return
+	}
+	urls := s.ykeyStorage.InvalidateTags(keys)
 	for _, u := range urls {
 		s.provider.Delete(u)
 	}
@@ -89,8 +92,8 @@ func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 	case "PURGE":
-		query := r.URL.Query().Get("ykey")
-		if query != "" {
+		query := r.URL.Query()["ykey"]
+		if len(query) > 0 {
 			s.invalidateFromYKey(query)
 		} else if compile {
 			submatch := regexp.MustCompile(s.GetBasePath()+"/(.+)").FindAllStringSubmatch(r.RequestURI, -1)[0][1]

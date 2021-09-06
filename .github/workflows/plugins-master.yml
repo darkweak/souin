@@ -1,0 +1,35 @@
+name: Build and validate Souin as plugins
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build-caddy-validator:
+    name: Check that Souin build as caddy module and can be tagged on master
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Add domain.com host to /etc/hosts
+        run: |
+          sudo echo "127.0.0.1 domain.com" | sudo tee -a /etc/hosts
+      -
+        name: Install Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.16
+      -
+        name: Checkout code
+        uses: actions/checkout@v2
+      -
+        name: Install xcaddy
+        run: |
+          sudo apt install -y debian-keyring debian-archive-keyring apt-transport-https
+          curl -1sLf 'https://dl.cloudsmith.io/public/caddy/xcaddy/gpg.key' | sudo apt-key add -
+          curl -1sLf 'https://dl.cloudsmith.io/public/caddy/xcaddy/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-xcaddy.list
+          sudo apt update
+          sudo apt install xcaddy
+      -
+        name: Build current Souin as caddy module with referenced Souin core version when merge on master
+        run: cd plugins/caddy && xcaddy build --with github.com/darkweak/souin/plugins/caddy@$(git rev-parse --short "$GITHUB_SHA")
