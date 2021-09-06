@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/darkweak/souin/api/auth"
 	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/cache/ykeys"
@@ -98,7 +97,6 @@ func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 			s.invalidateFromYKey(query)
 		} else if compile {
 			submatch := regexp.MustCompile(s.GetBasePath()+"/(.+)").FindAllStringSubmatch(r.RequestURI, -1)[0][1]
-			fmt.Println(submatch)
 			s.BulkDelete(submatch)
 		}
 		w.WriteHeader(http.StatusNoContent)
