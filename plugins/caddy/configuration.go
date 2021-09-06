@@ -54,7 +54,6 @@ type Configuration struct {
 	URLs         map[string]configurationtypes.URL
 	LogLevel     string
 	logger       *zap.Logger
-	Ykeys        map[string]configurationtypes.YKey
 }
 
 // GetUrls get the urls list in the configuration
@@ -89,5 +88,5 @@ func (c *Configuration) SetLogger(l *zap.Logger) {
 
 // GetYkeys get the ykeys list
 func (c *Configuration) GetYkeys() map[string]configurationtypes.YKey {
-	return c.Ykeys
+	return nil
 }

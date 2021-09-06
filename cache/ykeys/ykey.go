@@ -42,6 +42,10 @@ type YKeyStorage struct {
 
 // InitializeYKeys will initialize the ykey storage system
 func InitializeYKeys(keys map[string]configurationtypes.YKey) *YKeyStorage {
+	if len(keys) == 0 {
+		return nil
+	}
+
 	storage, _ := ristretto.NewCache(&ristretto.Config{
 		NumCounters: 1e7,
 		MaxCost:     1 << 30,
@@ -105,8 +109,8 @@ func (y *YKeyStorage) InvalidateTagURLs(urls string) []string {
 func (y *YKeyStorage) invalidateURL(url string) {
 	urlRegexp := regexp.MustCompile(fmt.Sprintf("(%s,)|(,%s$)|(^%s$)", url, url, url))
 	for key := range y.Keys {
-		v, _ := y.Cache.Get(key)
-		if urlRegexp.MatchString(v.(string)) {
+		v, found := y.Cache.Get(key)
+		if found && urlRegexp.MatchString(v.(string)) {
 			y.Set(key, urlRegexp.ReplaceAllString(v.(string), ""), 1)
 		}
 	}
