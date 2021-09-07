@@ -34,13 +34,13 @@ func CachedResponse(c types.AbstractProviderInterface, req *http.Request, cached
 	}, nil
 }
 
-func commonCacheControl(req *http.Request, t func(*http.Request) (*http.Response, error)) (*http.Response, error) {
+func commonCacheControl(req *http.Request, t http.RoundTripper) (*http.Response, error) {
 	reqCacheControl := parseCacheControl(req.Header)
 	if _, ok := reqCacheControl["only-if-cached"]; ok {
 		return newGatewayTimeoutResponse(req), nil
 	}
 
-	r, err := t(req)
+	r, err := t.RoundTrip(req)
 
 	if err != nil {
 		return nil, err
@@ -122,12 +122,16 @@ func (t *VaryTransport) UpdateCacheEventually(req *http.Request) (*http.Response
 	if cacheable && cachedResp != nil {
 		rDate, _ := time.Parse(time.RFC1123, req.Header.Get("Date"))
 		cachedResp.Header.Set("Date", rDate.Format(http.TimeFormat))
+		cachedResp.Header.Set("Cache-Status", "Souin; fwd=uri-miss: stored")
 		r := commonVaryMatchesVerification(cachedResp, req)
 		if r != nil {
 			return r, nil
 		}
 	} else {
-		if _, err := commonCacheControl(req, t.RoundTrip); err != nil {
+		if cachedResp != nil {
+			cachedResp.Header.Set("Cache-Status", "Souin; fwd=uri-miss")
+		}
+		if _, err := commonCacheControl(req, t); err != nil {
 			return nil, err
 		}
 	}
@@ -185,7 +189,7 @@ func (t *VaryTransport) RoundTrip(req *http.Request) (resp *http.Response, err e
 			}
 		}
 	} else {
-		if resp, err = commonCacheControl(req, transport.RoundTrip); err != nil {
+		if resp, err = commonCacheControl(req, transport); err != nil {
 			return nil, err
 		}
 		resp.Header.Set("Cache-Status", "Souin; fwd=uri-miss")
