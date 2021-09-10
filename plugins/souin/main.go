@@ -13,11 +13,12 @@ import (
 	"github.com/darkweak/souin/cache/service"
 	"github.com/darkweak/souin/errors"
 	"github.com/darkweak/souin/plugins"
+	"github.com/darkweak/souin/plugins/souin/configuration"
 	"github.com/darkweak/souin/plugins/souin/providers"
 	souintypes "github.com/darkweak/souin/plugins/souin/types"
 )
 
-func souinPluginInitializerFromConfiguration(c *souintypes.Configuration) *souintypes.SouinRetrieverResponseProperties {
+func souinPluginInitializerFromConfiguration(c *configuration.Configuration) *souintypes.SouinRetrieverResponseProperties {
 	baseRetriever := *plugins.DefaultSouinPluginInitializerFromConfiguration(c)
 	u, err := url.Parse(c.GetReverseProxyURL())
 	if err != nil {
@@ -52,7 +53,7 @@ func startServer(config *tls.Config) (net.Listener, *http.Server) {
 }
 
 func main() {
-	c := souintypes.GetConfiguration()
+	c := configuration.GetConfiguration()
 	rc := coalescing.Initialize()
 	configChannel := make(chan int)
 	tlsConfig := &tls.Config{

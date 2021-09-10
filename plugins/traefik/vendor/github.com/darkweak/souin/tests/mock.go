@@ -2,13 +2,13 @@ package tests
 
 import (
 	"fmt"
+	types2 "github.com/darkweak/souin/plugins/souin/types"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"regexp"
 
 	"github.com/darkweak/souin/cache/types"
-	"github.com/darkweak/souin/configuration"
 	"github.com/darkweak/souin/configurationtypes"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -246,8 +246,8 @@ memberlist:
 }
 
 // MockConfiguration is an helper to mock the configuration
-func MockConfiguration(configurationToLoad func() string) *configuration.Configuration {
-	var config configuration.Configuration
+func MockConfiguration(configurationToLoad func() string) *types2.Configuration {
+	var config types2.Configuration
 	e := config.Parse([]byte(configurationToLoad()))
 	if e != nil {
 		log.Fatal(e)

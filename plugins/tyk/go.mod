@@ -20,4 +20,7 @@ require (
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22 // indirect
 )
 
-replace github.com/hashicorp/terraform v1.0.1 => github.com/hashicorp/terraform v0.14.11
+replace (
+	github.com/darkweak/souin v1.5.7 => ../..
+	github.com/hashicorp/terraform v1.0.1 => github.com/hashicorp/terraform v0.14.11
+)

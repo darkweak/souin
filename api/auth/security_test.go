@@ -3,7 +3,7 @@ package auth
 import (
 	"fmt"
 	"github.com/darkweak/souin/errors"
-	"github.com/darkweak/souin/plugins/souin/types"
+	"github.com/darkweak/souin/plugins/souin/configuration"
 	"github.com/darkweak/souin/tests"
 	"io/ioutil"
 	"net/http"
@@ -12,7 +12,7 @@ import (
 )
 
 func TestInitializeSecurity(t *testing.T) {
-	var config types.Configuration
+	var config configuration.Configuration
 	_ = config.Parse([]byte(`
 api:
   security:

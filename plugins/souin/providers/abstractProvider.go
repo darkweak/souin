@@ -5,7 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/darkweak/souin/plugins/souin/types"
+	"github.com/darkweak/souin/plugins/souin/configuration"
 	"io/ioutil"
 	"log"
 	"strings"
@@ -26,7 +26,7 @@ type Certificate struct {
 }
 
 // InitProviders function allow to init certificates and be able to exploit data as needed
-func InitProviders(tlsconfig *tls.Config, configChannel *chan int, configuration *types.Configuration) {
+func InitProviders(tlsconfig *tls.Config, configChannel *chan int, configuration *configuration.Configuration) {
 	var providers []CommonProvider
 	for _, provider := range configuration.GetSSLProviders() {
 		providers = append(providers, CommonProvider{

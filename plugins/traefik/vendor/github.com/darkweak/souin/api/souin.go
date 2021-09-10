@@ -2,7 +2,9 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/darkweak/souin/api/auth"
+	"github.com/darkweak/souin/cache/surrogate"
 	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/cache/ykeys"
 	"github.com/darkweak/souin/configurationtypes"
@@ -92,6 +94,8 @@ func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 	case "PURGE":
+		surr := surrogate.ParseHeaders(r.Header.Get(surrogate.SurrogateKeys))
+		fmt.Printf("%+v \n%+v \n", surr[0], surr)
 		query := r.URL.Query()["ykey"]
 		if len(query) > 0 {
 			s.invalidateFromYKey(query)
