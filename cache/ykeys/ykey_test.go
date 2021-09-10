@@ -2,12 +2,12 @@ package ykeys
 
 import (
 	"fmt"
+	"github.com/darkweak/souin/plugins/souin/types"
 	"net/http"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/darkweak/souin/configuration"
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/errors"
 )
@@ -18,7 +18,7 @@ const ThirdKey = "The_Third_Test"
 const FourthKey = "The_Fourth_Test"
 
 func mockYkeys() map[string]configurationtypes.YKey {
-	var config configuration.Configuration
+	var config types.Configuration
 	_ = config.Parse([]byte(
 		`
 ykeys:

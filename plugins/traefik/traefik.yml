@@ -12,9 +12,10 @@ pilot:
   token: 1050f8a0-eb6f-4458-97ae-6d223afbefe6
 
 experimental:
-  localPlugins:
+  plugins:
     souin-plugin:
       moduleName: github.com/darkweak/souin
+      version: v1.5.9
 
 log:
   level: DEBUG

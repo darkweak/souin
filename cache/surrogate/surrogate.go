@@ -4,7 +4,7 @@ package surrogate
 // You can send a PURGE request on the Souin API endpoint with the Surrogate header to invalidate the filled keys.
 // The Surrogate header CAN contains one or multiple keys separated by a comma as mentioned in the RFC.
 // e.g.
-// Given the Surrogate-keys data as
+// Given the Surrogate-Keys data as
 // |---------------|-----------------------------------------------------------------------------------|
 // | YKey          | URLs                                                                              |
 // |---------------|-----------------------------------------------------------------------------------|
@@ -12,13 +12,13 @@ package surrogate
 // | GROUP_KEY_TWO | http://domain.com/1,http://domain.com/2,http://domain.com/3,http://domain.com/xyz |
 // |---------------|-----------------------------------------------------------------------------------|
 // When I send a purge request to /souin-api/souin with the headers
-// Surrogate-keys: GROUP_KEY_ONE
+// Surrogate-Keys: GROUP_KEY_ONE
 // Then the cache will be purged for the list
 // * http://domain.com/
 // * http://domain.com/1
 // * http://domain.com/2
 // * http://domain.com/4
-// And the data in the Surrogate-keys table storage will contain
+// And the data in the Surrogate-Keys table storage will contain
 // |---------------|-------------------------------------------|
 // | YKey          | URLs                                      |
 // |---------------|-------------------------------------------|
@@ -27,7 +27,7 @@ package surrogate
 // |---------------|-------------------------------------------|
 //
 // Another example
-// Given the Surrogate-keys data as
+// Given the Surrogate-Keys data as
 // |---------------|-----------------------------------------------------------------------------------|
 // | YKey          | URLs                                                                              |
 // |---------------|-----------------------------------------------------------------------------------|
@@ -35,14 +35,14 @@ package surrogate
 // | GROUP_KEY_TWO | http://domain.com/1,http://domain.com/2,http://domain.com/3,http://domain.com/xyz |
 // |---------------|-----------------------------------------------------------------------------------|
 // When I send a purge request to /souin-api/souin
-// Surrogate-keys: GROUP_KEY_ONE, GROUP_KEY_TWO
+// Surrogate-Keys: GROUP_KEY_ONE, GROUP_KEY_TWO
 // Then the cache will be purged for the list
 // * http://domain.com/
 // * http://domain.com/1
 // * http://domain.com/2
 // * http://domain.com/4
 // * http://domain.com/xyz
-// And the data in the Surrogate-keys table storage will contain
+// And the data in the Surrogate-Keys table storage will contain
 // |---------------|------|
 // | YKey          | URLs |
 // |---------------|------|
@@ -50,9 +50,9 @@ package surrogate
 // | GROUP_KEY_TWO |      |
 // |---------------|------|
 //
-// If the Surrogate Storage is configured with the dynamic boolean value, then it will handle and store all Surrogate-keys
+// If the Surrogate Storage is configured with the dynamic boolean value, then it will handle and store all Surrogate-Keys
 // sent by the server on a specific resource.
-// Given the Surrogate-keys data as
+// Given the Surrogate-Keys data as
 // |---------------|------|
 // | YKey          | URLs |
 // |---------------|------|
@@ -61,8 +61,8 @@ package surrogate
 // |---------------|------|
 // When you send a request to /service_1/my_first_resource
 // Then the server response contains the following headers
-// Surrogate-keys: GROUP_KEY_NEW, another_one
-// Then the data in the Surrogate-keys table storage will contain
+// Surrogate-Keys: GROUP_KEY_NEW, another_one
+// Then the data in the Surrogate-Keys table storage will contain
 // |---------------|------------------------------|
 // | YKey          | URLs                         |
 // |---------------|------------------------------|
@@ -75,9 +75,16 @@ package surrogate
 import (
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/dgraph-io/ristretto"
+	"regexp"
+	"strings"
 )
 
-// InitializeSurrogate will initialize the Surrogate-keys storage system
+func ParseHeaders(value string) []string {
+	r, _ := regexp.Compile(",( +)?")
+	return strings.Fields(r.ReplaceAllString(value, " "))
+}
+
+// InitializeSurrogate will initialize the Surrogate-Keys storage system
 func InitializeSurrogate(keys map[string]configurationtypes.YKey, configurationInterface configurationtypes.AbstractConfigurationInterface) *SurrogateStorage {
 	if len(keys) == 0 {
 		return nil

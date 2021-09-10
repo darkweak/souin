@@ -1,4 +1,4 @@
-package configuration
+package types
 
 import (
 	"io/ioutil"
