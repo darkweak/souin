@@ -25,9 +25,9 @@ country = "France"
 .# Abstract
 
 The Surrogate headers allow to manage the cache invalidation by the surrogates keys.
-The Surrogate-Keys HTTP header is useful to get the information about a cached resource, and provide a way to invalidate
+The Surrogate-Key HTTP header is useful to get the information about a cached resource, and provide a way to invalidate
 properly a pool of stored resources.
-The Surrogate-Control permit the management directive of the `Surrogate-Keys`.
+The Surrogate-Control allow the management directive of the `Surrogate-Key`.
 
 {mainmatter}
 
@@ -70,13 +70,19 @@ implementation-specific states.
 
 For example:
 
-Surrogate-Keys: abc;bypass;details=PRESENT, def;bypass;details=NOT_ALLOWED
+Surrogate-Key: abc;bypass;details=PRESENT, def;bypass;details=NOT_ALLOWED
+
+Examples:
+
+Surrogate-Key: abc;stored, def;bypass
+
+Surrogate-Key: abc;bypass;details=ANOTHER
 
 
 # Invalidation
 
 The invalidation mechanism is trigger from a `PURGE` request to the API endpoint.  
-The request **MUST** set the header `Surrogate-Keys` with at least one value to invalidate the provided ones, and the 
+The request **MUST** set the header `Surrogate-Key` with at least one value to invalidate the provided ones, and the 
 server **MUST** invalidate the resources associated to the targeted keys if it exists.
 
 The invalidation process **SHOULD** return either:
@@ -84,7 +90,7 @@ The invalidation process **SHOULD** return either:
   ~~~ http
   PURGE /surrogate-api-endpoint HTTP/1.1
   Host: example.com
-  Surrogate-Keys: my-key, my-second-key
+  Surrogate-Key: my-key, my-second-key
   
   HTTP/1.1 202 Accepted
   ~~~
@@ -92,23 +98,23 @@ The invalidation process **SHOULD** return either:
   ~~~ http
   PURGE /surrogate-api-endpoint HTTP/1.1
   Host: example.com
-  Surrogate-Keys: my-key, my-second-key
+  Surrogate-Key: my-key, my-second-key
   
   HTTP/1.1 204 No Content
   ~~~
 In the both cases, the server **MUST** invalidate the cache for the associated resource URLs to at least one of the 
-`Surrogate-Keys` item.
+`Surrogate-Key` item.
 
-# Set a resource to one or many Surrogate-Keys
+# Set a resource to one or many Surrogate-Key
 
 The resource setting can be done from the application target by the server.
-The application **MUST** return a response with the header `Surrogate-Keys` which contains the keys to add the resource 
+The application **MUST** return a response with the header `Surrogate-Key` which contains the keys to add the resource 
 URL to. The server will store the resource URL in each provided surrogate key.
   ~~~ http
   GET /any/path HTTP/1.1
   Host: example.com
   HTTP/1.1 200 OK
-  Surrogate-Keys: my-key, my-second-key
+  Surrogate-Key: my-key, my-second-key
 
   My awesome content
   ~~~
@@ -118,25 +124,25 @@ For each key not already stored for this resource, the server **SHOULD** return 
   GET /any/path HTTP/1.1
   Host: example.com
   HTTP/1.1 200 OK
-  Surrogate-Keys: my-key;stored, my-second-key;stored
+  Surrogate-Key: my-key;stored, my-second-key;stored
 
   My awesome content
   ~~~
 
 # Surrogate-Control
 
-The `Surrogate-Keys` header **CAN** be driven by the `Surrogate-Control` header to define if the server **MUST** store 
+The `Surrogate-Key` header **CAN** be driven by the `Surrogate-Control` header to define if the server **MUST** store 
 the URL resource or not. 
 
 The server **MUST** handle the `no-store` directive by key in the `Surrogate-Control` header. The
-application will send to the server the headers `Surrogate-Keys` and `Surrogate-Control` to drive – per-key – the cache 
-directive. The application sends an HTTP response with `Surrogate-Keys: my-key, my-second-key` and 
+application will send to the server the headers `Surrogate-Key` and `Surrogate-Control` to drive – per-key – the cache 
+directive. The application sends an HTTP response with `Surrogate-Key: my-key, my-second-key` and 
 `Surrogate-Control: no-store;my-key` headers to the server.
   ~~~ http
   GET /any/path HTTP/1.1
   Host: example.com
   HTTP/1.1 200 OK
-  Surrogate-Keys: my-key, my-second-key
+  Surrogate-Key: my-key, my-second-key
   Surrogate-Control: no-store;my-key
 
   My awesome content
@@ -144,13 +150,13 @@ directive. The application sends an HTTP response with `Surrogate-Keys: my-key, 
 The server **MUST** store the URL resource inside the `my-second-key` surrogate-key list and **MUST NOT** store the URL 
 resource inside the `my-second-key` surrogate-key list due to the `my-key, no-store` directive presence.
 
-The application sends an HTTP response with `Surrogate-Keys: my-key, my-second-key` and `Surrogate-Control: no-store` to
+The application sends an HTTP response with `Surrogate-Key: my-key, my-second-key` and `Surrogate-Control: no-store` to
 the server
   ~~~ http
   GET /any/path HTTP/1.1
   Host: example.com
   HTTP/1.1 200 OK
-  Surrogate-Keys: my-key, my-second-key
+  Surrogate-Key: my-key, my-second-key
   Surrogate-Control: no-store
 
   My awesome content
