@@ -2,7 +2,6 @@ package tests
 
 import (
 	"fmt"
-	"github.com/darkweak/souin/plugins/souin/configuration"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/configurationtypes"
+	"github.com/darkweak/souin/plugins/souin/configuration"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )

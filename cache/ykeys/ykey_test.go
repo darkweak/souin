@@ -2,7 +2,6 @@ package ykeys
 
 import (
 	"fmt"
-	"github.com/darkweak/souin/plugins/souin/configuration"
 	"net/http"
 	"strings"
 	"testing"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/errors"
+	"github.com/darkweak/souin/plugins/souin/configuration"
 )
 
 const FirstKey = "The_First_Test"

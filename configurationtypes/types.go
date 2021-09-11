@@ -44,31 +44,31 @@ type Port struct {
 	TLS string `json:"tls" yaml:"tls"`
 }
 
-//Cache config
+// Cache config
 type Cache struct {
 	Headers []string `json:"headers" yaml:"headers"`
 	Port    Port     `json:"port" yaml:"port"`
 }
 
-//Regex config
+// Regex config
 type Regex struct {
 	Exclude string `json:"exclude" yaml:"exclude"`
 }
 
-//URL configuration
+// URL configuration
 type URL struct {
 	TTL     Duration `json:"ttl" yaml:"ttl"`
 	Headers []string `json:"headers" yaml:"headers"`
 }
 
-//CacheProvider config
+// CacheProvider config
 type CacheProvider struct {
 	URL           string      `json:"url" yaml:"url"`
 	Path          string      `json:"path" yaml:"path"`
 	Configuration interface{} `json:"configuration" yaml:"configuration"`
 }
 
-//DefaultCache configuration
+// DefaultCache configuration
 type DefaultCache struct {
 	Badger      CacheProvider `json:"badger" yaml:"badger"`
 	Distributed bool          `json:"distributed" yaml:"distributed"`

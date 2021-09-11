@@ -29,7 +29,7 @@ func GenerateHandlerMap(
 	for _, endpoint := range Initialize(provider, configuration, ykeyStorage) {
 		if endpoint.IsEnabled() {
 			shouldEnable = true
-			hm[basePathAPIS + endpoint.GetBasePath()] = endpoint.(*SouinAPI).HandleRequest
+			hm[basePathAPIS+endpoint.GetBasePath()] = endpoint.(*SouinAPI).HandleRequest
 		}
 	}
 

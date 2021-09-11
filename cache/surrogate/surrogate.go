@@ -73,10 +73,11 @@ package surrogate
 // |---------------|------------------------------|
 
 import (
-	"github.com/darkweak/souin/configurationtypes"
-	"github.com/dgraph-io/ristretto"
 	"regexp"
 	"strings"
+
+	"github.com/darkweak/souin/configurationtypes"
+	"github.com/dgraph-io/ristretto"
 )
 
 func ParseHeaders(value string) []string {

@@ -50,6 +50,29 @@ interpreted as described in [@!RFC2119].
 *  Cache: The system that will store the resources, handle then incoming requests and try to serve the content matching
    a key if it already has in his storage.
 
+This specification defines the following key parameter:
+
+stored       = sf-boolean
+bypass       = sf-boolean
+detail       = sf-token / sf-string
+
+## The stored directive
+"stored", when true, indicates that the key has been stored and can be used and will be treated while passed in a PURGE 
+request.  
+"stored" and "bypass" are exclusive; only one of them should appear on each list member.
+
+## The bypass directive
+"bypass", when true, indicates that the key has not been stored because it was not satisfied by the validation rules.
+
+## The detail directive
+"detail", allows implementations to convey additional information of why the server didn't store the key; for example, 
+implementation-specific states.
+
+For example:
+
+Surrogate-Keys: abc;bypass;details=PRESENT, def;bypass;details=NOT_ALLOWED
+
+
 # Invalidation
 
 The invalidation mechanism is trigger by sending a `PURGE` request to the API endpoint.  
@@ -81,7 +104,6 @@ In the both cases, the server **MUST** invalidate the cache for the associated r
 The resource setting can be done from the application target by the server.
 The application **MUST** return a response with the header `Surrogate-Keys` which contains the keys to add the resource 
 URL to. The server will store the resource URL in each provided surrogate key.
-
   ~~~ http
   GET /any/path HTTP/1.1
   Host: example.com
@@ -90,7 +112,16 @@ URL to. The server will store the resource URL in each provided surrogate key.
 
   My awesome content
   ~~~
-The server **MUST** store the URL resource inside the `my-key` and `my-second-key` surrogate-keys.
+The server **MUST** store the URL resource inside the `my-key` and `my-second-key` surrogate-keys.  
+For each key not already stored for this resource, the server **SHOULD** return the directive `stored`.
+  ~~~ http
+  GET /any/path HTTP/1.1
+  Host: example.com
+  HTTP/1.1 200 OK
+  Surrogate-Keys: my-key;stored, my-second-key;stored
+
+  My awesome content
+  ~~~
 
 # Surrogate-Control
 

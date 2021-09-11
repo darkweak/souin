@@ -2,11 +2,12 @@ package api
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/darkweak/souin/cache/providers"
 	"github.com/darkweak/souin/cache/ykeys"
 	"github.com/darkweak/souin/errors"
 	"github.com/darkweak/souin/tests"
-	"testing"
 )
 
 func TestInitialize(t *testing.T) {
