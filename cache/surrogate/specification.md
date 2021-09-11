@@ -75,7 +75,7 @@ Surrogate-Keys: abc;bypass;details=PRESENT, def;bypass;details=NOT_ALLOWED
 
 # Invalidation
 
-The invalidation mechanism is trigger by sending a `PURGE` request to the API endpoint.  
+The invalidation mechanism is trigger from a `PURGE` request to the API endpoint.  
 The request **MUST** set the header `Surrogate-Keys` with at least one value to invalidate the provided ones, and the 
 server **MUST** invalidate the resources associated to the targeted keys if it exists.
 
