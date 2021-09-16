@@ -12,7 +12,7 @@ func TestHitCache(t *testing.T) {
 	h := http.Header{}
 
 	HitCache(&h)
-	if h.Get("Cache-Status") == "" || h.Get("Cache-Status") != "Souin; fwd=hit" {
+	if h.Get("Cache-Status") == "" || h.Get("Cache-Status") != "Souin; fwd=hit; ttl=0" {
 		errors.GenerateError(t, fmt.Sprintf("Cache-Status cannot be null when hit and must match hit, %s given", h.Get("Cache-Status")))
 	}
 	if ti, e := http.ParseTime(h.Get("Date")); h.Get("Date") == "" || e != nil || h.Get("Date") != ti.Format(http.TimeFormat) {
