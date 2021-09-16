@@ -1,10 +1,11 @@
 package api
 
 import (
+	"net/http"
+
 	"github.com/darkweak/souin/api/auth"
 	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/configurationtypes"
-	"net/http"
 )
 
 // MapHandler is a map to store the available http Handlers
