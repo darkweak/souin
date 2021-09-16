@@ -99,7 +99,7 @@ func fromDir(dir string) map[string]*souinInstance {
 		} else {
 			provider = retriever.Provider
 		}
-		retriever.Transport = rfc.NewTransport(provider, ykeys.InitializeYKeys(config.GetYkeys()), surrogate.InitializeSurrogate(config.GetYkeys()))
+		retriever.Transport = rfc.NewTransport(provider, ykeys.InitializeYKeys(config.GetYkeys()), surrogate.InitializeSurrogate(config))
 
 		c[def.APIID] = &souinInstance{
 			MapHandler:        api.GenerateHandlerMap(config, retriever.GetTransport()),

@@ -51,11 +51,11 @@ func commonCacheControl(req *http.Request, t http.RoundTripper) (*http.Response,
 
 func (t *VaryTransport) deleteCache(key string) {
 	go func() {
-		if t.YkeyStorage != nil {
-			t.YkeyStorage.InvalidateTagURLs(key)
+		if t.Transport.YkeyStorage != nil {
+			t.Transport.YkeyStorage.InvalidateTagURLs(key)
 		}
 	}()
-	t.Provider.Delete(key)
+	t.Transport.Provider.Delete(key)
 }
 
 // BaseRoundTrip is the base for RoundTrip
@@ -155,7 +155,7 @@ func (t *VaryTransport) UpdateCacheEventually(req *http.Request) (*http.Response
 func (t *VaryTransport) RoundTrip(req *http.Request) (resp *http.Response, err error) {
 	cacheKey, cacheable, cachedResp := t.BaseRoundTrip(req, true)
 
-	transport := t.Transport
+	transport := t.Transport.Transport
 	if transport == nil {
 		transport = http.DefaultTransport
 	}
@@ -197,7 +197,7 @@ func (t *VaryTransport) RoundTrip(req *http.Request) (resp *http.Response, err e
 	resp, _ = transport.RoundTrip(req)
 	if !(cacheable && validateVary(req, resp, cacheKey, t)) {
 		go func() {
-			t.CoalescingLayerStorage.Set(cacheKey)
+			t.Transport.CoalescingLayerStorage.Set(cacheKey)
 		}()
 		t.deleteCache(cacheKey)
 	}

@@ -10,6 +10,7 @@ import (
 // DefaultCache the struct
 type DefaultCache struct {
 	Badger      configurationtypes.CacheProvider
+	CDN         configurationtypes.CDN
 	Distributed bool
 	Headers     []string
 	Olric       configurationtypes.CacheProvider
@@ -20,6 +21,11 @@ type DefaultCache struct {
 // GetBadger returns the Badger configuration
 func (d *DefaultCache) GetBadger() configurationtypes.CacheProvider {
 	return d.Badger
+}
+
+// GetCDN returns the CDN configuration
+func (d *DefaultCache) GetCDN() configurationtypes.CDN {
+	return d.CDN
 }
 
 // GetDistributed returns if it uses Olric or not as provider

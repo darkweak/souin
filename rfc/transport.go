@@ -12,7 +12,9 @@ import (
 )
 
 // VaryTransport type
-type VaryTransport types.Transport
+type VaryTransport struct {
+	*types.Transport
+}
 
 // IsVaryCacheable determines if it's cacheable
 func IsVaryCacheable(req *http.Request) bool {
@@ -25,11 +27,13 @@ func IsVaryCacheable(req *http.Request) bool {
 // provided Cache implementation and MarkCachedResponses set to true
 func NewTransport(p types.AbstractProviderInterface, ykeyStorage *ykeys.YKeyStorage, surrogateStorage providers.SurrogateInterface) *VaryTransport {
 	return &VaryTransport{
-		Provider:               p,
-		CoalescingLayerStorage: types.InitializeCoalescingLayerStorage(),
-		MarkCachedResponses:    true,
-		YkeyStorage:            ykeyStorage,
-		SurrogateStorage:       surrogateStorage,
+		&types.Transport{
+			Provider:               p,
+			CoalescingLayerStorage: types.InitializeCoalescingLayerStorage(),
+			MarkCachedResponses:    true,
+			YkeyStorage:            ykeyStorage,
+			SurrogateStorage:       surrogateStorage,
+		},
 	}
 }
 

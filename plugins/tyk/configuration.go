@@ -36,6 +36,7 @@ func (d *Duration) UnmarshalJSON(b []byte) error {
 // DefaultCache the struct
 type DefaultCache struct {
 	Badger      configurationtypes.CacheProvider `json:"badger,omitempty"`
+	CDN         configurationtypes.CDN           `json:"cdn,omitempty"`
 	Distributed bool
 	Headers     []string                         `json:"api,omitempty"`
 	Olric       configurationtypes.CacheProvider `json:"olric,omitempty"`
@@ -46,6 +47,11 @@ type DefaultCache struct {
 // GetBadger returns the Badger configuration
 func (d *DefaultCache) GetBadger() configurationtypes.CacheProvider {
 	return d.Badger
+}
+
+// GetCDN returns the CDN configuration
+func (d *DefaultCache) GetCDN() configurationtypes.CDN {
+	return d.CDN
 }
 
 // GetDistributed returns if it uses Olric or not as provider
@@ -75,12 +81,13 @@ func (d *DefaultCache) GetTTL() time.Duration {
 
 //Configuration holder
 type Configuration struct {
-	DefaultCache *DefaultCache                     `json:"default_cache,omitempty"`
-	API          configurationtypes.API            `json:"api,omitempty"`
-	URLs         map[string]configurationtypes.URL `json:"urls,omitempty"`
-	LogLevel     string                            `json:"log_level,omitempty"`
-	logger       *zap.Logger
-	Ykeys        map[string]configurationtypes.YKey `json:"ykeys,omitempty"`
+	DefaultCache  *DefaultCache                     `json:"default_cache,omitempty"`
+	API           configurationtypes.API            `json:"api,omitempty"`
+	URLs          map[string]configurationtypes.URL `json:"urls,omitempty"`
+	LogLevel      string                            `json:"log_level,omitempty"`
+	logger        *zap.Logger
+	Ykeys         map[string]configurationtypes.SurrogateKeys `json:"ykeys,omitempty"`
+	SurrogateKeys map[string]configurationtypes.SurrogateKeys `json:"surrogate_keys,omitempty"`
 }
 
 // GetUrls get the urls list in the configuration
@@ -114,6 +121,11 @@ func (c *Configuration) SetLogger(l *zap.Logger) {
 }
 
 // GetYkeys get the ykeys list
-func (c *Configuration) GetYkeys() map[string]configurationtypes.YKey {
+func (c *Configuration) GetYkeys() map[string]configurationtypes.SurrogateKeys {
 	return c.Ykeys
+}
+
+// GetSurrogateKeys get the surrogate keys list
+func (c *Configuration) GetSurrogateKeys() map[string]configurationtypes.SurrogateKeys {
+	return c.SurrogateKeys
 }

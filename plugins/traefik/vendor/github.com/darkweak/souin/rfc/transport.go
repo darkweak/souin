@@ -2,13 +2,9 @@ package rfc
 
 import (
 	"github.com/darkweak/souin/cache/surrogate/providers"
-	"net/http"
-	"net/http/httputil"
-	"time"
-
 	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/cache/ykeys"
-	"github.com/darkweak/souin/configurationtypes"
+	"net/http"
 )
 
 // VaryTransport type
@@ -30,42 +26,5 @@ func NewTransport(p types.AbstractProviderInterface, ykeyStorage *ykeys.YKeyStor
 		MarkCachedResponses:    true,
 		YkeyStorage:            ykeyStorage,
 		SurrogateStorage:       surrogateStorage,
-	}
-}
-
-// GetProvider returns the associated provider
-func (t *VaryTransport) GetProvider() types.AbstractProviderInterface {
-	return t.Provider
-}
-
-// SetURL set the URL
-func (t *VaryTransport) SetURL(url configurationtypes.URL) {
-	t.ConfigurationURL = url
-}
-
-// GetCoalescingLayerStorage get the coalescing layer storage
-func (t *VaryTransport) GetCoalescingLayerStorage() *types.CoalescingLayerStorage {
-	return t.CoalescingLayerStorage
-}
-
-// GetYkeyStorage get the ykeys storage
-func (t *VaryTransport) GetYkeyStorage() *ykeys.YKeyStorage {
-	return t.YkeyStorage
-}
-
-// GetSurrogateKeys get the surrogate keys storage
-func (t *VaryTransport) GetSurrogateKeys() providers.SurrogateInterface {
-	return t.SurrogateStorage
-}
-
-// SetCache set the cache
-func (t *VaryTransport) SetCache(key string, resp *http.Response) {
-	if respBytes, err := httputil.DumpResponse(resp, true); err == nil {
-		go func() {
-			if t.YkeyStorage != nil {
-				t.YkeyStorage.AddToTags(key, t.YkeyStorage.GetValidatedTags(key, resp.Header))
-			}
-		}()
-		t.Provider.Set(key, respBytes, t.ConfigurationURL, time.Duration(0))
 	}
 }

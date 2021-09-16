@@ -14,12 +14,12 @@ type SouinSurrogateStorage struct {
 func generateSouinInstance(config configurationtypes.AbstractConfigurationInterface) *SouinSurrogateStorage {
 	var storage map[string]string
 
-	if len(config.GetSurrograteKeys()) == 0 {
+	if len(config.GetSurrogateKeys()) == 0 {
 		return nil
 	}
 
 	s := &SouinSurrogateStorage{
-		Keys: config.GetSurrograteKeys(),
+		Keys: config.GetSurrogateKeys(),
 	}
 
 	s.parent = s
