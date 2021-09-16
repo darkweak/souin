@@ -44,33 +44,41 @@ type Port struct {
 	TLS string `json:"tls" yaml:"tls"`
 }
 
-//Cache config
+// Cache config
 type Cache struct {
 	Headers []string `json:"headers" yaml:"headers"`
 	Port    Port     `json:"port" yaml:"port"`
 }
 
-//Regex config
+// Regex config
 type Regex struct {
 	Exclude string `json:"exclude" yaml:"exclude"`
 }
 
-//URL configuration
+// URL configuration
 type URL struct {
 	TTL     Duration `json:"ttl" yaml:"ttl"`
 	Headers []string `json:"headers" yaml:"headers"`
 }
 
-//CacheProvider config
+// CacheProvider config
 type CacheProvider struct {
 	URL           string      `json:"url" yaml:"url"`
 	Path          string      `json:"path" yaml:"path"`
 	Configuration interface{} `json:"configuration" yaml:"configuration"`
 }
 
-//DefaultCache configuration
+// CDN config
+type CDN struct {
+	ApiKey   string `json:"api_key,omitempty" yaml:"api_key,omitempty"`
+	Provider string `json:"provider,omitempty" yaml:"provider,omitempty"`
+	Strategy string `json:"strategy,omitempty" yaml:"strategy,omitempty"`
+}
+
+// DefaultCache configuration
 type DefaultCache struct {
 	Badger      CacheProvider `json:"badger" yaml:"badger"`
+	CDN         CDN           `json:"cdn" yaml:"cdn"`
 	Distributed bool          `json:"distributed" yaml:"distributed"`
 	Headers     []string      `json:"headers" yaml:"headers"`
 	Olric       CacheProvider `json:"olric" yaml:"olric"`
@@ -112,6 +120,7 @@ func (d *DefaultCache) GetTTL() time.Duration {
 // DefaultCacheInterface interface
 type DefaultCacheInterface interface {
 	GetBadger() CacheProvider
+	GetCDN() CDN
 	GetDistributed() bool
 	GetOlric() CacheProvider
 	GetHeaders() []string
@@ -147,8 +156,8 @@ type API struct {
 	Security SecurityAPI `json:"security" yaml:"security"`
 }
 
-// YKey structure define the way ykeys are stored
-type YKey struct {
+// SurrogateKeys structure define the way surrogate keys are stored
+type SurrogateKeys struct {
 	URL     string            `json:"url" yaml:"url"`
 	Headers map[string]string `json:"headers" yaml:"headers"`
 }
@@ -161,5 +170,6 @@ type AbstractConfigurationInterface interface {
 	GetLogLevel() string
 	GetLogger() *zap.Logger
 	SetLogger(*zap.Logger)
-	GetYkeys() map[string]YKey
+	GetYkeys() map[string]SurrogateKeys
+	GetSurrograteKeys() map[string]SurrogateKeys
 }

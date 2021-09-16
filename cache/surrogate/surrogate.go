@@ -73,33 +73,11 @@ package surrogate
 // |---------------|------------------------------|
 
 import (
-	"regexp"
-	"strings"
-
+	"github.com/darkweak/souin/cache/surrogate/providers"
 	"github.com/darkweak/souin/configurationtypes"
-	"github.com/dgraph-io/ristretto"
 )
 
-func ParseHeaders(value string) []string {
-	r, _ := regexp.Compile(",( +)?")
-	return strings.Fields(r.ReplaceAllString(value, " "))
-}
-
 // InitializeSurrogate will initialize the Surrogate-Key storage system
-func InitializeSurrogate(keys map[string]configurationtypes.YKey, configurationInterface configurationtypes.AbstractConfigurationInterface) *SurrogateStorage {
-	if len(keys) == 0 {
-		return nil
-	}
-
-	storage, _ := ristretto.NewCache(&ristretto.Config{
-		NumCounters: 1e7,
-		MaxCost:     1 << 30,
-		BufferItems: 64,
-	})
-
-	for key := range keys {
-		storage.Set(key, "", 1)
-	}
-
-	return &SurrogateStorage{Cache: storage, Keys: keys}
+func InitializeSurrogate(configurationInterface configurationtypes.AbstractConfigurationInterface) providers.SurrogateInterface {
+	return providers.SurrogateFactory(configurationInterface)
 }

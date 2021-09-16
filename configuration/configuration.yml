@@ -9,6 +9,10 @@ api:
   souin:
     security: false
     enable: true
+cdn:
+  api_key: XXXX
+  provider: fastly
+  strategy: soft
 default_cache:
   headers:
     - Authorization

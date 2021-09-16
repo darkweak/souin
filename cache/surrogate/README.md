@@ -21,6 +21,5 @@ With this information, the client can store the keys, and invalidate manually in
 [as mentioned in the previous section](#in-a-http-request). 
 
 ## Surrogate-Keys specification for the cache
+You can refer to the [specification file](specification.md). 
 
-You can refer to the [specification file](specification.md). The goal is to propose the specification as an RFC and make
-the `Surrogate-Keys`.

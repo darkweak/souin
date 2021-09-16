@@ -1,6 +1,7 @@
 package rfc
 
 import (
+	"github.com/darkweak/souin/cache/surrogate/providers"
 	"net/http"
 	"net/http/httputil"
 	"time"
@@ -22,12 +23,13 @@ func IsVaryCacheable(req *http.Request) bool {
 
 // NewTransport returns a new Transport with the
 // provided Cache implementation and MarkCachedResponses set to true
-func NewTransport(p types.AbstractProviderInterface, ykeyStorage *ykeys.YKeyStorage) *VaryTransport {
+func NewTransport(p types.AbstractProviderInterface, ykeyStorage *ykeys.YKeyStorage, surrogateStorage providers.SurrogateInterface) *VaryTransport {
 	return &VaryTransport{
 		Provider:               p,
 		CoalescingLayerStorage: types.InitializeCoalescingLayerStorage(),
 		MarkCachedResponses:    true,
 		YkeyStorage:            ykeyStorage,
+		SurrogateStorage:       surrogateStorage,
 	}
 }
 
@@ -49,6 +51,11 @@ func (t *VaryTransport) GetCoalescingLayerStorage() *types.CoalescingLayerStorag
 // GetYkeyStorage get the ykeys storage
 func (t *VaryTransport) GetYkeyStorage() *ykeys.YKeyStorage {
 	return t.YkeyStorage
+}
+
+// GetSurrogateKeys get the surrogate keys storage
+func (t *VaryTransport) GetSurrogateKeys() providers.SurrogateInterface {
+	return t.SurrogateStorage
 }
 
 // SetCache set the cache

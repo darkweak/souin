@@ -197,7 +197,7 @@ func (s *SouinCaddyPlugin) Provision(ctx caddy.Context) error {
 	}
 
 	s.RequestCoalescing = coalescing.Initialize()
-	s.MapHandler = api.GenerateHandlerMap(s.Configuration, s.Retriever.GetTransport().GetProvider(), s.Retriever.GetTransport().GetYkeyStorage())
+	s.MapHandler = api.GenerateHandlerMap(s.Configuration, s.Retriever.GetTransport())
 	return nil
 }
 

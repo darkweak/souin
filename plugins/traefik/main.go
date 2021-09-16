@@ -149,7 +149,7 @@ func New(_ context.Context, next http.Handler, config *TestConfiguration, name s
 	c := parseConfiguration(*config)
 
 	s.Retriever = DefaultSouinPluginInitializerFromConfiguration(&c)
-	s.MapHandler = api.GenerateHandlerMap(&c, s.Retriever.GetProvider(), s.Retriever.GetTransport().GetYkeyStorage())
+	s.MapHandler = api.GenerateHandlerMap(&c, s.Retriever.GetTransport())
 	return s, nil
 }
 

@@ -3,7 +3,6 @@ package api
 import (
 	"github.com/darkweak/souin/api/auth"
 	"github.com/darkweak/souin/cache/types"
-	"github.com/darkweak/souin/cache/ykeys"
 	"github.com/darkweak/souin/configurationtypes"
 	"net/http"
 )
@@ -14,8 +13,7 @@ type MapHandler struct {
 
 func GenerateHandlerMap(
 	configuration configurationtypes.AbstractConfigurationInterface,
-	provider types.AbstractProviderInterface,
-	ykeyStorage *ykeys.YKeyStorage,
+	transport types.TransportInterface,
 ) *MapHandler {
 	hm := make(map[string]http.HandlerFunc)
 	shouldEnable := false
@@ -26,10 +24,10 @@ func GenerateHandlerMap(
 		basePathAPIS = "/souin-api"
 	}
 
-	for _, endpoint := range Initialize(provider, configuration, ykeyStorage) {
+	for _, endpoint := range Initialize(transport, configuration) {
 		if endpoint.IsEnabled() {
 			shouldEnable = true
-			hm[basePathAPIS + endpoint.GetBasePath()] = endpoint.(*SouinAPI).HandleRequest
+			hm[basePathAPIS+endpoint.GetBasePath()] = endpoint.(*SouinAPI).HandleRequest
 		}
 	}
 
@@ -41,7 +39,7 @@ func GenerateHandlerMap(
 }
 
 // Initialize contains all apis that should be enabled
-func Initialize(provider types.AbstractProviderInterface, c configurationtypes.AbstractConfigurationInterface, ykeyStorage *ykeys.YKeyStorage) []EndpointInterface {
+func Initialize(transport types.TransportInterface, c configurationtypes.AbstractConfigurationInterface) []EndpointInterface {
 	security := auth.InitializeSecurity(c)
-	return []EndpointInterface{security, initializeSouin(provider, c, security, ykeyStorage)}
+	return []EndpointInterface{security, initializeSouin(c, security, transport)}
 }

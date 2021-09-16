@@ -9,6 +9,10 @@ api:
   souin: # Souin listing keys and cache management
     security: true # Enable JWT Authentication token
     enable: true # Enable the endpoints
+cdn: # If Souin is set after a CDN fill these informations
+  api_key: XXXX # Your provider API key if mandatory
+  provider: fastly # The provider placed before Souin (e.g. fastly, cloudflare, akamai, varnish)
+  strategy: soft # The strategy to purge the CDN cache based on tags (e.g. soft, hard)
 default_cache: # Required part
   distributed: true # Use Olric distributed storage
   headers: # Default headers concatenated in stored keys

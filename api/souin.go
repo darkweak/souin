@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/darkweak/souin/api/auth"
-	"github.com/darkweak/souin/cache/surrogate"
+	"github.com/darkweak/souin/cache/surrogate/providers"
 	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/cache/ykeys"
 	"github.com/darkweak/souin/configurationtypes"
@@ -14,16 +14,20 @@ import (
 
 // SouinAPI object contains informations related to the endpoints
 type SouinAPI struct {
-	basePath    string
-	enabled     bool
-	provider    types.AbstractProviderInterface
-	security    *auth.SecurityAPI
-	ykeyStorage *ykeys.YKeyStorage
+	basePath         string
+	enabled          bool
+	provider         types.AbstractProviderInterface
+	security         *auth.SecurityAPI
+	ykeyStorage      *ykeys.YKeyStorage
+	surrogateStorage *providers.SouinSurrogateStorage
 }
 
-func initializeSouin(provider types.AbstractProviderInterface, configuration configurationtypes.AbstractConfigurationInterface, api *auth.SecurityAPI, ykeyStorage *ykeys.YKeyStorage) *SouinAPI {
+func initializeSouin(
+	configuration configurationtypes.AbstractConfigurationInterface,
+	api *auth.SecurityAPI,
+	transport types.TransportInterface,
+) *SouinAPI {
 	basePath := configuration.GetAPI().Souin.BasePath
-	enabled := configuration.GetAPI().Souin.Enable
 	var security *auth.SecurityAPI
 	if configuration.GetAPI().Souin.Security {
 		security = api
@@ -33,10 +37,11 @@ func initializeSouin(provider types.AbstractProviderInterface, configuration con
 	}
 	return &SouinAPI{
 		basePath,
-		enabled,
-		provider,
+		configuration.GetAPI().Souin.Enable,
+		transport.GetProvider(),
 		security,
-		ykeyStorage,
+		transport.GetYkeyStorage(),
+		transport.GetSurrogateKeys(),
 	}
 }
 
@@ -94,7 +99,7 @@ func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 	case "PURGE":
-		surr := surrogate.ParseHeaders(r.Header.Get(surrogate.SurrogateKeys))
+// 		surr := providers.ParseHeaders(r.Header.Get(providers.SurrogateKey))
 		fmt.Printf("%+v \n%+v \n", surr[0], surr)
 		query := r.URL.Query()["ykey"]
 		if len(query) > 0 {

@@ -87,6 +87,11 @@ func (c *Configuration) SetLogger(l *zap.Logger) {
 }
 
 // GetYkeys get the ykeys list
-func (c *Configuration) GetYkeys() map[string]configurationtypes.YKey {
+func (c *Configuration) GetYkeys() map[string]configurationtypes.SurrogateKeys {
+	return nil
+}
+
+// GetSurrogateKeys get the surrogate keys list
+func (c *Configuration) GetSurrogateKeys() map[string]configurationtypes.SurrogateKeys {
 	return nil
 }
