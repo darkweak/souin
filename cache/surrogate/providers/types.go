@@ -5,6 +5,7 @@ import (
 	"regexp"
 )
 
+// SurrogateInterface represents the interface to implement to be part
 type SurrogateInterface interface {
 	getHeaderSeparator() string
 	getOrderedSurrogateKeyHeadersCandidate() []string

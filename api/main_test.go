@@ -4,17 +4,17 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/darkweak/souin/cache/providers"
-	"github.com/darkweak/souin/cache/ykeys"
+	"github.com/darkweak/souin/plugins"
+
 	"github.com/darkweak/souin/errors"
 	"github.com/darkweak/souin/tests"
 )
 
 func TestInitialize(t *testing.T) {
 	config := tests.MockConfiguration(tests.BaseConfiguration)
-	prs := providers.InitializeProvider(config)
+	retriever := plugins.DefaultSouinPluginInitializerFromConfiguration(config)
 
-	endpoints := Initialize(prs, config, ykeys.InitializeYKeys(config.Ykeys))
+	endpoints := Initialize(retriever.Transport, config)
 
 	if len(endpoints) != 2 {
 		errors.GenerateError(t, fmt.Sprintf("Endpoints length should be 1, %d received", len(endpoints)))

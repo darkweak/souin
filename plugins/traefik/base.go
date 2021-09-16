@@ -3,15 +3,16 @@ package traefik
 import (
 	"bytes"
 	"context"
-	"github.com/darkweak/souin/api"
 	"io/ioutil"
 	"net/http"
 	"regexp"
 	"strings"
 	"time"
 
+	"github.com/darkweak/souin/api"
 	"github.com/darkweak/souin/cache/coalescing"
 	"github.com/darkweak/souin/cache/providers"
+	"github.com/darkweak/souin/cache/surrogate"
 	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/cache/ykeys"
 	"github.com/darkweak/souin/configurationtypes"
@@ -25,12 +26,14 @@ type getterContext struct {
 	next http.Handler
 }
 
-type customWriter struct {
+// CustomWriter is a custom writer
+type CustomWriter struct {
 	Response *http.Response
 	http.ResponseWriter
 }
 
-func (r *customWriter) Write(b []byte) (int, error) {
+// Write write the response to the CustomWriter
+func (r *CustomWriter) Write(b []byte) (int, error) {
 	r.Response.Header = r.ResponseWriter.Header()
 	r.Response.StatusCode = http.StatusOK
 	r.Response.Body = ioutil.NopCloser(bytes.NewBuffer(b))
@@ -41,12 +44,13 @@ type key string
 
 const getterContextCtxKey key = "getter_context"
 
-func InitializeRequest(rw http.ResponseWriter, req *http.Request, next http.Handler) *customWriter {
+// InitializeRequest generate a CustomWriter instance to handle the response
+func InitializeRequest(rw http.ResponseWriter, req *http.Request, next http.Handler) *CustomWriter {
 	getterCtx := getterContext{rw, req, next}
 	ctx := context.WithValue(req.Context(), getterContextCtxKey, getterCtx)
 	req = req.WithContext(ctx)
 	req.Header.Set("Date", time.Now().UTC().Format(time.RFC1123))
-	return &customWriter{
+	return &CustomWriter{
 		ResponseWriter: rw,
 		Response:       &http.Response{},
 	}
@@ -93,7 +97,7 @@ func DefaultSouinPluginInitializerFromConfiguration(c configurationtypes.Abstrac
 	provider := providers.InitializeProvider(c)
 	regexpUrls := helpers.InitializeRegexp(c)
 	var transport types.TransportInterface
-	transport = rfc.NewTransport(provider, ykeys.InitializeYKeys(c.GetYkeys()))
+	transport = rfc.NewTransport(provider, ykeys.InitializeYKeys(c.GetYkeys()), surrogate.InitializeSurrogate(c))
 	var excludedRegexp *regexp.Regexp = nil
 	if c.GetDefaultCache().GetRegex().Exclude != "" {
 		excludedRegexp = regexp.MustCompile(c.GetDefaultCache().GetRegex().Exclude)
@@ -120,6 +124,7 @@ type SouinBasePlugin struct {
 	MapHandler        *api.MapHandler
 }
 
+// HandleInternally handles the Souin custom endpoints
 func (s *SouinBasePlugin) HandleInternally(r *http.Request) (bool, http.HandlerFunc) {
 	if s.MapHandler != nil {
 		for k, souinHandler := range *s.MapHandler.Handlers {

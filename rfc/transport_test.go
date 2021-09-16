@@ -46,7 +46,7 @@ func TestVaryTransport_GetProvider(t *testing.T) {
 	c := tests.MockConfiguration(tests.BaseConfiguration)
 	prs := providers.InitializeProvider(c)
 
-	tr := NewTransport(prs, ykeys.InitializeYKeys(c.Ykeys))
+	tr := NewTransport(prs, ykeys.InitializeYKeys(c.Ykeys), surrogate.InitializeSurrogate(c))
 	if tr.GetProvider() == nil {
 		errors.GenerateError(t, "Provider should exist")
 	}
@@ -60,7 +60,7 @@ func TestVaryTransport_SetURL(t *testing.T) {
 		Headers: config.GetDefaultCache().GetHeaders(),
 	}
 
-	tr := NewTransport(prs, ykeys.InitializeYKeys(config.Ykeys))
+	tr := NewTransport(prs, ykeys.InitializeYKeys(config.Ykeys), surrogate.InitializeSurrogate(config))
 	tr.SetURL(matchedURL)
 
 	if len(tr.ConfigurationURL.Headers) != len(matchedURL.Headers) || tr.ConfigurationURL.TTL != matchedURL.TTL {

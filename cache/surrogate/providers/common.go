@@ -61,18 +61,18 @@ func (s *baseStorage) storeTag(tag string, cacheKey string, re *regexp.Regexp) {
 	}
 }
 
-func (_ *baseStorage) candidateStore(tag string) bool {
+func (*baseStorage) candidateStore(tag string) bool {
 	return !strings.Contains(tag, noStoreDirective)
 }
 
-func (_ *baseStorage) getOrderedSurrogateKeyHeadersCandidate() []string {
+func (*baseStorage) getOrderedSurrogateKeyHeadersCandidate() []string {
 	return []string{
 		surrogateKey,
 		edgeCacheTag,
 	}
 }
 
-func (_ *baseStorage) getOrderedSurrogateControlHeadersCandidate() []string {
+func (*baseStorage) getOrderedSurrogateControlHeadersCandidate() []string {
 	return []string{
 		souinCacheControl,
 		surrogateControl,

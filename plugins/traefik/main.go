@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"github.com/darkweak/souin/api"
 	"net/http"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/darkweak/souin/api"
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/rfc"
 )
@@ -130,7 +130,7 @@ func parseConfiguration(c map[string]interface{}) Configuration {
 			}
 			configuration.URLs = u
 		case "ykeys":
-			ykeys := make(map[string]configurationtypes.YKey)
+			ykeys := make(map[string]configurationtypes.SurrogateKeys)
 			d, _ := json.Marshal(v)
 			_ = json.Unmarshal(d, &ykeys)
 			configuration.Ykeys = ykeys

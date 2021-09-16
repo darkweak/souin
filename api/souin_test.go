@@ -1,13 +1,15 @@
 package api
 
 import (
+	"github.com/darkweak/souin/cache/surrogate"
+	"testing"
+	"time"
+
 	"github.com/darkweak/souin/api/auth"
 	"github.com/darkweak/souin/cache/providers"
 	"github.com/darkweak/souin/cache/ykeys"
 	"github.com/darkweak/souin/errors"
 	"github.com/darkweak/souin/tests"
-	"testing"
-	"time"
 )
 
 func mockSouinAPI() *SouinAPI {
@@ -20,6 +22,7 @@ func mockSouinAPI() *SouinAPI {
 		prs,
 		security,
 		ykeys.InitializeYKeys(config.Ykeys),
+		surrogate.InitializeSurrogate(config),
 	}
 }
 

@@ -1,6 +1,7 @@
 package rfc
 
 import (
+	"github.com/darkweak/souin/cache/surrogate"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -18,7 +19,7 @@ func commonInitializer() (*http.Request, types.AbstractProviderInterface, *VaryT
 	r := httptest.NewRequest("GET", "http://domain.com/testing", nil)
 	httptest.NewRecorder()
 
-	return r, prs, NewTransport(prs, ykeys.InitializeYKeys(c.Ykeys))
+	return r, prs, NewTransport(prs, ykeys.InitializeYKeys(c.Ykeys), surrogate.InitializeSurrogate(c))
 }
 
 func TestCachedResponse_WithUpdate(t *testing.T) {

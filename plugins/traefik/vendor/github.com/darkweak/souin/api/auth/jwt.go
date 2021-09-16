@@ -2,9 +2,10 @@ package auth
 
 import (
 	"encoding/json"
-	"github.com/golang-jwt/jwt"
 	"net/http"
 	"time"
+
+	"github.com/golang-jwt/jwt"
 )
 
 // JwtProvider is the representation of decoded JWT

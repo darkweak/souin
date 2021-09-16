@@ -17,7 +17,7 @@ const SecondKey = "The_Second_Test"
 const ThirdKey = "The_Third_Test"
 const FourthKey = "The_Fourth_Test"
 
-func mockYkeys() map[string]configurationtypes.YKey {
+func mockYkeys() map[string]configurationtypes.SurrogateKeys {
 	var config configuration.Configuration
 	_ = config.Parse([]byte(
 		`

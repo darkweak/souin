@@ -25,12 +25,13 @@ github.com/buraksezer/olric/stats
 github.com/cespare/xxhash
 # github.com/cespare/xxhash/v2 v2.1.1
 github.com/cespare/xxhash/v2
-# github.com/darkweak/souin v1.5.7 => ../..
+# github.com/darkweak/souin v1.5.9 => ../..
 ## explicit
 github.com/darkweak/souin/api
 github.com/darkweak/souin/api/auth
 github.com/darkweak/souin/cache/coalescing
 github.com/darkweak/souin/cache/providers
+github.com/darkweak/souin/cache/surrogate
 github.com/darkweak/souin/cache/surrogate/providers
 github.com/darkweak/souin/cache/types
 github.com/darkweak/souin/cache/ykeys

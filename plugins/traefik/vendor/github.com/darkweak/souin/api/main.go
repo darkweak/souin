@@ -7,10 +7,12 @@ import (
 	"net/http"
 )
 
+// MapHandler is a map to store the available http Handlers
 type MapHandler struct {
 	Handlers *map[string]http.HandlerFunc
 }
 
+// GenerateHandlerMap generate the MapHandler
 func GenerateHandlerMap(
 	configuration configurationtypes.AbstractConfigurationInterface,
 	transport types.TransportInterface,

@@ -1,6 +1,7 @@
 package coalescing
 
 import (
+	"github.com/darkweak/souin/cache/surrogate"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
@@ -27,7 +28,7 @@ func commonInitializer() (*httptest.ResponseRecorder, *http.Request, *types.Retr
 		Provider:      prs,
 		MatchedURL:    tests.GetMatchedURL(tests.PATH),
 		RegexpUrls:    regexpUrls,
-		Transport:     rfc.NewTransport(prs, ykeys.InitializeYKeys(c.Ykeys)),
+		Transport:     rfc.NewTransport(prs, ykeys.InitializeYKeys(c.Ykeys), surrogate.InitializeSurrogate(c)),
 		ExcludeRegex:  excludedRegexp,
 	}
 	r := httptest.NewRequest("GET", "http://"+tests.DOMAIN+tests.PATH, nil)

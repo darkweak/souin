@@ -2,13 +2,14 @@ package api
 
 import (
 	"encoding/json"
+	"net/http"
+	"regexp"
+
 	"github.com/darkweak/souin/api/auth"
 	"github.com/darkweak/souin/cache/surrogate/providers"
 	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/cache/ykeys"
 	"github.com/darkweak/souin/configurationtypes"
-	"net/http"
-	"regexp"
 )
 
 // SouinAPI object contains informations related to the endpoints

@@ -2,9 +2,16 @@ package plugins
 
 import (
 	"bytes"
+	"io/ioutil"
+	"net/http"
+	"regexp"
+	"strings"
+	"sync"
+
 	"github.com/darkweak/souin/api"
 	"github.com/darkweak/souin/cache/coalescing"
 	"github.com/darkweak/souin/cache/providers"
+	"github.com/darkweak/souin/cache/surrogate"
 	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/cache/ykeys"
 	"github.com/darkweak/souin/configurationtypes"
@@ -12,11 +19,6 @@ import (
 	"github.com/darkweak/souin/rfc"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"io/ioutil"
-	"net/http"
-	"regexp"
-	"strings"
-	"sync"
 )
 
 // CustomWriter handles the response and provide the way to cache the value
@@ -140,7 +142,7 @@ func DefaultSouinPluginInitializerFromConfiguration(c configurationtypes.Abstrac
 	provider := providers.InitializeProvider(c)
 	c.GetLogger().Debug("Provider initialized.")
 	regexpUrls := helpers.InitializeRegexp(c)
-	transport := rfc.NewTransport(provider, ykeys.InitializeYKeys(c.GetYkeys()))
+	transport := rfc.NewTransport(provider, ykeys.InitializeYKeys(c.GetYkeys()), surrogate.InitializeSurrogate(c))
 	c.GetLogger().Debug("Transport initialized.")
 	var excludedRegexp *regexp.Regexp = nil
 	if c.GetDefaultCache().GetRegex().Exclude != "" {
@@ -171,6 +173,7 @@ type SouinBasePlugin struct {
 	MapHandler        *api.MapHandler
 }
 
+// HandleInternally handles the Souin custom endpoints
 func (s *SouinBasePlugin) HandleInternally(r *http.Request) (bool, func(http.ResponseWriter, *http.Request)) {
 	if s.MapHandler != nil {
 		for k, souinHandler := range *s.MapHandler.Handlers {

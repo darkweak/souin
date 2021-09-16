@@ -29,6 +29,7 @@ func getInstanceFromRequest(r *http.Request) *souinInstance {
  	return s.configurations[currentAPI]
 }
 
+// SouinResponseHandler stores the response before sent to the client if possible, only returns otherwise
 func SouinResponseHandler(rw http.ResponseWriter, res *http.Response, _ *http.Request) {
 	req := res.Request
 	req.Response = res

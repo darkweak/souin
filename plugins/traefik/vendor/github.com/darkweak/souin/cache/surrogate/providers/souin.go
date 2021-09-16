@@ -1,8 +1,9 @@
 package providers
 
 import (
-	"github.com/darkweak/souin/configurationtypes"
 	"net/http"
+
+	"github.com/darkweak/souin/configurationtypes"
 )
 
 // SouinSurrogateStorage is the layer for Surrogate-key support storage
@@ -28,10 +29,11 @@ func generateSouinInstance(config configurationtypes.AbstractConfigurationInterf
 	return s
 }
 
-func (_ *SouinSurrogateStorage) getHeaderSeparator() string {
+func (*SouinSurrogateStorage) getHeaderSeparator() string {
 	return ", "
 }
 
+// Store stores the response tags located in the first non empty supported header
 func (s *SouinSurrogateStorage) Store(header *http.Header, cacheKey string) error {
 	e := s.baseStorage.Store(header, cacheKey)
 	header.Del(surrogateKey)

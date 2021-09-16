@@ -1,8 +1,9 @@
 package auth
 
 import (
-	"github.com/darkweak/souin/errors"
 	"testing"
+
+	"github.com/darkweak/souin/errors"
 )
 
 func TestSignatureError_Error(t *testing.T) {

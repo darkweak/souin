@@ -4,6 +4,7 @@ import (
 	"github.com/darkweak/souin/configurationtypes"
 )
 
+// SurrogateFactory generate a SurrogateInterface instance
 func SurrogateFactory(config configurationtypes.AbstractConfigurationInterface) SurrogateInterface {
 	cdn := config.GetDefaultCache().GetCDN()
 

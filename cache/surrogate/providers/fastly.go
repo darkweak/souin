@@ -1,17 +1,18 @@
 package providers
 
 import (
-	"github.com/darkweak/souin/configurationtypes"
 	"net/http"
 	"net/url"
+
+	"github.com/darkweak/souin/configurationtypes"
 )
 
 // FastlySurrogateStorage is the layer for Surrogate-key support storage
 type FastlySurrogateStorage struct {
 	*baseStorage
 	Keys           map[string]configurationtypes.SurrogateKeys
-	providerApiKey string
-	serviceId      string
+	providerAPIKey string
+	serviceID      string
 	strategy       string
 }
 
@@ -25,7 +26,7 @@ func generateFastlyInstance(config configurationtypes.AbstractConfigurationInter
 	cdn := config.GetDefaultCache().GetCDN()
 	f := &FastlySurrogateStorage{
 		Keys:           config.GetSurrogateKeys(),
-		providerApiKey: cdn.ApiKey,
+		providerAPIKey: cdn.APIKey,
 		strategy:       "0",
 	}
 
@@ -39,17 +40,17 @@ func generateFastlyInstance(config configurationtypes.AbstractConfigurationInter
 	return f
 }
 
-func (_ *FastlySurrogateStorage) getHeaderSeparator() string {
+func (*FastlySurrogateStorage) getHeaderSeparator() string {
 	return " "
 }
 
-func (_ *FastlySurrogateStorage) getOrderedSurrogateKeyHeadersCandidate() []string {
+func (*FastlySurrogateStorage) getOrderedSurrogateKeyHeadersCandidate() []string {
 	return []string{
 		surrogateKey,
 	}
 }
 
-func (_ *FastlySurrogateStorage) getOrderedSurrogateControlHeadersCandidate() []string {
+func (*FastlySurrogateStorage) getOrderedSurrogateControlHeadersCandidate() []string {
 	return []string{
 		fastlyCacheControl,
 		souinCacheControl,
@@ -59,22 +60,24 @@ func (_ *FastlySurrogateStorage) getOrderedSurrogateControlHeadersCandidate() []
 	}
 }
 
+// Store stores the response tags located in the first non empty supported header
 func (f *FastlySurrogateStorage) Store(header *http.Header, cacheKey string) error {
 	return f.baseStorage.Store(header, cacheKey)
 }
 
+// Purge purges the urls associated to the tags
 func (f *FastlySurrogateStorage) Purge(header http.Header) []string {
 	headers := f.baseStorage.Purge(header)
 	client := &http.Client{}
-	req, err := http.NewRequest(http.MethodPost, "https://api.fastly.com/service/"+f.serviceId+"/purge", nil)
+	req, err := http.NewRequest(http.MethodPost, "https://api.fastly.com/service/"+f.serviceID+"/purge", nil)
 	if err == nil {
 		req.Header.Set("Fastly-Soft-Purge", f.strategy)
-		req.Header.Set("Fastly-Key", f.providerApiKey)
+		req.Header.Set("Fastly-Key", f.providerAPIKey)
 		req.Header.Set("Accept", "application/json")
 
 		go func() {
 			for _, h := range headers {
-				computedURL := "/service/" + f.serviceId + "/purge/" + h
+				computedURL := "/service/" + f.serviceID + "/purge/" + h
 				req.RequestURI = computedURL
 				if req.URL, err = url.Parse(computedURL); err == nil {
 					_, _ = client.Do(req)
