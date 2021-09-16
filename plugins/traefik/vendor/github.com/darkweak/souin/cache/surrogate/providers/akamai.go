@@ -1,9 +1,10 @@
 package providers
 
 import (
-	"github.com/darkweak/souin/configurationtypes"
 	"net/http"
 	"net/url"
+
+	"github.com/darkweak/souin/configurationtypes"
 )
 
 // AkamaiSurrogateStorage is the layer for Surrogate-key support storage

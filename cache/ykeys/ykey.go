@@ -37,11 +37,11 @@ import (
 // YKeyStorage is the layer for YKey support storage
 type YKeyStorage struct {
 	*ristretto.Cache
-	Keys map[string]configurationtypes.Sur
+	Keys map[string]configurationtypes.SurrogateKeys
 }
 
 // InitializeYKeys will initialize the ykey storage system
-func InitializeYKeys(keys map[string]configurationtypes.YKey) *YKeyStorage {
+func InitializeYKeys(keys map[string]configurationtypes.SurrogateKeys) *YKeyStorage {
 	if len(keys) == 0 {
 		return nil
 	}

@@ -39,27 +39,27 @@ func NewTransport(p types.AbstractProviderInterface, ykeyStorage *ykeys.YKeyStor
 
 // GetProvider returns the associated provider
 func (t *VaryTransport) GetProvider() types.AbstractProviderInterface {
-	return t.Provider
+	return t.Transport.Provider
 }
 
 // SetURL set the URL
 func (t *VaryTransport) SetURL(url configurationtypes.URL) {
-	t.ConfigurationURL = url
+	t.Transport.ConfigurationURL = url
 }
 
 // GetCoalescingLayerStorage get the coalescing layer storage
 func (t *VaryTransport) GetCoalescingLayerStorage() *types.CoalescingLayerStorage {
-	return t.CoalescingLayerStorage
+	return t.Transport.CoalescingLayerStorage
 }
 
 // GetYkeyStorage get the ykeys storage
 func (t *VaryTransport) GetYkeyStorage() *ykeys.YKeyStorage {
-	return t.YkeyStorage
+	return t.Transport.YkeyStorage
 }
 
 // GetSurrogateKeys get the surrogate keys storage
 func (t *VaryTransport) GetSurrogateKeys() providers.SurrogateInterface {
-	return t.SurrogateStorage
+	return t.Transport.SurrogateStorage
 }
 
 // SetCache set the cache
