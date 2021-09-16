@@ -92,6 +92,11 @@ func (d *DefaultCache) GetBadger() CacheProvider {
 	return d.Badger
 }
 
+// GetCDN returns the CDN configuration
+func (d *DefaultCache) GetCDN() CDN {
+	return d.CDN
+}
+
 // GetDistributed returns if it uses Olric or not as provider
 func (d *DefaultCache) GetDistributed() bool {
 	return d.Distributed
@@ -171,5 +176,5 @@ type AbstractConfigurationInterface interface {
 	GetLogger() *zap.Logger
 	SetLogger(*zap.Logger)
 	GetYkeys() map[string]SurrogateKeys
-	GetSurrograteKeys() map[string]SurrogateKeys
+	GetSurrogateKeys() map[string]SurrogateKeys
 }

@@ -18,13 +18,13 @@ type AkamaiSurrogateStorage struct {
 func generateAkamaiInstance(config configurationtypes.AbstractConfigurationInterface) *AkamaiSurrogateStorage {
 	var storage map[string]string
 
-	if len(config.GetSurrograteKeys()) == 0 {
+	if len(config.GetSurrogateKeys()) == 0 {
 		return nil
 	}
 
 	cdn := config.GetDefaultCache().GetCDN()
 	f := &AkamaiSurrogateStorage{
-		Keys:           config.GetSurrograteKeys(),
+		Keys:           config.GetSurrogateKeys(),
 		providerApiKey: cdn.ApiKey,
 		strategy:       "0",
 	}

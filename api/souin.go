@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/darkweak/souin/api/auth"
 	"github.com/darkweak/souin/cache/surrogate/providers"
 	"github.com/darkweak/souin/cache/types"
@@ -19,7 +18,7 @@ type SouinAPI struct {
 	provider         types.AbstractProviderInterface
 	security         *auth.SecurityAPI
 	ykeyStorage      *ykeys.YKeyStorage
-	surrogateStorage *providers.SouinSurrogateStorage
+	surrogateStorage providers.SurrogateInterface
 }
 
 func initializeSouin(
@@ -99,8 +98,8 @@ func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 	case "PURGE":
-// 		surr := providers.ParseHeaders(r.Header.Get(providers.SurrogateKey))
-		fmt.Printf("%+v \n%+v \n", surr[0], surr)
+		// surr := providers.ParseHeaders(r.Header.Get(providers.SurrogateKey))
+		// fmt.Printf("%+v \n%+v \n", surr[0], surr)
 		query := r.URL.Query()["ykey"]
 		if len(query) > 0 {
 			s.invalidateFromYKey(query)

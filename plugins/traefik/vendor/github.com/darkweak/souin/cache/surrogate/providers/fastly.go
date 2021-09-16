@@ -1,11 +1,9 @@
 package providers
 
 import (
+	"github.com/darkweak/souin/configurationtypes"
 	"net/http"
 	"net/url"
-	"strings"
-
-	"github.com/darkweak/souin/configurationtypes"
 )
 
 // FastlySurrogateStorage is the layer for Surrogate-key support storage
@@ -54,21 +52,11 @@ func (_ *FastlySurrogateStorage) getOrderedSurrogateKeyHeadersCandidate() []stri
 func (_ *FastlySurrogateStorage) getOrderedSurrogateControlHeadersCandidate() []string {
 	return []string{
 		fastlyCacheControl,
+		souinCacheControl,
 		surrogateControl,
+		cdnCacheControl,
 		cacheControl,
 	}
-}
-
-func (f *FastlySurrogateStorage) getSurrogateControl(header http.Header) string {
-	return getCandidateHeader(header, f.getOrderedSurrogateControlHeadersCandidate)
-}
-
-func (f *FastlySurrogateStorage) getSurrogateKey(header http.Header) string {
-	return getCandidateHeader(header, f.getOrderedSurrogateKeyHeadersCandidate)
-}
-
-func (_ *FastlySurrogateStorage) candidateStore(tag string) bool {
-	return !strings.Contains(tag, noStoreDirective)
 }
 
 func (f *FastlySurrogateStorage) Store(header *http.Header, cacheKey string) error {

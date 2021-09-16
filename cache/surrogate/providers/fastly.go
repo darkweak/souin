@@ -18,13 +18,13 @@ type FastlySurrogateStorage struct {
 func generateFastlyInstance(config configurationtypes.AbstractConfigurationInterface) *FastlySurrogateStorage {
 	var storage map[string]string
 
-	if len(config.GetSurrograteKeys()) == 0 {
+	if len(config.GetSurrogateKeys()) == 0 {
 		return nil
 	}
 
 	cdn := config.GetDefaultCache().GetCDN()
 	f := &FastlySurrogateStorage{
-		Keys:           config.GetSurrograteKeys(),
+		Keys:           config.GetSurrogateKeys(),
 		providerApiKey: cdn.ApiKey,
 		strategy:       "0",
 	}

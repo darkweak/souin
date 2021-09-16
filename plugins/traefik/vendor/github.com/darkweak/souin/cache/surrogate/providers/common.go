@@ -16,7 +16,7 @@ const (
 	souinStorageSeparator = ","
 	souinCacheControl     = "Souin-Cache-Control"
 	fastlyCacheControl    = "Fastly-Cache-Control"
-	akamaiCacheControl    = "Akamai-Cache-Control"
+	edgeCacheTag          = "Edge-Cache-Tag"
 )
 
 func (s *baseStorage) ParseHeaders(value string) []string {
@@ -61,6 +61,40 @@ func (s *baseStorage) storeTag(tag string, cacheKey string, re *regexp.Regexp) {
 	}
 }
 
+func (_ *baseStorage) candidateStore(tag string) bool {
+	return !strings.Contains(tag, noStoreDirective)
+}
+
+func (_ *baseStorage) getOrderedSurrogateKeyHeadersCandidate() []string {
+	return []string{
+		surrogateKey,
+		edgeCacheTag,
+	}
+}
+
+func (_ *baseStorage) getOrderedSurrogateControlHeadersCandidate() []string {
+	return []string{
+		souinCacheControl,
+		surrogateControl,
+		cdnCacheControl,
+		cacheControl,
+	}
+}
+
+func (s *baseStorage) getSurrogateControl(header http.Header) string {
+	return getCandidateHeader(header, s.parent.getOrderedSurrogateControlHeadersCandidate)
+}
+
+func (s *baseStorage) getSurrogateKey(header http.Header) string {
+	return getCandidateHeader(header, s.parent.getOrderedSurrogateKeyHeadersCandidate)
+}
+
+func (s *baseStorage) purgeTag(tag string) []string {
+	toInvalidate := s.Storage[tag]
+	delete(s.Storage, tag)
+	return strings.Split(toInvalidate, souinStorageSeparator)
+}
+
 // Store will take the lead to store the cache key for each provided Surrogate-key
 func (s *baseStorage) Store(header *http.Header, cacheKey string) error {
 	urlRegexp, e := regexp.Compile("(^" + cacheKey + "(" + souinStorageSeparator + "|$))|(" + souinStorageSeparator + cacheKey + ")|(" + souinStorageSeparator + cacheKey + "$)")
@@ -82,12 +116,6 @@ func (s *baseStorage) Store(header *http.Header, cacheKey string) error {
 	}
 
 	return nil
-}
-
-func (s *baseStorage) purgeTag(tag string) []string {
-	toInvalidate := s.Storage[tag]
-	delete(s.Storage, tag)
-	return strings.Split(toInvalidate, souinStorageSeparator)
 }
 
 // Purge take the request headers as parameter, retrieve the associated cache keys for the Surrogate-Keys given.
