@@ -16,6 +16,7 @@ const (
 	souinStorageSeparator = ","
 	souinCacheControl     = "Souin-Cache-Control"
 	fastlyCacheControl    = "Fastly-Cache-Control"
+	akamaiCacheControl    = "Akamai-Cache-Control"
 )
 
 func (s *baseStorage) ParseHeaders(value string) []string {
