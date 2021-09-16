@@ -8,6 +8,8 @@ func SurrogateFactory(config configurationtypes.AbstractConfigurationInterface) 
 	cdn := config.GetDefaultCache().GetCDN()
 
 	switch cdn.Provider {
+	case "akamai":
+		return generateAkamaiInstance(config)
 	case "fastly":
 		return generateFastlyInstance(config)
 	default:

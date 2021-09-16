@@ -1,11 +1,9 @@
 package providers
 
 import (
+	"github.com/darkweak/souin/configurationtypes"
 	"net/http"
 	"net/url"
-	"strings"
-
-	"github.com/darkweak/souin/configurationtypes"
 )
 
 // AkamaiSurrogateStorage is the layer for Surrogate-key support storage
@@ -42,37 +40,16 @@ func generateAkamaiInstance(config configurationtypes.AbstractConfigurationInter
 }
 
 func (_ *AkamaiSurrogateStorage) getHeaderSeparator() string {
-	return " "
-}
-
-func (_ *AkamaiSurrogateStorage) getOrderedSurrogateKeyHeadersCandidate() []string {
-	return []string{
-		surrogateKey,
-	}
-}
-
-func (_ *AkamaiSurrogateStorage) getOrderedSurrogateControlHeadersCandidate() []string {
-	return []string{
-		akamaiCacheControl,
-		surrogateControl,
-		cacheControl,
-	}
-}
-
-func (f *AkamaiSurrogateStorage) getSurrogateControl(header http.Header) string {
-	return getCandidateHeader(header, f.getOrderedSurrogateControlHeadersCandidate)
-}
-
-func (f *AkamaiSurrogateStorage) getSurrogateKey(header http.Header) string {
-	return getCandidateHeader(header, f.getOrderedSurrogateKeyHeadersCandidate)
-}
-
-func (_ *AkamaiSurrogateStorage) candidateStore(tag string) bool {
-	return !strings.Contains(tag, noStoreDirective)
+	return ", "
 }
 
 func (f *AkamaiSurrogateStorage) Store(header *http.Header, cacheKey string) error {
-	return f.baseStorage.Store(header, cacheKey)
+	e := f.baseStorage.Store(header, cacheKey)
+	header.Set(edgeCacheTag, header.Get(surrogateKey))
+	header.Del(surrogateKey)
+	header.Del(surrogateControl)
+
+	return e
 }
 
 func (f *AkamaiSurrogateStorage) Purge(header http.Header) []string {
