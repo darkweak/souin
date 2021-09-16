@@ -1,8 +1,9 @@
 package providers
 
 import (
+	"bytes"
+	"encoding/json"
 	"net/http"
-	"net/url"
 
 	"github.com/darkweak/souin/configurationtypes"
 )
@@ -10,28 +11,27 @@ import (
 // AkamaiSurrogateStorage is the layer for Surrogate-key support storage
 type AkamaiSurrogateStorage struct {
 	*baseStorage
-	Keys           map[string]configurationtypes.SurrogateKeys
-	providerAPIKey string
-	serviceID      string
-	strategy       string
+	url string
 }
 
 func generateAkamaiInstance(config configurationtypes.AbstractConfigurationInterface) *AkamaiSurrogateStorage {
 	var storage map[string]string
 
-	if len(config.GetSurrogateKeys()) == 0 {
-		return nil
-	}
-
 	cdn := config.GetDefaultCache().GetCDN()
-	f := &AkamaiSurrogateStorage{
-		Keys:           config.GetSurrogateKeys(),
-		providerAPIKey: cdn.APIKey,
-		strategy:       "0",
+	f := &AkamaiSurrogateStorage{}
+
+	strategy := "delete"
+	if cdn.Strategy == "soft" {
+		strategy = "invalidate"
 	}
 
-	if cdn.Strategy == "soft" {
-		f.strategy = "1"
+	f.url = "https://" + cdn.Hostname + "/ccu/v3/" + strategy + "/tag"
+	if cdn.Network != "" {
+		f.url += "/" + cdn.Network
+	}
+
+	if len(config.GetSurrogateKeys()) != 0 {
+		f.Keys = config.GetSurrogateKeys()
 	}
 
 	f.Storage = storage
@@ -55,25 +55,22 @@ func (f *AkamaiSurrogateStorage) Store(header *http.Header, cacheKey string) err
 }
 
 // Purge purges the urls associated to the tags
-func (f *AkamaiSurrogateStorage) Purge(header http.Header) []string {
-	headers := f.baseStorage.Purge(header)
-	client := &http.Client{}
-	req, err := http.NewRequest(http.MethodPost, "https://api.akamai.com/service/"+f.serviceID+"/purge", nil)
+func (f *AkamaiSurrogateStorage) Purge(header http.Header) (cacheKeys []string, surrogateKeys []string) {
+	keys, headers := f.baseStorage.Purge(header)
+	m, b := map[string][]string{"objects": headers}, new(bytes.Buffer)
+	e := json.NewEncoder(b).Encode(m)
+	if e != nil {
+		return keys, headers
+	}
+	req, err := http.NewRequest(http.MethodPost, f.url, b)
 	if err == nil {
-		req.Header.Set("Akamai-Soft-Purge", f.strategy)
-		req.Header.Set("Akamai-Key", f.providerAPIKey)
 		req.Header.Set("Accept", "application/json")
+		req.Header.Set("Content-Type", "application/json")
 
 		go func() {
-			for _, h := range headers {
-				computedURL := "/service/" + f.serviceID + "/purge/" + h
-				req.RequestURI = computedURL
-				if req.URL, err = url.Parse(computedURL); err == nil {
-					_, _ = client.Do(req)
-				}
-			}
+			_, _ = new(http.Client).Do(req)
 		}()
 	}
 
-	return headers
+	return keys, headers
 }

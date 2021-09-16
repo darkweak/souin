@@ -2,6 +2,7 @@ package providers
 
 import (
 	"fmt"
+	"github.com/darkweak/souin/configurationtypes"
 	"net/http"
 	"regexp"
 	"strings"
@@ -51,6 +52,7 @@ func uniqueTag(values []string) []string {
 type baseStorage struct {
 	parent  SurrogateInterface
 	Storage map[string]string
+	Keys    map[string]configurationtypes.SurrogateKeys
 }
 
 func (s *baseStorage) storeTag(tag string, cacheKey string, re *regexp.Regexp) {
@@ -120,12 +122,12 @@ func (s *baseStorage) Store(header *http.Header, cacheKey string) error {
 
 // Purge take the request headers as parameter, retrieve the associated cache keys for the Surrogate-Keys given.
 // It returns an array which one contains the cache keys to invalidate.
-func (s *baseStorage) Purge(header http.Header) []string {
+func (s *baseStorage) Purge(header http.Header) (cacheKeys []string, surrogateKeys []string) {
 	surrogates := s.ParseHeaders(s.parent.getSurrogateKey(header))
 	toInvalidate := []string{}
 	for _, su := range surrogates {
 		toInvalidate = append(toInvalidate, s.purgeTag(su)...)
 	}
 
-	return uniqueTag(toInvalidate)
+	return uniqueTag(toInvalidate), surrogates
 }

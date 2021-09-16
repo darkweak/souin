@@ -9,22 +9,19 @@ import (
 // SouinSurrogateStorage is the layer for Surrogate-key support storage
 type SouinSurrogateStorage struct {
 	*baseStorage
-	Keys map[string]configurationtypes.SurrogateKeys
 }
 
 func generateSouinInstance(config configurationtypes.AbstractConfigurationInterface) *SouinSurrogateStorage {
 	var storage map[string]string
 
+	s := &SouinSurrogateStorage{}
+
 	if len(config.GetSurrogateKeys()) == 0 {
-		return nil
+		s.Keys = config.GetSurrogateKeys()
 	}
 
-	s := &SouinSurrogateStorage{
-		Keys: config.GetSurrogateKeys(),
-	}
-
-	s.parent = s
 	s.Storage = storage
+	s.parent = s
 
 	return s
 }

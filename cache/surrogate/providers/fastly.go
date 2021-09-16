@@ -10,7 +10,6 @@ import (
 // FastlySurrogateStorage is the layer for Surrogate-key support storage
 type FastlySurrogateStorage struct {
 	*baseStorage
-	Keys           map[string]configurationtypes.SurrogateKeys
 	providerAPIKey string
 	serviceID      string
 	strategy       string
@@ -25,13 +24,16 @@ func generateFastlyInstance(config configurationtypes.AbstractConfigurationInter
 
 	cdn := config.GetDefaultCache().GetCDN()
 	f := &FastlySurrogateStorage{
-		Keys:           config.GetSurrogateKeys(),
 		providerAPIKey: cdn.APIKey,
 		strategy:       "0",
 	}
 
 	if cdn.Strategy == "soft" {
 		f.strategy = "1"
+	}
+
+	if len(config.GetSurrogateKeys()) != 0 {
+		f.Keys = config.GetSurrogateKeys()
 	}
 
 	f.Storage = storage
@@ -66,9 +68,8 @@ func (f *FastlySurrogateStorage) Store(header *http.Header, cacheKey string) err
 }
 
 // Purge purges the urls associated to the tags
-func (f *FastlySurrogateStorage) Purge(header http.Header) []string {
-	headers := f.baseStorage.Purge(header)
-	client := &http.Client{}
+func (f *FastlySurrogateStorage) Purge(header http.Header) (cacheKeys []string, surrogateKeys []string) {
+	keys, headers := f.baseStorage.Purge(header)
 	req, err := http.NewRequest(http.MethodPost, "https://api.fastly.com/service/"+f.serviceID+"/purge", nil)
 	if err == nil {
 		req.Header.Set("Fastly-Soft-Purge", f.strategy)
@@ -80,11 +81,11 @@ func (f *FastlySurrogateStorage) Purge(header http.Header) []string {
 				computedURL := "/service/" + f.serviceID + "/purge/" + h
 				req.RequestURI = computedURL
 				if req.URL, err = url.Parse(computedURL); err == nil {
-					_, _ = client.Do(req)
+					_, _ = new(http.Client).Do(req)
 				}
 			}
 		}()
 	}
 
-	return headers
+	return keys, headers
 }

@@ -12,7 +12,7 @@ type SurrogateInterface interface {
 	getOrderedSurrogateControlHeadersCandidate() []string
 	getSurrogateControl(http.Header) string
 	getSurrogateKey(http.Header) string
-	Purge(http.Header) []string
+	Purge(http.Header) (cacheKeys []string, surrogateKeys []string)
 	purgeTag(string) []string
 	Store(*http.Header, string) error
 	storeTag(string, string, *regexp.Regexp)
