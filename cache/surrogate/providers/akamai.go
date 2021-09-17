@@ -18,7 +18,9 @@ func generateAkamaiInstance(config configurationtypes.AbstractConfigurationInter
 	var storage map[string]string
 
 	cdn := config.GetDefaultCache().GetCDN()
-	f := &AkamaiSurrogateStorage{}
+	f := &AkamaiSurrogateStorage{
+		baseStorage: &baseStorage{},
+	}
 
 	strategy := "delete"
 	if cdn.Strategy == "soft" {

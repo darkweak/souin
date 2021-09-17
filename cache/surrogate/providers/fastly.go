@@ -24,6 +24,7 @@ func generateFastlyInstance(config configurationtypes.AbstractConfigurationInter
 
 	cdn := config.GetDefaultCache().GetCDN()
 	f := &FastlySurrogateStorage{
+		baseStorage: &baseStorage{},
 		providerAPIKey: cdn.APIKey,
 		strategy:       "0",
 	}

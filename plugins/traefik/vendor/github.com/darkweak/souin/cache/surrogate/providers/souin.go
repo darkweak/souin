@@ -1,6 +1,7 @@
 package providers
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/darkweak/souin/configurationtypes"
@@ -14,8 +15,9 @@ type SouinSurrogateStorage struct {
 func generateSouinInstance(config configurationtypes.AbstractConfigurationInterface) *SouinSurrogateStorage {
 	var storage map[string]string
 
-	s := &SouinSurrogateStorage{}
+	s := &SouinSurrogateStorage{&baseStorage{}}
 
+	fmt.Println(s)
 	if len(config.GetSurrogateKeys()) == 0 {
 		s.Keys = config.GetSurrogateKeys()
 	}
