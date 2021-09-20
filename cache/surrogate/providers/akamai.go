@@ -15,12 +15,8 @@ type AkamaiSurrogateStorage struct {
 }
 
 func generateAkamaiInstance(config configurationtypes.AbstractConfigurationInterface) *AkamaiSurrogateStorage {
-	var storage map[string]string
-
 	cdn := config.GetDefaultCache().GetCDN()
-	f := &AkamaiSurrogateStorage{
-		baseStorage: &baseStorage{},
-	}
+	f := &AkamaiSurrogateStorage{}
 
 	strategy := "delete"
 	if cdn.Strategy == "soft" {
@@ -32,11 +28,7 @@ func generateAkamaiInstance(config configurationtypes.AbstractConfigurationInter
 		f.url += "/" + cdn.Network
 	}
 
-	if len(config.GetSurrogateKeys()) != 0 {
-		f.Keys = config.GetSurrogateKeys()
-	}
-
-	f.Storage = storage
+	f.init(config)
 	f.parent = f
 
 	return f
@@ -47,11 +39,11 @@ func (*AkamaiSurrogateStorage) getHeaderSeparator() string {
 }
 
 // Store stores the response tags located in the first non empty supported header
-func (f *AkamaiSurrogateStorage) Store(header *http.Header, cacheKey string) error {
-	e := f.baseStorage.Store(header, cacheKey)
-	header.Set(edgeCacheTag, header.Get(surrogateKey))
-	header.Del(surrogateKey)
-	header.Del(surrogateControl)
+func (f *AkamaiSurrogateStorage) Store(request *http.Request, cacheKey string) error {
+	e := f.baseStorage.Store(request, cacheKey)
+	request.Header.Set(edgeCacheTag, request.Header.Get(surrogateKey))
+	request.Header.Del(surrogateKey)
+	request.Header.Del(surrogateControl)
 
 	return e
 }

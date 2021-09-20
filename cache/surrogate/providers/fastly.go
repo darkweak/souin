@@ -16,15 +16,8 @@ type FastlySurrogateStorage struct {
 }
 
 func generateFastlyInstance(config configurationtypes.AbstractConfigurationInterface) *FastlySurrogateStorage {
-	var storage map[string]string
-
-	if len(config.GetSurrogateKeys()) == 0 {
-		return nil
-	}
-
 	cdn := config.GetDefaultCache().GetCDN()
 	f := &FastlySurrogateStorage{
-		baseStorage: &baseStorage{},
 		providerAPIKey: cdn.APIKey,
 		strategy:       "0",
 	}
@@ -33,11 +26,7 @@ func generateFastlyInstance(config configurationtypes.AbstractConfigurationInter
 		f.strategy = "1"
 	}
 
-	if len(config.GetSurrogateKeys()) != 0 {
-		f.Keys = config.GetSurrogateKeys()
-	}
-
-	f.Storage = storage
+	f.init(config)
 	f.parent = f
 
 	return f
@@ -61,11 +50,6 @@ func (*FastlySurrogateStorage) getOrderedSurrogateControlHeadersCandidate() []st
 		cdnCacheControl,
 		cacheControl,
 	}
-}
-
-// Store stores the response tags located in the first non empty supported header
-func (f *FastlySurrogateStorage) Store(header *http.Header, cacheKey string) error {
-	return f.baseStorage.Store(header, cacheKey)
 }
 
 // Purge purges the urls associated to the tags
