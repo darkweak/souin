@@ -2,6 +2,7 @@ package plugins
 
 import (
 	"bytes"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"regexp"
@@ -34,7 +35,6 @@ func (r *CustomWriter) WriteHeader(code int) {
 		return
 	}
 	r.Response.StatusCode = code
-	r.ResponseWriter.WriteHeader(code)
 }
 
 // Write will write the response body
@@ -48,7 +48,19 @@ func (r *CustomWriter) Write(b []byte) (int, error) {
 	}
 	buf.Write(b)
 	r.Response.Body = ioutil.NopCloser(buf)
-	return r.ResponseWriter.Write(buf.Bytes())
+	return 0, nil
+}
+
+// Send delays the response to handle Cache-Status
+func (r *CustomWriter) Send() (int, error) {
+	b, _ := io.ReadAll(r.Response.Body)
+	for h, v := range r.Response.Header {
+		if len(v) > 0 {
+			r.Header().Set(h, strings.Join(v, ", "))
+		}
+	}
+	r.ResponseWriter.WriteHeader(r.Response.StatusCode)
+	return r.ResponseWriter.Write(b)
 }
 
 // CanHandle detect if the request can be handled by Souin
@@ -98,6 +110,7 @@ func DefaultSouinPluginCallback(
 			res.WriteHeader(response.Response.StatusCode)
 			b, _ := ioutil.ReadAll(response.Response.Body)
 			_, _ = res.Write(b)
+			_, _ = res.(*CustomWriter).Send()
 			return
 		}
 	}

@@ -12,7 +12,7 @@ type SouinSurrogateStorage struct {
 }
 
 func generateSouinInstance(config configurationtypes.AbstractConfigurationInterface) *SouinSurrogateStorage {
-	s := &SouinSurrogateStorage{}
+	s := &SouinSurrogateStorage{baseStorage: &baseStorage{}}
 
 	s.init(config)
 	s.parent = s

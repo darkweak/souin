@@ -49,9 +49,7 @@ func ValidateCacheControl(r *http.Response) bool {
 // HitCache set hit and manage age header too
 func HitCache(h *http.Header) {
 	manageAge(h)
-	if h.Get("Cache-Status") == "" {
-		h.Set("Cache-Status", "Souin; fwd=hit; ttl="+h.Get("Age"))
-	}
+	h.Set("Cache-Status", "Souin; fwd=hit; ttl="+h.Get("Age"))
 }
 
 func manageAge(h *http.Header) {

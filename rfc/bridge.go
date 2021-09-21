@@ -3,9 +3,10 @@ package rfc
 import (
 	"bufio"
 	"bytes"
-	"github.com/darkweak/souin/cache/types"
 	"net/http"
 	"time"
+
+	"github.com/darkweak/souin/cache/types"
 )
 
 const (
@@ -63,6 +64,9 @@ func (t *VaryTransport) BaseRoundTrip(req *http.Request, shouldReUpdate bool) (s
 	cacheKey := GetCacheKey(req)
 	cacheable := IsVaryCacheable(req)
 	cachedResp := req.Response
+	if cachedResp == nil {
+		cachedResp = new(http.Response)
+	}
 
 	if cachedResp.Header == nil {
 		cachedResp.Header = make(http.Header)
@@ -122,26 +126,26 @@ func (t *VaryTransport) UpdateCacheEventually(req *http.Request) (*http.Response
 	if cacheable && cachedResp != nil {
 		rDate, _ := time.Parse(time.RFC1123, req.Header.Get("Date"))
 		cachedResp.Header.Set("Date", rDate.Format(http.TimeFormat))
-		cachedResp.Header.Set("Cache-Status", "Souin; fwd=uri-miss: stored")
 		r := commonVaryMatchesVerification(cachedResp, req)
 		if r != nil {
 			return r, nil
 		}
 	} else {
-		if cachedResp != nil {
-			cachedResp.Header.Set("Cache-Status", "Souin; fwd=uri-miss")
-		}
 		if _, err := commonCacheControl(req, t); err != nil {
 			return nil, err
 		}
 	}
 
-	resp := cachedResp
-	if cacheable {
-		_ = validateVary(req, resp, cacheKey, t)
+	req.Response = cachedResp
+
+	if cacheable && canStore(parseCacheControl(req.Header), parseCacheControl(req.Response.Header)) {
+		_ = validateVary(req, req.Response, cacheKey, t)
+	} else {
+		req.Response.Header.Set("Cache-Status", "Souin; fwd=uri-miss")
 	}
 
-	return resp, nil
+
+	return req.Response, nil
 }
 
 // RoundTrip takes a Request and returns a Response
@@ -161,7 +165,6 @@ func (t *VaryTransport) RoundTrip(req *http.Request) (resp *http.Response, err e
 	}
 
 	if cacheable && cachedResp != nil {
-		cachedResp.Header.Set("Cache-Status", "Souin; fwd=uri-miss: stored")
 		r := commonVaryMatchesVerification(cachedResp, req)
 		if r != nil {
 			return r, nil
@@ -174,7 +177,7 @@ func (t *VaryTransport) RoundTrip(req *http.Request) (resp *http.Response, err e
 			for _, header := range endToEndHeaders {
 				cachedResp.Header[header] = resp.Header[header]
 			}
-			resp = cachedResp // nolint
+			resp = cachedResp
 		} else if (err != nil || resp.StatusCode >= 500) &&
 			req.Method == http.MethodGet && canStaleOnError(cachedResp.Header, req.Header) {
 			// In case of transport failure and stale-if-error activated, returns cached content
@@ -195,7 +198,7 @@ func (t *VaryTransport) RoundTrip(req *http.Request) (resp *http.Response, err e
 		resp.Header.Set("Cache-Status", "Souin; fwd=uri-miss")
 	}
 	resp, _ = transport.RoundTrip(req)
-	if !(cacheable && validateVary(req, resp, cacheKey, t)) {
+	if !(cacheable && canStore(parseCacheControl(req.Header), parseCacheControl(resp.Header)) && validateVary(req, resp, cacheKey, t)) {
 		go func() {
 			t.Transport.CoalescingLayerStorage.Set(cacheKey)
 		}()

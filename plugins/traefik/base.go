@@ -3,6 +3,7 @@ package traefik
 import (
 	"bytes"
 	"context"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"regexp"
@@ -32,11 +33,33 @@ type CustomWriter struct {
 	http.ResponseWriter
 }
 
-// Write write the response to the CustomWriter
+// WriteHeader will write the response headers
+func (r *CustomWriter) WriteHeader(code int) {
+	if code == 0 {
+		return
+	}
+	r.Response.StatusCode = code
+}
+
+// Write will write the response body
 func (r *CustomWriter) Write(b []byte) (int, error) {
 	r.Response.Header = r.ResponseWriter.Header()
-	r.Response.StatusCode = http.StatusOK
+	if r.Response.StatusCode == 0 {
+		r.Response.StatusCode = http.StatusOK
+	}
 	r.Response.Body = ioutil.NopCloser(bytes.NewBuffer(b))
+	return 0, nil
+}
+
+// Send delays the response to handle Cache-Status
+func (r *CustomWriter) Send() (int, error) {
+	b, _ := io.ReadAll(r.Response.Body)
+	for h, v := range r.Response.Header {
+		if len(v) > 0 {
+			r.Header().Set(h, strings.Join(v, ", "))
+		}
+	}
+	r.ResponseWriter.WriteHeader(r.Response.StatusCode)
 	return r.ResponseWriter.Write(b)
 }
 
@@ -85,6 +108,7 @@ func DefaultSouinPluginCallback(
 			res.WriteHeader(r.Response.StatusCode)
 			b, _ := ioutil.ReadAll(r.Response.Body)
 			_, _ = res.Write(b)
+			_, _ = res.(*CustomWriter).Send()
 			return
 		}
 	}

@@ -83,15 +83,18 @@ func (s *SouinCaddyPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request, 
 		BufPool: s.bufPool,
 	}
 
-	plugins.DefaultSouinPluginCallback(customWriter, req, s.Retriever, s.RequestCoalescing, func(_ http.ResponseWriter, _ *http.Request) error {
-		e := combo.next.ServeHTTP(customWriter, combo.req)
-		if e != nil {
+	plugins.DefaultSouinPluginCallback(customWriter, req, s.Retriever, nil, func(_ http.ResponseWriter, _ *http.Request) error {
+		var e error
+		if e = combo.next.ServeHTTP(customWriter, combo.req); e != nil {
 			return e
 		}
 
 		combo.req.Response = customWriter.Response
-		_, e = s.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(combo.req)
+		if combo.req.Response, e = s.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(combo.req); e != nil {
+			return e
+		}
 
+		_, _ = customWriter.Send()
 		return e
 	})
 

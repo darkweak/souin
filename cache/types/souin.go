@@ -1,10 +1,10 @@
 package types
 
 import (
-	"github.com/darkweak/souin/cache/surrogate/providers"
 	"net/http"
 	"regexp"
 
+	"github.com/darkweak/souin/cache/surrogate/providers"
 	"github.com/darkweak/souin/cache/ykeys"
 	"github.com/darkweak/souin/configurationtypes"
 )

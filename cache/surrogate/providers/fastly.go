@@ -18,6 +18,7 @@ type FastlySurrogateStorage struct {
 func generateFastlyInstance(config configurationtypes.AbstractConfigurationInterface) *FastlySurrogateStorage {
 	cdn := config.GetDefaultCache().GetCDN()
 	f := &FastlySurrogateStorage{
+		baseStorage:    &baseStorage{},
 		providerAPIKey: cdn.APIKey,
 		strategy:       "0",
 	}

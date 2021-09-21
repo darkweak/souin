@@ -1,7 +1,6 @@
 package providers
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/darkweak/souin/configurationtypes"
@@ -13,16 +12,9 @@ type SouinSurrogateStorage struct {
 }
 
 func generateSouinInstance(config configurationtypes.AbstractConfigurationInterface) *SouinSurrogateStorage {
-	var storage map[string]string
+	s := &SouinSurrogateStorage{baseStorage: &baseStorage{}}
 
-	s := &SouinSurrogateStorage{&baseStorage{}}
-
-	fmt.Println(s)
-	if len(config.GetSurrogateKeys()) == 0 {
-		s.Keys = config.GetSurrogateKeys()
-	}
-
-	s.Storage = storage
+	s.init(config)
 	s.parent = s
 
 	return s
@@ -33,10 +25,10 @@ func (*SouinSurrogateStorage) getHeaderSeparator() string {
 }
 
 // Store stores the response tags located in the first non empty supported header
-func (s *SouinSurrogateStorage) Store(header *http.Header, cacheKey string) error {
-	e := s.baseStorage.Store(header, cacheKey)
-	header.Del(surrogateKey)
-	header.Del(surrogateControl)
+func (s *SouinSurrogateStorage) Store(request *http.Request, cacheKey string) error {
+	e := s.baseStorage.Store(request, cacheKey)
+	request.Header.Del(surrogateKey)
+	request.Header.Del(surrogateControl)
 
 	return e
 }

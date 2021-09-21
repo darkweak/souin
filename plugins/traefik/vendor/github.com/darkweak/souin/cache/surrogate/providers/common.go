@@ -49,10 +49,44 @@ func uniqueTag(values []string) []string {
 	return list
 }
 
+type keysRegexpInner struct {
+	Headers map[string]*regexp.Regexp
+	Url     *regexp.Regexp
+}
+
 type baseStorage struct {
-	parent  SurrogateInterface
-	Storage map[string]string
-	Keys    map[string]configurationtypes.SurrogateKeys
+	parent     SurrogateInterface
+	Storage    map[string]string
+	Keys       map[string]configurationtypes.SurrogateKeys
+	keysRegexp map[string]keysRegexpInner
+}
+
+func (s *baseStorage) init(config configurationtypes.AbstractConfigurationInterface) {
+	storage := make(map[string]string)
+	s.Storage = storage
+	s.Keys = config.GetSurrogateKeys()
+	keysRegexp := make(map[string]keysRegexpInner, len(s.Keys))
+	baseRegexp := regexp.MustCompile(".+")
+
+	for key, regexps := range s.Keys {
+		headers := make(map[string]*regexp.Regexp, len(regexps.Headers))
+		for hk, hv := range regexps.Headers {
+			headers[hk] = baseRegexp
+			if hv != "" {
+				headers[hk] = regexp.MustCompile(hv)
+			}
+		}
+
+		innerKey := keysRegexpInner{Headers: headers, Url: baseRegexp}
+
+		if regexps.URL != "" {
+			innerKey.Url = regexp.MustCompile(regexps.URL)
+		}
+
+		keysRegexp[key] = innerKey
+	}
+
+	s.keysRegexp = keysRegexp
 }
 
 func (s *baseStorage) storeTag(tag string, cacheKey string, re *regexp.Regexp) {
@@ -98,15 +132,21 @@ func (s *baseStorage) purgeTag(tag string) []string {
 }
 
 // Store will take the lead to store the cache key for each provided Surrogate-key
-func (s *baseStorage) Store(header *http.Header, cacheKey string) error {
+func (s *baseStorage) Store(request *http.Request, cacheKey string) error {
 	urlRegexp, e := regexp.Compile("(^" + cacheKey + "(" + souinStorageSeparator + "|$))|(" + souinStorageSeparator + cacheKey + ")|(" + souinStorageSeparator + cacheKey + "$)")
 	if e != nil {
 		return fmt.Errorf("the regexp with the cache key %s cannot compile", cacheKey)
 	}
 
-	keys := s.ParseHeaders(s.parent.getSurrogateKey(*header))
+	keys := s.ParseHeaders(s.parent.getSurrogateKey(request.Header))
+	// path := request.Host + request.RequestURI
+	// selectedKey := s.keysRegexp.FindString(path)
+	// if nil != selectedKey {
+	//
+	// }
+
 	for _, key := range keys {
-		if controls := s.ParseHeaders(s.parent.getSurrogateControl(*header)); len(controls) != 0 {
+		if controls := s.ParseHeaders(s.parent.getSurrogateControl(request.Header)); len(controls) != 0 {
 			for _, control := range controls {
 				if s.parent.candidateStore(control) {
 					s.storeTag(key, cacheKey, urlRegexp)
