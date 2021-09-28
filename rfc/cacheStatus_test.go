@@ -12,7 +12,7 @@ func TestHitCache(t *testing.T) {
 	h := http.Header{}
 
 	HitCache(&h)
-	if h.Get("Cache-Status") == "" || h.Get("Cache-Status") != "Souin; fwd=hit; ttl=0" {
+	if h.Get("Cache-Status") == "" || h.Get("Cache-Status") != "Souin; fwd=hit; ttl=1" {
 		errors.GenerateError(t, fmt.Sprintf("Cache-Status cannot be null when hit and must match hit, %s given", h.Get("Cache-Status")))
 	}
 	if ti, e := http.ParseTime(h.Get("Date")); h.Get("Date") == "" || e != nil || h.Get("Date") != ti.Format(http.TimeFormat) {
@@ -69,8 +69,8 @@ func TestSetCacheStatusEventually(t *testing.T) {
 	r.Header = http.Header{}
 
 	SetCacheStatusEventually(&r)
-	if r.Header.Get("Cache-Status") != "" {
-		errors.GenerateError(t, "The Cache-Control should be empty")
+	if r.Header.Get("Cache-Status") != "Souin; fwd=hit; ttl=1" {
+		errors.GenerateError(t, fmt.Sprintf("The Cache-Status should be equal to Souin; fwd=hit; ttl=1, %s given", r.Header.Get("Cache-Status")))
 	}
 
 	r.Header = http.Header{"Date": []string{"Invalid"}}

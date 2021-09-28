@@ -2,7 +2,6 @@ package plugins
 
 import (
 	"bytes"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"regexp"
@@ -53,7 +52,7 @@ func (r *CustomWriter) Write(b []byte) (int, error) {
 
 // Send delays the response to handle Cache-Status
 func (r *CustomWriter) Send() (int, error) {
-	b, _ := io.ReadAll(r.Response.Body)
+	b, _ := ioutil.ReadAll(r.Response.Body)
 	for h, v := range r.Response.Header {
 		if len(v) > 0 {
 			r.Header().Set(h, strings.Join(v, ", "))

@@ -21,7 +21,7 @@ func validateTimeHeader(headers *http.Header, h string, t string) bool {
 func validateEmptyHeaders(headers *http.Header) {
 	for _, h := range emptyHeaders {
 		if v := headers.Get(h); v != "" {
-			if !validateTimeHeader(headers, h, v) {
+			if !validateTimeHeader(headers, strings.ToUpper(h), v) {
 				return
 			}
 		}
@@ -37,7 +37,7 @@ func SetRequestCacheStatus(h *http.Header, header string) {
 func ValidateCacheControl(r *http.Response) bool {
 	if _, err := cacheobject.ParseResponseCacheControl(r.Header.Get("Cache-Control")); err != nil {
 		h := r.Header
-		setMalformedHeader(&h, "Cache-Control")
+		setMalformedHeader(&h, "CACHE-CONTROL")
 		r.Header = h
 
 		return false
@@ -49,28 +49,30 @@ func ValidateCacheControl(r *http.Response) bool {
 // HitCache set hit and manage age header too
 func HitCache(h *http.Header) {
 	manageAge(h)
-	h.Set("Cache-Status", "Souin; fwd=hit; ttl="+h.Get("Age"))
 }
 
 func manageAge(h *http.Header) {
 	utc1 := time.Now().UTC()
-	utc2 := utc1
 	dh := h.Get("Date")
 	if dh == "" {
 		h.Set("Date", utc1.Format(http.TimeFormat))
-	} else if validateTimeHeader(h, "Date", dh) {
-		if u, e := http.ParseTime(h.Get("Date")); e == nil {
-			utc2 = u
-		} else {
-			setMalformedHeader(h, "Date")
-		}
+	} else if !validateTimeHeader(h, "DATE", dh) {
+		return
 	}
 
-	h.Set("Age", ageToString(correctedInitialAge(utc1, utc2)))
+	var utc2 time.Time
+	var e error
+	if utc2, e = http.ParseTime(h.Get("Date")); e != nil {
+		return
+	}
+
+	age := ageToString(correctedInitialAge(utc1, utc2))
+	h.Set("Age", age)
+	h.Set("Cache-Status", "Souin; fwd=hit; ttl="+h.Get("Age"))
 }
 
 func setMalformedHeader(headers *http.Header, header string) {
-	SetRequestCacheStatus(headers, "MALFORMED-"+strings.ToUpper(header))
+	SetRequestCacheStatus(headers, "MALFORMED-"+header)
 }
 
 // SetCacheStatusEventually eventually set cache status header
