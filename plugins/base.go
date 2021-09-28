@@ -110,7 +110,11 @@ func DefaultSouinPluginCallback(
 			res.WriteHeader(response.Response.StatusCode)
 			b, _ := ioutil.ReadAll(response.Response.Body)
 			_, _ = res.Write(b)
-			_, _ = res.(*CustomWriter).Send()
+			cw, success := res.(*CustomWriter)
+
+			if success {
+				_, _ = cw.Send()
+			}
 			return
 		}
 	}
@@ -187,7 +191,7 @@ type SouinBasePlugin struct {
 }
 
 // HandleInternally handles the Souin custom endpoints
-func (s *SouinBasePlugin) HandleInternally(r *http.Request) (bool, func(http.ResponseWriter, *http.Request)) {
+func (s *SouinBasePlugin) HandleInternally(r *http.Request) (bool, http.HandlerFunc) {
 	if s.MapHandler != nil {
 		for k, souinHandler := range *s.MapHandler.Handlers {
 			if strings.Contains(r.RequestURI, k) {

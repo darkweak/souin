@@ -14,12 +14,12 @@ type Duration struct {
 }
 
 // MarshalYAML transform the Duration into a time.duration object
-func (d Duration) MarshalYAML() (interface{}, error) {
+func (d *Duration) MarshalYAML() (interface{}, error) {
 	return yaml.Marshal(d.Duration.String())
 }
 
 // UnmarshalYAML parse the time.duration into a Duration object
-func (d Duration) UnmarshalYAML(b *yaml.Node) error {
+func (d *Duration) UnmarshalYAML(b *yaml.Node) error {
 	var e error
 	d.Duration, e = time.ParseDuration(b.Value) // nolint
 
