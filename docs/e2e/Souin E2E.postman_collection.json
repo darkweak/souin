@@ -15,7 +15,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'caddy_url')}/default`)"
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'caddy_url')}/default`, '', true)"
 								],
 								"type": "text/javascript"
 							}
@@ -151,7 +151,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'caddy_url')}/test2`, 'cache')"
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'caddy_url')}/test2`, '', false, true)"
 								],
 								"type": "text/javascript"
 							}
@@ -210,7 +210,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, utils.getVar(pm, 'traefik_url'))"
+									"utils.baseEndpoint(pm, utils.getVar(pm, 'traefik_url'), '', true)"
 								],
 								"type": "text/javascript"
 							}
@@ -331,7 +331,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'traefik_url')}/test_exclude_another`, 'cache')"
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'traefik_url')}/test_exclude_another`, '', false, true)"
 								],
 								"type": "text/javascript"
 							}
@@ -390,7 +390,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'tyk_url')}/`)"
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'tyk_url')}/`, '', true)"
 								],
 								"type": "text/javascript"
 							}
@@ -455,23 +455,38 @@
 					"        url,",
 					"    }),",
 					"    getVar: (pm, v) => pm.collectionVariables.get(v) || '',",
-					"    baseEndpoint: (pm, baseUrl = '', cacheControl = '') => {",
-					"        pm.test(\"Status code is 200 without Cache-Status header\", function () {",
+					"    baseEndpoint: (pm, baseUrl = '', cacheControl = '', isStore = false, exclude = false) => {",
+					"        pm.test(\"Status code is 200 with Cache-Status header\", function () {",
 					"            pm.response.to.have.status(200);",
-					"            pm.response.to.not.have.header(\"Cache-Status\");",
+					"            if (exclude) {",
+					"                pm.response.to.not.have.header(\"Cache-Status\");",
+					"            } else {",
+					"                pm.response.to.have.header(\"Cache-Status\");",
+					"                if (isStore) {",
+					"                    pm.expect(pm.response.headers.get(\"Cache-Status\")).to.eql(\"Souin; fwd=uri-miss: stored\");",
+					"                } else {",
+					"                    pm.response.to.have.header(\"Cache-Status\");",
+					"                    pm.expect(pm.response.headers.get(\"Cache-Status\")).to.eql(\"Souin; fwd=uri-miss\");",
+					"                }",
+					"            }",
 					"            pm.response.to.not.have.header(\"Age\");",
 					"        });",
 					"        pm.sendRequest(utils.request(baseUrl, cacheControl), function (_, response) {",
 					"            pm.test(`Status code is 200, Cache-Status and Age are ${cacheControl === '' ? '' : 'not '}present`, function () {",
 					"                    const expected = pm.expect(response);",
 					"                    expected.to.have.status(200);",
-					"",
-					"                    if (cacheControl == '') {",
-					"                        expected.to.have.header(\"Age\");",
-					"                        expected.to.have.header(\"Cache-Status\");",
+					"                    if (exclude) {",
+					"                        pm.response.to.not.have.header(\"Cache-Status\");",
 					"                    } else {",
-					"                        expected.to.not.have.header(\"Age\");",
-					"                        expected.to.not.have.header(\"Cache-Status\");",
+					"                        expected.to.have.header(\"Cache-Status\");",
+					"",
+					"                        if (cacheControl == '') {",
+					"                            expected.to.have.header(\"Age\");",
+					"                            pm.expect(response.headers.get(\"Cache-Status\")).to.include(\"Souin; fwd=hit; ttl=\");",
+					"                        } else {",
+					"                            expected.to.not.have.header(\"Age\");",
+					"                            pm.expect(response.headers.get(\"Cache-Status\")).to.eql(\"Souin; fwd=uri-miss\");",
+					"                        }",
 					"                    }",
 					"                }",
 					"            );",
