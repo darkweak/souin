@@ -59,6 +59,7 @@ type baseStorage struct {
 	Storage    map[string]string
 	Keys       map[string]configurationtypes.SurrogateKeys
 	keysRegexp map[string]keysRegexpInner
+	dynamic    bool
 }
 
 func (s *baseStorage) init(config configurationtypes.AbstractConfigurationInterface) {
@@ -90,7 +91,7 @@ func (s *baseStorage) init(config configurationtypes.AbstractConfigurationInterf
 }
 
 func (s *baseStorage) storeTag(tag string, cacheKey string, re *regexp.Regexp) {
-	if currentValue, b := s.Storage[tag]; b {
+	if currentValue, b := s.Storage[tag]; s.dynamic || b {
 		if !re.MatchString(currentValue) {
 			s.Storage[tag] = currentValue + souinStorageSeparator + cacheKey
 		}
@@ -139,11 +140,6 @@ func (s *baseStorage) Store(request *http.Request, cacheKey string) error {
 	}
 
 	keys := s.ParseHeaders(s.parent.getSurrogateKey(request.Header))
-	// path := request.Host + request.RequestURI
-	// selectedKey := s.keysRegexp.FindString(path)
-	// if nil != selectedKey {
-	//
-	// }
 
 	for _, key := range keys {
 		if controls := s.ParseHeaders(s.parent.getSurrogateControl(request.Header)); len(controls) != 0 {
