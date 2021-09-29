@@ -3,11 +3,11 @@ package traefik
 import (
 	"bytes"
 	"context"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/darkweak/souin/api"
@@ -30,7 +30,13 @@ type getterContext struct {
 // CustomWriter is a custom writer
 type CustomWriter struct {
 	Response *http.Response
+	BufPool *sync.Pool
 	http.ResponseWriter
+}
+
+// Header will write the response headers
+func (r *CustomWriter) Header() http.Header {
+	return r.ResponseWriter.Header()
 }
 
 // WriteHeader will write the response headers
@@ -48,12 +54,12 @@ func (r *CustomWriter) Write(b []byte) (int, error) {
 		r.Response.StatusCode = http.StatusOK
 	}
 	r.Response.Body = ioutil.NopCloser(bytes.NewBuffer(b))
-	return 0, nil
+	return len(b), nil
 }
 
 // Send delays the response to handle Cache-Status
 func (r *CustomWriter) Send() (int, error) {
-	b, _ := io.ReadAll(r.Response.Body)
+	b, _ := ioutil.ReadAll(r.Response.Body)
 	for h, v := range r.Response.Header {
 		if len(v) > 0 {
 			r.Header().Set(h, strings.Join(v, ", "))
@@ -138,6 +144,8 @@ func DefaultSouinPluginInitializerFromConfiguration(c configurationtypes.Abstrac
 		Transport:     transport,
 		ExcludeRegex:  excludedRegexp,
 	}
+
+	retriever.Transport.SetURL(retriever.MatchedURL)
 	return retriever
 }
 

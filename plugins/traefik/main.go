@@ -192,12 +192,16 @@ func (s *SouinTraefikPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		}
 	}
 
-	DefaultSouinPluginCallback(rw, req, s.Retriever, s.RequestCoalescing, func(_ http.ResponseWriter, _ *http.Request) error {
+	DefaultSouinPluginCallback(customRW, req, s.Retriever, s.RequestCoalescing, func(_ http.ResponseWriter, _ *http.Request) error {
+		var e error
 		s.next.ServeHTTP(customRW, req)
 		req.Response = customRW.Response
 
-		_, e := s.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(req)
+		if req.Response, e = s.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(req); e != nil {
+			return e
+		}
 
+		_, e = customRW.Send()
 		return e
 	})
 }

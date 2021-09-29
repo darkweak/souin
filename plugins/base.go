@@ -24,8 +24,8 @@ import (
 // CustomWriter handles the response and provide the way to cache the value
 type CustomWriter struct {
 	Response *http.Response
+	BufPool  *sync.Pool
 	http.ResponseWriter
-	BufPool *sync.Pool
 }
 
 // WriteHeader will write the response headers
