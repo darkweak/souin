@@ -109,6 +109,7 @@ ykeys:
 |:----------------------------------------:|:---------------------------------------------------------------------------------:|:-----------------------------------------------------------------------------:|
 | `api.basepath`                           | BasePath for all APIs to avoid conflicts                                          | `/your-non-conflicting-route`<br/><br/>`(default: /souin-api)`                |
 | `api.{api}.enable`                       | Enable the new API with related routes                                            | `true`<br/><br/>`(default: false)`                                            |
+| `api.{api}.security`                     | Enable the JWT Authentication token verification                                  | `true`<br/><br/>`(default: false)`                                            |
 | `api.security.secret`                    | JWT secret key                                                                    | `Any_charCanW0rk123`                                                          |
 | `api.security.users`                     | Array of authorized users with username x password combo                          | `- username: admin`<br/><br/>`  password: admin`                              |
 | `api.souin.security`                     | Enable JWT validation to access the resource                                      | `true`<br/><br/>`(default: false)`                                            |
@@ -130,12 +131,13 @@ All endpoints are accessible through the `api.basepath` configuration line or by
 ### Souin API
 Souin API allow users to manage the cache.  
 The base path for the souin API is `/souin`.
+The Souin API supports the invalidation by surrogate keys such as Fastly which will replace the Varnish system. You can read the doc [about this system](./cache/surrogate/README.md)
 
 | Method  | Endpoint          | Description                                                                              |
 |:-------:|:-----------------:|:-----------------------------------------------------------------------------------------|
 | `GET`   | `/`               | List stored keys cache                                                                   |
 | `PURGE` | `/{id or regexp}` | Purge selected item(s) depending. The parameter can be either a specific key or a regexp |
-| `PURGE` | `/?ykey={key}`    | Purge selected item(s) corresponding to the target ykey such as Varnish                  |
+| `PURGE` | `/?ykey={key}`    | Purge selected item(s) corresponding to the target ykey such as Varnish (deprecated)     |
 
 ### Security API
 Security API allows users to protect other APIs with JWT authentication.  
@@ -144,7 +146,7 @@ The base path for the security API is `/authentication`.
 | Method | Endpoint   | Body                                       | Headers                                                                         | Description                                                                                                            |
 |:------:|:----------:|:------------------------------------------:|:-------------------------------------------------------------------------------:|:----------------------------------------------------------------------------------------------------------------------:|
 | `POST` | `/login`   | `{"username":"admin", "password":"admin"}` | `['Content-Type' => 'json']`                                                    | Try to login, it returns a response which contains the cookie name `souin-authorization-token` with the JWT if succeed |
-| `POST` | `/refresh` | `-`                                        | `['Content-Type' => 'json', 'Cookie' => 'souin-authorization-token=the-token']` | Refreshes the token, replaces the old with a new one |
+| `POST` | `/refresh` | `-`                                        | `['Content-Type' => 'json', 'Cookie' => 'souin-authorization-token=the-token']` | Refreshes the token, replaces the old with a new one                                                                   |
 
 ## Diagrams
 
