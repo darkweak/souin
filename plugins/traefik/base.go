@@ -93,11 +93,7 @@ func sendAnyCachedResponse(rh http.Header, response *http.Response, res http.Res
 	res.WriteHeader(response.StatusCode)
 	b, _ := ioutil.ReadAll(response.Body)
 	_, _ = res.Write(b)
-	cw, success := res.(*CustomWriter)
-
-	if success {
-		_, _ = cw.Send()
-	}
+	_, _ = res.(*CustomWriter).Send()
 }
 
 // DefaultSouinPluginCallback is the default callback for plugins
@@ -109,43 +105,35 @@ func DefaultSouinPluginCallback(
 	nextMiddleware func(w http.ResponseWriter, r *http.Request) error,
 ) {
 	cacheKey := rfc.GetCacheKey(req)
-	responses := make(chan *http.Response)
 
 	if http.MethodGet == req.Method && !strings.Contains(req.Header.Get("Cache-Control"), "no-cache") {
-		go func() {
-			r, _ := rfc.CachedResponse(
-				retriever.GetProvider(),
-				req,
-				cacheKey,
-				retriever.GetTransport(),
-				true,
-			)
+		r, _ := rfc.CachedResponse(
+			retriever.GetProvider(),
+			req,
+			cacheKey,
+			retriever.GetTransport(),
+			true,
+		)
 
-			responses <- rfc.ValidateMaxAgeCachedResponse(req, r)
-
-			r, _ = rfc.CachedResponse(
-				retriever.GetProvider(),
-				req,
-				"STALE_"+cacheKey,
-				retriever.GetTransport(),
-				true,
-			)
-
-			responses <- rfc.ValidateStaleCachedResponse(req, r)
-		}()
-
-		response, open := <-responses
-		if open && nil != response {
-			rh := response.Header
+		if r != nil {
+			rh := r.Header
 			rfc.HitCache(&rh)
-			sendAnyCachedResponse(rh, response, res)
+			sendAnyCachedResponse(rh, r, res)
 			return
 		}
-		response, open = <-responses
-		if open && nil != response {
-			rh := response.Header
+
+		r, _ = rfc.CachedResponse(
+			retriever.GetProvider(),
+			req,
+			"STALE_"+cacheKey,
+			retriever.GetTransport(),
+			true,
+		)
+
+		if r != nil {
+			rh := r.Header
 			rfc.HitStaleCache(&rh)
-			sendAnyCachedResponse(rh, response, res)
+			sendAnyCachedResponse(rh, r, res)
 			return
 		}
 	}
