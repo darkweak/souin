@@ -112,7 +112,7 @@ func DefaultSouinPluginCallback(
 			req,
 			cacheKey,
 			retriever.GetTransport(),
-			true,
+			false,
 		)
 
 		if r != nil {
@@ -127,7 +127,7 @@ func DefaultSouinPluginCallback(
 			req,
 			"STALE_"+cacheKey,
 			retriever.GetTransport(),
-			true,
+			false,
 		)
 
 		if r != nil {
