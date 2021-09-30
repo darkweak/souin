@@ -71,6 +71,7 @@ type CacheProvider struct {
 // CDN config
 type CDN struct {
 	APIKey   string `json:"api_key,omitempty" yaml:"api_key,omitempty"`
+	Dynamic  string `json:"dynamic,omitempty" yaml:"dynamic,omitempty"`
 	Hostname string `json:"hostname,omitempty" yaml:"hostname,omitempty"`
 	Network  string `json:"network,omitempty" yaml:"network,omitempty"`
 	Provider string `json:"provider,omitempty" yaml:"provider,omitempty"`
