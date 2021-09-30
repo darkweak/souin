@@ -67,6 +67,21 @@ func CanHandle(r *http.Request, re types.RetrieverResponsePropertiesInterface) b
 	return r.Header.Get("Upgrade") != "websocket" && (re.GetExcludeRegexp() == nil || !re.GetExcludeRegexp().MatchString(r.RequestURI))
 }
 
+func sendAnyCachedResponse(rh http.Header, response *http.Response, res http.ResponseWriter) {
+	response.Header = rh
+	for k, v := range response.Header {
+		res.Header().Set(k, v[0])
+	}
+	res.WriteHeader(response.StatusCode)
+	b, _ := ioutil.ReadAll(response.Body)
+	_, _ = res.Write(b)
+	cw, success := res.(*CustomWriter)
+
+	if success {
+		_, _ = cw.Send()
+	}
+}
+
 // DefaultSouinPluginCallback is the default callback for plugins
 func DefaultSouinPluginCallback(
 	res http.ResponseWriter,
@@ -76,15 +91,16 @@ func DefaultSouinPluginCallback(
 	nextMiddleware func(w http.ResponseWriter, r *http.Request) error,
 ) {
 	coalesceable := make(chan bool)
-	responses := make(chan types.ReverseResponse)
+	responses := make(chan *http.Response)
 	cacheCandidate := http.MethodGet == req.Method && !strings.Contains(req.Header.Get("Cache-Control"), "no-cache")
+	cacheKey := rfc.GetCacheKey(req)
 
 	go func() {
-		cacheKey := rfc.GetCacheKey(req)
+		coalesceable <- retriever.GetTransport().GetCoalescingLayerStorage().Exists(cacheKey)
+	}()
+
+	if cacheCandidate {
 		go func() {
-			coalesceable <- retriever.GetTransport().GetCoalescingLayerStorage().Exists(cacheKey)
-		}()
-		if cacheCandidate {
 			r, _ := rfc.CachedResponse(
 				retriever.GetProvider(),
 				req,
@@ -92,28 +108,34 @@ func DefaultSouinPluginCallback(
 				retriever.GetTransport(),
 				false,
 			)
-			responses <- r
-		}
-	}()
+
+			responses <- rfc.ValidateMaxAgeCachedResponse(req, r)
+
+			r, _ = rfc.CachedResponse(
+				retriever.GetProvider(),
+				req,
+				"STALE_"+cacheKey,
+				retriever.GetTransport(),
+				false,
+			)
+
+			responses <- rfc.ValidateStaleCachedResponse(req, r)
+		}()
+	}
 
 	if cacheCandidate {
 		response, open := <-responses
-		if open && nil != response.Response {
-			close(responses)
-			rh := response.Response.Header
+		if open && nil != response {
+			rh := response.Header
 			rfc.HitCache(&rh)
-			response.Response.Header = rh
-			for k, v := range response.Response.Header {
-				res.Header().Set(k, v[0])
-			}
-			res.WriteHeader(response.Response.StatusCode)
-			b, _ := ioutil.ReadAll(response.Response.Body)
-			_, _ = res.Write(b)
-			cw, success := res.(*CustomWriter)
-
-			if success {
-				_, _ = cw.Send()
-			}
+			sendAnyCachedResponse(rh, response, res)
+			return
+		}
+		response, open = <-responses
+		if open && nil != response {
+			rh := response.Header
+			rfc.HitStaleCache(&rh)
+			sendAnyCachedResponse(rh, response, res)
 			return
 		}
 	}

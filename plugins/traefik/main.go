@@ -103,6 +103,11 @@ func parseConfiguration(c map[string]interface{}) Configuration {
 					if err == nil {
 						dc.TTL = configurationtypes.Duration{Duration: ttl}
 					}
+				case "stale":
+					stale, err := time.ParseDuration(defaultCacheV.(string))
+					if err == nil {
+						dc.Stale = configurationtypes.Duration{Duration: stale}
+					}
 				}
 			}
 			configuration.DefaultCache = &dc

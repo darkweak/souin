@@ -30,12 +30,8 @@ func TestCachedResponse_WithUpdate(t *testing.T) {
 		errors.GenerateError(t, "CachedResponse cannot throw error")
 	}
 
-	if res.Response != nil {
+	if res != nil {
 		errors.GenerateError(t, "Result from cached response should be a valid response")
-	}
-
-	if res.Request != nil || res.Proxy != nil {
-		errors.GenerateError(t, "Request and Proxy shouldn't be set")
 	}
 }
 
@@ -48,11 +44,7 @@ func TestCachedResponse_WithoutUpdate(t *testing.T) {
 		errors.GenerateError(t, "CachedResponse cannot throw error")
 	}
 
-	if res.Response != nil {
+	if res != nil {
 		errors.GenerateError(t, "Result from cached response should be a valid response")
-	}
-
-	if res.Request != nil || res.Proxy != nil {
-		errors.GenerateError(t, "Request and Proxy shouldn't be set")
 	}
 }

@@ -85,6 +85,21 @@ func InitializeRequest(rw http.ResponseWriter, req *http.Request, next http.Hand
 	}
 }
 
+func sendAnyCachedResponse(rh http.Header, response *http.Response, res http.ResponseWriter) {
+	response.Header = rh
+	for k, v := range response.Header {
+		res.Header().Set(k, v[0])
+	}
+	res.WriteHeader(response.StatusCode)
+	b, _ := ioutil.ReadAll(response.Body)
+	_, _ = res.Write(b)
+	cw, success := res.(*CustomWriter)
+
+	if success {
+		_, _ = cw.Send()
+	}
+}
+
 // DefaultSouinPluginCallback is the default callback for plugins
 func DefaultSouinPluginCallback(
 	res http.ResponseWriter,
@@ -94,27 +109,43 @@ func DefaultSouinPluginCallback(
 	nextMiddleware func(w http.ResponseWriter, r *http.Request) error,
 ) {
 	cacheKey := rfc.GetCacheKey(req)
-	if http.MethodGet == req.Method && !strings.Contains(req.Header.Get("Cache-Control"), "no-cache") {
-		r, _ := rfc.CachedResponse(
-			retriever.GetProvider(),
-			req,
-			cacheKey,
-			retriever.GetTransport(),
-			true,
-		)
+	responses := make(chan *http.Response)
 
-		m := r.Response
-		if !(m == nil) {
-			rh := r.Response.Header
+	if http.MethodGet == req.Method && !strings.Contains(req.Header.Get("Cache-Control"), "no-cache") {
+		go func() {
+			r, _ := rfc.CachedResponse(
+				retriever.GetProvider(),
+				req,
+				cacheKey,
+				retriever.GetTransport(),
+				true,
+			)
+
+			responses <- rfc.ValidateMaxAgeCachedResponse(req, r)
+
+			r, _ = rfc.CachedResponse(
+				retriever.GetProvider(),
+				req,
+				"STALE_"+cacheKey,
+				retriever.GetTransport(),
+				true,
+			)
+
+			responses <- rfc.ValidateStaleCachedResponse(req, r)
+		}()
+
+		response, open := <-responses
+		if open && nil != response {
+			rh := response.Header
 			rfc.HitCache(&rh)
-			r.Response.Header = rh
-			for k, v := range r.Response.Header {
-				res.Header().Set(k, v[0])
-			}
-			res.WriteHeader(r.Response.StatusCode)
-			b, _ := ioutil.ReadAll(r.Response.Body)
-			_, _ = res.Write(b)
-			_, _ = res.(*CustomWriter).Send()
+			sendAnyCachedResponse(rh, response, res)
+			return
+		}
+		response, open = <-responses
+		if open && nil != response {
+			rh := response.Header
+			rfc.HitStaleCache(&rh)
+			sendAnyCachedResponse(rh, response, res)
 			return
 		}
 	}

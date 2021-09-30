@@ -31,7 +31,7 @@ func TestSouinAPI_BulkDelete(t *testing.T) {
 	souinMock.provider.Set("firstKey", []byte("value"), tests.GetMatchedURL("firstKey"), 20*time.Second)
 	souinMock.provider.Set("secondKey", []byte("value"), tests.GetMatchedURL("secondKey"), 20*time.Second)
 	time.Sleep(3 * time.Second)
-	if len(souinMock.GetAll()) != 2 {
+	if len(souinMock.GetAll()) != 4 {
 		errors.GenerateError(t, "Souin API should have a record")
 	}
 	souinMock.BulkDelete(".+")
@@ -44,11 +44,16 @@ func TestSouinAPI_Delete(t *testing.T) {
 	souinMock := mockSouinAPI()
 	souinMock.provider.Set("key", []byte("value"), tests.GetMatchedURL("key"), 20*time.Second)
 	time.Sleep(3 * time.Second)
-	if len(souinMock.GetAll()) != 1 {
-		errors.GenerateError(t, "Souin API should have a record")
+	if len(souinMock.GetAll()) != 2 {
+		errors.GenerateError(t, "Souin API should have 2 records")
 	}
 	souinMock.Delete("key")
-	time.Sleep(3 * time.Second)
+	time.Sleep(1 * time.Second)
+	if len(souinMock.GetAll()) > 1 {
+		errors.GenerateError(t, "Souin API should contains only one record")
+	}
+	souinMock.Delete("STALE_key")
+	time.Sleep(1 * time.Second)
 	if len(souinMock.GetAll()) == 1 {
 		errors.GenerateError(t, "Souin API shouldn't have a record")
 	}
@@ -62,7 +67,7 @@ func TestSouinAPI_GetAll(t *testing.T) {
 
 	souinMock.provider.Set("key", []byte("value"), tests.GetMatchedURL("key"), 6*time.Second)
 	time.Sleep(3 * time.Second)
-	if len(souinMock.GetAll()) != 1 {
+	if len(souinMock.GetAll()) != 2 {
 		errors.GenerateError(t, "Souin API should have a record")
 	}
 	time.Sleep(10 * time.Second)

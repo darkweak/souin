@@ -322,6 +322,12 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 				if err == nil {
 					cfg.DefaultCache.TTL.Duration = ttl
 				}
+			case "stale":
+				args := h.RemainingArgs()
+				stale, err := time.ParseDuration(args[0])
+				if err == nil {
+					cfg.DefaultCache.Stale.Duration = stale
+				}
 			default:
 				return nil, h.Errf("unsupported root directive: %s", rootOption)
 			}
@@ -352,6 +358,11 @@ func parseCaddyfileHandlerDirective(h httpcaddyfile.Helper) (caddyhttp.Middlewar
 			ttl, err := time.ParseDuration(h.RemainingArgs()[0])
 			if err == nil {
 				sc.DefaultCache.TTL.Duration = ttl
+			}
+		case "stale":
+			stale, err := time.ParseDuration(h.RemainingArgs()[0])
+			if err == nil {
+				sc.DefaultCache.Stale.Duration = stale
 			}
 		}
 	}

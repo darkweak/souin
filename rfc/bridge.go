@@ -17,7 +17,7 @@ const (
 
 // CachedResponse returns the cached http.Response for req if present, and nil
 // otherwise.
-func CachedResponse(c types.AbstractProviderInterface, req *http.Request, cachedKey string, transport types.TransportInterface, update bool) (types.ReverseResponse, error) {
+func CachedResponse(c types.AbstractProviderInterface, req *http.Request, cachedKey string, transport types.TransportInterface, update bool) (*http.Response, error) {
 	clonedReq := cloneRequest(req)
 	cachedVal := c.Prefix(cachedKey, req)
 	b := bytes.NewBuffer(cachedVal)
@@ -30,9 +30,7 @@ func CachedResponse(c types.AbstractProviderInterface, req *http.Request, cached
 			_, _ = transport.UpdateCacheEventually(clonedReq)
 		}()
 	}
-	return types.ReverseResponse{
-		Response: response,
-	}, nil
+	return response, nil
 }
 
 func commonCacheControl(req *http.Request, t http.RoundTripper) (*http.Response, error) {
@@ -74,8 +72,8 @@ func (t *VaryTransport) BaseRoundTrip(req *http.Request, shouldReUpdate bool) (s
 
 	if cacheable {
 		cr, _ := CachedResponse(t.GetProvider(), req, cacheKey, t, shouldReUpdate)
-		if cr.Response != nil {
-			cachedResp = cr.Response
+		if cr != nil {
+			cachedResp = cr
 		}
 	} else {
 		go func() {
@@ -143,7 +141,6 @@ func (t *VaryTransport) UpdateCacheEventually(req *http.Request) (*http.Response
 	} else {
 		req.Response.Header.Set("Cache-Status", "Souin; fwd=uri-miss")
 	}
-
 
 	return req.Response, nil
 }

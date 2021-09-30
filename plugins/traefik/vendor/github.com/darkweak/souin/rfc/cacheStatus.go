@@ -51,6 +51,12 @@ func HitCache(h *http.Header) {
 	manageAge(h)
 }
 
+// HitStaleCache set hit and manage age header too
+func HitStaleCache(h *http.Header) {
+	manageAge(h)
+	h.Set("Cache-Status", h.Get("Cache-Status")+"; fwd=stale")
+}
+
 func manageAge(h *http.Header) {
 	utc1 := time.Now().UTC()
 	dh := h.Get("Date")

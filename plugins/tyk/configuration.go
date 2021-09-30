@@ -42,6 +42,7 @@ type DefaultCache struct {
 	Olric       configurationtypes.CacheProvider `json:"olric,omitempty"`
 	Regex       configurationtypes.Regex         `json:"regex,omitempty"`
 	TTL         Duration                         `json:"ttl,omitempty"`
+	Stale       configurationtypes.Duration      `json:"stale,omitempty"`
 }
 
 // GetBadger returns the Badger configuration
@@ -77,6 +78,11 @@ func (d *DefaultCache) GetRegex() configurationtypes.Regex {
 // GetTTL returns the default TTL
 func (d *DefaultCache) GetTTL() time.Duration {
 	return d.TTL.Duration
+}
+
+// GetStale returns the stale duration
+func (d *DefaultCache) GetStale() time.Duration {
+	return d.Stale.Duration
 }
 
 //Configuration holder

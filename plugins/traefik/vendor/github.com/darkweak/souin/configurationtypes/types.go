@@ -88,6 +88,7 @@ type DefaultCache struct {
 	Port        Port          `json:"port" yaml:"port"`
 	Regex       Regex         `json:"regex" yaml:"regex"`
 	TTL         Duration      `json:"ttl" yaml:"ttl"`
+	Stale       Duration      `json:"stale" yaml:"stale"`
 }
 
 // GetBadger returns the Badger configuration
@@ -125,6 +126,11 @@ func (d *DefaultCache) GetTTL() time.Duration {
 	return d.TTL.Duration
 }
 
+// GetStale returns the stale duration
+func (d *DefaultCache) GetStale() time.Duration {
+	return d.Stale.Duration
+}
+
 // DefaultCacheInterface interface
 type DefaultCacheInterface interface {
 	GetBadger() CacheProvider
@@ -134,6 +140,7 @@ type DefaultCacheInterface interface {
 	GetHeaders() []string
 	GetRegex() Regex
 	GetTTL() time.Duration
+	GetStale() time.Duration
 }
 
 // APIEndpoint is the minimal structure to define an endpoint
