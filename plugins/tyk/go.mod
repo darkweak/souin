@@ -7,7 +7,7 @@ require (
 	github.com/TykTechnologies/tyk v2.9.5+incompatible
 	github.com/buraksezer/olric v0.3.11
 	github.com/clbanning/mxj v1.8.4 // indirect
-	github.com/darkweak/souin v1.5.9
+	github.com/darkweak/souin v1.5.10
 	github.com/franela/goblin v0.0.0-20210519012713-85d372ac71e2 // indirect
 	github.com/franela/goreq v0.0.0-20171204163338-bcd34c9993f8 // indirect
 	github.com/google/uuid v1.3.0
@@ -24,6 +24,6 @@ require (
 )
 
 replace (
-	github.com/darkweak/souin v1.5.9 => ../..
+	github.com/darkweak/souin v1.5.10 => ../..
 	github.com/hashicorp/terraform v1.0.1 => github.com/hashicorp/terraform v0.14.11
 )
