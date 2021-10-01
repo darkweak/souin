@@ -3,9 +3,10 @@ package rfc
 import (
 	"bufio"
 	"bytes"
-	"github.com/darkweak/souin/cache/types"
 	"net/http"
 	"time"
+
+	"github.com/darkweak/souin/cache/types"
 )
 
 const (
@@ -16,7 +17,7 @@ const (
 
 // CachedResponse returns the cached http.Response for req if present, and nil
 // otherwise.
-func CachedResponse(c types.AbstractProviderInterface, req *http.Request, cachedKey string, transport types.TransportInterface, update bool) (types.ReverseResponse, error) {
+func CachedResponse(c types.AbstractProviderInterface, req *http.Request, cachedKey string, transport types.TransportInterface, update bool) (*http.Response, error) {
 	clonedReq := cloneRequest(req)
 	cachedVal := c.Prefix(cachedKey, req)
 	b := bytes.NewBuffer(cachedVal)
@@ -29,9 +30,7 @@ func CachedResponse(c types.AbstractProviderInterface, req *http.Request, cached
 			_, _ = transport.UpdateCacheEventually(clonedReq)
 		}()
 	}
-	return types.ReverseResponse{
-		Response: response,
-	}, nil
+	return response, nil
 }
 
 func commonCacheControl(req *http.Request, t http.RoundTripper) (*http.Response, error) {
@@ -51,11 +50,11 @@ func commonCacheControl(req *http.Request, t http.RoundTripper) (*http.Response,
 
 func (t *VaryTransport) deleteCache(key string) {
 	go func() {
-		if t.YkeyStorage != nil {
-			t.YkeyStorage.InvalidateTagURLs(key)
+		if t.Transport.YkeyStorage != nil {
+			t.Transport.YkeyStorage.InvalidateTagURLs(key)
 		}
 	}()
-	t.Provider.Delete(key)
+	t.Transport.Provider.Delete(key)
 }
 
 // BaseRoundTrip is the base for RoundTrip
@@ -63,6 +62,9 @@ func (t *VaryTransport) BaseRoundTrip(req *http.Request, shouldReUpdate bool) (s
 	cacheKey := GetCacheKey(req)
 	cacheable := IsVaryCacheable(req)
 	cachedResp := req.Response
+	if cachedResp == nil {
+		cachedResp = new(http.Response)
+	}
 
 	if cachedResp.Header == nil {
 		cachedResp.Header = make(http.Header)
@@ -70,8 +72,8 @@ func (t *VaryTransport) BaseRoundTrip(req *http.Request, shouldReUpdate bool) (s
 
 	if cacheable {
 		cr, _ := CachedResponse(t.GetProvider(), req, cacheKey, t, shouldReUpdate)
-		if cr.Response != nil {
-			cachedResp = cr.Response
+		if cr != nil {
+			cachedResp = cr
 		}
 	} else {
 		go func() {
@@ -122,26 +124,25 @@ func (t *VaryTransport) UpdateCacheEventually(req *http.Request) (*http.Response
 	if cacheable && cachedResp != nil {
 		rDate, _ := time.Parse(time.RFC1123, req.Header.Get("Date"))
 		cachedResp.Header.Set("Date", rDate.Format(http.TimeFormat))
-		cachedResp.Header.Set("Cache-Status", "Souin; fwd=uri-miss: stored")
 		r := commonVaryMatchesVerification(cachedResp, req)
 		if r != nil {
 			return r, nil
 		}
 	} else {
-		if cachedResp != nil {
-			cachedResp.Header.Set("Cache-Status", "Souin; fwd=uri-miss")
-		}
 		if _, err := commonCacheControl(req, t); err != nil {
 			return nil, err
 		}
 	}
 
-	resp := cachedResp
-	if cacheable {
-		_ = validateVary(req, resp, cacheKey, t)
+	req.Response = cachedResp
+
+	if cacheable && canStore(parseCacheControl(req.Header), parseCacheControl(req.Response.Header)) {
+		_ = validateVary(req, req.Response, cacheKey, t)
+	} else {
+		req.Response.Header.Set("Cache-Status", "Souin; fwd=uri-miss")
 	}
 
-	return resp, nil
+	return req.Response, nil
 }
 
 // RoundTrip takes a Request and returns a Response
@@ -155,13 +156,12 @@ func (t *VaryTransport) UpdateCacheEventually(req *http.Request) (*http.Response
 func (t *VaryTransport) RoundTrip(req *http.Request) (resp *http.Response, err error) {
 	cacheKey, cacheable, cachedResp := t.BaseRoundTrip(req, true)
 
-	transport := t.Transport
+	transport := t.Transport.Transport
 	if transport == nil {
 		transport = http.DefaultTransport
 	}
 
 	if cacheable && cachedResp != nil {
-		cachedResp.Header.Set("Cache-Status", "Souin; fwd=uri-miss: stored")
 		r := commonVaryMatchesVerification(cachedResp, req)
 		if r != nil {
 			return r, nil
@@ -195,9 +195,9 @@ func (t *VaryTransport) RoundTrip(req *http.Request) (resp *http.Response, err e
 		resp.Header.Set("Cache-Status", "Souin; fwd=uri-miss")
 	}
 	resp, _ = transport.RoundTrip(req)
-	if !(cacheable && validateVary(req, resp, cacheKey, t)) {
+	if !(cacheable && canStore(parseCacheControl(req.Header), parseCacheControl(resp.Header)) && validateVary(req, resp, cacheKey, t)) {
 		go func() {
-			t.CoalescingLayerStorage.Set(cacheKey)
+			t.Transport.CoalescingLayerStorage.Set(cacheKey)
 		}()
 		t.deleteCache(cacheKey)
 	}

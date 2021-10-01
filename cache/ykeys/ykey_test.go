@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/darkweak/souin/configuration"
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/errors"
+	"github.com/darkweak/souin/plugins/souin/configuration"
 )
 
 const FirstKey = "The_First_Test"
@@ -17,7 +17,7 @@ const SecondKey = "The_Second_Test"
 const ThirdKey = "The_Third_Test"
 const FourthKey = "The_Fourth_Test"
 
-func mockYkeys() map[string]configurationtypes.YKey {
+func mockYkeys() map[string]configurationtypes.SurrogateKeys {
 	var config configuration.Configuration
 	_ = config.Parse([]byte(
 		`

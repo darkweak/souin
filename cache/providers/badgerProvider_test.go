@@ -119,10 +119,10 @@ func TestBadger_SetRequestInCache_TTL(t *testing.T) {
 	setValueThenVerify(client, key, nv, matchedURL, time.Duration(20)*time.Second, t)
 }
 
-func TestBadger_SetRequestInCache_NoTTL(t *testing.T) {
+func TestBadger_SetRequestInCache_Negative_TTL(t *testing.T) {
 	client, matchedURL := getBadgerClientAndMatchedURL(BYTEKEY)
 	nv := []byte("New value")
-	client.Set(BYTEKEY, nv, matchedURL, 0)
+	client.Set(BYTEKEY, nv, matchedURL, -1)
 	time.Sleep(1 * time.Second)
 	verifyNewValueAfterSet(client, BYTEKEY, []byte{}, t)
 }

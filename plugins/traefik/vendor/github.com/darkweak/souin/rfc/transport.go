@@ -1,6 +1,7 @@
 package rfc
 
 import (
+	"github.com/darkweak/souin/cache/surrogate/providers"
 	"net/http"
 	"net/http/httputil"
 	"time"
@@ -11,7 +12,9 @@ import (
 )
 
 // VaryTransport type
-type VaryTransport types.Transport
+type VaryTransport struct {
+	*types.Transport
+}
 
 // IsVaryCacheable determines if it's cacheable
 func IsVaryCacheable(req *http.Request) bool {
@@ -22,33 +25,41 @@ func IsVaryCacheable(req *http.Request) bool {
 
 // NewTransport returns a new Transport with the
 // provided Cache implementation and MarkCachedResponses set to true
-func NewTransport(p types.AbstractProviderInterface, ykeyStorage *ykeys.YKeyStorage) *VaryTransport {
+func NewTransport(p types.AbstractProviderInterface, ykeyStorage *ykeys.YKeyStorage, surrogateStorage providers.SurrogateInterface) *VaryTransport {
 	return &VaryTransport{
-		Provider:               p,
-		CoalescingLayerStorage: types.InitializeCoalescingLayerStorage(),
-		MarkCachedResponses:    true,
-		YkeyStorage:            ykeyStorage,
+		&types.Transport{
+			Provider:               p,
+			CoalescingLayerStorage: types.InitializeCoalescingLayerStorage(),
+			MarkCachedResponses:    true,
+			YkeyStorage:            ykeyStorage,
+			SurrogateStorage:       surrogateStorage,
+		},
 	}
 }
 
 // GetProvider returns the associated provider
 func (t *VaryTransport) GetProvider() types.AbstractProviderInterface {
-	return t.Provider
+	return t.Transport.Provider
 }
 
 // SetURL set the URL
 func (t *VaryTransport) SetURL(url configurationtypes.URL) {
-	t.ConfigurationURL = url
+	t.Transport.ConfigurationURL = url
 }
 
 // GetCoalescingLayerStorage get the coalescing layer storage
 func (t *VaryTransport) GetCoalescingLayerStorage() *types.CoalescingLayerStorage {
-	return t.CoalescingLayerStorage
+	return t.Transport.CoalescingLayerStorage
 }
 
 // GetYkeyStorage get the ykeys storage
 func (t *VaryTransport) GetYkeyStorage() *ykeys.YKeyStorage {
-	return t.YkeyStorage
+	return t.Transport.YkeyStorage
+}
+
+// GetSurrogateKeys get the surrogate keys storage
+func (t *VaryTransport) GetSurrogateKeys() providers.SurrogateInterface {
+	return t.Transport.SurrogateStorage
 }
 
 // SetCache set the cache

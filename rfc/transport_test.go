@@ -2,6 +2,7 @@ package rfc
 
 import (
 	"fmt"
+	"github.com/darkweak/souin/cache/surrogate"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -45,7 +46,7 @@ func TestVaryTransport_GetProvider(t *testing.T) {
 	c := tests.MockConfiguration(tests.BaseConfiguration)
 	prs := providers.InitializeProvider(c)
 
-	tr := NewTransport(prs, ykeys.InitializeYKeys(c.Ykeys))
+	tr := NewTransport(prs, ykeys.InitializeYKeys(c.Ykeys), surrogate.InitializeSurrogate(c))
 	if tr.GetProvider() == nil {
 		errors.GenerateError(t, "Provider should exist")
 	}
@@ -59,7 +60,7 @@ func TestVaryTransport_SetURL(t *testing.T) {
 		Headers: config.GetDefaultCache().GetHeaders(),
 	}
 
-	tr := NewTransport(prs, ykeys.InitializeYKeys(config.Ykeys))
+	tr := NewTransport(prs, ykeys.InitializeYKeys(config.Ykeys), surrogate.InitializeSurrogate(config))
 	tr.SetURL(matchedURL)
 
 	if len(tr.ConfigurationURL.Headers) != len(matchedURL.Headers) || tr.ConfigurationURL.TTL != matchedURL.TTL {
@@ -73,7 +74,7 @@ func TestVaryTransport_SetCache(t *testing.T) {
 	key := GetCacheKey(req)
 	config := tests.MockConfiguration(tests.BaseConfiguration)
 	prs := providers.InitializeProvider(config)
-	tr := NewTransport(prs, ykeys.InitializeYKeys(config.Ykeys))
+	tr := NewTransport(prs, ykeys.InitializeYKeys(config.Ykeys), surrogate.InitializeSurrogate(config))
 	tr.SetCache(key, res)
 	time.Sleep(1 * time.Second)
 	if v, e := tr.YkeyStorage.Get("The_Third_Test"); v.(string) != key || !e {
