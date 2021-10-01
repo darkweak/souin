@@ -5,11 +5,11 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/darkweak/souin/plugins/souin/configuration"
 	"io/ioutil"
 	"log"
 	"strings"
 
-	"github.com/darkweak/souin/configuration"
 	"github.com/fsnotify/fsnotify"
 )
 

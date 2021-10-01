@@ -2,6 +2,7 @@ package rfc
 
 import (
 	"fmt"
+	"github.com/darkweak/souin/cache/surrogate"
 	"net/http/httptest"
 	"testing"
 
@@ -14,7 +15,7 @@ import (
 func TestVaryMatches(t *testing.T) {
 	c := tests.MockConfiguration(tests.BaseConfiguration)
 	prs := providers.InitializeProvider(c)
-	tr := NewTransport(prs, ykeys.InitializeYKeys(c.Ykeys))
+	tr := NewTransport(prs, ykeys.InitializeYKeys(c.Ykeys), surrogate.InitializeSurrogate(c))
 
 	r := httptest.NewRequest("GET", "http://domain.com/testing", nil)
 	res := httptest.NewRecorder().Result()

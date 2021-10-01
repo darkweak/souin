@@ -11,11 +11,11 @@ import (
 	"github.com/darkweak/souin/api"
 	"github.com/darkweak/souin/cache/coalescing"
 	"github.com/darkweak/souin/cache/service"
-	"github.com/darkweak/souin/configuration"
 	"github.com/darkweak/souin/errors"
 	"github.com/darkweak/souin/plugins"
+	"github.com/darkweak/souin/plugins/souin/configuration"
+	"github.com/darkweak/souin/plugins/souin/providers"
 	souintypes "github.com/darkweak/souin/plugins/souin/types"
-	"github.com/darkweak/souin/providers"
 )
 
 func souinPluginInitializerFromConfiguration(c *configuration.Configuration) *souintypes.SouinRetrieverResponseProperties {
@@ -72,7 +72,7 @@ func main() {
 	if basePathAPIS == "" {
 		basePathAPIS = "/souin-api"
 	}
-	for _, endpoint := range api.Initialize(retriever.Provider, c, retriever.GetTransport().GetYkeyStorage()) {
+	for _, endpoint := range api.Initialize(retriever.GetTransport(), c) {
 		if endpoint.IsEnabled() {
 			c.GetLogger().Info(fmt.Sprintf("Enabling %s%s endpoint.", basePathAPIS, endpoint.GetBasePath()))
 			http.HandleFunc(fmt.Sprintf("%s%s", basePathAPIS, endpoint.GetBasePath()), endpoint.HandleRequest)

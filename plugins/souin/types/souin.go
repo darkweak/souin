@@ -16,7 +16,7 @@ type SouinRetrieverResponseProperties struct {
 
 // GetProvider interface
 func (r *SouinRetrieverResponseProperties) GetProvider() types.AbstractProviderInterface {
-	return r.Provider
+	return r.RetrieverResponseProperties.Provider
 }
 
 // GetConfiguration get the configuration

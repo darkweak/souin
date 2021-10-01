@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"github.com/darkweak/souin/api"
 	"net/http"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/darkweak/souin/api"
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/rfc"
 )
@@ -103,6 +103,11 @@ func parseConfiguration(c map[string]interface{}) Configuration {
 					if err == nil {
 						dc.TTL = configurationtypes.Duration{Duration: ttl}
 					}
+				case "stale":
+					stale, err := time.ParseDuration(defaultCacheV.(string))
+					if err == nil {
+						dc.Stale = configurationtypes.Duration{Duration: stale}
+					}
 				}
 			}
 			configuration.DefaultCache = &dc
@@ -130,7 +135,7 @@ func parseConfiguration(c map[string]interface{}) Configuration {
 			}
 			configuration.URLs = u
 		case "ykeys":
-			ykeys := make(map[string]configurationtypes.YKey)
+			ykeys := make(map[string]configurationtypes.SurrogateKeys)
 			d, _ := json.Marshal(v)
 			_ = json.Unmarshal(d, &ykeys)
 			configuration.Ykeys = ykeys
@@ -149,7 +154,7 @@ func New(_ context.Context, next http.Handler, config *TestConfiguration, name s
 	c := parseConfiguration(*config)
 
 	s.Retriever = DefaultSouinPluginInitializerFromConfiguration(&c)
-	s.MapHandler = api.GenerateHandlerMap(&c, s.Retriever.GetProvider(), s.Retriever.GetTransport().GetYkeyStorage())
+	s.MapHandler = api.GenerateHandlerMap(&c, s.Retriever.GetTransport())
 	return s, nil
 }
 
@@ -192,12 +197,16 @@ func (s *SouinTraefikPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		}
 	}
 
-	DefaultSouinPluginCallback(rw, req, s.Retriever, s.RequestCoalescing, func(_ http.ResponseWriter, _ *http.Request) error {
+	DefaultSouinPluginCallback(customRW, req, s.Retriever, s.RequestCoalescing, func(_ http.ResponseWriter, _ *http.Request) error {
+		var e error
 		s.next.ServeHTTP(customRW, req)
 		req.Response = customRW.Response
 
-		_, e := s.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(req)
+		if req.Response, e = s.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(req); e != nil {
+			return e
+		}
 
+		_, e = customRW.Send()
 		return e
 	})
 }

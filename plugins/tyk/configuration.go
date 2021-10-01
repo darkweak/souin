@@ -36,16 +36,23 @@ func (d *Duration) UnmarshalJSON(b []byte) error {
 // DefaultCache the struct
 type DefaultCache struct {
 	Badger      configurationtypes.CacheProvider `json:"badger,omitempty"`
+	CDN         configurationtypes.CDN           `json:"cdn,omitempty"`
 	Distributed bool
 	Headers     []string                         `json:"api,omitempty"`
 	Olric       configurationtypes.CacheProvider `json:"olric,omitempty"`
 	Regex       configurationtypes.Regex         `json:"regex,omitempty"`
 	TTL         Duration                         `json:"ttl,omitempty"`
+	Stale       configurationtypes.Duration      `json:"stale,omitempty"`
 }
 
 // GetBadger returns the Badger configuration
 func (d *DefaultCache) GetBadger() configurationtypes.CacheProvider {
 	return d.Badger
+}
+
+// GetCDN returns the CDN configuration
+func (d *DefaultCache) GetCDN() configurationtypes.CDN {
+	return d.CDN
 }
 
 // GetDistributed returns if it uses Olric or not as provider
@@ -73,14 +80,20 @@ func (d *DefaultCache) GetTTL() time.Duration {
 	return d.TTL.Duration
 }
 
+// GetStale returns the stale duration
+func (d *DefaultCache) GetStale() time.Duration {
+	return d.Stale.Duration
+}
+
 //Configuration holder
 type Configuration struct {
-	DefaultCache *DefaultCache                     `json:"default_cache,omitempty"`
-	API          configurationtypes.API            `json:"api,omitempty"`
-	URLs         map[string]configurationtypes.URL `json:"urls,omitempty"`
-	LogLevel     string                            `json:"log_level,omitempty"`
-	logger       *zap.Logger
-	Ykeys        map[string]configurationtypes.YKey `json:"ykeys,omitempty"`
+	DefaultCache  *DefaultCache                     `json:"default_cache,omitempty"`
+	API           configurationtypes.API            `json:"api,omitempty"`
+	URLs          map[string]configurationtypes.URL `json:"urls,omitempty"`
+	LogLevel      string                            `json:"log_level,omitempty"`
+	logger        *zap.Logger
+	Ykeys         map[string]configurationtypes.SurrogateKeys `json:"ykeys,omitempty"`
+	SurrogateKeys map[string]configurationtypes.SurrogateKeys `json:"surrogate_keys,omitempty"`
 }
 
 // GetUrls get the urls list in the configuration
@@ -114,6 +127,11 @@ func (c *Configuration) SetLogger(l *zap.Logger) {
 }
 
 // GetYkeys get the ykeys list
-func (c *Configuration) GetYkeys() map[string]configurationtypes.YKey {
+func (c *Configuration) GetYkeys() map[string]configurationtypes.SurrogateKeys {
 	return c.Ykeys
+}
+
+// GetSurrogateKeys get the surrogate keys list
+func (c *Configuration) GetSurrogateKeys() map[string]configurationtypes.SurrogateKeys {
+	return c.SurrogateKeys
 }

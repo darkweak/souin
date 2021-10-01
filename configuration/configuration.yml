@@ -9,6 +9,10 @@ api:
   souin:
     security: false
     enable: true
+cdn:
+  api_key: XXXX
+  provider: fastly
+  strategy: soft
 default_cache:
   headers:
     - Authorization
@@ -33,6 +37,14 @@ urls:
       - Authorization
       - 'Content-Type'
 ykeys:
+  The_First_Test:
+    headers:
+      Content-Type: '.+'
+  The_Second_Test:
+    url: 'the/second/.+'
+  The_Third_Test:
+  The_Fourth_Test:
+surrogate_keys:
   The_First_Test:
     headers:
       Content-Type: '.+'

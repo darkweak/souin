@@ -14,12 +14,12 @@ type Duration struct {
 }
 
 // MarshalYAML transform the Duration into a time.duration object
-func (d Duration) MarshalYAML() (interface{}, error) {
+func (d *Duration) MarshalYAML() (interface{}, error) {
 	return yaml.Marshal(d.Duration.String())
 }
 
 // UnmarshalYAML parse the time.duration into a Duration object
-func (d Duration) UnmarshalYAML(b *yaml.Node) error {
+func (d *Duration) UnmarshalYAML(b *yaml.Node) error {
 	var e error
 	d.Duration, e = time.ParseDuration(b.Value) // nolint
 
@@ -44,44 +44,61 @@ type Port struct {
 	TLS string `json:"tls" yaml:"tls"`
 }
 
-//Cache config
+// Cache config
 type Cache struct {
 	Headers []string `json:"headers" yaml:"headers"`
 	Port    Port     `json:"port" yaml:"port"`
 }
 
-//Regex config
+// Regex config
 type Regex struct {
 	Exclude string `json:"exclude" yaml:"exclude"`
 }
 
-//URL configuration
+// URL configuration
 type URL struct {
 	TTL     Duration `json:"ttl" yaml:"ttl"`
 	Headers []string `json:"headers" yaml:"headers"`
 }
 
-//CacheProvider config
+// CacheProvider config
 type CacheProvider struct {
 	URL           string      `json:"url" yaml:"url"`
 	Path          string      `json:"path" yaml:"path"`
 	Configuration interface{} `json:"configuration" yaml:"configuration"`
 }
 
-//DefaultCache configuration
+// CDN config
+type CDN struct {
+	APIKey   string `json:"api_key,omitempty" yaml:"api_key,omitempty"`
+	Dynamic  string `json:"dynamic,omitempty" yaml:"dynamic,omitempty"`
+	Hostname string `json:"hostname,omitempty" yaml:"hostname,omitempty"`
+	Network  string `json:"network,omitempty" yaml:"network,omitempty"`
+	Provider string `json:"provider,omitempty" yaml:"provider,omitempty"`
+	Strategy string `json:"strategy,omitempty" yaml:"strategy,omitempty"`
+}
+
+// DefaultCache configuration
 type DefaultCache struct {
 	Badger      CacheProvider `json:"badger" yaml:"badger"`
+	CDN         CDN           `json:"cdn" yaml:"cdn"`
 	Distributed bool          `json:"distributed" yaml:"distributed"`
 	Headers     []string      `json:"headers" yaml:"headers"`
 	Olric       CacheProvider `json:"olric" yaml:"olric"`
 	Port        Port          `json:"port" yaml:"port"`
 	Regex       Regex         `json:"regex" yaml:"regex"`
 	TTL         Duration      `json:"ttl" yaml:"ttl"`
+	Stale       Duration      `json:"stale" yaml:"stale"`
 }
 
 // GetBadger returns the Badger configuration
 func (d *DefaultCache) GetBadger() CacheProvider {
 	return d.Badger
+}
+
+// GetCDN returns the CDN configuration
+func (d *DefaultCache) GetCDN() CDN {
+	return d.CDN
 }
 
 // GetDistributed returns if it uses Olric or not as provider
@@ -109,14 +126,21 @@ func (d *DefaultCache) GetTTL() time.Duration {
 	return d.TTL.Duration
 }
 
+// GetStale returns the stale duration
+func (d *DefaultCache) GetStale() time.Duration {
+	return d.Stale.Duration
+}
+
 // DefaultCacheInterface interface
 type DefaultCacheInterface interface {
 	GetBadger() CacheProvider
+	GetCDN() CDN
 	GetDistributed() bool
 	GetOlric() CacheProvider
 	GetHeaders() []string
 	GetRegex() Regex
 	GetTTL() time.Duration
+	GetStale() time.Duration
 }
 
 // APIEndpoint is the minimal structure to define an endpoint
@@ -147,8 +171,8 @@ type API struct {
 	Security SecurityAPI `json:"security" yaml:"security"`
 }
 
-// YKey structure define the way ykeys are stored
-type YKey struct {
+// SurrogateKeys structure define the way surrogate keys are stored
+type SurrogateKeys struct {
 	URL     string            `json:"url" yaml:"url"`
 	Headers map[string]string `json:"headers" yaml:"headers"`
 }
@@ -161,5 +185,6 @@ type AbstractConfigurationInterface interface {
 	GetLogLevel() string
 	GetLogger() *zap.Logger
 	SetLogger(*zap.Logger)
-	GetYkeys() map[string]YKey
+	GetYkeys() map[string]SurrogateKeys
+	GetSurrogateKeys() map[string]SurrogateKeys
 }

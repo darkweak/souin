@@ -18,7 +18,8 @@ type Configuration struct {
 	URLs            map[string]configurationtypes.URL `yaml:"urls"`
 	LogLevel        string                            `yaml:"log_level"`
 	logger          *zap.Logger
-	Ykeys           map[string]configurationtypes.YKey `yaml:"ykeys"`
+	Ykeys           map[string]configurationtypes.SurrogateKeys `yaml:"ykeys"`
+	SurrogateKeys   map[string]configurationtypes.SurrogateKeys `yaml:"surrogate_keys"`
 }
 
 func readFile(path string) []byte {
@@ -78,8 +79,13 @@ func (c *Configuration) SetLogger(l *zap.Logger) {
 }
 
 // GetYkeys get the ykeys list
-func (c *Configuration) GetYkeys() map[string]configurationtypes.YKey {
+func (c *Configuration) GetYkeys() map[string]configurationtypes.SurrogateKeys {
 	return c.Ykeys
+}
+
+// GetSurrogateKeys get the surrogate keys list
+func (c *Configuration) GetSurrogateKeys() map[string]configurationtypes.SurrogateKeys {
+	return c.SurrogateKeys
 }
 
 // GetConfiguration allow to retrieve Souin configuration through yaml file

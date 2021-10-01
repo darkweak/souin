@@ -2,9 +2,10 @@ package auth
 
 import (
 	"fmt"
-	"github.com/darkweak/souin/configurationtypes"
 	"net/http"
 	"regexp"
+
+	"github.com/darkweak/souin/configurationtypes"
 )
 
 // SecurityAPI object contains informations related to the endpoints

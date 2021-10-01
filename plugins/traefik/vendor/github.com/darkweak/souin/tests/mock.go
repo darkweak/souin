@@ -8,8 +8,8 @@ import (
 	"regexp"
 
 	"github.com/darkweak/souin/cache/types"
-	"github.com/darkweak/souin/configuration"
 	"github.com/darkweak/souin/configurationtypes"
+	"github.com/darkweak/souin/plugins/souin/configuration"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )

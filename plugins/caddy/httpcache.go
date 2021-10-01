@@ -83,15 +83,18 @@ func (s *SouinCaddyPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request, 
 		BufPool: s.bufPool,
 	}
 
-	plugins.DefaultSouinPluginCallback(customWriter, req, s.Retriever, s.RequestCoalescing, func(_ http.ResponseWriter, _ *http.Request) error {
-		e := combo.next.ServeHTTP(customWriter, combo.req)
-		if e != nil {
+	plugins.DefaultSouinPluginCallback(customWriter, req, s.Retriever, nil, func(_ http.ResponseWriter, _ *http.Request) error {
+		var e error
+		if e = combo.next.ServeHTTP(customWriter, combo.req); e != nil {
 			return e
 		}
 
 		combo.req.Response = customWriter.Response
-		_, e = s.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(combo.req)
+		if combo.req.Response, e = s.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(combo.req); e != nil {
+			return e
+		}
 
+		_, _ = customWriter.Send()
 		return e
 	})
 
@@ -197,7 +200,7 @@ func (s *SouinCaddyPlugin) Provision(ctx caddy.Context) error {
 	}
 
 	s.RequestCoalescing = coalescing.Initialize()
-	s.MapHandler = api.GenerateHandlerMap(s.Configuration, s.Retriever.GetTransport().GetProvider(), s.Retriever.GetTransport().GetYkeyStorage())
+	s.MapHandler = api.GenerateHandlerMap(s.Configuration, s.Retriever.GetTransport())
 	return nil
 }
 
@@ -319,6 +322,12 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 				if err == nil {
 					cfg.DefaultCache.TTL.Duration = ttl
 				}
+			case "stale":
+				args := h.RemainingArgs()
+				stale, err := time.ParseDuration(args[0])
+				if err == nil {
+					cfg.DefaultCache.Stale.Duration = stale
+				}
 			default:
 				return nil, h.Errf("unsupported root directive: %s", rootOption)
 			}
@@ -349,6 +358,11 @@ func parseCaddyfileHandlerDirective(h httpcaddyfile.Helper) (caddyhttp.Middlewar
 			ttl, err := time.ParseDuration(h.RemainingArgs()[0])
 			if err == nil {
 				sc.DefaultCache.TTL.Duration = ttl
+			}
+		case "stale":
+			stale, err := time.ParseDuration(h.RemainingArgs()[0])
+			if err == nil {
+				sc.DefaultCache.Stale.Duration = stale
 			}
 		}
 	}

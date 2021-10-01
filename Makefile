@@ -28,7 +28,7 @@ build-caddy: ## Build caddy binary
 	cd plugins/caddy && \
 	go mod tidy && \
 	go mod download && \
-	xcaddy build --with github.com/darkweak/souin/plugins/caddy=./
+	xcaddy build --with github.com/darkweak/souin/plugins/caddy=./ --with github.com/darkweak/souin=../..
 
 build-dev: env-dev ## Build containers with dev env vars
 	$(DC_BUILD) souin

@@ -3,15 +3,17 @@ package traefik
 import (
 	"bytes"
 	"context"
-	"github.com/darkweak/souin/api"
 	"io/ioutil"
 	"net/http"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
+	"github.com/darkweak/souin/api"
 	"github.com/darkweak/souin/cache/coalescing"
 	"github.com/darkweak/souin/cache/providers"
+	"github.com/darkweak/souin/cache/surrogate"
 	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/cache/ykeys"
 	"github.com/darkweak/souin/configurationtypes"
@@ -25,15 +27,45 @@ type getterContext struct {
 	next http.Handler
 }
 
-type customWriter struct {
+// CustomWriter is a custom writer
+type CustomWriter struct {
 	Response *http.Response
+	BufPool *sync.Pool
 	http.ResponseWriter
 }
 
-func (r *customWriter) Write(b []byte) (int, error) {
+// Header will write the response headers
+func (r *CustomWriter) Header() http.Header {
+	return r.ResponseWriter.Header()
+}
+
+// WriteHeader will write the response headers
+func (r *CustomWriter) WriteHeader(code int) {
+	if code == 0 {
+		return
+	}
+	r.Response.StatusCode = code
+}
+
+// Write will write the response body
+func (r *CustomWriter) Write(b []byte) (int, error) {
 	r.Response.Header = r.ResponseWriter.Header()
-	r.Response.StatusCode = http.StatusOK
+	if r.Response.StatusCode == 0 {
+		r.Response.StatusCode = http.StatusOK
+	}
 	r.Response.Body = ioutil.NopCloser(bytes.NewBuffer(b))
+	return len(b), nil
+}
+
+// Send delays the response to handle Cache-Status
+func (r *CustomWriter) Send() (int, error) {
+	b, _ := ioutil.ReadAll(r.Response.Body)
+	for h, v := range r.Response.Header {
+		if len(v) > 0 {
+			r.Header().Set(h, strings.Join(v, ", "))
+		}
+	}
+	r.ResponseWriter.WriteHeader(r.Response.StatusCode)
 	return r.ResponseWriter.Write(b)
 }
 
@@ -41,15 +73,27 @@ type key string
 
 const getterContextCtxKey key = "getter_context"
 
-func InitializeRequest(rw http.ResponseWriter, req *http.Request, next http.Handler) *customWriter {
+// InitializeRequest generate a CustomWriter instance to handle the response
+func InitializeRequest(rw http.ResponseWriter, req *http.Request, next http.Handler) *CustomWriter {
 	getterCtx := getterContext{rw, req, next}
 	ctx := context.WithValue(req.Context(), getterContextCtxKey, getterCtx)
 	req = req.WithContext(ctx)
 	req.Header.Set("Date", time.Now().UTC().Format(time.RFC1123))
-	return &customWriter{
+	return &CustomWriter{
 		ResponseWriter: rw,
 		Response:       &http.Response{},
 	}
+}
+
+func sendAnyCachedResponse(rh http.Header, response *http.Response, res http.ResponseWriter) {
+	response.Header = rh
+	for k, v := range response.Header {
+		res.Header().Set(k, v[0])
+	}
+	res.WriteHeader(response.StatusCode)
+	b, _ := ioutil.ReadAll(response.Body)
+	_, _ = res.Write(b)
+	_, _ = res.(*CustomWriter).Send()
 }
 
 // DefaultSouinPluginCallback is the default callback for plugins
@@ -61,26 +105,35 @@ func DefaultSouinPluginCallback(
 	nextMiddleware func(w http.ResponseWriter, r *http.Request) error,
 ) {
 	cacheKey := rfc.GetCacheKey(req)
+
 	if http.MethodGet == req.Method && !strings.Contains(req.Header.Get("Cache-Control"), "no-cache") {
 		r, _ := rfc.CachedResponse(
 			retriever.GetProvider(),
 			req,
 			cacheKey,
 			retriever.GetTransport(),
-			true,
+			false,
 		)
 
-		m := r.Response
-		if !(m == nil) {
-			rh := r.Response.Header
+		if r != nil {
+			rh := r.Header
 			rfc.HitCache(&rh)
-			r.Response.Header = rh
-			for k, v := range r.Response.Header {
-				res.Header().Set(k, v[0])
-			}
-			res.WriteHeader(r.Response.StatusCode)
-			b, _ := ioutil.ReadAll(r.Response.Body)
-			_, _ = res.Write(b)
+			sendAnyCachedResponse(rh, r, res)
+			return
+		}
+
+		r, _ = rfc.CachedResponse(
+			retriever.GetProvider(),
+			req,
+			"STALE_"+cacheKey,
+			retriever.GetTransport(),
+			false,
+		)
+
+		if r != nil {
+			rh := r.Header
+			rfc.HitStaleCache(&rh)
+			sendAnyCachedResponse(rh, r, res)
 			return
 		}
 	}
@@ -93,7 +146,7 @@ func DefaultSouinPluginInitializerFromConfiguration(c configurationtypes.Abstrac
 	provider := providers.InitializeProvider(c)
 	regexpUrls := helpers.InitializeRegexp(c)
 	var transport types.TransportInterface
-	transport = rfc.NewTransport(provider, ykeys.InitializeYKeys(c.GetYkeys()))
+	transport = rfc.NewTransport(provider, ykeys.InitializeYKeys(c.GetYkeys()), surrogate.InitializeSurrogate(c))
 	var excludedRegexp *regexp.Regexp = nil
 	if c.GetDefaultCache().GetRegex().Exclude != "" {
 		excludedRegexp = regexp.MustCompile(c.GetDefaultCache().GetRegex().Exclude)
@@ -110,6 +163,8 @@ func DefaultSouinPluginInitializerFromConfiguration(c configurationtypes.Abstrac
 		Transport:     transport,
 		ExcludeRegex:  excludedRegexp,
 	}
+
+	retriever.Transport.SetURL(retriever.MatchedURL)
 	return retriever
 }
 
@@ -120,6 +175,7 @@ type SouinBasePlugin struct {
 	MapHandler        *api.MapHandler
 }
 
+// HandleInternally handles the Souin custom endpoints
 func (s *SouinBasePlugin) HandleInternally(r *http.Request) (bool, http.HandlerFunc) {
 	if s.MapHandler != nil {
 		for k, souinHandler := range *s.MapHandler.Handlers {

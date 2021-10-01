@@ -15,6 +15,7 @@ import (
 type Olric struct {
 	*client.Client
 	dm *client.DMap
+	stale time.Duration
 }
 
 // OlricConnectionFactory function create new Olric instance
@@ -32,8 +33,9 @@ func OlricConnectionFactory(configuration t.AbstractConfigurationInterface) (*Ol
 	}
 
 	return &Olric{
-		c,
-		nil,
+		Client: c,
+		dm: nil,
+		stale: configuration.GetDefaultCache().GetStale(),
 	}, nil
 }
 
@@ -111,8 +113,11 @@ func (provider *Olric) Set(key string, value []byte, url t.URL, duration time.Du
 		duration = url.TTL.Duration
 	}
 
-	err := provider.dm.PutEx(key, value, duration)
-	if err != nil {
+	if err := provider.dm.PutEx(key, value, duration); err != nil {
+		panic(err)
+	}
+
+	if err := provider.dm.PutEx(stalePrefix+key, value, provider.stale+duration); err != nil {
 		panic(err)
 	}
 }

@@ -2,11 +2,12 @@ package auth
 
 import (
 	"fmt"
-	"github.com/darkweak/souin/errors"
-	"github.com/darkweak/souin/tests"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/darkweak/souin/errors"
+	"github.com/darkweak/souin/tests"
 )
 
 func TestCheckToken(t *testing.T) {

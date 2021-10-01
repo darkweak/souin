@@ -71,6 +71,11 @@ api:
   souin: # Souin listing keys and cache management
     security: true # Enable JWT Authentication token
     enable: true # Enable the endpoints
+cdn: # If Souin is set after a CDN fill these informations
+  api_key: XXXX # Your provider API key if mandatory
+  provider: fastly # The provider placed before Souin (e.g. fastly, cloudflare, akamai, varnish)
+  strategy: soft # The strategy to purge the CDN cache based on tags (e.g. soft, hard)
+  dynamic: true # If true, you'll be able to add custom keys than the ones defined under the surrogate_keys key
 default_cache:
   distributed: true # Use Olric distributed storage
   headers: # Default headers concatenated in stored keys
@@ -79,6 +84,7 @@ default_cache:
     url: 'olric:3320' # Olric server
   regex:
     exclude: 'ARegexHere' # Regex to exclude from cache
+  stale: 1000s # Stale duration
   ttl: 1000s # Default TTL
 log_level: INFO # Logs verbosity [ DEBUG, INFO, WARN, ERROR, DPANIC, PANIC, FATAL ], case do not matter
 ssl_providers: # The {providers}.json to use
@@ -103,39 +109,55 @@ ykeys:
     url: 'the/second/.+'
   The_Third_Test:
   The_Fourth_Test:
+surrogate_keys:
+  The_First_Test:
+    headers:
+      Content-Type: '.+'
+  The_Second_Test:
+    url: 'the/second/.+'
+  The_Third_Test:
+  The_Fourth_Test:
 ```
 
-|  Key                                     |  Description                                                                      |  Value example                                                                |
-|:----------------------------------------:|:---------------------------------------------------------------------------------:|:-----------------------------------------------------------------------------:|
-| `api.basepath`                           | BasePath for all APIs to avoid conflicts                                          | `/your-non-conflicting-route`<br/><br/>`(default: /souin-api)`                |
-| `api.{api}.enable`                       | Enable the new API with related routes                                            | `true`<br/><br/>`(default: false)`                                            |
-| `api.security.secret`                    | JWT secret key                                                                    | `Any_charCanW0rk123`                                                          |
-| `api.security.users`                     | Array of authorized users with username x password combo                          | `- username: admin`<br/><br/>`  password: admin`                              |
-| `api.souin.security`                     | Enable JWT validation to access the resource                                      | `true`<br/><br/>`(default: false)`                                            |
-| `default_cache.headers`                  | List of headers to include to the cache                                           | `- Authorization`<br/><br/>`- Content-Type`<br/><br/>`- X-Additional-Header`  |
-| `default_cache.port.{web,tls}`           | The device's local HTTP/TLS port that Souin should be listening on                | Respectively `80` and `443`                                                   |
-| `default_cache.regex.exclude`            | The regex used to prevent paths being cached                                      | `^[A-z]+.*$`                                                                  |
-| `log_level`                              | The log level                                                                     | `One of DEBUG, INFO, WARN, ERROR, DPANIC, PANIC, FATAL it's case insensitive` |
-| `ssl_providers`                          | List of your providers handling certificates                                      | `- traefik`<br/><br/>`- nginx`<br/><br/>`- apache`                            |
-| `urls.{your url or regex}`               | List of your custom configuration depending each URL or regex                     | 'https:\/\/yourdomain.com'                                                    |
-| `urls.{your url or regex}.ttl`           | Override the default TTL if defined                                               | 99999                                                                         |
-| `urls.{your url or regex}.headers`       | Override the default headers if defined                                           | `- Authorization`<br/><br/>`- 'Content-Type'`                                 |
-| `ykeys.{key name}.headers`               | Headers that should match to be part of the ykey group                            | `Authorization: ey.+`<br/><br/>`Content-Type: json`                           |
-| `ykeys.{key name}.headers.{header name}` | Header name that should be present a match the regex to be part of the ykey group | `Content-Type: json`                                                          |
-| `ykeys.{key name}.url`                   | Url that should match to be part of the ykey group                                | `.+`                                                                          |
+|  Key                                              |  Description                                                                                   |  Value example                                                                |
+|:-------------------------------------------------:|:----------------------------------------------------------------------------------------------:|:-----------------------------------------------------------------------------:|
+| `api.basepath`                                    | BasePath for all APIs to avoid conflicts                                                       | `/your-non-conflicting-route`<br/><br/>`(default: /souin-api)`                |
+| `api.{api}.enable`                                | Enable the new API with related routes                                                         | `true`<br/><br/>`(default: false)`                                            |
+| `api.{api}.security`                              | Enable the JWT Authentication token verification                                               | `true`<br/><br/>`(default: false)`                                            |
+| `api.security.secret`                             | JWT secret key                                                                                 | `Any_charCanW0rk123`                                                          |
+| `api.security.users`                              | Array of authorized users with username x password combo                                       | `- username: admin`<br/><br/>`  password: admin`                              |
+| `api.souin.security`                              | Enable JWT validation to access the resource                                                   | `true`<br/><br/>`(default: false)`                                            |
+| `cdn.provider`                                    | The provider placed before Souin                                                               | `akamai`<br/><br/>`fastly`<br/><br/>`souin`                                   |
+| `default_cache.headers`                           | List of headers to include to the cache                                                        | `- Authorization`<br/><br/>`- Content-Type`<br/><br/>`- X-Additional-Header`  |
+| `default_cache.port.{web,tls}`                    | The device's local HTTP/TLS port that Souin should be listening on                             | Respectively `80` and `443`                                                   |
+| `default_cache.regex.exclude`                     | The regex used to prevent paths being cached                                                   | `^[A-z]+.*$`                                                                  |
+| `default_cache.stale`                             | The stale duration                                                                             | `^[A-z]+.*$`                                                                  |
+| `log_level`                                       | The log level                                                                                  | `One of DEBUG, INFO, WARN, ERROR, DPANIC, PANIC, FATAL it's case insensitive` |
+| `ssl_providers`                                   | List of your providers handling certificates                                                   | `- traefik`<br/><br/>`- nginx`<br/><br/>`- apache`                            |
+| `urls.{your url or regex}`                        | List of your custom configuration depending each URL or regex                                  | 'https:\/\/yourdomain.com'                                                    |
+| `urls.{your url or regex}.ttl`                    | Override the default TTL if defined                                                            | `90s`<br/><br/>`10m`                                                          |
+| `urls.{your url or regex}.headers`                | Override the default headers if defined                                                        | `- Authorization`<br/><br/>`- 'Content-Type'`                                 |
+| `surrogate_keys.{key name}.headers`               | Headers that should match to be part of the surrogate key group                                | `Authorization: ey.+`<br/><br/>`Content-Type: json`                           |
+| `surrogate_keys.{key name}.headers.{header name}` | Header name that should be present a match the regex to be part of the surrogate key group     | `Content-Type: json`                                                          |
+| `surrogate_keys.{key name}.url`                   | Url that should match to be part of the surrogate key group                                    | `.+`                                                                          |
+| `ykeys.{key name}.headers`                        | (DEPRECATED) Headers that should match to be part of the ykey group                            | `Authorization: ey.+`<br/><br/>`Content-Type: json`                           |
+| `ykeys.{key name}.headers.{header name}`          | (DEPRECATED) Header name that should be present a match the regex to be part of the ykey group | `Content-Type: json`                                                          |
+| `ykeys.{key name}.url`                            | (DEPRECATED) Url that should match to be part of the ykey group                                | `.+`                                                                          |
 
 ## APIs
 All endpoints are accessible through the `api.basepath` configuration line or by default through `/souin-api` to avoid named route conflicts. Be sure to define an unused route to not break your existing application.
 
 ### Souin API
 Souin API allow users to manage the cache.  
-The base path for the souin API is `/souin`.
+The base path for the souin API is `/souin`.  
+The Souin API supports the invalidation by surrogate keys such as Fastly which will replace the Varnish system. You can read the doc [about this system](https://github.com/darkweak/souin/blob/master/cache/surrogate/README.md).
+This system is able to invalidate by tags your cloud provider cache. Actually it supports Akamai and Fastly but in a near future some other providers would be implemented like Cloudflare or Varnish.
 
 | Method  | Endpoint          | Description                                                                              |
 |:-------:|:-----------------:|:-----------------------------------------------------------------------------------------|
 | `GET`   | `/`               | List stored keys cache                                                                   |
 | `PURGE` | `/{id or regexp}` | Purge selected item(s) depending. The parameter can be either a specific key or a regexp |
-| `PURGE` | `/?ykey={key}`    | Purge selected item(s) corresponding to the target ykey such as Varnish                  |
+| `PURGE` | `/?ykey={key}`    | Purge selected item(s) corresponding to the target ykey such as Varnish (deprecated)     |
 
 ### Security API
 Security API allows users to protect other APIs with JWT authentication.  
@@ -144,7 +166,7 @@ The base path for the security API is `/authentication`.
 | Method | Endpoint   | Body                                       | Headers                                                                         | Description                                                                                                            |
 |:------:|:----------:|:------------------------------------------:|:-------------------------------------------------------------------------------:|:----------------------------------------------------------------------------------------------------------------------:|
 | `POST` | `/login`   | `{"username":"admin", "password":"admin"}` | `['Content-Type' => 'json']`                                                    | Try to login, it returns a response which contains the cookie name `souin-authorization-token` with the JWT if succeed |
-| `POST` | `/refresh` | `-`                                        | `['Content-Type' => 'json', 'Cookie' => 'souin-authorization-token=the-token']` | Refreshes the token, replaces the old with a new one |
+| `POST` | `/refresh` | `-`                                        | `['Content-Type' => 'json', 'Cookie' => 'souin-authorization-token=the-token']` | Refreshes the token, replaces the old with a new one                                                                   |
 
 ## Diagrams
 
@@ -279,6 +301,14 @@ http:
                 - Authorization
                 - 'Content-Type'
           ykeys:
+            The_First_Test:
+              headers:
+                Content-Type: '.+'
+            The_Second_Test:
+              url: 'the/second/.+'
+            The_Third_Test:
+            The_Fourth_Test:
+          surrogate_keys:
             The_First_Test:
               headers:
                 Content-Type: '.+'

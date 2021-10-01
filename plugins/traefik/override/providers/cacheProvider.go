@@ -13,12 +13,13 @@ import (
 // Cache provider type
 type Cache struct {
 	*cache.Cache
+	stale time.Duration
 }
 
 // CacheConnectionFactory function create new Cache instance
-func CacheConnectionFactory(_ t.AbstractConfigurationInterface) (*Cache, error) {
-	c := cache.New(1*time.Second, 2*time.Second)
-	return &Cache{c}, nil
+func CacheConnectionFactory(c t.AbstractConfigurationInterface) (*Cache, error) {
+	provider := cache.New(1*time.Second, 2*time.Second)
+	return &Cache{Cache: provider, stale: c.GetDefaultCache().GetStale()}, nil
 }
 
 // ListKeys method returns the list of existing keys
@@ -71,6 +72,7 @@ func (provider *Cache) Set(key string, value []byte, url t.URL, duration time.Du
 	}
 
 	provider.Cache.Set(key, value, duration)
+	provider.Cache.Set("STALE_"+key, value, duration)
 }
 
 // Delete method will delete the response in Cache provider if exists corresponding to key param

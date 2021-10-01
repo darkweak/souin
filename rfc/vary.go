@@ -19,7 +19,7 @@ func varyMatches(cachedResp *http.Response, req *http.Request) bool {
 }
 
 func validateVary(req *http.Request, resp *http.Response, key string, t *VaryTransport) bool {
-	if resp != nil && canStore(parseCacheControl(req.Header), parseCacheControl(resp.Header)) {
+	if resp != nil {
 		variedHeaders := headerAllCommaSepValues(resp.Header)
 		cacheKey := key
 		if len(variedHeaders) > 0 {
@@ -29,6 +29,8 @@ func validateVary(req *http.Request, resp *http.Response, key string, t *VaryTra
 		case http.MethodGet:
 			// SetCache before EOF to set cache with a partial response then override the cache with the full one once it reach EOF
 			t.SetCache(cacheKey, resp)
+			_ = t.SurrogateStorage.Store(req, cacheKey)
+			resp.Header.Set("Cache-Status", "Souin; fwd=uri-miss: stored")
 			// Delay caching until EOF is reached.
 			resp.Body = &cachingReadCloser{
 				R: resp.Body,
@@ -36,6 +38,7 @@ func validateVary(req *http.Request, resp *http.Response, key string, t *VaryTra
 					re := *resp
 					re.Body = ioutil.NopCloser(r)
 					t.SetCache(cacheKey, &re)
+					_ = t.SurrogateStorage.Store(req, cacheKey)
 					go func() {
 						t.CoalescingLayerStorage.Delete(cacheKey)
 					}()

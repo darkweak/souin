@@ -2,13 +2,13 @@ version: '3.8'
 
 services:
   tyk-builder:
-    image: tykio/tyk-plugin-compiler:v3.2.2-rc4
+    image: tykio/tyk-plugin-compiler:v3.2.2-rc5
     command: souin-plugin.so
     volumes:
       - .:/plugin-source
 
   tyk-gateway:
-    image: tykio/tyk-gateway:v3.2.2-rc4
+    image: tykio/tyk-gateway:v3.2.2-rc5
     ports:
       - "8080:8080"
     depends_on:

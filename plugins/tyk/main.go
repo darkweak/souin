@@ -29,6 +29,7 @@ func getInstanceFromRequest(r *http.Request) *souinInstance {
  	return s.configurations[currentAPI]
 }
 
+// SouinResponseHandler stores the response before sent to the client if possible, only returns otherwise
 func SouinResponseHandler(rw http.ResponseWriter, res *http.Response, _ *http.Request) {
 	req := res.Request
 	req.Response = res
@@ -52,17 +53,17 @@ func SouinResponseHandler(rw http.ResponseWriter, res *http.Response, _ *http.Re
 			false,
 		)
 
-		if r.Response != nil {
-			rh := r.Response.Header
+		if r != nil {
+			rh := r.Header
 			rfc.HitCache(&rh)
-			r.Response.Header = rh
+			r.Header = rh
 			for _, v := range []string{"Age", "Cache-Status"} {
-				h := r.Response.Header.Get(v)
+				h := r.Header.Get(v)
 				if h != "" {
 					rw.Header().Set(v, h)
 				}
 			}
-			res = r.Response
+			res = r
 		} else {
 			res, _ = retriever.GetTransport().UpdateCacheEventually(req)
 		}

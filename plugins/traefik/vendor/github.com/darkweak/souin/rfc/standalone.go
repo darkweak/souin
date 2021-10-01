@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -24,6 +25,42 @@ func GetVariedCacheKey(req *http.Request, headers []string) string {
 		headers[i] = fmt.Sprintf("%s:%s", v, req.Header.Get(v))
 	}
 	return GetCacheKey(req) + providers.VarySeparator + strings.Join(headers, ";")
+}
+
+func ValidateMaxAgeCachedResponse(req *http.Request, res *http.Response) *http.Response {
+	if res == nil {
+		return nil
+	}
+
+	cc := parseCacheControl(req.Header)
+	if maxAge, ok := cc["max-age"]; ok {
+		ma, _ := strconv.Atoi(maxAge)
+		a, _ := strconv.Atoi(res.Header.Get("Age"))
+
+		if ma < a {
+			return nil
+		}
+	}
+
+	return res
+}
+
+func ValidateStaleCachedResponse(req *http.Request, res *http.Response) *http.Response {
+	if res == nil {
+		return nil
+	}
+
+	cc := parseCacheControl(req.Header)
+	if maxStale, ok := cc["max-stale"]; ok {
+		ms, _ := strconv.Atoi(maxStale)
+		a, _ := strconv.Atoi(res.Header.Get("Age"))
+
+		if ms < a {
+			return nil
+		}
+	}
+
+	return res
 }
 
 // getFreshness will return one of fresh/stale/transparent based on the cache-control

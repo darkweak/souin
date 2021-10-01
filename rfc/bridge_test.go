@@ -1,6 +1,7 @@
 package rfc
 
 import (
+	"github.com/darkweak/souin/cache/surrogate"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -18,7 +19,7 @@ func commonInitializer() (*http.Request, types.AbstractProviderInterface, *VaryT
 	r := httptest.NewRequest("GET", "http://domain.com/testing", nil)
 	httptest.NewRecorder()
 
-	return r, prs, NewTransport(prs, ykeys.InitializeYKeys(c.Ykeys))
+	return r, prs, NewTransport(prs, ykeys.InitializeYKeys(c.Ykeys), surrogate.InitializeSurrogate(c))
 }
 
 func TestCachedResponse_WithUpdate(t *testing.T) {
@@ -29,12 +30,8 @@ func TestCachedResponse_WithUpdate(t *testing.T) {
 		errors.GenerateError(t, "CachedResponse cannot throw error")
 	}
 
-	if res.Response != nil {
+	if res != nil {
 		errors.GenerateError(t, "Result from cached response should be a valid response")
-	}
-
-	if res.Request != nil || res.Proxy != nil {
-		errors.GenerateError(t, "Request and Proxy shouldn't be set")
 	}
 }
 
@@ -47,11 +44,7 @@ func TestCachedResponse_WithoutUpdate(t *testing.T) {
 		errors.GenerateError(t, "CachedResponse cannot throw error")
 	}
 
-	if res.Response != nil {
+	if res != nil {
 		errors.GenerateError(t, "Result from cached response should be a valid response")
-	}
-
-	if res.Request != nil || res.Proxy != nil {
-		errors.GenerateError(t, "Request and Proxy shouldn't be set")
 	}
 }

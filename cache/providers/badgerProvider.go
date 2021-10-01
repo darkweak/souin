@@ -15,11 +15,13 @@ import (
 // Badger provider type
 type Badger struct {
 	*badger.DB
+	stale time.Duration
 }
 
 // BadgerConnectionFactory function create new Badger instance
 func BadgerConnectionFactory(c t.AbstractConfigurationInterface) (*Badger, error) {
-	badgerConfiguration := c.GetDefaultCache().GetBadger()
+	dc := c.GetDefaultCache()
+	badgerConfiguration := dc.GetBadger()
 	badgerOptions := badger.DefaultOptions(badgerConfiguration.Path)
 	if badgerConfiguration.Configuration != nil {
 		var parsedBadger badger.Options
@@ -37,7 +39,7 @@ func BadgerConnectionFactory(c t.AbstractConfigurationInterface) (*Badger, error
 	}
 	db, _ := badger.Open(badgerOptions)
 
-	return &Badger{db}, nil
+	return &Badger{DB: db, stale: dc.GetStale()}, nil
 }
 
 // ListKeys method returns the list of existing keys
@@ -115,6 +117,14 @@ func (provider *Badger) Set(key string, value []byte, url t.URL, duration time.D
 
 	err := provider.DB.Update(func(txn *badger.Txn) error {
 		return txn.SetEntry(badger.NewEntry([]byte(key), value).WithTTL(duration))
+	})
+
+	if err != nil {
+		panic(fmt.Sprintf("Impossible to set value into Badger, %s", err))
+	}
+
+	err = provider.DB.Update(func(txn *badger.Txn) error {
+		return txn.SetEntry(badger.NewEntry([]byte(stalePrefix+key), value).WithTTL(provider.stale + duration))
 	})
 
 	if err != nil {

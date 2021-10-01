@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/darkweak/souin/cache/providers"
+	"github.com/darkweak/souin/cache/surrogate"
 	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/cache/ykeys"
 	"github.com/darkweak/souin/helpers"
@@ -27,7 +28,7 @@ func commonInitializer() (*httptest.ResponseRecorder, *http.Request, *types.Retr
 		Provider:      prs,
 		MatchedURL:    tests.GetMatchedURL(tests.PATH),
 		RegexpUrls:    regexpUrls,
-		Transport:     rfc.NewTransport(prs, ykeys.InitializeYKeys(c.Ykeys)),
+		Transport:     rfc.NewTransport(prs, ykeys.InitializeYKeys(c.Ykeys), surrogate.InitializeSurrogate(c)),
 		ExcludeRegex:  excludedRegexp,
 	}
 	r := httptest.NewRequest("GET", "http://"+tests.DOMAIN+tests.PATH, nil)

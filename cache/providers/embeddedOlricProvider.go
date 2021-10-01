@@ -21,6 +21,7 @@ import (
 type EmbeddedOlric struct {
 	dm *olric.DMap
 	db *olric.Olric
+	stale time.Duration
 }
 
 func tryToLoadConfiguration(olricInstance *config.Config, olricConfiguration t.CacheProvider, logger *zap.Logger) (*config.Config, bool) {
@@ -93,8 +94,9 @@ func EmbeddedOlricConnectionFactory(configuration t.AbstractConfigurationInterfa
 	dm, e := db.NewDMap("souin-map")
 
 	return &EmbeddedOlric{
-		dm,
-		db,
+		dm: dm,
+		db: db,
+		stale: configuration.GetDefaultCache().GetStale(),
 	}, e
 }
 
@@ -172,8 +174,11 @@ func (provider *EmbeddedOlric) Set(key string, value []byte, url t.URL, duration
 		duration = url.TTL.Duration
 	}
 
-	err := provider.dm.PutEx(key, value, duration)
-	if err != nil {
+	if err := provider.dm.PutEx(key, value, duration); err != nil {
+		panic(err)
+	}
+
+	if err := provider.dm.PutEx(stalePrefix+key, value, provider.stale+duration); err != nil {
 		panic(err)
 	}
 }
