@@ -1,11 +1,11 @@
 package rfc
 
 import (
-	"github.com/darkweak/souin/cache/surrogate/providers"
 	"net/http"
 	"net/http/httputil"
 	"time"
 
+	"github.com/darkweak/souin/cache/surrogate/providers"
 	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/cache/ykeys"
 	"github.com/darkweak/souin/configurationtypes"

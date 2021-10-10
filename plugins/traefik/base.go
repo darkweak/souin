@@ -30,7 +30,7 @@ type getterContext struct {
 // CustomWriter is a custom writer
 type CustomWriter struct {
 	Response *http.Response
-	BufPool *sync.Pool
+	BufPool  *sync.Pool
 	http.ResponseWriter
 }
 

@@ -2,11 +2,11 @@ package plugins
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"regexp"
 	"strings"
-	"sync"
 
 	"github.com/darkweak/souin/api"
 	"github.com/darkweak/souin/cache/coalescing"
@@ -24,30 +24,28 @@ import (
 // CustomWriter handles the response and provide the way to cache the value
 type CustomWriter struct {
 	Response *http.Response
-	BufPool  *sync.Pool
-	http.ResponseWriter
+	Buf      *bytes.Buffer
+	Rw       http.ResponseWriter
+}
+
+// WriteHeader will write the response headers
+func (r *CustomWriter) Header() http.Header {
+	return r.Rw.Header()
 }
 
 // WriteHeader will write the response headers
 func (r *CustomWriter) WriteHeader(code int) {
-	if code == 0 {
-		return
+	if code != 0 {
+		r.Response.StatusCode = code
 	}
-	r.Response.StatusCode = code
 }
 
 // Write will write the response body
 func (r *CustomWriter) Write(b []byte) (int, error) {
-	buf := r.BufPool.Get().(*bytes.Buffer)
-	buf.Reset()
-	defer r.BufPool.Put(buf)
-	r.Response.Header = r.ResponseWriter.Header()
-	if r.Response.StatusCode == 0 {
-		r.Response.StatusCode = http.StatusOK
-	}
-	buf.Write(b)
-	r.Response.Body = ioutil.NopCloser(buf)
-	return 0, nil
+	r.Response.Header = r.Rw.Header()
+	r.Buf.Write(b)
+	r.Response.Body = ioutil.NopCloser(r.Buf)
+	return len(b), nil
 }
 
 // Send delays the response to handle Cache-Status
@@ -55,11 +53,11 @@ func (r *CustomWriter) Send() (int, error) {
 	b, _ := ioutil.ReadAll(r.Response.Body)
 	for h, v := range r.Response.Header {
 		if len(v) > 0 {
-			r.Header().Set(h, strings.Join(v, ", "))
+			r.Rw.Header().Set(h, strings.Join(v, ", "))
 		}
 	}
-	r.ResponseWriter.WriteHeader(r.Response.StatusCode)
-	return r.ResponseWriter.Write(b)
+	r.Rw.WriteHeader(r.Response.StatusCode)
+	return r.Rw.Write(b)
 }
 
 // CanHandle detect if the request can be handled by Souin
@@ -76,7 +74,7 @@ func sendAnyCachedResponse(rh http.Header, response *http.Response, res http.Res
 	b, _ := ioutil.ReadAll(response.Body)
 	_, _ = res.Write(b)
 	cw, success := res.(*CustomWriter)
-
+	fmt.Println(cw, success)
 	if success {
 		_, _ = cw.Send()
 	}
@@ -124,19 +122,14 @@ func DefaultSouinPluginCallback(
 	}
 
 	if cacheCandidate {
-		response, open := <-responses
-		if open && nil != response {
-			rh := response.Header
-			rfc.HitCache(&rh)
-			sendAnyCachedResponse(rh, response, res)
-			return
-		}
-		response, open = <-responses
-		if open && nil != response {
-			rh := response.Header
-			rfc.HitStaleCache(&rh)
-			sendAnyCachedResponse(rh, response, res)
-			return
+		for i := 0; i < 2; i++ {
+			response, open := <-responses
+			if open && nil != response {
+				rh := response.Header
+				rfc.HitCache(&rh)
+				sendAnyCachedResponse(rh, response, res)
+				return
+			}
 		}
 	}
 

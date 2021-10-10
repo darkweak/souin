@@ -9,3 +9,4 @@ traefik.json
 *.iml
 plugins/caddy/caddy
 plugins/caddy/.github/*
+vendor/

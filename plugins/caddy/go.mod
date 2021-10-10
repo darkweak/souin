@@ -1,4 +1,4 @@
-module github.com/darkweak/souin/plugins/caddy
+module github.com/caddyserver/cache-handler
 
 go 1.16
 

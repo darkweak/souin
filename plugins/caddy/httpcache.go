@@ -3,13 +3,14 @@ package httpcache
 import (
 	"bytes"
 	"context"
-	"github.com/darkweak/souin/api"
-	"github.com/darkweak/souin/cache/coalescing"
-	"github.com/darkweak/souin/cache/types"
 	"net/http"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/darkweak/souin/api"
+	"github.com/darkweak/souin/cache/coalescing"
+	"github.com/darkweak/souin/cache/types"
 
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig"
@@ -41,10 +42,10 @@ type SouinCaddyPlugin struct {
 	logger        *zap.Logger
 	LogLevel      string `json:"log_level,omitempty"`
 	bufPool       *sync.Pool
-	Headers       []string                           `json:"headers,omitempty"`
-	Badger        configurationtypes.CacheProvider   `json:"badger,omitempty"`
-	Olric         configurationtypes.CacheProvider   `json:"olric,omitempty"`
-	TTL           configurationtypes.Duration        `json:"ttl,omitempty"`
+	Headers       []string                         `json:"headers,omitempty"`
+	Badger        configurationtypes.CacheProvider `json:"badger,omitempty"`
+	Olric         configurationtypes.CacheProvider `json:"olric,omitempty"`
+	TTL           configurationtypes.Duration      `json:"ttl,omitempty"`
 }
 
 // CaddyModule returns the Caddy module information.
@@ -72,16 +73,16 @@ func (s *SouinCaddyPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request, 
 		return nil
 	}
 
-	getterCtx := getterContext{rw, req, next}
+	customWriter := &plugins.CustomWriter{
+		Response: &http.Response{},
+		Buf:      s.bufPool.Get().(*bytes.Buffer),
+		Rw:       rw,
+	}
+	getterCtx := getterContext{customWriter, req, next}
 	ctx := context.WithValue(req.Context(), getterContextCtxKey, getterCtx)
 	req = req.WithContext(ctx)
 	req.Header.Set("Date", time.Now().UTC().Format(time.RFC1123))
 	combo := ctx.Value(getterContextCtxKey).(getterContext)
-	customWriter := &plugins.CustomWriter{
-		Response:       &http.Response{},
-		ResponseWriter: rw,
-		BufPool: s.bufPool,
-	}
 
 	plugins.DefaultSouinPluginCallback(customWriter, req, s.Retriever, nil, func(_ http.ResponseWriter, _ *http.Request) error {
 		var e error
