@@ -2,10 +2,11 @@ package providers
 
 import (
 	"fmt"
-	"github.com/darkweak/souin/configurationtypes"
 	"net/http"
 	"regexp"
 	"strings"
+
+	"github.com/darkweak/souin/configurationtypes"
 )
 
 const (
@@ -18,6 +19,7 @@ const (
 	souinCacheControl     = "Souin-Cache-Control"
 	fastlyCacheControl    = "Fastly-Cache-Control"
 	edgeCacheTag          = "Edge-Cache-Tag"
+	cacheTags             = "Cache-Tags"
 )
 
 func (s *baseStorage) ParseHeaders(value string) []string {
@@ -106,6 +108,7 @@ func (*baseStorage) getOrderedSurrogateKeyHeadersCandidate() []string {
 	return []string{
 		surrogateKey,
 		edgeCacheTag,
+		cacheTags,
 	}
 }
 
@@ -156,7 +159,7 @@ func (s *baseStorage) Store(request *http.Request, cacheKey string) error {
 	return nil
 }
 
-// Purge take the request headers as parameter, retrieve the associated cache keys for the Surrogate-Keys given.
+// Purge take the request headers as parameter, retrieve the associated cache keys for the Surrogate-Key given.
 // It returns an array which one contains the cache keys to invalidate.
 func (s *baseStorage) Purge(header http.Header) (cacheKeys []string, surrogateKeys []string) {
 	surrogates := s.ParseHeaders(s.parent.getSurrogateKey(header))

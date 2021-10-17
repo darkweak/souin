@@ -273,6 +273,26 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 					}
 				}
 				cfg.API = apiConfiguration
+			case "cdn":
+				cdn := configurationtypes.CDN{}
+				for nesting := h.Nesting(); h.NextBlock(nesting); {
+					directive := h.Val()
+					switch directive {
+					case "api_key":
+						cdn.APIKey = h.RemainingArgs()[0]
+					case "dynamic":
+						cdn.Dynamic = h.RemainingArgs()[0]
+					case "hostname":
+						cdn.Hostname = h.RemainingArgs()[0]
+					case "network":
+						cdn.Network = h.RemainingArgs()[0]
+					case "provider":
+						cdn.Provider = h.RemainingArgs()[0]
+					case "strategy":
+						cdn.Strategy = h.RemainingArgs()[0]
+					}
+				}
+				cfg.DefaultCache.CDN = cdn
 			case "regex":
 				for nesting := h.Nesting(); h.NextBlock(nesting); {
 					directive := h.Val()
