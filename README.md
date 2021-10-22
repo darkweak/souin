@@ -415,3 +415,4 @@ Thanks to these users for contributing or helping this project in any way
 * [Luc Michalski](https://github.com/lucmichalski)
 * [Jenaye](https://github.com/jenaye)
 * [Brennan Kinney](https://github.com/polarathene)
+* [Agneev](https://github.com/agneevX)
