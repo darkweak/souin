@@ -6,20 +6,17 @@ import (
 	"regexp"
 
 	"github.com/darkweak/souin/api/auth"
-	"github.com/darkweak/souin/cache/surrogate/providers"
 	"github.com/darkweak/souin/cache/types"
-	"github.com/darkweak/souin/cache/ykeys"
 	"github.com/darkweak/souin/configurationtypes"
 )
 
 // SouinAPI object contains informations related to the endpoints
 type SouinAPI struct {
-	basePath         string
-	enabled          bool
-	provider         types.AbstractProviderInterface
-	security         *auth.SecurityAPI
-	ykeyStorage      *ykeys.YKeyStorage
-	surrogateStorage providers.SurrogateInterface
+	basePath  string
+	enabled   bool
+	provider  types.AbstractProviderInterface
+	security  *auth.SecurityAPI
+	transport types.TransportInterface
 }
 
 func initializeSouin(
@@ -40,8 +37,7 @@ func initializeSouin(
 		configuration.GetAPI().Souin.Enable,
 		transport.GetProvider(),
 		security,
-		transport.GetYkeyStorage(),
-		transport.GetSurrogateKeys(),
+		transport,
 	}
 }
 
@@ -51,10 +47,10 @@ func (s *SouinAPI) BulkDelete(key string) {
 }
 
 func (s *SouinAPI) invalidateFromYKey(keys []string) {
-	if s.ykeyStorage == nil {
+	if s.transport.GetYkeyStorage() == nil {
 		return
 	}
-	urls := s.ykeyStorage.InvalidateTags(keys)
+	urls := s.transport.GetYkeyStorage().InvalidateTags(keys)
 	for _, u := range urls {
 		s.provider.Delete(u)
 	}
@@ -92,7 +88,9 @@ func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 	compile := regexp.MustCompile(s.GetBasePath()+"/.+").FindString(r.RequestURI) != ""
 	switch r.Method {
 	case http.MethodGet:
-		if compile {
+		if regexp.MustCompile(s.GetBasePath()+"/surrogate_keys").FindString(r.RequestURI) != "" {
+			res, _ = json.Marshal(s.transport.GetSurrogateKeys().List())
+		} else if compile {
 			w.WriteHeader(http.StatusNotFound)
 		} else {
 			res, _ = json.Marshal(s.GetAll())

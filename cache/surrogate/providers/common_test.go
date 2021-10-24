@@ -63,10 +63,10 @@ func TestBaseStorage_Purge(t *testing.T) {
 	headerMock.Set(surrogateKey, emptyHeaderValue)
 
 	tags, surrogates = bs.Purge(headerMock)
-	if len(tags) != 0 {
+	if len(tags) != 1 {
 		errors.GenerateError(t, "The tags length should be empty.")
 	}
-	if len(surrogates) != 0 {
+	if len(surrogates) != 1 {
 		errors.GenerateError(t, "The surrogates length should be equal to 0.")
 	}
 
@@ -85,15 +85,15 @@ func TestBaseStorage_Purge(t *testing.T) {
 }
 
 func TestBaseStorage_Store(t *testing.T) {
-	req := http.Request{
+	res := http.Response{
 		Header: http.Header{},
 	}
 
-	req.Header.Set(surrogateKey, baseHeaderValue)
+	res.Header.Set(surrogateKey, baseHeaderValue)
 
 	bs := mockCommonProvider()
 
-	e := bs.Store(&req, "((((invalid_key")
+	e := bs.Store(&res, "((((invalid_key")
 	if e == nil {
 		errors.GenerateError(t, "It should throw an error with an invalid key.")
 	}
@@ -104,7 +104,7 @@ func TestBaseStorage_Store(t *testing.T) {
 	bs.Storage["test5"] = "first,second,fifth"
 	bs.Storage["testInvalid"] = "invalid"
 
-	if e = bs.Store(&req, "stored"); e != nil {
+	if e = bs.Store(&res, "stored"); e != nil {
 		errors.GenerateError(t, "It shouldn't throw an error with a valid key.")
 	}
 

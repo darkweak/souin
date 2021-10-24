@@ -27,7 +27,6 @@ func validateVary(req *http.Request, resp *http.Response, key string, t *VaryTra
 		}
 		switch req.Method {
 		case http.MethodGet:
-			_ = t.SurrogateStorage.Store(req, cacheKey)
 			resp.Header.Set("Cache-Status", "Souin; fwd=uri-miss: stored")
 			// Delay caching until EOF is reached.
 			resp.Body = &cachingReadCloser{
@@ -35,8 +34,8 @@ func validateVary(req *http.Request, resp *http.Response, key string, t *VaryTra
 				OnEOF: func(r io.Reader) {
 					re := *resp
 					re.Body = ioutil.NopCloser(r)
+					_ = t.SurrogateStorage.Store(&re, cacheKey)
 					t.SetCache(cacheKey, &re)
-					_ = t.SurrogateStorage.Store(req, cacheKey)
 					go func() {
 						t.CoalescingLayerStorage.Delete(cacheKey)
 					}()

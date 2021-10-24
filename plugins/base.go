@@ -2,7 +2,6 @@ package plugins
 
 import (
 	"bytes"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"regexp"
@@ -74,7 +73,6 @@ func sendAnyCachedResponse(rh http.Header, response *http.Response, res http.Res
 	b, _ := ioutil.ReadAll(response.Body)
 	_, _ = res.Write(b)
 	cw, success := res.(*CustomWriter)
-	fmt.Println(cw, success)
 	if success {
 		_, _ = cw.Send()
 	}

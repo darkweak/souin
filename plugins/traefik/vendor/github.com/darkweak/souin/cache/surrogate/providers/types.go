@@ -14,8 +14,9 @@ type SurrogateInterface interface {
 	getSurrogateKey(http.Header) string
 	Purge(http.Header) (cacheKeys []string, surrogateKeys []string)
 	purgeTag(string) []string
-	Store(*http.Request, string) error
+	Store(*http.Response, string) error
 	storeTag(string, string, *regexp.Regexp)
 	ParseHeaders(string) []string
+	List() map[string]string
 	candidateStore(string) bool
 }

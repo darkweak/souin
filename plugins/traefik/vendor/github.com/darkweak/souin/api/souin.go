@@ -92,7 +92,9 @@ func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 	compile := regexp.MustCompile(s.GetBasePath()+"/.+").FindString(r.RequestURI) != ""
 	switch r.Method {
 	case http.MethodGet:
-		if compile {
+		if regexp.MustCompile(s.GetBasePath()+"/surrogate_keys").FindString(r.RequestURI) != "" {
+			res, _ = json.Marshal(s.surrogateStorage.List())
+		} else if compile {
 			w.WriteHeader(http.StatusNotFound)
 		} else {
 			res, _ = json.Marshal(s.GetAll())

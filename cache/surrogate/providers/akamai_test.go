@@ -54,26 +54,26 @@ func TestAkamaiSurrogateStorage_Purge(t *testing.T) {
 
 func TestAkamaiSurrogateStorage_Store(t *testing.T) {
 	ap := mockAkamaiProvider()
-	req := http.Request{
+	res := http.Response{
 		Header: http.Header{},
 	}
-	req.Header.Set(surrogateKey, baseHeaderValue)
+	res.Header.Set(surrogateKey, baseHeaderValue)
 
 	var e error
-	if e = ap.Store(&req, "stored"); e != nil {
+	if e = ap.Store(&res, "stored"); e != nil {
 		errors.GenerateError(t, "It should not throw an error while store.")
 	}
 
-	edgeTagValue := req.Header.Get(edgeCacheTag)
+	edgeTagValue := res.Header.Get(edgeCacheTag)
 	if edgeTagValue != baseHeaderValue {
 		errors.GenerateError(t, fmt.Sprintf("EdgeTag should match %s, %s given.", baseHeaderValue, edgeTagValue))
 	}
 
-	if req.Header.Get(surrogateKey) != "" {
-		errors.GenerateError(t, "The request should not contains the Surrogate keys header.")
+	if res.Header.Get(surrogateKey) != "" {
+		errors.GenerateError(t, "The response should not contains the Surrogate keys header.")
 	}
 
-	if req.Header.Get(surrogateControl) != "" {
-		errors.GenerateError(t, "The request should not contains the Surrogate control header.")
+	if res.Header.Get(surrogateControl) != "" {
+		errors.GenerateError(t, "The response should not contains the Surrogate control header.")
 	}
 }
