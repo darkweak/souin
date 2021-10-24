@@ -93,9 +93,9 @@ func TestBaseStorage_Store(t *testing.T) {
 
 	bs := mockCommonProvider()
 
-	e := bs.Store(&res, "((((invalid_key")
-	if e == nil {
-		errors.GenerateError(t, "It should throw an error with an invalid key.")
+	e := bs.Store(&res, "((((invalid_key_but_escaped")
+	if e != nil {
+		errors.GenerateError(t, "It shouldn't throw an error with a valid key.")
 	}
 
 	bs = mockCommonProvider()
