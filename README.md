@@ -251,7 +251,7 @@ To use Souin as caddy module, you can refer to the [Caddy module integration fol
 The related Caddyfile can be found [here](https://github.com/darkweak/souin/tree/master/plugins/caddy/Caddyfile).  
 Then you just have to run the following command:
 ```bash
-xcaddy build --with github.com/Darkweak/Souin/plugins/caddy
+xcaddy build --with github.com/darkweak/souin/plugins/caddy
 ```
 
 ### Træfik plugin
