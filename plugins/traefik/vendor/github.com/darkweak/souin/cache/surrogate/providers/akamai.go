@@ -40,10 +40,12 @@ func (*AkamaiSurrogateStorage) getHeaderSeparator() string {
 
 // Store stores the response tags located in the first non empty supported header
 func (a *AkamaiSurrogateStorage) Store(response *http.Response, cacheKey string) error {
+	defer func() {
+		response.Header.Del(surrogateKey)
+		response.Header.Del(surrogateControl)
+	}()
 	e := a.baseStorage.Store(response, cacheKey)
 	response.Header.Set(edgeCacheTag, response.Header.Get(surrogateKey))
-	response.Header.Del(surrogateKey)
-	response.Header.Del(surrogateControl)
 
 	return e
 }

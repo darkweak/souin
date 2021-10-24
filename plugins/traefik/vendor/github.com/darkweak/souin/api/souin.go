@@ -32,7 +32,7 @@ func initializeSouin(
 	if configuration.GetAPI().Souin.Security {
 		security = api
 	}
-	if "" == basePath {
+	if basePath == "" {
 		basePath = "/souin"
 	}
 	return &SouinAPI{
@@ -48,16 +48,6 @@ func initializeSouin(
 // BulkDelete allow user to delete multiple items with regexp
 func (s *SouinAPI) BulkDelete(key string) {
 	s.provider.DeleteMany(key)
-}
-
-func (s *SouinAPI) invalidateFromYKey(keys []string) {
-	if s.ykeyStorage == nil {
-		return
-	}
-	urls := s.ykeyStorage.InvalidateTags(keys)
-	for _, u := range urls {
-		s.provider.Delete(u)
-	}
 }
 
 // Delete will delete a record into the provider cache system and will update the Souin API if enabled
@@ -101,12 +91,11 @@ func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 	case "PURGE":
-		// surr := providers.ParseHeaders(r.Header.Get(providers.SurrogateKey))
-		// fmt.Printf("%+v \n%+v \n", surr[0], surr)
-		query := r.URL.Query()["ykey"]
-		if len(query) > 0 {
-			s.invalidateFromYKey(query)
-		} else if compile {
+		ck, _ := s.surrogateStorage.Purge(r.Header)
+		for _, k := range ck {
+			s.provider.Delete(k)
+		}
+		if compile {
 			submatch := regexp.MustCompile(s.GetBasePath()+"/(.+)").FindAllStringSubmatch(r.RequestURI, -1)[0][1]
 			s.BulkDelete(submatch)
 		}

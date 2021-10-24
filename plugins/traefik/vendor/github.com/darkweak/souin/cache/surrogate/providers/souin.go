@@ -1,7 +1,6 @@
 package providers
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/darkweak/souin/configurationtypes"
@@ -33,8 +32,6 @@ func (s *SouinSurrogateStorage) Store(response *http.Response, cacheKey string) 
 	}()
 
 	e := s.baseStorage.Store(response, cacheKey)
-
-	fmt.Println("RESULT => ", s.List(), response.Header)
 
 	return e
 }
