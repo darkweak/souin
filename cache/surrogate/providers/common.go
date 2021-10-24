@@ -166,8 +166,6 @@ func (s *baseStorage) Store(response *http.Response, cacheKey string) error {
 		}
 	}
 
-	fmt.Println("RESULT => ", s.List(), response.Header)
-
 	return nil
 }
 

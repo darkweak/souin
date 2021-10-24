@@ -18,6 +18,7 @@ type TransportInterface interface {
 	GetCoalescingLayerStorage() *CoalescingLayerStorage
 	GetYkeyStorage() *ykeys.YKeyStorage
 	GetSurrogateKeys() providers.SurrogateInterface
+	SetSurrogateKeys(providers.SurrogateInterface)
 }
 
 // Transport is an implementation of http.RoundTripper that will return values from a cache

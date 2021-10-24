@@ -200,6 +200,12 @@ func (s *SouinCaddyPlugin) Provision(ctx caddy.Context) error {
 		s.Retriever.GetTransport().(*rfc.VaryTransport).Provider = app.Provider
 	}
 
+	if app.SurrogateStorage == nil {
+		app.SurrogateStorage = s.Retriever.GetTransport().GetSurrogateKeys()
+	} else {
+		s.Retriever.GetTransport().SetSurrogateKeys(app.SurrogateStorage)
+	}
+
 	s.RequestCoalescing = coalescing.Initialize()
 	s.MapHandler = api.GenerateHandlerMap(s.Configuration, s.Retriever.GetTransport())
 	return nil

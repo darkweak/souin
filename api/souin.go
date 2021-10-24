@@ -6,17 +6,20 @@ import (
 	"regexp"
 
 	"github.com/darkweak/souin/api/auth"
+	"github.com/darkweak/souin/cache/surrogate/providers"
 	"github.com/darkweak/souin/cache/types"
+	"github.com/darkweak/souin/cache/ykeys"
 	"github.com/darkweak/souin/configurationtypes"
 )
 
 // SouinAPI object contains informations related to the endpoints
 type SouinAPI struct {
-	basePath  string
-	enabled   bool
-	provider  types.AbstractProviderInterface
-	security  *auth.SecurityAPI
-	transport types.TransportInterface
+	basePath         string
+	enabled          bool
+	provider         types.AbstractProviderInterface
+	security         *auth.SecurityAPI
+	ykeyStorage      *ykeys.YKeyStorage
+	surrogateStorage providers.SurrogateInterface
 }
 
 func initializeSouin(
@@ -29,7 +32,7 @@ func initializeSouin(
 	if configuration.GetAPI().Souin.Security {
 		security = api
 	}
-	if "" == basePath {
+	if basePath == "" {
 		basePath = "/souin"
 	}
 	return &SouinAPI{
@@ -37,23 +40,14 @@ func initializeSouin(
 		configuration.GetAPI().Souin.Enable,
 		transport.GetProvider(),
 		security,
-		transport,
+		transport.GetYkeyStorage(),
+		transport.GetSurrogateKeys(),
 	}
 }
 
 // BulkDelete allow user to delete multiple items with regexp
 func (s *SouinAPI) BulkDelete(key string) {
 	s.provider.DeleteMany(key)
-}
-
-func (s *SouinAPI) invalidateFromYKey(keys []string) {
-	if s.transport.GetYkeyStorage() == nil {
-		return
-	}
-	urls := s.transport.GetYkeyStorage().InvalidateTags(keys)
-	for _, u := range urls {
-		s.provider.Delete(u)
-	}
 }
 
 // Delete will delete a record into the provider cache system and will update the Souin API if enabled
@@ -89,7 +83,7 @@ func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		if regexp.MustCompile(s.GetBasePath()+"/surrogate_keys").FindString(r.RequestURI) != "" {
-			res, _ = json.Marshal(s.transport.GetSurrogateKeys().List())
+			res, _ = json.Marshal(s.surrogateStorage.List())
 		} else if compile {
 			w.WriteHeader(http.StatusNotFound)
 		} else {
@@ -97,12 +91,11 @@ func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 	case "PURGE":
-		// surr := providers.ParseHeaders(r.Header.Get(providers.SurrogateKey))
-		// fmt.Printf("%+v \n%+v \n", surr[0], surr)
-		query := r.URL.Query()["ykey"]
-		if len(query) > 0 {
-			s.invalidateFromYKey(query)
-		} else if compile {
+		ck, _ := s.surrogateStorage.Purge(r.Header)
+		for _, k := range ck {
+			s.provider.Delete(k)
+		}
+		if compile {
 			submatch := regexp.MustCompile(s.GetBasePath()+"/(.+)").FindAllStringSubmatch(r.RequestURI, -1)[0][1]
 			s.BulkDelete(submatch)
 		}

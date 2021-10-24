@@ -1,7 +1,6 @@
 package rfc
 
 import (
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -36,7 +35,6 @@ func validateVary(req *http.Request, resp *http.Response, key string, t *VaryTra
 					re := *resp
 					re.Body = ioutil.NopCloser(r)
 					_ = t.SurrogateStorage.Store(&re, cacheKey)
-					fmt.Println("LISTING => ", t.SurrogateStorage.List())
 					t.SetCache(cacheKey, &re)
 					go func() {
 						t.CoalescingLayerStorage.Delete(cacheKey)

@@ -62,6 +62,11 @@ func (t *VaryTransport) GetSurrogateKeys() providers.SurrogateInterface {
 	return t.Transport.SurrogateStorage
 }
 
+// SetSurrogateKeys set the surrogate keys storage
+func (t *VaryTransport) SetSurrogateKeys(s providers.SurrogateInterface) {
+	t.Transport.SurrogateStorage = s
+}
+
 // SetCache set the cache
 func (t *VaryTransport) SetCache(key string, resp *http.Response) {
 	if respBytes, err := httputil.DumpResponse(resp, true); err == nil {
