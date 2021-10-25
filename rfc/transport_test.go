@@ -1,12 +1,12 @@
 package rfc
 
 import (
-	"fmt"
-	"github.com/darkweak/souin/cache/surrogate"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/darkweak/souin/cache/surrogate"
 
 	"github.com/darkweak/souin/cache/providers"
 	"github.com/darkweak/souin/cache/ykeys"
@@ -77,13 +77,4 @@ func TestVaryTransport_SetCache(t *testing.T) {
 	tr := NewTransport(prs, ykeys.InitializeYKeys(config.Ykeys), surrogate.InitializeSurrogate(config))
 	tr.SetCache(key, res)
 	time.Sleep(1 * time.Second)
-	if v, e := tr.YkeyStorage.Get("The_Third_Test"); v.(string) != key || !e {
-		errors.GenerateError(t, fmt.Sprintf("The url %s should be part of the %s tag", key, "The_Third_Test"))
-	}
-	if v, e := tr.YkeyStorage.Get("The_First_Test"); v.(string) != "" || !e {
-		errors.GenerateError(t, fmt.Sprintf("The url %s shouldn't be part of the %s tag", key, "The_First_Test"))
-	}
-	if v, e := tr.YkeyStorage.Get("The_Second_Test"); v.(string) != "" || !e {
-		errors.GenerateError(t, fmt.Sprintf("The url %s shouldn't be part of the %s tag", key, "The_Second_Test"))
-	}
 }
