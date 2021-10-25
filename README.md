@@ -416,3 +416,4 @@ Thanks to these users for contributing or helping this project in any way
 * [Jenaye](https://github.com/jenaye)
 * [Brennan Kinney](https://github.com/polarathene)
 * [Agneev](https://github.com/agneevX)
+* [Eidenschink](https://github.com/eidenschink/)
