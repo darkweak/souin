@@ -1,7 +1,6 @@
 package providers
 
 import (
-	"fmt"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -22,6 +21,7 @@ const (
 	fastlyCacheControl    = "Fastly-Cache-Control"
 	edgeCacheTag          = "Edge-Cache-Tag"
 	cacheTags             = "Cache-Tags"
+	cacheTag              = "Cache-Tag"
 )
 
 func (s *baseStorage) ParseHeaders(value string) []string {
@@ -147,10 +147,7 @@ func (s *baseStorage) purgeTag(tag string) []string {
 func (s *baseStorage) Store(response *http.Response, cacheKey string) error {
 	h := response.Header
 	quoted := regexp.QuoteMeta(souinStorageSeparator + cacheKey)
-	urlRegexp, e := regexp.Compile("(^" + regexp.QuoteMeta(cacheKey) + "(" + regexp.QuoteMeta(souinStorageSeparator) + "|$))|(" + quoted + ")|(" + quoted + "$)")
-	if e != nil {
-		return fmt.Errorf("the regexp with the cache key %s cannot compile", cacheKey)
-	}
+	urlRegexp := regexp.MustCompile("(^" + regexp.QuoteMeta(cacheKey) + "(" + regexp.QuoteMeta(souinStorageSeparator) + "|$))|(" + quoted + ")|(" + quoted + "$)")
 
 	keys := s.ParseHeaders(s.parent.getSurrogateKey(h))
 
