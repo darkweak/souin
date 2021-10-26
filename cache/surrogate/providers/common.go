@@ -21,6 +21,7 @@ const (
 	fastlyCacheControl    = "Fastly-Cache-Control"
 	edgeCacheTag          = "Edge-Cache-Tag"
 	cacheTags             = "Cache-Tags"
+	cacheTag              = "Cache-Tag"
 )
 
 func (s *baseStorage) ParseHeaders(value string) []string {
