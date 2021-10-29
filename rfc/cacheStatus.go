@@ -1,6 +1,7 @@
 package rfc
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -73,8 +74,9 @@ func manageAge(h *http.Header) {
 	}
 
 	age := ageToString(correctedInitialAge(utc1, utc2))
+	fmt.Printf("\n\n\n%+v\n%+v\n%+v\n%+v\n\n\n\n", utc1, utc2, correctedInitialAge(utc1, utc2), age)
 	h.Set("Age", age)
-	h.Set("Cache-Status", "Souin; fwd=hit; ttl="+h.Get("Age"))
+	h.Set("Cache-Status", "Souin; hit; ttl="+h.Get("Age"))
 }
 
 func setMalformedHeader(headers *http.Header, header string) {
