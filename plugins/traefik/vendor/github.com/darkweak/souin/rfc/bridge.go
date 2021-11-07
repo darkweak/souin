@@ -22,6 +22,7 @@ func CachedResponse(c types.AbstractProviderInterface, req *http.Request, cached
 	cachedVal := c.Prefix(cachedKey, req)
 	b := bytes.NewBuffer(cachedVal)
 	response, _ := http.ReadResponse(bufio.NewReader(b), clonedReq)
+
 	if update && nil != response && ValidateCacheControl(response) {
 		SetCacheStatusEventually(response)
 		go func() {
@@ -124,10 +125,6 @@ func (t *VaryTransport) UpdateCacheEventually(req *http.Request) (*http.Response
 	if cacheable && cachedResp != nil {
 		rDate, _ := time.Parse(time.RFC1123, req.Header.Get("Date"))
 		cachedResp.Header.Set("Date", rDate.Format(http.TimeFormat))
-		r := commonVaryMatchesVerification(cachedResp, req)
-		if r != nil {
-			return r, nil
-		}
 	} else {
 		if _, err := commonCacheControl(req, t); err != nil {
 			return nil, err
