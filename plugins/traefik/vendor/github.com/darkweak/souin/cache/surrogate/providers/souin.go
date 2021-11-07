@@ -25,10 +25,13 @@ func (*SouinSurrogateStorage) getHeaderSeparator() string {
 }
 
 // Store stores the response tags located in the first non empty supported header
-func (s *SouinSurrogateStorage) Store(request *http.Request, cacheKey string) error {
-	e := s.baseStorage.Store(request, cacheKey)
-	request.Header.Del(surrogateKey)
-	request.Header.Del(surrogateControl)
+func (s *SouinSurrogateStorage) Store(response *http.Response, cacheKey string) error {
+	defer func() {
+		response.Header.Del(surrogateKey)
+		response.Header.Del(surrogateControl)
+	}()
+
+	e := s.baseStorage.Store(response, cacheKey)
 
 	return e
 }

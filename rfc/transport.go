@@ -1,11 +1,11 @@
 package rfc
 
 import (
-	"github.com/darkweak/souin/cache/surrogate/providers"
 	"net/http"
 	"net/http/httputil"
 	"time"
 
+	"github.com/darkweak/souin/cache/surrogate/providers"
 	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/cache/ykeys"
 	"github.com/darkweak/souin/configurationtypes"
@@ -62,14 +62,14 @@ func (t *VaryTransport) GetSurrogateKeys() providers.SurrogateInterface {
 	return t.Transport.SurrogateStorage
 }
 
+// SetSurrogateKeys set the surrogate keys storage
+func (t *VaryTransport) SetSurrogateKeys(s providers.SurrogateInterface) {
+	t.Transport.SurrogateStorage = s
+}
+
 // SetCache set the cache
 func (t *VaryTransport) SetCache(key string, resp *http.Response) {
 	if respBytes, err := httputil.DumpResponse(resp, true); err == nil {
-		go func() {
-			if t.YkeyStorage != nil {
-				t.YkeyStorage.AddToTags(key, t.YkeyStorage.GetValidatedTags(key, resp.Header))
-			}
-		}()
 		t.Provider.Set(key, respBytes, t.ConfigurationURL, time.Duration(0))
 	}
 }

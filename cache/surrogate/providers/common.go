@@ -1,11 +1,13 @@
 package providers
 
 import (
-	"fmt"
-	"github.com/darkweak/souin/configurationtypes"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
+
+	"github.com/darkweak/souin/configurationtypes"
+	"go.uber.org/zap"
 )
 
 const (
@@ -18,11 +20,12 @@ const (
 	souinCacheControl     = "Souin-Cache-Control"
 	fastlyCacheControl    = "Fastly-Cache-Control"
 	edgeCacheTag          = "Edge-Cache-Tag"
+	cacheTags             = "Cache-Tags"
+	cacheTag              = "Cache-Tag"
 )
 
 func (s *baseStorage) ParseHeaders(value string) []string {
-	r, _ := regexp.Compile(s.parent.getHeaderSeparator() + "( *)?")
-	return strings.Fields(r.ReplaceAllString(value, " "))
+	return regexp.MustCompile(s.parent.getHeaderSeparator()+" *").Split(value, -1)
 }
 
 func getCandidateHeader(header http.Header, getCandidates func() []string) string {
@@ -60,6 +63,7 @@ type baseStorage struct {
 	Keys       map[string]configurationtypes.SurrogateKeys
 	keysRegexp map[string]keysRegexpInner
 	dynamic    bool
+	logger     *zap.Logger
 }
 
 func (s *baseStorage) init(config configurationtypes.AbstractConfigurationInterface) {
@@ -87,6 +91,12 @@ func (s *baseStorage) init(config configurationtypes.AbstractConfigurationInterf
 		keysRegexp[key] = innerKey
 	}
 
+	s.dynamic = true
+	if config.GetDefaultCache().GetCDN().Dynamic != "" {
+		dynamic, e := strconv.ParseBool(config.GetDefaultCache().GetCDN().Dynamic)
+		s.dynamic = e != nil || dynamic
+	}
+	s.logger = config.GetLogger()
 	s.keysRegexp = keysRegexp
 }
 
@@ -106,6 +116,7 @@ func (*baseStorage) getOrderedSurrogateKeyHeadersCandidate() []string {
 	return []string{
 		surrogateKey,
 		edgeCacheTag,
+		cacheTags,
 	}
 }
 
@@ -133,16 +144,15 @@ func (s *baseStorage) purgeTag(tag string) []string {
 }
 
 // Store will take the lead to store the cache key for each provided Surrogate-key
-func (s *baseStorage) Store(request *http.Request, cacheKey string) error {
-	urlRegexp, e := regexp.Compile("(^" + cacheKey + "(" + souinStorageSeparator + "|$))|(" + souinStorageSeparator + cacheKey + ")|(" + souinStorageSeparator + cacheKey + "$)")
-	if e != nil {
-		return fmt.Errorf("the regexp with the cache key %s cannot compile", cacheKey)
-	}
+func (s *baseStorage) Store(response *http.Response, cacheKey string) error {
+	h := response.Header
+	quoted := regexp.QuoteMeta(souinStorageSeparator + cacheKey)
+	urlRegexp := regexp.MustCompile("(^" + regexp.QuoteMeta(cacheKey) + "(" + regexp.QuoteMeta(souinStorageSeparator) + "|$))|(" + quoted + ")|(" + quoted + "$)")
 
-	keys := s.ParseHeaders(s.parent.getSurrogateKey(request.Header))
+	keys := s.ParseHeaders(s.parent.getSurrogateKey(h))
 
 	for _, key := range keys {
-		if controls := s.ParseHeaders(s.parent.getSurrogateControl(request.Header)); len(controls) != 0 {
+		if controls := s.ParseHeaders(s.parent.getSurrogateControl(h)); len(controls) != 0 {
 			for _, control := range controls {
 				if s.parent.candidateStore(control) {
 					s.storeTag(key, cacheKey, urlRegexp)
@@ -156,7 +166,7 @@ func (s *baseStorage) Store(request *http.Request, cacheKey string) error {
 	return nil
 }
 
-// Purge take the request headers as parameter, retrieve the associated cache keys for the Surrogate-Keys given.
+// Purge take the request headers as parameter, retrieve the associated cache keys for the Surrogate-Key given.
 // It returns an array which one contains the cache keys to invalidate.
 func (s *baseStorage) Purge(header http.Header) (cacheKeys []string, surrogateKeys []string) {
 	surrogates := s.ParseHeaders(s.parent.getSurrogateKey(header))
@@ -166,4 +176,9 @@ func (s *baseStorage) Purge(header http.Header) (cacheKeys []string, surrogateKe
 	}
 
 	return uniqueTag(toInvalidate), surrogates
+}
+
+// List returns the stored keys associated to resources
+func (s *baseStorage) List() map[string]string {
+	return s.Storage
 }

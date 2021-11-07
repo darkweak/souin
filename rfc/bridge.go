@@ -22,6 +22,7 @@ func CachedResponse(c types.AbstractProviderInterface, req *http.Request, cached
 	cachedVal := c.Prefix(cachedKey, req)
 	b := bytes.NewBuffer(cachedVal)
 	response, _ := http.ReadResponse(bufio.NewReader(b), clonedReq)
+
 	if update && nil != response && ValidateCacheControl(response) {
 		SetCacheStatusEventually(response)
 		go func() {
@@ -124,10 +125,6 @@ func (t *VaryTransport) UpdateCacheEventually(req *http.Request) (*http.Response
 	if cacheable && cachedResp != nil {
 		rDate, _ := time.Parse(time.RFC1123, req.Header.Get("Date"))
 		cachedResp.Header.Set("Date", rDate.Format(http.TimeFormat))
-		r := commonVaryMatchesVerification(cachedResp, req)
-		if r != nil {
-			return r, nil
-		}
 	} else {
 		if _, err := commonCacheControl(req, t); err != nil {
 			return nil, err
@@ -167,15 +164,9 @@ func (t *VaryTransport) RoundTrip(req *http.Request) (resp *http.Response, err e
 			return r, nil
 		}
 
+		var resp *http.Response
 		resp, err = transport.RoundTrip(req)
-		if err == nil && req.Method == http.MethodGet && resp.StatusCode == http.StatusNotModified {
-			// Replace the 304 response with the one from cache, but update with some new headers
-			endToEndHeaders := getEndToEndHeaders(resp.Header)
-			for _, header := range endToEndHeaders {
-				cachedResp.Header[header] = resp.Header[header]
-			}
-			resp = cachedResp // nolint
-		} else if (err != nil || resp.StatusCode >= 500) &&
+		if (err != nil || resp.StatusCode >= 500) &&
 			req.Method == http.MethodGet && canStaleOnError(cachedResp.Header, req.Header) {
 			// In case of transport failure and stale-if-error activated, returns cached content
 			// when available
