@@ -463,7 +463,7 @@
 					"            } else {",
 					"                pm.response.to.have.header(\"Cache-Status\");",
 					"                if (isStore) {",
-					"                    pm.expect(pm.response.headers.get(\"Cache-Status\")).to.eql(\"Souin; fwd=uri-miss: stored\");",
+					"                    pm.expect(pm.response.headers.get(\"Cache-Status\")).to.eql(\"Souin; fwd=uri-miss; stored\");",
 					"                } else {",
 					"                    pm.response.to.have.header(\"Cache-Status\");",
 					"                    pm.expect(pm.response.headers.get(\"Cache-Status\")).to.eql(\"Souin; fwd=uri-miss\");",
