@@ -2,7 +2,9 @@ package httpcache
 
 import (
 	"errors"
+
 	"github.com/caddyserver/caddy/v2"
+	"github.com/darkweak/souin/cache/surrogate/providers"
 	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/configurationtypes"
 )
@@ -10,9 +12,10 @@ import (
 // SouinApp contains the whole Souin necessary items
 type SouinApp struct {
 	*DefaultCache
-	Provider types.AbstractProviderInterface
-	API      configurationtypes.API `json:"api,omitempty"`
-	LogLevel string                 `json:"log_level,omitempty"`
+	Provider         types.AbstractProviderInterface
+	SurrogateStorage providers.SurrogateInterface
+	API              configurationtypes.API `json:"api,omitempty"`
+	LogLevel         string                 `json:"log_level,omitempty"`
 }
 
 func init() {

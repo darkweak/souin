@@ -25,21 +25,21 @@ func mockSouinProvider() *SouinSurrogateStorage {
 
 func TestSouinSurrogateStorage_Store(t *testing.T) {
 	sp := mockSouinProvider()
-	req := http.Request{
+	res := http.Response{
 		Header: http.Header{},
 	}
-	req.Header.Set(surrogateKey, baseHeaderValue)
+	res.Header.Set(surrogateKey, baseHeaderValue)
 
 	var e error
-	if e = sp.Store(&req, "stored"); e != nil {
+	if e = sp.Store(&res, "stored"); e != nil {
 		errors.GenerateError(t, "It should not throw an error while store.")
 	}
 
-	if req.Header.Get(surrogateKey) != "" {
-		errors.GenerateError(t, "The request should not contains the Surrogate keys header.")
+	if res.Header.Get(surrogateKey) != "" {
+		errors.GenerateError(t, "The response should not contains the Surrogate keys header.")
 	}
 
-	if req.Header.Get(surrogateControl) != "" {
-		errors.GenerateError(t, "The request should not contains the Surrogate control header.")
+	if res.Header.Get(surrogateControl) != "" {
+		errors.GenerateError(t, "The response should not contains the Surrogate control header.")
 	}
 }

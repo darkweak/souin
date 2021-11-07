@@ -20,7 +20,7 @@
   7.2. [Træfik plugin](#træfik-plugin)  
   7.3. [Prestashop plugin](#prestashop-plugin)  
   7.4. [Wordpress plugin](#wordpress-plugin)  
-9. [Credits](#credits)
+8. [Credits](#credits)
 
 [![Travis CI](https://travis-ci.com/Darkweak/Souin.svg?branch=master)](https://travis-ci.com/Darkweak/Souin)
 

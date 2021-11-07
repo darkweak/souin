@@ -20,6 +20,7 @@ func generateFastlyInstance(config configurationtypes.AbstractConfigurationInter
 	f := &FastlySurrogateStorage{
 		baseStorage:    &baseStorage{},
 		providerAPIKey: cdn.APIKey,
+		serviceID:      cdn.ServiceID,
 		strategy:       "0",
 	}
 

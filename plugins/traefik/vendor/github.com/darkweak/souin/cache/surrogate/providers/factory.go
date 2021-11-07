@@ -11,6 +11,8 @@ func SurrogateFactory(config configurationtypes.AbstractConfigurationInterface) 
 	switch cdn.Provider {
 	case "akamai":
 		return generateAkamaiInstance(config)
+	case "cloudflare":
+		return generateCloudflareInstance(config)
 	case "fastly":
 		return generateFastlyInstance(config)
 	default:

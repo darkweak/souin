@@ -2,15 +2,15 @@ package main
 
 import (
 	"context"
-	"github.com/darkweak/souin/api"
-	"github.com/darkweak/souin/rfc"
 	"net/http"
 	"strings"
 	"time"
 
+	"github.com/darkweak/souin/api"
 	"github.com/darkweak/souin/cache/coalescing"
 	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/plugins"
+	"github.com/darkweak/souin/rfc"
 )
 
 var (
@@ -26,7 +26,7 @@ func getInstanceFromRequest(r *http.Request) *souinInstance {
 	if def != nil {
 		currentAPI = def.APIID
 	}
- 	return s.configurations[currentAPI]
+	return s.configurations[currentAPI]
 }
 
 // SouinResponseHandler stores the response before sent to the client if possible, only returns otherwise
@@ -35,10 +35,6 @@ func SouinResponseHandler(rw http.ResponseWriter, res *http.Response, _ *http.Re
 	req.Response = res
 	currentInstance := getInstanceFromRequest(req)
 	if !plugins.CanHandle(res.Request, currentInstance.Retriever) {
-		return
-	}
-	if b, _ := currentInstance.HandleInternally(req); b {
-		// handler(rw, req)
 		return
 	}
 
@@ -63,10 +59,11 @@ func SouinResponseHandler(rw http.ResponseWriter, res *http.Response, _ *http.Re
 					rw.Header().Set(v, h)
 				}
 			}
-			res = r
 		} else {
-			res, _ = retriever.GetTransport().UpdateCacheEventually(req)
+			r, _ = retriever.GetTransport().UpdateCacheEventually(req)
 		}
+
+		res = r
 	}
 
 	currentCtx = nil

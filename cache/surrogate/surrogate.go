@@ -6,7 +6,7 @@ package surrogate
 // e.g.
 // Given the Surrogate-Key data as
 // |---------------|-----------------------------------------------------------------------------------|
-// | YKey          | URLs                                                                              |
+// | Surrogate Key | URLs                                                                              |
 // |---------------|-----------------------------------------------------------------------------------|
 // | GROUP_KEY_ONE | http://domain.com/,http://domain.com/1,http://domain.com/2,http://domain.com/4    |
 // | GROUP_KEY_TWO | http://domain.com/1,http://domain.com/2,http://domain.com/3,http://domain.com/xyz |
@@ -20,7 +20,7 @@ package surrogate
 // * http://domain.com/4
 // And the data in the Surrogate-Key table storage will contain
 // |---------------|-------------------------------------------|
-// | YKey          | URLs                                      |
+// | Surrogate Key | URLs                                      |
 // |---------------|-------------------------------------------|
 // | GROUP_KEY_ONE |                                           |
 // | GROUP_KEY_TWO | http://domain.com/3,http://domain.com/xyz |
@@ -29,7 +29,7 @@ package surrogate
 // Another example
 // Given the Surrogate-Key data as
 // |---------------|-----------------------------------------------------------------------------------|
-// | YKey          | URLs                                                                              |
+// | Surrogate Key | URLs                                                                              |
 // |---------------|-----------------------------------------------------------------------------------|
 // | GROUP_KEY_ONE | http://domain.com/,http://domain.com/1,http://domain.com/2,http://domain.com/4    |
 // | GROUP_KEY_TWO | http://domain.com/1,http://domain.com/2,http://domain.com/3,http://domain.com/xyz |
@@ -44,7 +44,7 @@ package surrogate
 // * http://domain.com/xyz
 // And the data in the Surrogate-Key table storage will contain
 // |---------------|------|
-// | YKey          | URLs |
+// | Surrogate Key | URLs |
 // |---------------|------|
 // | GROUP_KEY_ONE |      |
 // | GROUP_KEY_TWO |      |
@@ -54,7 +54,7 @@ package surrogate
 // sent by the server on a specific resource.
 // Given the Surrogate-Key data as
 // |---------------|------|
-// | YKey          | URLs |
+// | Surrogate Key | URLs |
 // |---------------|------|
 // | GROUP_KEY_ONE |      |
 // | GROUP_KEY_TWO |      |
@@ -64,7 +64,7 @@ package surrogate
 // Surrogate-Key: GROUP_KEY_NEW, another_one
 // Then the data in the Surrogate-Key table storage will contain
 // |---------------|------------------------------|
-// | YKey          | URLs                         |
+// | Surrogate Key | URLs                         |
 // |---------------|------------------------------|
 // | another_one   | /service_1/my_first_resource |
 // | GROUP_KEY_NEW | /service_1/my_first_resource |

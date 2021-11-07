@@ -74,7 +74,7 @@ func manageAge(h *http.Header) {
 
 	age := ageToString(correctedInitialAge(utc1, utc2))
 	h.Set("Age", age)
-	h.Set("Cache-Status", "Souin; fwd=hit; ttl="+h.Get("Age"))
+	h.Set("Cache-Status", "Souin; hit; ttl="+h.Get("Age"))
 }
 
 func setMalformedHeader(headers *http.Header, header string) {

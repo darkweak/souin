@@ -70,12 +70,15 @@ type CacheProvider struct {
 
 // CDN config
 type CDN struct {
-	APIKey   string `json:"api_key,omitempty" yaml:"api_key,omitempty"`
-	Dynamic  string `json:"dynamic,omitempty" yaml:"dynamic,omitempty"`
-	Hostname string `json:"hostname,omitempty" yaml:"hostname,omitempty"`
-	Network  string `json:"network,omitempty" yaml:"network,omitempty"`
-	Provider string `json:"provider,omitempty" yaml:"provider,omitempty"`
-	Strategy string `json:"strategy,omitempty" yaml:"strategy,omitempty"`
+	APIKey    string `json:"api_key,omitempty" yaml:"api_key,omitempty"`
+	Dynamic   string `json:"dynamic,omitempty" yaml:"dynamic,omitempty"`
+	Email     string `json:"email,omitempty" yaml:"email,omitempty"`
+	Hostname  string `json:"hostname,omitempty" yaml:"hostname,omitempty"`
+	Network   string `json:"network,omitempty" yaml:"network,omitempty"`
+	Provider  string `json:"provider,omitempty" yaml:"provider,omitempty"`
+	Strategy  string `json:"strategy,omitempty" yaml:"strategy,omitempty"`
+	ServiceID string `json:"service_id,omitempty" yaml:"service_id,omitempty"`
+	ZoneID    string `json:"zone_id,omitempty" yaml:"zone_id,omitempty"`
 }
 
 // DefaultCache configuration
