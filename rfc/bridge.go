@@ -3,7 +3,6 @@ package rfc
 import (
 	"bufio"
 	"bytes"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -24,15 +23,6 @@ func CachedResponse(c types.AbstractProviderInterface, req *http.Request, cached
 	b := bytes.NewBuffer(cachedVal)
 	response, _ := http.ReadResponse(bufio.NewReader(b), clonedReq)
 
-	fmt.Printf("\nUPDATE => %v\n", update)
-	fmt.Printf("\n\n\n")
-	if update {
-		fmt.Printf("%+v\n", response)
-		if response != nil {
-			fmt.Printf("%+v\n", ValidateCacheControl(response))
-		}
-	}
-	fmt.Printf("\n\n\n")
 	if update && nil != response && ValidateCacheControl(response) {
 		SetCacheStatusEventually(response)
 		go func() {

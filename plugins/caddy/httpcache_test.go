@@ -1,7 +1,6 @@
 package httpcache
 
 import (
-	"strconv"
 	"testing"
 
 	"github.com/caddyserver/caddy/v2/caddytest"
@@ -9,10 +8,14 @@ import (
 
 func TestMaxAge(t *testing.T) {
 	tester := caddytest.NewTester(t)
-	tester.InitServer(` 
+	tester.InitServer(`
 	{
+		order cache before rewrite
 		http_port     9080
 		https_port    9443
+		cache {
+			ttl 1000s
+		}
 	}
 	localhost:9080 {
 		route /cache-max-age {
@@ -23,22 +26,25 @@ func TestMaxAge(t *testing.T) {
 	}`, "caddyfile")
 
 	resp1, _ := tester.AssertGetResponse(`http://localhost:9080/cache-max-age`, 200, "Hello, max-age!")
-	if resp1.Header.Get("Cache-Status") != "Caddy; fwd=uri-miss; stored" {
-		t.Errorf("unexpected Cache-Status header %v", resp1.Header.Get("Cache-Status"))
+	if resp1.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored" {
+		t.Errorf("unexpected Cache-Status header %v", resp1.Header)
 	}
 
 	resp2, _ := tester.AssertGetResponse(`http://localhost:9080/cache-max-age`, 200, "Hello, max-age!")
-	if resp2.Header.Get("Cache-Status") != "Caddy; hit" {
+	if resp2.Header.Get("Cache-Status") != "Souin; hit; ttl=1" {
 		t.Errorf("unexpected Cache-Status header %v", resp2.Header.Get("Cache-Status"))
 	}
 }
 
 func TestSMaxAge(t *testing.T) {
 	tester := caddytest.NewTester(t)
-	tester.InitServer(` 
+	tester.InitServer(`
 	{
 	  http_port     9080
 	  https_port    9443
+	  cache {
+		  ttl 1000s
+	  }
 	}
 	localhost:9080 {
 		route /cache-s-maxage {
@@ -49,22 +55,25 @@ func TestSMaxAge(t *testing.T) {
 	}`, "caddyfile")
 
 	resp1, _ := tester.AssertGetResponse(`http://localhost:9080/cache-s-maxage`, 200, "Hello, s-maxage!")
-	if resp1.Header.Get("Cache-Status") != "Caddy; fwd=uri-miss; stored" {
+	if resp1.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored" {
 		t.Errorf("unexpected Cache-Status header %v", resp1.Header.Get("Cache-Status"))
 	}
 
 	resp2, _ := tester.AssertGetResponse(`http://localhost:9080/cache-s-maxage`, 200, "Hello, s-maxage!")
-	if resp2.Header.Get("Cache-Status") != "Caddy; hit" {
-		t.Errorf("unexpected Cache-Status header %v", resp2.Header.Get("Cache-Status"))
+	if resp2.Header.Get("Cache-Status") != "Souin; hit; ttl=1" {
+		t.Errorf("unexpected Cache-Status header with %v", resp2.Header.Get("Cache-Status"))
 	}
 }
 
 func TestAgeHeader(t *testing.T) {
 	tester := caddytest.NewTester(t)
-	tester.InitServer(` 
+	tester.InitServer(`
 	{
 		http_port     9080
 		https_port    9443
+		cache {
+			ttl 1000s
+		}
 	}
 	localhost:9080 {
 		route /age-header {
@@ -87,10 +96,13 @@ func TestAgeHeader(t *testing.T) {
 
 func TestExistingAgeHeader(t *testing.T) {
 	tester := caddytest.NewTester(t)
-	tester.InitServer(` 
+	tester.InitServer(`
 	{
 		http_port     9080
 		https_port    9443
+		cache {
+			ttl 1000s
+		}
 	}
 	localhost:9080 {
 		route /age-header {
@@ -102,29 +114,7 @@ func TestExistingAgeHeader(t *testing.T) {
 	}`, "caddyfile")
 
 	resp1, _ := tester.AssertGetResponse(`http://localhost:9080/age-header`, 200, "Hello, Age header!")
-	age, _ := strconv.Atoi(resp1.Header.Get("Age"))
-	if age <= 0 {
+	if resp1.Header.Get("Age") != "" {
 		t.Errorf("unexpected Age header %v", resp1.Header.Get("Age"))
 	}
-}
-
-func TestOlricConfig(t *testing.T) {
-	tester := caddytest.NewTester(t)
-	tester.InitServer(` 
-	{
-		http_port     9080
-		https_port    9443
-		cache {
-			olric_config fixtures/olricd.yaml
-		}
-	}
-	localhost:9080 {
-		route /cache-max-age {
-			cache
-			header Cache-Control "max-age=60"
-			respond "Hello, max-age!"
-		}
-	}`, "caddyfile")
-
-	tester.AssertGetResponse(`http://localhost:9080/cache-max-age`, 200, "Hello, max-age!")
 }

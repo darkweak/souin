@@ -49,13 +49,13 @@ func (r *CustomWriter) Write(b []byte) (int, error) {
 
 // Send delays the response to handle Cache-Status
 func (r *CustomWriter) Send() (int, error) {
-	b, _ := ioutil.ReadAll(r.Response.Body)
 	for h, v := range r.Response.Header {
 		if len(v) > 0 {
 			r.Rw.Header().Set(h, strings.Join(v, ", "))
 		}
 	}
 	r.Rw.WriteHeader(r.Response.StatusCode)
+	b, _ := ioutil.ReadAll(r.Response.Body)
 	return r.Rw.Write(b)
 }
 

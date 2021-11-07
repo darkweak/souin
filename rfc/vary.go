@@ -28,6 +28,7 @@ func validateVary(req *http.Request, resp *http.Response, key string, t *VaryTra
 		switch req.Method {
 		case http.MethodGet:
 			resp.Header.Set("Cache-Status", "Souin; fwd=uri-miss; stored")
+			resp.Header.Del("Age")
 			// Delay caching until EOF is reached.
 			resp.Body = &cachingReadCloser{
 				R: resp.Body,

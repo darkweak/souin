@@ -482,7 +482,7 @@
 					"",
 					"                        if (cacheControl == '') {",
 					"                            expected.to.have.header(\"Age\");",
-					"                            pm.expect(response.headers.get(\"Cache-Status\")).to.include(\"Souin; fwd=hit; ttl=\");",
+					"                            pm.expect(response.headers.get(\"Cache-Status\")).to.include(\"Souin; hit; ttl=\");",
 					"                        } else {",
 					"                            expected.to.not.have.header(\"Age\");",
 					"                            pm.expect(response.headers.get(\"Cache-Status\")).to.eql(\"Souin; fwd=uri-miss\");",
