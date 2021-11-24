@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/darkweak/souin/cache/types"
-	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/rfc"
 	"github.com/go-chi/stampede"
 )
@@ -39,24 +38,6 @@ func ServeResponse(
 	rc RequestCoalescingInterface,
 	nm func(w http.ResponseWriter, r *http.Request) error,
 ) {
-	path := req.Host + req.URL.Path
-	regexpURL := retriever.GetRegexpUrls().FindString(path)
-	url := configurationtypes.URL{
-		TTL:     configurationtypes.Duration{Duration: retriever.GetConfiguration().GetDefaultCache().GetTTL()},
-		Headers: retriever.GetConfiguration().GetDefaultCache().GetHeaders(),
-	}
-	if "" != regexpURL {
-		u := retriever.GetConfiguration().GetUrls()[regexpURL]
-		if u.TTL.Duration != 0 {
-			url.TTL = u.TTL
-		}
-		if len(u.Headers) != 0 {
-			url.Headers = u.Headers
-		}
-	}
-	retriever.GetTransport().SetURL(url)
-	retriever.SetMatchedURL(url)
-
 	headers := ""
 	if retriever.GetMatchedURL().Headers != nil && len(retriever.GetMatchedURL().Headers) > 0 {
 		for _, h := range retriever.GetMatchedURL().Headers {

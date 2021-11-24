@@ -123,11 +123,6 @@ func (s *SouinCaddyPlugin) configurationPropertyMapper() error {
 	return nil
 }
 
-// Validate to validate configuration.
-func (s *SouinCaddyPlugin) Validate() error {
-	return nil
-}
-
 // FromApp to initialize configuration from App structure.
 func (s *SouinCaddyPlugin) FromApp(app *SouinApp) error {
 	if s.Configuration == nil {
@@ -403,5 +398,4 @@ func parseCaddyfileHandlerDirective(h httpcaddyfile.Helper) (caddyhttp.Middlewar
 var (
 	_ caddy.Provisioner           = (*SouinCaddyPlugin)(nil)
 	_ caddyhttp.MiddlewareHandler = (*SouinCaddyPlugin)(nil)
-	_ caddy.Validator             = (*SouinCaddyPlugin)(nil)
 )

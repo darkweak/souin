@@ -82,6 +82,7 @@ func SouinRequestHandler(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 	r.Header.Set("Date", time.Now().UTC().Format(time.RFC1123))
+	currentInstance.Retriever.SetMatchedURLFromRequest(r)
 	coalescing.ServeResponse(rw, r, currentInstance.Retriever, plugins.DefaultSouinPluginCallback, currentInstance.RequestCoalescing, func(_ http.ResponseWriter, _ *http.Request) error {
 		return nil
 	})

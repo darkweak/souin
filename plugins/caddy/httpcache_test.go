@@ -31,7 +31,7 @@ func TestMaxAge(t *testing.T) {
 	}
 
 	resp2, _ := tester.AssertGetResponse(`http://localhost:9080/cache-max-age`, 200, "Hello, max-age!")
-	if resp2.Header.Get("Cache-Status") != "Souin; hit; ttl=1" {
+	if resp2.Header.Get("Cache-Status") != "Souin; hit; ttl=999" {
 		t.Errorf("unexpected Cache-Status header %v", resp2.Header.Get("Cache-Status"))
 	}
 }
@@ -60,7 +60,7 @@ func TestSMaxAge(t *testing.T) {
 	}
 
 	resp2, _ := tester.AssertGetResponse(`http://localhost:9080/cache-s-maxage`, 200, "Hello, s-maxage!")
-	if resp2.Header.Get("Cache-Status") != "Souin; hit; ttl=1" {
+	if resp2.Header.Get("Cache-Status") != "Souin; hit; ttl=999" {
 		t.Errorf("unexpected Cache-Status header with %v", resp2.Header.Get("Cache-Status"))
 	}
 }

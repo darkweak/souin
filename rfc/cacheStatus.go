@@ -2,6 +2,7 @@ package rfc
 
 import (
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -47,17 +48,17 @@ func ValidateCacheControl(r *http.Response) bool {
 }
 
 // HitCache set hit and manage age header too
-func HitCache(h *http.Header) {
-	manageAge(h)
+func HitCache(h *http.Header, ttl time.Duration) {
+	manageAge(h, ttl)
 }
 
 // HitStaleCache set hit and manage age header too
-func HitStaleCache(h *http.Header) {
-	manageAge(h)
+func HitStaleCache(h *http.Header, ttl time.Duration) {
+	manageAge(h, ttl)
 	h.Set("Cache-Status", h.Get("Cache-Status")+"; fwd=stale")
 }
 
-func manageAge(h *http.Header) {
+func manageAge(h *http.Header, ttl time.Duration) {
 	utc1 := time.Now().UTC()
 	dh := h.Get("Date")
 	if dh == "" {
@@ -72,9 +73,11 @@ func manageAge(h *http.Header) {
 		return
 	}
 
-	age := ageToString(correctedInitialAge(utc1, utc2))
+	cage := correctedInitialAge(utc1, utc2)
+	age := strconv.Itoa(cage)
 	h.Set("Age", age)
-	h.Set("Cache-Status", "Souin; hit; ttl="+h.Get("Age"))
+	ttlValue := strconv.Itoa(int(ttl.Seconds()) - cage)
+	h.Set("Cache-Status", "Souin; hit; ttl="+ttlValue)
 }
 
 func setMalformedHeader(headers *http.Header, header string) {
@@ -85,7 +88,7 @@ func setMalformedHeader(headers *http.Header, header string) {
 func SetCacheStatusEventually(resp *http.Response) *http.Response {
 	h := resp.Header
 	validateEmptyHeaders(&h)
-	manageAge(&h)
+	manageAge(&h, 0)
 
 	resp.Header = h
 	return resp
