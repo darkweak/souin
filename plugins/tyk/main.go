@@ -34,6 +34,7 @@ func SouinResponseHandler(rw http.ResponseWriter, res *http.Response, _ *http.Re
 	req := res.Request
 	req.Response = res
 	currentInstance := getInstanceFromRequest(req)
+	currentInstance.Retriever.SetMatchedURLFromRequest(req)
 	if !plugins.CanHandle(res.Request, currentInstance.Retriever) {
 		return
 	}
@@ -51,7 +52,7 @@ func SouinResponseHandler(rw http.ResponseWriter, res *http.Response, _ *http.Re
 
 		if r != nil {
 			rh := r.Header
-			rfc.HitCache(&rh)
+			rfc.HitCache(&rh, retriever.GetMatchedURL().TTL.Duration)
 			r.Header = rh
 			for _, v := range []string{"Age", "Cache-Status"} {
 				h := r.Header.Get(v)

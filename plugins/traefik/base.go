@@ -105,6 +105,7 @@ func DefaultSouinPluginCallback(
 	nextMiddleware func(w http.ResponseWriter, r *http.Request) error,
 ) {
 	cacheKey := rfc.GetCacheKey(req)
+	retriever.SetMatchedURLFromRequest(req)
 
 	if http.MethodGet == req.Method && !strings.Contains(req.Header.Get("Cache-Control"), "no-cache") {
 		r, _ := rfc.CachedResponse(
@@ -117,7 +118,7 @@ func DefaultSouinPluginCallback(
 
 		if r != nil {
 			rh := r.Header
-			rfc.HitCache(&rh)
+			rfc.HitCache(&rh, retriever.GetMatchedURL().TTL.Duration)
 			sendAnyCachedResponse(rh, r, res)
 			return
 		}
@@ -132,7 +133,7 @@ func DefaultSouinPluginCallback(
 
 		if r != nil {
 			rh := r.Header
-			rfc.HitStaleCache(&rh)
+			rfc.HitStaleCache(&rh, retriever.GetMatchedURL().TTL.Duration)
 			sendAnyCachedResponse(rh, r, res)
 			return
 		}

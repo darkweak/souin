@@ -11,7 +11,7 @@ import (
 func TestHitCache(t *testing.T) {
 	h := http.Header{}
 
-	HitCache(&h)
+	HitCache(&h, 4)
 	if h.Get("Cache-Status") == "" || h.Get("Cache-Status") != "Souin; hit; ttl=1" {
 		errors.GenerateError(t, fmt.Sprintf("Cache-Status cannot be null when hit and must match hit, %s given", h.Get("Cache-Status")))
 	}
@@ -20,7 +20,7 @@ func TestHitCache(t *testing.T) {
 	}
 
 	h.Set("Date", "Invalid")
-	HitCache(&h)
+	HitCache(&h, 0)
 	if h.Get("Cache-Status") == "" || h.Get("Cache-Status") != "Souin; fwd=request; detail=MALFORMED-DATE" {
 		errors.GenerateError(t, fmt.Sprintf("Cache-Status cannot be null when hit and must match MALFORMED-DATE, %s given", h.Get("Cache-Status")))
 	}
