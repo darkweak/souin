@@ -63,7 +63,7 @@ func (r *CustomWriter) Send() (int, error) {
 // CanHandle detect if the request can be handled by Souin
 func CanHandle(r *http.Request, re types.RetrieverResponsePropertiesInterface) bool {
 	co, err := cacheobject.ParseResponseCacheControl(r.Header.Get("Cache-Control"))
-	return err == nil && len(co.NoCache) == 0 && !co.NoStore && r.Header.Get("Upgrade") != "websocket" && (re.GetExcludeRegexp() == nil || !re.GetExcludeRegexp().MatchString(r.RequestURI))
+	return err == nil && len(co.NoCache) == 0 && r.Header.Get("Upgrade") != "websocket" && (re.GetExcludeRegexp() == nil || !re.GetExcludeRegexp().MatchString(r.RequestURI))
 }
 
 func sendAnyCachedResponse(rh http.Header, response *http.Response, res http.ResponseWriter) {
