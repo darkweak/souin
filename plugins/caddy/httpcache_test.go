@@ -132,3 +132,31 @@ func TestExistingAgeHeader(t *testing.T) {
 		t.Errorf("unexpected Age header value %v", resp2.Header.Get("Age"))
 	}
 }
+
+func TestNotHandledRoute(t *testing.T) {
+	tester := caddytest.NewTester(t)
+	tester.InitServer(`
+	{
+		http_port     9080
+		https_port    9443
+		cache {
+			ttl 1000s
+			regex {
+				exclude ".*handled"
+			}
+		}
+	}
+	localhost:9080 {
+		route /not-handled {
+			cache
+			header Cache-Control "max-age=60"
+			header Age "max-age=5"
+			respond "Hello, Age header!"
+		}
+	}`, "caddyfile")
+
+	resp1, _ := tester.AssertGetResponse(`http://localhost:9080/not-handled`, 200, "Hello, Age header!")
+	if resp1.Header.Get("Cache-Status") != "Souin; fwd=uri-miss" {
+		t.Errorf("unexpected Cache-Status header value %v", resp1.Header.Get("Cache-Status"))
+	}
+}

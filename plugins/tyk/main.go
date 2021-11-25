@@ -36,6 +36,7 @@ func SouinResponseHandler(rw http.ResponseWriter, res *http.Response, _ *http.Re
 	currentInstance := getInstanceFromRequest(req)
 	currentInstance.Retriever.SetMatchedURLFromRequest(req)
 	if !plugins.CanHandle(res.Request, currentInstance.Retriever) {
+		rw.Header().Set("Cache-Status", "Souin; fwd=uri-miss")
 		return
 	}
 

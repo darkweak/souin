@@ -123,6 +123,7 @@ github.com/patrickmn/go-cache
 # github.com/pkg/errors v0.9.1
 github.com/pkg/errors
 # github.com/pquerna/cachecontrol v0.1.0
+## explicit
 github.com/pquerna/cachecontrol/cacheobject
 # github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529
 github.com/sean-/seed

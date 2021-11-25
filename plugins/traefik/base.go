@@ -19,6 +19,7 @@ import (
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/helpers"
 	"github.com/darkweak/souin/rfc"
+	"github.com/pquerna/cachecontrol/cacheobject"
 )
 
 type getterContext struct {
@@ -67,6 +68,12 @@ func (r *CustomWriter) Send() (int, error) {
 	}
 	r.ResponseWriter.WriteHeader(r.Response.StatusCode)
 	return r.ResponseWriter.Write(b)
+}
+
+// CanHandle detect if the request can be handled by Souin
+func CanHandle(r *http.Request, re types.RetrieverResponsePropertiesInterface) bool {
+	co, err := cacheobject.ParseResponseCacheControl(r.Header.Get("Cache-Control"))
+	return err == nil && len(co.NoCache) == 0 && r.Header.Get("Upgrade") != "websocket" && (re.GetExcludeRegexp() == nil || !re.GetExcludeRegexp().MatchString(r.RequestURI))
 }
 
 type key string
