@@ -1,6 +1,6 @@
 module github.com/buraksezer/olric
 
-go 1.15
+go 1.13
 
 require (
 	github.com/buraksezer/connpool v0.4.0

@@ -63,7 +63,7 @@ func EmbeddedOlricConnectionFactory(configuration t.AbstractConfigurationInterfa
 
 	if olricInstance, loaded = tryToLoadConfiguration(olricInstance, configuration.GetDefaultCache().GetOlric(), configuration.GetLogger()); !loaded {
 		olricInstance = config.New("local")
-		olricInstance.Cache.MaxInuse = 512 << 20
+		olricInstance.DMaps.MaxInuse = 512 << 20
 	}
 
 	started, cancel := context.WithCancel(context.Background())

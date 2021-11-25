@@ -1,4 +1,4 @@
-// Copyright 2018-2020 Burak Sezer
+// Copyright 2018-2021 Burak Sezer
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -66,7 +66,7 @@ type AtomicExtra struct {
 	Timestamp int64
 }
 
-// ExpireExtrrea defines extra values for this operation.
+// ExpireExtra defines extra values for this operation.
 type ExpireExtra struct {
 	TTL       int64
 	Timestamp int64
@@ -100,6 +100,10 @@ type DTopicAddListenerExtra struct {
 
 type DTopicRemoveListenerExtra struct {
 	ListenerID uint64
+}
+
+type StatsExtra struct {
+	CollectRuntime bool
 }
 
 func loadExtras(raw []byte, op OpCode) (interface{}, error) {
@@ -166,6 +170,10 @@ func loadExtras(raw []byte, op OpCode) (interface{}, error) {
 		return extra, err
 	case OpDTopicRemoveListener:
 		extra := DTopicRemoveListenerExtra{}
+		err := binary.Read(bytes.NewReader(raw), binary.BigEndian, &extra)
+		return extra, err
+	case OpStats:
+		extra := StatsExtra{}
 		err := binary.Read(bytes.NewReader(raw), binary.BigEndian, &extra)
 		return extra, err
 	default:

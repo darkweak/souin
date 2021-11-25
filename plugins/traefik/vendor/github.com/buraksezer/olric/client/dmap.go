@@ -1,4 +1,4 @@
-// Copyright 2018-2020 Burak Sezer
+// Copyright 2018-2021 Burak Sezer
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,26 +15,20 @@
 package client
 
 import (
+	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/buraksezer/olric"
 	"github.com/buraksezer/olric/internal/protocol"
-	"github.com/buraksezer/olric/internal/storage"
+	"github.com/buraksezer/olric/pkg/storage"
 )
 
-// dmap provides methods to access distributed maps on Olric cluster.
+// DMap provides methods to access distributed maps on Olric cluster.
 type DMap struct {
 	*Client
-	name string
-}
-
-func (c *Client) processGetResponse(resp protocol.EncodeDecoder) (interface{}, error) {
-	if err := checkStatusCode(resp); err != nil {
-		return nil, err
-	}
-	entry := storage.NewEntry()
-	entry.Decode(resp.Value())
-	return c.unmarshalValue(entry.Value)
+	entryFormat storage.Entry
+	name        string
 }
 
 // Get gets the value for the given key. It returns ErrKeyNotFound if the DB does not contains the key.
@@ -47,7 +41,12 @@ func (d *DMap) Get(key string) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	return d.processGetResponse(resp)
+	if err := checkStatusCode(resp); err != nil {
+		return nil, err
+	}
+	entry := d.getEntryFormat(d.name)
+	entry.Decode(resp.Value())
+	return d.unmarshalValue(entry.Value())
 }
 
 // GetEntry gets the value for the given key. It returns ErrKeyNotFound if the DB does not contains the key.
@@ -63,16 +62,18 @@ func (d *DMap) GetEntry(key string) (*olric.Entry, error) {
 	if err := checkStatusCode(resp); err != nil {
 		return nil, err
 	}
-	entry := storage.NewEntry()
+
+	entry := d.getEntryFormat(d.name)
 	entry.Decode(resp.Value())
-	value, err := d.unmarshalValue(entry.Value)
+	value, err := d.unmarshalValue(entry.Value())
 	if err != nil {
 		return nil, err
 	}
+
 	return &olric.Entry{
-		Key:       entry.Key,
-		TTL:       entry.TTL,
-		Timestamp: entry.Timestamp,
+		Key:       entry.Key(),
+		TTL:       entry.TTL(),
+		Timestamp: entry.Timestamp(),
 		Value:     value,
 	}, nil
 }
@@ -229,20 +230,38 @@ func (d *DMap) Destroy() error {
 	return checkStatusCode(resp)
 }
 
+func valueToInt(delta interface{}) (int, error) {
+	switch value := delta.(type) {
+	case int:
+		return value, nil
+	case int8:
+		return int(value), nil
+	case int16:
+		return int(value), nil
+	case int32:
+		return int(value), nil
+	case int64:
+		return int(value), nil
+	default:
+		return 0, fmt.Errorf("mismatched type: %v", reflect.TypeOf(delta))
+	}
+}
+
 func (c *Client) processIncrDecrResponse(resp protocol.EncodeDecoder) (int, error) {
 	if err := checkStatusCode(resp); err != nil {
 		return 0, err
 	}
-	res, err := c.unmarshalValue(resp.Value())
+	value, err := c.unmarshalValue(resp.Value())
 	if err != nil {
 		return 0, err
 	}
-	return res.(int), nil
+	return valueToInt(value)
 }
 
 func (c *Client) incrDecr(op protocol.OpCode, name, key string, delta int) (int, error) {
 	value, err := c.serializer.Marshal(delta)
 	if err != nil {
+		fmt.Println(delta, err)
 		return 0, err
 	}
 	req := protocol.NewDMapMessage(op)
@@ -276,11 +295,11 @@ func (c *Client) processGetPutResponse(resp protocol.EncodeDecoder) (interface{}
 	if len(resp.Value()) == 0 {
 		return nil, nil
 	}
-	oldval, err := c.unmarshalValue(resp.Value())
+	old, err := c.unmarshalValue(resp.Value())
 	if err != nil {
 		return nil, err
 	}
-	return oldval, nil
+	return old, nil
 }
 
 // GetPut atomically sets key to value and returns the old value stored at key.

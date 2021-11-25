@@ -53,9 +53,9 @@ import (
 ...
 ...
 var clientConfig = &client.Config{
-    Servers:     []string{"localhost:3320"},
-    Serializer:  serializer.NewMsgpackSerializer(),
-    Client:      config.NewClient(),
+	Servers:     []string{"localhost:3320"}, 
+	Serializer:  serializer.NewMsgpackSerializer(), 
+	Client:      config.NewClient(),
 }
 ```
 
@@ -497,14 +497,15 @@ import (
 	"strconv"
 
 	"github.com/buraksezer/olric/client"
+	"github.com/buraksezer/olric/config"
 	"github.com/buraksezer/olric/serializer"
 )
 
 func main() {
-	cc := &client.Config{
-		Addrs:      []string{"127.0.0.1:3320"},
-		MaxConn:    10,
-		Serializer: serializer.NewMsgpackSerializer(),
+	var cc = &client.Config{
+		Servers:     []string{"localhost:3320"}, 
+		Serializer:  serializer.NewMsgpackSerializer(), 
+		Client:      config.NewClient(),
 	}
 
 	// Create a new client instance

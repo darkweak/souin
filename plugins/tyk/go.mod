@@ -5,7 +5,7 @@ go 1.16
 require (
 	github.com/TykTechnologies/gojsonschema v0.0.0-20170222154038-dcb3e4bb7990 // indirect
 	github.com/TykTechnologies/tyk v2.9.5+incompatible
-	github.com/buraksezer/olric v0.3.11
+	github.com/buraksezer/olric v0.4.0
 	github.com/clbanning/mxj v1.8.4 // indirect
 	github.com/darkweak/souin v1.5.10
 	github.com/franela/goblin v0.0.0-20210519012713-85d372ac71e2 // indirect
