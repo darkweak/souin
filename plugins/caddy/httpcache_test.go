@@ -12,13 +12,13 @@ func TestMaxAge(t *testing.T) {
 	tester.InitServer(`
 	{
 		order cache before rewrite
-		http_port     9090
+		http_port     9080
 		https_port    9443
 		cache {
 			ttl 1000s
 		}
 	}
-	localhost:9090 {
+	localhost:9080 {
 		route /cache-max-age {
 			cache
 			header Cache-Control "max-age=60"
@@ -26,12 +26,12 @@ func TestMaxAge(t *testing.T) {
 		}
 	}`, "caddyfile")
 
-	resp1, _ := tester.AssertGetResponse(`http://localhost:9090/cache-max-age`, 200, "Hello, max-age!")
+	resp1, _ := tester.AssertGetResponse(`http://localhost:9080/cache-max-age`, 200, "Hello, max-age!")
 	if resp1.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored" {
 		t.Errorf("unexpected Cache-Status header %v", resp1.Header)
 	}
 
-	resp2, _ := tester.AssertGetResponse(`http://localhost:9090/cache-max-age`, 200, "Hello, max-age!")
+	resp2, _ := tester.AssertGetResponse(`http://localhost:9080/cache-max-age`, 200, "Hello, max-age!")
 	if resp2.Header.Get("Cache-Status") != "Souin; hit; ttl=999" {
 		t.Errorf("unexpected Cache-Status header %v", resp2.Header.Get("Cache-Status"))
 	}
@@ -41,13 +41,13 @@ func TestSMaxAge(t *testing.T) {
 	tester := caddytest.NewTester(t)
 	tester.InitServer(`
 	{
-	  http_port     9090
+	  http_port     9080
 	  https_port    9443
 	  cache {
 		  ttl 1000s
 	  }
 	}
-	localhost:9090 {
+	localhost:9080 {
 		route /cache-s-maxage {
 			cache
 			header Cache-Control "s-maxage=5"
@@ -55,12 +55,12 @@ func TestSMaxAge(t *testing.T) {
 		}
 	}`, "caddyfile")
 
-	resp1, _ := tester.AssertGetResponse(`http://localhost:9090/cache-s-maxage`, 200, "Hello, s-maxage!")
+	resp1, _ := tester.AssertGetResponse(`http://localhost:9080/cache-s-maxage`, 200, "Hello, s-maxage!")
 	if resp1.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored" {
 		t.Errorf("unexpected Cache-Status header %v", resp1.Header.Get("Cache-Status"))
 	}
 
-	resp2, _ := tester.AssertGetResponse(`http://localhost:9090/cache-s-maxage`, 200, "Hello, s-maxage!")
+	resp2, _ := tester.AssertGetResponse(`http://localhost:9080/cache-s-maxage`, 200, "Hello, s-maxage!")
 	if resp2.Header.Get("Cache-Status") != "Souin; hit; ttl=999" {
 		t.Errorf("unexpected Cache-Status header with %v", resp2.Header.Get("Cache-Status"))
 	}
@@ -70,13 +70,13 @@ func TestAgeHeader(t *testing.T) {
 	tester := caddytest.NewTester(t)
 	tester.InitServer(`
 	{
-		http_port     9090
+		http_port     9080
 		https_port    9443
 		cache {
 			ttl 1000s
 		}
 	}
-	localhost:9090 {
+	localhost:9080 {
 		route /age-header {
 			cache
 			header Cache-Control "max-age=60"
@@ -84,12 +84,12 @@ func TestAgeHeader(t *testing.T) {
 		}
 	}`, "caddyfile")
 
-	resp1, _ := tester.AssertGetResponse(`http://localhost:9090/age-header`, 200, "Hello, Age header!")
+	resp1, _ := tester.AssertGetResponse(`http://localhost:9080/age-header`, 200, "Hello, Age header!")
 	if resp1.Header.Get("Age") != "" {
 		t.Errorf("unexpected Age header %v", resp1.Header.Get("Age"))
 	}
 
-	resp2, _ := tester.AssertGetResponse(`http://localhost:9090/age-header`, 200, "Hello, Age header!")
+	resp2, _ := tester.AssertGetResponse(`http://localhost:9080/age-header`, 200, "Hello, Age header!")
 	if resp2.Header.Get("Age") == "" {
 		t.Error("Age header should be present")
 	}
@@ -98,7 +98,7 @@ func TestAgeHeader(t *testing.T) {
 	}
 
 	time.Sleep(10 * time.Second)
-	resp3, _ := tester.AssertGetResponse(`http://localhost:9090/age-header`, 200, "Hello, Age header!")
+	resp3, _ := tester.AssertGetResponse(`http://localhost:9080/age-header`, 200, "Hello, Age header!")
 	if resp3.Header.Get("Age") != "11" {
 		t.Error("Age header should be present")
 	}
@@ -108,13 +108,13 @@ func TestExistingAgeHeader(t *testing.T) {
 	tester := caddytest.NewTester(t)
 	tester.InitServer(`
 	{
-		http_port     9090
+		http_port     9080
 		https_port    9443
 		cache {
 			ttl 1000s
 		}
 	}
-	localhost:9090 {
+	localhost:9080 {
 		route /age-header {
 			cache
 			header Cache-Control "max-age=60"
@@ -123,11 +123,11 @@ func TestExistingAgeHeader(t *testing.T) {
 		}
 	}`, "caddyfile")
 
-	resp1, _ := tester.AssertGetResponse(`http://localhost:9090/age-header`, 200, "Hello, Age header!")
+	resp1, _ := tester.AssertGetResponse(`http://localhost:9080/age-header`, 200, "Hello, Age header!")
 	if resp1.Header.Get("Age") != "" {
 		t.Errorf("unexpected Age header %v", resp1.Header.Get("Age"))
 	}
-	resp2, _ := tester.AssertGetResponse(`http://localhost:9090/age-header`, 200, "Hello, Age header!")
+	resp2, _ := tester.AssertGetResponse(`http://localhost:9080/age-header`, 200, "Hello, Age header!")
 	if resp2.Header.Get("Age") != "1" {
 		t.Errorf("unexpected Age header value %v", resp2.Header.Get("Age"))
 	}
