@@ -79,6 +79,7 @@ func loadDMapConfig(c *loader.Loader) (*DMaps, error) {
 		}
 		res.MaxIdleDuration = maxIdleDuration
 	}
+
 	if c.DMaps.TTLDuration != "" {
 		ttlDuration, err := time.ParseDuration(c.DMaps.TTLDuration)
 		if err != nil {
@@ -86,6 +87,7 @@ func loadDMapConfig(c *loader.Loader) (*DMaps, error) {
 		}
 		res.TTLDuration = ttlDuration
 	}
+
 	if c.DMaps.CheckEmptyFragmentsInterval != "" {
 		checkEmptyFragmentsInterval, err := time.ParseDuration(c.DMaps.CheckEmptyFragmentsInterval)
 		if err != nil {
@@ -93,12 +95,29 @@ func loadDMapConfig(c *loader.Loader) (*DMaps, error) {
 		}
 		res.CheckEmptyFragmentsInterval = checkEmptyFragmentsInterval
 	}
+
+	if c.DMaps.TriggerCompactionInterval != "" {
+		triggerCompactionInterval, err := time.ParseDuration(c.DMaps.TriggerCompactionInterval)
+		if err != nil {
+			return nil, errors.WithMessage(err, "failed to parse dmap.triggerCompactionInterval")
+		}
+		res.TriggerCompactionInterval = triggerCompactionInterval
+	}
+
 	res.NumEvictionWorkers = c.DMaps.NumEvictionWorkers
 	res.MaxKeys = c.DMaps.MaxKeys
 	res.MaxInuse = c.DMaps.MaxInuse
 	res.EvictionPolicy = EvictionPolicy(c.DMaps.EvictionPolicy)
 	res.LRUSamples = c.DMaps.LRUSamples
-	res.StorageEngine = c.DMaps.StorageEngine
+
+	if c.DMaps.Engine != nil {
+		e := NewEngine()
+		e.Plugin = c.DMaps.Engine.Plugin
+		e.Name = c.DMaps.Engine.Name
+		e.Config = c.DMaps.Engine.Config
+		res.Engine = e
+	}
+
 	if c.DMaps.Custom != nil {
 		res.Custom = make(map[string]DMap)
 		for name, dc := range c.DMaps.Custom {
@@ -107,7 +126,13 @@ func loadDMapConfig(c *loader.Loader) (*DMaps, error) {
 				MaxKeys:        dc.MaxKeys,
 				EvictionPolicy: EvictionPolicy(dc.EvictionPolicy),
 				LRUSamples:     dc.LRUSamples,
-				StorageEngine:  dc.StorageEngine,
+			}
+			if dc.Engine != nil {
+				e := NewEngine()
+				e.Plugin = dc.Engine.Plugin
+				e.Name = dc.Engine.Name
+				e.Config = dc.Engine.Config
+				cc.Engine = e
 			}
 			if dc.MaxIdleDuration != "" {
 				maxIdleDuration, err := time.ParseDuration(dc.MaxIdleDuration)
@@ -298,7 +323,14 @@ func Load(filename string) (*Config, error) {
 		return nil, err
 	}
 
-	var joinRetryInterval, keepAlivePeriod, bootstrapTimeout, routingTablePushInterval time.Duration
+	var (
+		joinRetryInterval,
+		keepAlivePeriod,
+		bootstrapTimeout,
+		triggerBalancerInterval,
+		routingTablePushInterval time.Duration
+	)
+
 	if c.Olricd.KeepAlivePeriod != "" {
 		keepAlivePeriod, err = time.ParseDuration(c.Olricd.KeepAlivePeriod)
 		if err != nil {
@@ -329,6 +361,14 @@ func Load(filename string) (*Config, error) {
 		}
 	}
 
+	if c.Olricd.TriggerBalancerInterval != "" {
+		triggerBalancerInterval, err = time.ParseDuration(c.Olricd.TriggerBalancerInterval)
+		if err != nil {
+			return nil, errors.WithMessage(err,
+				fmt.Sprintf("failed to parse olricd.triggerBalancerInterval: '%s'", c.Olricd.TriggerBalancerInterval))
+		}
+	}
+
 	clientConfig := Client{}
 	err = mapYamlToConfig(&clientConfig, &c.Client)
 	if err != nil {
@@ -339,10 +379,6 @@ func Load(filename string) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	storageEngines := NewStorageEngine()
-	storageEngines.Plugins = c.StorageEngines.Plugins
-	storageEngines.Config = c.StorageEngines.Config
 
 	cfg := &Config{
 		BindAddr:                 c.Olricd.BindAddr,
@@ -355,6 +391,7 @@ func Load(filename string) (*Config, error) {
 		LogLevel:                 c.Logging.Level,
 		JoinRetryInterval:        joinRetryInterval,
 		RoutingTablePushInterval: routingTablePushInterval,
+		TriggerBalancerInterval:  triggerBalancerInterval,
 		MaxJoinAttempts:          c.Memberlist.MaxJoinAttempts,
 		Peers:                    c.Memberlist.Peers,
 		PartitionCount:           c.Olricd.PartitionCount,
@@ -373,7 +410,6 @@ func Load(filename string) (*Config, error) {
 		KeepAlivePeriod:          keepAlivePeriod,
 		BootstrapTimeout:         bootstrapTimeout,
 		DMaps:                    dmapConfig,
-		StorageEngines:           storageEngines,
 	}
 
 	if err := cfg.Sanitize(); err != nil {

@@ -4,7 +4,7 @@ github.com/armon/go-metrics
 github.com/buraksezer/connpool
 # github.com/buraksezer/consistent v0.0.0-20191006190839-693edf70fd72
 github.com/buraksezer/consistent
-# github.com/buraksezer/olric v0.4.0
+# github.com/buraksezer/olric v0.4.1-0.20211125194525-6be543336717
 github.com/buraksezer/olric
 github.com/buraksezer/olric/client
 github.com/buraksezer/olric/config
@@ -20,6 +20,8 @@ github.com/buraksezer/olric/internal/dmap
 github.com/buraksezer/olric/internal/dtopic
 github.com/buraksezer/olric/internal/environment
 github.com/buraksezer/olric/internal/kvstore
+github.com/buraksezer/olric/internal/kvstore/entry
+github.com/buraksezer/olric/internal/kvstore/table
 github.com/buraksezer/olric/internal/locker
 github.com/buraksezer/olric/internal/protocol
 github.com/buraksezer/olric/internal/service
