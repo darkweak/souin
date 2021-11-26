@@ -82,6 +82,7 @@ func main() {
 
 	http.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
 		request.Header.Set("Date", time.Now().UTC().Format(time.RFC1123))
+		retriever.SetMatchedURLFromRequest(request)
 		coalescing.ServeResponse(writer, request, retriever, plugins.DefaultSouinPluginCallback, rc, func(w http.ResponseWriter, r *http.Request) error {
 			rr := service.RequestReverseProxy(r, *retriever)
 			select {

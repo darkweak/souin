@@ -10,6 +10,7 @@ import (
 
 // VarySeparator will separate vary headers from the plain URL
 const VarySeparator = "{-VARY-}"
+const stalePrefix = "STALE_"
 
 // InitializeProvider allow to generate the providers array according to the configuration
 func InitializeProvider(configuration configurationtypes.AbstractConfigurationInterface) types.AbstractProviderInterface {
@@ -27,7 +28,7 @@ func varyVoter(baseKey string, req *http.Request, currentKey string) bool {
 		return true
 	}
 
-	if strings.Contains(currentKey, VarySeparator) {
+	if strings.Contains(currentKey, VarySeparator) && strings.HasPrefix(currentKey, baseKey+VarySeparator) {
 		list := currentKey[(strings.LastIndex(currentKey, VarySeparator) + len(VarySeparator)):]
 		if len(list) == 0 {
 			return false

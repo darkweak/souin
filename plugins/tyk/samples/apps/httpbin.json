@@ -51,6 +51,11 @@
         "enable": true
       }
     },
+    "cdn": {
+      "api_key": "XXXX",
+      "provider": "fastly",
+      "strategy": "soft"
+    },
     "default_cache": {
       "ttl": "5s"
     }

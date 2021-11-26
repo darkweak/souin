@@ -19,8 +19,8 @@ import (
 
 // EmbeddedOlric provider type
 type EmbeddedOlric struct {
-	dm *olric.DMap
-	db *olric.Olric
+	dm    *olric.DMap
+	db    *olric.Olric
 	stale time.Duration
 }
 
@@ -64,7 +64,7 @@ func EmbeddedOlricConnectionFactory(configuration t.AbstractConfigurationInterfa
 
 	if olricInstance, loaded = tryToLoadConfiguration(olricInstance, configuration.GetDefaultCache().GetOlric(), configuration.GetLogger()); !loaded {
 		olricInstance = config.New("local")
-		olricInstance.Cache.MaxInuse = 512 << 20
+		olricInstance.DMaps.MaxInuse = 512 << 20
 	}
 
 	started, cancel := context.WithCancel(context.Background())
@@ -94,8 +94,8 @@ func EmbeddedOlricConnectionFactory(configuration t.AbstractConfigurationInterfa
 	dm, e := db.NewDMap("souin-map")
 
 	return &EmbeddedOlric{
-		dm: dm,
-		db: db,
+		dm:    dm,
+		db:    db,
 		stale: configuration.GetDefaultCache().GetStale(),
 	}, e
 }

@@ -1,4 +1,4 @@
-// Copyright 2018-2020 Burak Sezer
+// Copyright 2018-2021 Burak Sezer
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,15 +14,19 @@
 
 package config
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 const (
 	DefaultDialTimeout  = 5 * time.Second
 	DefaultReadTimeout  = 3 * time.Second
 	DefaultWriteTimeout = 3 * time.Second
+	DefaultPoolTimeout  = 3 * time.Second
 )
 
-// Client is configuration for TCP clients in Olric and the official Golang client.
+// Client denotes configuration for TCP clients in Olric and the official Golang client.
 type Client struct {
 	// Timeout for TCP dial.
 	//
@@ -55,17 +59,25 @@ type Client struct {
 
 	// Maximum TCP connection count in the pool for a host:port
 	MaxConn int
+
+	// Timeout for getting a new connection from the pool. If reached, commands will fail
+	// with a timeout instead of blocking. Use value -1 for no timeout and 0 for default.
+	// Default is DefaultPoolTimeout
+	PoolTimeout time.Duration
 }
 
 // NewClient returns a new configuration object for clients.
 func NewClient() *Client {
 	c := &Client{}
-	c.Sanitize()
+	err := c.Sanitize()
+	if err != nil {
+		panic(fmt.Sprintf("failed to create a new client configuration: %v", err))
+	}
 	return c
 }
 
-// Sanitize sanitizes the given configuration.
-func (c *Client) Sanitize() {
+// Sanitize sets default values to empty configuration variables, if it's possible.
+func (c *Client) Sanitize() error {
 	if c.DialTimeout <= 0 {
 		c.DialTimeout = DefaultDialTimeout
 	}
@@ -84,11 +96,25 @@ func (c *Client) Sanitize() {
 		c.WriteTimeout = DefaultWriteTimeout
 	}
 
-	if c.MaxConn == 0 {
-		c.MaxConn = 100
+	switch c.PoolTimeout {
+	case -1:
+		c.PoolTimeout = 0
+	case 0:
+		c.PoolTimeout = DefaultPoolTimeout
 	}
+
+	if c.MaxConn == 0 {
+		c.MaxConn = 1
+	}
+	return nil
 }
+
+// Validate finds errors in the current configuration.
+func (c *Client) Validate() error { return nil }
 
 func (c *Client) HasTimeout() bool {
 	return c.ReadTimeout > 0 || c.WriteTimeout > 0
 }
+
+// Interface guard
+var _ IConfig = (*Client)(nil)

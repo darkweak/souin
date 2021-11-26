@@ -14,7 +14,7 @@ import (
 // Olric provider type
 type Olric struct {
 	*client.Client
-	dm *client.DMap
+	dm    *client.DMap
 	stale time.Duration
 }
 
@@ -34,8 +34,8 @@ func OlricConnectionFactory(configuration t.AbstractConfigurationInterface) (*Ol
 
 	return &Olric{
 		Client: c,
-		dm: nil,
-		stale: configuration.GetDefaultCache().GetStale(),
+		dm:     nil,
+		stale:  configuration.GetDefaultCache().GetStale(),
 	}, nil
 }
 

@@ -2,6 +2,7 @@ package httpcache
 
 import (
 	"testing"
+	"time"
 
 	"github.com/caddyserver/caddy/v2/caddytest"
 )
@@ -13,9 +14,7 @@ func TestMaxAge(t *testing.T) {
 		order cache before rewrite
 		http_port     9080
 		https_port    9443
-		cache {
-			ttl 1000s
-		}
+		cache
 	}
 	localhost:9080 {
 		route /cache-max-age {
@@ -31,7 +30,7 @@ func TestMaxAge(t *testing.T) {
 	}
 
 	resp2, _ := tester.AssertGetResponse(`http://localhost:9080/cache-max-age`, 200, "Hello, max-age!")
-	if resp2.Header.Get("Cache-Status") != "Souin; hit; ttl=1" {
+	if resp2.Header.Get("Cache-Status") != "Souin; hit; ttl=119" {
 		t.Errorf("unexpected Cache-Status header %v", resp2.Header.Get("Cache-Status"))
 	}
 }
@@ -60,7 +59,7 @@ func TestSMaxAge(t *testing.T) {
 	}
 
 	resp2, _ := tester.AssertGetResponse(`http://localhost:9080/cache-s-maxage`, 200, "Hello, s-maxage!")
-	if resp2.Header.Get("Cache-Status") != "Souin; hit; ttl=1" {
+	if resp2.Header.Get("Cache-Status") != "Souin; hit; ttl=999" {
 		t.Errorf("unexpected Cache-Status header with %v", resp2.Header.Get("Cache-Status"))
 	}
 }
@@ -92,6 +91,15 @@ func TestAgeHeader(t *testing.T) {
 	if resp2.Header.Get("Age") == "" {
 		t.Error("Age header should be present")
 	}
+	if resp2.Header.Get("Age") != "1" {
+		t.Error("Age header should be present")
+	}
+
+	time.Sleep(10 * time.Second)
+	resp3, _ := tester.AssertGetResponse(`http://localhost:9080/age-header`, 200, "Hello, Age header!")
+	if resp3.Header.Get("Age") != "11" {
+		t.Error("Age header should be present")
+	}
 }
 
 func TestExistingAgeHeader(t *testing.T) {
@@ -116,5 +124,37 @@ func TestExistingAgeHeader(t *testing.T) {
 	resp1, _ := tester.AssertGetResponse(`http://localhost:9080/age-header`, 200, "Hello, Age header!")
 	if resp1.Header.Get("Age") != "" {
 		t.Errorf("unexpected Age header %v", resp1.Header.Get("Age"))
+	}
+	resp2, _ := tester.AssertGetResponse(`http://localhost:9080/age-header`, 200, "Hello, Age header!")
+	if resp2.Header.Get("Age") != "1" {
+		t.Errorf("unexpected Age header value %v", resp2.Header.Get("Age"))
+	}
+}
+
+func TestNotHandledRoute(t *testing.T) {
+	tester := caddytest.NewTester(t)
+	tester.InitServer(`
+	{
+		http_port     9080
+		https_port    9443
+		cache {
+			ttl 1000s
+			regex {
+				exclude ".*handled"
+			}
+		}
+	}
+	localhost:9080 {
+		route /not-handled {
+			cache
+			header Cache-Control "max-age=60"
+			header Age "max-age=5"
+			respond "Hello, Age header!"
+		}
+	}`, "caddyfile")
+
+	resp1, _ := tester.AssertGetResponse(`http://localhost:9080/not-handled`, 200, "Hello, Age header!")
+	if resp1.Header.Get("Cache-Status") != "Souin; fwd=uri-miss" {
+		t.Errorf("unexpected Cache-Status header value %v", resp1.Header.Get("Cache-Status"))
 	}
 }

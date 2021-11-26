@@ -1,4 +1,4 @@
-// Copyright 2018-2020 Burak Sezer
+// Copyright 2018-2021 Burak Sezer
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -26,15 +26,33 @@ import (
 	"time"
 
 	"github.com/buraksezer/olric/internal/bufpool"
+	"github.com/buraksezer/olric/internal/checkpoint"
 	"github.com/buraksezer/olric/internal/protocol"
+	"github.com/buraksezer/olric/internal/stats"
 	"github.com/buraksezer/olric/pkg/flog"
-	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 )
 
 const (
 	idleConn uint32 = 0
 	busyConn uint32 = 1
+)
+
+var (
+	// CommandsTotal is total number of all requests broken down by command (get, put, etc.) and status.
+	CommandsTotal = stats.NewInt64Counter()
+
+	// ConnectionsTotal is total number of connections opened since the server started running.
+	ConnectionsTotal = stats.NewInt64Counter()
+
+	// CurrentConnections is current number of open connections.
+	CurrentConnections = stats.NewInt64Gauge()
+
+	// WrittenBytesTotal is total number of bytes sent by this server to network.
+	WrittenBytesTotal = stats.NewInt64Counter()
+
+	// ReadBytesTotal is total number of bytes read by this server from network.
+	ReadBytesTotal = stats.NewInt64Counter()
 )
 
 // pool is good for recycling memory while reading messages from the socket.
@@ -60,38 +78,45 @@ type Server struct {
 	wg         sync.WaitGroup
 	listener   net.Listener
 	dispatcher func(w, r protocol.EncodeDecoder)
-	StartCh    chan struct{}
-	StopCh     chan struct{}
+	StartedCtx context.Context
+	started    context.CancelFunc
 	ctx        context.Context
 	cancel     context.CancelFunc
+	// some components of the TCP server should be closed after the listener
+	listenerGone chan struct{}
 }
 
 // NewServer creates and returns a new Server.
 func NewServer(c *ServerConfig, l *flog.Logger) *Server {
+	checkpoint.Add()
+
 	ctx, cancel := context.WithCancel(context.Background())
+	startedCtx, started := context.WithCancel(context.Background())
 	return &Server{
-		config:  c,
-		log:     l,
-		StartCh: make(chan struct{}),
-		StopCh:  make(chan struct{}),
-		ctx:     ctx,
-		cancel:  cancel,
+		config:       c,
+		log:          l,
+		started:      started,
+		StartedCtx:   startedCtx,
+		listenerGone: make(chan struct{}),
+		ctx:          ctx,
+		cancel:       cancel,
 	}
 }
 
 func prepareRequest(header *protocol.Header, buf *bytes.Buffer) (protocol.EncodeDecoder, error) {
 	var req protocol.EncodeDecoder
-	if header.Magic == protocol.MagicDMapReq {
+	switch header.Magic {
+	case protocol.MagicDMapReq:
 		req = protocol.NewDMapMessageFromRequest(buf)
-	} else if header.Magic == protocol.MagicStreamReq {
+	case protocol.MagicStreamReq:
 		req = protocol.NewStreamMessageFromRequest(buf)
-	} else if header.Magic == protocol.MagicPipelineReq {
+	case protocol.MagicPipelineReq:
 		req = protocol.NewPipelineMessageFromRequest(buf)
-	} else if header.Magic == protocol.MagicSystemReq {
+	case protocol.MagicSystemReq:
 		req = protocol.NewSystemMessageFromRequest(buf)
-	} else if header.Magic == protocol.MagicDTopicReq {
+	case protocol.MagicDTopicReq:
 		req = protocol.NewDTopicMessageFromRequest(buf)
-	} else {
+	default:
 		return nil, errors.WithMessage(ErrInvalidMagic, fmt.Sprint(header.Magic))
 	}
 	return req, nil
@@ -101,7 +126,10 @@ func (s *Server) SetDispatcher(f func(w, r protocol.EncodeDecoder)) {
 	s.dispatcher = f
 }
 
-func (s *Server) controlConnLifeCycle(conn io.ReadWriteCloser, connStatus *uint32, done chan struct{}) {
+func (s *Server) controlLifeCycle(conn io.Closer, connStatus *uint32, done chan struct{}) {
+	CurrentConnections.Increase(1)
+	defer CurrentConnections.Decrease(1)
+
 	// Control connection state and close it.
 	defer s.wg.Done()
 
@@ -156,8 +184,10 @@ func (s *Server) closeStream(req *protocol.StreamMessage, done chan struct{}) {
 	}
 }
 
-// processMessage waits for a new request, handles it and returns the appropriate response.
-func (s *Server) processMessage(conn io.ReadWriteCloser, connStatus *uint32, done chan struct{}) error {
+// handleMessage waits for a new request, handles it and returns the appropriate response.
+func (s *Server) handleMessage(conn io.ReadWriteCloser, status *uint32, done chan struct{}) error {
+	CommandsTotal.Increase(1)
+
 	buf := bufferPool.Get()
 	defer bufferPool.Put(buf)
 
@@ -176,6 +206,8 @@ func (s *Server) processMessage(conn io.ReadWriteCloser, connStatus *uint32, don
 		go s.closeStream(req.(*protocol.StreamMessage), done)
 	}
 
+	ReadBytesTotal.Increase(int64(buf.Len()))
+
 	// Decode reads the incoming message from the underlying TCP socket and parses
 	err = req.Decode()
 	if err != nil {
@@ -183,24 +215,29 @@ func (s *Server) processMessage(conn io.ReadWriteCloser, connStatus *uint32, don
 	}
 
 	// Mark connection as busy.
-	atomic.StoreUint32(connStatus, busyConn)
+	atomic.StoreUint32(status, busyConn)
 
 	// Mark connection as idle before start waiting a new request
-	defer atomic.StoreUint32(connStatus, idleConn)
+	defer atomic.StoreUint32(status, idleConn)
 
 	resp := req.Response(nil)
-	// The dispatcher is defined by olric package and responsible to evaluate the incoming message.
+
+	// The dispatcher is defined by the olric package and responsible to evaluate
+	// the incoming message.
 	s.dispatcher(resp, req)
 	err = resp.Encode()
 	if err != nil {
 		return err
 	}
-	_, err = resp.Buffer().WriteTo(conn)
+
+	nr, err := resp.Buffer().WriteTo(conn)
+	WrittenBytesTotal.Increase(nr)
 	return err
 }
 
-// processConn waits for requests and calls request handlers to generate a response. The connections are reusable.
-func (s *Server) processConn(conn io.ReadWriteCloser) {
+// handleConn waits for requests and calls request handlers to generate a response. The connections are reusable.
+func (s *Server) handleConn(conn io.ReadWriteCloser) {
+	ConnectionsTotal.Increase(1)
 	defer s.wg.Done()
 
 	// connStatus is useful for closing the server gracefully.
@@ -209,16 +246,16 @@ func (s *Server) processConn(conn io.ReadWriteCloser) {
 	defer close(done)
 
 	s.wg.Add(1)
-	go s.controlConnLifeCycle(conn, &connStatus, done)
+	go s.controlLifeCycle(conn, &connStatus, done)
 
 	for {
-		// processMessage waits to read a message from the TCP socket.
+		// handleMessage waits to read a message from the TCP socket.
 		// Then calls its handler to generate a response.
-		err := s.processMessage(conn, &connStatus, done)
+		err := s.handleMessage(conn, &connStatus, done)
 		if err != nil {
 			// The socket probably would have been closed by the client.
-			if errors.Cause(err) == io.EOF || errors.Cause(err) == protocol.ErrConnClosed {
-				s.log.V(5).Printf("[ERROR] End of the TCP connection: %v", err)
+			if errors.Is(errors.Cause(err), io.EOF) || errors.Is(errors.Cause(err), protocol.ErrConnClosed) {
+				s.log.V(6).Printf("[DEBUG] End of the TCP connection: %v", err)
 				break
 			}
 			s.log.V(5).Printf("[ERROR] Failed to process the incoming request: %v", err)
@@ -228,8 +265,8 @@ func (s *Server) processConn(conn io.ReadWriteCloser) {
 
 // listenAndServe calls Accept on given net.Listener.
 func (s *Server) listenAndServe() error {
-	defer close(s.StopCh)
-	close(s.StartCh)
+	s.started()
+	defer close(s.listenerGone)
 
 	for {
 		conn, err := s.listener.Accept()
@@ -254,20 +291,13 @@ func (s *Server) listenAndServe() error {
 			}
 		}
 		s.wg.Add(1)
-		go s.processConn(conn)
+		go s.handleConn(conn)
 	}
 }
 
 // ListenAndServe listens on the TCP network address addr.
 func (s *Server) ListenAndServe() error {
-	defer func() {
-		select {
-		case <-s.StartCh:
-			return
-		default:
-		}
-		close(s.StartCh)
-	}()
+	defer s.started()
 
 	if s.dispatcher == nil {
 		return errors.New("no dispatcher found")
@@ -295,15 +325,18 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	default:
 	}
 
-	var result error
+	var latestError error
 	s.cancel()
 	err := s.listener.Close()
 	if err != nil {
-		result = multierror.Append(result, err)
+		s.log.V(2).Printf("[ERROR] Failed to close listener: %v", err)
+		latestError = err
 	}
 
-	// listener is gone.
-	<-s.StopCh
+	// Listener is closed successfully. Now we can await for closing
+	// other components of the TCP server.
+	<-s.listenerGone
+
 	done := make(chan struct{})
 	go func() {
 		s.wg.Wait()
@@ -313,9 +346,11 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	case <-ctx.Done():
 		err = ctx.Err()
 		if err != nil {
-			result = multierror.Append(result, err)
+			s.log.V(2).Printf("[ERROR] Context has an error: %v", err)
+			latestError = err
 		}
 	case <-done:
 	}
-	return result
+
+	return latestError
 }

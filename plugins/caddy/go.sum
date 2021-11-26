@@ -177,8 +177,8 @@ github.com/buraksezer/connpool v0.4.0 h1:fNLvWu0FOtJxL7Sqetm6+040mhZWVs8c6vrke14
 github.com/buraksezer/connpool v0.4.0/go.mod h1:qPiG7gKXo+EjrwG/yqn2StZM4ek6gcYnnGgFIVKN6b0=
 github.com/buraksezer/consistent v0.0.0-20191006190839-693edf70fd72 h1:fUmDBbSvv1uOzo/t8WaxZMVb7BxJ8JECo5lGoR9c5bA=
 github.com/buraksezer/consistent v0.0.0-20191006190839-693edf70fd72/go.mod h1:OEE5igu/CDjGegM1Jn6ZMo7R6LlV/JChAkjfQQIRLpg=
-github.com/buraksezer/olric v0.3.11 h1:0WaCMBSGMhmUkFtJc8X2FnNwnXqO7jviYzD7ikZgHSQ=
-github.com/buraksezer/olric v0.3.11/go.mod h1:o0fRJZTHrJJto62IApcdRd5jNkGUomTlouIEL1NGCi4=
+github.com/buraksezer/olric v0.4.1-0.20211125194525-6be543336717 h1:uyCe3KrznXq2YGMrB4wxGf9UyZOzBHmsylPgkUzf8xo=
+github.com/buraksezer/olric v0.4.1-0.20211125194525-6be543336717/go.mod h1:jSgaKtv7MphQyVPqS2qGoecZKGqiL2YYmyQx9LUJk6Y=
 github.com/caarlos0/ctrlc v1.0.0/go.mod h1:CdXpj4rmq0q/1Eb44M9zi2nKB0QraNKuRGYGrrHhcQw=
 github.com/caddyserver/caddy/v2 v2.4.5 h1:P1mRs6V2cMcagSPn+NWpD+OEYUYLIf6ecOa48cFGeUg=
 github.com/caddyserver/caddy/v2 v2.4.5/go.mod h1:YhfZAAh3jWSbG6rEEOM49FwxmcbLY2fZQVlo59Sc/80=

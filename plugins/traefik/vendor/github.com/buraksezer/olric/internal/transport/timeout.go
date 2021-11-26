@@ -1,4 +1,4 @@
-// Copyright 2018-2020 Burak Sezer
+// Copyright 2018-2021 Burak Sezer
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -60,8 +60,8 @@ func (c *ConnWithTimeout) UnsetDeadline() error {
 	return c.Conn.SetDeadline(time.Time{})
 }
 
-// MarkUnusable marks the connection not usable any more, to let the pool close it instead of returning it to pool.
-// Wrapper around pool.PoolConn.MarkUnusable
+// MarkUnusable() marks the connection not usable any more, to let the pool close it instead of returning it to pool.
+// Wrapper around connpool.PoolConn.MarkUnusable
 func (c *ConnWithTimeout) MarkUnusable() {
 	if conn, ok := c.Conn.(*connpool.PoolConn); ok {
 		conn.MarkUnusable()

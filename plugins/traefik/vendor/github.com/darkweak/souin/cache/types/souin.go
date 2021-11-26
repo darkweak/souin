@@ -42,6 +42,7 @@ type RetrieverResponsePropertiesInterface interface {
 	GetConfiguration() configurationtypes.AbstractConfigurationInterface
 	GetMatchedURL() configurationtypes.URL
 	SetMatchedURL(url configurationtypes.URL)
+	SetMatchedURLFromRequest(*http.Request)
 	GetRegexpUrls() *regexp.Regexp
 	GetTransport() TransportInterface
 	SetTransport(TransportInterface)
@@ -76,6 +77,27 @@ func (r *RetrieverResponseProperties) GetMatchedURL() configurationtypes.URL {
 // SetMatchedURL set the matched url
 func (r *RetrieverResponseProperties) SetMatchedURL(url configurationtypes.URL) {
 	r.MatchedURL = url
+}
+
+// SetMatchedURLFromRequest set the matched url from the request
+func (r *RetrieverResponseProperties) SetMatchedURLFromRequest(req *http.Request) {
+	path := req.Host + req.URL.Path
+	regexpURL := r.GetRegexpUrls().FindString(path)
+	url := configurationtypes.URL{
+		TTL:     configurationtypes.Duration{Duration: r.GetConfiguration().GetDefaultCache().GetTTL()},
+		Headers: r.GetConfiguration().GetDefaultCache().GetHeaders(),
+	}
+	if regexpURL != "" {
+		u := r.GetConfiguration().GetUrls()[regexpURL]
+		if u.TTL.Duration != 0 {
+			url.TTL = u.TTL
+		}
+		if len(u.Headers) != 0 {
+			url.Headers = u.Headers
+		}
+	}
+	r.GetTransport().SetURL(url)
+	r.SetMatchedURL(url)
 }
 
 // GetRegexpUrls get the regexp urls

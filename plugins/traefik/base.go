@@ -19,6 +19,7 @@ import (
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/helpers"
 	"github.com/darkweak/souin/rfc"
+	"github.com/pquerna/cachecontrol/cacheobject"
 )
 
 type getterContext struct {
@@ -69,6 +70,11 @@ func (r *CustomWriter) Send() (int, error) {
 	return r.ResponseWriter.Write(b)
 }
 
+func canHandle(r *http.Request, re types.RetrieverResponsePropertiesInterface) bool {
+	co, err := cacheobject.ParseResponseCacheControl(r.Header.Get("Cache-Control"))
+	return err == nil && len(co.NoCache) == 0 && r.Header.Get("Upgrade") != "websocket" && (re.GetExcludeRegexp() == nil || !re.GetExcludeRegexp().MatchString(r.RequestURI))
+}
+
 type key string
 
 const getterContextCtxKey key = "getter_context"
@@ -105,6 +111,7 @@ func DefaultSouinPluginCallback(
 	nextMiddleware func(w http.ResponseWriter, r *http.Request) error,
 ) {
 	cacheKey := rfc.GetCacheKey(req)
+	retriever.SetMatchedURLFromRequest(req)
 
 	if http.MethodGet == req.Method && !strings.Contains(req.Header.Get("Cache-Control"), "no-cache") {
 		r, _ := rfc.CachedResponse(
@@ -117,7 +124,7 @@ func DefaultSouinPluginCallback(
 
 		if r != nil {
 			rh := r.Header
-			rfc.HitCache(&rh)
+			rfc.HitCache(&rh, retriever.GetMatchedURL().TTL.Duration)
 			sendAnyCachedResponse(rh, r, res)
 			return
 		}
@@ -132,7 +139,7 @@ func DefaultSouinPluginCallback(
 
 		if r != nil {
 			rh := r.Header
-			rfc.HitStaleCache(&rh)
+			rfc.HitStaleCache(&rh, retriever.GetMatchedURL().TTL.Duration)
 			sendAnyCachedResponse(rh, r, res)
 			return
 		}
