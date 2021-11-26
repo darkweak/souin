@@ -119,30 +119,48 @@ surrogate_keys:
   The_Fourth_Test:
 ```
 
-|  Key                                              |  Description                                                                                   |  Value example                                                                |
-|:-------------------------------------------------:|:----------------------------------------------------------------------------------------------:|:-----------------------------------------------------------------------------:|
-| `api.basepath`                                    | BasePath for all APIs to avoid conflicts                                                       | `/your-non-conflicting-route`<br/><br/>`(default: /souin-api)`                |
-| `api.{api}.enable`                                | Enable the new API with related routes                                                         | `true`<br/><br/>`(default: false)`                                            |
-| `api.{api}.security`                              | Enable the JWT Authentication token verification                                               | `true`<br/><br/>`(default: false)`                                            |
-| `api.security.secret`                             | JWT secret key                                                                                 | `Any_charCanW0rk123`                                                          |
-| `api.security.users`                              | Array of authorized users with username x password combo                                       | `- username: admin`<br/><br/>`  password: admin`                              |
-| `api.souin.security`                              | Enable JWT validation to access the resource                                                   | `true`<br/><br/>`(default: false)`                                            |
-| `cdn.provider`                                    | The provider placed before Souin                                                               | `akamai`<br/><br/>`fastly`<br/><br/>`souin`                                   |
-| `default_cache.headers`                           | List of headers to include to the cache                                                        | `- Authorization`<br/><br/>`- Content-Type`<br/><br/>`- X-Additional-Header`  |
-| `default_cache.port.{web,tls}`                    | The device's local HTTP/TLS port that Souin should be listening on                             | Respectively `80` and `443`                                                   |
-| `default_cache.regex.exclude`                     | The regex used to prevent paths being cached                                                   | `^[A-z]+.*$`                                                                  |
-| `default_cache.stale`                             | The stale duration                                                                             | `^[A-z]+.*$`                                                                  |
-| `log_level`                                       | The log level                                                                                  | `One of DEBUG, INFO, WARN, ERROR, DPANIC, PANIC, FATAL it's case insensitive` |
-| `ssl_providers`                                   | List of your providers handling certificates                                                   | `- traefik`<br/><br/>`- nginx`<br/><br/>`- apache`                            |
-| `urls.{your url or regex}`                        | List of your custom configuration depending each URL or regex                                  | 'https:\/\/yourdomain.com'                                                    |
-| `urls.{your url or regex}.ttl`                    | Override the default TTL if defined                                                            | `90s`<br/><br/>`10m`                                                          |
-| `urls.{your url or regex}.headers`                | Override the default headers if defined                                                        | `- Authorization`<br/><br/>`- 'Content-Type'`                                 |
-| `surrogate_keys.{key name}.headers`               | Headers that should match to be part of the surrogate key group                                | `Authorization: ey.+`<br/><br/>`Content-Type: json`                           |
-| `surrogate_keys.{key name}.headers.{header name}` | Header name that should be present a match the regex to be part of the surrogate key group     | `Content-Type: json`                                                          |
-| `surrogate_keys.{key name}.url`                   | Url that should match to be part of the surrogate key group                                    | `.+`                                                                          |
-| `ykeys.{key name}.headers`                        | (DEPRECATED) Headers that should match to be part of the ykey group                            | `Authorization: ey.+`<br/><br/>`Content-Type: json`                           |
-| `ykeys.{key name}.headers.{header name}`          | (DEPRECATED) Header name that should be present a match the regex to be part of the ykey group | `Content-Type: json`                                                          |
-| `ykeys.{key name}.url`                            | (DEPRECATED) Url that should match to be part of the ykey group                                | `.+`                                                                          |
+|  Key                                              |  Description                                                                                   |  Value example                                                                                                          |
+|:-------------------------------------------------:|:----------------------------------------------------------------------------------------------:|:-----------------------------------------------------------------------------------------------------------------------:|
+| `api`                                             | The cache-handler API cache management                                                         |                                                                                                                         |
+| `api.basepath`                                    | BasePath for all APIs to avoid conflicts                                                       | `/your-non-conflicting-route`<br/><br/>`(default: /souin-api)`                                                          |
+| `api.{api}.enable`                                | Enable the new API with related routes                                                         | `true`<br/><br/>`(default: false)`                                                                                      |
+| `api.{api}.security`                              | Enable the JWT Authentication token verification                                               | `true`<br/><br/>`(default: false)`                                                                                      |
+| `api.security.secret`                             | JWT secret key                                                                                 | `Any_charCanW0rk123`                                                                                                    |
+| `api.security.users`                              | Array of authorized users with username x password combo                                       | `- username: admin`<br/><br/>`  password: admin`                                                                        |
+| `api.souin.security`                              | Enable JWT validation to access the resource                                                   | `true`<br/><br/>`(default: false)`                                                                                      |
+| `cdn`                                             | The CDN management, if you use any cdn to proxy your requests Souin will handle that           |                                                                                                                         |
+| `cdn.provider`                                    | The provider placed before Souin                                                               | `akamai`<br/><br/>`fastly`<br/><br/>`souin`                                                                             |
+| `cdn.api_key`                                     | The api key used to access to the provider                                                     | `XXXX`                                                                                                                  |
+| `cdn.dynamic`                                     | Enable the dynamic keys returned by your backend application                                   | `true`<br/><br/>`(default: false)`                                                                                      |
+| `cdn.email`                                       | The api key used to access to the provider if required, depending the provider                 | `XXXX`                                                                                                                  |
+| `cdn.hostname`                                    | The hostname if required, depending the provider                                               | `domain.com`                                                                                                            |
+| `cdn.network`                                     | The network if required, depending the provider                                                | `your_network`                                                                                                          |
+| `cdn.strategy`                                    | The strategy to use to purge the cdn cache, soft will keep the content as a stale resource     | `hard`<br/><br/>`(default: soft)`                                                                                       |
+| `cdn.service_id`                                  | The service id if required, depending the provider                                             | `123456_id`                                                                                                             |
+| `cdn.zone_id`                                     | The zone id if required, depending the provider                                                | `anywhere_zone`                                                                                                         |
+| `default_cache.badger`                            | Configure the Badger cache storage                                                             |                                                                                                                         |
+| `default_cache.badger.path`                       | Configure Badger with a file                                                                   | `/anywhere/badger_configuration.json`                                                                                   |
+| `default_cache.badger.configuration`              | Configure Badger directly in the Caddyfile or your JSON caddy configuration                    | [See the Badger configuration for the options](https://dgraph.io/docs/badger/get-started/)                              |
+| `default_cache.headers`                           | List of headers to include to the cache                                                        | `- Authorization`<br/><br/>`- Content-Type`<br/><br/>`- X-Additional-Header`                                            |
+| `default_cache.olric`                             | Configure the Olric cache storage                                                              |                                                                                                                         |
+| `default_cache.olric.path`                        | Configure Olric with a file                                                                    | `/anywhere/badger_configuration.json`                                                                                   |
+| `default_cache.olric.configuration`               | Configure Olric directly in the Caddyfile or your JSON caddy configuration                     | [See the Badger configuration for the options](https://github.com/buraksezer/olric/blob/master/cmd/olricd/olricd.yaml/) |
+| `default_cache.port.{web,tls}`                    | The device's local HTTP/TLS port that Souin should be listening on                             | Respectively `80` and `443`                                                                                             |
+| `default_cache.regex.exclude`                     | The regex used to prevent paths being cached                                                   | `^[A-z]+.*$`                                                                                                            |
+| `default_cache.stale`                             | The stale duration                                                                             | `25m`                                                                                                                   |
+| `default_cache.ttl`                               | The TTL duration                                                                               | `120s`                                                                                                                  |
+| `log_level`                                       | The log level                                                                                  | `One of DEBUG, INFO, WARN, ERROR, DPANIC, PANIC, FATAL it's case insensitive`                                           |
+| `ssl_providers`                                   | List of your providers handling certificates                                                   | `- traefik`<br/><br/>`- nginx`<br/><br/>`- apache`                                                                      |
+| `urls.{your url or regex}`                        | List of your custom configuration depending each URL or regex                                  | 'https:\/\/yourdomain.com'                                                                                              |
+| `urls.{your url or regex}.ttl`                    | Override the default TTL if defined                                                            | `90s`<br/><br/>`10m`                                                                                                    |
+| `urls.{your url or regex}.headers`                | Override the default headers if defined                                                        | `- Authorization`<br/><br/>`- 'Content-Type'`                                                                           |
+| `surrogate_keys.{key name}.headers`               | Headers that should match to be part of the surrogate key group                                | `Authorization: ey.+`<br/><br/>`Content-Type: json`                                                                     |
+| `surrogate_keys.{key name}.headers.{header name}` | Header name that should be present a match the regex to be part of the surrogate key group     | `Content-Type: json`                                                                                                    |
+| `surrogate_keys.{key name}.url`                   | Url that should match to be part of the surrogate key group                                    | `.+`                                                                                                                    |
+| `ykeys.{key name}.headers`                        | (DEPRECATED) Headers that should match to be part of the ykey group                            | `Authorization: ey.+`<br/><br/>`Content-Type: json`                                                                     |
+| `ykeys.{key name}.headers.{header name}`          | (DEPRECATED) Header name that should be present a match the regex to be part of the ykey group | `Content-Type: json`                                                                                                    |
+| `ykeys.{key name}.url`                            | (DEPRECATED) Url that should match to be part of the ykey group                                | `.+`                                                                                                                    |
+|  Key                                              |  Description                                                                                   |  Value example                                                                                                          |
 
 ## APIs
 All endpoints are accessible through the `api.basepath` configuration line or by default through `/souin-api` to avoid named route conflicts. Be sure to define an unused route to not break your existing application.
@@ -254,16 +272,89 @@ Then you just have to run the following command:
 xcaddy build --with github.com/darkweak/souin/plugins/caddy
 ```
 
+There is the fully configuration below
+```caddy
+{
+    order cache before rewrite
+    log {
+        level debug
+    }
+    cache {
+        api {
+            basepath /some-basepath
+            souin {
+                enable true
+                security true
+            }
+        }
+        badger {
+            path the_path_to_a_file.json
+            configuration {
+                # Your badger configuration here
+            }
+        }
+        cdn {
+            api_key XXXX
+            dynamic true
+            email darkweak@protonmail.com
+            hostname domain.com
+            network your_network
+            provider fastly
+            strategy soft
+            service_id 123456_id
+            zone_id anywhere_zone
+        }
+        headers Content-Type Authorization
+        log_level debug
+        olric {
+            url url_to_your_cluster:3320
+            path the_path_to_a_file.yaml
+            configuration {
+                # Your badger configuration here
+            }
+        }
+        regex {
+            exclude /test2.*
+        }
+        stale 200s
+        ttl 1000s
+    }
+}
+
+:4443
+respond "Hello World!"
+
+@match path /test1*
+@match2 path /test2*
+@matchdefault path /default
+@souin-api path /souin-api*
+
+cache @match {
+    ttl 5s
+}
+
+cache @match2 {
+    ttl 50s
+    headers Authorization
+}
+
+cache @matchdefault {
+    ttl 5s
+}
+
+cache @souin-api {}
+```
+
 ### Træfik plugin
 To use Souin as Træfik plugin, you can refer to the [pilot documentation](https://pilot.traefik.io/plugins/6123af58d00e6cd1260b290e/souin) and the [Træfik plugin integration folder](https://github.com/darkweak/souin/tree/master/plugins/traefik) to discover how to configure it.  
-You have to declare the `experimental` block in your traefik static configuration file.
+You have to declare the `experimental` block in your traefik static configuration file. Keep in mind Træfik run their own interpreter and they often break any dependances (such as the yaml.v3 support).
 ```yaml
 # anywhere/traefik.yml
 experimental:
   plugins:
     souin:
       moduleName: github.com/darkweak/souin
-      version: v1.5.8
+      version: v1.5.11-beta2
 ```
 After that you can declare either the whole configuration at once in the middleware block or by service. See the examples below.
 ```yaml
