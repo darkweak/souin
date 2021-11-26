@@ -128,7 +128,7 @@
 						"header": [
 							{
 								"key": "Cache-Control",
-								"value": "no-cache",
+								"value": "no-store",
 								"type": "text"
 							}
 						],
@@ -459,7 +459,8 @@
 					"        pm.test(\"Status code is 200 with Cache-Status header\", function () {",
 					"            pm.response.to.have.status(200);",
 					"            if (exclude) {",
-					"                pm.response.to.not.have.header(\"Cache-Status\");",
+					"                pm.response.to.have.header(\"Cache-Status\");",
+					"                pm.expect(pm.response.headers.get(\"Cache-Status\")).to.eql(\"Souin; fwd=uri-miss\");",
 					"            } else {",
 					"                pm.response.to.have.header(\"Cache-Status\");",
 					"                if (isStore) {",
@@ -476,7 +477,8 @@
 					"                    const expected = pm.expect(response);",
 					"                    expected.to.have.status(200);",
 					"                    if (exclude) {",
-					"                        pm.response.to.not.have.header(\"Cache-Status\");",
+					"                        pm.response.to.have.header(\"Cache-Status\");",
+					"                        pm.expect(pm.response.headers.get(\"Cache-Status\")).to.eql(\"Souin; fwd=uri-miss\");",
 					"                    } else {",
 					"                        expected.to.have.header(\"Cache-Status\");",
 					"",

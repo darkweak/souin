@@ -11,29 +11,37 @@ olricd:
   readRepair: false
   replicationMode: 0 # sync mode. for async, set 1
   memberCountQuorum: 1
+  routingTablePushInterval: 1m
 
 storageEngines:
   config:
     kvstore:
-      tableSize: 102134
+      tableSize: 4096
 
 client:
-  dialTimeout: "-1s"
-  readTimeout: "3s"
-  writeTimeout: "3s"
-  keepAlive: "15s"
+  dialTimeout: -1s
+  readTimeout: 3s
+  writeTimeout: 3s
+  keepAlive: 15s
   minConn: 1
   maxConn: 100
+  poolTimeout: 3s
 
 logging:
   verbosity: 6
-  level: "DEBUG"
-  output: "stderr"
+  level: DEBUG
+  output: stderr
 
 memberlist:
-  environment: "local"
+  environment: local
   bindAddr: "0.0.0.0"
   bindPort: 3322
   enableCompression: false
-  joinRetryInterval: "1s"
+  joinRetryInterval: 1ms
   maxJoinAttempts: 10
+
+dmaps:
+  engine:
+    name: kvstore
+    config:
+      tableSize: 4096

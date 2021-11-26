@@ -193,6 +193,11 @@ func EmbeddedOlricPlainConfigurationWithoutAdditionalYAML() string {
         enableCompression: false
         joinRetryInterval: "10s"
         maxJoinAttempts: 2
+      
+      storageEngines:
+        config:
+          kvstore:
+            tableSize: 4096
 `)
 }
 
@@ -238,6 +243,11 @@ memberlist:
   enableCompression: false
   joinRetryInterval: "1s"
   maxJoinAttempts: 10
+
+storageEngines:
+  config:
+    kvstore:
+      tableSize: 4096
 `),
 		0600,
 	)

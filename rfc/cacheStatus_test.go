@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/darkweak/souin/errors"
 )
@@ -11,8 +12,11 @@ import (
 func TestHitCache(t *testing.T) {
 	h := http.Header{}
 
-	HitCache(&h)
-	if h.Get("Cache-Status") == "" || h.Get("Cache-Status") != "Souin; hit; ttl=1" {
+	h.Set("Date", time.Now().UTC().Format(http.TimeFormat))
+	h.Set("Age", "1")
+
+	HitCache(&h, 4*time.Second)
+	if h.Get("Cache-Status") == "" || h.Get("Cache-Status") != "Souin; hit; ttl=3" {
 		errors.GenerateError(t, fmt.Sprintf("Cache-Status cannot be null when hit and must match hit, %s given", h.Get("Cache-Status")))
 	}
 	if ti, e := http.ParseTime(h.Get("Date")); h.Get("Date") == "" || e != nil || h.Get("Date") != ti.Format(http.TimeFormat) {
@@ -20,7 +24,7 @@ func TestHitCache(t *testing.T) {
 	}
 
 	h.Set("Date", "Invalid")
-	HitCache(&h)
+	HitCache(&h, 0)
 	if h.Get("Cache-Status") == "" || h.Get("Cache-Status") != "Souin; fwd=request; detail=MALFORMED-DATE" {
 		errors.GenerateError(t, fmt.Sprintf("Cache-Status cannot be null when hit and must match MALFORMED-DATE, %s given", h.Get("Cache-Status")))
 	}
@@ -69,8 +73,8 @@ func TestSetCacheStatusEventually(t *testing.T) {
 	r.Header = http.Header{}
 
 	SetCacheStatusEventually(&r)
-	if r.Header.Get("Cache-Status") != "Souin; hit; ttl=1" {
-		errors.GenerateError(t, fmt.Sprintf("The Cache-Status should be equal to Souin; hit; ttl=1, %s given", r.Header.Get("Cache-Status")))
+	if r.Header.Get("Cache-Status") != "Souin; hit; ttl=-1" {
+		errors.GenerateError(t, fmt.Sprintf("The Cache-Status should be equal to Souin; hit; ttl=-1, %s given", r.Header.Get("Cache-Status")))
 	}
 
 	r.Header = http.Header{"Date": []string{"Invalid"}}

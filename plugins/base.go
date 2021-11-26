@@ -16,6 +16,7 @@ import (
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/helpers"
 	"github.com/darkweak/souin/rfc"
+	"github.com/pquerna/cachecontrol/cacheobject"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -61,7 +62,8 @@ func (r *CustomWriter) Send() (int, error) {
 
 // CanHandle detect if the request can be handled by Souin
 func CanHandle(r *http.Request, re types.RetrieverResponsePropertiesInterface) bool {
-	return r.Header.Get("Upgrade") != "websocket" && (re.GetExcludeRegexp() == nil || !re.GetExcludeRegexp().MatchString(r.RequestURI))
+	co, err := cacheobject.ParseResponseCacheControl(r.Header.Get("Cache-Control"))
+	return err == nil && len(co.NoCache) == 0 && r.Header.Get("Upgrade") != "websocket" && (re.GetExcludeRegexp() == nil || !re.GetExcludeRegexp().MatchString(r.RequestURI))
 }
 
 func sendAnyCachedResponse(rh http.Header, response *http.Response, res http.ResponseWriter) {
@@ -90,6 +92,7 @@ func DefaultSouinPluginCallback(
 	responses := make(chan *http.Response)
 	cacheCandidate := http.MethodGet == req.Method && !strings.Contains(req.Header.Get("Cache-Control"), "no-cache")
 	cacheKey := rfc.GetCacheKey(req)
+	retriever.SetMatchedURLFromRequest(req)
 
 	go func() {
 		coalesceable <- retriever.GetTransport().GetCoalescingLayerStorage().Exists(cacheKey)
@@ -120,14 +123,20 @@ func DefaultSouinPluginCallback(
 	}
 
 	if cacheCandidate {
-		for i := 0; i < 2; i++ {
-			response, open := <-responses
-			if open && nil != response {
-				rh := response.Header
-				rfc.HitCache(&rh)
-				sendAnyCachedResponse(rh, response, res)
-				return
-			}
+		response, open := <-responses
+		if open && nil != response {
+			rh := response.Header
+			rfc.HitCache(&rh, retriever.GetMatchedURL().TTL.Duration)
+			sendAnyCachedResponse(rh, response, res)
+			return
+		}
+
+		response, open = <-responses
+		if open && nil != response {
+			rh := response.Header
+			rfc.HitStaleCache(&rh, retriever.GetMatchedURL().TTL.Duration)
+			sendAnyCachedResponse(rh, response, res)
+			return
 		}
 	}
 

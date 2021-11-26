@@ -1,4 +1,4 @@
-// Copyright 2018-2020 Burak Sezer
+// Copyright 2018-2021 Burak Sezer
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -67,7 +67,7 @@ func (c *Client) Close() {
 }
 
 // ClosePool closes the underlying connections in a pool,
-// deletes from Olric's pools map and frees resources.
+// deletes from the pools map and frees resources.
 func (c *Client) ClosePool(addr string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -83,16 +83,23 @@ func (c *Client) ClosePool(addr string) {
 
 // pool creates a new pool for a given addr or returns an exiting one.
 func (c *Client) pool(addr string) (connpool.Pool, error) {
-	factory := func() (net.Conn, error) {
-		return c.dialer.Dial("tcp", addr)
-	}
-
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	p, ok := c.pools[addr]
 	if ok {
 		return p, nil
+	}
+
+	factory := func() (net.Conn, error) {
+		conn, err := c.dialer.Dial("tcp", addr)
+		if err != nil {
+			return nil, err
+		}
+
+		ConnectionsTotal.Increase(1)
+		CurrentConnections.Increase(1)
+		return conn, nil
 	}
 
 	p, err := connpool.NewChannelPool(c.config.MinConn, c.config.MaxConn, factory)
@@ -109,9 +116,18 @@ func (c *Client) conn(addr string) (net.Conn, error) {
 		return nil, err
 	}
 
-	// Use context.Background here because we dont want to change the default
-	// behaviour.
-	conn, err := p.Get(context.Background())
+	var (
+		ctx    context.Context
+		cancel context.CancelFunc
+	)
+	if c.config.PoolTimeout > 0 {
+		ctx, cancel = context.WithTimeout(context.Background(), c.config.PoolTimeout)
+		defer cancel()
+	} else {
+		ctx = context.Background()
+	}
+
+	conn, err := p.Get(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -131,6 +147,7 @@ func (c *Client) teardownConnWithTimeout(conn *ConnWithTimeout, dead bool) {
 			_, _ = fmt.Fprintf(os.Stderr, "[ERROR] Failed to unset timeouts on TCP connection: %v", err)
 		}
 	}
+
 	if err := conn.Close(); err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "[ERROR] Failed to close connection: %v", err)
 	}
@@ -141,8 +158,12 @@ func (c *Client) teardownConn(rawConn net.Conn, dead bool) {
 		c.teardownConnWithTimeout(rawConn.(*ConnWithTimeout), dead)
 		return
 	}
+
 	pc, _ := rawConn.(*connpool.PoolConn)
-	pc.MarkUnusable()
+	if dead {
+		CurrentConnections.Decrease(1)
+		pc.MarkUnusable()
+	}
 	err := pc.Close()
 	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "[ERROR] Failed to close connection: %v", err)
@@ -169,20 +190,24 @@ func (c *Client) RequestTo(addr string, req protocol.EncodeDecoder) (protocol.En
 	if err != nil {
 		return nil, err
 	}
-	_, err = req.Buffer().WriteTo(conn)
+
+	nr, err := req.Buffer().WriteTo(conn)
 	if err != nil {
 		dead = true
 		return nil, err
 	}
+	WrittenBytesTotal.Increase(nr)
 
 	// Await for the response
 	buf.Reset()
-	_, err = protocol.ReadMessage(conn, buf)
+	h, err := protocol.ReadMessage(conn, buf)
 	if err != nil {
 		// Failed to read message from the TCP socket. Close it.
 		dead = true
 		return nil, err
 	}
+
+	ReadBytesTotal.Increase(protocol.HeaderLength + int64(h.MessageLength))
 
 	// Response is a shortcut to create a response message for the request.
 	resp := req.Response(buf)

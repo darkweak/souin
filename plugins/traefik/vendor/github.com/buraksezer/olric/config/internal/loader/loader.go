@@ -1,4 +1,4 @@
-// Copyright 2018-2020 Burak Sezer
+// Copyright 2018-2021 Burak Sezer
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,22 +17,23 @@ package loader
 import "gopkg.in/yaml.v2"
 
 type olricd struct {
-	Name              string  `yaml:"name"`
-	BindAddr          string  `yaml:"bindAddr"`
-	BindPort          int     `yaml:"bindPort"`
-	Interface         string  `yaml:"interface"`
-	ReplicationMode   int     `yaml:"replicationMode"`
-	PartitionCount    uint64  `yaml:"partitionCount"`
-	LoadFactor        float64 `yaml:"loadFactor"`
-	Serializer        string  `yaml:"serializer"`
-	KeepAlivePeriod   string  `yaml:"keepAlivePeriod"`
-	BootstrapTimeout  string  `yaml:"bootstrapTimeout"`
-	ReplicaCount      int     `yaml:"replicaCount"`
-	WriteQuorum       int     `yaml:"writeQuorum"`
-	ReadQuorum        int     `yaml:"readQuorum"`
-	ReadRepair        bool    `yaml:"readRepair"`
-	TableSize         int     `yaml:"tableSize"`
-	MemberCountQuorum int32   `yaml:"memberCountQuorum"`
+	Name                     string  `yaml:"name"`
+	BindAddr                 string  `yaml:"bindAddr"`
+	BindPort                 int     `yaml:"bindPort"`
+	Interface                string  `yaml:"interface"`
+	ReplicationMode          int     `yaml:"replicationMode"`
+	PartitionCount           uint64  `yaml:"partitionCount"`
+	LoadFactor               float64 `yaml:"loadFactor"`
+	Serializer               string  `yaml:"serializer"`
+	KeepAlivePeriod          string  `yaml:"keepAlivePeriod"`
+	BootstrapTimeout         string  `yaml:"bootstrapTimeout"`
+	ReplicaCount             int     `yaml:"replicaCount"`
+	WriteQuorum              int     `yaml:"writeQuorum"`
+	ReadQuorum               int     `yaml:"readQuorum"`
+	ReadRepair               bool    `yaml:"readRepair"`
+	MemberCountQuorum        int32   `yaml:"memberCountQuorum"`
+	RoutingTablePushInterval string  `yaml:"routingTablePushInterval"`
+	TriggerBalancerInterval  string  `yaml:"triggerBalancerInterval"`
 }
 
 type client struct {
@@ -42,6 +43,7 @@ type client struct {
 	KeepAlive    string `yaml:"keepAlive"`
 	MinConn      int    `yaml:"minConn"`
 	MaxConn      int    `yaml:"maxConn"`
+	PoolTimeout  string `yaml:"poolTimeout"`
 }
 
 // logging contains configuration variables of logging section of config file.
@@ -82,27 +84,49 @@ type memberlist struct {
 	UDPBufferSize           *int     `yaml:"udpBufferSize"`
 }
 
-type cache struct {
-	NumEvictionWorkers int64  `yaml:"numEvictionWorkers"`
-	MaxIdleDuration    string `yaml:"maxIdleDuration"`
-	TTLDuration        string `yaml:"ttlDuration"`
-	MaxKeys            int    `yaml:"maxKeys"`
-	MaxInuse           int    `yaml:"maxInuse"`
-	LRUSamples         int    `yaml:"lruSamples"`
-	EvictionPolicy     string `yaml:"evictionPolicy"`
+type engine struct {
+	Plugin string                 `yaml:"plugin"`
+	Name   string                 `yaml:"name"`
+	Config map[string]interface{} `yaml:"config"`
 }
+
+type dmap struct {
+	Engine          *engine `yaml:"engine"`
+	MaxIdleDuration string  `yaml:"maxIdleDuration"`
+	TTLDuration     string  `yaml:"ttlDuration"`
+	MaxKeys         int     `yaml:"maxKeys"`
+	MaxInuse        int     `yaml:"maxInuse"`
+	LRUSamples      int     `yaml:"lruSamples"`
+	EvictionPolicy  string  `yaml:"evictionPolicy"`
+}
+
+type dmaps struct {
+	Engine                      *engine         `yaml:"engine"`
+	NumEvictionWorkers          int64           `yaml:"numEvictionWorkers"`
+	MaxIdleDuration             string          `yaml:"maxIdleDuration"`
+	TTLDuration                 string          `yaml:"ttlDuration"`
+	MaxKeys                     int             `yaml:"maxKeys"`
+	MaxInuse                    int             `yaml:"maxInuse"`
+	LRUSamples                  int             `yaml:"lruSamples"`
+	EvictionPolicy              string          `yaml:"evictionPolicy"`
+	CheckEmptyFragmentsInterval string          `yaml:"checkEmptyFragmentsInterval"`
+	TriggerCompactionInterval   string          `yaml:"triggerCompactionInterval"`
+	Custom                      map[string]dmap `yaml:"custom"`
+}
+
+type serviceDiscovery map[string]interface{}
 
 // Loader is the main configuration struct
 type Loader struct {
-	Memberlist       memberlist
-	Logging          logging
-	Olricd           olricd
-	Client           client
-	Cache            cache
-	DMaps            map[string]cache       `yaml:"dmaps"`
-	ServiceDiscovery map[string]interface{} `yaml:"serviceDiscovery"`
+	Memberlist       memberlist       `yaml:"memberlist"`
+	Logging          logging          `yaml:"logging"`
+	Olricd           olricd           `yaml:"olricd"`
+	Client           client           `yaml:"client"`
+	DMaps            dmaps            `yaml:"dmaps"`
+	ServiceDiscovery serviceDiscovery `yaml:"serviceDiscovery"`
 }
 
+// New tries to read Olric configuration from a YAML file.
 func New(data []byte) (*Loader, error) {
 	var lc Loader
 	if err := yaml.Unmarshal(data, &lc); err != nil {

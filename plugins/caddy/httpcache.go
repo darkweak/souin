@@ -65,6 +65,7 @@ type getterContext struct {
 // ServeHTTP implements caddyhttp.MiddlewareHandler.
 func (s *SouinCaddyPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request, next caddyhttp.Handler) error {
 	if !plugins.CanHandle(req, s.Retriever) {
+		rw.Header().Add("Cache-Status", "Souin; fwd=uri-miss")
 		return next.ServeHTTP(rw, req)
 	}
 
@@ -120,11 +121,6 @@ func (s *SouinCaddyPlugin) configurationPropertyMapper() error {
 		}
 	}
 	s.Configuration.DefaultCache = defaultCache
-	return nil
-}
-
-// Validate to validate configuration.
-func (s *SouinCaddyPlugin) Validate() error {
 	return nil
 }
 
@@ -235,6 +231,9 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 		DefaultCache: &DefaultCache{
 			Distributed: false,
 			Headers:     []string{},
+			TTL: configurationtypes.Duration{
+				Duration: 120 * time.Second,
+			},
 		},
 		URLs: make(map[string]configurationtypes.URL),
 	}
@@ -308,8 +307,7 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 					}
 				}
 			case "headers":
-				args := h.RemainingArgs()
-				cfg.DefaultCache.Headers = append(cfg.DefaultCache.Headers, args...)
+				cfg.DefaultCache.Headers = append(cfg.DefaultCache.Headers, h.RemainingArgs()...)
 			case "log_level":
 				args := h.RemainingArgs()
 				cfg.LogLevel = args[0]
@@ -403,5 +401,4 @@ func parseCaddyfileHandlerDirective(h httpcaddyfile.Helper) (caddyhttp.Middlewar
 var (
 	_ caddy.Provisioner           = (*SouinCaddyPlugin)(nil)
 	_ caddyhttp.MiddlewareHandler = (*SouinCaddyPlugin)(nil)
-	_ caddy.Validator             = (*SouinCaddyPlugin)(nil)
 )
