@@ -231,6 +231,9 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 		DefaultCache: &DefaultCache{
 			Distributed: false,
 			Headers:     []string{},
+			TTL: configurationtypes.Duration{
+				Duration: 120 * time.Second,
+			},
 		},
 		URLs: make(map[string]configurationtypes.URL),
 	}
@@ -304,8 +307,7 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 					}
 				}
 			case "headers":
-				args := h.RemainingArgs()
-				cfg.DefaultCache.Headers = append(cfg.DefaultCache.Headers, args...)
+				cfg.DefaultCache.Headers = append(cfg.DefaultCache.Headers, h.RemainingArgs()...)
 			case "log_level":
 				args := h.RemainingArgs()
 				cfg.LogLevel = args[0]

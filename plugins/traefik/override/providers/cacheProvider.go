@@ -72,7 +72,7 @@ func (provider *Cache) Set(key string, value []byte, url t.URL, duration time.Du
 	}
 
 	provider.Cache.Set(key, value, duration)
-	provider.Cache.Set("STALE_"+key, value, duration)
+	provider.Cache.Set(stalePrefix+key, value, provider.stale+duration)
 }
 
 // Delete method will delete the response in Cache provider if exists corresponding to key param
