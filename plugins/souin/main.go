@@ -33,13 +33,13 @@ func souinPluginInitializerFromConfiguration(c *configuration.Configuration) *so
 	return retriever
 }
 
-func startServer(config *tls.Config) (net.Listener, *http.Server) {
+func startServer(config *tls.Config, port string) (net.Listener, *http.Server) {
 	server := http.Server{
-		Addr:      ":443",
+		Addr:      ":"+port,
 		Handler:   nil,
 		TLSConfig: config,
 	}
-	listener, err := tls.Listen("tcp", ":443", config)
+	listener, err := tls.Listen("tcp", ":"+port, config)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -97,7 +97,7 @@ func main() {
 	})
 	go func() {
 		for {
-			listener, _ := startServer(tlsConfig)
+			listener, _ := startServer(tlsConfig, c.DefaultCache.Port.TLS)
 			<-configChannel
 			_ = listener.Close()
 		}
