@@ -96,11 +96,10 @@ func main() {
 		})
 	})
 	go func() {
-		listener, _ := startServer(tlsConfig)
 		for {
+			listener, _ := startServer(tlsConfig)
 			<-configChannel
 			_ = listener.Close()
-			listener, _ = startServer(tlsConfig)
 		}
 	}()
 
