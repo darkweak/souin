@@ -3,8 +3,6 @@ FROM golang:1.16-alpine AS builder
 RUN apk update && apk upgrade && \
     apk add --no-cache bash git openssh gcc libc-dev
 ENV GOPATH /app
-ENV GOOS linux
-ENV GOARCH arm64
 
 RUN mkdir -p /app/src/github.com/darkweak/cmd
 RUN mkdir -p /app/src/github.com/darkweak/souin
@@ -24,7 +22,7 @@ ADD ./plugins /app/src/github.com/darkweak/souin/plugins
 WORKDIR /app/src/github.com/darkweak/souin
 RUN go mod download
 
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a \
+RUN CGO_ENABLED=0 go build -a \
   -tags netgo -ldflags '-w -extldflags "-static"' -o /app/cmd/souin ./plugins/souin
 
 EXPOSE 80
