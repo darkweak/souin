@@ -10,7 +10,7 @@ services:
   tyk-gateway:
     image: tykio/tyk-gateway:v3.2.2-rc5
     ports:
-      - "8080:8080"
+      - "4443:8080"
     depends_on:
       - tyk-redis
     volumes:

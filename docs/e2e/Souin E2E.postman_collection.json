@@ -564,7 +564,7 @@
 		},
 		{
 			"key": "tyk_url",
-			"value": "http://localhost:8080/httpbin"
+			"value": "http://localhost:4443/httpbin"
 		}
 	]
 }
