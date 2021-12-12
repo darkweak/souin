@@ -41,7 +41,15 @@
   },
   "enable_batch_request_support": true,
   "souin": {
+    "api": {
+        "souin": {
+            "enable": true
+        }
+    },
     "default_cache": {
+      "regex": {
+        "exclude": "/test2.*"
+      },
       "ttl": "10s"
     }
   }

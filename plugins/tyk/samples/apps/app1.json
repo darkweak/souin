@@ -114,7 +114,7 @@
   "proxy": {
     "preserve_host_header": false,
     "listen_path": "/6b6c9fc301614e607c591e4af785c465/",
-    "target_url": "http://localhost:4443/",
+    "target_url": "http://localhost:8080/",
     "strip_listen_path": true,
     "enable_load_balancing": false,
     "target_list": [],
