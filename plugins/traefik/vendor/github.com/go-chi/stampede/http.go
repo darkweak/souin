@@ -11,6 +11,17 @@ import (
 	"time"
 )
 
+var stripOutHeaders = []string{
+	"Access-Control-Allow-Credentials",
+	"Access-Control-Allow-Headers",
+	"Access-Control-Allow-Methods",
+	"Access-Control-Allow-Origin",
+	"Access-Control-Expose-Headers",
+	"Access-Control-Max-Age",
+	"Access-Control-Request-Headers",
+	"Access-Control-Request-Method",
+}
+
 func Handler(cacheSize int, ttl time.Duration, paths ...string) func(next http.Handler) http.Handler {
 	keyFunc := func(r *http.Request) uint64 {
 		// Read the request payload, and then setup buffer for future reader
@@ -110,8 +121,21 @@ func HandlerWithKey(cacheSize int, ttl time.Duration, keyFunc ...func(r *http.Re
 				panic("stampede: handler received unexpected response value type")
 			}
 
-			for k, v := range resp.headers {
-				w.Header().Set(k, strings.Join(v, ", "))
+			header := w.Header()
+
+		nextHeader:
+			for k := range resp.headers {
+				for _, match := range stripOutHeaders {
+					// Prevent any header in stripOutHeaders to override the current
+					// value of that header. This is important when you don't want a
+					// header to affect all subsequent requests (for instance, when
+					// working with several CORS domains, you don't want the first domain
+					// to be recorded an to be printed in all responses)
+					if match == k {
+						continue nextHeader
+					}
+				}
+				header[k] = resp.headers[k]
 			}
 
 			w.WriteHeader(resp.status)

@@ -62,14 +62,14 @@ jobs:
         with:
           time: 30s
       -
-        name: Set logs result as environment variable
-        run: cd plugins/tyk && echo "TYK_DC_RESULT=$(docker-compose logs tyk-gateway | grep -i '\[INFO\] Olric bindAddr')" >> $GITHUB_ENV
+        name: Set Tyk logs configuration result as environment variable
+        run: cd plugins/tyk && echo "TYK_MIDDLEWARE_RESULT=$(docker-compose logs tyk-gateway | grep SouinResponseHandler)" >> $GITHUB_ENV
       -
-        name: Check Olric is loaded to define if Souin is loaded too
+        name: Check if the configuration is loaded to define if Souin is loaded too
         uses: nick-invision/assert-action@v1
         with:
-          expected: '[INFO] Olric bindAddr'
-          actual: ${{ env.TYK_DC_RESULT }}
+          expected: 'level=info msg="Loaded Go response plugin: SouinResponseHandler" mwPath="/opt/tyk-gateway/middleware/souin-plugin.so" mwSymbolName=SouinResponseHandler'
+          actual: ${{ env.TYK_MIDDLEWARE_RESULT }}
           comparison: contains
       -
         name: Run Tyk E2E tests
