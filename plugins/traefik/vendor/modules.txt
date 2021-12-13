@@ -4,7 +4,7 @@ github.com/armon/go-metrics
 github.com/buraksezer/connpool
 # github.com/buraksezer/consistent v0.0.0-20191006190839-693edf70fd72
 github.com/buraksezer/consistent
-# github.com/buraksezer/olric v0.4.1-0.20211125194525-6be543336717
+# github.com/buraksezer/olric v0.4.1-0.20211130141003-a889ee19dcd9
 github.com/buraksezer/olric
 github.com/buraksezer/olric/client
 github.com/buraksezer/olric/config
@@ -55,7 +55,7 @@ github.com/darkweak/souin/helpers
 github.com/darkweak/souin/plugins/souin/configuration
 github.com/darkweak/souin/rfc
 github.com/darkweak/souin/tests
-# github.com/dgraph-io/badger/v3 v3.2103.1
+# github.com/dgraph-io/badger/v3 v3.2103.2
 github.com/dgraph-io/badger/v3
 github.com/dgraph-io/badger/v3/fb
 github.com/dgraph-io/badger/v3/options
@@ -70,7 +70,7 @@ github.com/dgraph-io/ristretto/z
 github.com/dgraph-io/ristretto/z/simd
 # github.com/dustin/go-humanize v1.0.0
 github.com/dustin/go-humanize
-# github.com/go-chi/stampede v0.4.5
+# github.com/go-chi/stampede v0.5.0
 github.com/go-chi/stampede
 github.com/go-chi/stampede/singleflight
 # github.com/gogo/protobuf v1.3.2
@@ -87,7 +87,7 @@ github.com/golang/protobuf/proto
 github.com/golang/snappy
 # github.com/google/btree v0.0.0-20180813153112-4030bb1f1f0c
 github.com/google/btree
-# github.com/google/flatbuffers v1.12.0
+# github.com/google/flatbuffers v1.12.1
 github.com/google/flatbuffers/go
 # github.com/google/uuid v1.3.0
 github.com/google/uuid
@@ -140,7 +140,7 @@ go.opencensus.io/trace/tracestate
 go.uber.org/atomic
 # go.uber.org/multierr v1.6.0
 go.uber.org/multierr
-# go.uber.org/zap v1.19.0
+# go.uber.org/zap v1.19.1
 ## explicit
 go.uber.org/zap
 go.uber.org/zap/buffer
@@ -151,7 +151,7 @@ go.uber.org/zap/zapcore
 # golang.org/x/crypto v0.0.0-20201001193750-eb9a90e9f9cb
 golang.org/x/crypto/ed25519
 golang.org/x/crypto/ed25519/internal/edwards25519
-# golang.org/x/net v0.0.0-20201021035429-f5854403a974
+# golang.org/x/net v0.0.0-20210405180319-a5a99cb37ef4
 golang.org/x/net/bpf
 golang.org/x/net/context
 golang.org/x/net/internal/iana
@@ -160,7 +160,7 @@ golang.org/x/net/internal/timeseries
 golang.org/x/net/ipv4
 golang.org/x/net/ipv6
 golang.org/x/net/trace
-# golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
+# golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
 # golang.org/x/sys v0.0.0-20210809222454-d867a43fc93e
