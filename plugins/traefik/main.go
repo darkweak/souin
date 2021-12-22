@@ -174,6 +174,7 @@ func (s *SouinTraefikPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request
 	buf.Reset()
 	defer bufPool.Put(buf)
 	customRW := InitializeRequest(rw, req, s.next)
+	customRW.Buf = buf
 	regexpURL := s.Retriever.GetRegexpUrls().FindString(req.Host + req.URL.Path)
 	url := configurationtypes.URL{
 		TTL:     configurationtypes.Duration{Duration: s.Retriever.GetConfiguration().GetDefaultCache().GetTTL()},

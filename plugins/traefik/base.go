@@ -31,43 +31,40 @@ type getterContext struct {
 // CustomWriter is a custom writer
 type CustomWriter struct {
 	Response *http.Response
-	BufPool  *sync.Pool
-	http.ResponseWriter
+	Buf      *bytes.Buffer
+	Rw       http.ResponseWriter
 }
 
 // Header will write the response headers
 func (r *CustomWriter) Header() http.Header {
-	return r.ResponseWriter.Header()
+	return r.Rw.Header()
 }
 
 // WriteHeader will write the response headers
 func (r *CustomWriter) WriteHeader(code int) {
-	if code == 0 {
-		return
+	if code != 0 {
+		r.Response.StatusCode = code
 	}
-	r.Response.StatusCode = code
 }
 
 // Write will write the response body
 func (r *CustomWriter) Write(b []byte) (int, error) {
-	r.Response.Header = r.ResponseWriter.Header()
-	if r.Response.StatusCode == 0 {
-		r.Response.StatusCode = http.StatusOK
-	}
-	r.Response.Body = ioutil.NopCloser(bytes.NewBuffer(b))
+	r.Response.Header = r.Header()
+	r.Buf.Write(b)
+	r.Response.Body = ioutil.NopCloser(r.Buf)
 	return len(b), nil
 }
 
 // Send delays the response to handle Cache-Status
 func (r *CustomWriter) Send() (int, error) {
-	b, _ := ioutil.ReadAll(r.Response.Body)
 	for h, v := range r.Response.Header {
 		if len(v) > 0 {
-			r.Header().Set(h, strings.Join(v, ", "))
+			r.Rw.Header().Set(h, strings.Join(v, ", "))
 		}
 	}
-	r.ResponseWriter.WriteHeader(r.Response.StatusCode)
-	return r.ResponseWriter.Write(b)
+	r.Rw.WriteHeader(r.Response.StatusCode)
+	b, _ := ioutil.ReadAll(r.Response.Body)
+	return r.Rw.Write(b)
 }
 
 func canHandle(r *http.Request, re types.RetrieverResponsePropertiesInterface) bool {
@@ -86,8 +83,8 @@ func InitializeRequest(rw http.ResponseWriter, req *http.Request, next http.Hand
 	req = req.WithContext(ctx)
 	req.Header.Set("Date", time.Now().UTC().Format(time.RFC1123))
 	return &CustomWriter{
-		ResponseWriter: rw,
-		Response:       &http.Response{},
+		Rw:       rw,
+		Response: &http.Response{},
 	}
 }
 
