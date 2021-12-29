@@ -110,7 +110,7 @@ func DefaultSouinPluginCallback(
 	cacheKey := rfc.GetCacheKey(req)
 	retriever.SetMatchedURLFromRequest(req)
 
-	if http.MethodGet == req.Method && !strings.Contains(req.Header.Get("Cache-Control"), "no-cache") {
+	if !strings.Contains(req.Header.Get("Cache-Control"), "no-cache") {
 		r, _ := rfc.CachedResponse(
 			retriever.GetProvider(),
 			req,

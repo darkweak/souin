@@ -90,7 +90,7 @@ func DefaultSouinPluginCallback(
 ) {
 	coalesceable := make(chan bool)
 	responses := make(chan *http.Response)
-	cacheCandidate := http.MethodGet == req.Method && !strings.Contains(req.Header.Get("Cache-Control"), "no-cache")
+	cacheCandidate := !strings.Contains(req.Header.Get("Cache-Control"), "no-cache")
 	cacheKey := rfc.GetCacheKey(req)
 	retriever.SetMatchedURLFromRequest(req)
 
