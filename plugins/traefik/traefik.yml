@@ -9,7 +9,7 @@ api:
   insecure: true
 
 pilot:
-  token: 1050f8a0-eb6f-4458-97ae-6d223afbefe6
+  token: 2dfb46d0-ad2a-4792-8b8e-8305dbc4e212
 
 experimental:
   localPlugins:
