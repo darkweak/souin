@@ -17,7 +17,10 @@
   6.1. [Træfik container](#træfik-container)
 7. [Plugins](#plugins)  
   7.1. [Caddy module](#caddy-module)  
+  7.2. [Echo middleware](#echo-middleware)  
+  7.2. [Gin middleware](#gin-middleware)  
   7.2. [Træfik plugin](#træfik-plugin)  
+  7.2. [Tyk plugin](#tyk-plugin)  
   7.3. [Prestashop plugin](#prestashop-plugin)  
   7.4. [Wordpress plugin](#wordpress-plugin)  
 8. [Credits](#credits)
@@ -343,6 +346,50 @@ cache @matchdefault {
 }
 
 cache @souin-api {}
+```
+
+### Echo middleware
+To use Souin as echo middleware, you can refer to the [Echo plugin integration folder](https://github.com/darkweak/souin/tree/master/plugins/echo) to discover how to configure it.  
+You just have to define a new echo router and tell to the instance to use the process method like below:
+```go
+import (
+	"net/http"
+
+	souin_echo "github.com/darkweak/souin/plugins/echo"
+	"github.com/labstack/echo/v4"
+)
+
+func main(){
+
+    // ...
+	e := echo.New()
+	s := souin_echo.New(souin_echo.DefaultConfiguration)
+	e.Use(s.Process)
+    // ...
+
+}
+```
+
+### Gin middleware
+To use Souin as gin middleware, you can refer to the [Gin plugin integration folder](https://github.com/darkweak/souin/tree/master/plugins/gin) to discover how to configure it.  
+You just have to define a new gin router and tell to the instance to use the process method like below:
+```go
+import (
+	"net/http"
+
+	souin_gin "github.com/darkweak/souin/plugins/gin"
+	"github.com/gin-gonic/gin"
+)
+
+func main(){
+
+    // ...
+	r := gin.New()
+	s := souin_gin.New(souin_gin.DefaultConfiguration)
+	r.Use(s.Process())
+    // ...
+
+}
 ```
 
 ### Træfik plugin
