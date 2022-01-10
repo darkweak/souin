@@ -556,3 +556,4 @@ Thanks to these users for contributing or helping this project in any way
 * [Agneev](https://github.com/agneevX)
 * [Eidenschink](https://github.com/eidenschink/)
 * [Massimiliano Cannarozzo](https://github.com/maxcanna/)
+* [Kevin Pollet](https://github.com/kevinpollet)

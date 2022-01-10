@@ -92,7 +92,7 @@ func parseConfiguration(c map[string]interface{}) Configuration {
 			for defaultCacheK, defaultCacheV := range defaultCache {
 				switch defaultCacheK {
 				case "headers":
-					dc.Headers = strings.Split(defaultCacheV.(string), ",")
+					dc.Headers = parseStringSlice(defaultCacheV)
 				case "regex":
 					exclude := defaultCacheV.(map[string]interface{})["exclude"].(string)
 					if exclude != "" {
@@ -125,7 +125,7 @@ func parseConfiguration(c map[string]interface{}) Configuration {
 					Headers: nil,
 				}
 				currentValue := urlV.(map[string]interface{})
-				currentURL.Headers = strings.Split(currentValue["headers"].(string), ",")
+				currentURL.Headers = parseStringSlice(currentValue["headers"])
 				d := currentValue["ttl"].(string)
 				ttl, err := time.ParseDuration(d)
 				if err == nil {
@@ -143,6 +143,20 @@ func parseConfiguration(c map[string]interface{}) Configuration {
 	}
 
 	return configuration
+}
+
+// parseStringSlice returns the string slice corresponding to the given interface.
+// The interface can be of type string which contains a comma separated list of values (e.g. foo,bar) or of type []string.
+func parseStringSlice(i interface{}) []string {
+	if value, ok := i.(string); ok {
+		return strings.Split(value, ",")
+	}
+
+	if value, ok := i.([]string); ok {
+		return value
+	}
+
+	return nil
 }
 
 // New create Souin instance.
