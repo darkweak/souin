@@ -34,8 +34,8 @@ func varyVoter(baseKey string, req *http.Request, currentKey string) bool {
 
 		for _, item := range strings.Split(list, ";") {
 			index := strings.LastIndex(item, ":")
-			if req.Header.Get(item[:index]) != item[index+1:] {
-				return false
+			if len(item) >= index+1 && strings.Contains(req.Header.Get(item[:index]), item[index+1:]) {
+				return true
 			}
 		}
 
