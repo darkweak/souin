@@ -53,7 +53,7 @@ func (provider *Cache) Prefix(key string, req *http.Request) []byte {
 			return v.Object.([]byte)
 		}
 
-		if !strings.HasPrefix(key, k) {
+		if !strings.HasPrefix(k, key) {
 			continue
 		}
 
