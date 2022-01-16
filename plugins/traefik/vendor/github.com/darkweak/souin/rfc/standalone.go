@@ -235,17 +235,7 @@ func canStore(reqCacheControl cacheControl, respCacheControl cacheControl, statu
 
 func cachableStatusCode(statusCode int) bool {
 	switch statusCode {
-		case 200: return true
-		case 203: return true
-		case 204: return true
-		case 206: return true
-		case 300: return true
-		case 301: return true
-		case 404: return true
-		case 405: return true
-		case 410: return true
-		case 414: return true
-		case 501: return true
+		case 200, 203, 204, 206, 300, 301, 404, 405, 410, 414, 501: return true
 		default: return false
 	}
 }
