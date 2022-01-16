@@ -54,20 +54,43 @@ func TestCanStore(t *testing.T) {
 	resCacheControl := make(map[string]string)
 	reqCacheControl := make(map[string]string)
 
-	if !canStore(reqCacheControl, resCacheControl) {
+	if !canStore(reqCacheControl, resCacheControl, 200) {
 		errors.GenerateError(t, "Res and Req doesn't contains headers, it should return true")
+	}
+
+	if canStore(reqCacheControl, resCacheControl, 502) {
+		errors.GenerateError(t, "Status code shouldnt be stored, it should return false")
 	}
 
 	reqCacheControl["no-store"] = "any"
 
-	if canStore(reqCacheControl, resCacheControl) {
+	if canStore(reqCacheControl, resCacheControl, 200) {
 		errors.GenerateError(t, "Req contains headers, it should return false")
 	}
 
 	resCacheControl["no-store"] = "any"
 
-	if canStore(reqCacheControl, resCacheControl) {
+	if canStore(reqCacheControl, resCacheControl, 200) {
 		errors.GenerateError(t, "Res contains headers, it should return false")
+	}
+}
+
+func TestcachableStatusCode(t *testing.T) {
+	cachable := map[int]bool{
+		200: true,
+		300: true,
+		301: true,
+		404: true,
+		500: false,
+		502: false,
+	}
+
+	for key, value := range cachable {
+		res := cachableStatusCode(key)
+		if (res != value) {
+			msg := fmt.Sprintf("Unexpected response for statusCode %d: %t (expected: %t)", key, res, value)
+			errors.GenerateError(t, msg)
+		}
 	}
 }
 
