@@ -133,7 +133,7 @@ func (t *VaryTransport) UpdateCacheEventually(req *http.Request) (*http.Response
 
 	req.Response = cachedResp
 
-	if cacheable && canStore(parseCacheControl(req.Header), parseCacheControl(req.Response.Header)) {
+	if cacheable && canStore(parseCacheControl(req.Header), parseCacheControl(req.Response.Header), req.Response.StatusCode) {
 		_ = validateVary(req, req.Response, cacheKey, t)
 	} else {
 		req.Response.Header.Set("Cache-Status", "Souin; fwd=uri-miss")
@@ -186,7 +186,7 @@ func (t *VaryTransport) RoundTrip(req *http.Request) (resp *http.Response, err e
 		resp.Header.Set("Cache-Status", "Souin; fwd=uri-miss")
 	}
 	resp, _ = transport.RoundTrip(req)
-	if !(cacheable && canStore(parseCacheControl(req.Header), parseCacheControl(resp.Header)) && validateVary(req, resp, cacheKey, t)) {
+	if !(cacheable && canStore(parseCacheControl(req.Header), parseCacheControl(resp.Header), req.Response.StatusCode) && validateVary(req, resp, cacheKey, t)) {
 		go func() {
 			t.Transport.CoalescingLayerStorage.Set(cacheKey)
 		}()
