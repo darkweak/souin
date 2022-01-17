@@ -75,7 +75,7 @@ func TestCanStore(t *testing.T) {
 	}
 }
 
-func TestcachableStatusCode(t *testing.T) {
+func TestCachableStatusCode(t *testing.T) {
 	cachable := map[int]bool{
 		200: true,
 		300: true,
