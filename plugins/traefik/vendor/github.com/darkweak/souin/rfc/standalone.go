@@ -217,7 +217,11 @@ func getEndToEndHeaders(respHeaders http.Header) []string {
 	return endToEndHeaders
 }
 
-func canStore(reqCacheControl, respCacheControl cacheControl) (canStore bool) {
+func canStore(reqCacheControl cacheControl, respCacheControl cacheControl, status int) (canStore bool) {
+	if !cachableStatusCode(status){
+		return false
+	}
+
 	for _, t := range []string{"no-cache", "no-store"} {
 		if _, ok := respCacheControl[t]; ok {
 			return false
@@ -227,6 +231,13 @@ func canStore(reqCacheControl, respCacheControl cacheControl) (canStore bool) {
 		}
 	}
 	return true
+}
+
+func cachableStatusCode(statusCode int) bool {
+	switch statusCode {
+		case 200, 203, 204, 206, 300, 301, 404, 405, 410, 414, 501: return true
+		default: return false
+	}
 }
 
 func newGatewayTimeoutResponse(req *http.Request) *http.Response {
