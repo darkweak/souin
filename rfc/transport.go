@@ -72,8 +72,10 @@ func (t *VaryTransport) SetSurrogateKeys(s providers.SurrogateInterface) {
 func (t *VaryTransport) SetCache(key string, resp *http.Response) {
 	co, e := cacheobject.ParseResponseCacheControl(resp.Header.Get("Cache-Control"))
 	if respBytes, err := httputil.DumpResponse(resp, true); e == nil && err == nil {
-		ma := co.MaxAge
-		if ma == 0 {
+		var ma cacheobject.DeltaSeconds
+		if co.MaxAge > 0 {
+			ma = co.MaxAge
+		} else if co.SMaxAge > 0 {
 			ma = co.SMaxAge
 		}
 		t.Provider.Set(key, respBytes, t.ConfigurationURL, time.Duration(ma)*time.Second)

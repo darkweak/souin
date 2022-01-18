@@ -111,7 +111,7 @@ func (provider *Badger) Prefix(key string, req *http.Request) []byte {
 
 // Set method will store the response in Badger provider
 func (provider *Badger) Set(key string, value []byte, url t.URL, duration time.Duration) {
-	if duration <= 0 {
+	if duration == 0 {
 		duration = url.TTL.Duration
 	}
 
