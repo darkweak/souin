@@ -218,7 +218,7 @@ func getEndToEndHeaders(respHeaders http.Header) []string {
 }
 
 func canStore(reqCacheControl cacheControl, respCacheControl cacheControl, status int) (canStore bool) {
-	if !cachableStatusCode(status){
+	if !cachableStatusCode(status) {
 		return false
 	}
 
@@ -235,8 +235,10 @@ func canStore(reqCacheControl cacheControl, respCacheControl cacheControl, statu
 
 func cachableStatusCode(statusCode int) bool {
 	switch statusCode {
-		case 200, 203, 204, 206, 300, 301, 404, 405, 410, 414, 501: return true
-		default: return false
+	case 200, 203, 204, 206, 300, 301, 404, 405, 410, 414, 501:
+		return true
+	default:
+		return false
 	}
 }
 
@@ -343,13 +345,17 @@ type cachingReadCloser struct {
 // return, err is io.EOF and OnEOF is called with a full copy of what
 // has been read so far.
 func (r *cachingReadCloser) Read(p []byte) (n int, err error) {
+	if r.R == nil {
+		r.OnEOF(bytes.NewReader(p))
+		return 0, io.EOF
+	}
 	n, err = r.R.Read(p)
 	r.buf.Write(p[:n])
 	if err == io.EOF {
 		r.Close()
 		r.OnEOF(bytes.NewReader(r.buf.Bytes()))
 	}
-	return n, err
+	return
 }
 
 func (r *cachingReadCloser) Close() error {

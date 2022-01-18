@@ -1,6 +1,8 @@
 name: Build container and validate lint/tests
 
-on: [push]
+on:
+  push:
+  workflow_dispatch:
 
 jobs:
   lint-validation:
