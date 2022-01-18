@@ -170,7 +170,7 @@ func (provider *EmbeddedOlric) Get(key string) []byte {
 
 // Set method will store the response in EmbeddedOlric provider
 func (provider *EmbeddedOlric) Set(key string, value []byte, url t.URL, duration time.Duration) {
-	if duration == 0 {
+	if duration <= 0 {
 		duration = url.TTL.Duration
 	}
 

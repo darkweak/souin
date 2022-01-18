@@ -75,7 +75,7 @@ func TestCanStore(t *testing.T) {
 	}
 }
 
-func TestcachableStatusCode(t *testing.T) {
+func TestCachableStatusCode(t *testing.T) {
 	cachable := map[int]bool{
 		200: true,
 		300: true,
@@ -87,7 +87,7 @@ func TestcachableStatusCode(t *testing.T) {
 
 	for key, value := range cachable {
 		res := cachableStatusCode(key)
-		if (res != value) {
+		if res != value {
 			msg := fmt.Sprintf("Unexpected response for statusCode %d: %t (expected: %t)", key, res, value)
 			errors.GenerateError(t, msg)
 		}

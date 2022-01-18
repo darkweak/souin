@@ -9,6 +9,7 @@ import (
 	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/cache/ykeys"
 	"github.com/darkweak/souin/configurationtypes"
+	"github.com/pquerna/cachecontrol/cacheobject"
 )
 
 // VaryTransport type
@@ -69,7 +70,12 @@ func (t *VaryTransport) SetSurrogateKeys(s providers.SurrogateInterface) {
 
 // SetCache set the cache
 func (t *VaryTransport) SetCache(key string, resp *http.Response) {
-	if respBytes, err := httputil.DumpResponse(resp, true); err == nil {
-		t.Provider.Set(key, respBytes, t.ConfigurationURL, time.Duration(0))
+	co, e := cacheobject.ParseResponseCacheControl(resp.Header.Get("Cache-Control"))
+	if respBytes, err := httputil.DumpResponse(resp, true); e == nil && err == nil {
+		ma := co.MaxAge
+		if ma == 0 {
+			ma = co.SMaxAge
+		}
+		t.Provider.Set(key, respBytes, t.ConfigurationURL, time.Duration(ma)*time.Second)
 	}
 }
