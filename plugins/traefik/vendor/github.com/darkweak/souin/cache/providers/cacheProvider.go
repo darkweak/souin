@@ -18,7 +18,7 @@ type Cache struct {
 
 // CacheConnectionFactory function create new Cache instance
 func CacheConnectionFactory(c t.AbstractConfigurationInterface) (*Cache, error) {
-	provider := cache.New(1*time.Second, 2*time.Second)
+	provider := cache.New(1*time.Second, 1*time.Second)
 	return &Cache{Cache: provider, stale: c.GetDefaultCache().GetStale()}, nil
 }
 
