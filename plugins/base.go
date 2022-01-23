@@ -93,16 +93,26 @@ func DefaultSouinPluginCallback(
 ) {
 	coalesceable := make(chan bool)
 	responses := make(chan *http.Response)
+	defer func() {
+		close(coalesceable)
+		close(responses)
+	}()
 	cacheCandidate := !strings.Contains(req.Header.Get("Cache-Control"), "no-cache")
 	cacheKey := rfc.GetCacheKey(req)
 	retriever.SetMatchedURLFromRequest(req)
 
 	go func() {
+		defer func() {
+			_ = recover()
+		}()
 		coalesceable <- retriever.GetTransport().GetCoalescingLayerStorage().Exists(cacheKey)
 	}()
 
 	if cacheCandidate {
 		go func() {
+			defer func() {
+				_ = recover()
+			}()
 			r, _ := rfc.CachedResponse(
 				retriever.GetProvider(),
 				req,
@@ -143,7 +153,6 @@ func DefaultSouinPluginCallback(
 		}
 	}
 
-	close(responses)
 	if <-coalesceable && rc != nil {
 		rc.Temporize(req, res, nextMiddleware)
 	} else {
