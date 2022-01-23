@@ -1,8 +1,8 @@
 .PHONY: prepare vendor
 
-prepare: vendor ## Prepare tyk plugin
+prepare: vendor ## Prepare echo plugin
 	cd examples && cp docker-compose.yml.test docker-compose.yml && docker-compose up -d
 
-vendor: ## Generate vendors for the plugin
+vendor: ## Update the go mods for the plugin
 	go mod tidy
 	go mod download

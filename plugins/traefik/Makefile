@@ -11,7 +11,7 @@ copy-file-to: ## Copy file from to
 	rm -rf $(base)/$(target)
 	scp -r override/$(target) $(base)/$(target)
 
-prepare: vendor ## Prepare tyk plugin
+prepare: vendor ## Prepare traefik plugin
 	cp docker-compose.yml.test docker-compose.yml
 	docker-compose down --remove-orphans
 	docker-compose up -d
