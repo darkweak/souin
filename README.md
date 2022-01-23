@@ -557,3 +557,4 @@ Thanks to these users for contributing or helping this project in any way
 * [Eidenschink](https://github.com/eidenschink/)
 * [Massimiliano Cannarozzo](https://github.com/maxcanna/)
 * [Kevin Pollet](https://github.com/kevinpollet)
+* [Choelzl](https://github.com/choelzl)

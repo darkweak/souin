@@ -35,6 +35,9 @@ func (r *CustomWriter) Header() http.Header {
 
 // WriteHeader will write the response headers
 func (r *CustomWriter) WriteHeader(code int) {
+	if r.Response == nil {
+		r.Response = &http.Response{}
+	}
 	if code != 0 {
 		r.Response.StatusCode = code
 	}

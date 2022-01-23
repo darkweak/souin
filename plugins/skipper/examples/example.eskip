@@ -1,0 +1,3 @@
+hello: Path("/hello") 
+  -> httpcache(`{"api":{"basepath":"/souin-api","security":{"secret":"your_secret_key","enable":true,"users":[{"username":"user1","password":"test"}]},"souin":{"security":true,"enable":true}},"default_cache":{"headers":["Authorization"],"regex":{"exclude":"ARegexHere"},"ttl":"10s","stale":"10s"},"log_level":"INFO"}`)
+  -> "https://www.example.org"
