@@ -3,8 +3,8 @@ version: '3.8'
 services:
   echo:
     build:
-      context: ..
-      dockerfile: examples/Dockerfile.test
+      context: ../../..
+      dockerfile: plugins/echo/examples/Dockerfile.test
       target: development-runner
     ports:
       - 80:80
