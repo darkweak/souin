@@ -17,12 +17,13 @@
   6.1. [Træfik container](#træfik-container)
 7. [Plugins](#plugins)  
   7.1. [Caddy module](#caddy-module)  
-  7.2. [Echo middleware](#echo-middleware)  
-  7.2. [Gin middleware](#gin-middleware)  
-  7.2. [Træfik plugin](#træfik-plugin)  
-  7.2. [Tyk plugin](#tyk-plugin)  
-  7.3. [Prestashop plugin](#prestashop-plugin)  
-  7.4. [Wordpress plugin](#wordpress-plugin)  
+  7.3. [Echo middleware](#echo-middleware)  
+  7.4. [Gin middleware](#gin-middleware)  
+  7.5. [Skipper filter](#skipper-filter)  
+  7.6. [Træfik plugin](#træfik-plugin)  
+  7.7. [Tyk plugin](#tyk-plugin)  
+  7.8. [Prestashop plugin](#prestashop-plugin)  
+  7.9. [Wordpress plugin](#wordpress-plugin)  
 8. [Credits](#credits)
 
 [![Travis CI](https://travis-ci.com/Darkweak/Souin.svg?branch=master)](https://travis-ci.com/Darkweak/Souin)
@@ -392,6 +393,35 @@ func main(){
 }
 ```
 
+### Skipper filter
+To use Souin as skipper filter, you can refer to the [Skipper plugin integration folder](https://github.com/darkweak/souin/tree/master/plugins/skipper) to discover how to configure it.  
+You just have to add to your Skipper instance the Souin filter like below:
+```go
+package main
+
+import (
+	souin_skipper "github.com/darkweak/souin/plugins/skipper"
+	"github.com/zalando/skipper"
+	"github.com/zalando/skipper/filters"
+)
+
+func main() {
+	skipper.Run(skipper.Options{
+		Address:       ":9090",
+		RoutesFile:    "example.yaml",
+		CustomFilters: []filters.Spec{souin_skipper.NewSouinFilter()}},
+	)
+}
+```
+
+
+After that you will be able to declare the httpcache filter in your eskip file.
+```
+hello: Path("/hello") 
+  -> httpcache(`{"api":{"basepath":"/souin-api","security":{"secret":"your_secret_key","enable":true,"users":[{"username":"user1","password":"test"}]},"souin":{"security":true,"enable":true}},"default_cache":{"headers":["Authorization"],"regex":{"exclude":"ARegexHere"},"ttl":"10s","stale":"10s"},"log_level":"INFO"}`)
+  -> "https://www.example.org"
+```
+
 ### Træfik plugin
 To use Souin as Træfik plugin, you can refer to the [pilot documentation](https://pilot.traefik.io/plugins/6123af58d00e6cd1260b290e/souin) and the [Træfik plugin integration folder](https://github.com/darkweak/souin/tree/master/plugins/traefik) to discover how to configure it.  
 You have to declare the `experimental` block in your traefik static configuration file. Keep in mind Træfik run their own interpreter and they often break any dependances (such as the yaml.v3 support).
@@ -557,3 +587,4 @@ Thanks to these users for contributing or helping this project in any way
 * [Eidenschink](https://github.com/eidenschink/)
 * [Massimiliano Cannarozzo](https://github.com/maxcanna/)
 * [Kevin Pollet](https://github.com/kevinpollet)
+* [Choelzl](https://github.com/choelzl)

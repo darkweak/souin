@@ -33,7 +33,6 @@ func getInstanceFromRequest(r *http.Request) *souinInstance {
 // SouinResponseHandler stores the response before sent to the client if possible, only returns otherwise
 func SouinResponseHandler(rw http.ResponseWriter, res *http.Response, _ *http.Request) {
 	req := res.Request
-	fmt.Println("SouinResponseHandler ?", res, req.URL.Path)
 	req.Response = res
 	currentInstance := getInstanceFromRequest(req)
 	if currentInstance == nil {

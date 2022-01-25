@@ -1,6 +1,6 @@
 .PHONY: prepare vendor
 
-prepare: vendor ## Prepare gin plugin
+prepare: vendor ## Prepare skipper plugin
 	cd examples && cp docker-compose.yml.test docker-compose.yml && docker-compose up -d
 
 vendor: ## Update the go mods for the plugin
