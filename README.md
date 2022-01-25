@@ -175,6 +175,7 @@ All endpoints are accessible through the `api.basepath` configuration line or by
 ### Prometheus API
 Prometheus API expose some metrics about the cache.  
 The base path for the prometheus API is `/metrics`.
+**Not supported inside Træfik because the deny the unsafe library usage inside plugins**
 
 | Method  | Endpoint | Description                             |
 |:--------|:---------|:----------------------------------------|
