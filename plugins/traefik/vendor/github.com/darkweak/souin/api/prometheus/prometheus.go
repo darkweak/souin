@@ -65,4 +65,4 @@ func Increment(name string) {}
 func Add(name string, value float64) {}
 
 // Run populate and prepare the map with the default values.
-func Run() {}
+func run() {}

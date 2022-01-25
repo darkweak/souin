@@ -38,6 +38,7 @@ func InitializePrometheus(configuration configurationtypes.AbstractConfiguration
 	if basePath == "" {
 		basePath = "/metrics"
 	}
+	run()
 	return &PrometheusAPI{
 		basePath,
 		enabled,
@@ -97,7 +98,7 @@ func push(promType, name, help string) {
 }
 
 // Run populate and prepare the map with the default values.
-func Run() {
+func run() {
 	registered = make(map[string]interface{})
 	push(counter, requestCounter, "Total request counter")
 	push(counter, noCachedResponseCounter, "No cached response counter")

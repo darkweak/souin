@@ -12,7 +12,7 @@ func Test_Run(t *testing.T) {
 		t.Error("The registered additional metrics array must be empty.")
 	}
 
-	Run()
+	run()
 	if len(registered) != 4 {
 		t.Error("The registered additional metrics array must have 4 items.")
 	}
@@ -69,7 +69,7 @@ func getMetricValue(col prometheus.Collector, t string) float64 {
 
 func Test_Add(t *testing.T) {
 	prometheus.DefaultRegisterer = prometheus.NewRegistry()
-	Run()
+	run()
 	if getMetricValue(registered[requestCounter].(prometheus.Counter), counter) != 0 {
 		t.Errorf("The request_counter value must be equal to 0 since it's not updated, %f given.", getMetricValue(registered[requestCounter].(prometheus.Counter), counter))
 	}
@@ -96,7 +96,7 @@ func Test_Add(t *testing.T) {
 
 func Test_Inc(t *testing.T) {
 	prometheus.DefaultRegisterer = prometheus.NewRegistry()
-	Run()
+	run()
 	if getMetricValue(registered[requestCounter].(prometheus.Counter), counter) != 0 {
 		t.Errorf("The request_counter value must be equal to 0 since it's not incremented yet, %f given.", getMetricValue(registered[requestCounter].(prometheus.Counter), counter))
 	}
