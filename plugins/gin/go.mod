@@ -3,7 +3,7 @@ module github.com/darkweak/souin/plugins/gin
 go 1.16
 
 require (
-	github.com/darkweak/souin v1.5.11-beta6
+	github.com/darkweak/souin v1.5.11
 	github.com/gin-gonic/gin v1.7.7
 	github.com/go-playground/validator/v10 v10.10.0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
@@ -18,3 +18,5 @@ require (
 	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
+
+replace github.com/darkweak/souin v1.5.11 => ../..
