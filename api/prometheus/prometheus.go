@@ -38,7 +38,10 @@ func InitializePrometheus(configuration configurationtypes.AbstractConfiguration
 	if basePath == "" {
 		basePath = "/metrics"
 	}
-	run()
+
+	if registered == nil {
+		run()
+	}
 	return &PrometheusAPI{
 		basePath,
 		enabled,

@@ -31,6 +31,9 @@ var (
 	DevDefaultConfiguration = Configuration{
 		API: configurationtypes.API{
 			BasePath: "/souin-api",
+			Prometheus: configurationtypes.APIEndpoint{
+				Enable: true,
+			},
 			Souin: configurationtypes.APIEndpoint{
 				Enable: true,
 			},
