@@ -181,12 +181,12 @@ The base path for the prometheus API is `/metrics`.
 |:--------|:---------|:----------------------------------------|
 | `GET`   | `/`      | Expose the different keys listed below. |
 
-| Key                          | Definition                      |
-|:-----------------------------|:--------------------------------|
-| `request_counter`            | Count the incoming requests     |
-| `no_cached_response_counter` | Count the uncacheable responses |
-| `cached_response_counter`    | Count the cacheable responses   |
-| `avg_response_time`          | Average response time           |
+| Key                                | Definition                      |
+|:-----------------------------------|:--------------------------------|
+| `souin_request_counter`            | Count the incoming requests     |
+| `souin_no_cached_response_counter` | Count the uncacheable responses |
+| `souin_cached_response_counter`    | Count the cacheable responses   |
+| `souin_avg_response_time`          | Average response time           |
 
 ### Souin API
 Souin API allow users to manage the cache.  
