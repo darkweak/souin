@@ -8,7 +8,6 @@ WORKDIR /app/src/github.com/darkweak/souin
 COPY . .
 
 WORKDIR /app/src/github.com/darkweak/souin/plugins/skipper
-COPY . .
 RUN go mod tidy
 RUN go mod download
 

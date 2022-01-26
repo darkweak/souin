@@ -5,6 +5,9 @@
     }
     cache {
         api {
+            prometheus {
+                enable true
+            }
             souin {
                 enable true
             }

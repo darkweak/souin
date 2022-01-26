@@ -20,6 +20,8 @@ http:
       plugin:
         souin-plugin:
           api:
+            prometheus:
+              enable: true
             souin:
               enable: true
           default_cache:

@@ -43,13 +43,28 @@ func parseConfiguration(c map[string]interface{}) Configuration {
 		switch k {
 		case "api":
 			var a configurationtypes.API
-			var souinConfiguration, securityConfiguration map[string]interface{}
+			var prometheusConfiguration, souinConfiguration, securityConfiguration map[string]interface{}
 			apiConfiguration := v.(map[string]interface{})
+			if apiConfiguration["prometheus"] != nil {
+				prometheusConfiguration = apiConfiguration["prometheus"].(map[string]interface{})
+			}
 			if apiConfiguration["souin"] != nil {
 				souinConfiguration = apiConfiguration["souin"].(map[string]interface{})
 			}
 			if apiConfiguration["security"] != nil {
 				securityConfiguration = apiConfiguration["security"].(map[string]interface{})
+			}
+			if prometheusConfiguration != nil {
+				a.Prometheus = configurationtypes.APIEndpoint{}
+				if prometheusConfiguration["basepath"] != nil {
+					a.Prometheus.BasePath = prometheusConfiguration["basepath"].(string)
+				}
+				if prometheusConfiguration["enable"] != nil {
+					a.Prometheus.Enable, _ = strconv.ParseBool(prometheusConfiguration["enable"].(string))
+				}
+				if securityConfiguration["enable"] != nil {
+					a.Prometheus.Security = securityConfiguration["enable"].(bool)
+				}
 			}
 			if souinConfiguration != nil {
 				a.Souin = configurationtypes.APIEndpoint{}

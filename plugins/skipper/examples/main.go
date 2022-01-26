@@ -8,8 +8,8 @@ import (
 
 func main() {
 	skipper.Run(skipper.Options{
-		Address:       ":9090",
-		RoutesFile:    "example.yaml",
+		Address:       ":80",
+		RoutesFile:    "examples/example.yaml",
 		CustomFilters: []filters.Spec{souin_skipper.NewSouinFilter()}},
 	)
 }

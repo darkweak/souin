@@ -79,6 +79,10 @@ func EmbeddedOlricConnectionFactory(configuration t.AbstractConfigurationInterfa
 	}
 
 	ch := make(chan error, 1)
+	defer func() {
+		fmt.Println("Closed EmbeddedOlricProvider chan")
+		close(ch)
+	}()
 	go func() {
 		if err = db.Start(); err != nil {
 			fmt.Printf("Impossible to start the embedded Olric instance: %v\n", err)
