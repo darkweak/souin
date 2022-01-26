@@ -249,6 +249,19 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 					switch directive {
 					case "basepath":
 						apiConfiguration.BasePath = h.RemainingArgs()[0]
+					case "prometheus":
+						apiConfiguration.Prometheus = configurationtypes.APIEndpoint{}
+						for nesting := h.Nesting(); h.NextBlock(nesting); {
+							directive := h.Val()
+							switch directive {
+							case "basepath":
+								apiConfiguration.Prometheus.BasePath = h.RemainingArgs()[0]
+							case "enable":
+								apiConfiguration.Prometheus.Enable, _ = strconv.ParseBool(h.RemainingArgs()[0])
+							case "security":
+								apiConfiguration.Prometheus.Security, _ = strconv.ParseBool(h.RemainingArgs()[0])
+							}
+						}
 					case "souin":
 						apiConfiguration.Souin = configurationtypes.APIEndpoint{}
 						for nesting := h.Nesting(); h.NextBlock(nesting); {

@@ -83,6 +83,90 @@ jobs:
           folder: Echo
           reporters: cli
           delayRequest: 5000
+  build-gin-validator:
+    name: Check that Souin build as Gin middleware
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Add domain.com host to /etc/hosts
+        run: |
+          sudo echo "127.0.0.1 domain.com" | sudo tee -a /etc/hosts
+      -
+        name: Install Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.16
+      -
+        name: Checkout code
+        uses: actions/checkout@v2
+      -
+        name: Build Souin as Gin plugin
+        run: make build-and-run-gin
+      -
+        name: Wait for Souin is really loaded inside Gin as middleware
+        uses: jakejarvis/wait-action@master
+        with:
+          time: 30s
+      -
+        name: Set Gin logs configuration result as environment variable
+        run: cd plugins/gin/examples && echo "GIN_MIDDLEWARE_RESULT=$(docker-compose logs gin | grep Souin)" >> $GITHUB_ENV
+      -
+        name: Check if the configuration is loaded to define if Souin is loaded too
+        uses: nick-invision/assert-action@v1
+        with:
+          expected: '"message":"Souin configuration is now loaded."'
+          actual: ${{ env.GIN_MIDDLEWARE_RESULT }}
+          comparison: contains
+      -
+        name: Run Gin E2E tests
+        uses: anthonyvscode/newman-action@v1
+        with:
+          collection: "docs/e2e/Souin E2E.postman_collection.json"
+          folder: Gin
+          reporters: cli
+          delayRequest: 5000
+  build-skipper-validator:
+    name: Check that Souin build as Skipper middleware
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Add domain.com host to /etc/hosts
+        run: |
+          sudo echo "127.0.0.1 domain.com" | sudo tee -a /etc/hosts
+      -
+        name: Install Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.16
+      -
+        name: Checkout code
+        uses: actions/checkout@v2
+      -
+        name: Build Souin as Skipper plugin
+        run: make build-and-run-skipper
+      -
+        name: Wait for Souin is really loaded inside Skipper as middleware
+        uses: jakejarvis/wait-action@master
+        with:
+          time: 40s
+      -
+        name: Set Skipper logs configuration result as environment variable
+        run: cd plugins/skipper/examples && echo "SKIPPER_MIDDLEWARE_RESULT=$(docker-compose logs skipper | grep Souin)" >> $GITHUB_ENV
+      -
+        name: Check if the configuration is loaded to define if Souin is loaded too
+        uses: nick-invision/assert-action@v1
+        with:
+          expected: '"message":"Souin configuration is now loaded."'
+          actual: ${{ env.SKIPPER_MIDDLEWARE_RESULT }}
+          comparison: contains
+      -
+        name: Run Skipper E2E tests
+        uses: anthonyvscode/newman-action@v1
+        with:
+          collection: "docs/e2e/Souin E2E.postman_collection.json"
+          folder: Skipper
+          reporters: cli
+          delayRequest: 5000
   build-tyk-validator:
     name: Check that Souin build as Tyk middleware
     runs-on: ubuntu-latest

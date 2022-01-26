@@ -169,9 +169,10 @@ type SecurityAPI struct {
 
 // API structure contains all additional endpoints
 type API struct {
-	BasePath string      `json:"basepath" yaml:"basepath"`
-	Souin    APIEndpoint `json:"souin" yaml:"souin"`
-	Security SecurityAPI `json:"security" yaml:"security"`
+	BasePath   string      `json:"basepath" yaml:"basepath"`
+	Prometheus APIEndpoint `json:"prometheus" yaml:"prometheus"`
+	Souin      APIEndpoint `json:"souin" yaml:"souin"`
+	Security   SecurityAPI `json:"security" yaml:"security"`
 }
 
 // SurrogateKeys structure define the way surrogate keys are stored

@@ -8,7 +8,6 @@ WORKDIR /app/src/github.com/darkweak/souin
 COPY . .
 
 WORKDIR /app/src/github.com/darkweak/souin/plugins/gin
-COPY . .
 RUN go mod tidy
 RUN go mod download
 

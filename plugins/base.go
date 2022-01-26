@@ -6,8 +6,10 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/darkweak/souin/api"
+	"github.com/darkweak/souin/api/prometheus"
 	"github.com/darkweak/souin/cache/coalescing"
 	"github.com/darkweak/souin/cache/providers"
 	"github.com/darkweak/souin/cache/surrogate"
@@ -28,7 +30,7 @@ type CustomWriter struct {
 	Rw       http.ResponseWriter
 }
 
-// WriteHeader will write the response headers
+// Header will write the response headers
 func (r *CustomWriter) Header() http.Header {
 	return r.Rw.Header()
 }
@@ -91,18 +93,30 @@ func DefaultSouinPluginCallback(
 	rc coalescing.RequestCoalescingInterface,
 	nextMiddleware func(w http.ResponseWriter, r *http.Request) error,
 ) {
+	prometheus.Increment(prometheus.RequestCounter)
+	start := time.Now()
 	coalesceable := make(chan bool)
 	responses := make(chan *http.Response)
+	defer func() {
+		close(coalesceable)
+		close(responses)
+	}()
 	cacheCandidate := !strings.Contains(req.Header.Get("Cache-Control"), "no-cache")
 	cacheKey := rfc.GetCacheKey(req)
 	retriever.SetMatchedURLFromRequest(req)
 
 	go func() {
+		defer func() {
+			_ = recover()
+		}()
 		coalesceable <- retriever.GetTransport().GetCoalescingLayerStorage().Exists(cacheKey)
 	}()
 
 	if cacheCandidate {
 		go func() {
+			defer func() {
+				_ = recover()
+			}()
 			r, _ := rfc.CachedResponse(
 				retriever.GetProvider(),
 				req,
@@ -130,6 +144,7 @@ func DefaultSouinPluginCallback(
 		if open && nil != response {
 			rh := response.Header
 			rfc.HitCache(&rh, retriever.GetMatchedURL().TTL.Duration)
+			prometheus.Increment(prometheus.CachedResponseCounter)
 			sendAnyCachedResponse(rh, response, res)
 			return
 		}
@@ -143,12 +158,13 @@ func DefaultSouinPluginCallback(
 		}
 	}
 
-	close(responses)
+	prometheus.Increment(prometheus.NoCachedResponseCounter)
 	if <-coalesceable && rc != nil {
 		rc.Temporize(req, res, nextMiddleware)
 	} else {
 		_ = nextMiddleware(res, req)
 	}
+	prometheus.Add(prometheus.AvgResponseTime, float64(time.Since(start).Milliseconds()))
 }
 
 // DefaultSouinPluginInitializerFromConfiguration is the default initialization for plugins

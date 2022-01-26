@@ -1,6 +1,7 @@
 .PHONY: copy-file-to copy-to prepare replace vendor
 
 SOUIN=vendor/github.com/darkweak/souin
+API=$(SOUIN)/api
 CACHE=$(SOUIN)/cache
 
 copy-to: ## Copy from to
@@ -22,6 +23,8 @@ replace: ## Replace sources in the vendor folder deeper than the go mod replace
 	$(MAKE) copy-to base=$(CACHE) target=providers
 	$(MAKE) copy-file-to base=$(CACHE) target=types/layerStorage.go
 	$(MAKE) copy-to base=$(CACHE) target=ykeys
+	$(MAKE) copy-to base=$(API) target=api/prometheus
+	$(MAKE) copy-to base=$(API) target=api/main.go
 
 vendor: ## Generate vendors for the plugin
 	go mod tidy

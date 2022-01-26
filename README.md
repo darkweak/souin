@@ -8,8 +8,9 @@
     2.1.2. [Souin out-of-the-box](#souin-out-of-the-box)  
   2.2. [Optional configuration](#optional-configuration)
 3. [APIs](#apis)  
-  3.1. [Souin API](#souin-api)  
-  3.2. [Security API](#security-api)
+  3.1. [Prometheus API](#prometheus-api)  
+  3.2. [Souin API](#souin-api)  
+  3.3. [Security API](#security-api)
 4. [Diagrams](#diagrams)  
   4.1. [Sequence diagram](#sequence-diagram)
 5. [Cache systems](#cache-systems)
@@ -56,16 +57,19 @@ default_cache: # Required
 reverse_proxy_url: 'http://traefik' # If it's in the same network you can use http://your-service, otherwise just use https://yourdomain.com
 ```
 
-|  Key                           |  Description                                                       |  Value example                                                                                                            |
-|:------------------------------:|:------------------------------------------------------------------:|:-------------------------------------------------------------------------------------------------------------------------:|
-| `default_cache.ttl`            | Duration to cache request (in seconds)                             | 10                                                                                                                        |
-| `reverse_proxy_url`            | The reverse-proxy's instance URL (Apache, Nginx, Træfik...)        | - `http://yourservice` (Container way)<br/>`http://localhost:81` (Local way)<br/>`http://yourdomain.com:81` (Network way) |
+|  Key                |  Description                                                |  Value example                                                                                                            |
+|:--------------------|:------------------------------------------------------------|:--------------------------------------------------------------------------------------------------------------------------|
+| `default_cache.ttl` | Duration to cache request (in seconds)                      | 10                                                                                                                        |
+| `reverse_proxy_url` | The reverse-proxy's instance URL (Apache, Nginx, Træfik...) | - `http://yourservice` (Container way)<br/>`http://localhost:81` (Local way)<br/>`http://yourdomain.com:81` (Network way) |
 
 ### Optional configuration
 ```yaml
 # /anywhere/configuration.yml
 api:
   basepath: /souin-api # Default route basepath for every additional APIs to avoid conflicts with existing routes
+  prometheus: # Prometheus exposed metrics
+    security: true # Enable JWT Authentication token
+    enable: true # Enable the endpoints
   security: # Secure your APIs
     secret: your_secret_key # JWT secret key
     enable: true # Required to enable the endpoints
@@ -124,10 +128,10 @@ surrogate_keys:
 ```
 
 |  Key                                              |  Description                                                                                   |  Value example                                                                                                          |
-|:-------------------------------------------------:|:----------------------------------------------------------------------------------------------:|:-----------------------------------------------------------------------------------------------------------------------:|
+|:--------------------------------------------------|:-----------------------------------------------------------------------------------------------|:------------------------------------------------------------------------------------------------------------------------|
 | `api`                                             | The cache-handler API cache management                                                         |                                                                                                                         |
 | `api.basepath`                                    | BasePath for all APIs to avoid conflicts                                                       | `/your-non-conflicting-route`<br/><br/>`(default: /souin-api)`                                                          |
-| `api.{api}.enable`                                | Enable the new API with related routes                                                         | `true`<br/><br/>`(default: false)`                                                                                      |
+| `api.{api}.enable`                                | Enable the API with related routes                                                             | `true`<br/><br/>`(default: false)`                                                                                      |
 | `api.{api}.security`                              | Enable the JWT Authentication token verification                                               | `true`<br/><br/>`(default: false)`                                                                                      |
 | `api.security.secret`                             | JWT secret key                                                                                 | `Any_charCanW0rk123`                                                                                                    |
 | `api.security.users`                              | Array of authorized users with username x password combo                                       | `- username: admin`<br/><br/>`  password: admin`                                                                        |
@@ -164,10 +168,25 @@ surrogate_keys:
 | `ykeys.{key name}.headers`                        | (DEPRECATED) Headers that should match to be part of the ykey group                            | `Authorization: ey.+`<br/><br/>`Content-Type: json`                                                                     |
 | `ykeys.{key name}.headers.{header name}`          | (DEPRECATED) Header name that should be present a match the regex to be part of the ykey group | `Content-Type: json`                                                                                                    |
 | `ykeys.{key name}.url`                            | (DEPRECATED) Url that should match to be part of the ykey group                                | `.+`                                                                                                                    |
-|  Key                                              |  Description                                                                                   |  Value example                                                                                                          |
 
 ## APIs
 All endpoints are accessible through the `api.basepath` configuration line or by default through `/souin-api` to avoid named route conflicts. Be sure to define an unused route to not break your existing application.
+
+### Prometheus API
+Prometheus API expose some metrics about the cache.  
+The base path for the prometheus API is `/metrics`.
+**Not supported inside Træfik because the deny the unsafe library usage inside plugins**
+
+| Method  | Endpoint | Description                             |
+|:--------|:---------|:----------------------------------------|
+| `GET`   | `/`      | Expose the different keys listed below. |
+
+| Key                                | Definition                      |
+|:-----------------------------------|:--------------------------------|
+| `souin_request_counter`            | Count the incoming requests     |
+| `souin_no_cached_response_counter` | Count the uncacheable responses |
+| `souin_cached_response_counter`    | Count the cacheable responses   |
+| `souin_avg_response_time`          | Average response time           |
 
 ### Souin API
 Souin API allow users to manage the cache.  
@@ -176,7 +195,7 @@ The Souin API supports the invalidation by surrogate keys such as Fastly which w
 This system is able to invalidate by tags your cloud provider cache. Actually it supports Akamai and Fastly but in a near future some other providers would be implemented like Cloudflare or Varnish.
 
 | Method  | Endpoint          | Description                                                                              |
-|:-------:|:-----------------:|:-----------------------------------------------------------------------------------------|
+|:--------|:------------------|:-----------------------------------------------------------------------------------------|
 | `GET`   | `/`               | List stored keys cache                                                                   |
 | `PURGE` | `/{id or regexp}` | Purge selected item(s) depending. The parameter can be either a specific key or a regexp |
 | `PURGE` | `/?ykey={key}`    | Purge selected item(s) corresponding to the target ykey such as Varnish (deprecated)     |
@@ -186,7 +205,7 @@ Security API allows users to protect other APIs with JWT authentication.
 The base path for the security API is `/authentication`.
 
 | Method | Endpoint   | Body                                       | Headers                                                                         | Description                                                                                                            |
-|:------:|:----------:|:------------------------------------------:|:-------------------------------------------------------------------------------:|:----------------------------------------------------------------------------------------------------------------------:|
+|:-------|:-----------|:-------------------------------------------|:--------------------------------------------------------------------------------|:-----------------------------------------------------------------------------------------------------------------------|
 | `POST` | `/login`   | `{"username":"admin", "password":"admin"}` | `['Content-Type' => 'json']`                                                    | Try to login, it returns a response which contains the cookie name `souin-authorization-token` with the JWT if succeed |
 | `POST` | `/refresh` | `-`                                        | `['Content-Type' => 'json', 'Cookie' => 'souin-authorization-token=the-token']` | Refreshes the token, replaces the old with a new one                                                                   |
 

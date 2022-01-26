@@ -1,1 +1,1 @@
-hello: Path("/hello") -> httpcache(`{"api":{"basepath":"/souin-api","souin":{"security":true,"enable":true}},"default_cache":{"headers":["Authorization"],"regex":{"exclude":"ARegexHere"},"ttl":"10s","stale":"10s"},"log_level":"INFO"}`) -> "https://www.example.org"
+default: Path("/*") -> httpcache(`{"api":{"basepath":"/souin-api","prometheus":{"enable":true},"souin":{"security":true,"enable":true}},"default_cache":{"headers":["Authorization"],"regex":{"exclude":"/excluded"},"ttl":"5s"},"log_level":"INFO"}`) -> inlineContent("[1,2,3]", "application/json") -> <shunt>
