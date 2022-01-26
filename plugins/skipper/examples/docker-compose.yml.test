@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  echo:
+  skipper:
     build:
       context: ../../..
       dockerfile: plugins/skipper/examples/Dockerfile.test
