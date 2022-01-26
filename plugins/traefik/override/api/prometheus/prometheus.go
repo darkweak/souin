@@ -11,10 +11,10 @@ const (
 	counter = "counter"
 	average = "average"
 
-	requestCounter          = "request_counter"
-	noCachedResponseCounter = "no_cached_response_counter"
-	cachedResponseCounter   = "cached_response_counter"
-	avgResponseTime         = "avg_response_time"
+	RequestCounter          = "souin_request_counter"
+	NoCachedResponseCounter = "souin_no_cached_response_counter"
+	CachedResponseCounter   = "souin_cached_response_counter"
+	AvgResponseTime         = "souin_avg_response_time"
 )
 
 // PrometheusAPI object contains informations related to the endpoints
@@ -63,6 +63,3 @@ func Increment(name string) {}
 
 // Increment will add the referred value the counter.
 func Add(name string, value float64) {}
-
-// Run populate and prepare the map with the default values.
-func run() {}

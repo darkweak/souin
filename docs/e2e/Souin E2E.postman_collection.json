@@ -74,9 +74,9 @@
 							}
 						],
 						"url": {
-							"raw": "{{caddy_url}}{{souin_base_api}}{{prometheus_api}}",
+							"raw": "{{caddy_url}}{{souin_base_api}}{{souin_api}}",
 							"host": [
-								"{{caddy_url}}{{souin_base_api}}{{prometheus_api}}"
+								"{{caddy_url}}{{souin_base_api}}{{souin_api}}"
 							]
 						}
 					},
@@ -98,7 +98,18 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.souinAPI.listKeys(pm, 'GET-localhost:4443-/test1', utils.getVar(pm, 'caddy_url'), '/test1')"
+									"pm.test(\"Prometheus respond well.\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Prometheus is populated.\", function () {",
+									"    const result = pm.response.text();",
+									"    pm.expect(result).to.include('souin_request_counter 4');",
+									"    pm.expect(result).to.include('souin_no_cached_response_counter 3');",
+									"    pm.expect(result).to.include('souin_cached_response_counter 1');",
+									"    pm.expect(result).to.include('souin_avg_response_time_count 3');",
+									"    pm.expect(result).to.include('souin_avg_response_time_sum 0');",
+									"});"
 								],
 								"type": "text/javascript"
 							}
@@ -114,9 +125,9 @@
 							}
 						],
 						"url": {
-							"raw": "{{caddy_url}}{{souin_base_api}}{{souin_api}}",
+							"raw": "{{caddy_url}}{{souin_base_api}}{{prometheus_api}}",
 							"host": [
-								"{{caddy_url}}{{souin_base_api}}{{souin_api}}"
+								"{{caddy_url}}{{souin_base_api}}{{prometheus_api}}"
 							]
 						}
 					},

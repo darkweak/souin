@@ -14,10 +14,10 @@ const (
 	counter = "counter"
 	average = "average"
 
-	requestCounter          = "request_counter"
-	noCachedResponseCounter = "no_cached_response_counter"
-	cachedResponseCounter   = "cached_response_counter"
-	avgResponseTime         = "avg_response_time"
+	RequestCounter          = "souin_request_counter"
+	NoCachedResponseCounter = "souin_no_cached_response_counter"
+	CachedResponseCounter   = "souin_cached_response_counter"
+	AvgResponseTime         = "souin_avg_response_time"
 )
 
 // PrometheusAPI object contains informations related to the endpoints
@@ -103,8 +103,8 @@ func push(promType, name, help string) {
 // Run populate and prepare the map with the default values.
 func run() {
 	registered = make(map[string]interface{})
-	push(counter, requestCounter, "Total request counter")
-	push(counter, noCachedResponseCounter, "No cached response counter")
-	push(counter, cachedResponseCounter, "Cached response counter")
-	push(average, avgResponseTime, "Average Bidswitch response time")
+	push(counter, RequestCounter, "Total request counter")
+	push(counter, NoCachedResponseCounter, "No cached response counter")
+	push(counter, CachedResponseCounter, "Cached response counter")
+	push(average, AvgResponseTime, "Average Bidswitch response time")
 }
