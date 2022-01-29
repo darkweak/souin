@@ -100,8 +100,9 @@ func parseConfiguration(c map[string]interface{}) Configuration {
 					Path:          "",
 					Configuration: nil,
 				},
-				Regex: configurationtypes.Regex{},
-				TTL:   configurationtypes.Duration{},
+				Regex:               configurationtypes.Regex{},
+				TTL:                 configurationtypes.Duration{},
+				DefaultCacheControl: "",
 			}
 			defaultCache := v.(map[string]interface{})
 			for defaultCacheK, defaultCacheV := range defaultCache {
@@ -123,6 +124,8 @@ func parseConfiguration(c map[string]interface{}) Configuration {
 					if err == nil {
 						dc.Stale = configurationtypes.Duration{Duration: stale}
 					}
+				case "default_cache_control":
+					dc.DefaultCacheControl = defaultCacheV.(string)
 				}
 			}
 			configuration.DefaultCache = &dc
@@ -146,6 +149,7 @@ func parseConfiguration(c map[string]interface{}) Configuration {
 				if err == nil {
 					currentURL.TTL = configurationtypes.Duration{Duration: ttl}
 				}
+				currentURL.DefaultCacheControl = currentValue["default_cache_control"].(string)
 				u[urlK] = currentURL
 			}
 			configuration.URLs = u
@@ -232,6 +236,11 @@ func (s *SouinTraefikPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		var e error
 		s.next.ServeHTTP(customRW, req)
 		req.Response = customRW.Response
+
+		defaultCacheControl := s.Retriever.GetMatchedURL().DefaultCacheControl
+		if req.Response.Header.Get("Cache-Control") == "" && defaultCacheControl != "" {
+			req.Response.Header.Set("Cache-Control", s.Retriever.GetMatchedURL().DefaultCacheControl)
+		}
 
 		if req.Response, e = s.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(req); e != nil {
 			return e
