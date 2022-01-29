@@ -57,8 +57,9 @@ type Regex struct {
 
 // URL configuration
 type URL struct {
-	TTL     Duration `json:"ttl" yaml:"ttl"`
-	Headers []string `json:"headers" yaml:"headers"`
+	TTL                 Duration `json:"ttl" yaml:"ttl"`
+	Headers             []string `json:"headers" yaml:"headers"`
+	DefaultCacheControl string   `json:"default_cache_control" yaml:"default_cache_control"`
 }
 
 // CacheProvider config
@@ -83,15 +84,16 @@ type CDN struct {
 
 // DefaultCache configuration
 type DefaultCache struct {
-	Badger      CacheProvider `json:"badger" yaml:"badger"`
-	CDN         CDN           `json:"cdn" yaml:"cdn"`
-	Distributed bool          `json:"distributed" yaml:"distributed"`
-	Headers     []string      `json:"headers" yaml:"headers"`
-	Olric       CacheProvider `json:"olric" yaml:"olric"`
-	Port        Port          `json:"port" yaml:"port"`
-	Regex       Regex         `json:"regex" yaml:"regex"`
-	TTL         Duration      `json:"ttl" yaml:"ttl"`
-	Stale       Duration      `json:"stale" yaml:"stale"`
+	Badger              CacheProvider `json:"badger" yaml:"badger"`
+	CDN                 CDN           `json:"cdn" yaml:"cdn"`
+	Distributed         bool          `json:"distributed" yaml:"distributed"`
+	Headers             []string      `json:"headers" yaml:"headers"`
+	Olric               CacheProvider `json:"olric" yaml:"olric"`
+	Port                Port          `json:"port" yaml:"port"`
+	Regex               Regex         `json:"regex" yaml:"regex"`
+	TTL                 Duration      `json:"ttl" yaml:"ttl"`
+	Stale               Duration      `json:"stale" yaml:"stale"`
+	DefaultCacheControl string        `json:"default_cache_control" yaml:"default_cache_control"`
 }
 
 // GetBadger returns the Badger configuration
@@ -134,6 +136,11 @@ func (d *DefaultCache) GetStale() time.Duration {
 	return d.Stale.Duration
 }
 
+// GetDefaultCacheControl returns the default Cache-Control response header value when empty
+func (d *DefaultCache) GetDefaultCacheControl() string {
+	return d.DefaultCacheControl
+}
+
 // DefaultCacheInterface interface
 type DefaultCacheInterface interface {
 	GetBadger() CacheProvider
@@ -144,6 +151,7 @@ type DefaultCacheInterface interface {
 	GetRegex() Regex
 	GetTTL() time.Duration
 	GetStale() time.Duration
+	GetDefaultCacheControl() string
 }
 
 // APIEndpoint is the minimal structure to define an endpoint

@@ -18,6 +18,7 @@
         headers Content-Type Authorization
         log_level debug
         ttl 1000s
+        default_cache_control no-store
     }
 }
 
@@ -36,6 +37,7 @@ cache @match {
 cache @match2 {
     ttl 50s
     headers Authorization
+    default_cache_control "public, max-age=86400"
 }
 
 cache @matchdefault {
