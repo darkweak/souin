@@ -237,11 +237,6 @@ func (s *SouinTraefikPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		s.next.ServeHTTP(customRW, req)
 		req.Response = customRW.Response
 
-		defaultCacheControl := s.Retriever.GetMatchedURL().DefaultCacheControl
-		if req.Response.Header.Get("Cache-Control") == "" && defaultCacheControl != "" {
-			req.Response.Header.Set("Cache-Control", s.Retriever.GetMatchedURL().DefaultCacheControl)
-		}
-
 		if req.Response, e = s.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(req); e != nil {
 			return e
 		}
