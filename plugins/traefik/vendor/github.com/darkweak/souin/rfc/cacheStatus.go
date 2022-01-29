@@ -9,6 +9,8 @@ import (
 	"github.com/pquerna/cachecontrol/cacheobject"
 )
 
+const storedTTLHeader = "X-Souin-Stored-TTL"
+
 var emptyHeaders = []string{"Expires", "Last-Modified"}
 
 func validateTimeHeader(headers *http.Header, h string, t string) bool {
@@ -73,6 +75,10 @@ func manageAge(h *http.Header, ttl time.Duration) {
 		return
 	}
 
+	if h.Get(storedTTLHeader) != "" {
+		ttl, _ = time.ParseDuration(h.Get(storedTTLHeader))
+		h.Del(storedTTLHeader)
+	}
 	cage := correctedInitialAge(utc1, utc2)
 	age := strconv.Itoa(cage)
 	h.Set("Age", age)
