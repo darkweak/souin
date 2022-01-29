@@ -9,14 +9,15 @@ import (
 
 // DefaultCache the struct
 type DefaultCache struct {
-	Badger      configurationtypes.CacheProvider
-	CDN         configurationtypes.CDN
-	Distributed bool
-	Headers     []string
-	Olric       configurationtypes.CacheProvider
-	Regex       configurationtypes.Regex
-	TTL         configurationtypes.Duration
-	Stale       configurationtypes.Duration
+	Badger              configurationtypes.CacheProvider
+	CDN                 configurationtypes.CDN
+	Distributed         bool
+	Headers             []string
+	Olric               configurationtypes.CacheProvider
+	Regex               configurationtypes.Regex
+	TTL                 configurationtypes.Duration
+	Stale               configurationtypes.Duration
+	DefaultCacheControl string
 }
 
 // GetBadger returns the Badger configuration
@@ -57,6 +58,11 @@ func (d *DefaultCache) GetTTL() time.Duration {
 // GetStale returns the stale duration
 func (d *DefaultCache) GetStale() time.Duration {
 	return d.Stale.Duration
+}
+
+// GetStale returns the stale duration
+func (d *DefaultCache) GetDefaultCacheControl() string {
+	return d.DefaultCacheControl
 }
 
 //Configuration holder
