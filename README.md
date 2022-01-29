@@ -586,7 +586,8 @@ You have to define the use of Souin as `post` and `response` custom middleware. 
       }
     },
     "default_cache": {
-      "ttl": "5s"
+      "ttl": "5s",
+      "default_cache_control": "no-store"
     }
   }
 }
