@@ -347,6 +347,7 @@ There is the fully configuration below
         }
         stale 200s
         ttl 1000s
+        default_cache_control no-store
     }
 }
 
@@ -365,6 +366,7 @@ cache @match {
 cache @match2 {
     ttl 50s
     headers Authorization
+    default_cache_control "public, max-age=86400"
 }
 
 cache @matchdefault {
