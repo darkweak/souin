@@ -482,6 +482,7 @@ http:
             regex:
               exclude: '/test_exclude.*'
             ttl: 5s
+            default_cache_control: no-store
           log_level: debug
           urls:
             'domain.com/testing':
@@ -493,6 +494,7 @@ http:
               headers:
                 - Authorization
                 - 'Content-Type'
+              default_cache_control: public, max-age=86400
           ykeys:
             The_First_Test:
               headers:
