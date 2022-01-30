@@ -2,6 +2,7 @@ name: Build container and validate lint/tests
 
 on:
   push:
+  pull_request:
   workflow_dispatch:
 
 jobs:
