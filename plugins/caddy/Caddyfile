@@ -42,4 +42,16 @@ cache @matchdefault {
     ttl 5s
 }
 
+route /cache-s-maxage {
+    cache
+    header Cache-Control "s-maxage=10"
+    respond "Hello, s-maxage!"
+}
+
+route /cache-maxage {
+    cache
+    header Cache-Control "max-age=5"
+    respond "Hello, max-age!"
+}
+
 cache @souin-api {}
