@@ -40,13 +40,7 @@ func commonCacheControl(req *http.Request, t http.RoundTripper) (*http.Response,
 		return newGatewayTimeoutResponse(req), nil
 	}
 
-	r, err := t.RoundTrip(req)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return r, nil
+	return t.RoundTrip(req)
 }
 
 func (t *VaryTransport) deleteCache(key string) {
