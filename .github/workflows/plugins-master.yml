@@ -32,4 +32,4 @@ jobs:
           sudo apt install xcaddy
       -
         name: Build current Souin as caddy module with referenced Souin core version when merge on master
-        run: cd plugins/caddy && xcaddy build --with github.com/darkweak/souin/plugins/caddy@$(git rev-parse --short "$GITHUB_SHA")
+        run: cd plugins/caddy && xcaddy build --with github.com/${{ github.repository }}/plugins/caddy@$(git rev-parse --short "$GITHUB_SHA")
