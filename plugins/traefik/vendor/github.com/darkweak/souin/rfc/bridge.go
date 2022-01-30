@@ -114,8 +114,7 @@ func commonVaryMatchesVerification(cachedResp *http.Response, req *http.Request)
 
 // UpdateCacheEventually will handle Request and update the previous one in the cache provider
 func (t *VaryTransport) UpdateCacheEventually(req *http.Request) (*http.Response, error) {
-	defaultCacheControl := t.ConfigurationURL.DefaultCacheControl
-	if req.Response.Header.Get("Cache-Control") == "" && defaultCacheControl != "" {
+	if req.Response.Header.Get("Cache-Control") == "" {
 		req.Response.Header.Set("Cache-Control", t.ConfigurationURL.DefaultCacheControl)
 	}
 
