@@ -149,7 +149,9 @@ func parseConfiguration(c map[string]interface{}) Configuration {
 				if err == nil {
 					currentURL.TTL = configurationtypes.Duration{Duration: ttl}
 				}
-				currentURL.DefaultCacheControl = currentValue["default_cache_control"].(string)
+				if _, exists := currentValue["default_cache_control"]; exists {
+					currentURL.DefaultCacheControl = currentValue["default_cache_control"].(string)
+				}
 				u[urlK] = currentURL
 			}
 			configuration.URLs = u
