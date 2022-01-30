@@ -1,6 +1,8 @@
 name: Build and validate Souin as plugins
 
-on: [push]
+on:
+  - push
+  - pull_request
 
 jobs:
   build-caddy-validator:
