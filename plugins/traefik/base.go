@@ -71,7 +71,7 @@ func (r *CustomWriter) Send() (int, error) {
 
 func canHandle(r *http.Request, re types.RetrieverResponsePropertiesInterface) bool {
 	co, err := cacheobject.ParseResponseCacheControl(r.Header.Get("Cache-Control"))
-	return err == nil && len(co.NoCache) == 0 && r.Header.Get("Upgrade") != "websocket" && (re.GetExcludeRegexp() == nil || !re.GetExcludeRegexp().MatchString(r.RequestURI))
+	return (r.Method == http.MethodGet || r.Method == http.MethodHead) && err == nil && len(co.NoCache) == 0 && r.Header.Get("Upgrade") != "websocket" && (re.GetExcludeRegexp() == nil || !re.GetExcludeRegexp().MatchString(r.RequestURI))
 }
 
 type key string
