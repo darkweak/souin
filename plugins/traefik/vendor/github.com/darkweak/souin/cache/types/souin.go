@@ -84,8 +84,9 @@ func (r *RetrieverResponseProperties) SetMatchedURLFromRequest(req *http.Request
 	path := req.Host + req.URL.Path
 	regexpURL := r.GetRegexpUrls().FindString(path)
 	url := configurationtypes.URL{
-		TTL:     configurationtypes.Duration{Duration: r.GetConfiguration().GetDefaultCache().GetTTL()},
-		Headers: r.GetConfiguration().GetDefaultCache().GetHeaders(),
+		TTL:                 configurationtypes.Duration{Duration: r.GetConfiguration().GetDefaultCache().GetTTL()},
+		Headers:             r.GetConfiguration().GetDefaultCache().GetHeaders(),
+		DefaultCacheControl: r.GetConfiguration().GetDefaultCache().GetDefaultCacheControl(),
 	}
 	if regexpURL != "" {
 		u := r.GetConfiguration().GetUrls()[regexpURL]

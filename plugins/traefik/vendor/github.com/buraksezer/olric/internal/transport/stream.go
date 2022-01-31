@@ -55,14 +55,8 @@ func readFromStream(conn io.ReadWriteCloser, bufCh chan<- protocol.EncodeDecoder
 	}
 }
 
-// CreateStream creates a new Stream connection which provides a bidirectional
-// communication channel between Olric nodes and clients.
-func (c *Client) CreateStream(
-	ctx context.Context,
-	addr string,
-	read chan<- protocol.EncodeDecoder,
-	write <-chan protocol.EncodeDecoder,
-) error {
+// CreateStream creates a new Stream connection which provides a bidirectional communication channel between Olric nodes and clients.
+func (c *Client) CreateStream(ctx context.Context, addr string, read chan<- protocol.EncodeDecoder, write <-chan protocol.EncodeDecoder) error {
 	p, err := c.pool(addr)
 	if err != nil {
 		return err
@@ -74,7 +68,7 @@ func (c *Client) CreateStream(
 	}
 
 	defer func() {
-		// marks the connection not usable anymore, to let the pool close it instead of returning it to pool.
+		// marks the connection not usable any more, to let the pool close it instead of returning it to pool.
 		pc, _ := conn.(*connpool.PoolConn)
 		pc.MarkUnusable()
 		if err = pc.Close(); err != nil {

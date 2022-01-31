@@ -208,8 +208,9 @@ func DefaultSouinPluginInitializerFromConfiguration(c configurationtypes.Abstrac
 
 	retriever := &types.RetrieverResponseProperties{
 		MatchedURL: configurationtypes.URL{
-			TTL:     configurationtypes.Duration{Duration: c.GetDefaultCache().GetTTL()},
-			Headers: c.GetDefaultCache().GetHeaders(),
+			TTL:                 configurationtypes.Duration{Duration: c.GetDefaultCache().GetTTL()},
+			Headers:             c.GetDefaultCache().GetHeaders(),
+			DefaultCacheControl: c.GetDefaultCache().GetDefaultCacheControl(),
 		},
 		Provider:      provider,
 		Configuration: c,

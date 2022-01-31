@@ -62,6 +62,8 @@ reverse_proxy_url: 'http://traefik' # If it's in the same network you can use ht
 | `default_cache.ttl` | Duration to cache request (in seconds)                      | 10                                                                                                                        |
 | `reverse_proxy_url` | The reverse-proxy's instance URL (Apache, Nginx, Træfik...) | - `http://yourservice` (Container way)<br/>`http://localhost:81` (Local way)<br/>`http://yourdomain.com:81` (Network way) |
 
+Besides, it's highly recommended to set `default_cache.default_cache_control` (see it below) to avoid undesired caching for responses without `Cache-Control` header.
+
 ### Optional configuration
 ```yaml
 # /anywhere/configuration.yml
@@ -94,6 +96,7 @@ default_cache:
     exclude: 'ARegexHere' # Regex to exclude from cache
   stale: 1000s # Stale duration
   ttl: 1000s # Default TTL
+  default_cache_control: no-store # Set default value for Cache-Control response header if not set by upstream
 log_level: INFO # Logs verbosity [ DEBUG, INFO, WARN, ERROR, DPANIC, PANIC, FATAL ], case do not matter
 ssl_providers: # The {providers}.json to use
   - traefik
@@ -109,6 +112,7 @@ urls:
     headers: # Override default headers
     - Authorization
     - 'Content-Type'
+    default_cache_control: public, max-age=86400 # Override default default Cache-Control
 ykeys:
   The_First_Test:
     headers:
@@ -157,10 +161,12 @@ surrogate_keys:
 | `default_cache.regex.exclude`                     | The regex used to prevent paths being cached                                                   | `^[A-z]+.*$`                                                                                                            |
 | `default_cache.stale`                             | The stale duration                                                                             | `25m`                                                                                                                   |
 | `default_cache.ttl`                               | The TTL duration                                                                               | `120s`                                                                                                                  |
+| `default_cache.default_cache_control`             | Set the default value of `Cache-Control` response header if not set by upstream (Souin treats empty `Cache-Control` as `public` if omitted) | `no-store`                                                                                                                  |
 | `log_level`                                       | The log level                                                                                  | `One of DEBUG, INFO, WARN, ERROR, DPANIC, PANIC, FATAL it's case insensitive`                                           |
 | `ssl_providers`                                   | List of your providers handling certificates                                                   | `- traefik`<br/><br/>`- nginx`<br/><br/>`- apache`                                                                      |
 | `urls.{your url or regex}`                        | List of your custom configuration depending each URL or regex                                  | 'https:\/\/yourdomain.com'                                                                                              |
 | `urls.{your url or regex}.ttl`                    | Override the default TTL if defined                                                            | `90s`<br/><br/>`10m`                                                                                                    |
+| `urls.{your url or regex}.default_cache_control`  | Override the default default `Cache-Control` if defined                                                            | `public, max-age=86400`                                                                                                    |
 | `urls.{your url or regex}.headers`                | Override the default headers if defined                                                        | `- Authorization`<br/><br/>`- 'Content-Type'`                                                                           |
 | `surrogate_keys.{key name}.headers`               | Headers that should match to be part of the surrogate key group                                | `Authorization: ey.+`<br/><br/>`Content-Type: json`                                                                     |
 | `surrogate_keys.{key name}.headers.{header name}` | Header name that should be present a match the regex to be part of the surrogate key group     | `Content-Type: json`                                                                                                    |
@@ -341,6 +347,7 @@ There is the fully configuration below
         }
         stale 200s
         ttl 1000s
+        default_cache_control no-store
     }
 }
 
@@ -359,6 +366,7 @@ cache @match {
 cache @match2 {
     ttl 50s
     headers Authorization
+    default_cache_control "public, max-age=86400"
 }
 
 cache @matchdefault {
@@ -476,6 +484,7 @@ http:
             regex:
               exclude: '/test_exclude.*'
             ttl: 5s
+            default_cache_control: no-store
           log_level: debug
           urls:
             'domain.com/testing':
@@ -487,6 +496,7 @@ http:
               headers:
                 - Authorization
                 - 'Content-Type'
+              default_cache_control: public, max-age=86400
           ykeys:
             The_First_Test:
               headers:
@@ -578,7 +588,8 @@ You have to define the use of Souin as `post` and `response` custom middleware. 
       }
     },
     "default_cache": {
-      "ttl": "5s"
+      "ttl": "5s",
+      "default_cache_control": "no-store"
     }
   }
 }
@@ -607,3 +618,4 @@ Thanks to these users for contributing or helping this project in any way
 * [Massimiliano Cannarozzo](https://github.com/maxcanna/)
 * [Kevin Pollet](https://github.com/kevinpollet)
 * [Choelzl](https://github.com/choelzl)
+* [Menci](https://github.com/menci)

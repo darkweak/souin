@@ -30,7 +30,7 @@ const (
 	MagicDMapRes MagicCode = 0xE3
 )
 
-// DMapMessageHeader defines a message header for both request and response.
+// Header defines a message header for both request and response.
 type DMapMessageHeader struct {
 	Op         OpCode     // 1
 	DMapLen    uint16     // 2
@@ -138,7 +138,7 @@ func (d *DMapMessage) SetDMap(dmap string) {
 	d.dmap = dmap
 }
 
-// DMap returns the DMap name.
+// Returns the DMap name.
 func (d *DMapMessage) DMap() string {
 	return d.dmap
 }

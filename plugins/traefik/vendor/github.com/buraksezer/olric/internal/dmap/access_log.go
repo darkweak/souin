@@ -12,25 +12,39 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package storage
+package dmap
 
-// Stats defines metrics exposed by a storage engine implementation.
-type Stats struct {
-	// Currently allocated memory by the engine.
-	Allocated int
+import (
+	"time"
+)
 
-	// Used portion of allocated memory
-	Inuse     int
+type accessLog struct {
+	m map[uint64]int64
+}
 
-	// Deleted portions of allocated memory.
-	Garbage   int
+func newAccessLog() *accessLog {
+	return &accessLog{
+		m: make(map[uint64]int64),
+	}
+}
 
-	// Total number of keys hosted by the engine instance.
-	Length    int
+func (a *accessLog) touch(hkey uint64) {
+	a.m[hkey] = time.Now().UnixNano()
+}
 
-	// Number of tables hosted by the engine instance.
-	NumTables int
+func (a *accessLog) get(hkey uint64) (int64, bool) {
+	timestamp, ok := a.m[hkey]
+	return timestamp, ok
+}
 
-	// Any other metrics that's specific to an engine implementation.
-	Extras    map[string]interface{}
+func (a *accessLog) delete(hkey uint64) {
+	delete(a.m, hkey)
+}
+
+func (a *accessLog) iterator(f func(hkey uint64, timestamp int64) bool) {
+	for hkey, timestamp := range a.m {
+		if !f(hkey, timestamp) {
+			break
+		}
+	}
 }
