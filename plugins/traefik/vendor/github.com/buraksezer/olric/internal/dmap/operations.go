@@ -58,9 +58,6 @@ func (s *Service) RegisterOperations(operations map[protocol.OpCode]func(w, r pr
 	// DMap.Unlock
 	s.operations[protocol.OpUnlock] = s.unlockOperation
 
-	// DMap.Lease
-	s.operations[protocol.OpLockLease] = s.leaseLockOperation
-
 	// DMap.Atomic
 	s.operations[protocol.OpIncr] = s.incrDecrOperation
 	s.operations[protocol.OpDecr] = s.incrDecrOperation
@@ -77,7 +74,7 @@ func (s *Service) RegisterOperations(operations map[protocol.OpCode]func(w, r pr
 	// Internals
 	s.operations[protocol.OpMoveFragment] = s.moveFragmentOperation
 
-	// Import
+	// Merge
 	for code, f := range s.operations {
 		operations[code] = f
 	}

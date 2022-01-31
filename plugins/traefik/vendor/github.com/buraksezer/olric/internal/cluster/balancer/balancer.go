@@ -16,17 +16,13 @@ package balancer
 
 import (
 	"context"
-	"strings"
 	"sync"
-	"time"
 
 	"github.com/buraksezer/olric/config"
 	"github.com/buraksezer/olric/internal/cluster/partitions"
 	"github.com/buraksezer/olric/internal/cluster/routingtable"
 	"github.com/buraksezer/olric/internal/discovery"
 	"github.com/buraksezer/olric/internal/environment"
-	"github.com/buraksezer/olric/internal/protocol"
-	"github.com/buraksezer/olric/internal/service"
 	"github.com/buraksezer/olric/pkg/flog"
 )
 
@@ -38,7 +34,6 @@ type Balancer struct {
 	primary *partitions.Partitions
 	backup  *partitions.Partitions
 	rt      *routingtable.RoutingTable
-	wg      sync.WaitGroup
 	ctx     context.Context
 	cancel  context.CancelFunc
 }
@@ -68,33 +63,29 @@ func (b *Balancer) isAlive() bool {
 	return true
 }
 
-func (b *Balancer) scanPartition(sign uint64, part *partitions.Partition, owners ...discovery.Member) {
-	ownersStr := func() string {
-		var names []string
-		for _, owner := range owners {
-			names = append(names, owner.String())
-		}
-		return strings.Join(names, ",")
-	}()
-
+func (b *Balancer) scanPartition(sign uint64, part *partitions.Partition, owners ...discovery.Member) bool {
+	var clean = true
 	part.Map().Range(func(name, tmp interface{}) bool {
-		f := tmp.(partitions.Fragment)
-		if f.Length() == 0 {
-			return false
-		}
+		u := tmp.(partitions.Fragment)
 
-		b.log.V(2).Printf("[INFO] Moving %s fragment: %s (kind: %s) on PartID: %d to %s",
-			f.Name(), name, part.Kind(), part.ID(), ownersStr)
+		for _, owner := range owners {
+			b.log.V(2).Printf("[INFO] Moving %s: %s (kind: %s) on PartID: %d to %s",
+				u.Name(), name, part.Kind(), part.ID(), owner)
 
-		err := f.Move(part, name.(string), owners)
-		if err != nil {
-			b.log.V(2).Printf("[ERROR] Failed to move %s fragment: %s on PartID: %d to %s: %v",
-				f.Name(), name, part.ID(), ownersStr, err)
+			err := u.Move(part.ID(), part.Kind(), name.(string), owner)
+
+			if err != nil {
+				b.log.V(2).Printf("[ERROR] Failed to move %s: %s on PartID: %d to %s: %v",
+					u.Name(), name, part.ID(), owner, err)
+				clean = false
+			}
 		}
 
 		// if this returns true, the iteration continues
 		return !b.breakLoop(sign)
 	})
+
+	return clean
 }
 
 func (b *Balancer) primaryCopies() {
@@ -121,7 +112,13 @@ func (b *Balancer) primaryCopies() {
 		}
 
 		// This is a previous owner. Move the keys.
-		b.scanPartition(sign, part, owner)
+		if b.scanPartition(sign, part, owner) {
+			part.Map().Range(func(name, tmp interface{}) bool {
+				// Delete the moved storage unit instance. GC will free the allocated memory.
+				part.Map().Delete(name)
+				return true
+			})
+		}
 	}
 }
 
@@ -180,11 +177,17 @@ LOOP:
 			continue LOOP
 		}
 
-		b.scanPartition(sign, part, currentOwners...)
+		if b.scanPartition(sign, part, currentOwners...) {
+			part.Map().Range(func(name, tmp interface{}) bool {
+				// Delete the moved storage unit instance. GC will free the allocated memory.
+				part.Map().Delete(name)
+				return true
+			})
+		}
 	}
 }
 
-func (b *Balancer) triggerBalancer() {
+func (b *Balancer) Balance() {
 	b.Lock()
 	defer b.Unlock()
 
@@ -192,67 +195,12 @@ func (b *Balancer) triggerBalancer() {
 		b.log.V(2).Printf("[WARN] Balancer awaits for bootstrapping")
 		return
 	}
-
 	b.primaryCopies()
-
 	if b.config.ReplicaCount > config.MinimumReplicaCount {
 		b.backupCopies()
 	}
 }
 
-func (b *Balancer) BalanceEagerly() {
-	b.triggerBalancer()
-}
-
-func (b *Balancer) balance() {
-	defer b.wg.Done()
-
-	timer := time.NewTimer(b.config.TriggerBalancerInterval)
-	defer timer.Stop()
-
-	for {
-		timer.Reset(b.config.TriggerBalancerInterval)
-		select {
-		case <-timer.C:
-			b.triggerBalancer()
-		case <-b.ctx.Done():
-			return
-		}
-	}
-}
-
-func (b *Balancer) Start() error {
-	b.wg.Add(1)
-	go b.balance()
-	return nil
-}
-
-func (b *Balancer) RegisterOperations(_ map[protocol.OpCode]func(w, r protocol.EncodeDecoder)) {}
-
-func (b *Balancer) Shutdown(ctx context.Context) error {
-	select {
-	case <-b.ctx.Done():
-		// already closed
-		return nil
-	default:
-	}
-
+func (b *Balancer) Shutdown() {
 	b.cancel()
-	done := make(chan struct{})
-	go func() {
-		b.wg.Wait()
-		close(done)
-	}()
-	select {
-	case <-ctx.Done():
-		err := ctx.Err()
-		if err != nil {
-			return err
-		}
-	case <-done:
-	}
-
-	return nil
 }
-
-var _ service.Service = (*Balancer)(nil)

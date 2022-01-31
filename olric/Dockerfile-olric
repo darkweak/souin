@@ -1,15 +1,15 @@
-FROM docker.io/olricio/olric-dev:v0.4.0-rc.1 as olric
+FROM docker.io/olricio/olricd:latest as olric
 
 ENV OLRICD_CONFIG /etc/olricd.yaml
 ENV CGO_ENABLED 1
 
-WORKDIR /go
+# WORKDIR /go
 
-RUN go get -u github.com/buraksezer/olric
-
-WORKDIR /go/src/github.com/buraksezer/olric
-
-#RUN go build -v -o /go/bin/olricd /go/src/github.com/buraksezer/olric/cmd/olricd/main.go
+# RUN go get -u github.com/buraksezer/olric
+# 
+# WORKDIR /go/src/github.com/buraksezer/olric
+# 
+# RUN go build -v -o /go/bin/olricd /go/src/github.com/buraksezer/olric/cmd/olricd/main.go
 COPY ./olric.yml /etc/olricd.yaml
 
-CMD ["go", "run", "/go/src/github.com/buraksezer/olric/cmd/olricd/main.go", "-c", "/go/src/github.com/buraksezer/olric/cmd/olricd/olricd.yaml"]
+CMD ["/go/bin/olricd", "-c", "/etc/olricd.yaml"]
