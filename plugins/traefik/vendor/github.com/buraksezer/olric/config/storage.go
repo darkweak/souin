@@ -22,82 +22,73 @@ import (
 	"github.com/buraksezer/olric/pkg/storage"
 )
 
-// Engine contains storage engine configuration and their implementations.
+// StorageEngines contains storage engine configuration and their implementations.
 // If you don't have a custom storage engine implementation or configuration for
 // the default one, just call NewStorageEngine() function to use it with sane defaults.
-type Engine struct {
+type StorageEngines struct {
 	// Plugins is an array that contains the paths of storage engine plugins.
 	// These plugins have to implement storage.Engine interface.
-	Plugin string
+	Plugins []string
 
-	Name string
-
-	Implementation storage.Engine
+	// Impls is a map that contains storage engines with their names.
+	// This is useful to import and use external storage engine implementations.
+	Impls map[string]storage.Engine
 
 	// Config is a map that contains configuration of the storage engines, for
 	// both plugins and imported ones. If you want to use a storage engine other
 	// than the default one, you must set configuration for it.
-	Config map[string]interface{}
+	Config map[string]map[string]interface{}
 }
 
-// NewEngine initializes Engine with sane defaults.
+// NewStorageEngine initializes StorageEngine configuration with sane defaults.
 // Olric will set its own storage engine implementation and related configuration,
 // if there is no other engine.
-func NewEngine() *Engine {
-	return &Engine{
-		Config: make(map[string]interface{}),
+func NewStorageEngine() *StorageEngines {
+	return &StorageEngines{
+		Plugins: []string{},
+		Impls:   make(map[string]storage.Engine),
+		Config:  make(map[string]map[string]interface{}),
 	}
 }
 
 // Validate finds errors in the current configuration.
-func (s *Engine) Validate() error {
-	if s.Config == nil {
-		s.Config = make(map[string]interface{})
-	}
-	return nil
-}
-
-func (s *Engine) LoadPlugin() error {
-	if s.Plugin == "" {
-		return nil
+func (s *StorageEngines) Validate() error {
+	for name := range s.Impls {
+		_, ok := s.Config[name]
+		if !ok {
+			return fmt.Errorf("missing storage engine configuration: %s", name)
+		}
 	}
 
-	_, err := os.Stat(s.Plugin)
-	if os.IsNotExist(err) {
-		return fmt.Errorf("storage engine plugin could not be found on disk: %s", s.Plugin)
-	}
-	if err != nil {
-		return err
+	for name := range s.Config {
+		_, ok := s.Impls[name]
+		if !ok {
+			return fmt.Errorf("missing storage engine implementation: %s", name)
+		}
 	}
 
-	engine, err := storage.LoadAsPlugin(s.Plugin)
-	if err != nil {
-		return err
+	for _, file := range s.Plugins {
+		_, err := os.Stat(file)
+		if os.IsNotExist(err) {
+			return fmt.Errorf("storage engine plugin could not be found on disk: %s", file)
+		}
 	}
-	s.Implementation = engine
-	s.Name = engine.Name()
 	return nil
 }
 
 // Sanitize sets default values to empty configuration variables, if it's possible.
-func (s *Engine) Sanitize() error {
-	if s.Name == "" {
-		s.Name = DefaultStorageEngine
-	}
-
-	if s.Implementation == nil {
-		switch s.Name {
-		case DefaultStorageEngine:
-			s.Implementation = &kvstore.KVStore{}
-			s.Config = kvstore.DefaultConfig().ToMap()
-		default:
-			return fmt.Errorf("unknown storage engine: %s", s.Name)
+func (s *StorageEngines) Sanitize() error {
+	if len(s.Impls) == 0 {
+		s.Impls[DefaultStorageEngine] = &kvstore.KVStore{}
+		s.Config[DefaultStorageEngine] = kvstore.DefaultConfig().ToMap()
+		if cfg, ok := s.Config[DefaultStorageEngine]; ok {
+			s.Config[DefaultStorageEngine] = kvstore.SanitizeConfig(cfg)
+		} else {
+			s.Config[DefaultStorageEngine] = kvstore.DefaultConfig().ToMap()
 		}
-	} else {
-		s.Name = s.Implementation.Name()
 	}
 	return nil
 }
 
 // Interface guard
-var _ IConfig = (*Engine)(nil)
+var _ IConfig = (*StorageEngines)(nil)

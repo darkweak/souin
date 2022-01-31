@@ -9,7 +9,8 @@
       "olric": {
         "url": "olric:3320"
       },
-      "ttl": "1000s"
+      "ttl": "1000s",
+      "default_cache_control": "no-store"
     },
     "http": {
       "servers": {
@@ -30,7 +31,8 @@
               "handle": [
                 {
                   "handler": "cache",
-                  "ttl": "30s"
+                  "ttl": "30s",
+                  "default_cache_control": "public, max-age=86400"
                 }
               ]
             },

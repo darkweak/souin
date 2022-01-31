@@ -16,6 +16,7 @@ package transport
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -25,6 +26,8 @@ import (
 	"github.com/buraksezer/olric/config"
 	"github.com/buraksezer/olric/internal/protocol"
 )
+
+var ErrConnPoolTimeout = errors.New("timeout exceeded")
 
 // Client is the client implementation for the internal TCP server.
 // It maintains a connection pool and manages request-response cycle.
@@ -129,18 +132,24 @@ func (c *Client) conn(addr string) (net.Conn, error) {
 
 	conn, err := p.Get(ctx)
 	if err != nil {
-		return nil, err
+		// Reformat the error here. DeadlineExceeded error is too
+		// cryptic for users.
+		if err == context.DeadlineExceeded {
+			err = ErrConnPoolTimeout
+		}
+		return nil, fmt.Errorf("failed to acquire a TCP connection from the pool for: %s %w", addr, err)
 	}
 
 	if c.config.HasTimeout() {
 		// Wrap the net.Conn to implement timeout logic
 		conn = NewConnWithTimeout(conn, c.config.ReadTimeout, c.config.WriteTimeout)
 	}
-	return conn, err
+	return conn, nil
 }
 
 func (c *Client) teardownConnWithTimeout(conn *ConnWithTimeout, dead bool) {
 	if dead {
+		CurrentConnections.Decrease(1)
 		conn.MarkUnusable()
 	} else {
 		if err := conn.UnsetDeadline(); err != nil {
@@ -194,7 +203,7 @@ func (c *Client) RequestTo(addr string, req protocol.EncodeDecoder) (protocol.En
 	nr, err := req.Buffer().WriteTo(conn)
 	if err != nil {
 		dead = true
-		return nil, err
+		return nil, fmt.Errorf("failed to write message: %w", err)
 	}
 	WrittenBytesTotal.Increase(nr)
 
@@ -204,7 +213,7 @@ func (c *Client) RequestTo(addr string, req protocol.EncodeDecoder) (protocol.En
 	if err != nil {
 		// Failed to read message from the TCP socket. Close it.
 		dead = true
-		return nil, err
+		return nil, fmt.Errorf("failed to read message: %w", err)
 	}
 
 	ReadBytesTotal.Increase(protocol.HeaderLength + int64(h.MessageLength))

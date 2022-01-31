@@ -100,8 +100,9 @@ func parseConfiguration(c map[string]interface{}) Configuration {
 					Path:          "",
 					Configuration: nil,
 				},
-				Regex: configurationtypes.Regex{},
-				TTL:   configurationtypes.Duration{},
+				Regex:               configurationtypes.Regex{},
+				TTL:                 configurationtypes.Duration{},
+				DefaultCacheControl: "",
 			}
 			defaultCache := v.(map[string]interface{})
 			for defaultCacheK, defaultCacheV := range defaultCache {
@@ -123,6 +124,8 @@ func parseConfiguration(c map[string]interface{}) Configuration {
 					if err == nil {
 						dc.Stale = configurationtypes.Duration{Duration: stale}
 					}
+				case "default_cache_control":
+					dc.DefaultCacheControl = defaultCacheV.(string)
 				}
 			}
 			configuration.DefaultCache = &dc
@@ -145,6 +148,9 @@ func parseConfiguration(c map[string]interface{}) Configuration {
 				ttl, err := time.ParseDuration(d)
 				if err == nil {
 					currentURL.TTL = configurationtypes.Duration{Duration: ttl}
+				}
+				if _, exists := currentValue["default_cache_control"]; exists {
+					currentURL.DefaultCacheControl = currentValue["default_cache_control"].(string)
 				}
 				u[urlK] = currentURL
 			}

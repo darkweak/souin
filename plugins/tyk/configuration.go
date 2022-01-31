@@ -35,14 +35,15 @@ func (d *Duration) UnmarshalJSON(b []byte) error {
 
 // DefaultCache the struct
 type DefaultCache struct {
-	Badger      configurationtypes.CacheProvider `json:"badger,omitempty"`
-	CDN         configurationtypes.CDN           `json:"cdn,omitempty"`
-	Distributed bool
-	Headers     []string                         `json:"api,omitempty"`
-	Olric       configurationtypes.CacheProvider `json:"olric,omitempty"`
-	Regex       configurationtypes.Regex         `json:"regex,omitempty"`
-	TTL         Duration                         `json:"ttl,omitempty"`
-	Stale       configurationtypes.Duration      `json:"stale,omitempty"`
+	Badger              configurationtypes.CacheProvider `json:"badger,omitempty"`
+	CDN                 configurationtypes.CDN           `json:"cdn,omitempty"`
+	Distributed         bool
+	Headers             []string                         `json:"api,omitempty"`
+	Olric               configurationtypes.CacheProvider `json:"olric,omitempty"`
+	Regex               configurationtypes.Regex         `json:"regex,omitempty"`
+	TTL                 Duration                         `json:"ttl,omitempty"`
+	Stale               configurationtypes.Duration      `json:"stale,omitempty"`
+	DefaultCacheControl string                           `json:"default_cache_control,omitempty"`
 }
 
 // GetBadger returns the Badger configuration
@@ -83,6 +84,11 @@ func (d *DefaultCache) GetTTL() time.Duration {
 // GetStale returns the stale duration
 func (d *DefaultCache) GetStale() time.Duration {
 	return d.Stale.Duration
+}
+
+// GetDefaultCacheControl returns the default Cache-Control response header value when empty
+func (d *DefaultCache) GetDefaultCacheControl() string {
+	return d.DefaultCacheControl
 }
 
 //Configuration holder

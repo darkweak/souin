@@ -15,7 +15,6 @@
 package dmap
 
 import (
-	"strings"
 	"time"
 
 	"github.com/buraksezer/olric/internal/cluster/partitions"
@@ -40,20 +39,13 @@ func wipeOutFragment(part *partitions.Partition, name string, f *fragment) error
 func (s *Service) deleteEmptyFragments() {
 	janitor := func(part *partitions.Partition) {
 		part.Map().Range(func(name, tmp interface{}) bool {
-			if !strings.HasPrefix(name.(string), "dmap.") {
-				// This fragment belongs to a different data structure.
-				return true
-			}
-
 			f := tmp.(*fragment)
 			f.Lock()
 			defer f.Unlock()
-
 			if f.storage.Stats().Length != 0 {
-				// It's not empty. Continue scanning.
+				// Continue scanning.
 				return true
 			}
-
 			err := wipeOutFragment(part, name.(string), f)
 			if err != nil {
 				s.log.V(3).Printf("[ERROR] Failed to delete empty DMap fragment (kind: %s): %s on PartID: %d",
@@ -61,7 +53,6 @@ func (s *Service) deleteEmptyFragments() {
 				// continue scanning
 				return true
 			}
-
 			s.log.V(4).Printf("[INFO] Empty DMap fragment (kind: %s) has been deleted: %s on PartID: %d",
 				part.Kind(), name, part.ID())
 			return true
@@ -77,7 +68,7 @@ func (s *Service) deleteEmptyFragments() {
 	}
 }
 
-func (s *Service) janitorWorker() {
+func (s *Service) janitor() {
 	defer s.wg.Done()
 	timer := time.NewTimer(s.config.DMaps.CheckEmptyFragmentsInterval)
 	defer timer.Stop()

@@ -31,6 +31,7 @@ http:
             regex:
               exclude: '/test_exclude.*'
             ttl: 5s
+            default_cache_control: public
           log_level: debug
           urls:
             'domain.com/testing':
