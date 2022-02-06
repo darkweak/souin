@@ -110,11 +110,11 @@ func (s *SouinCaddyPlugin) configurationPropertyMapper() error {
 	}
 	defaultCache := &DefaultCache{
 		Badger:              s.Badger,
+		DefaultCacheControl: s.DefaultCacheControl,
 		Distributed:         s.Olric.URL != "" || s.Olric.Path != "" || s.Olric.Configuration != nil,
 		Headers:             s.Headers,
 		Olric:               s.Olric,
 		TTL:                 s.TTL,
-		DefaultCacheControl: s.DefaultCacheControl,
 	}
 	if s.Configuration == nil {
 		s.Configuration = &Configuration{
@@ -298,6 +298,19 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 					}
 				}
 				cfg.API = apiConfiguration
+			case "badger":
+				provider := configurationtypes.CacheProvider{}
+				for nesting := h.Nesting(); h.NextBlock(nesting); {
+					directive := h.Val()
+					switch directive {
+					case "path":
+						urlArgs := h.RemainingArgs()
+						provider.Path = urlArgs[0]
+					case "configuration":
+						provider.Configuration = parseCaddyfileRecursively(h)
+					}
+				}
+				cfg.DefaultCache.Badger = provider
 			case "cdn":
 				cdn := configurationtypes.CDN{}
 				for nesting := h.Nesting(); h.NextBlock(nesting); {
@@ -318,32 +331,14 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 					}
 				}
 				cfg.DefaultCache.CDN = cdn
-			case "regex":
-				for nesting := h.Nesting(); h.NextBlock(nesting); {
-					directive := h.Val()
-					switch directive {
-					case "exclude":
-						cfg.DefaultCache.Regex.Exclude = h.RemainingArgs()[0]
-					}
-				}
+			case "default_cache_control":
+				args := h.RemainingArgs()
+				cfg.DefaultCache.DefaultCacheControl = args[0]
 			case "headers":
 				cfg.DefaultCache.Headers = append(cfg.DefaultCache.Headers, h.RemainingArgs()...)
 			case "log_level":
 				args := h.RemainingArgs()
 				cfg.LogLevel = args[0]
-			case "badger":
-				provider := configurationtypes.CacheProvider{}
-				for nesting := h.Nesting(); h.NextBlock(nesting); {
-					directive := h.Val()
-					switch directive {
-					case "path":
-						urlArgs := h.RemainingArgs()
-						provider.Path = urlArgs[0]
-					case "configuration":
-						provider.Configuration = parseCaddyfileRecursively(h)
-					}
-				}
-				cfg.DefaultCache.Badger = provider
 			case "olric":
 				cfg.DefaultCache.Distributed = true
 				provider := configurationtypes.CacheProvider{}
@@ -361,11 +356,13 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 					}
 				}
 				cfg.DefaultCache.Olric = provider
-			case "ttl":
-				args := h.RemainingArgs()
-				ttl, err := time.ParseDuration(args[0])
-				if err == nil {
-					cfg.DefaultCache.TTL.Duration = ttl
+			case "regex":
+				for nesting := h.Nesting(); h.NextBlock(nesting); {
+					directive := h.Val()
+					switch directive {
+					case "exclude":
+						cfg.DefaultCache.Regex.Exclude = h.RemainingArgs()[0]
+					}
 				}
 			case "stale":
 				args := h.RemainingArgs()
@@ -373,9 +370,12 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 				if err == nil {
 					cfg.DefaultCache.Stale.Duration = stale
 				}
-			case "default_cache_control":
+			case "ttl":
 				args := h.RemainingArgs()
-				cfg.DefaultCache.DefaultCacheControl = args[0]
+				ttl, err := time.ParseDuration(args[0])
+				if err == nil {
+					cfg.DefaultCache.TTL.Duration = ttl
+				}
 			default:
 				return nil, h.Errf("unsupported root directive: %s", rootOption)
 			}
@@ -400,20 +400,20 @@ func parseCaddyfileHandlerDirective(h httpcaddyfile.Helper) (caddyhttp.Middlewar
 	for h.Next() {
 		directive := h.Val()
 		switch directive {
+		case "default_cache_control":
+			sc.DefaultCache.DefaultCacheControl = h.RemainingArgs()[0]
 		case "headers":
 			sc.DefaultCache.Headers = h.RemainingArgs()
-		case "ttl":
-			ttl, err := time.ParseDuration(h.RemainingArgs()[0])
-			if err == nil {
-				sc.DefaultCache.TTL.Duration = ttl
-			}
 		case "stale":
 			stale, err := time.ParseDuration(h.RemainingArgs()[0])
 			if err == nil {
 				sc.DefaultCache.Stale.Duration = stale
 			}
-		case "default_cache_control":
-			sc.DefaultCache.DefaultCacheControl = h.RemainingArgs()[0]
+		case "ttl":
+			ttl, err := time.ParseDuration(h.RemainingArgs()[0])
+			if err == nil {
+				sc.DefaultCache.TTL.Duration = ttl
+			}
 		}
 	}
 
