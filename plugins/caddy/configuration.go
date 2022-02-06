@@ -11,13 +11,13 @@ import (
 type DefaultCache struct {
 	Badger              configurationtypes.CacheProvider
 	CDN                 configurationtypes.CDN
+	DefaultCacheControl string
 	Distributed         bool
 	Headers             []string
 	Olric               configurationtypes.CacheProvider
 	Regex               configurationtypes.Regex
 	TTL                 configurationtypes.Duration
 	Stale               configurationtypes.Duration
-	DefaultCacheControl string
 }
 
 // GetBadger returns the Badger configuration
