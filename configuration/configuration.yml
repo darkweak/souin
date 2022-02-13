@@ -2,13 +2,11 @@ api:
   basepath: /souin-api
   security:
     secret: your_secret_key
-    enable: true
     users:
       - username: user1
         password: test
   souin:
     security: false
-    enable: true
 cdn:
   api_key: XXXX
   provider: fastly

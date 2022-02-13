@@ -20,10 +20,8 @@ http:
       plugin:
         souin-plugin:
           api:
-            prometheus:
-              enable: true
-            souin:
-              enable: true
+            prometheus: {}
+            souin: {}
           default_cache:
             headers:
               - Authorization

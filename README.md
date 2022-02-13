@@ -71,16 +71,13 @@ api:
   basepath: /souin-api # Default route basepath for every additional APIs to avoid conflicts with existing routes
   prometheus: # Prometheus exposed metrics
     security: true # Enable JWT Authentication token
-    enable: true # Enable the endpoints
   security: # Secure your APIs
     secret: your_secret_key # JWT secret key
-    enable: true # Required to enable the endpoints
     users: # Users declaration
       - username: user1
         password: test
   souin: # Souin listing keys and cache management
     security: true # Enable JWT Authentication token
-    enable: true # Enable the endpoints
 cdn: # If Souin is set after a CDN fill these informations
   api_key: XXXX # Your provider API key if mandatory
   provider: fastly # The provider placed before Souin (e.g. fastly, cloudflare, akamai, varnish)
@@ -312,12 +309,10 @@ There is the fully configuration below
         api {
             basepath /some-basepath
             prometheus {
-                enable true
-                security true
+                security
             }
             souin {
-                enable true
-                security true
+                security
             }
         }
         badger {
@@ -462,7 +457,7 @@ experimental:
   plugins:
     souin:
       moduleName: github.com/darkweak/souin
-      version: v1.6.0
+      version: v1.6.1
 ```
 After that you can declare either the whole configuration at once in the middleware block or by service. See the examples below.
 ```yaml
@@ -479,8 +474,8 @@ http:
       plugin:
         souin-plugin:
           api:
-            souin:
-              enable: true
+            souin: {}
+            prometheus: {}
           default_cache:
             headers:
               - Authorization

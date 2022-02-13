@@ -2,13 +2,11 @@ api:
   basepath: /souin-api # Default route basepath for every additional APIs to avoid conflicts with existing routes
   security: # Secure your APIs
     secret: your_secret_key # JWT secret key
-    enable: true # Required to enable the endpoints
     users: # Users declaration
       - username: user1
         password: test
   souin: # Souin listing keys and cache management
     security: true # Enable JWT Authentication token
-    enable: true # Enable the endpoints
 cdn: # If Souin is set after a CDN fill these informations
   api_key: XXXX # Your provider API key if mandatory
   provider: fastly # The provider placed before Souin (e.g. fastly, cloudflare, akamai, varnish)
