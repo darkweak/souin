@@ -263,8 +263,6 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 							switch directive {
 							case "basepath":
 								apiConfiguration.Prometheus.BasePath = h.RemainingArgs()[0]
-							case "security":
-								apiConfiguration.Prometheus.Security = true
 							}
 						}
 					case "souin":
@@ -275,20 +273,6 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 							switch directive {
 							case "basepath":
 								apiConfiguration.Souin.BasePath = h.RemainingArgs()[0]
-							case "security":
-								apiConfiguration.Souin.Security = true
-							}
-						}
-					case "security":
-						apiConfiguration.Security = configurationtypes.SecurityAPI{}
-						apiConfiguration.Security.Enable = true
-						for nesting := h.Nesting(); h.NextBlock(nesting); {
-							directive := h.Val()
-							switch directive {
-							case "basepath":
-								apiConfiguration.Security.BasePath = h.RemainingArgs()[0]
-							case "secret":
-								apiConfiguration.Security.Secret = h.RemainingArgs()[0]
 							}
 						}
 					}
@@ -315,7 +299,7 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 					case "api_key":
 						cdn.APIKey = h.RemainingArgs()[0]
 					case "dynamic":
-						cdn.Dynamic = h.RemainingArgs()[0]
+						cdn.Dynamic = true
 					case "hostname":
 						cdn.Hostname = h.RemainingArgs()[0]
 					case "network":

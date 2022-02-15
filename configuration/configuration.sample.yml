@@ -5,8 +5,10 @@ api:
     users: # Users declaration
       - username: user1
         password: test
+  prometheus: # Prometheus exposed metrics
+    basepath: /anything-for-prometheus-metrics # Change the prometheus endpoint basepath
   souin: # Souin listing keys and cache management
-    security: true # Enable JWT Authentication token
+    basepath: /anything-for-souin # Change the souin endpoint basepath
 cdn: # If Souin is set after a CDN fill these informations
   api_key: XXXX # Your provider API key if mandatory
   provider: fastly # The provider placed before Souin (e.g. fastly, cloudflare, akamai, varnish)

@@ -42,7 +42,7 @@ There is the fully configuration below
         }
         cdn {
             api_key XXXX
-            dynamic true
+            dynamic
             email darkweak@protonmail.com
             hostname domain.com
             network your_network
