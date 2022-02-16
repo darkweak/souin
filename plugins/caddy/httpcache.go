@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"net/http"
-	"strconv"
 	"sync"
 	"time"
 
@@ -258,41 +257,22 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 						apiConfiguration.BasePath = h.RemainingArgs()[0]
 					case "prometheus":
 						apiConfiguration.Prometheus = configurationtypes.APIEndpoint{}
+						apiConfiguration.Prometheus.Enable = true
 						for nesting := h.Nesting(); h.NextBlock(nesting); {
 							directive := h.Val()
 							switch directive {
 							case "basepath":
 								apiConfiguration.Prometheus.BasePath = h.RemainingArgs()[0]
-							case "enable":
-								apiConfiguration.Prometheus.Enable, _ = strconv.ParseBool(h.RemainingArgs()[0])
-							case "security":
-								apiConfiguration.Prometheus.Security, _ = strconv.ParseBool(h.RemainingArgs()[0])
 							}
 						}
 					case "souin":
 						apiConfiguration.Souin = configurationtypes.APIEndpoint{}
+						apiConfiguration.Souin.Enable = true
 						for nesting := h.Nesting(); h.NextBlock(nesting); {
 							directive := h.Val()
 							switch directive {
 							case "basepath":
 								apiConfiguration.Souin.BasePath = h.RemainingArgs()[0]
-							case "enable":
-								apiConfiguration.Souin.Enable, _ = strconv.ParseBool(h.RemainingArgs()[0])
-							case "security":
-								apiConfiguration.Souin.Security, _ = strconv.ParseBool(h.RemainingArgs()[0])
-							}
-						}
-					case "security":
-						apiConfiguration.Security = configurationtypes.SecurityAPI{}
-						for nesting := h.Nesting(); h.NextBlock(nesting); {
-							directive := h.Val()
-							switch directive {
-							case "basepath":
-								apiConfiguration.Security.BasePath = h.RemainingArgs()[0]
-							case "enable":
-								apiConfiguration.Security.Enable, _ = strconv.ParseBool(h.RemainingArgs()[0])
-							case "secret":
-								apiConfiguration.Security.Secret = h.RemainingArgs()[0]
 							}
 						}
 					}
@@ -319,7 +299,7 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 					case "api_key":
 						cdn.APIKey = h.RemainingArgs()[0]
 					case "dynamic":
-						cdn.Dynamic = h.RemainingArgs()[0]
+						cdn.Dynamic = true
 					case "hostname":
 						cdn.Hostname = h.RemainingArgs()[0]
 					case "network":

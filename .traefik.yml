@@ -5,6 +5,9 @@ summary: 'Souin is a powerfull cache system as fast as Varnish but easier to con
 
 # Refer to https://github.com/darkweak/Souin/blob/master/configuration/configuration.sample.yml for full configuration
 testData:
+  api:
+    prometheus: {}
+    souin: {}
   default_cache:
     headers:
       - Authorization

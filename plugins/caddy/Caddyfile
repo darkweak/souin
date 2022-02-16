@@ -5,12 +5,8 @@
     }
     cache {
         api {
-            prometheus {
-                enable true
-            }
-            souin {
-                enable true
-            }
+            prometheus
+            souin
         }
         regex {
             exclude /test2.*

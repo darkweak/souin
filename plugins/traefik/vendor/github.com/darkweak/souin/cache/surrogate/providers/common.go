@@ -3,7 +3,6 @@ package providers
 import (
 	"net/http"
 	"regexp"
-	"strconv"
 	"strings"
 
 	"github.com/darkweak/souin/configurationtypes"
@@ -91,11 +90,7 @@ func (s *baseStorage) init(config configurationtypes.AbstractConfigurationInterf
 		keysRegexp[key] = innerKey
 	}
 
-	s.dynamic = true
-	if config.GetDefaultCache().GetCDN().Dynamic != "" {
-		dynamic, e := strconv.ParseBool(config.GetDefaultCache().GetCDN().Dynamic)
-		s.dynamic = e != nil || dynamic
-	}
+	s.dynamic = config.GetDefaultCache().GetCDN().Dynamic
 	s.logger = config.GetLogger()
 	s.keysRegexp = keysRegexp
 }
