@@ -22,16 +22,9 @@ There is the fully configuration below
     cache {
         api {
             basepath /some-basepath
-            prometheus {
-                basepath /prometheus-changed-endpoint-path
-                security true
-            }
+            prometheus
             souin {
                 basepath /souin-changed-endpoint-path
-                security true
-            }
-            souin {
-                security true
             }
         }
         badger {
@@ -98,19 +91,15 @@ What does these directives mean?
 |:--------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------|:------------------------------------------------------------------------------------------------------------------------|
 | `api`                     | The cache-handler API cache management                                                                                                       |                                                                                                                         |
 | `api.basepath`            | BasePath for all APIs to avoid conflicts                                                                                                     | `/your-non-conflict-route`<br/><br/>`(default: /souin-api)`                                                             |
-| `api.prometheus.basepath` | Prometheus basepath endpoint                                                                                                                 | `/another-souin-api-route`<br/><br/>`(default: /metrics)`                                                               |
-| `api.prometheus.security` | Enable JWT validation to access the prometheus endpoint                                                                                      | `(default: false)`                                                                                                      |
+| `api.prometheus`          | Enable the Prometheus metrics                                                                                                                |                                                                                                                         |
 | `api.souin.basepath`      | Souin API basepath                                                                                                                           | `/another-souin-api-route`<br/><br/>`(default: /souin)`                                                                 |
-| `api.souin.security`      | Enable JWT validation to access the souin endpoint                                                                                           | `(default: false)`                                                                                                      |
-| `api.security.basepath`   | Security / auth basepath endpoint                                                                                                            | `/another-security-api-route`<br/><br/>`(default: /authentication)`                                                     |
-| `api.security.secret`     | Secret used to generate the JWT token                                                                                                        | `My_Asew0me-Secr3t`                                                                                                     |
 | `badger`                  | Configure the Badger cache storage                                                                                                           |                                                                                                                         |
 | `badger.path`             | Configure Badger with a file                                                                                                                 | `/anywhere/badger_configuration.json`                                                                                   |
 | `badger.configuration`    | Configure Badger directly in the Caddyfile or your JSON caddy configuration                                                                  | [See the Badger configuration for the options](https://dgraph.io/docs/badger/get-started/)                              |
 | `cdn`                     | The CDN management, if you use any cdn to proxy your requests Souin will handle that                                                         |                                                                                                                         |
 | `cdn.provider`            | The provider placed before Souin                                                                                                             | `akamai`<br/><br/>`fastly`<br/><br/>`souin`                                                                             |
 | `cdn.api_key`             | The api key used to access to the provider                                                                                                   | `XXXX`                                                                                                                  |
-| `cdn.dynamic`             | Enable the dynamic keys returned by your backend application                                                                                 | `true`<br/><br/>`(default: false)`                                                                                      |
+| `cdn.dynamic`             | Enable the dynamic keys returned by your backend application                                                                                 | `(default: false)`                                                                                                      |
 | `cdn.email`               | The api key used to access to the provider if required, depending the provider                                                               | `XXXX`                                                                                                                  |
 | `cdn.hostname`            | The hostname if required, depending the provider                                                                                             | `domain.com`                                                                                                            |
 | `cdn.network`             | The network if required, depending the provider                                                                                              | `your_network`                                                                                                          |
