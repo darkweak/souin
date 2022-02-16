@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -45,46 +44,50 @@ func parseConfiguration(c map[string]interface{}) Configuration {
 			var a configurationtypes.API
 			var prometheusConfiguration, souinConfiguration, securityConfiguration map[string]interface{}
 			apiConfiguration := v.(map[string]interface{})
-			if apiConfiguration["prometheus"] != nil {
-				prometheusConfiguration = apiConfiguration["prometheus"].(map[string]interface{})
-			}
-			if apiConfiguration["souin"] != nil {
-				souinConfiguration = apiConfiguration["souin"].(map[string]interface{})
-			}
-			if apiConfiguration["security"] != nil {
-				securityConfiguration = apiConfiguration["security"].(map[string]interface{})
+			for apiK, apiV := range apiConfiguration {
+				switch apiK {
+				case "prometheus":
+					prometheusConfiguration = make(map[string]interface{})
+					if apiV != nil && len(apiV.(string)) != 0 {
+						prometheusConfiguration = apiV.(map[string]interface{})
+					}
+				case "souin":
+					souinConfiguration = make(map[string]interface{})
+					if apiV != nil && len(apiV.(string)) != 0 {
+						souinConfiguration = apiV.(map[string]interface{})
+					}
+				case "security":
+					securityConfiguration = make(map[string]interface{})
+					if apiV != nil && len(apiV.(string)) != 0 {
+						securityConfiguration = apiV.(map[string]interface{})
+					}
+				}
 			}
 			if prometheusConfiguration != nil {
 				a.Prometheus = configurationtypes.APIEndpoint{}
+				a.Prometheus.Enable = true
 				if prometheusConfiguration["basepath"] != nil {
 					a.Prometheus.BasePath = prometheusConfiguration["basepath"].(string)
 				}
-				if prometheusConfiguration["enable"] != nil {
-					a.Prometheus.Enable, _ = strconv.ParseBool(prometheusConfiguration["enable"].(string))
-				}
-				if securityConfiguration["enable"] != nil {
-					a.Prometheus.Security = securityConfiguration["enable"].(bool)
+				if prometheusConfiguration["security"] != nil {
+					a.Prometheus.Security = prometheusConfiguration["security"].(bool)
 				}
 			}
 			if souinConfiguration != nil {
 				a.Souin = configurationtypes.APIEndpoint{}
+				a.Souin.Enable = true
 				if souinConfiguration["basepath"] != nil {
 					a.Souin.BasePath = souinConfiguration["basepath"].(string)
 				}
-				if souinConfiguration["enable"] != nil {
-					a.Souin.Enable, _ = strconv.ParseBool(souinConfiguration["enable"].(string))
-				}
-				if securityConfiguration["enable"] != nil {
-					a.Souin.Security = securityConfiguration["enable"].(bool)
+				if souinConfiguration["security"] != nil {
+					a.Souin.Security = souinConfiguration["security"].(bool)
 				}
 			}
 			if securityConfiguration != nil {
 				a.Security = configurationtypes.SecurityAPI{}
+				a.Security.Enable = true
 				if securityConfiguration["basepath"] != nil {
 					a.Security.BasePath = securityConfiguration["basepath"].(string)
-				}
-				if securityConfiguration["enable"] != nil {
-					a.Security.Enable, _ = strconv.ParseBool(securityConfiguration["enable"].(string))
 				}
 				if securityConfiguration["users"] != nil {
 					a.Security.Users = securityConfiguration["users"].([]configurationtypes.User)

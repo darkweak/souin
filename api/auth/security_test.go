@@ -19,7 +19,6 @@ api:
   security:
     basepath: /mybasepath
     secret: your_secret_key
-    enable: true
     users:
       - username: user1
         password: test
