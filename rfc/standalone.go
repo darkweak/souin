@@ -12,19 +12,15 @@ import (
 	"time"
 
 	"github.com/darkweak/souin/cache/providers"
+	"github.com/darkweak/souin/context"
 )
-
-// GetCacheKey returns the cache key for req.
-func GetCacheKey(req *http.Request) string {
-	return fmt.Sprintf("%s-%s-%s", req.Method, req.Host, req.RequestURI)
-}
 
 // GetVariedCacheKey returns the varied cache key for req and resp.
 func GetVariedCacheKey(req *http.Request, headers []string) string {
 	for i, v := range headers {
 		headers[i] = fmt.Sprintf("%s:%s", v, req.Header.Get(v))
 	}
-	return GetCacheKey(req) + providers.VarySeparator + strings.Join(headers, ";")
+	return req.Context().Value(context.Key).(string) + providers.VarySeparator + strings.Join(headers, ";")
 }
 
 func ValidateMaxAgeCachedResponse(req *http.Request, res *http.Response) *http.Response {

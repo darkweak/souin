@@ -9,6 +9,7 @@ import (
 
 // DefaultCache the struct
 type DefaultCache struct {
+	AllowedHTTPVerbs    []string
 	Badger              configurationtypes.CacheProvider
 	CDN                 configurationtypes.CDN
 	DefaultCacheControl string
@@ -18,6 +19,11 @@ type DefaultCache struct {
 	Regex               configurationtypes.Regex
 	TTL                 configurationtypes.Duration
 	Stale               configurationtypes.Duration
+}
+
+// GetAllowedHTTPVerbs returns the allowed verbs to cache
+func (d *DefaultCache) GetAllowedHTTPVerbs() []string {
+	return d.AllowedHTTPVerbs
 }
 
 // GetBadger returns the Badger configuration

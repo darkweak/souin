@@ -83,7 +83,7 @@ func New(c Configuration) *SouinGinPlugin {
 
 func (s *SouinGinPlugin) Process() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		req := c.Request
+		req := s.Retriever.GetContext().Method.SetContext(c.Request)
 		if !plugins.CanHandle(req, s.Retriever) {
 			c.Writer.Header().Add("Cache-Status", "Souin; fwd=uri-miss")
 			c.Next()
@@ -109,6 +109,7 @@ func (s *SouinGinPlugin) Process() gin.HandlerFunc {
 			},
 		}
 		c.Writer = customWriter
+		req = s.Retriever.GetContext().SetContext(req)
 		getterCtx := getterContext{c, customWriter, req}
 		ctx := context.WithValue(req.Context(), getterContextCtxKey, getterCtx)
 		req = req.WithContext(ctx)

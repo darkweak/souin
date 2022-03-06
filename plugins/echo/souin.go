@@ -39,6 +39,7 @@ var (
 			},
 		},
 		DefaultCache: &configurationtypes.DefaultCache{
+			AllowedHTTPVerbs: []string{http.MethodGet},
 			Regex: configurationtypes.Regex{
 				Exclude: "/excluded",
 			},
@@ -85,6 +86,7 @@ func (s *SouinEchoPlugin) Process(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		req := c.Request()
 		rw := c.Response().Writer
+		req = s.Retriever.GetContext().Method.SetContext(req)
 		if !plugins.CanHandle(req, s.Retriever) {
 			rw.Header().Add("Cache-Status", "Souin; fwd=uri-miss")
 			return next(c)
@@ -100,6 +102,7 @@ func (s *SouinEchoPlugin) Process(next echo.HandlerFunc) echo.HandlerFunc {
 			Buf:      s.bufPool.Get().(*bytes.Buffer),
 			Rw:       rw,
 		}
+		req = s.Retriever.GetContext().SetContext(req)
 		getterCtx := getterContext{next, customWriter, req}
 		c.Response().Writer = customWriter
 		ctx := context.WithValue(req.Context(), getterContextCtxKey, getterCtx)

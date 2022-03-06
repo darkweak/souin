@@ -51,6 +51,7 @@ github.com/darkweak/souin/cache/surrogate/providers
 github.com/darkweak/souin/cache/types
 github.com/darkweak/souin/cache/ykeys
 github.com/darkweak/souin/configurationtypes
+github.com/darkweak/souin/context
 github.com/darkweak/souin/errors
 github.com/darkweak/souin/helpers
 github.com/darkweak/souin/plugins/souin/configuration

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/darkweak/souin/cache/types"
+	"github.com/darkweak/souin/context"
 )
 
 const (
@@ -54,7 +55,7 @@ func (t *VaryTransport) deleteCache(key string) {
 
 // BaseRoundTrip is the base for RoundTrip
 func (t *VaryTransport) BaseRoundTrip(req *http.Request, shouldReUpdate bool) (string, bool, *http.Response) {
-	cacheKey := GetCacheKey(req)
+	cacheKey := req.Context().Value(context.Key).(string)
 	cacheable := IsVaryCacheable(req)
 	cachedResp := req.Response
 	if cachedResp == nil {
@@ -165,7 +166,7 @@ func (t *VaryTransport) RoundTrip(req *http.Request) (resp *http.Response, err e
 		var resp *http.Response
 		resp, err = transport.RoundTrip(req)
 		if (err != nil || resp.StatusCode >= 500) &&
-			req.Method == http.MethodGet && canStaleOnError(cachedResp.Header, req.Header) {
+			req.Context().Value(context.SupportedMethod).(bool) && canStaleOnError(cachedResp.Header, req.Header) {
 			// In case of transport failure and stale-if-error activated, returns cached content
 			// when available
 			return cachedResp, nil

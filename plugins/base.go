@@ -16,6 +16,7 @@ import (
 	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/cache/ykeys"
 	"github.com/darkweak/souin/configurationtypes"
+	"github.com/darkweak/souin/context"
 	"github.com/darkweak/souin/helpers"
 	"github.com/darkweak/souin/rfc"
 	"github.com/pquerna/cachecontrol/cacheobject"
@@ -68,7 +69,7 @@ func (r *CustomWriter) Send() (int, error) {
 // CanHandle detect if the request can be handled by Souin
 func CanHandle(r *http.Request, re types.RetrieverResponsePropertiesInterface) bool {
 	co, err := cacheobject.ParseResponseCacheControl(r.Header.Get("Cache-Control"))
-	return (r.Method == http.MethodGet || r.Method == http.MethodHead) && err == nil && len(co.NoCache) == 0 && r.Header.Get("Upgrade") != "websocket" && (re.GetExcludeRegexp() == nil || !re.GetExcludeRegexp().MatchString(r.RequestURI))
+	return r.Context().Value(context.SupportedMethod).(bool) && err == nil && len(co.NoCache) == 0 && r.Header.Get("Upgrade") != "websocket" && (re.GetExcludeRegexp() == nil || !re.GetExcludeRegexp().MatchString(r.RequestURI))
 }
 
 func sendAnyCachedResponse(rh http.Header, response *http.Response, res http.ResponseWriter) {
@@ -102,7 +103,7 @@ func DefaultSouinPluginCallback(
 		close(responses)
 	}()
 	cacheCandidate := !strings.Contains(req.Header.Get("Cache-Control"), "no-cache")
-	cacheKey := rfc.GetCacheKey(req)
+	cacheKey := req.Context().Value(context.Key).(string)
 	retriever.SetMatchedURLFromRequest(req)
 
 	go func() {
@@ -206,6 +207,9 @@ func DefaultSouinPluginInitializerFromConfiguration(c configurationtypes.Abstrac
 		excludedRegexp = regexp.MustCompile(c.GetDefaultCache().GetRegex().Exclude)
 	}
 
+	ctx := context.GetContext()
+	ctx.Init(c)
+
 	retriever := &types.RetrieverResponseProperties{
 		MatchedURL: configurationtypes.URL{
 			TTL:                 configurationtypes.Duration{Duration: c.GetDefaultCache().GetTTL()},
@@ -217,6 +221,7 @@ func DefaultSouinPluginInitializerFromConfiguration(c configurationtypes.Abstrac
 		RegexpUrls:    regexpUrls,
 		Transport:     transport,
 		ExcludeRegex:  excludedRegexp,
+		Context:       ctx,
 	}
 	retriever.Transport.SetURL(retriever.MatchedURL)
 	retriever.GetConfiguration().GetLogger().Info("Souin configuration is now loaded.")

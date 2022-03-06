@@ -16,13 +16,13 @@ func TestGetFreshness_Date(t *testing.T) {
 	r := httptest.NewRequest("GET", "http://domain.com/testing", nil)
 	res := httptest.NewRecorder()
 
-	if 0 != getFreshness(res.Header(), r.Header) {
+	if getFreshness(res.Header(), r.Header) != 0 {
 		errors.GenerateError(t, "Date shouldn't exist")
 	}
 
 	res.Header().Add("Date", "Mon, 08 Jan 2021 15:04:05 MST")
 
-	if 0 != getFreshness(res.Header(), r.Header) {
+	if getFreshness(res.Header(), r.Header) != 0 {
 		errors.GenerateError(t, fmt.Sprintf("%s", res.Header()))
 		errors.GenerateError(t, "Date should exist")
 	}
@@ -33,19 +33,19 @@ func TestGetFreshness_CacheControl(t *testing.T) {
 	res := httptest.NewRecorder()
 	r.Header.Set("Cache-Control", "only-if-cached")
 
-	if 1 != getFreshness(res.Header(), r.Header) {
+	if getFreshness(res.Header(), r.Header) != 1 {
 		errors.GenerateError(t, "Freshness should be fresh if Response contains only-if-cached on Cache-Control header")
 	}
 
 	res.Header().Add("Cache-Control", "no-cache")
 
-	if 0 != getFreshness(res.Header(), r.Header) {
+	if getFreshness(res.Header(), r.Header) != 0 {
 		errors.GenerateError(t, "Freshness should be stale if Response contains no-cache on Cache-Control header")
 	}
 
 	r.Header.Set("Cache-Control", "no-cache")
 
-	if 2 != getFreshness(res.Header(), r.Header) {
+	if getFreshness(res.Header(), r.Header) != 2 {
 		errors.GenerateError(t, "Freshness should be transparent if Response contains no-cache on Cache-Control header")
 	}
 }

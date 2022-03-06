@@ -64,6 +64,7 @@ type getterContext struct {
 
 // ServeHTTP implements caddyhttp.MiddlewareHandler.
 func (s *SouinCaddyPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request, next caddyhttp.Handler) error {
+	req = s.Retriever.GetContext().Method.SetContext(req)
 	if !plugins.CanHandle(req, s.Retriever) {
 		rw.Header().Add("Cache-Status", "Souin; fwd=uri-miss")
 		return next.ServeHTTP(rw, req)
@@ -74,6 +75,7 @@ func (s *SouinCaddyPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request, 
 		return nil
 	}
 
+	req = s.Retriever.GetContext().SetContext(req)
 	customWriter := &plugins.CustomWriter{
 		Response: &http.Response{},
 		Buf:      s.bufPool.Get().(*bytes.Buffer),

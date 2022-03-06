@@ -35,7 +35,7 @@ func souinPluginInitializerFromConfiguration(c *configuration.Configuration) *so
 
 func startServer(config *tls.Config, port string) (net.Listener, *http.Server) {
 	server := http.Server{
-		Addr:      ":"+port,
+		Addr:      ":" + port,
 		Handler:   nil,
 		TLSConfig: config,
 	}
@@ -82,6 +82,7 @@ func main() {
 
 	http.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
 		request.Header.Set("Date", time.Now().UTC().Format(time.RFC1123))
+		request = retriever.GetContext().SetContext(request)
 		retriever.SetMatchedURLFromRequest(request)
 		coalescing.ServeResponse(writer, request, retriever, plugins.DefaultSouinPluginCallback, rc, func(w http.ResponseWriter, r *http.Request) error {
 			rr := service.RequestReverseProxy(r, *retriever)
