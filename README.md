@@ -67,10 +67,6 @@ Besides, it's highly recommended to set `default_cache.default_cache_control` (s
 ### Optional configuration
 ```yaml
 # /anywhere/configuration.yml
-allowed_http_verbs: # Allowed HTTP verbs to cache (default GET, HEAD).
-  - GET
-  - POST
-  - HEAD
 api:
   basepath: /souin-api # Default route basepath for every additional APIs to avoid conflicts with existing routes
   prometheus: # Prometheus exposed metrics
@@ -83,6 +79,10 @@ cdn: # If Souin is set after a CDN fill these informations
   strategy: soft # The strategy to purge the CDN cache based on tags (e.g. soft, hard)
   dynamic: true # If true, you'll be able to add custom keys than the ones defined under the surrogate_keys key
 default_cache:
+  allowed_http_verbs: # Allowed HTTP verbs to cache (default GET, HEAD).
+    - GET
+    - POST
+    - HEAD
   distributed: true # Use Olric distributed storage
   headers: # Default headers concatenated in stored keys
     - Authorization
@@ -129,7 +129,6 @@ surrogate_keys:
 
 |  Key                                              |  Description                                                                                                                                |  Value example                                                                                                            |
 |:--------------------------------------------------|:--------------------------------------------------------------------------------------------------------------------------------------------|:--------------------------------------------------------------------------------------------------------------------------|
-| `allowed_http_verbs`                              | The HTTP verbs to support cache                                                                                                             | `- GET`<br/><br/>`- POST`<br/><br/>`(default: GET, HEAD)`                                                                 |
 | `api`                                             | The cache-handler API cache management                                                                                                      |                                                                                                                           |
 | `api.basepath`                                    | BasePath for all APIs to avoid conflicts                                                                                                    | `/your-non-conflicting-route`<br/><br/>`(default: /souin-api)`                                                            |
 | `api.{api}.enable`                                | (DEPRECATED) Enable the API with related routes                                                                                             | `true`<br/><br/>`(default: true if you define the api name, false then)`                                                  |
@@ -147,6 +146,7 @@ surrogate_keys:
 | `cdn.strategy`                                    | The strategy to use to purge the cdn cache, soft will keep the content as a stale resource                                                  | `hard`<br/><br/>`(default: soft)`                                                                                         |
 | `cdn.service_id`                                  | The service id if required, depending the provider                                                                                          | `123456_id`                                                                                                               |
 | `cdn.zone_id`                                     | The zone id if required, depending the provider                                                                                             | `anywhere_zone`                                                                                                           |
+| `default_cache.allowed_http_verbs`                | The HTTP verbs to support cache                                                                                                             | `- GET`<br/><br/>`- POST`<br/><br/>`(default: GET, HEAD)`                                                                 |
 | `default_cache.badger`                            | Configure the Badger cache storage                                                                                                          |                                                                                                                           |
 | `default_cache.badger.path`                       | Configure Badger with a file                                                                                                                | `/anywhere/badger_configuration.json`                                                                                     |
 | `default_cache.badger.configuration`              | Configure Badger directly in the Caddyfile or your JSON caddy configuration                                                                 | [See the Badger configuration for the options](https://dgraph.io/docs/badger/get-started/)                                |
@@ -233,12 +233,13 @@ Supported providers
 This feature is currently in beta.  
 Souin can partially cache your GraphQL requests. It automatically handles the data retrieval and omit the caching for the mutations.  
 However, it will invalidate whole cache keys with a body when you send a mutation request due to the inability to read and understand automatically which cached endpoint should be deleted.  
-You can enable the GraphQL support with the `allowed_http_verbs` key to define the list of supported HTTP verbs like `GET`, `POST`, `DELETE`.
+You can enable the GraphQL support with the `default_cache.allowed_http_verbs` key to define the list of supported HTTP verbs like `GET`, `POST`, `DELETE`.
 ```yaml
-allowed_http_verbs:
-  - GET
-  - POST
-  - DELETE
+default_cache:
+  allowed_http_verbs:
+    - GET
+    - POST
+    - HEAD
 ```
 
 ### Cache invalidation
@@ -319,6 +320,7 @@ There is the fully configuration below
         level debug
     }
     cache {
+        allowed_http_verbs GET POST PATCH
         api {
             basepath /some-basepath
             prometheus {

@@ -38,12 +38,14 @@ func (g *graphQLContext) SetContext(req *http.Request) *http.Request {
 
 	if g.custom && req.Body != nil {
 		b, _ := ioutil.ReadAll(req.Body)
-		if isMutation(b) {
-			rq = rq.WithContext(context.WithValue(rq.Context(), IsMutationRequest, true))
-		} else {
-			h := sha256.New()
-			h.Write(b)
-			rq = rq.WithContext(context.WithValue(rq.Context(), HashBody, fmt.Sprintf("-%x", h.Sum(nil))))
+		if len(b) > 0 {
+			if isMutation(b) {
+				rq = rq.WithContext(context.WithValue(rq.Context(), IsMutationRequest, true))
+			} else {
+				h := sha256.New()
+				h.Write(b)
+				rq = rq.WithContext(context.WithValue(rq.Context(), HashBody, fmt.Sprintf("-%x", h.Sum(nil))))
+			}
 		}
 	}
 

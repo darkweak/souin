@@ -21,6 +21,9 @@
 							}
 						}
 					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
 					"request": {
 						"method": "GET",
 						"header": [
@@ -30,6 +33,15 @@
 								"type": "text"
 							}
 						],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
 						"url": {
 							"raw": "{{caddy_url}}/default",
 							"host": [
@@ -1047,11 +1059,12 @@
 				"type": "text/javascript",
 				"exec": [
 					"utils = {",
-					"    request: (url, cacheControl = '') => ({",
+					"    request: (url, cacheControl = '', body = null) => ({",
 					"        header: {",
 					"            'Cache-Control': cacheControl",
 					"        },",
 					"        method: 'GET',",
+					"        body,",
 					"        url,",
 					"    }),",
 					"    getVar: (pm, v) => pm.collectionVariables.get(v) || '',",
@@ -1135,6 +1148,46 @@
 					"                );",
 					"",
 					"                pm.sendRequest(utils.request(baseUrl + additionalPath + 'testing', cacheControl), function() {",
+					"                    pm.sendRequest(utils.request(`${baseUrl}${utils.getVar(pm, 'souin_base_api')}${utils.getVar(pm, 'souin_api')}`, cacheControl), function (_, r) {",
+					"                        pm.test(`Check Souin API has ${isCached ? 'four' : 'none'} registered key${isCached ? 's' : ''} after the second cache set`, function () {",
+					"                            pm.expect(r).to.have.status(200);",
+					"                            pm.expect(r).to.not.have.header(\"Cache-Status\");",
+					"                            pm.expect(r).to.not.have.header(\"Age\");",
+					"                            let jsonData = r.json();",
+					"                            pm.expect(jsonData.length).to.eql(isCached ? 4 : 0);",
+					"                        });",
+					"                    });",
+					"                });",
+					"            });",
+					"        },",
+					"        listGraphQLKeys: (pm, baseKey, baseUrl = '', additionalPath = '', cacheControl = '') => {",
+					"            const isCached = cacheControl == ''",
+					"            const body = {",
+					"                mode: \"raw\",",
+					"                raw: JSON.stringify({\"query\":{\"mutation\": \"something\"}})",
+					"            }",
+					"            pm.test(\"Ensure stored keys array is empty\", function () {",
+					"                pm.response.to.have.status(200);",
+					"                let jsonData = pm.response.json();",
+					"                pm.expect(jsonData).to.eql([]);",
+					"                pm.expect(jsonData.length).to.eql(0);",
+					"            });",
+					"            pm.sendRequest(utils.request(baseUrl + additionalPath, cacheControl, body), function(_, response) {",
+					"                pm.expect(response).to.have.status(200);",
+					"            });",
+					"",
+					"            console.log(utils.request(baseUrl + additionalPath, cacheControl, body));",
+					"            pm.sendRequest(utils.request(`${baseUrl}${utils.getVar(pm, 'souin_base_api')}${utils.getVar(pm, 'souin_api')}`, cacheControl), function (_, res) {",
+					"                pm.test(`Check Souin API has ${isCached ? 'two' : 'none'} registered key after the first cache set`, function () {",
+					"                        pm.expect(res).to.have.status(200);",
+					"                        let jsonData = res.json();",
+					"                        pm.expect(jsonData.length).to.eql(isCached ? 2 : 0);",
+					"                        console.log(jsonData);",
+					"                        pm.expect(jsonData[0]).to.include(isCached ? baseKey : undefined);",
+					"                    }",
+					"                );",
+					"",
+					"                pm.sendRequest(utils.request(baseUrl + additionalPath + 'testing', cacheControl, body), function() {",
 					"                    pm.sendRequest(utils.request(`${baseUrl}${utils.getVar(pm, 'souin_base_api')}${utils.getVar(pm, 'souin_api')}`, cacheControl), function (_, r) {",
 					"                        pm.test(`Check Souin API has ${isCached ? 'four' : 'none'} registered key${isCached ? 's' : ''} after the second cache set`, function () {",
 					"                            pm.expect(r).to.have.status(200);",

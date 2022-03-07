@@ -7,15 +7,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/darkweak/souin/api"
-	"github.com/darkweak/souin/cache/coalescing"
-	"github.com/darkweak/souin/cache/types"
-
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
 	"github.com/caddyserver/caddy/v2/caddyconfig/httpcaddyfile"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
+	"github.com/darkweak/souin/api"
+	"github.com/darkweak/souin/cache/coalescing"
+	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/plugins"
 	"github.com/darkweak/souin/rfc"
@@ -41,6 +40,7 @@ type SouinCaddyPlugin struct {
 	logger              *zap.Logger
 	LogLevel            string `json:"log_level,omitempty"`
 	bufPool             *sync.Pool
+	AllowedHTTPVerbs    []string                         `json:"allowed_http_verbs,omitempty"`
 	Headers             []string                         `json:"headers,omitempty"`
 	Badger              configurationtypes.CacheProvider `json:"badger,omitempty"`
 	Olric               configurationtypes.CacheProvider `json:"olric,omitempty"`
@@ -146,6 +146,7 @@ func (s *SouinCaddyPlugin) FromApp(app *SouinApp) error {
 
 	if s.Configuration.DefaultCache == nil {
 		s.Configuration.DefaultCache = &DefaultCache{
+			AllowedHTTPVerbs:    app.DefaultCache.AllowedHTTPVerbs,
 			Headers:             app.Headers,
 			TTL:                 app.TTL,
 			DefaultCacheControl: app.DefaultCacheControl,
@@ -155,6 +156,7 @@ func (s *SouinCaddyPlugin) FromApp(app *SouinApp) error {
 
 	dc := s.Configuration.DefaultCache
 	appDc := app.DefaultCache
+	s.Configuration.DefaultCache.AllowedHTTPVerbs = append(s.Configuration.DefaultCache.AllowedHTTPVerbs, appDc.AllowedHTTPVerbs...)
 	if dc.Headers == nil {
 		s.Configuration.DefaultCache.Headers = appDc.Headers
 	}
@@ -239,8 +241,9 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 	souinApp := new(SouinApp)
 	cfg := &Configuration{
 		DefaultCache: &DefaultCache{
-			Distributed: false,
-			Headers:     []string{},
+			AllowedHTTPVerbs: make([]string, 0),
+			Distributed:      false,
+			Headers:          []string{},
 			TTL: configurationtypes.Duration{
 				Duration: 120 * time.Second,
 			},
@@ -253,6 +256,10 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 		for nesting := h.Nesting(); h.NextBlock(nesting); {
 			rootOption := h.Val()
 			switch rootOption {
+			case "allowed_http_verbs":
+				allowed := cfg.DefaultCache.AllowedHTTPVerbs
+				allowed = append(allowed, h.RemainingArgs()...)
+				cfg.DefaultCache.AllowedHTTPVerbs = allowed
 			case "api":
 				apiConfiguration := configurationtypes.API{}
 				for nesting := h.Nesting(); h.NextBlock(nesting); {
@@ -377,7 +384,9 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 }
 
 func parseCaddyfileHandlerDirective(h httpcaddyfile.Helper) (caddyhttp.MiddlewareHandler, error) {
-	dc := DefaultCache{}
+	dc := DefaultCache{
+		AllowedHTTPVerbs: make([]string, 0),
+	}
 	sc := Configuration{
 		DefaultCache: &dc,
 	}
@@ -385,6 +394,10 @@ func parseCaddyfileHandlerDirective(h httpcaddyfile.Helper) (caddyhttp.Middlewar
 	for h.Next() {
 		directive := h.Val()
 		switch directive {
+		case "allowed_http_verbs":
+			allowed := sc.DefaultCache.AllowedHTTPVerbs
+			allowed = append(allowed, h.RemainingArgs()...)
+			sc.DefaultCache.AllowedHTTPVerbs = allowed
 		case "default_cache_control":
 			sc.DefaultCache.DefaultCacheControl = h.RemainingArgs()[0]
 		case "headers":

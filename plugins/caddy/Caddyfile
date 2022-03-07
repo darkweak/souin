@@ -4,6 +4,7 @@
         level debug
     }
     cache {
+        allowed_http_verbs GET POST PATCH
         api {
             prometheus
             souin

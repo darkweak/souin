@@ -20,6 +20,7 @@ There is the fully configuration below
         level debug
     }
     cache {
+        allowed_http_verbs GET POST PATCH
         api {
             basepath /some-basepath
             prometheus
@@ -89,6 +90,7 @@ cache @souin-api {}
 What does these directives mean?  
 |  Key                      |  Description                                                                                                                                 |  Value example                                                                                                          |
 |:--------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------|:------------------------------------------------------------------------------------------------------------------------|
+| `allowed_http_verbs`      | The HTTP verbs allowed to be cached                                                                                                          | `GET POST PATCH`<br/><br/>`(default: GET HEAD)`                                                                         |
 | `api`                     | The cache-handler API cache management                                                                                                       |                                                                                                                         |
 | `api.basepath`            | BasePath for all APIs to avoid conflicts                                                                                                     | `/your-non-conflict-route`<br/><br/>`(default: /souin-api)`                                                             |
 | `api.prometheus`          | Enable the Prometheus metrics                                                                                                                |                                                                                                                         |

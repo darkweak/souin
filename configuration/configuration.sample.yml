@@ -1,8 +1,3 @@
-
-allowed_http_verbs: # Allowed HTTP verbs to cache (default GET, HEAD).
-  - GET
-  - POST
-  - HEAD
 api:
   basepath: /souin-api # Default route basepath for every additional APIs to avoid conflicts with existing routes
   security: # Secure your APIs
@@ -19,6 +14,10 @@ cdn: # If Souin is set after a CDN fill these informations
   provider: fastly # The provider placed before Souin (e.g. fastly, cloudflare, akamai, varnish)
   strategy: soft # The strategy to purge the CDN cache based on tags (e.g. soft, hard)
 default_cache: # Required part
+  allowed_http_verbs: # Allowed HTTP verbs to cache (default GET, HEAD).
+    - GET
+    - POST
+    - HEAD
   distributed: true # Use Olric distributed storage
   headers: # Default headers concatenated in stored keys
     - Authorization
