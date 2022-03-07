@@ -14,18 +14,19 @@
 4. [Diagrams](#diagrams)  
   4.1. [Sequence diagram](#sequence-diagram)
 5. [Cache systems](#cache-systems)
-6. [Examples](#examples)  
-  6.1. [Træfik container](#træfik-container)
-7. [Plugins](#plugins)  
-  7.1. [Caddy module](#caddy-module)  
-  7.3. [Echo middleware](#echo-middleware)  
-  7.4. [Gin middleware](#gin-middleware)  
-  7.5. [Skipper filter](#skipper-filter)  
-  7.6. [Træfik plugin](#træfik-plugin)  
-  7.7. [Tyk plugin](#tyk-plugin)  
-  7.8. [Prestashop plugin](#prestashop-plugin)  
-  7.9. [Wordpress plugin](#wordpress-plugin)  
-8. [Credits](#credits)
+6. [GraphQL](#graphql)  
+7. [Examples](#examples)  
+  7.1. [Træfik container](#træfik-container)
+8. [Plugins](#plugins)  
+  8.1. [Caddy module](#caddy-module)  
+  8.3. [Echo middleware](#echo-middleware)  
+  8.4. [Gin middleware](#gin-middleware)  
+  8.5. [Skipper filter](#skipper-filter)  
+  8.6. [Træfik plugin](#træfik-plugin)  
+  8.7. [Tyk plugin](#tyk-plugin)  
+  8.8. [Prestashop plugin](#prestashop-plugin)  
+  8.9. [Wordpress plugin](#wordpress-plugin)  
+9. [Credits](#credits)
 
 [![Travis CI](https://travis-ci.com/Darkweak/Souin.svg?branch=master)](https://travis-ci.com/Darkweak/Souin)
 
@@ -66,6 +67,10 @@ Besides, it's highly recommended to set `default_cache.default_cache_control` (s
 ### Optional configuration
 ```yaml
 # /anywhere/configuration.yml
+allowed_http_verbs: # Allowed HTTP verbs to cache (default GET, HEAD).
+  - GET
+  - POST
+  - HEAD
 api:
   basepath: /souin-api # Default route basepath for every additional APIs to avoid conflicts with existing routes
   prometheus: # Prometheus exposed metrics
@@ -124,6 +129,7 @@ surrogate_keys:
 
 |  Key                                              |  Description                                                                                                                                |  Value example                                                                                                            |
 |:--------------------------------------------------|:--------------------------------------------------------------------------------------------------------------------------------------------|:--------------------------------------------------------------------------------------------------------------------------|
+| `allowed_http_verbs`                              | The HTTP verbs to support cache                                                                                                             | `- GET`<br/><br/>`- POST`<br/><br/>`(default: GET, HEAD)`                                                                 |
 | `api`                                             | The cache-handler API cache management                                                                                                      |                                                                                                                           |
 | `api.basepath`                                    | BasePath for all APIs to avoid conflicts                                                                                                    | `/your-non-conflicting-route`<br/><br/>`(default: /souin-api)`                                                            |
 | `api.{api}.enable`                                | (DEPRECATED) Enable the API with related routes                                                                                             | `true`<br/><br/>`(default: true if you define the api name, false then)`                                                  |
@@ -222,6 +228,18 @@ Supported providers
  In order to do that, Redis and Olric providers need to be either on the same network as the Souin instance when using docker-compose or over the internet, then it will use by default in-memory to avoid network latency as much as possible. 
  Souin will return at first the in-memory response when it gives a non-empty response, then the olric one followed by the redis one with same condition, or fallback to the reverse proxy otherwise.
  Since v1.4.2, Souin supports [Olric](https://github.com/buraksezer/olric) to handle distributed cache.
+
+## GraphQL
+This feature is currently in beta.  
+Souin can partially cache your GraphQL requests. It automatically handles the data retrieval and omit the caching for the mutations.  
+However, it will invalidate whole cache keys with a body when you send a mutation request due to the inability to read and understand automatically which cached endpoint should be deleted.  
+You can enable the GraphQL support with the `allowed_http_verbs` key to define the list of supported HTTP verbs like `GET`, `POST`, `DELETE`.
+```yaml
+allowed_http_verbs:
+  - GET
+  - POST
+  - DELETE
+```
 
 ### Cache invalidation
 The cache invalidation is built for CRUD requests, if you're doing a GET HTTP request, it will serve the cached response when it exists, otherwise the reverse-proxy response will be served.  

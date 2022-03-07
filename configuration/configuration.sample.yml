@@ -1,3 +1,8 @@
+
+allowed_http_verbs: # Allowed HTTP verbs to cache (default GET, HEAD).
+  - GET
+  - POST
+  - HEAD
 api:
   basepath: /souin-api # Default route basepath for every additional APIs to avoid conflicts with existing routes
   security: # Secure your APIs
@@ -26,6 +31,7 @@ default_cache: # Required part
     exclude: 'ARegexHere' # Regex to exclude from cache
   ttl: 10s # Default TTL
   stale: 10s # Stale duration
+  default_cache_control: no-store # Set default value for Cache-Control response header if not set by upstream
 log_level: INFO # Logs verbosity [ DEBUG, INFO, WARN, ERROR, DPANIC, PANIC, FATAL, debug, info, warn, error, dpanic, panic, fatal ]
 reverse_proxy_url: 'http://traefik' # If it's in the same network you can use http://your-service. Then just use https://yourdomain.com
 ssl_providers: # The {providers}.json to usee
