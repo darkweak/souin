@@ -84,6 +84,9 @@ func (s *SouinCaddyPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request, 
 	getterCtx := getterContext{customWriter, req, next}
 	ctx := context.WithValue(req.Context(), getterContextCtxKey, getterCtx)
 	req = req.WithContext(ctx)
+	if plugins.HasMutation(req, rw) {
+		return next.ServeHTTP(rw, req)
+	}
 	req.Header.Set("Date", time.Now().UTC().Format(time.RFC1123))
 	combo := ctx.Value(getterContextCtxKey).(getterContext)
 

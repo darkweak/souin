@@ -113,6 +113,10 @@ func (s *SouinGinPlugin) Process() gin.HandlerFunc {
 		getterCtx := getterContext{c, customWriter, req}
 		ctx := context.WithValue(req.Context(), getterContextCtxKey, getterCtx)
 		req = req.WithContext(ctx)
+		if plugins.HasMutation(req, c.Writer) {
+			c.Next()
+			return
+		}
 		req.Header.Set("Date", time.Now().UTC().Format(time.RFC1123))
 		combo := ctx.Value(getterContextCtxKey).(getterContext)
 

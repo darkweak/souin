@@ -11,6 +11,7 @@ import (
 
 	"github.com/darkweak/souin/api"
 	"github.com/darkweak/souin/configurationtypes"
+	souin_ctx "github.com/darkweak/souin/context"
 	"github.com/darkweak/souin/rfc"
 )
 
@@ -213,6 +214,12 @@ func (s *SouinTraefikPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request
 	buf.Reset()
 	defer bufPool.Put(buf)
 	req = s.Retriever.GetContext().SetContext(req)
+	isMutation := req.Context().Value(souin_ctx.IsMutationRequest).(bool)
+	if isMutation {
+		rw.Header().Add("Cache-Status", "Souin; fwd=uri-miss")
+		s.next.ServeHTTP(rw, req)
+		return
+	}
 
 	getterCtx := getterContext{rw, req, s.next}
 	ctx := context.WithValue(req.Context(), getterContextCtxKey, getterCtx)

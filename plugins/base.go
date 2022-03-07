@@ -66,6 +66,14 @@ func (r *CustomWriter) Send() (int, error) {
 	return r.Rw.Write(b)
 }
 
+func HasMutation(req *http.Request, rw http.ResponseWriter) bool {
+	if req.Context().Value(context.IsMutationRequest).(bool) {
+		rw.Header().Add("Cache-Status", "Souin; fwd=uri-miss")
+		return true
+	}
+	return false
+}
+
 // CanHandle detect if the request can be handled by Souin
 func CanHandle(r *http.Request, re types.RetrieverResponsePropertiesInterface) bool {
 	co, err := cacheobject.ParseResponseCacheControl(r.Header.Get("Cache-Control"))

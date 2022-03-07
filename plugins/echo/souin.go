@@ -107,6 +107,9 @@ func (s *SouinEchoPlugin) Process(next echo.HandlerFunc) echo.HandlerFunc {
 		c.Response().Writer = customWriter
 		ctx := context.WithValue(req.Context(), getterContextCtxKey, getterCtx)
 		req = req.WithContext(ctx)
+		if plugins.HasMutation(req, rw) {
+			return next(c)
+		}
 		req.Header.Set("Date", time.Now().UTC().Format(time.RFC1123))
 		combo := ctx.Value(getterContextCtxKey).(getterContext)
 

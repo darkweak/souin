@@ -50,6 +50,9 @@ func SouinResponseHandler(rw http.ResponseWriter, res *http.Response, _ *http.Re
 		return
 	}
 	req = currentInstance.Retriever.GetContext().SetContext(req)
+	if plugins.HasMutation(req, rw) {
+		return
+	}
 
 	retriever := currentInstance.Retriever
 	r, _ := rfc.CachedResponse(
@@ -98,6 +101,9 @@ func SouinRequestHandler(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 	r = currentInstance.Retriever.GetContext().SetContext(r)
+	if plugins.HasMutation(r, rw) {
+		return
+	}
 	r.Header.Set("Date", time.Now().UTC().Format(time.RFC1123))
 	coalescing.ServeResponse(rw, r, currentInstance.Retriever, plugins.DefaultSouinPluginCallback, currentInstance.RequestCoalescing, func(_ http.ResponseWriter, _ *http.Request) error {
 		return nil
