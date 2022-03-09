@@ -27,7 +27,7 @@ func BadgerConnectionFactory(c t.AbstractConfigurationInterface) (*Badger, error
 		var parsedBadger badger.Options
 		if b, e := json.Marshal(badgerConfiguration.Configuration); e == nil {
 			if e = json.Unmarshal(b, &parsedBadger); e != nil {
-				fmt.Println("Impossible to parse the configuration for the default provider (Badger)")
+				fmt.Println("Impossible to parse the configuration for the default provider (Badger)", e)
 			}
 		}
 

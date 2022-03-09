@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 
@@ -237,6 +238,29 @@ func parseCaddyfileRecursively(h *caddyfile.Dispenser) interface{} {
 	return input
 }
 
+func parseBadgerConfiguration(c map[string]interface{}) map[string]interface{} {
+	for k, v := range c {
+		switch k {
+		case "Dir", "ValueDir":
+			c[k] = v
+		case "SyncWrites", "ReadOnly", "InMemory", "MetricsEnabled", "CompactL0OnClose", "LmaxCompaction", "VerifyValueChecksum", "BypassLockGuard", "DetectConflicts":
+			c[k], _ = strconv.ParseBool(v.(string))
+		case "NumVersionsToKeep", "NumGoroutines", "MemTableSize", "BaseTableSize", "BaseLevelSize", "LevelSizeMultiplier", "TableSizeMultiplier", "MaxLevels", "ValueThreshold", "NumMemtables", "BlockSize", "BlockCacheSize", "IndexCacheSize", "NumLevelZeroTables", "NumLevelZeroTablesStall", "ValueLogFileSize", "NumCompactors", "ZSTDCompressionLevel", "ChecksumVerificationMode", "NamespaceOffset":
+			c[k], _ = strconv.Atoi(v.(string))
+		case "Compression", "ValueLogMaxEntries":
+			c[k], _ = strconv.ParseUint(v.(string), 10, 32)
+		case "VLogPercentile", "BloomFalsePositive":
+			c[k], _ = strconv.ParseFloat(v.(string), 64)
+		case "EncryptionKey":
+			c[k] = []byte(v.(string))
+		case "EncryptionKeyRotationDuration":
+			c[k], _ = time.ParseDuration(v.(string))
+		}
+	}
+
+	return c
+}
+
 func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interface{}, error) {
 	souinApp := new(SouinApp)
 	cfg := &Configuration{
@@ -300,6 +324,7 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 						provider.Path = urlArgs[0]
 					case "configuration":
 						provider.Configuration = parseCaddyfileRecursively(h)
+						provider.Configuration = parseBadgerConfiguration(provider.Configuration.(map[string]interface{}))
 					}
 				}
 				cfg.DefaultCache.Badger = provider

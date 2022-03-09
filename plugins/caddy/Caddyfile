@@ -8,6 +8,13 @@
             prometheus
             souin
         }
+        badger {
+            configuration {
+                ValueLogFileSize 16777216
+                MemTableSize 4194304
+                ValueThreshold 524288
+            }
+        }
         regex {
             exclude /test2.*
         }
