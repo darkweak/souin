@@ -63,11 +63,11 @@ type getterContext struct {
 }
 
 // ServeHTTP implements caddyhttp.MiddlewareHandler.
-func (s *SouinCaddyPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request, next caddyhttp.Handler) error {
-	req = s.Retriever.GetContext().Method.SetContext(req)
+func (s *SouinCaddyPlugin) ServeHTTP(rw http.ResponseWriter, r *http.Request, next caddyhttp.Handler) error {
+	req := s.Retriever.GetContext().Method.SetContext(r)
 	if !plugins.CanHandle(req, s.Retriever) {
 		rw.Header().Add("Cache-Status", "Souin; fwd=uri-miss")
-		return next.ServeHTTP(rw, req)
+		return next.ServeHTTP(rw, r)
 	}
 
 	if b, handler := s.HandleInternally(req); b {
@@ -85,14 +85,14 @@ func (s *SouinCaddyPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request, 
 	ctx := context.WithValue(req.Context(), getterContextCtxKey, getterCtx)
 	req = req.WithContext(ctx)
 	if plugins.HasMutation(req, rw) {
-		return next.ServeHTTP(rw, req)
+		return next.ServeHTTP(rw, r)
 	}
 	req.Header.Set("Date", time.Now().UTC().Format(time.RFC1123))
 	combo := ctx.Value(getterContextCtxKey).(getterContext)
 
 	plugins.DefaultSouinPluginCallback(customWriter, req, s.Retriever, nil, func(_ http.ResponseWriter, _ *http.Request) error {
 		var e error
-		if e = combo.next.ServeHTTP(customWriter, combo.req); e != nil {
+		if e = combo.next.ServeHTTP(customWriter, r); e != nil {
 			return e
 		}
 
