@@ -1,7 +1,6 @@
 name: Build and validate Souin as plugins
 
 on:
-  - push
   - pull_request
 
 jobs:

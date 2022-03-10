@@ -7,13 +7,13 @@ import (
 	"time"
 
 	"github.com/darkweak/souin/cache/types"
-	"github.com/darkweak/souin/rfc"
+	souin_ctx "github.com/darkweak/souin/context"
 	"github.com/go-chi/stampede"
 )
 
 // Temporize will run one call to proxy then use the response for other requests that couldn't reach cached response
 func (r *RequestCoalescing) Temporize(req *http.Request, rw http.ResponseWriter, nextMiddleware func(http.ResponseWriter, *http.Request) error) {
-	_, e := r.Cache.Get(context.Background(), rfc.GetCacheKey(req), func(ctx context.Context) (interface{}, error) {
+	_, e := r.Cache.Get(context.Background(), req.Context().Value(souin_ctx.Key).(string), func(ctx context.Context) (interface{}, error) {
 		return nil, nextMiddleware(rw, req)
 	})
 

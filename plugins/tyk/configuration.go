@@ -35,6 +35,7 @@ func (d *Duration) UnmarshalJSON(b []byte) error {
 
 // DefaultCache the struct
 type DefaultCache struct {
+	AllowedHTTPVerbs    []string                         `json:"allowed_http_verbs,omitempty"`
 	Badger              configurationtypes.CacheProvider `json:"badger,omitempty"`
 	CDN                 configurationtypes.CDN           `json:"cdn,omitempty"`
 	Distributed         bool
@@ -44,6 +45,11 @@ type DefaultCache struct {
 	TTL                 Duration                         `json:"ttl,omitempty"`
 	Stale               configurationtypes.Duration      `json:"stale,omitempty"`
 	DefaultCacheControl string                           `json:"default_cache_control,omitempty"`
+}
+
+// GetAllowedHTTPVerbs returns the allowed verbs to cache
+func (d *DefaultCache) GetAllowedHTTPVerbs() []string {
+	return d.AllowedHTTPVerbs
 }
 
 // GetBadger returns the Badger configuration

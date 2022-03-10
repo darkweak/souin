@@ -35,7 +35,7 @@ func souinPluginInitializerFromConfiguration(c *configuration.Configuration) *so
 
 func startServer(config *tls.Config, port string) (net.Listener, *http.Server) {
 	server := http.Server{
-		Addr:      ":"+port,
+		Addr:      ":" + port,
 		Handler:   nil,
 		TLSConfig: config,
 	}
@@ -82,17 +82,25 @@ func main() {
 
 	http.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
 		request.Header.Set("Date", time.Now().UTC().Format(time.RFC1123))
-		retriever.SetMatchedURLFromRequest(request)
-		coalescing.ServeResponse(writer, request, retriever, plugins.DefaultSouinPluginCallback, rc, func(w http.ResponseWriter, r *http.Request) error {
-			rr := service.RequestReverseProxy(r, *retriever)
+		request = retriever.GetContext().SetContext(request)
+		callback := func(rw http.ResponseWriter, rq *http.Request, ret souintypes.SouinRetrieverResponseProperties) error {
+			rr := service.RequestReverseProxy(rq, ret)
 			select {
-			case <-r.Context().Done():
+			case <-rq.Context().Done():
 				c.GetLogger().Debug("The request was canceled by the user.")
 				return &errors.CanceledRequestContextError{}
 			default:
-				rr.Proxy.ServeHTTP(w, r)
+				rr.Proxy.ServeHTTP(rw, rq)
 			}
+
 			return nil
+		}
+		if plugins.HasMutation(request, writer) {
+			_ = callback(writer, request, *retriever)
+		}
+		retriever.SetMatchedURLFromRequest(request)
+		coalescing.ServeResponse(writer, request, retriever, plugins.DefaultSouinPluginCallback, rc, func(w http.ResponseWriter, r *http.Request) error {
+			return callback(w, r, *retriever)
 		})
 	})
 	go func() {

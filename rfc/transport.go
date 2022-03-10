@@ -9,6 +9,7 @@ import (
 	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/cache/ykeys"
 	"github.com/darkweak/souin/configurationtypes"
+	"github.com/darkweak/souin/context"
 	"github.com/pquerna/cachecontrol/cacheobject"
 )
 
@@ -19,9 +20,7 @@ type VaryTransport struct {
 
 // IsVaryCacheable determines if it's cacheable
 func IsVaryCacheable(req *http.Request) bool {
-	method := req.Method
-	rangeHeader := req.Header.Get("range")
-	return (method == http.MethodGet || method == http.MethodHead) && rangeHeader == ""
+	return req.Context().Value(context.SupportedMethod).(bool) && req.Header.Get("range") == ""
 }
 
 // NewTransport returns a new Transport with the
@@ -71,14 +70,14 @@ func (t *VaryTransport) SetSurrogateKeys(s providers.SurrogateInterface) {
 // SetCache set the cache
 func (t *VaryTransport) SetCache(key string, resp *http.Response) {
 	co, e := cacheobject.ParseResponseCacheControl(resp.Header.Get("Cache-Control"))
-	var ma time.Duration
+	ma := t.ConfigurationURL.TTL.Duration
 	if co.MaxAge > 0 {
 		ma = time.Duration(co.MaxAge) * time.Second
 	} else if co.SMaxAge > 0 {
 		ma = time.Duration(co.SMaxAge) * time.Second
 	}
 	if ma > t.ConfigurationURL.TTL.Duration {
-		ma = 0
+		ma = t.ConfigurationURL.TTL.Duration
 	} else {
 		resp.Header.Set(storedTTLHeader, ma.String())
 	}

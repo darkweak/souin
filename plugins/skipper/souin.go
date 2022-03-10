@@ -16,7 +16,6 @@ import (
 )
 
 type (
-	key       string
 	httpcache struct {
 		plugins.SouinBasePlugin
 		Configuration *Configuration
@@ -57,8 +56,8 @@ func (s *httpcache) CreateFilter(config []interface{}) (filters.Filter, error) {
 }
 
 func (s *httpcache) Request(ctx filters.FilterContext) {
-	req := ctx.Request()
 	rw := ctx.ResponseWriter()
+	req := s.Retriever.GetContext().Method.SetContext(ctx.Request())
 	if !plugins.CanHandle(req, s.Retriever) {
 		rw.Header().Add("Cache-Status", "Souin; fwd=uri-miss")
 		return
@@ -77,6 +76,10 @@ func (s *httpcache) Request(ctx filters.FilterContext) {
 		},
 	}
 	req.Header.Set("Date", time.Now().UTC().Format(time.RFC1123))
+	req = s.Retriever.GetContext().SetContext(req)
+	if plugins.HasMutation(req, rw) {
+		return
+	}
 
 	plugins.DefaultSouinPluginCallback(writer, req, s.Retriever, nil, func(_ http.ResponseWriter, _ *http.Request) error {
 		return nil
@@ -89,19 +92,25 @@ func (s *httpcache) Request(ctx filters.FilterContext) {
 
 func (s *httpcache) Response(ctx filters.FilterContext) {
 	req := ctx.Request()
+	rw := ctx.ResponseWriter()
 	res := ctx.Response()
 	customWriter := &plugins.CustomWriter{
 		Response: ctx.Response(),
 		Buf:      s.bufPool.Get().(*bytes.Buffer),
-		Rw:       ctx.ResponseWriter(),
+		Rw:       rw,
 	}
 	req.Response = res
+	req = s.Retriever.GetContext().Method.SetContext(req)
 	if !plugins.CanHandle(req, s.Retriever) {
 		res.Header.Add("Cache-Status", "Souin; fwd=uri-miss")
 		return
 	}
 
 	var e error
+	req = s.Retriever.GetContext().SetContext(req)
+	if plugins.HasMutation(req, rw) {
+		return
+	}
 	if req.Response, e = s.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(req); e != nil {
 		return
 	}

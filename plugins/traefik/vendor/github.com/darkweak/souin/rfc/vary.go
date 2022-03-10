@@ -25,23 +25,20 @@ func validateVary(req *http.Request, resp *http.Response, key string, t *VaryTra
 		if len(variedHeaders) > 0 {
 			cacheKey = GetVariedCacheKey(req, variedHeaders)
 		}
-		switch req.Method {
-		case http.MethodGet:
-			resp.Header.Set("Cache-Status", "Souin; fwd=uri-miss; stored")
-			resp.Header.Del("Age")
-			// Delay caching until EOF is reached.
-			resp.Body = &cachingReadCloser{
-				R: resp.Body,
-				OnEOF: func(r io.Reader) {
-					re := *resp
-					re.Body = ioutil.NopCloser(r)
-					_ = t.SurrogateStorage.Store(&re, cacheKey)
-					t.SetCache(cacheKey, &re)
-					go func() {
-						t.CoalescingLayerStorage.Delete(cacheKey)
-					}()
-				},
-			}
+		resp.Header.Set("Cache-Status", "Souin; fwd=uri-miss; stored")
+		resp.Header.Del("Age")
+		// Delay caching until EOF is reached.
+		resp.Body = &cachingReadCloser{
+			R: resp.Body,
+			OnEOF: func(r io.Reader) {
+				re := *resp
+				re.Body = ioutil.NopCloser(r)
+				_ = t.SurrogateStorage.Store(&re, cacheKey)
+				t.SetCache(cacheKey, &re)
+				go func() {
+					t.CoalescingLayerStorage.Delete(cacheKey)
+				}()
+			},
 		}
 		return true
 	}

@@ -4,18 +4,18 @@ import (
 	"bytes"
 	"context"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
-
-	"github.com/darkweak/souin/api"
-	"github.com/darkweak/souin/cache/coalescing"
-	"github.com/darkweak/souin/cache/types"
 
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
 	"github.com/caddyserver/caddy/v2/caddyconfig/httpcaddyfile"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
+	"github.com/darkweak/souin/api"
+	"github.com/darkweak/souin/cache/coalescing"
+	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/plugins"
 	"github.com/darkweak/souin/rfc"
@@ -41,6 +41,7 @@ type SouinCaddyPlugin struct {
 	logger              *zap.Logger
 	LogLevel            string `json:"log_level,omitempty"`
 	bufPool             *sync.Pool
+	AllowedHTTPVerbs    []string                         `json:"allowed_http_verbs,omitempty"`
 	Headers             []string                         `json:"headers,omitempty"`
 	Badger              configurationtypes.CacheProvider `json:"badger,omitempty"`
 	Olric               configurationtypes.CacheProvider `json:"olric,omitempty"`
@@ -63,10 +64,11 @@ type getterContext struct {
 }
 
 // ServeHTTP implements caddyhttp.MiddlewareHandler.
-func (s *SouinCaddyPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request, next caddyhttp.Handler) error {
+func (s *SouinCaddyPlugin) ServeHTTP(rw http.ResponseWriter, r *http.Request, next caddyhttp.Handler) error {
+	req := s.Retriever.GetContext().Method.SetContext(r)
 	if !plugins.CanHandle(req, s.Retriever) {
 		rw.Header().Add("Cache-Status", "Souin; fwd=uri-miss")
-		return next.ServeHTTP(rw, req)
+		return next.ServeHTTP(rw, r)
 	}
 
 	if b, handler := s.HandleInternally(req); b {
@@ -74,6 +76,7 @@ func (s *SouinCaddyPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request, 
 		return nil
 	}
 
+	req = s.Retriever.GetContext().SetContext(req)
 	customWriter := &plugins.CustomWriter{
 		Response: &http.Response{},
 		Buf:      s.bufPool.Get().(*bytes.Buffer),
@@ -82,12 +85,15 @@ func (s *SouinCaddyPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request, 
 	getterCtx := getterContext{customWriter, req, next}
 	ctx := context.WithValue(req.Context(), getterContextCtxKey, getterCtx)
 	req = req.WithContext(ctx)
+	if plugins.HasMutation(req, rw) {
+		return next.ServeHTTP(rw, r)
+	}
 	req.Header.Set("Date", time.Now().UTC().Format(time.RFC1123))
 	combo := ctx.Value(getterContextCtxKey).(getterContext)
 
 	plugins.DefaultSouinPluginCallback(customWriter, req, s.Retriever, nil, func(_ http.ResponseWriter, _ *http.Request) error {
 		var e error
-		if e = combo.next.ServeHTTP(customWriter, combo.req); e != nil {
+		if e = combo.next.ServeHTTP(customWriter, r); e != nil {
 			return e
 		}
 
@@ -141,6 +147,7 @@ func (s *SouinCaddyPlugin) FromApp(app *SouinApp) error {
 
 	if s.Configuration.DefaultCache == nil {
 		s.Configuration.DefaultCache = &DefaultCache{
+			AllowedHTTPVerbs:    app.DefaultCache.AllowedHTTPVerbs,
 			Headers:             app.Headers,
 			TTL:                 app.TTL,
 			DefaultCacheControl: app.DefaultCacheControl,
@@ -150,6 +157,7 @@ func (s *SouinCaddyPlugin) FromApp(app *SouinApp) error {
 
 	dc := s.Configuration.DefaultCache
 	appDc := app.DefaultCache
+	s.Configuration.DefaultCache.AllowedHTTPVerbs = append(s.Configuration.DefaultCache.AllowedHTTPVerbs, appDc.AllowedHTTPVerbs...)
 	if dc.Headers == nil {
 		s.Configuration.DefaultCache.Headers = appDc.Headers
 	}
@@ -230,12 +238,36 @@ func parseCaddyfileRecursively(h *caddyfile.Dispenser) interface{} {
 	return input
 }
 
+func parseBadgerConfiguration(c map[string]interface{}) map[string]interface{} {
+	for k, v := range c {
+		switch k {
+		case "Dir", "ValueDir":
+			c[k] = v
+		case "SyncWrites", "ReadOnly", "InMemory", "MetricsEnabled", "CompactL0OnClose", "LmaxCompaction", "VerifyValueChecksum", "BypassLockGuard", "DetectConflicts":
+			c[k], _ = strconv.ParseBool(v.(string))
+		case "NumVersionsToKeep", "NumGoroutines", "MemTableSize", "BaseTableSize", "BaseLevelSize", "LevelSizeMultiplier", "TableSizeMultiplier", "MaxLevels", "ValueThreshold", "NumMemtables", "BlockSize", "BlockCacheSize", "IndexCacheSize", "NumLevelZeroTables", "NumLevelZeroTablesStall", "ValueLogFileSize", "NumCompactors", "ZSTDCompressionLevel", "ChecksumVerificationMode", "NamespaceOffset":
+			c[k], _ = strconv.Atoi(v.(string))
+		case "Compression", "ValueLogMaxEntries":
+			c[k], _ = strconv.ParseUint(v.(string), 10, 32)
+		case "VLogPercentile", "BloomFalsePositive":
+			c[k], _ = strconv.ParseFloat(v.(string), 64)
+		case "EncryptionKey":
+			c[k] = []byte(v.(string))
+		case "EncryptionKeyRotationDuration":
+			c[k], _ = time.ParseDuration(v.(string))
+		}
+	}
+
+	return c
+}
+
 func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interface{}, error) {
 	souinApp := new(SouinApp)
 	cfg := &Configuration{
 		DefaultCache: &DefaultCache{
-			Distributed: false,
-			Headers:     []string{},
+			AllowedHTTPVerbs: make([]string, 0),
+			Distributed:      false,
+			Headers:          []string{},
 			TTL: configurationtypes.Duration{
 				Duration: 120 * time.Second,
 			},
@@ -248,6 +280,10 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 		for nesting := h.Nesting(); h.NextBlock(nesting); {
 			rootOption := h.Val()
 			switch rootOption {
+			case "allowed_http_verbs":
+				allowed := cfg.DefaultCache.AllowedHTTPVerbs
+				allowed = append(allowed, h.RemainingArgs()...)
+				cfg.DefaultCache.AllowedHTTPVerbs = allowed
 			case "api":
 				apiConfiguration := configurationtypes.API{}
 				for nesting := h.Nesting(); h.NextBlock(nesting); {
@@ -288,6 +324,7 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 						provider.Path = urlArgs[0]
 					case "configuration":
 						provider.Configuration = parseCaddyfileRecursively(h)
+						provider.Configuration = parseBadgerConfiguration(provider.Configuration.(map[string]interface{}))
 					}
 				}
 				cfg.DefaultCache.Badger = provider
@@ -372,7 +409,9 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 }
 
 func parseCaddyfileHandlerDirective(h httpcaddyfile.Helper) (caddyhttp.MiddlewareHandler, error) {
-	dc := DefaultCache{}
+	dc := DefaultCache{
+		AllowedHTTPVerbs: make([]string, 0),
+	}
 	sc := Configuration{
 		DefaultCache: &dc,
 	}
@@ -380,6 +419,24 @@ func parseCaddyfileHandlerDirective(h httpcaddyfile.Helper) (caddyhttp.Middlewar
 	for h.Next() {
 		directive := h.Val()
 		switch directive {
+		case "allowed_http_verbs":
+			allowed := sc.DefaultCache.AllowedHTTPVerbs
+			allowed = append(allowed, h.RemainingArgs()...)
+			sc.DefaultCache.AllowedHTTPVerbs = allowed
+		case "badger":
+			provider := configurationtypes.CacheProvider{}
+			for nesting := h.Nesting(); h.NextBlock(nesting); {
+				directive := h.Val()
+				switch directive {
+				case "path":
+					urlArgs := h.RemainingArgs()
+					provider.Path = urlArgs[0]
+				case "configuration":
+					provider.Configuration = parseCaddyfileRecursively(h.Dispenser)
+					provider.Configuration = parseBadgerConfiguration(provider.Configuration.(map[string]interface{}))
+				}
+			}
+			sc.DefaultCache.Badger = provider
 		case "default_cache_control":
 			sc.DefaultCache.DefaultCacheControl = h.RemainingArgs()[0]
 		case "headers":
