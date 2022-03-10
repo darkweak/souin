@@ -11,6 +11,7 @@ import (
 
 	"github.com/darkweak/souin/api"
 	"github.com/darkweak/souin/configurationtypes"
+	souin_ctx "github.com/darkweak/souin/context"
 	"github.com/darkweak/souin/rfc"
 )
 
@@ -197,6 +198,7 @@ func New(_ context.Context, next http.Handler, config *TestConfiguration, name s
 }
 
 func (s *SouinTraefikPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	req = s.Retriever.GetContext().Method.SetContext(req)
 	if !(canHandle(req, s.Retriever)) {
 		rw.Header().Set("Cache-Status", "Souin; fwd=uri-miss")
 		s.next.ServeHTTP(rw, req)
@@ -211,7 +213,24 @@ func (s *SouinTraefikPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request
 	buf := bufPool.Get().(*bytes.Buffer)
 	buf.Reset()
 	defer bufPool.Put(buf)
-	customRW := InitializeRequest(rw, req, s.next)
+	req = s.Retriever.GetContext().SetContext(req)
+	isMutation := req.Context().Value(souin_ctx.IsMutationRequest).(bool)
+	if isMutation {
+		rw.Header().Add("Cache-Status", "Souin; fwd=uri-miss")
+		s.next.ServeHTTP(rw, req)
+		return
+	}
+
+	getterCtx := getterContext{rw, req, s.next}
+	ctx := context.WithValue(req.Context(), getterContextCtxKey, getterCtx)
+	req = req.WithContext(ctx)
+	req.Header.Set("Date", time.Now().UTC().Format(time.RFC1123))
+	customRW := &CustomWriter{
+		Buf:      buf,
+		Rw:       rw,
+		Response: &http.Response{},
+	}
+
 	customRW.Buf = buf
 	regexpURL := s.Retriever.GetRegexpUrls().FindString(req.Host + req.URL.Path)
 	url := configurationtypes.URL{

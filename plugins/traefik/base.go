@@ -2,12 +2,11 @@ package traefik
 
 import (
 	"bytes"
-	"context"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"regexp"
 	"strings"
-	"time"
 
 	"github.com/darkweak/souin/api"
 	"github.com/darkweak/souin/cache/coalescing"
@@ -16,9 +15,11 @@ import (
 	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/cache/ykeys"
 	"github.com/darkweak/souin/configurationtypes"
+	souin_ctx "github.com/darkweak/souin/context"
 	"github.com/darkweak/souin/helpers"
 	"github.com/darkweak/souin/rfc"
 	"github.com/pquerna/cachecontrol/cacheobject"
+	"go.uber.org/zap"
 )
 
 type getterContext struct {
@@ -69,26 +70,24 @@ func (r *CustomWriter) Send() (int, error) {
 	return r.Rw.Write(b)
 }
 
+func hasMutation(req *http.Request, rw http.ResponseWriter) bool {
+	fmt.Println("req.Context().Value(souin_ctx.IsMutationRequest).(bool) 2")
+	fmt.Println(req.Context().Value(souin_ctx.IsMutationRequest).(bool))
+	if req.Context().Value(souin_ctx.IsMutationRequest).(bool) {
+		rw.Header().Add("Cache-Status", "Souin; fwd=uri-miss")
+		return true
+	}
+	return false
+}
+
 func canHandle(r *http.Request, re types.RetrieverResponsePropertiesInterface) bool {
 	co, err := cacheobject.ParseResponseCacheControl(r.Header.Get("Cache-Control"))
-	return (r.Method == http.MethodGet || r.Method == http.MethodHead) && err == nil && len(co.NoCache) == 0 && r.Header.Get("Upgrade") != "websocket" && (re.GetExcludeRegexp() == nil || !re.GetExcludeRegexp().MatchString(r.RequestURI))
+	return r.Context().Value(souin_ctx.SupportedMethod).(bool) && err == nil && !co.NoCachePresent && r.Header.Get("Upgrade") != "websocket" && (re.GetExcludeRegexp() == nil || !re.GetExcludeRegexp().MatchString(r.RequestURI))
 }
 
 type key string
 
 const getterContextCtxKey key = "getter_context"
-
-// InitializeRequest generate a CustomWriter instance to handle the response
-func InitializeRequest(rw http.ResponseWriter, req *http.Request, next http.Handler) *CustomWriter {
-	getterCtx := getterContext{rw, req, next}
-	ctx := context.WithValue(req.Context(), getterContextCtxKey, getterCtx)
-	req = req.WithContext(ctx)
-	req.Header.Set("Date", time.Now().UTC().Format(time.RFC1123))
-	return &CustomWriter{
-		Rw:       rw,
-		Response: &http.Response{},
-	}
-}
 
 func sendAnyCachedResponse(rh http.Header, response *http.Response, res http.ResponseWriter) {
 	response.Header = rh
@@ -109,7 +108,7 @@ func DefaultSouinPluginCallback(
 	_ coalescing.RequestCoalescingInterface,
 	nextMiddleware func(w http.ResponseWriter, r *http.Request) error,
 ) {
-	cacheKey := rfc.GetCacheKey(req)
+	cacheKey := req.Context().Value(souin_ctx.Key).(string)
 	retriever.SetMatchedURLFromRequest(req)
 
 	if !strings.Contains(req.Header.Get("Cache-Control"), "no-cache") {
@@ -149,6 +148,8 @@ func DefaultSouinPluginCallback(
 
 // DefaultSouinPluginInitializerFromConfiguration is the default initialization for plugins
 func DefaultSouinPluginInitializerFromConfiguration(c configurationtypes.AbstractConfigurationInterface) *types.RetrieverResponseProperties {
+	z, _ := zap.NewProduction()
+	c.SetLogger(z)
 	provider := providers.InitializeProvider(c)
 	regexpUrls := helpers.InitializeRegexp(c)
 	var transport types.TransportInterface
@@ -157,6 +158,9 @@ func DefaultSouinPluginInitializerFromConfiguration(c configurationtypes.Abstrac
 	if c.GetDefaultCache().GetRegex().Exclude != "" {
 		excludedRegexp = regexp.MustCompile(c.GetDefaultCache().GetRegex().Exclude)
 	}
+
+	ctx := souin_ctx.GetContext()
+	ctx.Init(c)
 
 	retriever := &types.RetrieverResponseProperties{
 		MatchedURL: configurationtypes.URL{
@@ -168,6 +172,7 @@ func DefaultSouinPluginInitializerFromConfiguration(c configurationtypes.Abstrac
 		RegexpUrls:    regexpUrls,
 		Transport:     transport,
 		ExcludeRegex:  excludedRegexp,
+		Context:       ctx,
 	}
 
 	retriever.Transport.SetURL(retriever.MatchedURL)

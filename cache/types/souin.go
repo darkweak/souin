@@ -7,6 +7,7 @@ import (
 	"github.com/darkweak/souin/cache/surrogate/providers"
 	"github.com/darkweak/souin/cache/ykeys"
 	"github.com/darkweak/souin/configurationtypes"
+	"github.com/darkweak/souin/context"
 )
 
 // TransportInterface interface
@@ -47,6 +48,7 @@ type RetrieverResponsePropertiesInterface interface {
 	GetTransport() TransportInterface
 	SetTransport(TransportInterface)
 	GetExcludeRegexp() *regexp.Regexp
+	GetContext() *context.Context
 }
 
 // RetrieverResponseProperties struct
@@ -57,6 +59,7 @@ type RetrieverResponseProperties struct {
 	RegexpUrls    regexp.Regexp
 	Transport     TransportInterface
 	ExcludeRegex  *regexp.Regexp
+	Context       *context.Context
 }
 
 // GetProvider interface
@@ -119,4 +122,9 @@ func (r *RetrieverResponseProperties) SetTransport(transportInterface TransportI
 // GetExcludeRegexp get the excluded regexp
 func (r *RetrieverResponseProperties) GetExcludeRegexp() *regexp.Regexp {
 	return r.ExcludeRegex
+}
+
+// GetContext get the different contexts to init/use
+func (r *RetrieverResponseProperties) GetContext() *context.Context {
+	return r.Context
 }

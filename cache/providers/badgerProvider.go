@@ -27,7 +27,7 @@ func BadgerConnectionFactory(c t.AbstractConfigurationInterface) (*Badger, error
 		var parsedBadger badger.Options
 		if b, e := json.Marshal(badgerConfiguration.Configuration); e == nil {
 			if e = json.Unmarshal(b, &parsedBadger); e != nil {
-				fmt.Println("Impossible to parse the configuration for the default provider (Badger)")
+				fmt.Println("Impossible to parse the configuration for the default provider (Badger)", e)
 			}
 		}
 
@@ -37,7 +37,10 @@ func BadgerConnectionFactory(c t.AbstractConfigurationInterface) (*Badger, error
 	} else {
 		badgerOptions = badgerOptions.WithInMemory(true)
 	}
-	db, _ := badger.Open(badgerOptions)
+	db, e := badger.Open(badgerOptions)
+	if e != nil {
+		fmt.Println("Impossible to open the Badger DB.", e)
+	}
 
 	return &Badger{DB: db, stale: dc.GetStale()}, nil
 }

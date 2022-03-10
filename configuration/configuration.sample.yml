@@ -14,6 +14,10 @@ cdn: # If Souin is set after a CDN fill these informations
   provider: fastly # The provider placed before Souin (e.g. fastly, cloudflare, akamai, varnish)
   strategy: soft # The strategy to purge the CDN cache based on tags (e.g. soft, hard)
 default_cache: # Required part
+  allowed_http_verbs: # Allowed HTTP verbs to cache (default GET, HEAD).
+    - GET
+    - POST
+    - HEAD
   distributed: true # Use Olric distributed storage
   headers: # Default headers concatenated in stored keys
     - Authorization
@@ -26,6 +30,7 @@ default_cache: # Required part
     exclude: 'ARegexHere' # Regex to exclude from cache
   ttl: 10s # Default TTL
   stale: 10s # Stale duration
+  default_cache_control: no-store # Set default value for Cache-Control response header if not set by upstream
 log_level: INFO # Logs verbosity [ DEBUG, INFO, WARN, ERROR, DPANIC, PANIC, FATAL, debug, info, warn, error, dpanic, panic, fatal ]
 reverse_proxy_url: 'http://traefik' # If it's in the same network you can use http://your-service. Then just use https://yourdomain.com
 ssl_providers: # The {providers}.json to usee

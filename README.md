@@ -14,18 +14,19 @@
 4. [Diagrams](#diagrams)  
   4.1. [Sequence diagram](#sequence-diagram)
 5. [Cache systems](#cache-systems)
-6. [Examples](#examples)  
-  6.1. [Træfik container](#træfik-container)
-7. [Plugins](#plugins)  
-  7.1. [Caddy module](#caddy-module)  
-  7.3. [Echo middleware](#echo-middleware)  
-  7.4. [Gin middleware](#gin-middleware)  
-  7.5. [Skipper filter](#skipper-filter)  
-  7.6. [Træfik plugin](#træfik-plugin)  
-  7.7. [Tyk plugin](#tyk-plugin)  
-  7.8. [Prestashop plugin](#prestashop-plugin)  
-  7.9. [Wordpress plugin](#wordpress-plugin)  
-8. [Credits](#credits)
+6. [GraphQL](#graphql)  
+7. [Examples](#examples)  
+  7.1. [Træfik container](#træfik-container)
+8. [Plugins](#plugins)  
+  8.1. [Caddy module](#caddy-module)  
+  8.3. [Echo middleware](#echo-middleware)  
+  8.4. [Gin middleware](#gin-middleware)  
+  8.5. [Skipper filter](#skipper-filter)  
+  8.6. [Træfik plugin](#træfik-plugin)  
+  8.7. [Tyk plugin](#tyk-plugin)  
+  8.8. [Prestashop plugin](#prestashop-plugin)  
+  8.9. [Wordpress plugin](#wordpress-plugin)  
+9. [Credits](#credits)
 
 [![Travis CI](https://travis-ci.com/Darkweak/Souin.svg?branch=master)](https://travis-ci.com/Darkweak/Souin)
 
@@ -78,6 +79,10 @@ cdn: # If Souin is set after a CDN fill these informations
   strategy: soft # The strategy to purge the CDN cache based on tags (e.g. soft, hard)
   dynamic: true # If true, you'll be able to add custom keys than the ones defined under the surrogate_keys key
 default_cache:
+  allowed_http_verbs: # Allowed HTTP verbs to cache (default GET, HEAD).
+    - GET
+    - POST
+    - HEAD
   distributed: true # Use Olric distributed storage
   headers: # Default headers concatenated in stored keys
     - Authorization
@@ -141,6 +146,7 @@ surrogate_keys:
 | `cdn.strategy`                                    | The strategy to use to purge the cdn cache, soft will keep the content as a stale resource                                                  | `hard`<br/><br/>`(default: soft)`                                                                                         |
 | `cdn.service_id`                                  | The service id if required, depending the provider                                                                                          | `123456_id`                                                                                                               |
 | `cdn.zone_id`                                     | The zone id if required, depending the provider                                                                                             | `anywhere_zone`                                                                                                           |
+| `default_cache.allowed_http_verbs`                | The HTTP verbs to support cache                                                                                                             | `- GET`<br/><br/>`- POST`<br/><br/>`(default: GET, HEAD)`                                                                 |
 | `default_cache.badger`                            | Configure the Badger cache storage                                                                                                          |                                                                                                                           |
 | `default_cache.badger.path`                       | Configure Badger with a file                                                                                                                | `/anywhere/badger_configuration.json`                                                                                     |
 | `default_cache.badger.configuration`              | Configure Badger directly in the Caddyfile or your JSON caddy configuration                                                                 | [See the Badger configuration for the options](https://dgraph.io/docs/badger/get-started/)                                |
@@ -223,6 +229,19 @@ Supported providers
  Souin will return at first the in-memory response when it gives a non-empty response, then the olric one followed by the redis one with same condition, or fallback to the reverse proxy otherwise.
  Since v1.4.2, Souin supports [Olric](https://github.com/buraksezer/olric) to handle distributed cache.
 
+## GraphQL
+This feature is currently in beta.  
+Souin can partially cache your GraphQL requests. It automatically handles the data retrieval and omit the caching for the mutations.  
+However, it will invalidate whole cache keys with a body when you send a mutation request due to the inability to read and understand automatically which cached endpoint should be deleted.  
+You can enable the GraphQL support with the `default_cache.allowed_http_verbs` key to define the list of supported HTTP verbs like `GET`, `POST`, `DELETE`.
+```yaml
+default_cache:
+  allowed_http_verbs:
+    - GET
+    - POST
+    - HEAD
+```
+
 ### Cache invalidation
 The cache invalidation is built for CRUD requests, if you're doing a GET HTTP request, it will serve the cached response when it exists, otherwise the reverse-proxy response will be served.  
 If you're doing a POST, PUT, PATCH or DELETE HTTP request, the related cache GET request, and the list endpoint will be dropped.  
@@ -301,6 +320,7 @@ There is the fully configuration below
         level debug
     }
     cache {
+        allowed_http_verbs GET POST PATCH
         api {
             basepath /some-basepath
             prometheus {

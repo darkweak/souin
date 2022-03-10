@@ -10,6 +10,7 @@ import (
 	"github.com/darkweak/souin/api"
 	"github.com/darkweak/souin/cache/coalescing"
 	"github.com/darkweak/souin/cache/types"
+	souin_ctx "github.com/darkweak/souin/context"
 	"github.com/darkweak/souin/plugins"
 	"github.com/darkweak/souin/rfc"
 )
@@ -43,17 +44,21 @@ func SouinResponseHandler(rw http.ResponseWriter, res *http.Response, _ *http.Re
 		return
 	}
 	currentInstance.Retriever.SetMatchedURLFromRequest(req)
-	if !plugins.CanHandle(res.Request, currentInstance.Retriever) {
+	req = currentInstance.Retriever.GetContext().Method.SetContext(req)
+	if !plugins.CanHandle(req, currentInstance.Retriever) {
 		rw.Header().Set("Cache-Status", "Souin; fwd=uri-miss")
+		return
+	}
+	req = currentInstance.Retriever.GetContext().SetContext(req)
+	if plugins.HasMutation(req, rw) {
 		return
 	}
 
 	retriever := currentInstance.Retriever
-	key := rfc.GetCacheKey(req)
 	r, _ := rfc.CachedResponse(
 		retriever.GetProvider(),
 		req,
-		key,
+		req.Context().Value(souin_ctx.Key).(string),
 		retriever.GetTransport(),
 		false,
 	)
@@ -86,8 +91,17 @@ func SouinRequestHandler(rw http.ResponseWriter, r *http.Request) {
 		handler(rw, r)
 		return
 	}
-	if currentInstance == nil || !plugins.CanHandle(r, currentInstance.Retriever) {
+
+	if currentInstance == nil {
 		fmt.Println("currentInstance request is null ?", currentInstance, r.URL)
+		return
+	}
+	r = currentInstance.Retriever.GetContext().Method.SetContext(r)
+	if !plugins.CanHandle(r, currentInstance.Retriever) {
+		return
+	}
+	r = currentInstance.Retriever.GetContext().SetContext(r)
+	if plugins.HasMutation(r, rw) {
 		return
 	}
 	r.Header.Set("Date", time.Now().UTC().Format(time.RFC1123))
