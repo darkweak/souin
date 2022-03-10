@@ -423,6 +423,20 @@ func parseCaddyfileHandlerDirective(h httpcaddyfile.Helper) (caddyhttp.Middlewar
 			allowed := sc.DefaultCache.AllowedHTTPVerbs
 			allowed = append(allowed, h.RemainingArgs()...)
 			sc.DefaultCache.AllowedHTTPVerbs = allowed
+		case "badger":
+			provider := configurationtypes.CacheProvider{}
+			for nesting := h.Nesting(); h.NextBlock(nesting); {
+				directive := h.Val()
+				switch directive {
+				case "path":
+					urlArgs := h.RemainingArgs()
+					provider.Path = urlArgs[0]
+				case "configuration":
+					provider.Configuration = parseCaddyfileRecursively(h.Dispenser)
+					provider.Configuration = parseBadgerConfiguration(provider.Configuration.(map[string]interface{}))
+				}
+			}
+			sc.DefaultCache.Badger = provider
 		case "default_cache_control":
 			sc.DefaultCache.DefaultCacheControl = h.RemainingArgs()[0]
 		case "headers":

@@ -37,7 +37,10 @@ func BadgerConnectionFactory(c t.AbstractConfigurationInterface) (*Badger, error
 	} else {
 		badgerOptions = badgerOptions.WithInMemory(true)
 	}
-	db, _ := badger.Open(badgerOptions)
+	db, e := badger.Open(badgerOptions)
+	if e != nil {
+		fmt.Println("Impossible to open the Badger DB.", e)
+	}
 
 	return &Badger{DB: db, stale: dc.GetStale()}, nil
 }
