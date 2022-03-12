@@ -152,8 +152,8 @@ surrogate_keys:
 | `default_cache.badger.configuration`              | Configure Badger directly in the Caddyfile or your JSON caddy configuration                                                                 | [See the Badger configuration for the options](https://dgraph.io/docs/badger/get-started/)                                |
 | `default_cache.headers`                           | List of headers to include to the cache                                                                                                     | `- Authorization`<br/><br/>`- Content-Type`<br/><br/>`- X-Additional-Header`                                              |
 | `default_cache.olric`                             | Configure the Olric cache storage                                                                                                           |                                                                                                                           |
-| `default_cache.olric.path`                        | Configure Olric with a file                                                                                                                 | `/anywhere/badger_configuration.json`                                                                                     |
-| `default_cache.olric.configuration`               | Configure Olric directly in the Caddyfile or your JSON caddy configuration                                                                  | [See the Badger configuration for the options](https://github.com/buraksezer/olric/blob/master/cmd/olricd/olricd.yaml/)   |
+| `default_cache.olric.path`                        | Configure Olric with a file                                                                                                                 | `/anywhere/olric_configuration.json`                                                                                     |
+| `default_cache.olric.configuration`               | Configure Olric directly in the Caddyfile or your JSON caddy configuration                                                                  | [See the Olric configuration for the options](https://github.com/buraksezer/olric/blob/master/cmd/olricd/olricd.yaml/)   |
 | `default_cache.port.{web,tls}`                    | The device's local HTTP/TLS port that Souin should be listening on                                                                          | Respectively `80` and `443`                                                                                               |
 | `default_cache.regex.exclude`                     | The regex used to prevent paths being cached                                                                                                | `^[A-z]+.*$`                                                                                                              |
 | `default_cache.stale`                             | The stale duration                                                                                                                          | `25m`                                                                                                                     |
@@ -225,7 +225,7 @@ Supported providers
  - [Olric](https://github.com/buraksezer/olric)
 
  The cache system sits on top of three providers at the moment. It provides an in-memory, redis and Olric cache systems because setting, getting, updating and deleting keys in these providers is as easy as it gets.  
- In order to do that, Redis and Olric providers need to be either on the same network as the Souin instance when using docker-compose or over the internet, then it will use by default in-memory to avoid network latency as much as possible. 
+ In order to do that, the Olric provider need to be either on the same network as the Souin instance when using docker-compose or over the internet, then it will use by default in-memory to avoid network latency as much as possible. 
  Souin will return at first the in-memory response when it gives a non-empty response, then the olric one followed by the redis one with same condition, or fallback to the reverse proxy otherwise.
  Since v1.4.2, Souin supports [Olric](https://github.com/buraksezer/olric) to handle distributed cache.
 
@@ -332,9 +332,6 @@ There is the fully configuration below
         }
         badger {
             path the_path_to_a_file.json
-            configuration {
-                # Your badger configuration here
-            }
         }
         cdn {
             api_key XXXX
@@ -375,16 +372,79 @@ respond "Hello World!"
 
 cache @match {
     ttl 5s
+    badger {
+        path /tmp/badger/first-match
+        configuration {
+            # Required value
+            ValueDir <string>
+
+            # Optional
+            SyncWrites <bool>
+            NumVersionsToKeep <int>
+            ReadOnly <bool>
+            Compression <int>
+            InMemory <bool>
+            MetricsEnabled <bool>
+            MemTableSize <int>
+            BaseTableSize <int>
+            BaseLevelSize <int>
+            LevelSizeMultiplier <int>
+            TableSizeMultiplier <int>
+            MaxLevels <int>
+            VLogPercentile <float>
+            ValueThreshold <int>
+            NumMemtables <int>
+            BlockSize <int>
+            BloomFalsePositive <float>
+            BlockCacheSize <int>
+            IndexCacheSize <int>
+            NumLevelZeroTables <int>
+            NumLevelZeroTablesStall <int>
+            ValueLogFileSize <int>
+            ValueLogMaxEntries <int>
+            NumCompactors <int>
+            CompactL0OnClose <bool>
+            LmaxCompaction <bool>
+            ZSTDCompressionLevel <int>
+            VerifyValueChecksum <bool>
+            EncryptionKey <string>
+            EncryptionKey <Duration>
+            BypassLockGuard <bool>
+            ChecksumVerificationMode <int>
+            DetectConflicts <bool>
+            NamespaceOffset <int>
+        }
+    }
 }
 
 cache @match2 {
     ttl 50s
+    badger {
+        path /tmp/badger/second-match
+        configuration {
+            ValueDir match2
+            ValueLogFileSize 16777216
+            MemTableSize 4194304
+            ValueThreshold 524288
+            BypassLockGuard true
+        }
+    }
     headers Authorization
     default_cache_control "public, max-age=86400"
 }
 
 cache @matchdefault {
     ttl 5s
+    badger {
+        path /tmp/badger/default-match
+        configuration {
+            ValueDir default
+            ValueLogFileSize 16777216
+            MemTableSize 4194304
+            ValueThreshold 524288
+            BypassLockGuard true
+        }
+    }
 }
 
 cache @souin-api {}
@@ -455,7 +515,6 @@ func main() {
 }
 ```
 
-
 After that you will be able to declare the httpcache filter in your eskip file.
 ```
 hello: Path("/hello") 
@@ -472,7 +531,7 @@ experimental:
   plugins:
     souin:
       moduleName: github.com/darkweak/souin
-      version: v1.6.1
+      version: v1.6.2
 ```
 After that you can declare either the whole configuration at once in the middleware block or by service. See the examples below.
 ```yaml
@@ -614,7 +673,6 @@ A repository called [prestashop-souin](https://github.com/lucmichalski/prestasho
 
 ### Wordpress plugin
 A repository called [wordpress-souin](https://github.com/Darkweak/wordpress-souin) to be able to manage your Souin instance through the admin panel UI.
-
 
 ## Credits
 

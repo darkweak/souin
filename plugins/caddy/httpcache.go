@@ -26,7 +26,6 @@ type key string
 
 const getterContextCtxKey key = "getter_context"
 const moduleName = "cache"
-const moduleID caddy.ModuleID = "http.handlers." + moduleName
 
 func init() {
 	caddy.RegisterModule(SouinCaddyPlugin{})
@@ -52,7 +51,7 @@ type SouinCaddyPlugin struct {
 // CaddyModule returns the Caddy module information.
 func (SouinCaddyPlugin) CaddyModule() caddy.ModuleInfo {
 	return caddy.ModuleInfo{
-		ID:  moduleID,
+		ID:  "http.handlers.cache",
 		New: func() caddy.Module { return new(SouinCaddyPlugin) },
 	}
 }
@@ -244,7 +243,7 @@ func parseBadgerConfiguration(c map[string]interface{}) map[string]interface{} {
 		case "Dir", "ValueDir":
 			c[k] = v
 		case "SyncWrites", "ReadOnly", "InMemory", "MetricsEnabled", "CompactL0OnClose", "LmaxCompaction", "VerifyValueChecksum", "BypassLockGuard", "DetectConflicts":
-			c[k], _ = strconv.ParseBool(v.(string))
+			c[k] = true
 		case "NumVersionsToKeep", "NumGoroutines", "MemTableSize", "BaseTableSize", "BaseLevelSize", "LevelSizeMultiplier", "TableSizeMultiplier", "MaxLevels", "ValueThreshold", "NumMemtables", "BlockSize", "BlockCacheSize", "IndexCacheSize", "NumLevelZeroTables", "NumLevelZeroTablesStall", "ValueLogFileSize", "NumCompactors", "ZSTDCompressionLevel", "ChecksumVerificationMode", "NamespaceOffset":
 			c[k], _ = strconv.Atoi(v.(string))
 		case "Compression", "ValueLogMaxEntries":
