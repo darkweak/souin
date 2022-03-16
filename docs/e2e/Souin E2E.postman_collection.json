@@ -1,6 +1,6 @@
 {
 	"info": {
-		"_postman_id": "236ab4b2-f6cf-460d-bc84-08d448532d54",
+		"_postman_id": "b6c5c6c2-51b9-4ee7-a3eb-d84d0a67aa84",
 		"name": "Souin E2E",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
@@ -98,7 +98,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.souinAPI.listGraphQLKeys(pm, 'GET-localhost:4443-/test1-4d08c8e90fed197693d96603c73fa6036e7ce42b8de0149cdd33b34e980631e2', utils.getVar(pm, 'caddy_url'), '/test1')"
+									"utils.souinAPI.listGraphQLKeys(pm, 'POST-localhost:4443-/test1-4d08c8e90fed197693d96603c73fa6036e7ce42b8de0149cdd33b34e980631e2', utils.getVar(pm, 'caddy_url'), '/test1');"
 								],
 								"type": "text/javascript"
 							}
@@ -118,7 +118,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\"query\":{\"mutation\": \"something\"}}",
+							"raw": "{\"query\":\"something\"}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1361,28 +1361,29 @@
 					"                mode: \"raw\",",
 					"                raw: JSON.stringify({\"query\":{\"mutation\": \"something\"}})",
 					"            }",
+					"            const rq = utils.request(baseUrl + additionalPath, '', body)",
+					"            rq.method = \"POST\"",
 					"            pm.test(\"Ensure stored keys array is empty\", function () {",
 					"                pm.response.to.have.status(200);",
 					"                let jsonData = pm.response.json();",
 					"                pm.expect(jsonData).to.eql([]);",
 					"                pm.expect(jsonData.length).to.eql(0);",
 					"            });",
-					"            pm.sendRequest(utils.request(baseUrl + additionalPath, cacheControl, body), function(_, response) {",
+					"            pm.sendRequest(rq, function(_, response) {",
 					"                pm.expect(response).to.have.status(200);",
 					"            });",
 					"",
-					"            console.log(utils.request(baseUrl + additionalPath, cacheControl, body));",
 					"            pm.sendRequest(utils.request(`${baseUrl}${utils.getVar(pm, 'souin_base_api')}${utils.getVar(pm, 'souin_api')}`, cacheControl), function (_, res) {",
 					"                pm.test(`Check Souin API has ${isCached ? 'two' : 'none'} registered key after the first cache set`, function () {",
 					"                        pm.expect(res).to.have.status(200);",
 					"                        let jsonData = res.json();",
 					"                        pm.expect(jsonData.length).to.eql(isCached ? 2 : 0);",
-					"                        console.log(jsonData);",
 					"                        pm.expect(jsonData[0]).to.include(isCached ? baseKey : undefined);",
 					"                    }",
 					"                );",
 					"",
-					"                pm.sendRequest(utils.request(baseUrl + additionalPath + 'testing', cacheControl, body), function() {",
+					"                rq.url = baseUrl + additionalPath + 'testing'",
+					"                pm.sendRequest(rq, function() {",
 					"                    pm.sendRequest(utils.request(`${baseUrl}${utils.getVar(pm, 'souin_base_api')}${utils.getVar(pm, 'souin_api')}`, cacheControl), function (_, r) {",
 					"                        pm.test(`Check Souin API has ${isCached ? 'four' : 'none'} registered key${isCached ? 's' : ''} after the second cache set`, function () {",
 					"                            pm.expect(r).to.have.status(200);",

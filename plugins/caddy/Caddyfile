@@ -1,9 +1,11 @@
 {
     order cache before rewrite
+    debug
     log {
         level debug
     }
     cache {
+        allowed_http_verbs GET POST
         api {
             prometheus
             souin
@@ -28,16 +30,6 @@ respond "Hello World!"
 
 cache @match {
     ttl 5s
-    badger {
-        path /tmp/badger
-        configuration {
-            ValueDir test
-            ValueLogFileSize 16777216
-            MemTableSize 4194304
-            ValueThreshold 524288
-            BypassLockGuard true
-        }
-    }
 }
 
 cache @match2 {
