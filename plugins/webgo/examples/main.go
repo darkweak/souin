@@ -1,0 +1,53 @@
+package main
+
+import (
+	"net/http"
+	"time"
+
+	"github.com/bnkamalesh/webgo/v6"
+	cache "github.com/darkweak/souin/plugins/webgo"
+)
+
+func defaultHandler(w http.ResponseWriter, _ *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Hello, World!"))
+}
+
+func excludedHandler(w http.ResponseWriter, _ *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Hello, Excluded!"))
+}
+
+func getRoutes() []*webgo.Route {
+	return []*webgo.Route{
+		{
+			Name:          "default",
+			Method:        http.MethodGet,
+			Pattern:       "/default",
+			Handlers:      []http.HandlerFunc{defaultHandler},
+			TrailingSlash: true,
+		},
+		{
+			Name:          "excluded",
+			Method:        http.MethodGet,
+			Pattern:       "/excluded",
+			Handlers:      []http.HandlerFunc{excludedHandler},
+			TrailingSlash: true,
+		},
+	}
+}
+
+func main() {
+	cfg := &webgo.Config{
+		Host:         "",
+		Port:         "80",
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 1 * time.Hour,
+	}
+
+	// Use the Souin default configuration
+	httpcache := cache.NewHTTPCache(cache.DevDefaultConfiguration)
+	router := webgo.NewRouter(cfg, getRoutes()...)
+	router.Use(httpcache.Middleware)
+	router.Start()
+}

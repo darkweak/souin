@@ -1,6 +1,6 @@
 .PHONY: build-and-run-caddy build-and-run-caddy-json build-and-run-echo build-and-run-gin build-and-run-skipper build-and-run-traefik \
-	build-and-run-tyk build-app build-caddy build-dev coverage create-network down env-dev env-prod gatling generate-plantUML golangci-lint \
-	health-check-prod help lint log tests up validate vendor-plugins
+	build-and-run-tyk build-and-run-webgo build-app build-caddy build-dev coverage create-network down env-dev env-prod gatling generate-plantUML \
+	golangci-lint health-check-prod help lint log tests up validate vendor-plugins
 
 DC=docker-compose
 DC_BUILD=$(DC) build
@@ -28,6 +28,9 @@ build-and-run-traefik:  ## Run træfik with Souin as plugin
 
 build-and-run-tyk:  ## Run tyk with Souin as middleware
 	cd plugins/tyk && $(MAKE) prepare
+
+build-and-run-webgo:  ## Run Echo with Souin as plugin
+	cd plugins/webgo && $(MAKE) prepare
 
 build-app: env-prod ## Build containers with prod env vars
 	$(DC_BUILD) souin
@@ -95,5 +98,6 @@ vendor-plugins: ## Generate and prepare vendors for each plugin
 	cd plugins/gin && $(MAKE) vendor
 	cd plugins/skipper && $(MAKE) vendor
 	cd plugins/tyk && $(MAKE) vendor
+	cd plugins/webgo && $(MAKE) vendor
 	cd plugins/traefik && $(MAKE) vendor
 	cd plugins/caddy && go mod tidy && go mod download
