@@ -23,15 +23,8 @@ func getRoutes() []*webgo.Route {
 		{
 			Name:          "default",
 			Method:        http.MethodGet,
-			Pattern:       "/default",
+			Pattern:       "/:all*",
 			Handlers:      []http.HandlerFunc{defaultHandler},
-			TrailingSlash: true,
-		},
-		{
-			Name:          "excluded",
-			Method:        http.MethodGet,
-			Pattern:       "/excluded",
-			Handlers:      []http.HandlerFunc{excludedHandler},
 			TrailingSlash: true,
 		},
 	}
