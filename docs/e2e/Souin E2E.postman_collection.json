@@ -224,10 +224,10 @@
 									"",
 									"pm.test(\"Prometheus is populated.\", function () {",
 									"    const result = pm.response.text();",
-									"    pm.expect(result).to.include('souin_request_counter 8');",
-									"    pm.expect(result).to.include('souin_no_cached_response_counter 5');",
+									"    pm.expect(result).to.include('souin_request_counter 10');",
+									"    pm.expect(result).to.include('souin_no_cached_response_counter 7');",
 									"    pm.expect(result).to.include('souin_cached_response_counter 3');",
-									"    pm.expect(result).to.include('souin_avg_response_time_count 5');",
+									"    pm.expect(result).to.include('souin_avg_response_time_count 7');",
 									"    pm.expect(result).to.include('souin_avg_response_time_sum 0');",
 									"});"
 								],
