@@ -24,7 +24,7 @@
   8.5. [Skipper filter](#skipper-filter)  
   8.6. [Træfik plugin](#træfik-plugin)  
   8.7. [Tyk plugin](#tyk-plugin)  
-  8.8. [Webgo plugin](#webgo-plugin)  
+  8.8. [Webgo middleware](#webgo-middleware)  
   8.9. [Prestashop plugin](#prestashop-plugin)  
   8.10. [Wordpress plugin](#wordpress-plugin)  
 9. [Credits](#credits)
@@ -670,7 +670,7 @@ You have to define the use of Souin as `post` and `response` custom middleware. 
 ```
 
 ### Webgo middleware
-To use Souin as webgo middleware, you can refer to the [Webgo plugin integration folder](https://github.com/darkweak/souin/tree/master/plugins/webgo) to discover how to configure it.  
+To use Souin as webgo middleware, you can refer to the [Webgo middleware integration folder](https://github.com/darkweak/souin/tree/master/plugins/webgo) to discover how to configure it.  
 You just have to define a new webgo router and tell to the instance to use the process method like below:
 ```go
 import (
