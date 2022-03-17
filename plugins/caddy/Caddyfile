@@ -41,6 +41,14 @@ cache @matchdefault {
     ttl 5s
 }
 
+route /vary {
+    cache {
+        ttl 15s
+    }
+    header Vary X-Something
+    respond "Hello {http.request.header.X-Something}"
+}
+
 route /cache-s-maxage {
     cache
     header Cache-Control "s-maxage=10"

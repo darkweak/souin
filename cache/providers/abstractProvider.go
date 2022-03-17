@@ -48,8 +48,6 @@ func varyVoter(baseKey string, req *http.Request, currentKey string) bool {
 				return true
 			}
 		}
-
-		return true
 	}
 
 	return false
