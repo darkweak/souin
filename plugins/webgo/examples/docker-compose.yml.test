@@ -1,0 +1,10 @@
+version: '3.8'
+
+services:
+  webgo:
+    build:
+      context: ../../..
+      dockerfile: plugins/webgo/examples/Dockerfile.test
+      target: development-runner
+    ports:
+      - 80:80
