@@ -1,6 +1,6 @@
 {
 	"info": {
-		"_postman_id": "236ab4b2-f6cf-460d-bc84-08d448532d54",
+		"_postman_id": "b6c5c6c2-51b9-4ee7-a3eb-d84d0a67aa84",
 		"name": "Souin E2E",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
@@ -21,9 +21,6 @@
 							}
 						}
 					],
-					"protocolProfileBehavior": {
-						"disableBodyPruning": true
-					},
 					"request": {
 						"method": "GET",
 						"header": [
@@ -33,15 +30,6 @@
 								"type": "text"
 							}
 						],
-						"body": {
-							"mode": "raw",
-							"raw": "",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
 						"url": {
 							"raw": "{{caddy_url}}/default",
 							"host": [
@@ -85,6 +73,58 @@
 								"type": "text"
 							}
 						],
+						"url": {
+							"raw": "{{caddy_url}}{{souin_base_api}}{{souin_api}}",
+							"host": [
+								"{{caddy_url}}{{souin_base_api}}{{souin_api}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Souin api GraphQL",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.souinAPI.listGraphQLKeys(pm, 'POST-localhost:4443-/test1-4d08c8e90fed197693d96603c73fa6036e7ce42b8de0149cdd33b34e980631e2', utils.getVar(pm, 'caddy_url'), '/test1');"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cache-Control",
+								"value": "",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\"query\":\"something\"}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
 						"url": {
 							"raw": "{{caddy_url}}{{souin_base_api}}{{souin_api}}",
 							"host": [
@@ -184,10 +224,10 @@
 									"",
 									"pm.test(\"Prometheus is populated.\", function () {",
 									"    const result = pm.response.text();",
-									"    pm.expect(result).to.include('souin_request_counter 8');",
-									"    pm.expect(result).to.include('souin_no_cached_response_counter 5');",
+									"    pm.expect(result).to.include('souin_request_counter 10');",
+									"    pm.expect(result).to.include('souin_no_cached_response_counter 7');",
 									"    pm.expect(result).to.include('souin_cached_response_counter 3');",
-									"    pm.expect(result).to.include('souin_avg_response_time_count 5');",
+									"    pm.expect(result).to.include('souin_avg_response_time_count 7');",
 									"    pm.expect(result).to.include('souin_avg_response_time_sum 0');",
 									"});"
 								],
@@ -1050,6 +1090,161 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "Webgo",
+			"item": [
+				{
+					"name": "Default",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'webgo_url')}/default`, '', true)"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cache-Control",
+								"value": "",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{webgo_url}}/default",
+							"host": [
+								"{{webgo_url}}"
+							],
+							"path": [
+								"default"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Default no cache",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'webgo_url')}/default`, 'no-cache')"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{webgo_url}}/default",
+							"host": [
+								"{{webgo_url}}"
+							],
+							"path": [
+								"default"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Default no store",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'webgo_url')}/default`, 'no-store')"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cache-Control",
+								"value": "no-store",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{webgo_url}}/default",
+							"host": [
+								"{{webgo_url}}"
+							],
+							"path": [
+								"default"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Exclude regex",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'webgo_url')}/test2`, '', false, true)"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cache-Control",
+								"value": "",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{webgo_url}}/excluded",
+							"host": [
+								"{{webgo_url}}"
+							],
+							"path": [
+								"excluded"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			]
 		}
 	],
 	"event": [
@@ -1166,28 +1361,29 @@
 					"                mode: \"raw\",",
 					"                raw: JSON.stringify({\"query\":{\"mutation\": \"something\"}})",
 					"            }",
+					"            const rq = utils.request(baseUrl + additionalPath, '', body)",
+					"            rq.method = \"POST\"",
 					"            pm.test(\"Ensure stored keys array is empty\", function () {",
 					"                pm.response.to.have.status(200);",
 					"                let jsonData = pm.response.json();",
 					"                pm.expect(jsonData).to.eql([]);",
 					"                pm.expect(jsonData.length).to.eql(0);",
 					"            });",
-					"            pm.sendRequest(utils.request(baseUrl + additionalPath, cacheControl, body), function(_, response) {",
+					"            pm.sendRequest(rq, function(_, response) {",
 					"                pm.expect(response).to.have.status(200);",
 					"            });",
 					"",
-					"            console.log(utils.request(baseUrl + additionalPath, cacheControl, body));",
 					"            pm.sendRequest(utils.request(`${baseUrl}${utils.getVar(pm, 'souin_base_api')}${utils.getVar(pm, 'souin_api')}`, cacheControl), function (_, res) {",
 					"                pm.test(`Check Souin API has ${isCached ? 'two' : 'none'} registered key after the first cache set`, function () {",
 					"                        pm.expect(res).to.have.status(200);",
 					"                        let jsonData = res.json();",
 					"                        pm.expect(jsonData.length).to.eql(isCached ? 2 : 0);",
-					"                        console.log(jsonData);",
 					"                        pm.expect(jsonData[0]).to.include(isCached ? baseKey : undefined);",
 					"                    }",
 					"                );",
 					"",
-					"                pm.sendRequest(utils.request(baseUrl + additionalPath + 'testing', cacheControl, body), function() {",
+					"                rq.url = baseUrl + additionalPath + 'testing'",
+					"                pm.sendRequest(rq, function() {",
 					"                    pm.sendRequest(utils.request(`${baseUrl}${utils.getVar(pm, 'souin_base_api')}${utils.getVar(pm, 'souin_api')}`, cacheControl), function (_, r) {",
 					"                        pm.test(`Check Souin API has ${isCached ? 'four' : 'none'} registered key${isCached ? 's' : ''} after the second cache set`, function () {",
 					"                            pm.expect(r).to.have.status(200);",
@@ -1251,6 +1447,11 @@
 		{
 			"key": "prometheus_api",
 			"value": "/metrics"
+		},
+		{
+			"key": "webgo_url",
+			"value": "http://domain.com",
+			"type": "string"
 		}
 	]
 }

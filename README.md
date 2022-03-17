@@ -24,8 +24,9 @@
   8.5. [Skipper filter](#skipper-filter)  
   8.6. [Træfik plugin](#træfik-plugin)  
   8.7. [Tyk plugin](#tyk-plugin)  
-  8.8. [Prestashop plugin](#prestashop-plugin)  
-  8.9. [Wordpress plugin](#wordpress-plugin)  
+  8.8. [Webgo middleware](#webgo-middleware)  
+  8.9. [Prestashop plugin](#prestashop-plugin)  
+  8.10. [Wordpress plugin](#wordpress-plugin)  
 9. [Credits](#credits)
 
 [![Travis CI](https://travis-ci.com/Darkweak/Souin.svg?branch=master)](https://travis-ci.com/Darkweak/Souin)
@@ -665,6 +666,27 @@ You have to define the use of Souin as `post` and `response` custom middleware. 
       "default_cache_control": "no-store"
     }
   }
+}
+```
+
+### Webgo middleware
+To use Souin as webgo middleware, you can refer to the [Webgo middleware integration folder](https://github.com/darkweak/souin/tree/master/plugins/webgo) to discover how to configure it.  
+You just have to define a new webgo router and tell to the instance to use the process method like below:
+```go
+import (
+	"net/http"
+
+	"github.com/bnkamalesh/webgo/v6"
+	cache "github.com/darkweak/souin/plugins/webgo"
+)
+
+func main(){
+
+    // ...
+	httpcache := cache.NewHTTPCache(cache.DevDefaultConfiguration)
+	router.Use(httpcache.Middleware)
+    // ...
+
 }
 ```
 
