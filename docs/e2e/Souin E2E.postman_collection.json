@@ -282,6 +282,45 @@
 					"response": []
 				},
 				{
+					"name": "Vary",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.validateVary(pm, `${utils.getVar(pm, 'caddy_url')}/vary`)"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-something",
+								"value": "should-vary-1",
+								"type": "text"
+							},
+							{
+								"key": "Cache-Control",
+								"value": "",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{caddy_url}}/vary",
+							"host": [
+								"{{caddy_url}}"
+							],
+							"path": [
+								"vary"
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "Default no store",
 					"event": [
 						{
@@ -1254,9 +1293,10 @@
 				"type": "text/javascript",
 				"exec": [
 					"utils = {",
-					"    request: (url, cacheControl = '', body = null) => ({",
+					"    request: (url, cacheControl = '', body = null, headers = {}) => ({",
 					"        header: {",
-					"            'Cache-Control': cacheControl",
+					"            'Cache-Control': cacheControl,",
+					"            ...headers,",
 					"        },",
 					"        method: 'GET',",
 					"        body,",
@@ -1316,6 +1356,50 @@
 					"                expected.to.have.header(\"Cache-Status\");",
 					"                expected.to.have.header(\"Age\");",
 					"                pm.expect(response.headers.get(\"Cache-Status\")).to.include(\"Souin; hit; ttl=\"+age);",
+					"            });",
+					"        });",
+					"    },",
+					"    validateVary: (pm, baseUrl = '') => {",
+					"        pm.test(\"Status code is 200 with Cache-Status header\", function () {",
+					"            pm.response.to.have.status(200);",
+					"            pm.response.to.have.header(\"Cache-Status\");",
+					"            pm.expect(pm.response.headers.get(\"Cache-Status\")).to.eql(\"Souin; fwd=uri-miss; stored\");",
+					"            pm.response.to.not.have.header(\"Age\");",
+					"            pm.expect(pm.response.text()).to.eql(\"Hello should-vary-1\");",
+					"        });",
+					"        const vary1 = utils.request(baseUrl, '', null, {'X-Something': 'should-vary-1'});",
+					"        const vary2 = utils.request(baseUrl, '', null, {'X-Something': 'should-vary-2'});",
+					"        pm.sendRequest(vary1, function (_, resVary1) {",
+					"            pm.test('Status code is 200, Cache-Status and Age are present', function () {",
+					"                const expected = pm.expect(resVary1);",
+					"                expected.to.have.status(200);",
+					"                expected.to.have.header(\"Cache-Status\");",
+					"                expected.to.have.header(\"Age\");",
+					"                pm.expect(resVary1.headers.get(\"Cache-Status\")).to.include(\"Souin; hit; ttl=14\");",
+					"                pm.expect(resVary1.text()).to.eql(\"Hello should-vary-1\");",
+					"            });",
+					"",
+					"",
+					"            pm.sendRequest(vary2, function (_, resVary2Stored) {",
+					"                pm.test(\"Status code is 200 with Cache-Status header\", function () {",
+					"                    const expected = pm.expect(resVary2Stored);",
+					"                    expected.to.have.status(200);",
+					"                    expected.to.have.header(\"Cache-Status\");",
+					"                    pm.expect(resVary2Stored.headers.get(\"Cache-Status\")).to.eql(\"Souin; fwd=uri-miss; stored\");",
+					"                    expected.to.not.have.header(\"Age\");",
+					"                    pm.expect(resVary2Stored.text()).to.eql(\"Hello should-vary-2\");",
+					"                });",
+					"",
+					"                pm.sendRequest(vary2, function (_, resVary2) {",
+					"                    pm.test('Status code is 200, Cache-Status and Age are present', function () {",
+					"                        const expected = pm.expect(resVary2);",
+					"                        expected.to.have.status(200);",
+					"                        expected.to.have.header(\"Cache-Status\");",
+					"                        expected.to.have.header(\"Age\");",
+					"                        pm.expect(resVary2.headers.get(\"Cache-Status\")).to.include(\"Souin; hit; ttl=14\");",
+					"                        pm.expect(resVary2.text()).to.eql(\"Hello should-vary-2\");",
+					"                    });",
+					"                });",
 					"            });",
 					"        });",
 					"    },",
