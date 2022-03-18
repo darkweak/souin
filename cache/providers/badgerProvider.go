@@ -18,6 +18,8 @@ type Badger struct {
 	stale time.Duration
 }
 
+var enabledBadgerInstances = make(map[string]*Badger)
+
 // BadgerConnectionFactory function create new Badger instance
 func BadgerConnectionFactory(c t.AbstractConfigurationInterface) (*Badger, error) {
 	dc := c.GetDefaultCache()
@@ -37,12 +39,22 @@ func BadgerConnectionFactory(c t.AbstractConfigurationInterface) (*Badger, error
 	} else {
 		badgerOptions = badgerOptions.WithInMemory(true)
 	}
+
+	uid := badgerOptions.Dir + badgerOptions.ValueDir
+	if i, ok := enabledBadgerInstances[uid]; ok {
+		return i, nil
+	}
+
 	db, e := badger.Open(badgerOptions)
+
 	if e != nil {
 		fmt.Println("Impossible to open the Badger DB.", e)
 	}
 
-	return &Badger{DB: db, stale: dc.GetStale()}, nil
+	i := &Badger{DB: db, stale: dc.GetStale()}
+	enabledBadgerInstances[uid] = i
+
+	return i, nil
 }
 
 // ListKeys method returns the list of existing keys
