@@ -532,7 +532,7 @@ experimental:
   plugins:
     souin:
       moduleName: github.com/darkweak/souin
-      version: v1.6.2
+      version: v1.6.3
 ```
 After that you can declare either the whole configuration at once in the middleware block or by service. See the examples below.
 ```yaml
@@ -598,7 +598,7 @@ services:
     labels:
       # other labels...
       - traefik.http.routers.whoami.middlewares=http-cache
-      - traefik.http.middlewares.http-cache.plugin.souin-plugin.api.souin.enable=true
+      - traefik.http.middlewares.http-cache.plugin.souin-plugin.api.souin
       - traefik.http.middlewares.http-cache.plugin.souin-plugin.default_cache.headers=Authorization,Content-Type
       - traefik.http.middlewares.http-cache.plugin.souin-plugin.default_cache.ttl=10s
       - traefik.http.middlewares.http-cache.plugin.souin-plugin.log_level=debug
