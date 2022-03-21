@@ -1,0 +1,10 @@
+version: '3.8'
+
+services:
+  chi:
+    build:
+      context: ../../..
+      dockerfile: plugins/chi/examples/Dockerfile.test
+      target: development-runner
+    ports:
+      - 80:80
