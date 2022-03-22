@@ -93,6 +93,7 @@ func (s *SouinCaddyPlugin) ServeHTTP(rw http.ResponseWriter, r *http.Request, ne
 	return plugins.DefaultSouinPluginCallback(customWriter, req, s.Retriever, nil, func(_ http.ResponseWriter, _ *http.Request) error {
 		var e error
 		if e = combo.next.ServeHTTP(customWriter, r); e != nil {
+			customWriter.Header().Add("Cache-Status", "Souin; fwd=uri-miss")
 			return e
 		}
 
