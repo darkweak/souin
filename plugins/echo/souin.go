@@ -113,7 +113,7 @@ func (s *SouinEchoPlugin) Process(next echo.HandlerFunc) echo.HandlerFunc {
 		req.Header.Set("Date", time.Now().UTC().Format(time.RFC1123))
 		combo := ctx.Value(getterContextCtxKey).(getterContext)
 
-		plugins.DefaultSouinPluginCallback(customWriter, req, s.Retriever, nil, func(_ http.ResponseWriter, _ *http.Request) error {
+		return plugins.DefaultSouinPluginCallback(customWriter, req, s.Retriever, nil, func(_ http.ResponseWriter, _ *http.Request) error {
 			var e error
 			if e = combo.next(c); e != nil {
 				return e
@@ -127,7 +127,5 @@ func (s *SouinEchoPlugin) Process(next echo.HandlerFunc) echo.HandlerFunc {
 			_, _ = customWriter.Send()
 			return e
 		})
-
-		return nil
 	}
 }

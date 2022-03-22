@@ -321,6 +321,45 @@
 					"response": []
 				},
 				{
+					"name": "Serve HTTP errored",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.serveHTTPError(pm, `${utils.getVar(pm, 'caddy_url')}/no-reverse-proxy`)"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-something",
+								"value": "should-vary-1",
+								"type": "text"
+							},
+							{
+								"key": "Cache-Control",
+								"value": "",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{caddy_url}}/no-reverse-proxy",
+							"host": [
+								"{{caddy_url}}"
+							],
+							"path": [
+								"no-reverse-proxy"
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "Default no store",
 					"event": [
 						{
@@ -1495,6 +1534,23 @@
 					"                    }",
 					"                }",
 					"            );",
+					"        });",
+					"    },",
+					"    serveHTTPError: (pm, baseUrl = '') => {",
+					"        pm.test(\"Status code is 502 with Cache-Status header\", function () {",
+					"            pm.response.to.have.status(502);",
+					"            pm.response.to.have.header(\"Cache-Status\");",
+					"            pm.expect(pm.response.headers.get(\"Cache-Status\")).to.eql(\"Souin; fwd=uri-miss\");",
+					"            pm.response.to.not.have.header(\"Age\");",
+					"        });",
+					"        pm.sendRequest(utils.request(baseUrl, ''), function (_, response) {",
+					"            pm.test('Status code is 200, Cache-Status is present without Age', function () {",
+					"                const expected = pm.expect(response);",
+					"                expected.to.have.status(502);",
+					"                expected.to.have.header(\"Cache-Status\");",
+					"                pm.expect(response.headers.get(\"Cache-Status\")).to.eql(\"Souin; fwd=uri-miss\");",
+					"                pm.response.to.not.have.header(\"Age\");",
+					"            });",
 					"        });",
 					"    },",
 					"    validateAge: (pm, age, baseUrl = '') => {",
