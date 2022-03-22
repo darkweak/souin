@@ -34,7 +34,7 @@ func ServeResponse(
 	res http.ResponseWriter,
 	req *http.Request,
 	retriever types.RetrieverResponsePropertiesInterface,
-	callback func(http.ResponseWriter, *http.Request, types.RetrieverResponsePropertiesInterface, RequestCoalescingInterface, func(http.ResponseWriter, *http.Request) error),
+	callback func(http.ResponseWriter, *http.Request, types.RetrieverResponsePropertiesInterface, RequestCoalescingInterface, func(http.ResponseWriter, *http.Request) error) error,
 	rc RequestCoalescingInterface,
 	nm func(w http.ResponseWriter, r *http.Request) error,
 ) {
@@ -45,5 +45,5 @@ func ServeResponse(
 		}
 	}
 
-	callback(res, req, retriever, rc, nm)
+	_ = callback(res, req, retriever, rc, nm)
 }

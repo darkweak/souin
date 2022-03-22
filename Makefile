@@ -1,6 +1,6 @@
-.PHONY: build-and-run-caddy build-and-run-caddy-json build-and-run-echo build-and-run-gin build-and-run-skipper build-and-run-traefik \
-	build-and-run-tyk build-and-run-webgo build-app build-caddy build-dev coverage create-network down env-dev env-prod gatling generate-plantUML \
-	golangci-lint health-check-prod help lint log tests up validate vendor-plugins
+.PHONY: build-and-run-caddy build-and-run-caddy-json build-and-run-chi build-and-run-echo build-and-run-gin build-and-run-skipper \
+	build-and-run-traefik build-and-run-tyk build-and-run-webgo build-app build-caddy build-dev coverage create-network down env-dev \
+	env-prod gatling generate-plantUML golangci-lint health-check-prod help lint log tests up validate vendor-plugins
 
 DC=docker-compose
 DC_BUILD=$(DC) build
@@ -13,6 +13,9 @@ build-and-run-caddy: ## Run caddy binary with the Caddyfile configuration
 build-and-run-caddy-json:  ## Run caddy binary with the json configuration
 	$(MAKE) build-caddy
 	cd plugins/caddy && ./caddy run --config ./configuration.json
+
+build-and-run-chi:  ## Run Chi with Souin as plugin
+	cd plugins/chi && $(MAKE) prepare
 
 build-and-run-echo:  ## Run Echo with Souin as plugin
 	cd plugins/echo && $(MAKE) prepare
@@ -94,6 +97,7 @@ up: ## Up containers
 validate: lint tests down health-check-prod ## Run lint, tests and ensure prod can build
 
 vendor-plugins: ## Generate and prepare vendors for each plugin
+	cd plugins/chi && $(MAKE) vendor
 	cd plugins/echo && $(MAKE) vendor
 	cd plugins/gin && $(MAKE) vendor
 	cd plugins/skipper && $(MAKE) vendor

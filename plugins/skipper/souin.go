@@ -81,7 +81,7 @@ func (s *httpcache) Request(ctx filters.FilterContext) {
 		return
 	}
 
-	plugins.DefaultSouinPluginCallback(writer, req, s.Retriever, nil, func(_ http.ResponseWriter, _ *http.Request) error {
+	_ = plugins.DefaultSouinPluginCallback(writer, req, s.Retriever, nil, func(_ http.ResponseWriter, _ *http.Request) error {
 		return nil
 	})
 

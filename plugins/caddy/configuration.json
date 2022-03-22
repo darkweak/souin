@@ -5,7 +5,7 @@
         "Content-Type",
         "Authorization"
       ],
-      "log_level": "info",
+      "log_level": "debug",
       "ttl": "1000s"
     },
     "http": {
@@ -16,45 +16,6 @@
             {
               "match": [
                 {
-                  "header": {
-                    "Content-Type": ["*"]
-                  },
-                  "path": [
-                    "/a*"
-                  ]
-                }
-              ],
-              "handle": [
-                {
-                  "handler": "cache",
-                  "ttl": "30s"
-                }
-              ]
-            },
-            {
-              "match": [
-                {
-                  "header": {
-                    "Content-Type": ["*"]
-                  },
-                  "path": [
-                    "/b*"
-                  ]
-                }
-              ],
-              "handle": [
-                {
-                  "handler": "cache",
-                  "headers": []
-                }
-              ]
-            },
-            {
-              "match": [
-                {
-                  "header": {
-                    "Content-Type": ["*"]
-                  },
                   "path": [
                     "*"
                   ]
@@ -63,11 +24,26 @@
               "handle": [
                 {
                   "handler": "cache"
+                },
+                {
+                  "handler": "reverse_proxy",
+                  "upstreams": [
+                    {
+                      "dial": "127.0.0.1:9000"
+                    }
+                  ]
                 }
               ]
             }
           ]
         }
+      }
+    }
+  },
+  "logging": {
+    "logs": {
+      "": {
+        "level": "debug"
       }
     }
   }

@@ -1,4 +1,4 @@
-package souin
+package chi
 
 import (
 	"bytes"
@@ -12,7 +12,6 @@ import (
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/plugins"
 	"github.com/darkweak/souin/rfc"
-	"github.com/labstack/echo/v4"
 )
 
 const (
@@ -39,7 +38,6 @@ var (
 			},
 		},
 		DefaultCache: &configurationtypes.DefaultCache{
-			AllowedHTTPVerbs: []string{http.MethodGet},
 			Regex: configurationtypes.Regex{
 				Exclude: "/excluded",
 			},
@@ -51,23 +49,23 @@ var (
 	}
 )
 
-// SouinEchoPlugin declaration.
+// SouinChiMiddleware declaration.
 type (
-	key             string
-	SouinEchoPlugin struct {
+	key                string
+	SouinChiMiddleware struct {
 		plugins.SouinBasePlugin
 		Configuration *Configuration
 		bufPool       *sync.Pool
 	}
 	getterContext struct {
-		next echo.HandlerFunc
+		next http.HandlerFunc
 		rw   http.ResponseWriter
 		req  *http.Request
 	}
 )
 
-func New(c Configuration) *SouinEchoPlugin {
-	s := SouinEchoPlugin{}
+func NewHTTPCache(c Configuration) *SouinChiMiddleware {
+	s := SouinChiMiddleware{}
 	s.Configuration = &c
 	s.bufPool = &sync.Pool{
 		New: func() interface{} {
@@ -82,19 +80,20 @@ func New(c Configuration) *SouinEchoPlugin {
 	return &s
 }
 
-func (s *SouinEchoPlugin) Process(next echo.HandlerFunc) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		req := c.Request()
-		rw := c.Response().Writer
-		req = s.Retriever.GetContext().Method.SetContext(req)
-		if !plugins.CanHandle(req, s.Retriever) {
-			rw.Header().Add("Cache-Status", "Souin; fwd=uri-miss")
-			return next(c)
-		}
-
+func (s *SouinChiMiddleware) Handle(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+		req := s.Retriever.GetContext().Method.SetContext(r)
 		if b, handler := s.HandleInternally(req); b {
 			handler(rw, req)
-			return nil
+
+			return
+		}
+
+		if !plugins.CanHandle(req, s.Retriever) {
+			rw.Header().Add("Cache-Status", "Souin; fwd=uri-miss")
+			next.ServeHTTP(rw, r)
+
+			return
 		}
 
 		customWriter := &plugins.CustomWriter{
@@ -103,21 +102,20 @@ func (s *SouinEchoPlugin) Process(next echo.HandlerFunc) echo.HandlerFunc {
 			Rw:       rw,
 		}
 		req = s.Retriever.GetContext().SetContext(req)
-		getterCtx := getterContext{next, customWriter, req}
-		c.Response().Writer = customWriter
+		getterCtx := getterContext{next.ServeHTTP, customWriter, req}
 		ctx := context.WithValue(req.Context(), getterContextCtxKey, getterCtx)
 		req = req.WithContext(ctx)
 		if plugins.HasMutation(req, rw) {
-			return next(c)
+			next.ServeHTTP(rw, r)
+
+			return
 		}
 		req.Header.Set("Date", time.Now().UTC().Format(time.RFC1123))
 		combo := ctx.Value(getterContextCtxKey).(getterContext)
 
-		return plugins.DefaultSouinPluginCallback(customWriter, req, s.Retriever, nil, func(_ http.ResponseWriter, _ *http.Request) error {
+		_ = plugins.DefaultSouinPluginCallback(customWriter, req, s.Retriever, nil, func(_ http.ResponseWriter, _ *http.Request) error {
 			var e error
-			if e = combo.next(c); e != nil {
-				return e
-			}
+			combo.next.ServeHTTP(customWriter, r)
 
 			combo.req.Response = customWriter.Response
 			if combo.req.Response, e = s.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(combo.req); e != nil {
@@ -127,5 +125,5 @@ func (s *SouinEchoPlugin) Process(next echo.HandlerFunc) echo.HandlerFunc {
 			_, _ = customWriter.Send()
 			return e
 		})
-	}
+	})
 }

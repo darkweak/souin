@@ -101,7 +101,7 @@ func DefaultSouinPluginCallback(
 	retriever types.RetrieverResponsePropertiesInterface,
 	rc coalescing.RequestCoalescingInterface,
 	nextMiddleware func(w http.ResponseWriter, r *http.Request) error,
-) {
+) (e error) {
 	prometheus.Increment(prometheus.RequestCounter)
 	start := time.Now()
 	coalesceable := make(chan bool)
@@ -171,9 +171,11 @@ func DefaultSouinPluginCallback(
 	if <-coalesceable && rc != nil {
 		rc.Temporize(req, res, nextMiddleware)
 	} else {
-		_ = nextMiddleware(res, req)
+		e = nextMiddleware(res, req)
 	}
 	prometheus.Add(prometheus.AvgResponseTime, float64(time.Since(start).Milliseconds()))
+
+	return e
 }
 
 // DefaultSouinPluginInitializerFromConfiguration is the default initialization for plugins

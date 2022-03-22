@@ -70,4 +70,9 @@ route /cache-maxage {
     respond "Hello, max-age!"
 }
 
+route /no-reverse-proxy {
+    cache
+    reverse_proxy 127.0.0.1:9000
+}
+
 cache @souin-api {}
