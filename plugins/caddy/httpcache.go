@@ -90,7 +90,7 @@ func (s *SouinCaddyPlugin) ServeHTTP(rw http.ResponseWriter, r *http.Request, ne
 	req.Header.Set("Date", time.Now().UTC().Format(time.RFC1123))
 	combo := ctx.Value(getterContextCtxKey).(getterContext)
 
-	plugins.DefaultSouinPluginCallback(customWriter, req, s.Retriever, nil, func(_ http.ResponseWriter, _ *http.Request) error {
+	return plugins.DefaultSouinPluginCallback(customWriter, req, s.Retriever, nil, func(_ http.ResponseWriter, _ *http.Request) error {
 		var e error
 		if e = combo.next.ServeHTTP(customWriter, r); e != nil {
 			return e
@@ -104,8 +104,6 @@ func (s *SouinCaddyPlugin) ServeHTTP(rw http.ResponseWriter, r *http.Request, ne
 		_, _ = customWriter.Send()
 		return e
 	})
-
-	return nil
 }
 
 func (s *SouinCaddyPlugin) configurationPropertyMapper() error {

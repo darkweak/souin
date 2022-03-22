@@ -97,6 +97,7 @@ up: ## Up containers
 validate: lint tests down health-check-prod ## Run lint, tests and ensure prod can build
 
 vendor-plugins: ## Generate and prepare vendors for each plugin
+	cd plugins/chi && $(MAKE) vendor
 	cd plugins/echo && $(MAKE) vendor
 	cd plugins/gin && $(MAKE) vendor
 	cd plugins/skipper && $(MAKE) vendor
