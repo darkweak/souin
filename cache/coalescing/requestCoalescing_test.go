@@ -1,11 +1,12 @@
 package coalescing
 
 import (
-	"github.com/darkweak/souin/cache/surrogate"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
 	"testing"
+
+	"github.com/darkweak/souin/cache/surrogate"
 
 	"github.com/darkweak/souin/cache/providers"
 	"github.com/darkweak/souin/cache/types"
@@ -50,7 +51,8 @@ func TestServeResponse(t *testing.T) {
 			types.RetrieverResponsePropertiesInterface,
 			RequestCoalescingInterface,
 			func(http.ResponseWriter, *http.Request) error,
-		) {
+		) error {
+			return nil
 		},
 		rc,
 		func(http.ResponseWriter, *http.Request) error {

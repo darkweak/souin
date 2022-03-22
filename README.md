@@ -19,6 +19,7 @@
   7.1. [Træfik container](#træfik-container)
 8. [Plugins](#plugins)  
   8.1. [Caddy module](#caddy-module)  
+  8.1. [Chi middleware](#chi-middleware)  
   8.3. [Echo middleware](#echo-middleware)  
   8.4. [Gin middleware](#gin-middleware)  
   8.5. [Skipper filter](#skipper-filter)  
@@ -451,6 +452,29 @@ cache @matchdefault {
 cache @souin-api {}
 ```
 
+### Chi middleware
+To use Souin as chi middleware, you can refer to the [Chi middleware integration folder](https://github.com/darkweak/souin/tree/master/plugins/chi) to discover how to configure it.  
+You just have to define a new chi router and tell to the instance to use the `Handle` method like below:
+```go
+import (
+	"net/http"
+
+	cache "github.com/darkweak/souin/plugins/chi"
+	"github.com/go-chi/chi/v5"
+)
+
+func main(){
+
+    // ...
+	router := chi.NewRouter()
+	httpcache := cache.NewHTTPCache(cache.DevDefaultConfiguration)
+	router.Use(httpcache.Handle)
+	router.Get("/*", defaultHandler)
+    // ...
+
+}
+```
+
 ### Echo middleware
 To use Souin as echo middleware, you can refer to the [Echo plugin integration folder](https://github.com/darkweak/souin/tree/master/plugins/echo) to discover how to configure it.  
 You just have to define a new echo router and tell to the instance to use the process method like below:
@@ -532,7 +556,7 @@ experimental:
   plugins:
     souin:
       moduleName: github.com/darkweak/souin
-      version: v1.6.2
+      version: v1.6.3
 ```
 After that you can declare either the whole configuration at once in the middleware block or by service. See the examples below.
 ```yaml
@@ -598,7 +622,7 @@ services:
     labels:
       # other labels...
       - traefik.http.routers.whoami.middlewares=http-cache
-      - traefik.http.middlewares.http-cache.plugin.souin-plugin.api.souin.enable=true
+      - traefik.http.middlewares.http-cache.plugin.souin-plugin.api.souin
       - traefik.http.middlewares.http-cache.plugin.souin-plugin.default_cache.headers=Authorization,Content-Type
       - traefik.http.middlewares.http-cache.plugin.souin-plugin.default_cache.ttl=10s
       - traefik.http.middlewares.http-cache.plugin.souin-plugin.log_level=debug

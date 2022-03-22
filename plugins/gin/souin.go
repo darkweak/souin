@@ -120,7 +120,7 @@ func (s *SouinGinPlugin) Process() gin.HandlerFunc {
 		req.Header.Set("Date", time.Now().UTC().Format(time.RFC1123))
 		combo := ctx.Value(getterContextCtxKey).(getterContext)
 
-		plugins.DefaultSouinPluginCallback(customWriter.CustomWriter, req, s.Retriever, nil, func(_ http.ResponseWriter, _ *http.Request) error {
+		_ = plugins.DefaultSouinPluginCallback(customWriter.CustomWriter, req, s.Retriever, nil, func(_ http.ResponseWriter, _ *http.Request) error {
 			var e error
 			combo.c.Next()
 

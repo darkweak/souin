@@ -4,8 +4,8 @@ go 1.16
 
 require (
 	github.com/bnkamalesh/webgo/v6 v6.6.1
-	github.com/darkweak/souin v1.6.2
+	github.com/darkweak/souin v1.6.3
 	go.uber.org/zap v1.19.1
 )
 
-replace github.com/darkweak/souin v1.6.2 => ../..
+replace github.com/darkweak/souin v1.6.3 => ../..
