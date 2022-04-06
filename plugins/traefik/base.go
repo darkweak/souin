@@ -66,7 +66,11 @@ func (r *CustomWriter) Send() (int, error) {
 		}
 	}
 	r.Rw.WriteHeader(r.Response.StatusCode)
-	b, _ := ioutil.ReadAll(r.Response.Body)
+	var b []byte
+
+	if r.Response.Body != nil {
+		b, _ = ioutil.ReadAll(r.Response.Body)
+	}
 	return r.Rw.Write(b)
 }
 
