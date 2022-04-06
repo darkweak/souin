@@ -70,6 +70,13 @@ route /cache-maxage {
     respond "Hello, max-age!"
 }
 
+route /not-modified {
+    cache {
+        ttl 5s
+    }
+    reverse_proxy 127.0.0.1:9000
+}
+
 route /no-reverse-proxy {
     cache
     reverse_proxy 127.0.0.1:9000
