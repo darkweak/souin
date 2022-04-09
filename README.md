@@ -19,15 +19,16 @@
   7.1. [Træfik container](#træfik-container)
 8. [Plugins](#plugins)  
   8.1. [Caddy module](#caddy-module)  
-  8.1. [Chi middleware](#chi-middleware)  
+  8.2. [Chi middleware](#chi-middleware)  
   8.3. [Echo middleware](#echo-middleware)  
-  8.4. [Gin middleware](#gin-middleware)  
-  8.5. [Skipper filter](#skipper-filter)  
-  8.6. [Træfik plugin](#træfik-plugin)  
-  8.7. [Tyk plugin](#tyk-plugin)  
-  8.8. [Webgo middleware](#webgo-middleware)  
-  8.9. [Prestashop plugin](#prestashop-plugin)  
-  8.10. [Wordpress plugin](#wordpress-plugin)  
+  8.4. [Fiber middleware](#fiber-middleware)  
+  8.5. [Gin middleware](#gin-middleware)  
+  8.6. [Skipper filter](#skipper-filter)  
+  8.7. [Træfik plugin](#træfik-plugin)  
+  8.8. [Tyk plugin](#tyk-plugin)  
+  8.9. [Webgo middleware](#webgo-middleware)  
+  8.10. [Prestashop plugin](#prestashop-plugin)  
+  8.11. [Wordpress plugin](#wordpress-plugin)  
 9. [Credits](#credits)
 
 [![Travis CI](https://travis-ci.com/Darkweak/Souin.svg?branch=master)](https://travis-ci.com/Darkweak/Souin)
@@ -492,6 +493,25 @@ func main(){
 	e := echo.New()
 	s := souin_echo.New(souin_echo.DefaultConfiguration)
 	e.Use(s.Process)
+    // ...
+
+}
+```
+
+### Fiber middleware
+To use Souin as fiber middleware, you can refer to the [Fiber plugin integration folder](https://github.com/darkweak/souin/tree/master/plugins/fiber) to discover how to configure it.  
+You just have to define a new fiber router and tell to the instance to use the process method like below:
+```go
+import (
+	cache "github.com/darkweak/souin/plugins/fiber"
+	"github.com/gofiber/fiber/v2"
+)
+
+func main(){
+
+    // ...
+	httpcache := cache.NewHTTPCache(cache.DevDefaultConfiguration)
+	app.Use(httpcache.Handle)
     // ...
 
 }

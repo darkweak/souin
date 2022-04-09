@@ -49,7 +49,6 @@ func prepare() (res *httptest.ResponseRecorder, res2 *httptest.ResponseRecorder,
 
 func Test_SouinChiPlugin_Middleware(t *testing.T) {
 	res, res2, router := prepare()
-	fmt.Println(router)
 	req := httptest.NewRequest(http.MethodGet, "/handled", nil)
 	req.Header = http.Header{}
 	router.ServeHTTP(res, req)
@@ -69,7 +68,6 @@ func Test_SouinChiPlugin_Middleware(t *testing.T) {
 
 func Test_SouinChiPlugin_Middleware_CannotHandle(t *testing.T) {
 	res, res2, router := prepare()
-	fmt.Println(router)
 	req := httptest.NewRequest(http.MethodGet, "/not-handled", nil)
 	req.Header = http.Header{}
 	req.Header.Add("Cache-Control", "no-cache")
@@ -91,7 +89,6 @@ func Test_SouinChiPlugin_Middleware_CannotHandle(t *testing.T) {
 func Test_SouinChiPlugin_Middleware_APIHandle(t *testing.T) {
 	time.Sleep(DevDefaultConfiguration.DefaultCache.GetTTL() + DevDefaultConfiguration.GetDefaultCache().GetStale())
 	res, res2, router := prepare()
-	fmt.Println(router)
 	req := httptest.NewRequest(http.MethodGet, "/souin-api/souin", nil)
 	req.Header = http.Header{}
 	router.ServeHTTP(res, req)
@@ -101,7 +98,6 @@ func Test_SouinChiPlugin_Middleware_APIHandle(t *testing.T) {
 	}
 	b, _ := ioutil.ReadAll(res.Result().Body)
 	res.Result().Body.Close()
-	fmt.Println(string(b))
 	if string(b) != "[]" {
 		t.Error("The response body must be an empty array because no request has been stored")
 	}
