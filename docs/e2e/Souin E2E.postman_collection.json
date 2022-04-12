@@ -2067,7 +2067,7 @@
 		},
 		{
 			"key": "goyave_url",
-			"value": "http://domain.com:8080"
+			"value": "http://domain.com"
 		}
 	]
 }

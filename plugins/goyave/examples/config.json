@@ -6,8 +6,7 @@
         "defaultLanguage": "en-US"
     },
     "server": {
-        "host": "127.0.0.1",
-        "maintenance": false,
+        "host": "0.0.0.0",
         "protocol": "http",
         "domain": "domain.com",
         "port": 80

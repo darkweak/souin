@@ -236,7 +236,7 @@ jobs:
           time: 30s
       -
         name: Set Goyave logs configuration result as environment variable
-        run: cd plugins/goyave/examples && echo "GOYAVE_MIDDLEWARE_RESULT=$(docker-compose logs goyave)" >> $GITHUB_ENV
+        run: cd plugins/goyave/examples && echo "GOYAVE_MIDDLEWARE_RESULT=$(docker-compose logs goyave | grep Souin)" >> $GITHUB_ENV
       -
         name: Check if the configuration is loaded to define if Souin is loaded too
         uses: nick-invision/assert-action@v1
