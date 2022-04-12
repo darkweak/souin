@@ -10,7 +10,6 @@
         "maintenance": false,
         "protocol": "http",
         "domain": "domain.com",
-        "port": 8080,
-        "httpsPort": 8081
+        "port": 80
     }
 }
