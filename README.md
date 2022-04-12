@@ -542,7 +542,7 @@ func main(){
 
 ### Goyave middleware
 To use Souin as goyave middleware, you can refer to the [Goyave plugin integration folder](https://github.com/darkweak/souin/tree/master/plugins/goyave) to discover how to configure it.  
-You just have to define a new gin router and tell to the instance to use the process method like below:
+You just have to start Goyave, define a new goyave router and tell to the router instance to use the Handle method as GlobalMiddleware like below:
 ```go
 import (
 	"net/http"

@@ -60,7 +60,7 @@ type (
 	}
 	getterContext struct {
 		next goyave.Handler
-		rw   http.ResponseWriter
+		rw   *goyaveWriterDecorator
 		req  *http.Request
 	}
 )
@@ -84,7 +84,7 @@ func NewHTTPCache(c Configuration) *SouinGoyaveMiddleware {
 func (s *SouinGoyaveMiddleware) Handle(next goyave.Handler) goyave.Handler {
 	return func(response *goyave.Response, request *goyave.Request) {
 		req := s.Retriever.GetContext().Method.SetContext(request.Request())
-		if b, handler := s.HandleInternally(req); b {
+		if b, handler := s.HandleInternally(req); b || response.Hijacked() {
 			handler(response, req)
 
 			return
@@ -103,10 +103,8 @@ func (s *SouinGoyaveMiddleware) Handle(next goyave.Handler) goyave.Handler {
 			buf:            s.bufPool.Get().(*bytes.Buffer),
 			writer:         response.Writer(),
 			request:        req,
-			updateCache:    s.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually,
 			goyaveResponse: response,
 		}
-		response.SetWriter(customWriter)
 		getterCtx := getterContext{next, customWriter, req}
 		ctx := context.WithValue(req.Context(), getterContextCtxKey, getterCtx)
 		req = req.WithContext(ctx)
@@ -116,8 +114,11 @@ func (s *SouinGoyaveMiddleware) Handle(next goyave.Handler) goyave.Handler {
 			return
 		}
 		req.Header.Set("Date", time.Now().UTC().Format(time.RFC1123))
+		combo := ctx.Value(getterContextCtxKey).(getterContext)
+		response.SetWriter(combo.rw)
 
-		_ = plugins.DefaultSouinPluginCallback(customWriter, req, s.Retriever, nil, func(_ http.ResponseWriter, _ *http.Request) error {
+		_ = plugins.DefaultSouinPluginCallback(combo.rw, req, s.Retriever, nil, func(_ http.ResponseWriter, _ *http.Request) error {
+			combo.rw.updateCache = s.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually
 			next(response, request)
 
 			return nil

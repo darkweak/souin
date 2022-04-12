@@ -9,9 +9,8 @@ import (
 
 func main() {
 	goyave.Start(func(r *goyave.Router) {
-		r.GlobalMiddleware(cache.NewHTTPCache(cache.DevDefaultConfiguration).Handle)
-		r.Route("GET", "/*", func(response *goyave.Response, r *goyave.Request) {
+		r.Get("/{p}", func(response *goyave.Response, r *goyave.Request) {
 			response.String(http.StatusOK, "Hello, World 👋!")
-		})
+		}).Middleware(cache.NewHTTPCache(cache.DevDefaultConfiguration).Handle)
 	})
 }

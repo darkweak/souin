@@ -56,7 +56,9 @@ func (g *goyaveWriterDecorator) PreWrite(b []byte) {
 	g.buf.Write(b)
 	g.Response.Body = ioutil.NopCloser(g.buf)
 	g.request.Response = g.Response
-	g.Response, _ = g.updateCache(g.request)
+	if g.updateCache != nil {
+		g.Response, _ = g.updateCache(g.request)
+	}
 	for k, v := range g.Response.Header {
 		g.goyaveResponse.Header().Set(k, v[0])
 	}
