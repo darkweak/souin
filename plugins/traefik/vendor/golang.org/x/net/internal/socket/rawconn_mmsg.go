@@ -10,6 +10,7 @@ package socket
 import (
 	"net"
 	"os"
+	"syscall"
 )
 
 func (c *Conn) recvMsgs(ms []Message, flags int) (int, error) {
@@ -27,7 +28,10 @@ func (c *Conn) recvMsgs(ms []Message, flags int) (int, error) {
 	var n int
 	fn := func(s uintptr) bool {
 		n, operr = recvmmsg(s, hs, flags)
-		return ioComplete(flags, operr)
+		if operr == syscall.EAGAIN {
+			return false
+		}
+		return true
 	}
 	if err := c.c.Read(fn); err != nil {
 		return n, err
@@ -56,7 +60,10 @@ func (c *Conn) sendMsgs(ms []Message, flags int) (int, error) {
 	var n int
 	fn := func(s uintptr) bool {
 		n, operr = sendmmsg(s, hs, flags)
-		return ioComplete(flags, operr)
+		if operr == syscall.EAGAIN {
+			return false
+		}
+		return true
 	}
 	if err := c.c.Write(fn); err != nil {
 		return n, err
