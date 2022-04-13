@@ -23,12 +23,13 @@
   8.3. [Echo middleware](#echo-middleware)  
   8.4. [Fiber middleware](#fiber-middleware)  
   8.5. [Gin middleware](#gin-middleware)  
-  8.6. [Skipper filter](#skipper-filter)  
-  8.7. [Træfik plugin](#træfik-plugin)  
-  8.8. [Tyk plugin](#tyk-plugin)  
-  8.9. [Webgo middleware](#webgo-middleware)  
-  8.10. [Prestashop plugin](#prestashop-plugin)  
-  8.11. [Wordpress plugin](#wordpress-plugin)  
+  8.6. [Goyave middleware](#goyave-middleware)  
+  8.7. [Skipper filter](#skipper-filter)  
+  8.8. [Træfik plugin](#træfik-plugin)  
+  8.9. [Tyk plugin](#tyk-plugin)  
+  8.10. [Webgo middleware](#webgo-middleware)  
+  8.11. [Prestashop plugin](#prestashop-plugin)  
+  8.12. [Wordpress plugin](#wordpress-plugin)  
 9. [Credits](#credits)
 
 [![Travis CI](https://travis-ci.com/Darkweak/Souin.svg?branch=master)](https://travis-ci.com/Darkweak/Souin)
@@ -536,6 +537,26 @@ func main(){
 	r.Use(s.Process())
     // ...
 
+}
+```
+
+### Goyave middleware
+To use Souin as goyave middleware, you can refer to the [Goyave plugin integration folder](https://github.com/darkweak/souin/tree/master/plugins/goyave) to discover how to configure it.  
+You just have to start Goyave, define a new goyave router and tell to the router instance to use the Handle method as GlobalMiddleware like below:
+```go
+import (
+	"net/http"
+
+	cache "github.com/darkweak/souin/plugins/goyave"
+	"goyave.dev/goyave/v4"
+)
+
+func main() {
+	// ...
+	goyave.Start(func(r *goyave.Router) {
+		r.GlobalMiddleware(cache.NewHTTPCache(cache.DevDefaultConfiguration).Handle)
+		// ...
+	})
 }
 ```
 
