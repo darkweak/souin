@@ -23,7 +23,7 @@ var stripOutHeaders = []string{
 }
 
 func Handler(cacheSize int, ttl time.Duration, paths ...string) func(next http.Handler) http.Handler {
-	keyFunc := func(r *http.Request) uint64 {
+	defaultKeyFunc := func(r *http.Request) uint64 {
 		// Read the request payload, and then setup buffer for future reader
 		var buf []byte
 		if r.Body != nil {
@@ -36,6 +36,10 @@ func Handler(cacheSize int, ttl time.Duration, paths ...string) func(next http.H
 		return key
 	}
 
+	return HandlerWithKey(cacheSize, ttl, defaultKeyFunc, paths...)
+}
+
+func HandlerWithKey(cacheSize int, ttl time.Duration, keyFunc func(r *http.Request) uint64, paths ...string) func(next http.Handler) http.Handler {
 	// mapping of url paths that are cacheable by the stampede handler
 	pathMap := map[string]struct{}{}
 	for _, path := range paths {
@@ -49,7 +53,7 @@ func Handler(cacheSize int, ttl time.Duration, paths ...string) func(next http.H
 	// executes, and the remaining handlers will use the response from
 	// the first request. The content thereafter will be cached for up to
 	// ttl time for subsequent requests for further caching.
-	h := HandlerWithKey(cacheSize, ttl, keyFunc)
+	h := stampede(cacheSize, ttl, keyFunc)
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -72,19 +76,14 @@ func Handler(cacheSize int, ttl time.Duration, paths ...string) func(next http.H
 	}
 }
 
-func HandlerWithKey(cacheSize int, ttl time.Duration, keyFunc ...func(r *http.Request) uint64) func(next http.Handler) http.Handler {
+func stampede(cacheSize int, ttl time.Duration, keyFunc func(r *http.Request) uint64) func(next http.Handler) http.Handler {
 	cache := NewCache(cacheSize, ttl, ttl*2)
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 			// cache key for the request
-			var key uint64
-			if len(keyFunc) > 0 {
-				key = keyFunc[0](r)
-			} else {
-				key = StringToHash(r.Method, strings.ToLower(r.URL.Path))
-			}
+			key := keyFunc(r)
 
 			// mark the request that actually processes the response
 			first := false
@@ -101,6 +100,10 @@ func HandlerWithKey(cacheSize int, ttl time.Duration, keyFunc ...func(r *http.Re
 					headers: ww.Header(),
 					status:  ww.Status(),
 					body:    buf.Bytes(),
+
+					// the handler may not write header and body in some logic,
+					// while writing only the body, an attempt is made to write the default header (http.StatusOK)
+					skip: ww.IsHeaderWrong(),
 				}
 				return val, nil
 			})
@@ -119,6 +122,10 @@ func HandlerWithKey(cacheSize int, ttl time.Duration, keyFunc ...func(r *http.Re
 			resp, ok := val.(responseValue)
 			if !ok {
 				panic("stampede: handler received unexpected response value type")
+			}
+
+			if resp.skip {
+				return
 			}
 
 			header := w.Header()
@@ -149,6 +156,7 @@ type responseValue struct {
 	headers http.Header
 	status  int
 	body    []byte
+	skip    bool
 }
 
 type responseWriter struct {
@@ -165,6 +173,10 @@ func (b *responseWriter) WriteHeader(code int) {
 		b.wroteHeader = true
 		b.ResponseWriter.WriteHeader(code)
 	}
+}
+
+func (b *responseWriter) IsHeaderWrong() bool {
+	return !b.wroteHeader && (b.code < 100 || b.code > 999)
 }
 
 func (b *responseWriter) Write(buf []byte) (int, error) {
