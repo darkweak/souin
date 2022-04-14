@@ -88,6 +88,7 @@ prevent a stampede scenario on your handler.
 to not include anything sensitive or user specific. In the case you require user-specific
 stampede handlers, make sure you pass a custom `keyFunc` to the `stampede.Handler` and
 split the cache by an account's id.
+See [example](_example/with-key.go) for a variety of examples.
 
 
 ## LICENSE

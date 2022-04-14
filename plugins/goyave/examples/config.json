@@ -1,0 +1,14 @@
+{
+    "app": {
+        "name": "goyave_template",
+        "environment": "localhost",
+        "debug": true,
+        "defaultLanguage": "en-US"
+    },
+    "server": {
+        "host": "0.0.0.0",
+        "protocol": "http",
+        "domain": "domain.com",
+        "port": 80
+    }
+}
