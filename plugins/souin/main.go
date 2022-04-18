@@ -82,6 +82,13 @@ func main() {
 
 	http.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
 		request.Header.Set("Date", time.Now().UTC().Format(time.RFC1123))
+		request = retriever.GetContext().Method.SetContext(request)
+
+		if !plugins.CanHandle(request, retriever) {
+			writer.Header().Set("Cache-Status", "Souin; fwd=uri-miss")
+			return
+		}
+
 		request = retriever.GetContext().SetContext(request)
 		callback := func(rw http.ResponseWriter, rq *http.Request, ret souintypes.SouinRetrieverResponseProperties) error {
 			rr := service.RequestReverseProxy(rq, ret)
@@ -99,8 +106,8 @@ func main() {
 			_ = callback(writer, request, *retriever)
 		}
 		retriever.SetMatchedURLFromRequest(request)
-		coalescing.ServeResponse(writer, request, retriever, plugins.DefaultSouinPluginCallback, rc, func(w http.ResponseWriter, r *http.Request) error {
-			return callback(w, r, *retriever)
+		coalescing.ServeResponse(writer, request, retriever, plugins.DefaultSouinPluginCallback, rc, func(_ http.ResponseWriter, _ *http.Request) error {
+			return callback(writer, request, *retriever)
 		})
 	})
 	go func() {

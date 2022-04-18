@@ -188,6 +188,7 @@ func (t *VaryTransport) RoundTrip(req *http.Request) (resp *http.Response, err e
 		resp.Header.Set("Cache-Status", "Souin; fwd=uri-miss")
 	}
 	resp, _ = transport.RoundTrip(req)
+	req.Response = resp
 	if !(cacheable && canStore(parseCacheControl(req.Header), parseCacheControl(resp.Header), req.Response.StatusCode) && validateVary(req, resp, cacheKey, t)) {
 		go func() {
 			t.Transport.CoalescingLayerStorage.Set(cacheKey)

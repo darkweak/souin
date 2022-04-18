@@ -778,3 +778,4 @@ Thanks to these users for contributing or helping this project in any way
 * [Kevin Pollet](https://github.com/kevinpollet)
 * [Choelzl](https://github.com/choelzl)
 * [Menci](https://github.com/menci)
+* [Duy Nguyen](https://github.com/duy-nguyen-devops)

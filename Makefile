@@ -1,7 +1,7 @@
 .PHONY: build-and-run-caddy build-and-run-caddy-json build-and-run-chi build-and-run-echo build-and-run-fiber build-and-run-gin \
-	build-and-run-goyave build-and-run-skipper build-and-run-traefik build-and-run-tyk build-and-run-webgo build-app build-caddy \
-	build-dev coverage create-network down env-dev env-prod gatling generate-plantUML golangci-lint health-check-prod help \
-	lint log tests up validate vendor-plugins
+	build-and-run-goyave build-and-run-skipper build-and-run-souin build-and-run-traefik build-and-run-tyk build-and-run-webgo \
+	build-app build-caddy build-dev coverage create-network down env-dev env-prod gatling generate-plantUML golangci-lint \
+	health-check-prod help lint log tests up validate vendor-plugins
 
 DC=docker-compose
 DC_BUILD=$(DC) build
@@ -27,6 +27,9 @@ build-and-run-fiber:  ## Run Fiber with Souin as plugin
 build-and-run-skipper:  ## Run Skipper with Souin as plugin
 	cd plugins/skipper && $(MAKE) prepare
 
+build-and-run-souin:  ## Run Souin as plugin
+	cd plugins/souin && $(MAKE) prepare
+
 build-and-run-gin:  ## Run Gin with Souin as plugin
 	cd plugins/gin && $(MAKE) prepare
 
@@ -39,7 +42,7 @@ build-and-run-traefik:  ## Run træfik with Souin as plugin
 build-and-run-tyk:  ## Run tyk with Souin as middleware
 	cd plugins/tyk && $(MAKE) prepare
 
-build-and-run-webgo:  ## Run Echo with Souin as plugin
+build-and-run-webgo:  ## Run Webgo with Souin as plugin
 	cd plugins/webgo && $(MAKE) prepare
 
 build-app: env-prod ## Build containers with prod env vars
@@ -110,6 +113,7 @@ vendor-plugins: ## Generate and prepare vendors for each plugin
 	cd plugins/gin && $(MAKE) vendor
 	cd plugins/goyave && $(MAKE) vendor
 	cd plugins/skipper && $(MAKE) vendor
+	cd plugins/souin && $(MAKE) vendor
 	cd plugins/tyk && $(MAKE) vendor
 	cd plugins/webgo && $(MAKE) vendor
 	cd plugins/traefik && $(MAKE) vendor

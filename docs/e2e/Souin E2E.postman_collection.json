@@ -1380,6 +1380,127 @@
 			]
 		},
 		{
+			"name": "Souin",
+			"item": [
+				{
+					"name": "Default",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'souin_url')}/default`, '', true)"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cache-Control",
+								"value": "",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{souin_url}}/default",
+							"host": [
+								"{{souin_url}}"
+							],
+							"path": [
+								"default"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Default no cache",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'souin_url')}/default`, 'no-cache')"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{souin_url}}/default",
+							"host": [
+								"{{souin_url}}"
+							],
+							"path": [
+								"default"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Exclude regex",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'souin_url')}/excluded`, '', false, true)"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cache-Control",
+								"value": "",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{souin_url}}/excluded",
+							"host": [
+								"{{souin_url}}"
+							],
+							"path": [
+								"excluded"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			]
+		},
+		{
 			"name": "Traefik",
 			"item": [
 				{
@@ -2067,6 +2188,10 @@
 		},
 		{
 			"key": "goyave_url",
+			"value": "http://domain.com"
+		},
+		{
+			"key": "souin_url",
 			"value": "http://domain.com"
 		}
 	]
