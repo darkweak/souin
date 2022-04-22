@@ -20,16 +20,17 @@
 8. [Plugins](#plugins)  
   8.1. [Caddy module](#caddy-module)  
   8.2. [Chi middleware](#chi-middleware)  
-  8.3. [Echo middleware](#echo-middleware)  
-  8.4. [Fiber middleware](#fiber-middleware)  
-  8.5. [Gin middleware](#gin-middleware)  
-  8.6. [Goyave middleware](#goyave-middleware)  
-  8.7. [Skipper filter](#skipper-filter)  
-  8.8. [Træfik plugin](#træfik-plugin)  
-  8.9. [Tyk plugin](#tyk-plugin)  
-  8.10. [Webgo middleware](#webgo-middleware)  
-  8.11. [Prestashop plugin](#prestashop-plugin)  
-  8.12. [Wordpress plugin](#wordpress-plugin)  
+  8.3. [Dotweb middleware](#dotweb-middleware)  
+  8.4. [Echo middleware](#echo-middleware)  
+  8.5. [Fiber middleware](#fiber-middleware)  
+  8.6. [Gin middleware](#gin-middleware)  
+  8.7. [Goyave middleware](#goyave-middleware)  
+  8.8. [Skipper filter](#skipper-filter)  
+  8.9. [Træfik plugin](#træfik-plugin)  
+  8.10. [Tyk plugin](#tyk-plugin)  
+  8.11. [Webgo middleware](#webgo-middleware)  
+  8.12. [Prestashop plugin](#prestashop-plugin)  
+  8.13. [Wordpress plugin](#wordpress-plugin)  
 9. [Credits](#credits)
 
 [![Travis CI](https://travis-ci.com/Darkweak/Souin.svg?branch=master)](https://travis-ci.com/Darkweak/Souin)
@@ -472,6 +473,27 @@ func main(){
 	httpcache := cache.NewHTTPCache(cache.DevDefaultConfiguration)
 	router.Use(httpcache.Handle)
 	router.Get("/*", defaultHandler)
+    // ...
+
+}
+```
+
+### Dotweb middleware
+To use Souin as dotweb middleware, you can refer to the [Dotweb plugin integration folder](https://github.com/darkweak/souin/tree/master/plugins/dotweb) to discover how to configure it.  
+You just have to define a new dotweb router and tell to the instance to use the process method like below:
+```go
+import (
+	cache "github.com/darkweak/souin/plugins/dotweb"
+	"github.com/go-dotweb/dotweb/v5"
+)
+
+func main(){
+
+    // ...
+	httpcache := cache.NewHTTPCache(cache.DevDefaultConfiguration)
+	app.HttpServer.GET("/:p", func(ctx dotweb.Context) error {
+		return ctx.WriteString("Hello, World 👋!")
+	}).Use(httpcache)
     // ...
 
 }
