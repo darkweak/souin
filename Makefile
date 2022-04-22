@@ -1,7 +1,7 @@
 .PHONY: build-and-run-caddy build-and-run-caddy-json build-and-run-chi build-and-run-dotweb build-and-run-echo build-and-run-fiber \
 	build-and-run-gin build-and-run-goyave build-and-run-skipper build-and-run-souin build-and-run-traefik build-and-run-tyk \
-	build-and-run-webgo build-app build-caddy build-dev coverage create-network down env-dev env-prod gatling generate-plantUML \
-	golangci-lint health-check-prod help lint log tests up validate vendor-plugins
+	build-and-run-webgo build-app build-caddy build-dev bump-version coverage create-network down env-dev env-prod gatling \
+	generate-plantUML golangci-lint health-check-prod help lint log tests up validate vendor-plugins
 
 DC=docker-compose
 DC_BUILD=$(DC) build
@@ -61,6 +61,12 @@ build-caddy: ## Build caddy binary
 build-dev: env-dev ## Build containers with dev env vars
 	$(DC_BUILD) souin
 	$(MAKE) up
+
+bump-version:
+	sed -i '' 's/version: $(from)/version: $(to)/' README.md
+	for plugin in caddy chi dotweb echo fiber skipper gin goyave traefik tyk webgo ; do \
+        sed -i '' 's/github.com\/darkweak\/souin $(from)/github.com\/darkweak\/souin $(to)/' plugins/$$plugin/go.mod ; \
+    done
 
 coverage: ## Show code coverage
 	$(DC_EXEC) souin go test ./... -coverprofile cover.out
