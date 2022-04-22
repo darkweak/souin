@@ -760,6 +760,161 @@
 			]
 		},
 		{
+			"name": "Dotweb",
+			"item": [
+				{
+					"name": "Default",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'dotweb_url')}/default`, '', true)"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cache-Control",
+								"value": "",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{dotweb_url}}/default",
+							"host": [
+								"{{dotweb_url}}"
+							],
+							"path": [
+								"default"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Default no cache",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'dotweb_url')}/default`, 'no-cache')"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{dotweb_url}}/default",
+							"host": [
+								"{{dotweb_url}}"
+							],
+							"path": [
+								"default"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Default no store",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'dotweb_url')}/default`, 'no-store')"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cache-Control",
+								"value": "no-store",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{dotweb_url}}/default",
+							"host": [
+								"{{dotweb_url}}"
+							],
+							"path": [
+								"default"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Exclude regex",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'dotweb_url')}/test2`, '', false, true)"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cache-Control",
+								"value": "",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{dotweb_url}}/excluded",
+							"host": [
+								"{{dotweb_url}}"
+							],
+							"path": [
+								"excluded"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			]
+		},
+		{
 			"name": "Fiber",
 			"item": [
 				{
@@ -2192,6 +2347,10 @@
 		},
 		{
 			"key": "souin_url",
+			"value": "http://domain.com"
+		},
+		{
+			"key": "dotweb_url",
 			"value": "http://domain.com"
 		}
 	]
