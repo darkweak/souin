@@ -24,13 +24,14 @@
   8.4. [Echo middleware](#echo-middleware)  
   8.5. [Fiber middleware](#fiber-middleware)  
   8.6. [Gin middleware](#gin-middleware)  
-  8.7. [Goyave middleware](#goyave-middleware)  
-  8.8. [Skipper filter](#skipper-filter)  
-  8.9. [Træfik plugin](#træfik-plugin)  
-  8.10. [Tyk plugin](#tyk-plugin)  
-  8.11. [Webgo middleware](#webgo-middleware)  
-  8.12. [Prestashop plugin](#prestashop-plugin)  
-  8.13. [Wordpress plugin](#wordpress-plugin)  
+  8.7. [Go-zero middleware](#go-zero-middleware)  
+  8.8. [Goyave middleware](#goyave-middleware)  
+  8.9. [Skipper filter](#skipper-filter)  
+  8.10. [Træfik plugin](#træfik-plugin)  
+  8.11. [Tyk plugin](#tyk-plugin)  
+  8.12. [Webgo middleware](#webgo-middleware)  
+  8.13. [Prestashop plugin](#prestashop-plugin)  
+  8.14. [Wordpress plugin](#wordpress-plugin)  
 9. [Credits](#credits)
 
 [![Travis CI](https://travis-ci.com/Darkweak/Souin.svg?branch=master)](https://travis-ci.com/Darkweak/Souin)
@@ -557,6 +558,26 @@ func main(){
 	r := gin.New()
 	s := souin_gin.New(souin_gin.DefaultConfiguration)
 	r.Use(s.Process())
+    // ...
+
+}
+```
+
+### Go-zero middleware
+To use Souin as go-zero middleware, you can refer to the [Go-zero plugin integration folder](https://github.com/darkweak/souin/tree/master/plugins/go-zero) to discover how to configure it.  
+You just have to give a Condfiguration object to the `NewHTTPCache` method to get a new HTTP cache instance and use the Handle method as a GlobalMiddleware:
+```go
+import (
+	"net/http"
+
+	cache "github.com/darkweak/souin/plugins/go-zero"
+)
+
+func main(){
+
+    // ...
+	httpcache := cache.NewHTTPCache(cache.DevDefaultConfiguration)
+	server.Use(httpcache.Handle)
     // ...
 
 }
