@@ -16,7 +16,7 @@ jobs:
         name: Install Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.16
+          go-version: 1.17
       -
         name: Checkout code
         uses: actions/checkout@v2
@@ -65,7 +65,7 @@ jobs:
         name: Wait for Souin is really loaded inside Echo as middleware
         uses: jakejarvis/wait-action@master
         with:
-          time: 30s
+          time: 20s
       -
         name: Set Echo logs configuration result as environment variable
         run: cd plugins/echo/examples && echo "ECHO_MIDDLEWARE_RESULT=$(docker-compose logs echo | grep Souin)" >> $GITHUB_ENV
@@ -107,7 +107,7 @@ jobs:
         name: Wait for Souin is really loaded inside Chi as middleware
         uses: jakejarvis/wait-action@master
         with:
-          time: 30s
+          time: 20s
       -
         name: Set Chi logs configuration result as environment variable
         run: cd plugins/chi/examples && echo "CHI_MIDDLEWARE_RESULT=$(docker-compose logs chi | grep Souin)" >> $GITHUB_ENV
@@ -149,7 +149,7 @@ jobs:
         name: Wait for Souin is really loaded inside Fiber as middleware
         uses: jakejarvis/wait-action@master
         with:
-          time: 30s
+          time: 40s
       -
         name: Set Fiber logs configuration result as environment variable
         run: cd plugins/fiber/examples && echo "FIBER_MIDDLEWARE_RESULT=$(docker-compose logs fiber | grep Souin)" >> $GITHUB_ENV
@@ -191,7 +191,7 @@ jobs:
         name: Wait for Souin is really loaded inside Gin as middleware
         uses: jakejarvis/wait-action@master
         with:
-          time: 30s
+          time: 20s
       -
         name: Set Gin logs configuration result as environment variable
         run: cd plugins/gin/examples && echo "GIN_MIDDLEWARE_RESULT=$(docker-compose logs gin | grep Souin)" >> $GITHUB_ENV
@@ -208,6 +208,51 @@ jobs:
         with:
           collection: "docs/e2e/Souin E2E.postman_collection.json"
           folder: Gin
+          reporters: cli
+          delayRequest: 5000
+  build-go-zero-validator:
+    name: Check that Souin build as Go-zero middleware
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Add domain.com host to /etc/hosts
+        run: |
+          sudo echo "127.0.0.1 domain.com" | sudo tee -a /etc/hosts
+      -
+        name: Install Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.16
+      -
+        name: Checkout code
+        uses: actions/checkout@v2
+      -
+        name: Install goctl
+        run: go install github.com/zeromicro/go-zero/tools/goctl@latest
+      -
+        name: Build Souin as Go-zero plugin
+        run: make build-and-run-go-zero
+      -
+        name: Wait for Souin is really loaded inside Go-zero as middleware
+        uses: jakejarvis/wait-action@master
+        with:
+          time: 50s
+      -
+        name: Set Go-zero logs configuration result as environment variable
+        run: cd plugins/go-zero/examples && echo "GO_ZERO_MIDDLEWARE_RESULT=$(docker-compose logs go-zero | grep Souin)" >> $GITHUB_ENV
+      -
+        name: Check if the configuration is loaded to define if Souin is loaded too
+        uses: nick-invision/assert-action@v1
+        with:
+          expected: '"message":"Souin configuration is now loaded."'
+          actual: ${{ env.GO_ZERO_MIDDLEWARE_RESULT }}
+          comparison: contains
+      -
+        name: Run Go-zero E2E tests
+        uses: anthonyvscode/newman-action@v1
+        with:
+          collection: "docs/e2e/Souin E2E.postman_collection.json"
+          folder: Go-zero
           reporters: cli
           delayRequest: 5000
   build-goyave-validator:
@@ -233,7 +278,7 @@ jobs:
         name: Wait for Souin is really loaded inside Goyave as middleware
         uses: jakejarvis/wait-action@master
         with:
-          time: 30s
+          time: 20s
       -
         name: Set Goyave logs configuration result as environment variable
         run: cd plugins/goyave/examples && echo "GOYAVE_MIDDLEWARE_RESULT=$(docker-compose logs goyave | grep Souin)" >> $GITHUB_ENV
@@ -449,7 +494,7 @@ jobs:
         name: Wait for Souin is really loaded inside Webgo as middleware
         uses: jakejarvis/wait-action@master
         with:
-          time: 30s
+          time: 20s
       -
         name: Set Webgo logs configuration result as environment variable
         run: cd plugins/webgo/examples && echo "WEBGO_MIDDLEWARE_RESULT=$(docker-compose logs webgo | grep Souin)" >> $GITHUB_ENV

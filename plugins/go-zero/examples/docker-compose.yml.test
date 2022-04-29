@@ -1,0 +1,10 @@
+version: '3.8'
+
+services:
+  go-zero:
+    build:
+      context: ../../..
+      dockerfile: plugins/go-zero/examples/Dockerfile.test
+      target: development-runner
+    ports:
+      - 80:80

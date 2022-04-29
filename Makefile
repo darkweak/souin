@@ -1,11 +1,15 @@
 .PHONY: build-and-run-caddy build-and-run-caddy-json build-and-run-chi build-and-run-dotweb build-and-run-echo build-and-run-fiber \
-	build-and-run-gin build-and-run-goyave build-and-run-skipper build-and-run-souin build-and-run-traefik build-and-run-tyk \
-	build-and-run-webgo build-app build-caddy build-dev bump-version coverage create-network down env-dev env-prod gatling \
-	generate-plantUML golangci-lint health-check-prod help lint log tests up validate vendor-plugins
+	build-and-run-gin build-and-run-go-zero build-and-run-goyave build-and-run-skipper build-and-run-souin build-and-run-traefik \
+	build-and-run-tyk build-and-run-webgo build-app build-caddy build-dev bump-version coverage create-network down env-dev \
+	env-prod gatling generate-plantUML golangci-lint health-check-prod help lint log tests up validate vendor-plugins
 
 DC=docker-compose
 DC_BUILD=$(DC) build
 DC_EXEC=$(DC) exec
+PLUGINS_LIST=caddy chi dotweb echo fiber skipper gin go-zero goyave traefik tyk webgo
+
+base-build-and-run-%:
+	cd plugins/$* && $(MAKE) prepare
 
 build-and-run-caddy: ## Run caddy binary with the Caddyfile configuration
 	$(MAKE) build-caddy
@@ -15,38 +19,29 @@ build-and-run-caddy-json:  ## Run caddy binary with the json configuration
 	$(MAKE) build-caddy
 	cd plugins/caddy && ./caddy run --config ./configuration.json
 
-build-and-run-chi:  ## Run Chi with Souin as plugin
-	cd plugins/chi && $(MAKE) prepare
+build-and-run-chi: base-build-and-run-chi  ## Run Chi with Souin as plugin
 
-build-and-run-dotweb:  ## Run Dotweb with Souin as plugin
-	cd plugins/dotweb && $(MAKE) prepare
+build-and-run-dotweb: base-build-and-run-dotweb  ## Run Dotweb with Souin as plugin
 
-build-and-run-echo:  ## Run Echo with Souin as plugin
-	cd plugins/echo && $(MAKE) prepare
+build-and-run-echo: base-build-and-run-echo  ## Run Echo with Souin as plugin
 
-build-and-run-fiber:  ## Run Fiber with Souin as plugin
-	cd plugins/fiber && $(MAKE) prepare
+build-and-run-fiber: base-build-and-run-fiber  ## Run Fiber with Souin as plugin
 
-build-and-run-skipper:  ## Run Skipper with Souin as plugin
-	cd plugins/skipper && $(MAKE) prepare
+build-and-run-skipper: base-build-and-run-skipper  ## Run Skipper with Souin as plugin
 
-build-and-run-souin:  ## Run Souin as plugin
-	cd plugins/souin && $(MAKE) prepare
+build-and-run-souin: base-build-and-run-souin  ## Run Souin as plugin
 
-build-and-run-gin:  ## Run Gin with Souin as plugin
-	cd plugins/gin && $(MAKE) prepare
+build-and-run-gin: base-build-and-run-gin  ## Run Gin with Souin as plugin
 
-build-and-run-goyave:  ## Run Goyave with Souin as plugin
-	cd plugins/goyave && $(MAKE) prepare
+build-and-run-go-zero: base-build-and-run-go-zero  ## Run Gin with Souin as plugin
 
-build-and-run-traefik:  ## Run træfik with Souin as plugin
-	cd plugins/traefik && $(MAKE) prepare
+build-and-run-goyave: base-build-and-run-goyave  ## Run Goyave with Souin as plugin
 
-build-and-run-tyk:  ## Run tyk with Souin as middleware
-	cd plugins/tyk && $(MAKE) prepare
+build-and-run-traefik: base-build-and-run-traefik  ## Run træfik with Souin as plugin
 
-build-and-run-webgo:  ## Run Webgo with Souin as plugin
-	cd plugins/webgo && $(MAKE) prepare
+build-and-run-tyk: base-build-and-run-tyk  ## Run tyk with Souin as middleware
+
+build-and-run-webgo: base-build-and-run-webgo  ## Run Webgo with Souin as plugin
 
 build-app: env-prod ## Build containers with prod env vars
 	$(DC_BUILD) souin
@@ -64,7 +59,7 @@ build-dev: env-dev ## Build containers with dev env vars
 
 bump-version:
 	sed -i '' 's/version: $(from)/version: $(to)/' README.md
-	for plugin in caddy chi dotweb echo fiber skipper gin goyave traefik tyk webgo ; do \
+	for plugin in $(PLUGINS_LIST) ; do \
         sed -i '' 's/github.com\/darkweak\/souin $(from)/github.com\/darkweak\/souin $(to)/' plugins/$$plugin/go.mod ; \
     done
 
@@ -116,15 +111,7 @@ up: ## Up containers
 validate: lint tests down health-check-prod ## Run lint, tests and ensure prod can build
 
 vendor-plugins: ## Generate and prepare vendors for each plugin
-	cd plugins/chi && $(MAKE) vendor
-	cd plugins/dotweb && $(MAKE) vendor
-	cd plugins/echo && $(MAKE) vendor
-	cd plugins/fiber && $(MAKE) vendor
-	cd plugins/gin && $(MAKE) vendor
-	cd plugins/goyave && $(MAKE) vendor
-	cd plugins/skipper && $(MAKE) vendor
-	cd plugins/souin && $(MAKE) vendor
-	cd plugins/tyk && $(MAKE) vendor
-	cd plugins/webgo && $(MAKE) vendor
-	cd plugins/traefik && $(MAKE) vendor
+	for plugin in $(PLUGINS_LIST) ; do \
+        cd plugins/$$plugin && ($(MAKE) vendor || true) && cd -; \
+    done
 	cd plugins/caddy && go mod tidy && go mod download

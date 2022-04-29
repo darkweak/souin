@@ -1,6 +1,6 @@
 {
 	"info": {
-		"_postman_id": "b6c5c6c2-51b9-4ee7-a3eb-d84d0a67aa84",
+		"_postman_id": "9f52cee6-d2bb-4c17-8169-1bd7126975f4",
 		"name": "Souin E2E",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
@@ -15,7 +15,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'caddy_url')}/default`, '', true)"
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, '', true)"
 								],
 								"type": "text/javascript"
 							}
@@ -31,9 +31,9 @@
 							}
 						],
 						"url": {
-							"raw": "{{caddy_url}}/default",
+							"raw": "{{app_url}}/default",
 							"host": [
-								"{{caddy_url}}"
+								"{{app_url}}"
 							],
 							"path": [
 								"default"
@@ -58,7 +58,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.souinAPI.listKeys(pm, 'GET-localhost:4443-/test1', utils.getVar(pm, 'caddy_url'), '/test1')"
+									"utils.souinAPI.listKeys(pm, 'GET-localhost:4443-/test1', utils.getVar(pm, 'app_url'), '/test1')"
 								],
 								"type": "text/javascript"
 							}
@@ -74,9 +74,9 @@
 							}
 						],
 						"url": {
-							"raw": "{{caddy_url}}{{souin_base_api}}{{souin_api}}",
+							"raw": "{{app_url}}{{souin_base_api}}{{souin_api}}",
 							"host": [
-								"{{caddy_url}}{{souin_base_api}}{{souin_api}}"
+								"{{app_url}}{{souin_base_api}}{{souin_api}}"
 							]
 						}
 					},
@@ -98,7 +98,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.souinAPI.listGraphQLKeys(pm, 'POST-localhost:4443-/test1-4d08c8e90fed197693d96603c73fa6036e7ce42b8de0149cdd33b34e980631e2', utils.getVar(pm, 'caddy_url'), '/test1');"
+									"utils.souinAPI.listGraphQLKeys(pm, 'POST-localhost:4443-/test1-4d08c8e90fed197693d96603c73fa6036e7ce42b8de0149cdd33b34e980631e2', utils.getVar(pm, 'app_url'), '/test1');"
 								],
 								"type": "text/javascript"
 							}
@@ -126,9 +126,9 @@
 							}
 						},
 						"url": {
-							"raw": "{{caddy_url}}{{souin_base_api}}{{souin_api}}",
+							"raw": "{{app_url}}{{souin_base_api}}{{souin_api}}",
 							"host": [
-								"{{caddy_url}}{{souin_base_api}}{{souin_api}}"
+								"{{app_url}}{{souin_base_api}}{{souin_api}}"
 							]
 						}
 					},
@@ -141,7 +141,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.validateAge(pm, 4, `${utils.getVar(pm, 'caddy_url')}/cache-maxage`)"
+									"utils.validateAge(pm, 4, `${utils.getVar(pm, 'app_url')}/cache-maxage`)"
 								],
 								"type": "text/javascript"
 							}
@@ -157,9 +157,9 @@
 							}
 						],
 						"url": {
-							"raw": "{{caddy_url}}/cache-maxage",
+							"raw": "{{app_url}}/cache-maxage",
 							"host": [
-								"{{caddy_url}}"
+								"{{app_url}}"
 							],
 							"path": [
 								"cache-maxage"
@@ -175,7 +175,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.validateAge(pm, 9, `${utils.getVar(pm, 'caddy_url')}/cache-s-maxage`)"
+									"utils.validateAge(pm, 9, `${utils.getVar(pm, 'app_url')}/cache-s-maxage`)"
 								],
 								"type": "text/javascript"
 							}
@@ -191,9 +191,9 @@
 							}
 						],
 						"url": {
-							"raw": "{{caddy_url}}/cache-s-maxage",
+							"raw": "{{app_url}}/cache-s-maxage",
 							"host": [
-								"{{caddy_url}}"
+								"{{app_url}}"
 							],
 							"path": [
 								"cache-s-maxage"
@@ -245,9 +245,9 @@
 							}
 						],
 						"url": {
-							"raw": "{{caddy_url}}{{souin_base_api}}{{prometheus_api}}",
+							"raw": "{{app_url}}{{souin_base_api}}{{prometheus_api}}",
 							"host": [
-								"{{caddy_url}}{{souin_base_api}}{{prometheus_api}}"
+								"{{app_url}}{{souin_base_api}}{{prometheus_api}}"
 							]
 						}
 					},
@@ -260,7 +260,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'caddy_url')}/default`, 'no-cache')"
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, 'no-cache')"
 								],
 								"type": "text/javascript"
 							}
@@ -270,9 +270,9 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{caddy_url}}/default",
+							"raw": "{{app_url}}/default",
 							"host": [
-								"{{caddy_url}}"
+								"{{app_url}}"
 							],
 							"path": [
 								"default"
@@ -288,7 +288,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.validateVary(pm, `${utils.getVar(pm, 'caddy_url')}/vary`)"
+									"utils.validateVary(pm, `${utils.getVar(pm, 'app_url')}/vary`)"
 								],
 								"type": "text/javascript"
 							}
@@ -309,9 +309,9 @@
 							}
 						],
 						"url": {
-							"raw": "{{caddy_url}}/vary",
+							"raw": "{{app_url}}/vary",
 							"host": [
-								"{{caddy_url}}"
+								"{{app_url}}"
 							],
 							"path": [
 								"vary"
@@ -327,7 +327,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.serveHTTPError(pm, `${utils.getVar(pm, 'caddy_url')}/no-reverse-proxy`)"
+									"utils.serveHTTPError(pm, `${utils.getVar(pm, 'app_url')}/no-reverse-proxy`)"
 								],
 								"type": "text/javascript"
 							}
@@ -348,9 +348,9 @@
 							}
 						],
 						"url": {
-							"raw": "{{caddy_url}}/no-reverse-proxy",
+							"raw": "{{app_url}}/no-reverse-proxy",
 							"host": [
-								"{{caddy_url}}"
+								"{{app_url}}"
 							],
 							"path": [
 								"no-reverse-proxy"
@@ -366,7 +366,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'caddy_url')}/default`, 'no-store')"
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, 'no-store')"
 								],
 								"type": "text/javascript"
 							}
@@ -382,9 +382,9 @@
 							}
 						],
 						"url": {
-							"raw": "{{caddy_url}}/default",
+							"raw": "{{app_url}}/default",
 							"host": [
-								"{{caddy_url}}"
+								"{{app_url}}"
 							],
 							"path": [
 								"default"
@@ -400,7 +400,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'caddy_url')}/test2`, '', false, true)"
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/test2`, '', false, true)"
 								],
 								"type": "text/javascript"
 							}
@@ -416,9 +416,9 @@
 							}
 						],
 						"url": {
-							"raw": "{{caddy_url}}/test2",
+							"raw": "{{app_url}}/test2",
 							"host": [
-								"{{caddy_url}}"
+								"{{app_url}}"
 							],
 							"path": [
 								"test2"
@@ -434,7 +434,7 @@
 					"script": {
 						"type": "text/javascript",
 						"exec": [
-							""
+							"pm.collectionVariables.set('app_url', pm.collectionVariables.get('caddy_url'))"
 						]
 					}
 				},
@@ -459,7 +459,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'echo_url')}/default`, '', true)"
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, '', true)"
 								],
 								"type": "text/javascript"
 							}
@@ -475,9 +475,9 @@
 							}
 						],
 						"url": {
-							"raw": "{{echo_url}}/default",
+							"raw": "{{app_url}}/default",
 							"host": [
-								"{{echo_url}}"
+								"{{app_url}}"
 							],
 							"path": [
 								"default"
@@ -493,7 +493,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'echo_url')}/default`, 'no-cache')"
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, 'no-cache')"
 								],
 								"type": "text/javascript"
 							}
@@ -503,9 +503,9 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{echo_url}}/default",
+							"raw": "{{app_url}}/default",
 							"host": [
-								"{{echo_url}}"
+								"{{app_url}}"
 							],
 							"path": [
 								"default"
@@ -521,7 +521,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'echo_url')}/default`, 'no-store')"
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, 'no-store')"
 								],
 								"type": "text/javascript"
 							}
@@ -537,9 +537,9 @@
 							}
 						],
 						"url": {
-							"raw": "{{echo_url}}/default",
+							"raw": "{{app_url}}/default",
 							"host": [
-								"{{echo_url}}"
+								"{{app_url}}"
 							],
 							"path": [
 								"default"
@@ -555,7 +555,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'echo_url')}/test2`, '', false, true)"
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/test2`, '', false, true)"
 								],
 								"type": "text/javascript"
 							}
@@ -571,9 +571,9 @@
 							}
 						],
 						"url": {
-							"raw": "{{echo_url}}/excluded",
+							"raw": "{{app_url}}/excluded",
 							"host": [
-								"{{echo_url}}"
+								"{{app_url}}"
 							],
 							"path": [
 								"excluded"
@@ -589,7 +589,7 @@
 					"script": {
 						"type": "text/javascript",
 						"exec": [
-							""
+							"pm.collectionVariables.set('app_url', pm.collectionVariables.get('echo_url'))"
 						]
 					}
 				},
@@ -614,7 +614,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'chi_url')}/default`, '', true)"
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, '', true)"
 								],
 								"type": "text/javascript"
 							}
@@ -630,9 +630,9 @@
 							}
 						],
 						"url": {
-							"raw": "{{chi_url}}/default",
+							"raw": "{{app_url}}/default",
 							"host": [
-								"{{chi_url}}"
+								"{{app_url}}"
 							],
 							"path": [
 								"default"
@@ -648,7 +648,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'chi_url')}/default`, 'no-cache')"
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, 'no-cache')"
 								],
 								"type": "text/javascript"
 							}
@@ -658,9 +658,9 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{chi_url}}/default",
+							"raw": "{{app_url}}/default",
 							"host": [
-								"{{chi_url}}"
+								"{{app_url}}"
 							],
 							"path": [
 								"default"
@@ -676,7 +676,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'chi_url')}/default`, 'no-store')"
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, 'no-store')"
 								],
 								"type": "text/javascript"
 							}
@@ -692,9 +692,9 @@
 							}
 						],
 						"url": {
-							"raw": "{{chi_url}}/default",
+							"raw": "{{app_url}}/default",
 							"host": [
-								"{{chi_url}}"
+								"{{app_url}}"
 							],
 							"path": [
 								"default"
@@ -710,7 +710,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'chi_url')}/test2`, '', false, true)"
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/test2`, '', false, true)"
 								],
 								"type": "text/javascript"
 							}
@@ -726,9 +726,9 @@
 							}
 						],
 						"url": {
-							"raw": "{{chi_url}}/excluded",
+							"raw": "{{app_url}}/excluded",
 							"host": [
-								"{{chi_url}}"
+								"{{app_url}}"
 							],
 							"path": [
 								"excluded"
@@ -744,7 +744,7 @@
 					"script": {
 						"type": "text/javascript",
 						"exec": [
-							""
+							"pm.collectionVariables.set('app_url', pm.collectionVariables.get('chi_url'))"
 						]
 					}
 				},
@@ -769,7 +769,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'dotweb_url')}/default`, '', true)"
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, '', true)"
 								],
 								"type": "text/javascript"
 							}
@@ -785,9 +785,9 @@
 							}
 						],
 						"url": {
-							"raw": "{{dotweb_url}}/default",
+							"raw": "{{app_url}}/default",
 							"host": [
-								"{{dotweb_url}}"
+								"{{app_url}}"
 							],
 							"path": [
 								"default"
@@ -803,7 +803,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'dotweb_url')}/default`, 'no-cache')"
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, 'no-cache')"
 								],
 								"type": "text/javascript"
 							}
@@ -813,9 +813,9 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{dotweb_url}}/default",
+							"raw": "{{app_url}}/default",
 							"host": [
-								"{{dotweb_url}}"
+								"{{app_url}}"
 							],
 							"path": [
 								"default"
@@ -831,7 +831,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'dotweb_url')}/default`, 'no-store')"
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, 'no-store')"
 								],
 								"type": "text/javascript"
 							}
@@ -847,9 +847,9 @@
 							}
 						],
 						"url": {
-							"raw": "{{dotweb_url}}/default",
+							"raw": "{{app_url}}/default",
 							"host": [
-								"{{dotweb_url}}"
+								"{{app_url}}"
 							],
 							"path": [
 								"default"
@@ -865,7 +865,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'dotweb_url')}/test2`, '', false, true)"
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/test2`, '', false, true)"
 								],
 								"type": "text/javascript"
 							}
@@ -881,9 +881,9 @@
 							}
 						],
 						"url": {
-							"raw": "{{dotweb_url}}/excluded",
+							"raw": "{{app_url}}/excluded",
 							"host": [
-								"{{dotweb_url}}"
+								"{{app_url}}"
 							],
 							"path": [
 								"excluded"
@@ -899,7 +899,7 @@
 					"script": {
 						"type": "text/javascript",
 						"exec": [
-							""
+							"pm.collectionVariables.set('app_url', pm.collectionVariables.get('dotweb_url'))"
 						]
 					}
 				},
@@ -924,7 +924,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'fiber_url')}/default`, '', true)"
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, '', true)"
 								],
 								"type": "text/javascript"
 							}
@@ -940,9 +940,9 @@
 							}
 						],
 						"url": {
-							"raw": "{{fiber_url}}/default",
+							"raw": "{{app_url}}/default",
 							"host": [
-								"{{fiber_url}}"
+								"{{app_url}}"
 							],
 							"path": [
 								"default"
@@ -958,7 +958,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'fiber_url')}/default`, 'no-cache')"
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, 'no-cache')"
 								],
 								"type": "text/javascript"
 							}
@@ -968,9 +968,9 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{fiber_url}}/default",
+							"raw": "{{app_url}}/default",
 							"host": [
-								"{{fiber_url}}"
+								"{{app_url}}"
 							],
 							"path": [
 								"default"
@@ -986,7 +986,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'fiber_url')}/default`, 'no-store')"
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, 'no-store')"
 								],
 								"type": "text/javascript"
 							}
@@ -1002,9 +1002,9 @@
 							}
 						],
 						"url": {
-							"raw": "{{fiber_url}}/default",
+							"raw": "{{app_url}}/default",
 							"host": [
-								"{{fiber_url}}"
+								"{{app_url}}"
 							],
 							"path": [
 								"default"
@@ -1020,7 +1020,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'fiber_url')}/test2`, '', false, true)"
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/test2`, '', false, true)"
 								],
 								"type": "text/javascript"
 							}
@@ -1036,9 +1036,9 @@
 							}
 						],
 						"url": {
-							"raw": "{{fiber_url}}/excluded",
+							"raw": "{{app_url}}/excluded",
 							"host": [
-								"{{fiber_url}}"
+								"{{app_url}}"
 							],
 							"path": [
 								"excluded"
@@ -1054,7 +1054,7 @@
 					"script": {
 						"type": "text/javascript",
 						"exec": [
-							""
+							"pm.collectionVariables.set('app_url', pm.collectionVariables.get('fiber_url'))"
 						]
 					}
 				},
@@ -1079,7 +1079,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'gin_url')}/default`, '', true)"
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, '', true)"
 								],
 								"type": "text/javascript"
 							}
@@ -1095,9 +1095,9 @@
 							}
 						],
 						"url": {
-							"raw": "{{gin_url}}/default",
+							"raw": "{{app_url}}/default",
 							"host": [
-								"{{gin_url}}"
+								"{{app_url}}"
 							],
 							"path": [
 								"default"
@@ -1113,7 +1113,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'gin_url')}/default`, 'no-cache')"
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, 'no-cache')"
 								],
 								"type": "text/javascript"
 							}
@@ -1123,9 +1123,9 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{gin_url}}/default",
+							"raw": "{{app_url}}/default",
 							"host": [
-								"{{gin_url}}"
+								"{{app_url}}"
 							],
 							"path": [
 								"default"
@@ -1141,7 +1141,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'gin_url')}/default`, 'no-store')"
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, 'no-store')"
 								],
 								"type": "text/javascript"
 							}
@@ -1157,9 +1157,9 @@
 							}
 						],
 						"url": {
-							"raw": "{{gin_url}}/default",
+							"raw": "{{app_url}}/default",
 							"host": [
-								"{{gin_url}}"
+								"{{app_url}}"
 							],
 							"path": [
 								"default"
@@ -1175,7 +1175,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'gin_url')}/excluded`, '', false, true)"
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/excluded`, '', false, true)"
 								],
 								"type": "text/javascript"
 							}
@@ -1191,9 +1191,9 @@
 							}
 						],
 						"url": {
-							"raw": "{{gin_url}}/excluded",
+							"raw": "{{app_url}}/excluded",
 							"host": [
-								"{{gin_url}}"
+								"{{app_url}}"
 							],
 							"path": [
 								"excluded"
@@ -1209,7 +1209,162 @@
 					"script": {
 						"type": "text/javascript",
 						"exec": [
+							"pm.collectionVariables.set('app_url', pm.collectionVariables.get('gin_url'))"
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
 							""
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "Go-zero",
+			"item": [
+				{
+					"name": "Default",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, '', true)"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cache-Control",
+								"value": "",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{app_url}}/default",
+							"host": [
+								"{{app_url}}"
+							],
+							"path": [
+								"default"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Default no cache",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, 'no-cache')"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{app_url}}/default",
+							"host": [
+								"{{app_url}}"
+							],
+							"path": [
+								"default"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Default no store",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, 'no-store')"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cache-Control",
+								"value": "no-store",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{app_url}}/default",
+							"host": [
+								"{{app_url}}"
+							],
+							"path": [
+								"default"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Exclude regex",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/test2`, '', false, true)"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cache-Control",
+								"value": "",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{app_url}}/excluded",
+							"host": [
+								"{{app_url}}"
+							],
+							"path": [
+								"excluded"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.collectionVariables.set('app_url', pm.collectionVariables.get('go-zero_url'))"
 						]
 					}
 				},
@@ -1234,7 +1389,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'goyave_url')}/default`, '', true)"
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, '', true)"
 								],
 								"type": "text/javascript"
 							}
@@ -1250,9 +1405,9 @@
 							}
 						],
 						"url": {
-							"raw": "{{goyave_url}}/default",
+							"raw": "{{app_url}}/default",
 							"host": [
-								"{{goyave_url}}"
+								"{{app_url}}"
 							],
 							"path": [
 								"default"
@@ -1268,7 +1423,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'goyave_url')}/default`, 'no-cache')"
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, 'no-cache')"
 								],
 								"type": "text/javascript"
 							}
@@ -1278,9 +1433,9 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{goyave_url}}/default",
+							"raw": "{{app_url}}/default",
 							"host": [
-								"{{goyave_url}}"
+								"{{app_url}}"
 							],
 							"path": [
 								"default"
@@ -1296,7 +1451,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'goyave_url')}/default`, 'no-store')"
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, 'no-store')"
 								],
 								"type": "text/javascript"
 							}
@@ -1312,9 +1467,9 @@
 							}
 						],
 						"url": {
-							"raw": "{{goyave_url}}/default",
+							"raw": "{{app_url}}/default",
 							"host": [
-								"{{goyave_url}}"
+								"{{app_url}}"
 							],
 							"path": [
 								"default"
@@ -1330,7 +1485,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'goyave_url')}/test2`, '', false, true)"
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/test2`, '', false, true)"
 								],
 								"type": "text/javascript"
 							}
@@ -1346,9 +1501,9 @@
 							}
 						],
 						"url": {
-							"raw": "{{goyave_url}}/excluded",
+							"raw": "{{app_url}}/excluded",
 							"host": [
-								"{{goyave_url}}"
+								"{{app_url}}"
 							],
 							"path": [
 								"excluded"
@@ -1364,7 +1519,7 @@
 					"script": {
 						"type": "text/javascript",
 						"exec": [
-							""
+							"pm.collectionVariables.set('app_url', pm.collectionVariables.get('goyave_url'))"
 						]
 					}
 				},
@@ -1389,7 +1544,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'skipper_url')}/default`, '', true)"
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, '', true)"
 								],
 								"type": "text/javascript"
 							}
@@ -1405,9 +1560,9 @@
 							}
 						],
 						"url": {
-							"raw": "{{skipper_url}}/default",
+							"raw": "{{app_url}}/default",
 							"host": [
-								"{{skipper_url}}"
+								"{{app_url}}"
 							],
 							"path": [
 								"default"
@@ -1423,7 +1578,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'skipper_url')}/default`, 'no-cache')"
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, 'no-cache')"
 								],
 								"type": "text/javascript"
 							}
@@ -1433,9 +1588,9 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{skipper_url}}/default",
+							"raw": "{{app_url}}/default",
 							"host": [
-								"{{skipper_url}}"
+								"{{app_url}}"
 							],
 							"path": [
 								"default"
@@ -1451,7 +1606,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'skipper_url')}/default`, 'no-store')"
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, 'no-store')"
 								],
 								"type": "text/javascript"
 							}
@@ -1467,9 +1622,9 @@
 							}
 						],
 						"url": {
-							"raw": "{{skipper_url}}/default",
+							"raw": "{{app_url}}/default",
 							"host": [
-								"{{skipper_url}}"
+								"{{app_url}}"
 							],
 							"path": [
 								"default"
@@ -1485,7 +1640,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'skipper_url')}/excluded`, '', false, true)"
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/excluded`, '', false, true)"
 								],
 								"type": "text/javascript"
 							}
@@ -1501,9 +1656,9 @@
 							}
 						],
 						"url": {
-							"raw": "{{skipper_url}}/excluded",
+							"raw": "{{app_url}}/excluded",
 							"host": [
-								"{{skipper_url}}"
+								"{{app_url}}"
 							],
 							"path": [
 								"excluded"
@@ -1519,7 +1674,7 @@
 					"script": {
 						"type": "text/javascript",
 						"exec": [
-							""
+							"pm.collectionVariables.set('app_url', pm.collectionVariables.get('skipper_url'))"
 						]
 					}
 				},
@@ -1544,7 +1699,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'souin_url')}/default`, '', true)"
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, '', true)"
 								],
 								"type": "text/javascript"
 							}
@@ -1560,9 +1715,9 @@
 							}
 						],
 						"url": {
-							"raw": "{{souin_url}}/default",
+							"raw": "{{app_url}}/default",
 							"host": [
-								"{{souin_url}}"
+								"{{app_url}}"
 							],
 							"path": [
 								"default"
@@ -1578,7 +1733,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'souin_url')}/default`, 'no-cache')"
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, 'no-cache')"
 								],
 								"type": "text/javascript"
 							}
@@ -1588,9 +1743,9 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{souin_url}}/default",
+							"raw": "{{app_url}}/default",
 							"host": [
-								"{{souin_url}}"
+								"{{app_url}}"
 							],
 							"path": [
 								"default"
@@ -1606,7 +1761,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'souin_url')}/excluded`, '', false, true)"
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/excluded`, '', false, true)"
 								],
 								"type": "text/javascript"
 							}
@@ -1622,9 +1777,9 @@
 							}
 						],
 						"url": {
-							"raw": "{{souin_url}}/excluded",
+							"raw": "{{app_url}}/excluded",
 							"host": [
-								"{{souin_url}}"
+								"{{app_url}}"
 							],
 							"path": [
 								"excluded"
@@ -1640,7 +1795,7 @@
 					"script": {
 						"type": "text/javascript",
 						"exec": [
-							""
+							"pm.collectionVariables.set('app_url', pm.collectionVariables.get('souin_url'))"
 						]
 					}
 				},
@@ -1665,7 +1820,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, utils.getVar(pm, 'traefik_url'), '', true)"
+									"utils.baseEndpoint(pm, utils.getVar(pm, 'app_url'), '', true)"
 								],
 								"type": "text/javascript"
 							}
@@ -1681,9 +1836,9 @@
 							}
 						],
 						"url": {
-							"raw": "{{traefik_url}}",
+							"raw": "{{app_url}}",
 							"host": [
-								"{{traefik_url}}"
+								"{{app_url}}"
 							]
 						}
 					},
@@ -1696,7 +1851,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, utils.getVar(pm, 'traefik_url'), 'no-cache')"
+									"utils.baseEndpoint(pm, utils.getVar(pm, 'app_url'), 'no-cache')"
 								],
 								"type": "text/javascript"
 							}
@@ -1706,9 +1861,9 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{traefik_url}}",
+							"raw": "{{app_url}}",
 							"host": [
-								"{{traefik_url}}"
+								"{{app_url}}"
 							]
 						}
 					},
@@ -1721,7 +1876,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, utils.getVar(pm, 'traefik_url'), 'no-store')"
+									"utils.baseEndpoint(pm, utils.getVar(pm, 'app_url'), 'no-store')"
 								],
 								"type": "text/javascript"
 							}
@@ -1731,9 +1886,9 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{traefik_url}}",
+							"raw": "{{app_url}}",
 							"host": [
-								"{{traefik_url}}"
+								"{{app_url}}"
 							]
 						}
 					},
@@ -1746,7 +1901,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'traefik_url')}/test_exclude_another`, 'cache', false, true)"
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/test_exclude_another`, 'cache', false, true)"
 								],
 								"type": "text/javascript"
 							}
@@ -1762,9 +1917,9 @@
 							}
 						],
 						"url": {
-							"raw": "{{traefik_url}}/test_exclude_another",
+							"raw": "{{app_url}}/test_exclude_another",
 							"host": [
-								"{{traefik_url}}"
+								"{{app_url}}"
 							],
 							"path": [
 								"test_exclude_another"
@@ -1780,7 +1935,7 @@
 					"script": {
 						"type": "text/javascript",
 						"exec": [
-							""
+							"pm.collectionVariables.set('app_url', pm.collectionVariables.get('traefik_url'))"
 						]
 					}
 				},
@@ -1805,7 +1960,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'tyk_url')}/`, '', true)"
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/`, '', true)"
 								],
 								"type": "text/javascript"
 							}
@@ -1821,9 +1976,9 @@
 							}
 						],
 						"url": {
-							"raw": "{{tyk_url}}/",
+							"raw": "{{app_url}}/",
 							"host": [
-								"{{tyk_url}}"
+								"{{app_url}}"
 							],
 							"path": [
 								""
@@ -1839,7 +1994,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'tyk_url')}/`, 'no-cache')"
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/`, 'no-cache')"
 								],
 								"type": "text/javascript"
 							}
@@ -1849,9 +2004,9 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{tyk_url}}/",
+							"raw": "{{app_url}}/",
 							"host": [
-								"{{tyk_url}}"
+								"{{app_url}}"
 							],
 							"path": [
 								""
@@ -1867,7 +2022,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'tyk_url')}/`, 'no-store')"
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/`, 'no-store')"
 								],
 								"type": "text/javascript"
 							}
@@ -1877,9 +2032,9 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{tyk_url}}/",
+							"raw": "{{app_url}}/",
 							"host": [
-								"{{tyk_url}}"
+								"{{app_url}}"
 							],
 							"path": [
 								""
@@ -1895,7 +2050,7 @@
 					"script": {
 						"type": "text/javascript",
 						"exec": [
-							""
+							"pm.collectionVariables.set('app_url', pm.collectionVariables.get('tyk_url'))"
 						]
 					}
 				},
@@ -1920,7 +2075,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'webgo_url')}/default`, '', true)"
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, '', true)"
 								],
 								"type": "text/javascript"
 							}
@@ -1936,9 +2091,9 @@
 							}
 						],
 						"url": {
-							"raw": "{{webgo_url}}/default",
+							"raw": "{{app_url}}/default",
 							"host": [
-								"{{webgo_url}}"
+								"{{app_url}}"
 							],
 							"path": [
 								"default"
@@ -1954,7 +2109,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'webgo_url')}/default`, 'no-cache')"
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, 'no-cache')"
 								],
 								"type": "text/javascript"
 							}
@@ -1964,9 +2119,9 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{webgo_url}}/default",
+							"raw": "{{app_url}}/default",
 							"host": [
-								"{{webgo_url}}"
+								"{{app_url}}"
 							],
 							"path": [
 								"default"
@@ -1982,7 +2137,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'webgo_url')}/default`, 'no-store')"
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, 'no-store')"
 								],
 								"type": "text/javascript"
 							}
@@ -1998,9 +2153,9 @@
 							}
 						],
 						"url": {
-							"raw": "{{webgo_url}}/default",
+							"raw": "{{app_url}}/default",
 							"host": [
-								"{{webgo_url}}"
+								"{{app_url}}"
 							],
 							"path": [
 								"default"
@@ -2016,7 +2171,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'webgo_url')}/test2`, '', false, true)"
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/test2`, '', false, true)"
 								],
 								"type": "text/javascript"
 							}
@@ -2032,9 +2187,9 @@
 							}
 						],
 						"url": {
-							"raw": "{{webgo_url}}/excluded",
+							"raw": "{{app_url}}/excluded",
 							"host": [
-								"{{webgo_url}}"
+								"{{app_url}}"
 							],
 							"path": [
 								"excluded"
@@ -2050,7 +2205,7 @@
 					"script": {
 						"type": "text/javascript",
 						"exec": [
-							""
+							"pm.collectionVariables.set('app_url', pm.collectionVariables.get('webgo_url'))"
 						]
 					}
 				},
@@ -2352,6 +2507,15 @@
 		{
 			"key": "dotweb_url",
 			"value": "http://domain.com"
+		},
+		{
+			"key": "go-zero_url",
+			"value": "http://domain.com",
+			"type": "string"
+		},
+		{
+			"key": "app_url",
+			"value": ""
 		}
 	]
 }
