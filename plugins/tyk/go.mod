@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	github.com/TykTechnologies/tyk v2.9.5+incompatible
-	github.com/darkweak/souin v1.6.7
+	github.com/darkweak/souin v1.6.8
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	go.uber.org/zap v1.21.0
 )
@@ -25,6 +25,6 @@ require (
 )
 
 replace (
-	github.com/darkweak/souin v1.6.7 => ../..
+	github.com/darkweak/souin v1.6.8 => ../..
 	github.com/hashicorp/terraform v1.0.1 => github.com/hashicorp/terraform v0.14.11
 )
