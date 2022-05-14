@@ -65,7 +65,7 @@ jobs:
         name: Wait for Souin is really loaded inside Echo as middleware
         uses: jakejarvis/wait-action@master
         with:
-          time: 20s
+          time: 30s
       -
         name: Set Echo logs configuration result as environment variable
         run: cd plugins/echo/examples && echo "ECHO_MIDDLEWARE_RESULT=$(docker-compose logs echo | grep Souin)" >> $GITHUB_ENV
@@ -191,7 +191,7 @@ jobs:
         name: Wait for Souin is really loaded inside Gin as middleware
         uses: jakejarvis/wait-action@master
         with:
-          time: 20s
+          time: 30s
       -
         name: Set Gin logs configuration result as environment variable
         run: cd plugins/gin/examples && echo "GIN_MIDDLEWARE_RESULT=$(docker-compose logs gin | grep Souin)" >> $GITHUB_ENV
