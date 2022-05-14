@@ -82,4 +82,5 @@ route /no-reverse-proxy {
     reverse_proxy 127.0.0.1:9000
 }
 
-cache @souin-api {}
+cache @souin-api {
+}

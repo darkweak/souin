@@ -64,8 +64,11 @@ type URL struct {
 
 // CacheProvider config
 type CacheProvider struct {
-	URL           string      `json:"url" yaml:"url"`
-	Path          string      `json:"path" yaml:"path"`
+	// URL to connect to the storage system.
+	URL string `json:"url" yaml:"url"`
+	// Path to the configuration file.
+	Path string `json:"path" yaml:"path"`
+	// Declare the cache provider directly in the Souin configuration.
 	Configuration interface{} `json:"configuration" yaml:"configuration"`
 }
 

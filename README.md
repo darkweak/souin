@@ -20,16 +20,18 @@
 8. [Plugins](#plugins)  
   8.1. [Caddy module](#caddy-module)  
   8.2. [Chi middleware](#chi-middleware)  
-  8.3. [Echo middleware](#echo-middleware)  
-  8.4. [Fiber middleware](#fiber-middleware)  
-  8.5. [Gin middleware](#gin-middleware)  
-  8.6. [Goyave middleware](#goyave-middleware)  
-  8.7. [Skipper filter](#skipper-filter)  
-  8.8. [Træfik plugin](#træfik-plugin)  
-  8.9. [Tyk plugin](#tyk-plugin)  
-  8.10. [Webgo middleware](#webgo-middleware)  
-  8.11. [Prestashop plugin](#prestashop-plugin)  
-  8.12. [Wordpress plugin](#wordpress-plugin)  
+  8.3. [Dotweb middleware](#dotweb-middleware)  
+  8.4. [Echo middleware](#echo-middleware)  
+  8.5. [Fiber middleware](#fiber-middleware)  
+  8.6. [Gin middleware](#gin-middleware)  
+  8.7. [Go-zero middleware](#go-zero-middleware)  
+  8.8. [Goyave middleware](#goyave-middleware)  
+  8.9. [Skipper filter](#skipper-filter)  
+  8.10. [Træfik plugin](#træfik-plugin)  
+  8.11. [Tyk plugin](#tyk-plugin)  
+  8.12. [Webgo middleware](#webgo-middleware)  
+  8.13. [Prestashop plugin](#prestashop-plugin)  
+  8.14. [Wordpress plugin](#wordpress-plugin)  
 9. [Credits](#credits)
 
 [![Travis CI](https://travis-ci.com/Darkweak/Souin.svg?branch=master)](https://travis-ci.com/Darkweak/Souin)
@@ -477,6 +479,27 @@ func main(){
 }
 ```
 
+### Dotweb middleware
+To use Souin as dotweb middleware, you can refer to the [Dotweb plugin integration folder](https://github.com/darkweak/souin/tree/master/plugins/dotweb) to discover how to configure it.  
+You just have to define a new dotweb router and tell to the instance to use the process method like below:
+```go
+import (
+	cache "github.com/darkweak/souin/plugins/dotweb"
+	"github.com/go-dotweb/dotweb/v5"
+)
+
+func main(){
+
+    // ...
+	httpcache := cache.NewHTTPCache(cache.DevDefaultConfiguration)
+	app.HttpServer.GET("/:p", func(ctx dotweb.Context) error {
+		return ctx.WriteString("Hello, World 👋!")
+	}).Use(httpcache)
+    // ...
+
+}
+```
+
 ### Echo middleware
 To use Souin as echo middleware, you can refer to the [Echo plugin integration folder](https://github.com/darkweak/souin/tree/master/plugins/echo) to discover how to configure it.  
 You just have to define a new echo router and tell to the instance to use the process method like below:
@@ -540,6 +563,26 @@ func main(){
 }
 ```
 
+### Go-zero middleware
+To use Souin as go-zero middleware, you can refer to the [Go-zero plugin integration folder](https://github.com/darkweak/souin/tree/master/plugins/go-zero) to discover how to configure it.  
+You just have to give a Condfiguration object to the `NewHTTPCache` method to get a new HTTP cache instance and use the Handle method as a GlobalMiddleware:
+```go
+import (
+	"net/http"
+
+	cache "github.com/darkweak/souin/plugins/go-zero"
+)
+
+func main(){
+
+    // ...
+	httpcache := cache.NewHTTPCache(cache.DevDefaultConfiguration)
+	server.Use(httpcache.Handle)
+    // ...
+
+}
+```
+
 ### Goyave middleware
 To use Souin as goyave middleware, you can refer to the [Goyave plugin integration folder](https://github.com/darkweak/souin/tree/master/plugins/goyave) to discover how to configure it.  
 You just have to start Goyave, define a new goyave router and tell to the router instance to use the Handle method as GlobalMiddleware like below:
@@ -597,7 +640,7 @@ experimental:
   plugins:
     souin:
       moduleName: github.com/darkweak/souin
-      version: v1.6.6
+      version: v1.6.7
 ```
 After that you can declare either the whole configuration at once in the middleware block or by service. See the examples below.
 ```yaml
@@ -778,3 +821,4 @@ Thanks to these users for contributing or helping this project in any way
 * [Kevin Pollet](https://github.com/kevinpollet)
 * [Choelzl](https://github.com/choelzl)
 * [Menci](https://github.com/menci)
+* [Duy Nguyen](https://github.com/duy-nguyen-devops)

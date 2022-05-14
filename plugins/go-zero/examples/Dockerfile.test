@@ -1,0 +1,20 @@
+FROM golang:1.16-alpine AS development-runner
+
+RUN apk update && apk upgrade && \
+    apk add --no-cache bash git openssh gcc libc-dev
+ENV GOPATH /app
+RUN mkdir -p /app/src/github.com/darkweak/souin
+WORKDIR /app/src/github.com/darkweak/souin
+COPY . .
+
+RUN go install github.com/zeromicro/go-zero/tools/goctl@latest
+WORKDIR /app/src/github.com/darkweak/souin/plugins/go-zero/examples
+RUN $GOPATH/bin/goctl api go -api sample.api -dir .
+
+WORKDIR /app/src/github.com/darkweak/souin/plugins/go-zero
+RUN go mod tidy
+RUN go mod download
+
+WORKDIR /app/src/github.com/darkweak/souin/plugins/go-zero/examples
+
+CMD ["go", "run", "main.go"]
