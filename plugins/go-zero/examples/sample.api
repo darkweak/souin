@@ -1,0 +1,19 @@
+info(
+	title: "Go-zero HTTP cache"
+	desc: "HTTP cache support as plugin for go-zero"
+	author: "darkweak"
+	email: "darkweak@protonmail.com"
+	version: "v1.6.6"
+)
+
+type CacheReq struct {}
+
+type CacheRes struct {}
+
+service httpcache {
+	@handler main
+	get /:p (CacheReq) returns (CacheRes)
+	
+	@handler souin_api
+	get /souin-api/:apis (CacheReq) returns (CacheRes)
+}

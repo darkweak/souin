@@ -1,0 +1,8 @@
+default_cache:
+  port:
+    web: 80
+  regex:
+    exclude: /excluded
+  ttl: 5s
+log_level: debug
+reverse_proxy_url: 'http://traefik'

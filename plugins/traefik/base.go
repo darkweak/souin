@@ -2,7 +2,6 @@ package traefik
 
 import (
 	"bytes"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"regexp"
@@ -75,8 +74,6 @@ func (r *CustomWriter) Send() (int, error) {
 }
 
 func hasMutation(req *http.Request, rw http.ResponseWriter) bool {
-	fmt.Println("req.Context().Value(souin_ctx.IsMutationRequest).(bool) 2")
-	fmt.Println(req.Context().Value(souin_ctx.IsMutationRequest).(bool))
 	if req.Context().Value(souin_ctx.IsMutationRequest).(bool) {
 		rw.Header().Add("Cache-Status", "Souin; fwd=uri-miss")
 		return true

@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  souin:
+    build:
+      context: ../../..
+      dockerfile: plugins/souin/examples/Dockerfile.test
+      target: development-runner
+    ports:
+      - 80:80
+
+  traefik:
+    image: traefik:latest
+    command: --providers.docker
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - 81:80
+
+  whoami:
+    image: traefik/whoami
+    labels:
+      - traefik.http.routers.whoami.rule=Host(`domain.com`)

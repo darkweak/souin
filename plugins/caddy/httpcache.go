@@ -33,19 +33,27 @@ func init() {
 	httpcaddyfile.RegisterHandlerDirective(moduleName, parseCaddyfileHandlerDirective)
 }
 
-// SouinCaddyPlugin declaration.
+// SouinCaddyPlugin allows the user to set up an HTTP cache system, RFC-7234 compliant.
+// Supports the tag based cache purge, distributed and not-distributed storage.
 type SouinCaddyPlugin struct {
 	plugins.SouinBasePlugin
-	Configuration       *Configuration
-	logger              *zap.Logger
-	LogLevel            string `json:"log_level,omitempty"`
-	bufPool             *sync.Pool
-	AllowedHTTPVerbs    []string                         `json:"allowed_http_verbs,omitempty"`
-	Headers             []string                         `json:"headers,omitempty"`
-	Badger              configurationtypes.CacheProvider `json:"badger,omitempty"`
-	Olric               configurationtypes.CacheProvider `json:"olric,omitempty"`
-	TTL                 configurationtypes.Duration      `json:"ttl,omitempty"`
-	DefaultCacheControl string                           `json:"default_cache_control,omitempty"`
+	Configuration *Configuration
+	logger        *zap.Logger
+	// Log level.
+	LogLevel string `json:"log_level,omitempty"`
+	bufPool  *sync.Pool
+	// Allowed HTTP verbs to be cached by the system.
+	AllowedHTTPVerbs []string `json:"allowed_http_verbs,omitempty"`
+	// Headers to add to the cache key if they are present.
+	Headers []string `json:"headers,omitempty"`
+	// Configure the Badger cache storage.
+	Badger configurationtypes.CacheProvider `json:"badger,omitempty"`
+	// Enable the Olric distributed cache storage.
+	Olric configurationtypes.CacheProvider `json:"olric,omitempty"`
+	// Time to live for a key, using time.duration.
+	TTL configurationtypes.Duration `json:"ttl,omitempty"`
+	// The default Cache-Control header value if none set by the upstream server.
+	DefaultCacheControl string `json:"default_cache_control,omitempty"`
 }
 
 // CaddyModule returns the Caddy module information.

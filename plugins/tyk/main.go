@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -93,7 +92,6 @@ func SouinRequestHandler(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	if currentInstance == nil {
-		fmt.Println("currentInstance request is null ?", currentInstance, r.URL)
 		return
 	}
 	r = currentInstance.Retriever.GetContext().Method.SetContext(r)
