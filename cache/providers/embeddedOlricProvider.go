@@ -97,6 +97,8 @@ func EmbeddedOlricConnectionFactory(configuration t.AbstractConfigurationInterfa
 	}
 	dm, e := db.NewDMap("souin-map")
 
+	configuration.GetLogger().Info("Embedded Olric is started.")
+
 	return &EmbeddedOlric{
 		dm:    dm,
 		db:    db,
