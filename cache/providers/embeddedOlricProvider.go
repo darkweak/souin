@@ -69,8 +69,8 @@ func EmbeddedOlricConnectionFactory(configuration t.AbstractConfigurationInterfa
 
 	started, cancel := context.WithCancel(context.Background())
 	olricInstance.Started = func() {
+		fmt.Println("Embedded Olric is ready")
 		defer cancel()
-		configuration.GetLogger().Info("Embedded Olric is ready")
 	}
 
 	db, err := olric.New(olricInstance)
@@ -80,24 +80,21 @@ func EmbeddedOlricConnectionFactory(configuration t.AbstractConfigurationInterfa
 
 	ch := make(chan error, 1)
 	defer func() {
-		fmt.Println("Closed EmbeddedOlricProvider chan")
 		close(ch)
 	}()
 	go func() {
 		if err = db.Start(); err != nil {
-			fmt.Printf("Impossible to start the embedded Olric instance: %v\n", err)
 			ch <- err
 		}
 	}()
 
 	select {
 	case err = <-ch:
-		return nil, err
 	case <-started.Done():
 	}
 	dm, e := db.NewDMap("souin-map")
 
-	configuration.GetLogger().Info("Embedded Olric is started.")
+	fmt.Println("Embedded Olric is ready for this node.")
 
 	return &EmbeddedOlric{
 		dm:    dm,
