@@ -19,6 +19,9 @@
                 ValueThreshold 524288
             }
         }
+        cdn {
+            dynamic
+        }
         regex {
             exclude /test2.*
         }
@@ -80,6 +83,15 @@ route /not-modified {
 route /no-reverse-proxy {
     cache
     reverse_proxy 127.0.0.1:9000
+}
+
+route /surrogate-keys {
+    cache {
+        ttl 1m
+    }
+    header Surrogate-Key "KEY-{http.request.header.X-Surrogate-Key-Suffix}"
+    header Vary X-Surrogate-Key-Suffix
+    respond "Hello {http.request.header.X-Surrogate-Key-Suffix}"
 }
 
 cache @souin-api {
