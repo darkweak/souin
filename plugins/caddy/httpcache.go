@@ -164,6 +164,7 @@ func (s *SouinCaddyPlugin) FromApp(app *SouinApp) error {
 	dc := s.Configuration.DefaultCache
 	appDc := app.DefaultCache
 	s.Configuration.DefaultCache.AllowedHTTPVerbs = append(s.Configuration.DefaultCache.AllowedHTTPVerbs, appDc.AllowedHTTPVerbs...)
+	s.Configuration.DefaultCache.CDN = app.DefaultCache.CDN
 	if dc.Headers == nil {
 		s.Configuration.DefaultCache.Headers = appDc.Headers
 	}

@@ -22,12 +22,7 @@ jobs:
         uses: actions/checkout@v2
       -
         name: Install xcaddy
-        run: |
-          sudo apt install -y debian-keyring debian-archive-keyring apt-transport-https
-          curl -1sLf 'https://dl.cloudsmith.io/public/caddy/xcaddy/gpg.key' | sudo apt-key add -
-          curl -1sLf 'https://dl.cloudsmith.io/public/caddy/xcaddy/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-xcaddy.list
-          sudo apt update
-          sudo apt install xcaddy
+        run: go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest
       -
         name: Build Souin as caddy module
         run: cd plugins/caddy && xcaddy build --with github.com/darkweak/souin/plugins/caddy=./ --with github.com/darkweak/souin@latest=../..

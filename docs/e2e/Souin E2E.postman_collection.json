@@ -426,6 +426,110 @@
 						}
 					},
 					"response": []
+				},
+				{
+					"name": "Surrogate Keys",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const get_surrogate_url = key => ({",
+									"    header: {",
+									"        'Cache-Control': '',",
+									"        'X-Surrogate-Key-Suffix': key,",
+									"    },",
+									"    method: 'GET',",
+									"    url: `${utils.getVar(pm, 'app_url')}/surrogate-keys`,",
+									"})",
+									"const surrogate_api = (method, key = '') => ({",
+									"    header: {",
+									"        'Surrogate-Key': key,",
+									"    },",
+									"    method,",
+									"    url: `${utils.getVar(pm, 'app_url')}${utils.getVar(pm, 'souin_base_api')}${utils.getVar(pm, 'souin_api')}/surrogate_keys`,",
+									"})",
+									"const KEYS = {",
+									"    PREFIX: {",
+									"        ONE: 'KEY-ONE',",
+									"        TWO: 'KEY-TWO',",
+									"    },",
+									"    ONE: 'ONE',",
+									"    TWO: 'TWO',",
+									"}",
+									"",
+									"pm.test(\"Ensure no specific keys are stored\", function() {",
+									"    pm.response.to.have.status(200);",
+									"    let jsonData = pm.response.json();",
+									"    pm.expect(jsonData[KEYS.PREFIX.ONE]).to.eql(undefined);",
+									"    pm.expect(jsonData[KEYS.PREFIX.TWO]).to.eql(undefined);",
+									"",
+									"    pm.sendRequest(get_surrogate_url(KEYS.ONE), function(_, res) {",
+									"        pm.expect(res).to.have.status(200);",
+									"        pm.expect(res).to.have.header(\"Cache-Status\");",
+									"        pm.expect(res).to.have.header(\"Surrogate-Key\");",
+									"",
+									"        pm.sendRequest(get_surrogate_url(KEYS.TWO), function(_, res) {",
+									"            pm.expect(res).to.have.status(200);",
+									"            pm.expect(res).to.have.header(\"Cache-Status\");",
+									"            pm.expect(res).to.have.header(\"Surrogate-Key\");",
+									"",
+									"            pm.sendRequest(surrogate_api('GET'), function(_, res) {",
+									"                pm.expect(res).to.have.status(200);",
+									"                pm.expect(res).to.not.have.header(\"Cache-Status\");",
+									"                let jd = res.json();",
+									"                pm.expect(jd[KEYS.PREFIX.ONE]).to.eql(',GET-localhost:4443-/surrogate-keys{-VARY-}X-Surrogate-Key-Suffix:ONE');",
+									"                pm.expect(jd[KEYS.PREFIX.TWO]).to.eql(',GET-localhost:4443-/surrogate-keys{-VARY-}X-Surrogate-Key-Suffix:TWO');",
+									"            })",
+									"",
+									"            pm.sendRequest(surrogate_api('PURGE', KEYS.PREFIX.ONE), function(_, res) {",
+									"                pm.expect(res).to.have.status(204);",
+									"            })",
+									"            pm.sendRequest(surrogate_api('GET'), function(_, res) {",
+									"                pm.expect(res).to.have.status(200);",
+									"                pm.expect(res).to.not.have.header(\"Cache-Status\");",
+									"                let jd = res.json();",
+									"                pm.expect(jd[KEYS.PREFIX.ONE]).to.eql(undefined);",
+									"                pm.expect(jd[KEYS.PREFIX.TWO]).to.eql(',GET-localhost:4443-/surrogate-keys{-VARY-}X-Surrogate-Key-Suffix:TWO');",
+									"            })",
+									"            pm.sendRequest(surrogate_api('PURGE', `${KEYS.PREFIX.ONE}, ${KEYS.PREFIX.TWO}`), function(_, res) {",
+									"                pm.expect(res).to.have.status(204);",
+									"            })",
+									"            pm.sendRequest(surrogate_api('GET'), function(_, res) {",
+									"                pm.expect(res).to.have.status(200);",
+									"                pm.expect(res).to.not.have.header(\"Cache-Status\");",
+									"                let jd = res.json();",
+									"                pm.expect(jd[KEYS.PREFIX.ONE]).to.eql(undefined);",
+									"                pm.expect(jd[KEYS.PREFIX.TWO]).to.eql(undefined);",
+									"            })",
+									"        })",
+									"    })",
+									"})"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Surrogate-Key",
+								"value": "KEY-ONE",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{app_url}}{{souin_base_api}}{{souin_api}}/surrogate_keys",
+							"host": [
+								"{{app_url}}{{souin_base_api}}{{souin_api}}"
+							],
+							"path": [
+								"surrogate_keys"
+							]
+						}
+					},
+					"response": []
 				}
 			],
 			"event": [
