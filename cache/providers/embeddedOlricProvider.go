@@ -22,6 +22,7 @@ type EmbeddedOlric struct {
 	dm    *olric.DMap
 	db    *olric.Olric
 	stale time.Duration
+	ct    context.Context
 }
 
 func tryToLoadConfiguration(olricInstance *config.Config, olricConfiguration t.CacheProvider, logger *zap.Logger) (*config.Config, bool) {
@@ -82,11 +83,11 @@ func EmbeddedOlricConnectionFactory(configuration t.AbstractConfigurationInterfa
 	defer func() {
 		close(ch)
 	}()
-	go func() {
-		if err = db.Start(); err != nil {
+	go func(currDB *olric.Olric) {
+		if err = currDB.Start(); err != nil {
 			ch <- err
 		}
-	}()
+	}(db)
 
 	select {
 	case err = <-ch:
@@ -100,6 +101,7 @@ func EmbeddedOlricConnectionFactory(configuration t.AbstractConfigurationInterfa
 		dm:    dm,
 		db:    db,
 		stale: configuration.GetDefaultCache().GetStale(),
+		ct:    context.Background(),
 	}, e
 }
 
@@ -231,6 +233,17 @@ func (provider *EmbeddedOlric) Init() error {
 }
 
 // Reset method will reset or close provider
-func (provider *EmbeddedOlric) Reset() {
-	_ = provider.db.Shutdown(context.Background())
+func (provider *EmbeddedOlric) Reset() error {
+	return provider.db.Shutdown(provider.ct)
+}
+
+// Destruct method will reset or close provider
+func (provider *EmbeddedOlric) Destruct() error {
+	fmt.Println("Destruct current embedded olric...")
+	return provider.Reset()
+}
+
+// GetDM method returns the embbeded instance dm property
+func (provider *EmbeddedOlric) GetDM() *olric.DMap {
+	return provider.dm
 }

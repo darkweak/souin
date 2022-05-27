@@ -3,11 +3,13 @@ package httpcache
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"net/http"
 	"strconv"
 	"sync"
 	"time"
 
+	"github.com/buraksezer/olric/config"
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
@@ -15,6 +17,7 @@ import (
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
 	"github.com/darkweak/souin/api"
 	"github.com/darkweak/souin/cache/coalescing"
+	"github.com/darkweak/souin/cache/providers"
 	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/plugins"
@@ -26,6 +29,8 @@ type key string
 
 const getterContextCtxKey key = "getter_context"
 const moduleName = "cache"
+
+var up = caddy.NewUsagePool()
 
 func init() {
 	caddy.RegisterModule(SouinCaddyPlugin{})
@@ -209,6 +214,39 @@ func (s *SouinCaddyPlugin) Provision(ctx caddy.Context) error {
 		},
 	}
 	s.Retriever = plugins.DefaultSouinPluginInitializerFromConfiguration(s.Configuration)
+
+	dc := s.Retriever.GetConfiguration().GetDefaultCache()
+	if dc.GetDistributed() {
+		if eo, ok := s.Retriever.GetProvider().(*providers.EmbeddedOlric); ok {
+			name := fmt.Sprintf("0.0.0.0:%d", config.DefaultPort)
+			if dc.GetOlric().Configuration != nil {
+				oc := dc.GetOlric().Configuration.(*config.Config)
+				name = fmt.Sprintf("%s:%d", oc.BindAddr, oc.BindPort)
+			} else if dc.GetOlric().Path != "" {
+				name = dc.GetOlric().Path
+			}
+
+			key := "Embedded-" + name
+			v, _ := up.LoadOrStore(stored_providers_key, newStorageProvider())
+			v.(*storage_providers).Add(key)
+
+			if eo.GetDM() == nil {
+				v, l, e := up.LoadOrNew(key, func() (caddy.Destructor, error) {
+					fmt.Println("Create a new olric instance.")
+					return providers.EmbeddedOlricConnectionFactory(s.Configuration)
+				})
+
+				if l && e == nil {
+					s.Retriever.(*types.RetrieverResponseProperties).Provider = v.(types.AbstractProviderInterface)
+					s.Retriever.GetTransport().(*rfc.VaryTransport).Provider = v.(types.AbstractProviderInterface)
+				}
+			} else {
+				fmt.Println("Store the olric instance.")
+				_, _ = up.LoadOrStore(key, s.Retriever.GetProvider())
+			}
+		}
+	}
+
 	if app.Provider == nil {
 		app.Provider = s.Retriever.GetProvider()
 	} else {
@@ -468,6 +506,7 @@ func parseCaddyfileHandlerDirective(h httpcaddyfile.Helper) (caddyhttp.Middlewar
 
 // Interface guards
 var (
+	_ caddy.CleanerUpper          = (*SouinCaddyPlugin)(nil)
 	_ caddy.Provisioner           = (*SouinCaddyPlugin)(nil)
 	_ caddyhttp.MiddlewareHandler = (*SouinCaddyPlugin)(nil)
 )

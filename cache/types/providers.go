@@ -16,5 +16,5 @@ type AbstractProviderInterface interface {
 	Delete(key string)
 	DeleteMany(key string)
 	Init() error
-	Reset()
+	Reset() error
 }
