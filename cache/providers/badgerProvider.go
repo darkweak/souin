@@ -37,7 +37,7 @@ func BadgerConnectionFactory(c t.AbstractConfigurationInterface) (*Badger, error
 			fmt.Println("An error occurred during the badgerOptions merge from the default options with your configuration.")
 		}
 	} else {
-		badgerOptions = badgerOptions.WithInMemory(true)
+		badgerOptions = badgerOptions.WithInMemory(true).WithNumMemtables(1).WithNumLevelZeroTables(1)
 	}
 
 	uid := badgerOptions.Dir + badgerOptions.ValueDir
@@ -181,6 +181,6 @@ func (provider *Badger) Init() error {
 }
 
 // Reset method will reset or close provider
-func (provider *Badger) Reset() {
-	_ = provider.DB.DropAll()
+func (provider *Badger) Reset() error {
+	return provider.DB.DropAll()
 }

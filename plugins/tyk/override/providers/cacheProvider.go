@@ -101,6 +101,8 @@ func (provider *Cache) Init() error {
 }
 
 // Reset method will reset or close provider
-func (provider *Cache) Reset() {
+func (provider *Cache) Reset() error {
 	provider.Cache.Flush()
+
+	return nil
 }

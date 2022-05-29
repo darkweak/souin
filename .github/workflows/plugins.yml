@@ -273,7 +273,7 @@ jobs:
         name: Wait for Souin is really loaded inside Goyave as middleware
         uses: jakejarvis/wait-action@master
         with:
-          time: 20s
+          time: 30s
       -
         name: Set Goyave logs configuration result as environment variable
         run: cd plugins/goyave/examples && echo "GOYAVE_MIDDLEWARE_RESULT=$(docker-compose logs goyave | grep Souin)" >> $GITHUB_ENV
