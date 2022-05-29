@@ -170,6 +170,8 @@ func (provider *Olric) Init() error {
 }
 
 // Reset method will reset or close provider
-func (provider *Olric) Reset() {
+func (provider *Olric) Reset() error {
 	provider.Client.Close()
+
+	return nil
 }
