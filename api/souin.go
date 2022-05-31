@@ -70,11 +70,11 @@ func (s *SouinAPI) IsEnabled() bool {
 	return s.enabled
 }
 
-func (s *SouinAPI) ListKeys(search string) []string {
-	var res []string
+func (s *SouinAPI) listKeys(search string) []string {
+	res := []string{}
 	re, err := regexp.Compile(search)
 	if err != nil {
-		return nil
+		return res
 	}
 	for _, key := range s.GetAll() {
 		if re.MatchString(key) {
@@ -101,7 +101,7 @@ func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 			res, _ = json.Marshal(s.surrogateStorage.List())
 		} else if compile {
 			search := regexp.MustCompile(s.GetBasePath()+"/(.+)").FindAllStringSubmatch(r.RequestURI, -1)[0][1]
-			res, _ = json.Marshal(s.ListKeys(search))
+			res, _ = json.Marshal(s.listKeys(search))
 			if res == nil {
 				w.WriteHeader(http.StatusNotFound)
 			}
