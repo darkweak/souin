@@ -72,12 +72,11 @@ func (s *SouinAPI) IsEnabled() bool {
 
 func (s *SouinAPI) ListKeys(search string) []string {
 	var res []string
-	keys := s.GetAll()
 	re, err := regexp.Compile(search)
 	if err != nil {
 		return nil
 	}
-	for _, key := range keys {
+	for _, key := range s.GetAll() {
 		if re.MatchString(key) {
 			res = append(res, key)
 		}
