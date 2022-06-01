@@ -822,3 +822,4 @@ Thanks to these users for contributing or helping this project in any way
 * [Choelzl](https://github.com/choelzl)
 * [Menci](https://github.com/menci)
 * [Duy Nguyen](https://github.com/duy-nguyen-devops)
+* [Kiss Karoly](https://github.com/kresike)
