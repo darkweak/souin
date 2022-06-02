@@ -83,11 +83,11 @@ func EmbeddedOlricConnectionFactory(configuration t.AbstractConfigurationInterfa
 	defer func() {
 		close(ch)
 	}()
-	go func(currDB *olric.Olric) {
-		if err = currDB.Start(); err != nil {
+	go func() {
+		if err = db.Start(); err != nil {
 			ch <- err
 		}
-	}(db)
+	}()
 
 	select {
 	case err = <-ch:

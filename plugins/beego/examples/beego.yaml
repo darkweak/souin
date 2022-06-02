@@ -1,0 +1,20 @@
+appname: beepkg
+httpaddr: 127.0.0.1
+httpport: 9090
+runmode: dev
+autorender: false
+recoverpanic: false
+viewspath: myview
+dev:
+    httpport: 8080
+prod:
+    httpport: 8080
+test:
+    httpport: 8080
+httpcache:
+    api:
+        souin: {}
+    default_cache:
+        ttl: 5s
+        default_cache_control: public
+    log_level: debug

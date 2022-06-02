@@ -9,7 +9,7 @@ import (
 
 // VarySeparator will separate vary headers from the plain URL
 const VarySeparator = "{-VARY-}"
-const stalePrefix = "STALE_"
+const StalePrefix = "STALE_"
 
 // InitializeProvider allow to generate the providers array according to the configuration
 func InitializeProvider(configuration configurationtypes.AbstractConfigurationInterface) *Cache {
