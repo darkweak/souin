@@ -8,7 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/bnkamalesh/webgo/v6"
+	_ "github.com/beego/beego/v2/core/config/json"
+	"github.com/beego/beego/v2/server/web"
+	beegoCtx "github.com/beego/beego/v2/server/web/context"
 )
 
 func Test_NewHTTPCache(t *testing.T) {
@@ -25,53 +27,37 @@ func Test_NewHTTPCache(t *testing.T) {
 	_ = NewHTTPCache(c)
 }
 
-func defaultHandler(w http.ResponseWriter, _ *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Hello, World!"))
-}
-
-func excludedHandler(w http.ResponseWriter, _ *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Hello, Excluded!"))
-}
-
-func getRoutes() []*webgo.Route {
-	return []*webgo.Route{
-		{
-			Name:     "default",
-			Method:   http.MethodGet,
-			Pattern:  "/:a*",
-			Handlers: []http.HandlerFunc{defaultHandler},
-		},
-	}
-}
-
-func prepare() (res *httptest.ResponseRecorder, res2 *httptest.ResponseRecorder, router *webgo.Router) {
-	cfg := &webgo.Config{
-		Host:         "",
-		Port:         "80",
-		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 1 * time.Hour,
-	}
+func prepare() (res, res2 *httptest.ResponseRecorder) {
 	res = httptest.NewRecorder()
 	res2 = httptest.NewRecorder()
+
+	web.LoadAppConfig("json", "beego.json")
 	httpcache := NewHTTPCache(DevDefaultConfiguration)
-	router = webgo.NewRouter(cfg, getRoutes()...)
-	router.Use(httpcache.Middleware)
+
+	web.InsertFilterChain("/*", httpcache.chainHandleFilter)
+
+	ns := web.NewNamespace("")
+
+	ns.Get("/*", func(ctx *beegoCtx.Context) {
+		_ = ctx.Output.Body([]byte("hello"))
+	})
+
+	web.BeeApp.Handlers.Init()
+
 	return
 }
 
-func Test_SouinWebgoPlugin_Middleware(t *testing.T) {
-	res, res2, router := prepare()
+func Test_SouinBeegoPlugin_Middleware(t *testing.T) {
+	res, res2 := prepare()
 	req := httptest.NewRequest(http.MethodGet, "/handled", nil)
 	req.Header = http.Header{}
-	router.ServeHTTP(res, req)
+	web.BeeApp.Handlers.ServeHTTP(res, req)
 
 	if res.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored" {
 		t.Error("The response must contain a Cache-Status header with the stored directive.")
 	}
 
-	router.ServeHTTP(res2, req)
+	web.BeeApp.Handlers.ServeHTTP(res2, req)
 	if res2.Result().Header.Get("Cache-Status") != "Souin; hit; ttl=4" {
 		t.Error("The response must contain a Cache-Status header with the hit and ttl directives.")
 	}
@@ -80,18 +66,18 @@ func Test_SouinWebgoPlugin_Middleware(t *testing.T) {
 	}
 }
 
-func Test_SouinWebgoPlugin_Middleware_CannotHandle(t *testing.T) {
-	res, res2, router := prepare()
+func Test_SouinBeegoPlugin_Middleware_CannotHandle(t *testing.T) {
+	res, res2 := prepare()
 	req := httptest.NewRequest(http.MethodGet, "/not-handled", nil)
 	req.Header = http.Header{}
 	req.Header.Add("Cache-Control", "no-cache")
-	router.ServeHTTP(res, req)
+	web.BeeApp.Handlers.ServeHTTP(res, req)
 
 	if res.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss" {
 		t.Error("The response must contain a Cache-Status header without the stored directive and with the uri-miss only.")
 	}
 
-	router.ServeHTTP(res2, req)
+	web.BeeApp.Handlers.ServeHTTP(res2, req)
 	if res2.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss" {
 		t.Error("The response must contain a Cache-Status header without the stored directive and with the uri-miss only.")
 	}
@@ -100,11 +86,12 @@ func Test_SouinWebgoPlugin_Middleware_CannotHandle(t *testing.T) {
 	}
 }
 
-func Test_SouinWebgoPlugin_Middleware_APIHandle(t *testing.T) {
-	res, res2, router := prepare()
+func Test_SouinBeegoPlugin_Middleware_APIHandle(t *testing.T) {
+	time.Sleep(DevDefaultConfiguration.DefaultCache.GetTTL())
+	res, res2 := prepare()
 	req := httptest.NewRequest(http.MethodGet, "/souin-api/souin", nil)
 	req.Header = http.Header{}
-	router.ServeHTTP(res, req)
+	web.BeeApp.Handlers.ServeHTTP(res, req)
 
 	if res.Result().Header.Get("Content-Type") != "application/json" {
 		t.Error("The response must be in JSON.")
@@ -114,8 +101,8 @@ func Test_SouinWebgoPlugin_Middleware_APIHandle(t *testing.T) {
 	if string(b) != "[]" {
 		t.Error("The response body must be an empty array because no request has been stored")
 	}
-	router.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/handled", nil))
-	router.ServeHTTP(res2, httptest.NewRequest(http.MethodGet, "/souin-api/souin", nil))
+	web.BeeApp.Handlers.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/handled", nil))
+	web.BeeApp.Handlers.ServeHTTP(res2, httptest.NewRequest(http.MethodGet, "/souin-api/souin", nil))
 	if res2.Result().Header.Get("Content-Type") != "application/json" {
 		t.Error("The response must be in JSON.")
 	}

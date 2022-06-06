@@ -1,10 +1,10 @@
 version: '3.8'
 
 services:
-  webgo:
+  beego:
     build:
       context: ../../..
-      dockerfile: plugins/webgo/examples/Dockerfile.test
+      dockerfile: plugins/beego/examples/Dockerfile.test
       target: development-runner
     ports:
-      - 80:80
+      - 80:8080

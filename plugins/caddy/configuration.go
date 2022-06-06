@@ -16,6 +16,7 @@ type DefaultCache struct {
 	Distributed         bool
 	Headers             []string
 	Olric               configurationtypes.CacheProvider
+	Nuts                configurationtypes.CacheProvider
 	Regex               configurationtypes.Regex
 	TTL                 configurationtypes.Duration
 	Stale               configurationtypes.Duration
@@ -44,6 +45,11 @@ func (d *DefaultCache) GetDistributed() bool {
 // GetHeaders returns the default headers that should be cached
 func (d *DefaultCache) GetHeaders() []string {
 	return d.Headers
+}
+
+// GetNuts returns nuts configuration
+func (d *DefaultCache) GetNuts() configurationtypes.CacheProvider {
+	return d.Nuts
 }
 
 // GetOlric returns olric configuration

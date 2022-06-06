@@ -18,20 +18,21 @@
 7. [Examples](#examples)  
   7.1. [Træfik container](#træfik-container)
 8. [Plugins](#plugins)  
-  8.1. [Caddy module](#caddy-module)  
-  8.2. [Chi middleware](#chi-middleware)  
-  8.3. [Dotweb middleware](#dotweb-middleware)  
-  8.4. [Echo middleware](#echo-middleware)  
-  8.5. [Fiber middleware](#fiber-middleware)  
-  8.6. [Gin middleware](#gin-middleware)  
-  8.7. [Go-zero middleware](#go-zero-middleware)  
-  8.8. [Goyave middleware](#goyave-middleware)  
-  8.9. [Skipper filter](#skipper-filter)  
-  8.10. [Træfik plugin](#træfik-plugin)  
-  8.11. [Tyk plugin](#tyk-plugin)  
-  8.12. [Webgo middleware](#webgo-middleware)  
-  8.13. [Prestashop plugin](#prestashop-plugin)  
-  8.14. [Wordpress plugin](#wordpress-plugin)  
+  8.1. [Beego filter](#beego-filter)  
+  8.2. [Caddy module](#caddy-module)  
+  8.3. [Chi middleware](#chi-middleware)  
+  8.4. [Dotweb middleware](#dotweb-middleware)  
+  8.5. [Echo middleware](#echo-middleware)  
+  8.6. [Fiber middleware](#fiber-middleware)  
+  8.7. [Gin middleware](#gin-middleware)  
+  8.8. [Go-zero middleware](#go-zero-middleware)  
+  8.9. [Goyave middleware](#goyave-middleware)  
+  8.10. [Skipper filter](#skipper-filter)  
+  8.11. [Træfik plugin](#træfik-plugin)  
+  8.12. [Tyk plugin](#tyk-plugin)  
+  8.13. [Webgo middleware](#webgo-middleware)  
+  8.14. [Prestashop plugin](#prestashop-plugin)  
+  8.15. [Wordpress plugin](#wordpress-plugin)  
 9. [Credits](#credits)
 
 [![Travis CI](https://travis-ci.com/Darkweak/Souin.svg?branch=master)](https://travis-ci.com/Darkweak/Souin)
@@ -309,6 +310,25 @@ networks:
 ```
 
 ## Plugins
+
+### Beego filter
+To use Souin as beego filter, you can refer to the [Beego filter integration folder](https://github.com/darkweak/souin/tree/master/plugins/beego) to discover how to configure it.  
+You just have to define a new beego router and tell to the instance to use the `Handle` method like below:
+```go
+import (
+	"net/http"
+
+	httpcache "github.com/darkweak/souin/plugins/beego"
+)
+
+func main(){
+
+    // ...
+	web.InsertFilterChain("/*", httpcache.NewHTTPCacheFilter())
+    // ...
+
+}
+```
 
 ### Caddy module
 To use Souin as caddy module, you can refer to the [Caddy module integration folder](https://github.com/darkweak/souin/tree/master/plugins/caddy) to discover how to configure it.  

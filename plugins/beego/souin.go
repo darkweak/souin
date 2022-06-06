@@ -235,7 +235,8 @@ func (s *SouinBeegoMiddleware) chainHandleFilter(next web.HandleFunc) web.Handle
 		r := c.Request
 		req := s.Retriever.GetContext().Method.SetContext(r)
 		if !plugins.CanHandle(req, s.Retriever) {
-			rw.Header().Add("Cache-Status", "Souin; fwd=uri-miss")
+			c.Output.Header("Cache-Status", "Souin; fwd=uri-miss")
+			next(c)
 
 			return
 		}

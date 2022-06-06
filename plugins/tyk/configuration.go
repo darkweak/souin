@@ -41,6 +41,7 @@ type DefaultCache struct {
 	Distributed         bool
 	Headers             []string                         `json:"api,omitempty"`
 	Olric               configurationtypes.CacheProvider `json:"olric,omitempty"`
+	Nuts                configurationtypes.CacheProvider `json:"nuts,omitempty"`
 	Regex               configurationtypes.Regex         `json:"regex,omitempty"`
 	TTL                 Duration                         `json:"ttl,omitempty"`
 	Stale               configurationtypes.Duration      `json:"stale,omitempty"`
@@ -75,6 +76,11 @@ func (d *DefaultCache) GetHeaders() []string {
 // GetOlric returns olric configuration
 func (d *DefaultCache) GetOlric() configurationtypes.CacheProvider {
 	return d.Olric
+}
+
+// GetNuts returns nuts configuration
+func (d *DefaultCache) GetNuts() configurationtypes.CacheProvider {
+	return d.Nuts
 }
 
 // GetRegex returns the regex that shouldn't be cached

@@ -92,6 +92,7 @@ type DefaultCache struct {
 	CDN                 CDN           `json:"cdn" yaml:"cdn"`
 	Distributed         bool          `json:"distributed" yaml:"distributed"`
 	Headers             []string      `json:"headers" yaml:"headers"`
+	Nuts                CacheProvider `json:"nuts" yaml:"nuts"`
 	Olric               CacheProvider `json:"olric" yaml:"olric"`
 	Port                Port          `json:"port" yaml:"port"`
 	Regex               Regex         `json:"regex" yaml:"regex"`
@@ -125,6 +126,11 @@ func (d *DefaultCache) GetHeaders() []string {
 	return d.Headers
 }
 
+// GetNuts returns nuts configuration
+func (d *DefaultCache) GetNuts() CacheProvider {
+	return d.Nuts
+}
+
 // GetOlric returns olric configuration
 func (d *DefaultCache) GetOlric() CacheProvider {
 	return d.Olric
@@ -156,6 +162,7 @@ type DefaultCacheInterface interface {
 	GetBadger() CacheProvider
 	GetCDN() CDN
 	GetDistributed() bool
+	GetNuts() CacheProvider
 	GetOlric() CacheProvider
 	GetHeaders() []string
 	GetRegex() Regex

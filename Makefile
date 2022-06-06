@@ -6,10 +6,12 @@
 DC=docker-compose
 DC_BUILD=$(DC) build
 DC_EXEC=$(DC) exec
-PLUGINS_LIST=caddy chi dotweb echo fiber skipper gin go-zero goyave traefik tyk webgo
+PLUGINS_LIST=beego caddy chi dotweb echo fiber skipper gin go-zero goyave traefik tyk webgo
 
 base-build-and-run-%:
 	cd plugins/$* && $(MAKE) prepare
+
+build-and-run-beego: base-build-and-run-beego  ## Run Beego with Souin as plugin
 
 build-and-run-caddy: ## Run caddy binary with the Caddyfile configuration
 	$(MAKE) build-caddy
@@ -33,7 +35,7 @@ build-and-run-souin: base-build-and-run-souin  ## Run Souin as plugin
 
 build-and-run-gin: base-build-and-run-gin  ## Run Gin with Souin as plugin
 
-build-and-run-go-zero: base-build-and-run-go-zero  ## Run Gin with Souin as plugin
+build-and-run-go-zero: base-build-and-run-go-zero  ## Run Go-zero with Souin as plugin
 
 build-and-run-goyave: base-build-and-run-goyave  ## Run Goyave with Souin as plugin
 

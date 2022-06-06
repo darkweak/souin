@@ -23,7 +23,10 @@
         },
         "default_cache": {
             "ttl": "5s",
-            "default_cache_control": "public"
+            "default_cache_control": "public",
+            "regex": {
+                "exclude": "/excluded"
+            }
         },
         "log_level": "debug"
     }

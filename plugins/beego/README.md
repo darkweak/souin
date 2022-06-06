@@ -1,7 +1,7 @@
-Webgo middleware: Souin
+Beego filter: Souin
 ================================
 
-This is a distributed HTTP cache module for Webgo based on [Souin](https://github.com/darkweak/souin) cache.  
+This is a distributed HTTP cache module for Beego based on [Souin](https://github.com/darkweak/souin) cache.  
 
 ## Features
 
@@ -18,24 +18,21 @@ There is the example about the Souin initialization.
 import (
 	"net/http"
 
-	"github.com/bnkamalesh/webgo/v6"
-	cache "github.com/darkweak/souin/plugins/webgo"
+	httpcache "github.com/darkweak/souin/plugins/beego"
 )
 
 func main(){
 
     // ...
-	httpcache := cache.NewHTTPCache(cache.DevDefaultConfiguration)
-	router.Use(httpcache.Middleware)
+	web.InsertFilterChain("/*", httpcache.NewHTTPCacheFilter())
     // ...
 
 }
 ```
 With that your application will be able to cache the responses if possible and returns at least the `Cache-Status` HTTP header with the different directives mentionned in the RFC specification.  
-You have to pass a Webgo `Configuration` structure into the `New` method (you can use the `DefaultConfiguration` variable to have a built-in production ready configuration).  
 See the full detailled configuration names [here](https://github.com/darkweak/souin#optional-configuration).
 
 Other resources
 ---------------
 You can find an example for a docker-compose stack inside the `examples` folder.  
-See the [Souin](https://github.com/darkweak/souin) configuration for the full configuration, and its associated [development webgo middleware](https://github.com/darkweak/souin/blob/master/plugins/webgo)  
+See the [Souin](https://github.com/darkweak/souin) configuration for the full configuration, and its associated [development beego filter](https://github.com/darkweak/souin/blob/master/plugins/beego)  
