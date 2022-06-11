@@ -85,6 +85,11 @@ type CDN struct {
 	ZoneID    string `json:"zone_id,omitempty" yaml:"zone_id,omitempty"`
 }
 
+type Key struct {
+	DisableHost   bool `json:"disable_host" yaml:"disable_host"`
+	DisableMethod bool `json:"disable_method" yaml:"disable_method"`
+}
+
 // DefaultCache configuration
 type DefaultCache struct {
 	AllowedHTTPVerbs    []string      `json:"allowed_http_verbs" yaml:"allowed_http_verbs"`
@@ -92,6 +97,8 @@ type DefaultCache struct {
 	CDN                 CDN           `json:"cdn" yaml:"cdn"`
 	Distributed         bool          `json:"distributed" yaml:"distributed"`
 	Headers             []string      `json:"headers" yaml:"headers"`
+	Key                 Key           `json:"key" yaml:"key"`
+	Nuts                CacheProvider `json:"nuts" yaml:"nuts"`
 	Olric               CacheProvider `json:"olric" yaml:"olric"`
 	Port                Port          `json:"port" yaml:"port"`
 	Regex               Regex         `json:"regex" yaml:"regex"`
@@ -125,6 +132,16 @@ func (d *DefaultCache) GetHeaders() []string {
 	return d.Headers
 }
 
+// GetKey returns the default Key generation strategy
+func (d *DefaultCache) GetKey() Key {
+	return d.Key
+}
+
+// GetNuts returns nuts configuration
+func (d *DefaultCache) GetNuts() CacheProvider {
+	return d.Nuts
+}
+
 // GetOlric returns olric configuration
 func (d *DefaultCache) GetOlric() CacheProvider {
 	return d.Olric
@@ -156,8 +173,10 @@ type DefaultCacheInterface interface {
 	GetBadger() CacheProvider
 	GetCDN() CDN
 	GetDistributed() bool
+	GetNuts() CacheProvider
 	GetOlric() CacheProvider
 	GetHeaders() []string
+	GetKey() Key
 	GetRegex() Regex
 	GetTTL() time.Duration
 	GetStale() time.Duration

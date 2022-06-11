@@ -11,7 +11,7 @@ import (
 	"github.com/xujiajun/nutsdb"
 )
 
-// Badger provider type
+// Nuts provider type
 type Nuts struct {
 	*nutsdb.DB
 	stale time.Duration
@@ -26,8 +26,7 @@ func NutsConnectionFactory(c t.AbstractConfigurationInterface) (*Nuts, error) {
 	dc := c.GetDefaultCache()
 	nutsConfiguration := dc.GetNuts()
 	nutsOptions := nutsdb.DefaultOptions
-	fmt.Println("nuts start...")
-	fmt.Println(nutsOptions)
+	nutsOptions.Dir = "/tmp/souin-nuts"
 	if nutsConfiguration.Configuration != nil {
 		var parsedNuts nutsdb.Options
 		if b, e := json.Marshal(nutsConfiguration.Configuration); e == nil {
@@ -41,8 +40,9 @@ func NutsConnectionFactory(c t.AbstractConfigurationInterface) (*Nuts, error) {
 		}
 	} else {
 		nutsOptions.RWMode = nutsdb.MMap
-		nutsOptions.SyncEnable = false
-		nutsOptions.Dir = "/tmp/souin-nuts"
+		if nutsConfiguration.Path != "" {
+			nutsOptions.Dir = nutsConfiguration.Path
+		}
 	}
 
 	db, e := nutsdb.Open(nutsOptions)
@@ -111,7 +111,7 @@ func (provider *Nuts) Prefix(key string, req *http.Request) []byte {
 	return result
 }
 
-// Set method will store the response in Badger provider
+// Set method will store the response in Nuts provider
 func (provider *Nuts) Set(key string, value []byte, url t.URL, duration time.Duration) {
 	if duration == 0 {
 		duration = url.TTL.Duration
@@ -122,7 +122,7 @@ func (provider *Nuts) Set(key string, value []byte, url t.URL, duration time.Dur
 	})
 
 	if err != nil {
-		panic(fmt.Sprintf("Impossible to set value into Badger, %s", err))
+		panic(fmt.Sprintf("Impossible to set value into Nuts, %s", err))
 	}
 
 	err = provider.DB.Update(func(tx *nutsdb.Tx) error {
@@ -130,18 +130,18 @@ func (provider *Nuts) Set(key string, value []byte, url t.URL, duration time.Dur
 	})
 
 	if err != nil {
-		panic(fmt.Sprintf("Impossible to set value into Badger, %s", err))
+		panic(fmt.Sprintf("Impossible to set value into Nuts, %s", err))
 	}
 }
 
-// Delete method will delete the response in Badger provider if exists corresponding to key param
+// Delete method will delete the response in Nuts provider if exists corresponding to key param
 func (provider *Nuts) Delete(key string) {
 	_ = provider.DB.Update(func(tx *nutsdb.Tx) error {
 		return tx.Delete(bucket, []byte(key))
 	})
 }
 
-// DeleteMany method will delete the responses in Badger provider if exists corresponding to the regex key param
+// DeleteMany method will delete the responses in Nuts provider if exists corresponding to the regex key param
 func (provider *Nuts) DeleteMany(key string) {
 	_ = provider.DB.Update(func(tx *nutsdb.Tx) error {
 		if entries, _, err := tx.PrefixScan(bucket, []byte(key), 0, 100); err != nil {

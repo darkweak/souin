@@ -1,7 +1,7 @@
 ![Souin logo](https://github.com/darkweak/souin/blob/master/docs/img/logo.svg)
 
 # Souin Table of Contents
-1. [Souin reverse-proxy cache](#project-description)
+1. [Souin reverse-proxy cache description](#project-description)
 2. [Configuration](#configuration)  
   2.1. [Required configuration](#required-configuration)  
     2.1.1. [Souin as plugin](#souin-as-plugin)  
@@ -35,8 +35,6 @@
   8.15. [Wordpress plugin](#wordpress-plugin)  
 9. [Credits](#credits)
 
-[![Travis CI](https://travis-ci.com/Darkweak/Souin.svg?branch=master)](https://travis-ci.com/Darkweak/Souin)
-
 # Souin HTTP cache
 
 ## Project description
@@ -44,9 +42,6 @@ Souin is a new HTTP cache system suitable for every reverse-proxy. It can be eit
 Since it's written in go, it can be deployed on any server and thanks to the docker integration, it will be easy to install on top of a Swarm, or a kubernetes instance.  
 It's RFC compatible, supporting Vary, request coalescing, stale cache-control and other specifications related to the [RFC-7234](https://tools.ietf.org/html/rfc7234).  
 It also supports the [Cache-Status HTTP response header](https://httpwg.org/http-extensions/draft-ietf-httpbis-cache-header.html) and the YKey group such as Varnish.
-
-## Disclaimer
-If you need redis or other custom cache providers, you have to use the fully-featured version. You can read the documentation, on [the fully-featured branch](https://github.com/Darkweak/Souin/tree/full-version) to understand the specific parts.
 
 ## Configuration
 The configuration file is store at `/anywhere/configuration.yml`. You can supply your own as long as you use one of the minimal configurations below.
@@ -229,12 +224,50 @@ See the sequence diagram for the minimal version below
 ## Cache systems
 Supported providers
  - [Badger](https://github.com/dgraph-io/badger)
+ - [NutsDB](https://github.com/nutsdb/nutsdb)
  - [Olric](https://github.com/buraksezer/olric)
 
- The cache system sits on top of three providers at the moment. It provides an in-memory, redis and Olric cache systems because setting, getting, updating and deleting keys in these providers is as easy as it gets.  
- In order to do that, the Olric provider need to be either on the same network as the Souin instance when using docker-compose or over the internet, then it will use by default in-memory to avoid network latency as much as possible. 
- Souin will return at first the in-memory response when it gives a non-empty response, then the olric one followed by the redis one with same condition, or fallback to the reverse proxy otherwise.
- Since v1.4.2, Souin supports [Olric](https://github.com/buraksezer/olric) to handle distributed cache.
+The cache system sits on top of three providers at the moment. It provides two in-memory storage solutions (badger and nuts), and a distributed storage called Olric because setting, getting, updating and deleting keys in these providers is as easy as it gets.  
+**The Badger provider (default one)**: you can tune its configuration using the badger configuration inside your Souin configuration. In order to do that, you have to declare the `badger` block. See the following json example.
+```json
+"badger": {
+  "configuration": {
+    "ValueDir": "default",
+    "ValueLogFileSize": 16777216,
+    "MemTableSize": 4194304,
+    "ValueThreshold": 524288,
+    "BypassLockGuard": true
+  }
+}
+```
+
+**The Nuts provider**: you can tune its configuration using the nuts configuration inside your Souin configuration. In order to do that, you have to declare the `nuts` block. See the following json example.
+```json
+"nuts": {
+  "configuration": {
+    "Dir": "default",
+    "EntryIdxMode": 1,
+    "RWMode": 0,
+    "SegmentSize": 1024,
+    "NodeNum": 42,
+    "SyncEnable": true,
+    "StartFileLoadingMode": 1
+  }
+}
+```
+
+**The Olric provider**: you can tune its configuration using the olric configuration inside your Souin configuration and declare Souin has to use the distributed provider. In order to do that, you have to declare the `olric` block and the `distributed` directive. See the following json example.
+```json
+"distributed": true,
+"olric": {
+  "configuration": {
+    # Olric configuration here...
+  }
+}
+```
+In order to do that, the Olric provider need to be either on the same network as the Souin instance when using docker-compose or over the internet, then it will use by default in-memory to avoid network latency as much as possible. 
+Souin will return at first the response from the choosen provider when it gives a non-empty response, or fallback to the reverse proxy otherwise.
+Since v1.4.2, Souin supports [Olric](https://github.com/buraksezer/olric) to handle distributed cache.
 
 ## GraphQL
 This feature is currently in beta.  

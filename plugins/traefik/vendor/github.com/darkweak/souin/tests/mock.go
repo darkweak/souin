@@ -109,6 +109,47 @@ urls:
 `
 }
 
+// NutsConfiguration simulate the configuration for the Nuts storage
+func NutsConfiguration() string {
+	return `
+api:
+  basepath: /souin-api
+  security:
+    secret: your_secret_key
+    enable: true
+    users:
+      - username: user1
+        password: test
+  souin:
+    enable: true
+default_cache:
+  nuts:
+    path: "/tmp/nuts"
+  distributed: true
+  headers:
+    - Authorization
+  port:
+    web: 80
+    tls: 443
+  regex:
+    exclude: 'ARegexHere'
+  ttl: 1000s
+reverse_proxy_url: 'http://domain.com:81'
+ssl_providers:
+  - traefik
+urls:
+  'domain.com/':
+    ttl: 1000s
+    headers:
+      - Authorization
+  'mysubdomain.domain.com':
+    ttl: 50s
+    headers:
+      - Authorization
+      - 'Content-Type'
+`
+}
+
 func baseEmbeddedOlricConfiguration(path string) string {
 	return fmt.Sprintf(`
 api:
@@ -317,6 +358,8 @@ func GetValidToken() *http.Cookie {
 func GetCacheProviderClientAndMatchedURL(key string, configurationMocker func() configurationtypes.AbstractConfigurationInterface, factory func(configurationInterface configurationtypes.AbstractConfigurationInterface) (types.AbstractProviderInterface, error)) (types.AbstractProviderInterface, configurationtypes.URL) {
 	config := configurationMocker()
 	client, _ := factory(config)
+	fmt.Println(config)
+	fmt.Println(factory(config))
 	regexpUrls := MockInitializeRegexp(config)
 	regexpURL := regexpUrls.FindString(key)
 	matchedURL := configurationtypes.URL{

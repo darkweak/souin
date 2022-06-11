@@ -130,8 +130,6 @@ func (provider *Badger) Set(key string, value []byte, url t.URL, duration time.D
 		duration = url.TTL.Duration
 	}
 
-	fmt.Println(provider)
-	fmt.Println(provider.DB)
 	err := provider.DB.Update(func(txn *badger.Txn) error {
 		return txn.SetEntry(badger.NewEntry([]byte(key), value).WithTTL(duration))
 	})

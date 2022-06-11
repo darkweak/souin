@@ -15,6 +15,7 @@ type DefaultCache struct {
 	DefaultCacheControl string
 	Distributed         bool
 	Headers             []string
+	Key                 configurationtypes.Key
 	Olric               configurationtypes.CacheProvider
 	Nuts                configurationtypes.CacheProvider
 	Regex               configurationtypes.Regex
@@ -45,6 +46,11 @@ func (d *DefaultCache) GetDistributed() bool {
 // GetHeaders returns the default headers that should be cached
 func (d *DefaultCache) GetHeaders() []string {
 	return d.Headers
+}
+
+// GetKey returns the default Key generation strategy
+func (d *DefaultCache) GetKey() configurationtypes.Key {
+	return d.Key
 }
 
 // GetNuts returns nuts configuration
