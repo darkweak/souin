@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/darkweak/souin/api"
@@ -249,7 +248,6 @@ type SouinBasePlugin struct {
 	Retriever         types.RetrieverResponsePropertiesInterface
 	RequestCoalescing coalescing.RequestCoalescingInterface
 	MapHandler        *api.MapHandler
-	bufPool           *sync.Pool
 }
 
 // HandleInternally handles the Souin custom endpoints

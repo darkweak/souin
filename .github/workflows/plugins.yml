@@ -497,7 +497,7 @@ jobs:
         name: Check if the configuration is loaded to define if Souin is loaded too
         uses: nick-invision/assert-action@v1
         with:
-          expected: '"middlewares\":{\"souin\":{\"plugin\":{\"souin-plugin'
+          expected: '"middlewares\":{\"souin\":{\"plugin\":{\"souin'
           actual: ${{ env.TRAEFIK_MIDDLEWARE_RESULT }}
           comparison: contains
       -

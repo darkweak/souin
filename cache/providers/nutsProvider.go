@@ -148,7 +148,7 @@ func (provider *Nuts) DeleteMany(key string) {
 			return err
 		} else {
 			for _, entry := range entries {
-				tx.Delete(bucket, entry.Key)
+				_ = tx.Delete(bucket, entry.Key)
 			}
 		}
 		return nil

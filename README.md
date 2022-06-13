@@ -708,7 +708,7 @@ http:
   middlewares:
     http-cache:
       plugin:
-        souin-plugin:
+        souin:
           api:
             prometheus: {}
             souin: {}
@@ -759,10 +759,10 @@ services:
     labels:
       # other labels...
       - traefik.http.routers.whoami.middlewares=http-cache
-      - traefik.http.middlewares.http-cache.plugin.souin-plugin.api.souin
-      - traefik.http.middlewares.http-cache.plugin.souin-plugin.default_cache.headers=Authorization,Content-Type
-      - traefik.http.middlewares.http-cache.plugin.souin-plugin.default_cache.ttl=10s
-      - traefik.http.middlewares.http-cache.plugin.souin-plugin.log_level=debug
+      - traefik.http.middlewares.http-cache.plugin.souin.api.souin
+      - traefik.http.middlewares.http-cache.plugin.souin.default_cache.headers=Authorization,Content-Type
+      - traefik.http.middlewares.http-cache.plugin.souin.default_cache.ttl=10s
+      - traefik.http.middlewares.http-cache.plugin.souin.log_level=debug
 ```
 
 ### Tyk plugin

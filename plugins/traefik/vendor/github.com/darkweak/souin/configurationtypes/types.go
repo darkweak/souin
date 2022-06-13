@@ -2,6 +2,7 @@ package configurationtypes
 
 import (
 	"encoding/json"
+	"regexp"
 	"time"
 
 	"go.uber.org/zap"
@@ -53,6 +54,17 @@ type Cache struct {
 // Regex config
 type Regex struct {
 	Exclude string `json:"exclude" yaml:"exclude"`
+}
+
+// RegValue represent a valid regexp as value
+type RegValue struct {
+	*regexp.Regexp
+}
+
+func (d *RegValue) UnmarshalYAML(b *yaml.Node) error {
+	d.Regexp = regexp.MustCompile(b.Value)
+
+	return nil
 }
 
 // URL configuration
@@ -228,4 +240,5 @@ type AbstractConfigurationInterface interface {
 	SetLogger(*zap.Logger)
 	GetYkeys() map[string]SurrogateKeys
 	GetSurrogateKeys() map[string]SurrogateKeys
+	GetCacheKeys() map[RegValue]Key
 }

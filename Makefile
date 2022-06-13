@@ -90,7 +90,7 @@ generate-plantUML: ## Generate plantUML diagrams
 	cd ./docs/plantUML && sh generate.sh && cd ../..
 
 golangci-lint: ## Run golangci-lint to ensure the code quality
-	docker run --rm -v $(pwd):/app -w /app golangci/golangci-lint:v1.42.0 golangci-lint run -v
+	docker run --rm -v $(pwd):/app -w /app golangci/golangci-lint:v1.46.2 golangci-lint run -v
 
 health-check-prod: build-app ## Production container health check
 	$(DC_EXEC) souin ls
