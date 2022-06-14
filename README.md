@@ -75,6 +75,11 @@ api:
     basepath: /anything-for-prometheus-metrics # Change the prometheus endpoint basepath
   souin: # Souin listing keys and cache management
     basepath: /anything-for-souin # Change the souin endpoint basepath
+cache_keys:
+  '.*\.css':
+    disable_body: true
+    disable_host: true
+    disable_method: true
 cdn: # If Souin is set after a CDN fill these informations
   api_key: XXXX # Your provider API key if mandatory
   provider: fastly # The provider placed before Souin (e.g. fastly, cloudflare, akamai, varnish)
@@ -88,6 +93,10 @@ default_cache:
   distributed: true # Use Olric distributed storage
   headers: # Default headers concatenated in stored keys
     - Authorization
+  key:
+    disable_body: true
+    disable_host: true
+    disable_method: true
   olric: # If distributed is set to true, you'll have to define the olric section
     url: 'olric:3320' # Olric server
   regex:
@@ -138,6 +147,11 @@ surrogate_keys:
 | `api.security.secret`                             | (DEPRECATED) JWT secret key                                                                                                                 | `Any_charCanW0rk123`                                                                                                      |
 | `api.security.users`                              | (DEPRECATED) Array of authorized users with username x password combo                                                                       | `- username: admin`<br/><br/>`  password: admin`                                                                          |
 | `api.souin.security`                              | Enable JWT validation to access the resource                                                                                                | `true`<br/><br/>`(default: false)`                                                                                        |
+| `cache_keys`                                      | Define the key generation rules for each URI matching the key regexp                                                                        |                                                                                                                           |
+| `cache_keys.{your regexp}`                        | Regexp that the URI should match to override the key generation                                                                             | `.+\.css`                                                                                                                 |
+| `default_cache.key.disable_body`                  | Disable the body part in the key matching the regexp (GraphQL context)                                                                      | `true`<br/><br/>`(default: false)`                                                                                        |
+| `default_cache.key.disable_host`                  | Disable the host part in the key matching the regexp                                                                                        | `true`<br/><br/>`(default: false)`                                                                                        |
+| `default_cache.key.disable_method`                | Disable the method part in the key matching the regexp                                                                                      | `true`<br/><br/>`(default: false)`                                                                                        |
 | `cdn`                                             | The CDN management, if you use any cdn to proxy your requests Souin will handle that                                                        |                                                                                                                           |
 | `cdn.provider`                                    | The provider placed before Souin                                                                                                            | `akamai`<br/><br/>`fastly`<br/><br/>`souin`                                                                               |
 | `cdn.api_key`                                     | The api key used to access to the provider                                                                                                  | `XXXX`                                                                                                                    |
@@ -153,9 +167,13 @@ surrogate_keys:
 | `default_cache.badger.path`                       | Configure Badger with a file                                                                                                                | `/anywhere/badger_configuration.json`                                                                                     |
 | `default_cache.badger.configuration`              | Configure Badger directly in the Caddyfile or your JSON caddy configuration                                                                 | [See the Badger configuration for the options](https://dgraph.io/docs/badger/get-started/)                                |
 | `default_cache.headers`                           | List of headers to include to the cache                                                                                                     | `- Authorization`<br/><br/>`- Content-Type`<br/><br/>`- X-Additional-Header`                                              |
+| `default_cache.key`                               | Override the key generation with the ability to disable unecessary parts                                                                    |                                                                                                                           |
+| `default_cache.key.disable_body`                  | Disable the body part in the key (GraphQL context)                                                                                          | `true`<br/><br/>`(default: false)`                                                                                        |
+| `default_cache.key.disable_host`                  | Disable the host part in the key                                                                                                            | `true`<br/><br/>`(default: false)`                                                                                        |
+| `default_cache.key.disable_method`                | Disable the method part in the key                                                                                                          | `true`<br/><br/>`(default: false)`                                                                                        |
 | `default_cache.olric`                             | Configure the Olric cache storage                                                                                                           |                                                                                                                           |
-| `default_cache.olric.path`                        | Configure Olric with a file                                                                                                                 | `/anywhere/olric_configuration.json`                                                                                     |
-| `default_cache.olric.configuration`               | Configure Olric directly in the Caddyfile or your JSON caddy configuration                                                                  | [See the Olric configuration for the options](https://github.com/buraksezer/olric/blob/master/cmd/olricd/olricd.yaml/)   |
+| `default_cache.olric.path`                        | Configure Olric with a file                                                                                                                 | `/anywhere/olric_configuration.json`                                                                                      |
+| `default_cache.olric.configuration`               | Configure Olric directly in the Caddyfile or your JSON caddy configuration                                                                  | [See the Olric configuration for the options](https://github.com/buraksezer/olric/blob/master/cmd/olricd/olricd.yaml/)    |
 | `default_cache.port.{web,tls}`                    | The device's local HTTP/TLS port that Souin should be listening on                                                                          | Respectively `80` and `443`                                                                                               |
 | `default_cache.regex.exclude`                     | The regex used to prevent paths being cached                                                                                                | `^[A-z]+.*$`                                                                                                              |
 | `default_cache.stale`                             | The stale duration                                                                                                                          | `25m`                                                                                                                     |
@@ -392,6 +410,13 @@ There is the fully configuration below
         badger {
             path the_path_to_a_file.json
         }
+        cache_keys {
+            .*\.something {
+                disable_body
+                disable_host
+                disable_method
+            }
+        }
         cdn {
             api_key XXXX
             dynamic
@@ -404,6 +429,11 @@ There is the fully configuration below
             zone_id anywhere_zone
         }
         headers Content-Type Authorization
+        key {
+            disable_body
+            disable_host
+            disable_method
+        }
         log_level debug
         olric {
             url url_to_your_cluster:3320
@@ -504,6 +534,18 @@ cache @matchdefault {
             BypassLockGuard true
         }
     }
+}
+
+route /no-method-and-domain.css {
+    cache {
+        cache_keys {
+            .*\.css {
+                disable_host
+                disable_method
+            }
+        }
+    }
+    respond "Hello without storing method and domain cache key"
 }
 
 cache @souin-api {}

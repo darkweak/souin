@@ -87,8 +87,10 @@ func (d *DefaultCache) GetDefaultCacheControl() string {
 type Configuration struct {
 	DefaultCache *DefaultCache
 	API          configurationtypes.API
+	CfgCacheKeys map[string]configurationtypes.Key
 	URLs         map[string]configurationtypes.URL
 	LogLevel     string
+	cacheKeys    map[configurationtypes.RegValue]configurationtypes.Key
 	logger       *zap.Logger
 }
 
@@ -131,3 +133,10 @@ func (c *Configuration) GetYkeys() map[string]configurationtypes.SurrogateKeys {
 func (c *Configuration) GetSurrogateKeys() map[string]configurationtypes.SurrogateKeys {
 	return nil
 }
+
+// GetCacheKeys get the cache keys rules to override
+func (c *Configuration) GetCacheKeys() map[configurationtypes.RegValue]configurationtypes.Key {
+	return c.cacheKeys
+}
+
+var _ configurationtypes.AbstractConfigurationInterface = (*Configuration)(nil)

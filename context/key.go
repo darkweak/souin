@@ -2,7 +2,6 @@ package context
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"regexp"
 
@@ -14,6 +13,7 @@ const (
 )
 
 type keyContext struct {
+	disable_body   bool
 	disable_host   bool
 	disable_method bool
 	overrides      map[*regexp.Regexp]keyContext
@@ -21,6 +21,7 @@ type keyContext struct {
 
 func (g *keyContext) SetupContext(c configurationtypes.AbstractConfigurationInterface) {
 	k := c.GetDefaultCache().GetKey()
+	g.disable_body = k.DisableBody
 	g.disable_host = k.DisableHost
 	g.disable_method = k.DisableMethod
 
@@ -28,6 +29,7 @@ func (g *keyContext) SetupContext(c configurationtypes.AbstractConfigurationInte
 
 	for r, v := range c.GetCacheKeys() {
 		g.overrides[r.Regexp] = keyContext{
+			disable_body:   v.DisableBody,
 			disable_host:   v.DisableHost,
 			disable_method: v.DisableMethod,
 		}
@@ -35,10 +37,15 @@ func (g *keyContext) SetupContext(c configurationtypes.AbstractConfigurationInte
 }
 
 func (g *keyContext) SetContext(req *http.Request) *http.Request {
-	key := fmt.Sprintf("%s%s", req.URL.RequestURI(), req.Context().Value(HashBody).(string))
+	key := req.URL.RequestURI()
 
+	body := ""
 	host := ""
 	method := ""
+
+	if !g.disable_body {
+		body = req.Context().Value(HashBody).(string)
+	}
 
 	if !g.disable_host {
 		host = req.Host + "-"
@@ -49,9 +56,12 @@ func (g *keyContext) SetContext(req *http.Request) *http.Request {
 	}
 
 	for k, v := range g.overrides {
-		host = ""
-		method = ""
 		if k.MatchString(req.URL.RequestURI()) {
+			host = ""
+			method = ""
+			if !v.disable_body {
+				body = req.Context().Value(HashBody).(string)
+			}
 			if !v.disable_method {
 				method = req.Method + "-"
 			}
@@ -62,7 +72,7 @@ func (g *keyContext) SetContext(req *http.Request) *http.Request {
 		}
 	}
 
-	return req.WithContext(context.WithValue(req.Context(), Key, fmt.Sprintf("%s%s%s", method, host, key)))
+	return req.WithContext(context.WithValue(req.Context(), Key, method+host+key+body))
 }
 
 var _ ctx = (*keyContext)(nil)

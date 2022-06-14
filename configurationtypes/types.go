@@ -61,8 +61,15 @@ type RegValue struct {
 	*regexp.Regexp
 }
 
-func (d *RegValue) UnmarshalYAML(b *yaml.Node) error {
-	d.Regexp = regexp.MustCompile(b.Value)
+func (r *RegValue) UnmarshalYAML(b *yaml.Node) error {
+	r.Regexp = regexp.MustCompile(b.Value)
+
+	return nil
+}
+
+// UnmarshalJSON parse the string configuration into a compiled regexp.
+func (r *RegValue) UnmarshalJSON(b []byte) error {
+	r.Regexp = regexp.MustCompile(string(b))
 
 	return nil
 }
@@ -98,6 +105,7 @@ type CDN struct {
 }
 
 type Key struct {
+	DisableBody   bool `json:"disable_body" yaml:"disable_body"`
 	DisableHost   bool `json:"disable_host" yaml:"disable_host"`
 	DisableMethod bool `json:"disable_method" yaml:"disable_method"`
 }
