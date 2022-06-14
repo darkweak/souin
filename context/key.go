@@ -56,7 +56,7 @@ func (g *keyContext) SetContext(req *http.Request) *http.Request {
 	}
 
 	for k, v := range g.overrides {
-		if k.MatchString(req.URL.RequestURI()) {
+		if k.MatchString(req.RequestURI) {
 			host = ""
 			method = ""
 			if !v.disable_body {

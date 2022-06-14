@@ -111,10 +111,11 @@ func (d *DefaultCache) GetDefaultCacheControl() string {
 
 //Configuration holder
 type Configuration struct {
-	DefaultCache  *DefaultCache                     `json:"default_cache,omitempty"`
-	API           configurationtypes.API            `json:"api,omitempty"`
-	URLs          map[string]configurationtypes.URL `json:"urls,omitempty"`
-	LogLevel      string                            `json:"log_level,omitempty"`
+	DefaultCache  *DefaultCache                                          `json:"default_cache,omitempty"`
+	API           configurationtypes.API                                 `json:"api,omitempty"`
+	CacheKeys     map[configurationtypes.RegValue]configurationtypes.Key `yaml:"cache_keys,omitempty"`
+	URLs          map[string]configurationtypes.URL                      `json:"urls,omitempty"`
+	LogLevel      string                                                 `json:"log_level,omitempty"`
 	logger        *zap.Logger
 	Ykeys         map[string]configurationtypes.SurrogateKeys `json:"ykeys,omitempty"`
 	SurrogateKeys map[string]configurationtypes.SurrogateKeys `json:"surrogate_keys,omitempty"`
@@ -159,3 +160,10 @@ func (c *Configuration) GetYkeys() map[string]configurationtypes.SurrogateKeys {
 func (c *Configuration) GetSurrogateKeys() map[string]configurationtypes.SurrogateKeys {
 	return c.SurrogateKeys
 }
+
+// GetCacheKeys get the cache keys rules to override
+func (c *Configuration) GetCacheKeys() map[configurationtypes.RegValue]configurationtypes.Key {
+	return c.CacheKeys
+}
+
+var _ configurationtypes.AbstractConfigurationInterface = (*Configuration)(nil)
