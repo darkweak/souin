@@ -358,8 +358,6 @@ func GetValidToken() *http.Cookie {
 func GetCacheProviderClientAndMatchedURL(key string, configurationMocker func() configurationtypes.AbstractConfigurationInterface, factory func(configurationInterface configurationtypes.AbstractConfigurationInterface) (types.AbstractProviderInterface, error)) (types.AbstractProviderInterface, configurationtypes.URL) {
 	config := configurationMocker()
 	client, _ := factory(config)
-	fmt.Println(config)
-	fmt.Println(factory(config))
 	regexpUrls := MockInitializeRegexp(config)
 	regexpURL := regexpUrls.FindString(key)
 	matchedURL := configurationtypes.URL{

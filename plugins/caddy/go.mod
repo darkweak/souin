@@ -3,7 +3,7 @@ module github.com/darkweak/souin/plugins/caddy
 go 1.17
 
 require (
-	github.com/buraksezer/olric v0.4.2
+	github.com/buraksezer/olric v0.4.5
 	github.com/caddyserver/caddy/v2 v2.5.0
 	github.com/darkweak/souin v1.6.8
 	go.uber.org/zap v1.21.0
@@ -21,7 +21,7 @@ require (
 	github.com/armon/go-metrics v0.3.9 // indirect
 	github.com/aryann/difflib v0.0.0-20210328193216-ff5ff6dc229b // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/buraksezer/connpool v0.4.0 // indirect
+	github.com/buraksezer/connpool v0.5.0 // indirect
 	github.com/buraksezer/consistent v0.0.0-20191006190839-693edf70fd72 // indirect
 	github.com/bwmarrin/snowflake v0.3.0 // indirect
 	github.com/caddyserver/certmagic v0.16.1 // indirect

@@ -39,8 +39,7 @@ func init() {
 	httpcaddyfile.RegisterHandlerDirective(moduleName, parseCaddyfileHandlerDirective)
 }
 
-// SouinCaddyPlugin allows the user to set up an HTTP cache system, RFC-7234 compliant.
-// Supports the tag based cache purge, distributed and not-distributed storage.
+// SouinCaddyPlugin allows the user to set up an HTTP cache system, RFC-7234 compliant. This is the development repository of the official cache-handler. It supports the tag based cache purge, distributed and not-distributed storage, key generation tweaking.
 type SouinCaddyPlugin struct {
 	plugins.SouinBasePlugin
 	Configuration *Configuration

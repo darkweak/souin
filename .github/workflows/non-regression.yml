@@ -30,10 +30,8 @@ jobs:
           go-version: 1.16
       - name: Build the stack
         run: docker network create your_network || true
-      - name: Prepare the stack
-        run: cp Dockerfile-dev Dockerfile && cp docker-compose.yml.test docker-compose.yml
       - name: Build the stack
-        run: docker-compose up -d --build --force-recreate --remove-orphans
+        run: docker-compose -f docker-compose.yml.test up -d --build --force-recreate --remove-orphans
       - name: Test
         run: docker-compose exec -T souin go test -v ./...
   validate-prod-container-building:
@@ -48,11 +46,8 @@ jobs:
         name: Build the stack
         run: docker network create your_network || true
       -
-        name: Prepare the stack
-        run: cp Dockerfile-prod Dockerfile && cp docker-compose.yml.prod docker-compose.yml
-      -
         name: Build the stack
-        run: docker-compose up -d --build --force-recreate --remove-orphans
+        run: docker-compose -f docker-compose.yml.prod up -d --build --force-recreate --remove-orphans
       -
         name: Souin container healthceck
-        run: docker-compose exec -T souin ls
+        run: docker-compose -f docker-compose.yml.prod exec -T souin ls
