@@ -89,14 +89,6 @@ func TestNuts_SetRequestInCache_TTL(t *testing.T) {
 	setValueThenVerify(client, key, nv, matchedURL, time.Duration(20)*time.Second, t)
 }
 
-func TestNuts_SetRequestInCache_Negative_TTL(t *testing.T) {
-	client, matchedURL := getNutsClientAndMatchedURL(BYTEKEY)
-	nv := []byte("New value")
-	client.Set(BYTEKEY, nv, matchedURL, -1)
-	time.Sleep(1 * time.Second)
-	verifyNewValueAfterSet(client, BYTEKEY, []byte{}, t)
-}
-
 func TestNuts_DeleteRequestInCache(t *testing.T) {
 	client, _ := NutsConnectionFactory(tests.MockConfiguration(tests.BaseConfiguration))
 	client.Delete(BYTEKEY)

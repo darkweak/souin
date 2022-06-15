@@ -87,7 +87,8 @@ func Test_KeyContext_SetContext(t *testing.T) {
 		disable_method: false,
 	}
 	ctx3 := keyContext{
-		overrides: m,
+		disable_method: true,
+		overrides:      m,
 	}
 	req3 := httptest.NewRequest(http.MethodGet, "http://domain.com/matched", nil)
 	req3 = ctx3.SetContext(req3.WithContext(context.WithValue(req3.Context(), HashBody, "")))
@@ -97,7 +98,7 @@ func Test_KeyContext_SetContext(t *testing.T) {
 
 	req4 := httptest.NewRequest(http.MethodGet, "http://domain.com/something", nil)
 	req4 = ctx3.SetContext(req4.WithContext(context.WithValue(req4.Context(), HashBody, "")))
-	if req4.Context().Value(Key).(string) != "/something" {
-		t.Errorf("The Key context must be equal to /something, %s given.", req4.Context().Value(Key).(string))
+	if req4.Context().Value(Key).(string) != "domain.com-/something" {
+		t.Errorf("The Key context must be equal to domain.com-/something, %s given.", req4.Context().Value(Key).(string))
 	}
 }

@@ -33,7 +33,7 @@ jobs:
       - name: Build the stack
         run: docker-compose -f docker-compose.yml.test up -d --build --force-recreate --remove-orphans
       - name: Test
-        run: docker-compose exec -T souin go test -v ./...
+        run: docker-compose -f docker-compose.yml.test exec -T souin go test -v -race ./...
   validate-prod-container-building:
     needs: checkout-code-and-validate
     name: Validate that the container build for prod
