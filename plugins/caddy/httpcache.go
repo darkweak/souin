@@ -270,6 +270,14 @@ func (s *SouinCaddyPlugin) Provision(ctx caddy.Context) error {
 		}
 	}
 
+	v, l := up.LoadOrStore(coalescing_key, s.Retriever.GetTransport().GetCoalescingLayerStorage())
+
+	if l {
+		fmt.Println("Loaded coalescing layer from cache.")
+		s.Retriever.GetTransport().GetCoalescingLayerStorage().Destruct()
+		s.Retriever.GetTransport().(*rfc.VaryTransport).CoalescingLayerStorage = v.(*types.CoalescingLayerStorage)
+	}
+
 	if app.Provider == nil {
 		app.Provider = s.Retriever.GetProvider()
 	} else {
