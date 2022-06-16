@@ -15,7 +15,9 @@ type DefaultCache struct {
 	DefaultCacheControl string
 	Distributed         bool
 	Headers             []string
+	Key                 configurationtypes.Key
 	Olric               configurationtypes.CacheProvider
+	Nuts                configurationtypes.CacheProvider
 	Regex               configurationtypes.Regex
 	TTL                 configurationtypes.Duration
 	Stale               configurationtypes.Duration
@@ -44,6 +46,16 @@ func (d *DefaultCache) GetDistributed() bool {
 // GetHeaders returns the default headers that should be cached
 func (d *DefaultCache) GetHeaders() []string {
 	return d.Headers
+}
+
+// GetKey returns the default Key generation strategy
+func (d *DefaultCache) GetKey() configurationtypes.Key {
+	return d.Key
+}
+
+// GetNuts returns nuts configuration
+func (d *DefaultCache) GetNuts() configurationtypes.CacheProvider {
+	return d.Nuts
 }
 
 // GetOlric returns olric configuration
@@ -75,8 +87,10 @@ func (d *DefaultCache) GetDefaultCacheControl() string {
 type Configuration struct {
 	DefaultCache *DefaultCache
 	API          configurationtypes.API
+	CfgCacheKeys map[string]configurationtypes.Key
 	URLs         map[string]configurationtypes.URL
 	LogLevel     string
+	cacheKeys    map[configurationtypes.RegValue]configurationtypes.Key
 	logger       *zap.Logger
 }
 
@@ -119,3 +133,10 @@ func (c *Configuration) GetYkeys() map[string]configurationtypes.SurrogateKeys {
 func (c *Configuration) GetSurrogateKeys() map[string]configurationtypes.SurrogateKeys {
 	return nil
 }
+
+// GetCacheKeys get the cache keys rules to override
+func (c *Configuration) GetCacheKeys() map[configurationtypes.RegValue]configurationtypes.Key {
+	return c.cacheKeys
+}
+
+var _ configurationtypes.AbstractConfigurationInterface = (*Configuration)(nil)

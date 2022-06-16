@@ -1,6 +1,15 @@
 {
   "apps": {
     "cache": {
+      "api": {
+        "souin": {}
+      },
+      "cache_keys": {
+        ".+\.css": {
+          "disable_host": true,
+          "disable_method": true
+        }
+      },
       "headers": [
         "Content-Type",
         "Authorization"

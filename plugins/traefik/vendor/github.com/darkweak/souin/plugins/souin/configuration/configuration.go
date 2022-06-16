@@ -11,12 +11,13 @@ import (
 
 //Configuration holder
 type Configuration struct {
-	DefaultCache    *configurationtypes.DefaultCache  `yaml:"default_cache"`
-	API             configurationtypes.API            `yaml:"api"`
-	ReverseProxyURL string                            `yaml:"reverse_proxy_url"`
-	SSLProviders    []string                          `yaml:"ssl_providers"`
-	URLs            map[string]configurationtypes.URL `yaml:"urls"`
-	LogLevel        string                            `yaml:"log_level"`
+	DefaultCache    *configurationtypes.DefaultCache                       `yaml:"default_cache"`
+	CacheKeys       map[configurationtypes.RegValue]configurationtypes.Key `yaml:"cache_keys"`
+	API             configurationtypes.API                                 `yaml:"api"`
+	ReverseProxyURL string                                                 `yaml:"reverse_proxy_url"`
+	SSLProviders    []string                                               `yaml:"ssl_providers"`
+	URLs            map[string]configurationtypes.URL                      `yaml:"urls"`
+	LogLevel        string                                                 `yaml:"log_level"`
 	logger          *zap.Logger
 	Ykeys           map[string]configurationtypes.SurrogateKeys `yaml:"ykeys"`
 	SurrogateKeys   map[string]configurationtypes.SurrogateKeys `yaml:"surrogate_keys"`
@@ -88,6 +89,11 @@ func (c *Configuration) GetSurrogateKeys() map[string]configurationtypes.Surroga
 	return c.SurrogateKeys
 }
 
+// GetCacheKeys get the cache keys rules to override
+func (c *Configuration) GetCacheKeys() map[configurationtypes.RegValue]configurationtypes.Key {
+	return c.CacheKeys
+}
+
 // GetConfiguration allow to retrieve Souin configuration through yaml file
 func GetConfiguration() *Configuration {
 	data := readFile("./configuration/configuration.yml")
@@ -97,3 +103,5 @@ func GetConfiguration() *Configuration {
 	}
 	return &config
 }
+
+var _ configurationtypes.AbstractConfigurationInterface = (*Configuration)(nil)

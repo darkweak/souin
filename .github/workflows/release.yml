@@ -5,8 +5,8 @@ on:
     tags: ["v*"]
 
 jobs:
-  generate-binary:
-    name: Generate binary
+  generate-souin-traefik-docker:
+    name: Generate embedded Souin as traefik middleware
     runs-on: ubuntu-latest
     steps:
       -
@@ -14,25 +14,54 @@ jobs:
         run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
       -
         name: Checkout code
-        uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
+        uses: actions/checkout@v3
       -
         name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
+        uses: docker/setup-qemu-action@v2
       -
         name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
       -
         name: Login to DockerHub
-        uses: docker/login-action@v1
+        uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
       -
         name: Build & push Docker image containing only binary
         id: docker_build
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v3
+        with:
+          push: true
+          file: ./plugins/traefik/Dockerfile.deploy
+          platforms: linux/amd64,linux/arm/v7,linux/arm64/v8
+          tags: darkweak/souin-traefik:${{ env.RELEASE_VERSION }}
+  generate-souin-docker:
+    name: Generate souin docker
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Get tag name
+        run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+      -
+        name: Checkout code
+        uses: actions/checkout@v3
+      -
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      -
+        name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      -
+        name: Build & push Docker image containing only binary
+        id: docker_build
+        uses: docker/build-push-action@v3
         with:
           push: true
           file: ./Dockerfile-prod
@@ -41,7 +70,7 @@ jobs:
             darkweak/souin:latest
             darkweak/souin:${{ env.RELEASE_VERSION }}
   generate-artifacts:
-    name: Generate cross-platform builds
+    name: Deploy to goreleaser
     runs-on: ubuntu-latest
     steps:
       -
