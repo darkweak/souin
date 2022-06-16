@@ -1,0 +1,33 @@
+{
+    "appname": "beepkg",
+    "httpaddr": "127.0.0.1",
+    "httpport": "9090",
+    "runmode": "dev",
+    "autorender": false,
+    "recoverpanic": false,
+    "viewspath": "myview",
+    "dev": {
+        "httpport": 8080
+    },
+    "prod": {
+        "httpport": 8088
+    },
+    "test": {
+        "httpport": 8888
+    },
+    "httpcache": {
+        "api": {
+            "souin": {
+                "enable": true
+            }
+        },
+        "default_cache": {
+            "ttl": "5s",
+            "default_cache_control": "public",
+            "regex": {
+                "exclude": "/excluded"
+            }
+        },
+        "log_level": "debug"
+    }
+}

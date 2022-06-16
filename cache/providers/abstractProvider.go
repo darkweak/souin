@@ -21,6 +21,8 @@ func InitializeProvider(configuration configurationtypes.AbstractConfigurationIn
 		} else {
 			r, _ = EmbeddedOlricConnectionFactory(configuration)
 		}
+	} else if configuration.GetDefaultCache().GetNuts().Configuration != nil || configuration.GetDefaultCache().GetNuts().Path != "" {
+		r, _ = NutsConnectionFactory(configuration)
 	} else {
 		r, _ = BadgerConnectionFactory(configuration)
 	}

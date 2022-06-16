@@ -21,6 +21,8 @@ const (
 	edgeCacheTag          = "Edge-Cache-Tag"
 	cacheTags             = "Cache-Tags"
 	cacheTag              = "Cache-Tag"
+
+	stalePrefix = "STALE_"
 )
 
 func (s *baseStorage) ParseHeaders(value string) []string {
@@ -62,6 +64,7 @@ type baseStorage struct {
 	Keys       map[string]configurationtypes.SurrogateKeys
 	keysRegexp map[string]keysRegexpInner
 	dynamic    bool
+	keepStale  bool
 	logger     *zap.Logger
 }
 
@@ -69,6 +72,7 @@ func (s *baseStorage) init(config configurationtypes.AbstractConfigurationInterf
 	storage := make(map[string]string)
 	s.Storage = storage
 	s.Keys = config.GetSurrogateKeys()
+	s.keepStale = config.GetDefaultCache().GetCDN().Strategy == "hard"
 	keysRegexp := make(map[string]keysRegexpInner, len(s.Keys))
 	baseRegexp := regexp.MustCompile(".+")
 
@@ -135,6 +139,10 @@ func (s *baseStorage) getSurrogateKey(header http.Header) string {
 func (s *baseStorage) purgeTag(tag string) []string {
 	toInvalidate := s.Storage[tag]
 	delete(s.Storage, tag)
+	if !s.keepStale {
+		toInvalidate = toInvalidate + s.Storage[stalePrefix+tag]
+		delete(s.Storage, stalePrefix+tag)
+	}
 	return strings.Split(toInvalidate, souinStorageSeparator)
 }
 

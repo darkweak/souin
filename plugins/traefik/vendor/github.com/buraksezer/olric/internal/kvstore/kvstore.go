@@ -87,7 +87,7 @@ func (kv *KVStore) Fork(c *storage.Config) (storage.Engine, error) {
 		config:           c,
 		minimumTableSize: size.(int),
 	}
-	t := newTable(child.calculateTableSize(0))
+	t := newTable(child.minimumTableSize)
 	child.tables = append(child.tables, t)
 	return child, nil
 }
@@ -113,6 +113,7 @@ func (kv *KVStore) PutRaw(hkey uint64, value []byte) error {
 		err := t.putRaw(hkey, value)
 		if err == errNotEnoughSpace {
 			// Create a new table and put the new k/v pair in it.
+			// The value includes its metadata, so there is no need to use requiredSpaceForAnEntry.
 			ntSize := kv.calculateTableSize(len(value))
 			nt := newTable(ntSize)
 			kv.tables = append(kv.tables, nt)
@@ -129,31 +130,25 @@ func (kv *KVStore) PutRaw(hkey uint64, value []byte) error {
 	return res
 }
 
-func (kv *KVStore) calculateTableSize(minimum int) int {
+// requiredSpaceForAnEntry calculates how many bytes are required to store an storage.Entry.
+func requiredSpaceForAnEntry(keyLength, valueLength int) int {
+	return keyLength + valueLength + metadataLen
+}
+
+// calculateTableSize calculates a new table size to expand the underlying table. If you use
+// zero (0) as minimumRequiredSize, it returns the default table size.
+func (kv *KVStore) calculateTableSize(minimumRequiredSize int) int {
 	s := kv.Stats()
-	if s.Inuse == 0 {
-		// Value size is too big, and we are trying to allocate a new table to insert it into
-		if kv.minimumTableSize <= minimum {
-			return kv.minimumTableSize + minimum
-		}
-
-		// Fresh table
-		return kv.minimumTableSize
-	}
-
-	doubledInuse := s.Inuse * 2
+	inuse := s.Inuse
+	newTableSize := (inuse + minimumRequiredSize) * 2
 
 	// Minimum table size is kv.minimumTableSize
-	if doubledInuse <= kv.minimumTableSize {
+	if newTableSize < kv.minimumTableSize {
 		return kv.minimumTableSize
-	}
-
-	if doubledInuse <= minimum {
-		return doubledInuse + minimum
 	}
 
 	// Expand the table.
-	return doubledInuse
+	return newTableSize
 }
 
 // Put sets the value for the given key. It overwrites any previous value for that key
@@ -167,8 +162,10 @@ func (kv *KVStore) Put(hkey uint64, value storage.Entry) error {
 		t := kv.tables[len(kv.tables)-1]
 		err := t.put(hkey, value)
 		if err == errNotEnoughSpace {
+			minimumRequiredSpace := requiredSpaceForAnEntry(len(value.Key()), len(value.Value()))
+			ntSize := kv.calculateTableSize(minimumRequiredSpace)
+
 			// Create a new table and put the new k/v pair in it.
-			ntSize := kv.calculateTableSize(len(value.Value()))
 			nt := newTable(ntSize)
 			kv.tables = append(kv.tables, nt)
 			res = storage.ErrFragmented
@@ -296,7 +293,7 @@ func (kv *KVStore) Delete(hkey uint64) error {
 	t := kv.tables[0]
 	if float64(t.allocated)*maxGarbageRatio <= float64(t.garbage) {
 		// Create a new table here.
-		nt := newTable(kv.calculateTableSize(0))
+		nt := newTable(kv.minimumTableSize)
 		kv.tables = append(kv.tables, nt)
 		return storage.ErrFragmented
 	}

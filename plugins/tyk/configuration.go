@@ -40,7 +40,9 @@ type DefaultCache struct {
 	CDN                 configurationtypes.CDN           `json:"cdn,omitempty"`
 	Distributed         bool
 	Headers             []string                         `json:"api,omitempty"`
+	Key                 configurationtypes.Key           `json:"key" yaml:"key"`
 	Olric               configurationtypes.CacheProvider `json:"olric,omitempty"`
+	Nuts                configurationtypes.CacheProvider `json:"nuts,omitempty"`
 	Regex               configurationtypes.Regex         `json:"regex,omitempty"`
 	TTL                 Duration                         `json:"ttl,omitempty"`
 	Stale               configurationtypes.Duration      `json:"stale,omitempty"`
@@ -72,9 +74,19 @@ func (d *DefaultCache) GetHeaders() []string {
 	return d.Headers
 }
 
+// GetKey returns the default Key generation strategy
+func (d *DefaultCache) GetKey() configurationtypes.Key {
+	return d.Key
+}
+
 // GetOlric returns olric configuration
 func (d *DefaultCache) GetOlric() configurationtypes.CacheProvider {
 	return d.Olric
+}
+
+// GetNuts returns nuts configuration
+func (d *DefaultCache) GetNuts() configurationtypes.CacheProvider {
+	return d.Nuts
 }
 
 // GetRegex returns the regex that shouldn't be cached
@@ -99,10 +111,11 @@ func (d *DefaultCache) GetDefaultCacheControl() string {
 
 //Configuration holder
 type Configuration struct {
-	DefaultCache  *DefaultCache                     `json:"default_cache,omitempty"`
-	API           configurationtypes.API            `json:"api,omitempty"`
-	URLs          map[string]configurationtypes.URL `json:"urls,omitempty"`
-	LogLevel      string                            `json:"log_level,omitempty"`
+	DefaultCache  *DefaultCache                                          `json:"default_cache,omitempty"`
+	API           configurationtypes.API                                 `json:"api,omitempty"`
+	CacheKeys     map[configurationtypes.RegValue]configurationtypes.Key `yaml:"cache_keys,omitempty"`
+	URLs          map[string]configurationtypes.URL                      `json:"urls,omitempty"`
+	LogLevel      string                                                 `json:"log_level,omitempty"`
 	logger        *zap.Logger
 	Ykeys         map[string]configurationtypes.SurrogateKeys `json:"ykeys,omitempty"`
 	SurrogateKeys map[string]configurationtypes.SurrogateKeys `json:"surrogate_keys,omitempty"`
@@ -147,3 +160,10 @@ func (c *Configuration) GetYkeys() map[string]configurationtypes.SurrogateKeys {
 func (c *Configuration) GetSurrogateKeys() map[string]configurationtypes.SurrogateKeys {
 	return c.SurrogateKeys
 }
+
+// GetCacheKeys get the cache keys rules to override
+func (c *Configuration) GetCacheKeys() map[configurationtypes.RegValue]configurationtypes.Key {
+	return c.CacheKeys
+}
+
+var _ configurationtypes.AbstractConfigurationInterface = (*Configuration)(nil)

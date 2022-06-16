@@ -2,6 +2,7 @@ package configurationtypes
 
 import (
 	"encoding/json"
+	"regexp"
 	"time"
 
 	"go.uber.org/zap"
@@ -55,6 +56,24 @@ type Regex struct {
 	Exclude string `json:"exclude" yaml:"exclude"`
 }
 
+// RegValue represent a valid regexp as value
+type RegValue struct {
+	*regexp.Regexp
+}
+
+func (r *RegValue) UnmarshalYAML(b *yaml.Node) error {
+	r.Regexp = regexp.MustCompile(b.Value)
+
+	return nil
+}
+
+// UnmarshalJSON parse the string configuration into a compiled regexp.
+func (r *RegValue) UnmarshalJSON(b []byte) error {
+	r.Regexp = regexp.MustCompile(string(b))
+
+	return nil
+}
+
 // URL configuration
 type URL struct {
 	TTL                 Duration `json:"ttl" yaml:"ttl"`
@@ -85,6 +104,12 @@ type CDN struct {
 	ZoneID    string `json:"zone_id,omitempty" yaml:"zone_id,omitempty"`
 }
 
+type Key struct {
+	DisableBody   bool `json:"disable_body" yaml:"disable_body"`
+	DisableHost   bool `json:"disable_host" yaml:"disable_host"`
+	DisableMethod bool `json:"disable_method" yaml:"disable_method"`
+}
+
 // DefaultCache configuration
 type DefaultCache struct {
 	AllowedHTTPVerbs    []string      `json:"allowed_http_verbs" yaml:"allowed_http_verbs"`
@@ -92,6 +117,8 @@ type DefaultCache struct {
 	CDN                 CDN           `json:"cdn" yaml:"cdn"`
 	Distributed         bool          `json:"distributed" yaml:"distributed"`
 	Headers             []string      `json:"headers" yaml:"headers"`
+	Key                 Key           `json:"key" yaml:"key"`
+	Nuts                CacheProvider `json:"nuts" yaml:"nuts"`
 	Olric               CacheProvider `json:"olric" yaml:"olric"`
 	Port                Port          `json:"port" yaml:"port"`
 	Regex               Regex         `json:"regex" yaml:"regex"`
@@ -125,6 +152,16 @@ func (d *DefaultCache) GetHeaders() []string {
 	return d.Headers
 }
 
+// GetKey returns the default Key generation strategy
+func (d *DefaultCache) GetKey() Key {
+	return d.Key
+}
+
+// GetNuts returns nuts configuration
+func (d *DefaultCache) GetNuts() CacheProvider {
+	return d.Nuts
+}
+
 // GetOlric returns olric configuration
 func (d *DefaultCache) GetOlric() CacheProvider {
 	return d.Olric
@@ -156,8 +193,10 @@ type DefaultCacheInterface interface {
 	GetBadger() CacheProvider
 	GetCDN() CDN
 	GetDistributed() bool
+	GetNuts() CacheProvider
 	GetOlric() CacheProvider
 	GetHeaders() []string
+	GetKey() Key
 	GetRegex() Regex
 	GetTTL() time.Duration
 	GetStale() time.Duration
@@ -209,4 +248,5 @@ type AbstractConfigurationInterface interface {
 	SetLogger(*zap.Logger)
 	GetYkeys() map[string]SurrogateKeys
 	GetSurrogateKeys() map[string]SurrogateKeys
+	GetCacheKeys() map[RegValue]Key
 }

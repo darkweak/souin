@@ -1,7 +1,7 @@
 ![Souin logo](https://github.com/darkweak/souin/blob/master/docs/img/logo.svg)
 
 # Souin Table of Contents
-1. [Souin reverse-proxy cache](#project-description)
+1. [Souin reverse-proxy cache description](#project-description)
 2. [Configuration](#configuration)  
   2.1. [Required configuration](#required-configuration)  
     2.1.1. [Souin as plugin](#souin-as-plugin)  
@@ -18,23 +18,22 @@
 7. [Examples](#examples)  
   7.1. [Træfik container](#træfik-container)
 8. [Plugins](#plugins)  
-  8.1. [Caddy module](#caddy-module)  
-  8.2. [Chi middleware](#chi-middleware)  
-  8.3. [Dotweb middleware](#dotweb-middleware)  
-  8.4. [Echo middleware](#echo-middleware)  
-  8.5. [Fiber middleware](#fiber-middleware)  
-  8.6. [Gin middleware](#gin-middleware)  
-  8.7. [Go-zero middleware](#go-zero-middleware)  
-  8.8. [Goyave middleware](#goyave-middleware)  
-  8.9. [Skipper filter](#skipper-filter)  
-  8.10. [Træfik plugin](#træfik-plugin)  
-  8.11. [Tyk plugin](#tyk-plugin)  
-  8.12. [Webgo middleware](#webgo-middleware)  
-  8.13. [Prestashop plugin](#prestashop-plugin)  
-  8.14. [Wordpress plugin](#wordpress-plugin)  
+  8.1. [Beego filter](#beego-filter)  
+  8.2. [Caddy module](#caddy-module)  
+  8.3. [Chi middleware](#chi-middleware)  
+  8.4. [Dotweb middleware](#dotweb-middleware)  
+  8.5. [Echo middleware](#echo-middleware)  
+  8.6. [Fiber middleware](#fiber-middleware)  
+  8.7. [Gin middleware](#gin-middleware)  
+  8.8. [Go-zero middleware](#go-zero-middleware)  
+  8.9. [Goyave middleware](#goyave-middleware)  
+  8.10. [Skipper filter](#skipper-filter)  
+  8.11. [Træfik plugin](#træfik-plugin)  
+  8.12. [Tyk plugin](#tyk-plugin)  
+  8.13. [Webgo middleware](#webgo-middleware)  
+  8.14. [Prestashop plugin](#prestashop-plugin)  
+  8.15. [Wordpress plugin](#wordpress-plugin)  
 9. [Credits](#credits)
-
-[![Travis CI](https://travis-ci.com/Darkweak/Souin.svg?branch=master)](https://travis-ci.com/Darkweak/Souin)
 
 # Souin HTTP cache
 
@@ -43,9 +42,6 @@ Souin is a new HTTP cache system suitable for every reverse-proxy. It can be eit
 Since it's written in go, it can be deployed on any server and thanks to the docker integration, it will be easy to install on top of a Swarm, or a kubernetes instance.  
 It's RFC compatible, supporting Vary, request coalescing, stale cache-control and other specifications related to the [RFC-7234](https://tools.ietf.org/html/rfc7234).  
 It also supports the [Cache-Status HTTP response header](https://httpwg.org/http-extensions/draft-ietf-httpbis-cache-header.html) and the YKey group such as Varnish.
-
-## Disclaimer
-If you need redis or other custom cache providers, you have to use the fully-featured version. You can read the documentation, on [the fully-featured branch](https://github.com/Darkweak/Souin/tree/full-version) to understand the specific parts.
 
 ## Configuration
 The configuration file is store at `/anywhere/configuration.yml`. You can supply your own as long as you use one of the minimal configurations below.
@@ -79,6 +75,11 @@ api:
     basepath: /anything-for-prometheus-metrics # Change the prometheus endpoint basepath
   souin: # Souin listing keys and cache management
     basepath: /anything-for-souin # Change the souin endpoint basepath
+cache_keys:
+  '.*\.css':
+    disable_body: true
+    disable_host: true
+    disable_method: true
 cdn: # If Souin is set after a CDN fill these informations
   api_key: XXXX # Your provider API key if mandatory
   provider: fastly # The provider placed before Souin (e.g. fastly, cloudflare, akamai, varnish)
@@ -92,6 +93,10 @@ default_cache:
   distributed: true # Use Olric distributed storage
   headers: # Default headers concatenated in stored keys
     - Authorization
+  key:
+    disable_body: true
+    disable_host: true
+    disable_method: true
   olric: # If distributed is set to true, you'll have to define the olric section
     url: 'olric:3320' # Olric server
   regex:
@@ -142,6 +147,11 @@ surrogate_keys:
 | `api.security.secret`                             | (DEPRECATED) JWT secret key                                                                                                                 | `Any_charCanW0rk123`                                                                                                      |
 | `api.security.users`                              | (DEPRECATED) Array of authorized users with username x password combo                                                                       | `- username: admin`<br/><br/>`  password: admin`                                                                          |
 | `api.souin.security`                              | Enable JWT validation to access the resource                                                                                                | `true`<br/><br/>`(default: false)`                                                                                        |
+| `cache_keys`                                      | Define the key generation rules for each URI matching the key regexp                                                                        |                                                                                                                           |
+| `cache_keys.{your regexp}`                        | Regexp that the URI should match to override the key generation                                                                             | `.+\.css`                                                                                                                 |
+| `default_cache.key.disable_body`                  | Disable the body part in the key matching the regexp (GraphQL context)                                                                      | `true`<br/><br/>`(default: false)`                                                                                        |
+| `default_cache.key.disable_host`                  | Disable the host part in the key matching the regexp                                                                                        | `true`<br/><br/>`(default: false)`                                                                                        |
+| `default_cache.key.disable_method`                | Disable the method part in the key matching the regexp                                                                                      | `true`<br/><br/>`(default: false)`                                                                                        |
 | `cdn`                                             | The CDN management, if you use any cdn to proxy your requests Souin will handle that                                                        |                                                                                                                           |
 | `cdn.provider`                                    | The provider placed before Souin                                                                                                            | `akamai`<br/><br/>`fastly`<br/><br/>`souin`                                                                               |
 | `cdn.api_key`                                     | The api key used to access to the provider                                                                                                  | `XXXX`                                                                                                                    |
@@ -157,9 +167,13 @@ surrogate_keys:
 | `default_cache.badger.path`                       | Configure Badger with a file                                                                                                                | `/anywhere/badger_configuration.json`                                                                                     |
 | `default_cache.badger.configuration`              | Configure Badger directly in the Caddyfile or your JSON caddy configuration                                                                 | [See the Badger configuration for the options](https://dgraph.io/docs/badger/get-started/)                                |
 | `default_cache.headers`                           | List of headers to include to the cache                                                                                                     | `- Authorization`<br/><br/>`- Content-Type`<br/><br/>`- X-Additional-Header`                                              |
+| `default_cache.key`                               | Override the key generation with the ability to disable unecessary parts                                                                    |                                                                                                                           |
+| `default_cache.key.disable_body`                  | Disable the body part in the key (GraphQL context)                                                                                          | `true`<br/><br/>`(default: false)`                                                                                        |
+| `default_cache.key.disable_host`                  | Disable the host part in the key                                                                                                            | `true`<br/><br/>`(default: false)`                                                                                        |
+| `default_cache.key.disable_method`                | Disable the method part in the key                                                                                                          | `true`<br/><br/>`(default: false)`                                                                                        |
 | `default_cache.olric`                             | Configure the Olric cache storage                                                                                                           |                                                                                                                           |
-| `default_cache.olric.path`                        | Configure Olric with a file                                                                                                                 | `/anywhere/olric_configuration.json`                                                                                     |
-| `default_cache.olric.configuration`               | Configure Olric directly in the Caddyfile or your JSON caddy configuration                                                                  | [See the Olric configuration for the options](https://github.com/buraksezer/olric/blob/master/cmd/olricd/olricd.yaml/)   |
+| `default_cache.olric.path`                        | Configure Olric with a file                                                                                                                 | `/anywhere/olric_configuration.json`                                                                                      |
+| `default_cache.olric.configuration`               | Configure Olric directly in the Caddyfile or your JSON caddy configuration                                                                  | [See the Olric configuration for the options](https://github.com/buraksezer/olric/blob/master/cmd/olricd/olricd.yaml/)    |
 | `default_cache.port.{web,tls}`                    | The device's local HTTP/TLS port that Souin should be listening on                                                                          | Respectively `80` and `443`                                                                                               |
 | `default_cache.regex.exclude`                     | The regex used to prevent paths being cached                                                                                                | `^[A-z]+.*$`                                                                                                              |
 | `default_cache.stale`                             | The stale duration                                                                                                                          | `25m`                                                                                                                     |
@@ -228,12 +242,50 @@ See the sequence diagram for the minimal version below
 ## Cache systems
 Supported providers
  - [Badger](https://github.com/dgraph-io/badger)
+ - [NutsDB](https://github.com/nutsdb/nutsdb)
  - [Olric](https://github.com/buraksezer/olric)
 
- The cache system sits on top of three providers at the moment. It provides an in-memory, redis and Olric cache systems because setting, getting, updating and deleting keys in these providers is as easy as it gets.  
- In order to do that, the Olric provider need to be either on the same network as the Souin instance when using docker-compose or over the internet, then it will use by default in-memory to avoid network latency as much as possible. 
- Souin will return at first the in-memory response when it gives a non-empty response, then the olric one followed by the redis one with same condition, or fallback to the reverse proxy otherwise.
- Since v1.4.2, Souin supports [Olric](https://github.com/buraksezer/olric) to handle distributed cache.
+The cache system sits on top of three providers at the moment. It provides two in-memory storage solutions (badger and nuts), and a distributed storage called Olric because setting, getting, updating and deleting keys in these providers is as easy as it gets.  
+**The Badger provider (default one)**: you can tune its configuration using the badger configuration inside your Souin configuration. In order to do that, you have to declare the `badger` block. See the following json example.
+```json
+"badger": {
+  "configuration": {
+    "ValueDir": "default",
+    "ValueLogFileSize": 16777216,
+    "MemTableSize": 4194304,
+    "ValueThreshold": 524288,
+    "BypassLockGuard": true
+  }
+}
+```
+
+**The Nuts provider**: you can tune its configuration using the nuts configuration inside your Souin configuration. In order to do that, you have to declare the `nuts` block. See the following json example.
+```json
+"nuts": {
+  "configuration": {
+    "Dir": "default",
+    "EntryIdxMode": 1,
+    "RWMode": 0,
+    "SegmentSize": 1024,
+    "NodeNum": 42,
+    "SyncEnable": true,
+    "StartFileLoadingMode": 1
+  }
+}
+```
+
+**The Olric provider**: you can tune its configuration using the olric configuration inside your Souin configuration and declare Souin has to use the distributed provider. In order to do that, you have to declare the `olric` block and the `distributed` directive. See the following json example.
+```json
+"distributed": true,
+"olric": {
+  "configuration": {
+    # Olric configuration here...
+  }
+}
+```
+In order to do that, the Olric provider need to be either on the same network as the Souin instance when using docker-compose or over the internet, then it will use by default in-memory to avoid network latency as much as possible. 
+Souin will return at first the response from the choosen provider when it gives a non-empty response, or fallback to the reverse proxy otherwise.
+Since v1.4.2, Souin supports [Olric](https://github.com/buraksezer/olric) to handle distributed cache.
 
 ## GraphQL
 This feature is currently in beta.  
@@ -310,6 +362,25 @@ networks:
 
 ## Plugins
 
+### Beego filter
+To use Souin as beego filter, you can refer to the [Beego filter integration folder](https://github.com/darkweak/souin/tree/master/plugins/beego) to discover how to configure it.  
+You just have to define a new beego router and tell to the instance to use the `Handle` method like below:
+```go
+import (
+	"net/http"
+
+	httpcache "github.com/darkweak/souin/plugins/beego"
+)
+
+func main(){
+
+    // ...
+	web.InsertFilterChain("/*", httpcache.NewHTTPCacheFilter())
+    // ...
+
+}
+```
+
 ### Caddy module
 To use Souin as caddy module, you can refer to the [Caddy module integration folder](https://github.com/darkweak/souin/tree/master/plugins/caddy) to discover how to configure it.  
 The related Caddyfile can be found [here](https://github.com/darkweak/souin/tree/master/plugins/caddy/Caddyfile).  
@@ -339,6 +410,13 @@ There is the fully configuration below
         badger {
             path the_path_to_a_file.json
         }
+        cache_keys {
+            .*\.something {
+                disable_body
+                disable_host
+                disable_method
+            }
+        }
         cdn {
             api_key XXXX
             dynamic
@@ -351,6 +429,11 @@ There is the fully configuration below
             zone_id anywhere_zone
         }
         headers Content-Type Authorization
+        key {
+            disable_body
+            disable_host
+            disable_method
+        }
         log_level debug
         olric {
             url url_to_your_cluster:3320
@@ -451,6 +534,18 @@ cache @matchdefault {
             BypassLockGuard true
         }
     }
+}
+
+route /no-method-and-domain.css {
+    cache {
+        cache_keys {
+            .*\.css {
+                disable_host
+                disable_method
+            }
+        }
+    }
+    respond "Hello without storing method and domain cache key"
 }
 
 cache @souin-api {}
@@ -640,7 +735,7 @@ experimental:
   plugins:
     souin:
       moduleName: github.com/darkweak/souin
-      version: v1.6.8
+      version: v1.6.9
 ```
 After that you can declare either the whole configuration at once in the middleware block or by service. See the examples below.
 ```yaml
@@ -655,7 +750,7 @@ http:
   middlewares:
     http-cache:
       plugin:
-        souin-plugin:
+        souin:
           api:
             prometheus: {}
             souin: {}
@@ -706,10 +801,10 @@ services:
     labels:
       # other labels...
       - traefik.http.routers.whoami.middlewares=http-cache
-      - traefik.http.middlewares.http-cache.plugin.souin-plugin.api.souin
-      - traefik.http.middlewares.http-cache.plugin.souin-plugin.default_cache.headers=Authorization,Content-Type
-      - traefik.http.middlewares.http-cache.plugin.souin-plugin.default_cache.ttl=10s
-      - traefik.http.middlewares.http-cache.plugin.souin-plugin.log_level=debug
+      - traefik.http.middlewares.http-cache.plugin.souin.api.souin
+      - traefik.http.middlewares.http-cache.plugin.souin.default_cache.headers=Authorization,Content-Type
+      - traefik.http.middlewares.http-cache.plugin.souin.default_cache.ttl=10s
+      - traefik.http.middlewares.http-cache.plugin.souin.log_level=debug
 ```
 
 ### Tyk plugin

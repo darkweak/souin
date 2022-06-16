@@ -9,6 +9,7 @@ services:
     build:
       context: .
       target: souin
+      dockerfile: Dockerfile-prod
     ports:
       - 80:80
 #      - 443:443

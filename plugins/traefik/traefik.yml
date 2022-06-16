@@ -13,7 +13,7 @@ pilot:
 
 experimental:
   localPlugins:
-    souin-plugin:
+    souin:
       moduleName: github.com/darkweak/souin
 
 log:

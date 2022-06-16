@@ -21,6 +21,7 @@ func (p *PoolConn) Close() error {
 
 	if p.unusable {
 		if p.Conn != nil {
+			<-p.c.semaphore
 			return p.Conn.Close()
 		}
 		return nil

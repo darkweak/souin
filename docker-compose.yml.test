@@ -9,6 +9,7 @@ services:
     build:
       context: .
       target: souin
+      dockerfile: Dockerfile-dev
     depends_on:
       - olric
     ports:

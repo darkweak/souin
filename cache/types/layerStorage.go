@@ -40,3 +40,10 @@ func (provider *CoalescingLayerStorage) Delete(key string) {
 		provider.Del(key)
 	}()
 }
+
+// Destruct method will shutdown properly the provider
+func (provider *CoalescingLayerStorage) Destruct() error {
+	provider.Close()
+
+	return nil
+}

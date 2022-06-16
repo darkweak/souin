@@ -1,0 +1,10 @@
+version: '3.8'
+
+services:
+  beego:
+    build:
+      context: ../../..
+      dockerfile: plugins/beego/examples/Dockerfile.test
+      target: development-runner
+    ports:
+      - 80:8080
