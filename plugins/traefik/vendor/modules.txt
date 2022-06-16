@@ -41,7 +41,7 @@ github.com/bwmarrin/snowflake
 github.com/cespare/xxhash
 # github.com/cespare/xxhash/v2 v2.1.2
 github.com/cespare/xxhash/v2
-# github.com/darkweak/souin v1.6.8 => ../..
+# github.com/darkweak/souin v1.6.9 => ../..
 ## explicit
 github.com/darkweak/souin/api
 github.com/darkweak/souin/api/auth
