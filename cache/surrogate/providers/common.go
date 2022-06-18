@@ -2,6 +2,7 @@ package providers
 
 import (
 	"net/http"
+	"net/url"
 	"regexp"
 	"strings"
 
@@ -49,7 +50,8 @@ func uniqueTag(values []string) []string {
 		}
 		if _, found := tmp[item]; !found {
 			tmp[item] = true
-			list = append(list, item)
+			i, _ := url.QueryUnescape(item)
+			list = append(list, i)
 		}
 	}
 
@@ -152,10 +154,14 @@ func (s *baseStorage) purgeTag(tag string) []string {
 // Store will take the lead to store the cache key for each provided Surrogate-key
 func (s *baseStorage) Store(response *http.Response, cacheKey string) error {
 	h := response.Header
+
+	cacheKey = url.QueryEscape(cacheKey)
 	quoted := regexp.QuoteMeta(souinStorageSeparator + cacheKey)
-	staleQuoted := regexp.QuoteMeta(souinStorageSeparator + cacheKey)
+	staleKey := stalePrefix + cacheKey
+	staleQuoted := regexp.QuoteMeta(souinStorageSeparator + staleKey)
+
 	urlRegexp := regexp.MustCompile("(^" + regexp.QuoteMeta(cacheKey) + "(" + regexp.QuoteMeta(souinStorageSeparator) + "|$))|(" + quoted + ")|(" + quoted + "$)")
-	staleUrlRegexp := regexp.MustCompile("(^" + regexp.QuoteMeta(stalePrefix+cacheKey) + "(" + regexp.QuoteMeta(souinStorageSeparator) + "|$))|(" + staleQuoted + ")|(" + staleQuoted + "$)")
+	staleUrlRegexp := regexp.MustCompile("(^" + regexp.QuoteMeta(staleKey) + "(" + regexp.QuoteMeta(souinStorageSeparator) + "|$))|(" + staleQuoted + ")|(" + staleQuoted + "$)")
 
 	keys := s.ParseHeaders(s.parent.getSurrogateKey(h))
 
@@ -164,12 +170,12 @@ func (s *baseStorage) Store(response *http.Response, cacheKey string) error {
 			for _, control := range controls {
 				if s.parent.candidateStore(control) {
 					s.storeTag(key, cacheKey, urlRegexp)
-					s.storeTag(stalePrefix+key, stalePrefix+cacheKey, staleUrlRegexp)
+					s.storeTag(stalePrefix+key, staleKey, staleUrlRegexp)
 				}
 			}
 		} else {
 			s.storeTag(key, cacheKey, urlRegexp)
-			s.storeTag(stalePrefix+key, stalePrefix+cacheKey, staleUrlRegexp)
+			s.storeTag(stalePrefix+key, staleKey, staleUrlRegexp)
 		}
 	}
 
