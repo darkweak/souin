@@ -71,13 +71,14 @@ func TestBaseStorage_Purge(t *testing.T) {
 	}
 
 	bs.Storage["test0"] = "first,second"
+	bs.Storage["STALE_test0"] = "STALTE_first,STALE_second"
 	bs.Storage["test2"] = "third,fourth"
 	bs.Storage["test5"] = "first,second,fifth"
 	bs.Storage["testInvalid"] = "invalid"
 	headerMock.Set(surrogateKey, baseHeaderValue)
 	tags, surrogates = bs.Purge(headerMock)
-	if len(tags) != 5 {
-		errors.GenerateError(t, "The tags length should be equal to 5.")
+	if len(tags) != 7 {
+		errors.GenerateError(t, "The tags length should be equal to 7.")
 	}
 	if len(surrogates) != 5 {
 		errors.GenerateError(t, "The surrogates length should be equal to 5.")

@@ -140,7 +140,7 @@ func (s *baseStorage) purgeTag(tag string) []string {
 	toInvalidate := s.Storage[tag]
 	delete(s.Storage, tag)
 	if !s.keepStale {
-		toInvalidate = toInvalidate + s.Storage[stalePrefix+tag]
+		toInvalidate = toInvalidate + "," + s.Storage[stalePrefix+tag]
 		delete(s.Storage, stalePrefix+tag)
 	}
 	return strings.Split(toInvalidate, souinStorageSeparator)
