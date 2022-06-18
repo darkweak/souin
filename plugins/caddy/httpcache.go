@@ -56,7 +56,7 @@ type SouinCaddyPlugin struct {
 	Badger configurationtypes.CacheProvider `json:"badger,omitempty"`
 	// Configure the global key generation.
 	Key configurationtypes.Key `json:"key,omitempty"`
-	// Configure the Badger cache storage.
+	// Override the cache key generation matching the pattern.
 	CacheKeys map[string]configurationtypes.Key `json:"cache_keys,omitempty"`
 	// Configure the Badger cache storage.
 	Nuts configurationtypes.CacheProvider `json:"nuts,omitempty"`
@@ -178,6 +178,9 @@ func (s *SouinCaddyPlugin) FromApp(app *SouinApp) error {
 	}
 	if s.Configuration.cacheKeys == nil {
 		s.Configuration.cacheKeys = make(map[configurationtypes.RegValue]configurationtypes.Key)
+	}
+	if s.CacheKeys == nil {
+		s.CacheKeys = app.CacheKeys
 	}
 	for k, v := range s.CacheKeys {
 		s.Configuration.cacheKeys[configurationtypes.RegValue{Regexp: regexp.MustCompile(k)}] = v
@@ -531,7 +534,7 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 
 	souinApp.DefaultCache = cfg.DefaultCache
 	souinApp.API = cfg.API
-	souinApp.CacheKeys = cfg.cacheKeys
+	souinApp.CacheKeys = cfg.CfgCacheKeys
 
 	return httpcaddyfile.App{
 		Name:  moduleName,

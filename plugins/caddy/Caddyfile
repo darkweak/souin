@@ -13,12 +13,6 @@
         cdn {
             dynamic
         }
-        nuts {
-			configuration {
-				RWMode 1
-				SyncEnable false
-			}
-		}
         regex {
             exclude /test2.*
         }
