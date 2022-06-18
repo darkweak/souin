@@ -106,7 +106,6 @@ func (s *baseStorage) storeTag(tag string, cacheKey string, re *regexp.Regexp) {
 	if currentValue, b := s.Storage[tag]; s.dynamic || b {
 		if !re.MatchString(currentValue) {
 			s.Storage[tag] = currentValue + souinStorageSeparator + cacheKey
-			s.Storage[stalePrefix+tag] = currentValue + souinStorageSeparator + stalePrefix + cacheKey
 		}
 	}
 }
@@ -154,7 +153,9 @@ func (s *baseStorage) purgeTag(tag string) []string {
 func (s *baseStorage) Store(response *http.Response, cacheKey string) error {
 	h := response.Header
 	quoted := regexp.QuoteMeta(souinStorageSeparator + cacheKey)
+	staleQuoted := regexp.QuoteMeta(souinStorageSeparator + cacheKey)
 	urlRegexp := regexp.MustCompile("(^" + regexp.QuoteMeta(cacheKey) + "(" + regexp.QuoteMeta(souinStorageSeparator) + "|$))|(" + quoted + ")|(" + quoted + "$)")
+	staleUrlRegexp := regexp.MustCompile("(^" + regexp.QuoteMeta(stalePrefix+cacheKey) + "(" + regexp.QuoteMeta(souinStorageSeparator) + "|$))|(" + staleQuoted + ")|(" + staleQuoted + "$)")
 
 	keys := s.ParseHeaders(s.parent.getSurrogateKey(h))
 
@@ -163,10 +164,12 @@ func (s *baseStorage) Store(response *http.Response, cacheKey string) error {
 			for _, control := range controls {
 				if s.parent.candidateStore(control) {
 					s.storeTag(key, cacheKey, urlRegexp)
+					s.storeTag(stalePrefix+key, stalePrefix+cacheKey, staleUrlRegexp)
 				}
 			}
 		} else {
 			s.storeTag(key, cacheKey, urlRegexp)
+			s.storeTag(stalePrefix+key, stalePrefix+cacheKey, staleUrlRegexp)
 		}
 	}
 
