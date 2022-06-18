@@ -18,7 +18,7 @@ import (
 type (
 	httpcache struct {
 		plugins.SouinBasePlugin
-		Configuration *Configuration
+		Configuration *plugins.BaseConfiguration
 		bufPool       *sync.Pool
 	}
 )
@@ -37,7 +37,7 @@ func (s *httpcache) CreateFilter(config []interface{}) (filters.Filter, error) {
 	if !ok {
 		return nil, filters.ErrInvalidFilterParameters
 	}
-	var c Configuration
+	var c plugins.BaseConfiguration
 	if e := json.Unmarshal([]byte(configuration), &c); e != nil {
 		return nil, filters.ErrInvalidFilterParameters
 	}
