@@ -72,7 +72,7 @@ func (s *baseStorage) init(config configurationtypes.AbstractConfigurationInterf
 	storage := make(map[string]string)
 	s.Storage = storage
 	s.Keys = config.GetSurrogateKeys()
-	s.keepStale = config.GetDefaultCache().GetCDN().Strategy == "hard"
+	s.keepStale = config.GetDefaultCache().GetCDN().Strategy != "hard"
 	keysRegexp := make(map[string]keysRegexpInner, len(s.Keys))
 	baseRegexp := regexp.MustCompile(".+")
 
