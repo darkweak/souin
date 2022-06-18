@@ -53,7 +53,7 @@ func TestBaseStorage_Purge(t *testing.T) {
 	headerMock.Set(surrogateKey, baseHeaderValue)
 
 	tags, surrogates := bs.Purge(headerMock)
-	if len(tags) != 1 {
+	if len(tags) != 0 {
 		errors.GenerateError(t, "The tags length should be empty.")
 	}
 	if len(surrogates) != 5 {
@@ -63,7 +63,7 @@ func TestBaseStorage_Purge(t *testing.T) {
 	headerMock.Set(surrogateKey, emptyHeaderValue)
 
 	tags, surrogates = bs.Purge(headerMock)
-	if len(tags) != 1 {
+	if len(tags) != 0 {
 		errors.GenerateError(t, "The tags length should be empty.")
 	}
 	if len(surrogates) != 1 {
@@ -77,8 +77,9 @@ func TestBaseStorage_Purge(t *testing.T) {
 	bs.Storage["testInvalid"] = "invalid"
 	headerMock.Set(surrogateKey, baseHeaderValue)
 	tags, surrogates = bs.Purge(headerMock)
-	if len(tags) != 7 {
-		errors.GenerateError(t, "The tags length should be equal to 7.")
+
+	if len(tags) != 6 {
+		errors.GenerateError(t, "The tags length should be equal to 6.")
 	}
 	if len(surrogates) != 5 {
 		errors.GenerateError(t, "The surrogates length should be equal to 5.")

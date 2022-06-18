@@ -112,7 +112,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/test2`, '', false, true)"
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/excluded`, '', false, true)"
 								],
 								"type": "text/javascript"
 							}
