@@ -12,6 +12,7 @@
         }
         cdn {
             dynamic
+            strategy hard
         }
         regex {
             exclude /test2.*
@@ -77,9 +78,7 @@ route /no-reverse-proxy {
 }
 
 route /surrogate-keys {
-    cache {
-        ttl 1m
-    }
+    cache
     header Surrogate-Key "KEY-{http.request.header.X-Surrogate-Key-Suffix}"
     header Vary X-Surrogate-Key-Suffix
     respond "Hello {http.request.header.X-Surrogate-Key-Suffix}"

@@ -44,6 +44,9 @@ func uniqueTag(values []string) []string {
 	list := []string{}
 
 	for _, item := range values {
+		if item == "" {
+			continue
+		}
 		if _, found := tmp[item]; !found {
 			tmp[item] = true
 			list = append(list, item)
@@ -103,6 +106,7 @@ func (s *baseStorage) storeTag(tag string, cacheKey string, re *regexp.Regexp) {
 	if currentValue, b := s.Storage[tag]; s.dynamic || b {
 		if !re.MatchString(currentValue) {
 			s.Storage[tag] = currentValue + souinStorageSeparator + cacheKey
+			s.Storage[stalePrefix+tag] = currentValue + souinStorageSeparator + stalePrefix + cacheKey
 		}
 	}
 }
