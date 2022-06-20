@@ -2,11 +2,11 @@
 github.com/armon/go-metrics
 # github.com/beorn7/perks v1.0.1
 github.com/beorn7/perks/quantile
-# github.com/buraksezer/connpool v0.4.0
+# github.com/buraksezer/connpool v0.5.0
 github.com/buraksezer/connpool
 # github.com/buraksezer/consistent v0.0.0-20191006190839-693edf70fd72
 github.com/buraksezer/consistent
-# github.com/buraksezer/olric v0.4.2
+# github.com/buraksezer/olric v0.4.5
 github.com/buraksezer/olric
 github.com/buraksezer/olric/client
 github.com/buraksezer/olric/config
@@ -35,11 +35,13 @@ github.com/buraksezer/olric/pkg/storage
 github.com/buraksezer/olric/query
 github.com/buraksezer/olric/serializer
 github.com/buraksezer/olric/stats
+# github.com/bwmarrin/snowflake v0.3.0
+github.com/bwmarrin/snowflake
 # github.com/cespare/xxhash v1.1.0
 github.com/cespare/xxhash
 # github.com/cespare/xxhash/v2 v2.1.2
 github.com/cespare/xxhash/v2
-# github.com/darkweak/souin v1.6.8 => ../..
+# github.com/darkweak/souin v1.6.9 => ../..
 ## explicit
 github.com/darkweak/souin/api
 github.com/darkweak/souin/api/auth
@@ -153,6 +155,16 @@ github.com/sean-/seed
 # github.com/vmihailenco/msgpack v4.0.4+incompatible
 github.com/vmihailenco/msgpack
 github.com/vmihailenco/msgpack/codes
+# github.com/xujiajun/mmap-go v1.0.1
+github.com/xujiajun/mmap-go
+# github.com/xujiajun/nutsdb v0.8.0
+github.com/xujiajun/nutsdb
+github.com/xujiajun/nutsdb/ds/list
+github.com/xujiajun/nutsdb/ds/set
+github.com/xujiajun/nutsdb/ds/zset
+# github.com/xujiajun/utils v0.0.0-20190123093513-8bf096c4f53b
+github.com/xujiajun/utils/filesystem
+github.com/xujiajun/utils/strconv2
 # go.opencensus.io v0.22.5
 go.opencensus.io
 go.opencensus.io/internal
@@ -186,7 +198,7 @@ golang.org/x/net/trace
 # golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.0.0-20220114195835-da31bd327af9
+# golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
 golang.org/x/sys/windows

@@ -83,8 +83,9 @@ func EmbeddedOlricConnectionFactory(configuration t.AbstractConfigurationInterfa
 	defer func() {
 		close(ch)
 	}()
-	go func(currDB *olric.Olric) {
-		if err = currDB.Start(); err != nil {
+
+	go func(cdb *olric.Olric) {
+		if err = cdb.Start(); err != nil {
 			ch <- err
 		}
 	}(db)

@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strconv"
 	"sync"
 	"time"
@@ -38,12 +39,12 @@ func init() {
 	httpcaddyfile.RegisterHandlerDirective(moduleName, parseCaddyfileHandlerDirective)
 }
 
-// SouinCaddyPlugin allows the user to set up an HTTP cache system, RFC-7234 compliant.
-// Supports the tag based cache purge, distributed and not-distributed storage.
+// SouinCaddyPlugin allows the user to set up an HTTP cache system, RFC-7234 compliant. This is the development repository of the official cache-handler. It supports the tag based cache purge, distributed and not-distributed storage, key generation tweaking.
 type SouinCaddyPlugin struct {
 	plugins.SouinBasePlugin
 	Configuration *Configuration
 	logger        *zap.Logger
+	cacheKeys     map[configurationtypes.RegValue]configurationtypes.Key
 	// Log level.
 	LogLevel string `json:"log_level,omitempty"`
 	bufPool  *sync.Pool
@@ -53,6 +54,12 @@ type SouinCaddyPlugin struct {
 	Headers []string `json:"headers,omitempty"`
 	// Configure the Badger cache storage.
 	Badger configurationtypes.CacheProvider `json:"badger,omitempty"`
+	// Configure the global key generation.
+	Key configurationtypes.Key `json:"key,omitempty"`
+	// Configure the Badger cache storage.
+	CacheKeys map[string]configurationtypes.Key `json:"cache_keys,omitempty"`
+	// Configure the Badger cache storage.
+	Nuts configurationtypes.CacheProvider `json:"nuts,omitempty"`
 	// Enable the Olric distributed cache storage.
 	Olric configurationtypes.CacheProvider `json:"olric,omitempty"`
 	// Time to live for a key, using time.duration.
@@ -126,6 +133,8 @@ func (s *SouinCaddyPlugin) configurationPropertyMapper() error {
 	}
 	defaultCache := &DefaultCache{
 		Badger:              s.Badger,
+		Nuts:                s.Nuts,
+		Key:                 s.Key,
 		DefaultCacheControl: s.DefaultCacheControl,
 		Distributed:         s.Olric.URL != "" || s.Olric.Path != "" || s.Olric.Configuration != nil,
 		Headers:             s.Headers,
@@ -134,6 +143,7 @@ func (s *SouinCaddyPlugin) configurationPropertyMapper() error {
 	}
 	if s.Configuration == nil {
 		s.Configuration = &Configuration{
+			cacheKeys:    s.cacheKeys,
 			DefaultCache: defaultCache,
 			LogLevel:     s.LogLevel,
 		}
@@ -160,10 +170,17 @@ func (s *SouinCaddyPlugin) FromApp(app *SouinApp) error {
 		s.Configuration.DefaultCache = &DefaultCache{
 			AllowedHTTPVerbs:    app.DefaultCache.AllowedHTTPVerbs,
 			Headers:             app.Headers,
+			Key:                 app.Key,
 			TTL:                 app.TTL,
 			DefaultCacheControl: app.DefaultCacheControl,
 		}
 		return nil
+	}
+	if s.Configuration.cacheKeys == nil {
+		s.Configuration.cacheKeys = make(map[configurationtypes.RegValue]configurationtypes.Key)
+	}
+	for k, v := range s.CacheKeys {
+		s.Configuration.cacheKeys[configurationtypes.RegValue{Regexp: regexp.MustCompile(k)}] = v
 	}
 
 	dc := s.Configuration.DefaultCache
@@ -176,6 +193,9 @@ func (s *SouinCaddyPlugin) FromApp(app *SouinApp) error {
 	if dc.TTL.Duration == 0 {
 		s.Configuration.DefaultCache.TTL = appDc.TTL
 	}
+	if !dc.Key.DisableBody && !dc.Key.DisableHost && !dc.Key.DisableMethod {
+		s.Configuration.DefaultCache.Key = appDc.Key
+	}
 	if dc.DefaultCacheControl == "" {
 		s.Configuration.DefaultCache.DefaultCacheControl = appDc.DefaultCacheControl
 	}
@@ -185,6 +205,9 @@ func (s *SouinCaddyPlugin) FromApp(app *SouinApp) error {
 	}
 	if dc.Badger.Path == "" || dc.Badger.Configuration == nil {
 		s.Configuration.DefaultCache.Badger = appDc.Badger
+	}
+	if dc.Nuts.Path == "" || dc.Nuts.Configuration == nil {
+		s.Configuration.DefaultCache.Nuts = appDc.Nuts
 	}
 	if dc.Regex.Exclude == "" {
 		s.Configuration.DefaultCache.Regex.Exclude = appDc.Regex.Exclude
@@ -245,6 +268,14 @@ func (s *SouinCaddyPlugin) Provision(ctx caddy.Context) error {
 				_, _ = up.LoadOrStore(key, s.Retriever.GetProvider())
 			}
 		}
+	}
+
+	v, l := up.LoadOrStore(coalescing_key, s.Retriever.GetTransport().GetCoalescingLayerStorage())
+
+	if l {
+		fmt.Println("Loaded coalescing layer from cache.")
+		s.Retriever.GetTransport().GetCoalescingLayerStorage().Destruct()
+		s.Retriever.GetTransport().(*rfc.VaryTransport).CoalescingLayerStorage = v.(*types.CoalescingLayerStorage)
 	}
 
 	if app.Provider == nil {
@@ -373,6 +404,30 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 					}
 				}
 				cfg.DefaultCache.Badger = provider
+			case "cache_keys":
+				cacheKeys := cfg.CfgCacheKeys
+				if cacheKeys == nil {
+					cacheKeys = make(map[string]configurationtypes.Key)
+				}
+				for nesting := h.Nesting(); h.NextBlock(nesting); {
+					rg := h.Val()
+					ck := configurationtypes.Key{}
+
+					for nesting := h.Nesting(); h.NextBlock(nesting); {
+						directive := h.Val()
+						switch directive {
+						case "disable_body":
+							ck.DisableBody = true
+						case "disable_host":
+							ck.DisableHost = true
+						case "disable_method":
+							ck.DisableMethod = true
+						}
+					}
+
+					cacheKeys[rg] = ck
+				}
+				cfg.CfgCacheKeys = cacheKeys
 			case "cdn":
 				cdn := configurationtypes.CDN{}
 				for nesting := h.Nesting(); h.NextBlock(nesting); {
@@ -398,9 +453,39 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 				cfg.DefaultCache.DefaultCacheControl = args[0]
 			case "headers":
 				cfg.DefaultCache.Headers = append(cfg.DefaultCache.Headers, h.RemainingArgs()...)
+			case "key":
+				config_key := configurationtypes.Key{}
+				for nesting := h.Nesting(); h.NextBlock(nesting); {
+					directive := h.Val()
+					switch directive {
+					case "disable_body":
+						config_key.DisableBody = true
+					case "disable_host":
+						config_key.DisableHost = true
+					case "disable_method":
+						config_key.DisableMethod = true
+					}
+				}
+				cfg.DefaultCache.Key = config_key
 			case "log_level":
 				args := h.RemainingArgs()
 				cfg.LogLevel = args[0]
+			case "nuts":
+				provider := configurationtypes.CacheProvider{}
+				for nesting := h.Nesting(); h.NextBlock(nesting); {
+					directive := h.Val()
+					switch directive {
+					case "url":
+						urlArgs := h.RemainingArgs()
+						provider.URL = urlArgs[0]
+					case "path":
+						urlArgs := h.RemainingArgs()
+						provider.Path = urlArgs[0]
+					case "configuration":
+						provider.Configuration = parseCaddyfileRecursively(h)
+					}
+				}
+				cfg.DefaultCache.Nuts = provider
 			case "olric":
 				cfg.DefaultCache.Distributed = true
 				provider := configurationtypes.CacheProvider{}
@@ -446,6 +531,7 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 
 	souinApp.DefaultCache = cfg.DefaultCache
 	souinApp.API = cfg.API
+	souinApp.CacheKeys = cfg.cacheKeys
 
 	return httpcaddyfile.App{
 		Name:  moduleName,
@@ -482,10 +568,48 @@ func parseCaddyfileHandlerDirective(h httpcaddyfile.Helper) (caddyhttp.Middlewar
 				}
 			}
 			sc.DefaultCache.Badger = provider
+		case "cache_keys":
+			cacheKeys := sc.CfgCacheKeys
+			if cacheKeys == nil {
+				cacheKeys = make(map[string]configurationtypes.Key)
+			}
+			for nesting := h.Nesting(); h.NextBlock(nesting); {
+				val := h.Val()
+				ck := configurationtypes.Key{}
+
+				for nesting := h.Nesting(); h.NextBlock(nesting); {
+					directive := h.Val()
+					switch directive {
+					case "disable_body":
+						ck.DisableBody = true
+					case "disable_host":
+						ck.DisableHost = true
+					case "disable_method":
+						ck.DisableMethod = true
+					}
+				}
+
+				cacheKeys[val] = ck
+			}
+			sc.CfgCacheKeys = cacheKeys
 		case "default_cache_control":
 			sc.DefaultCache.DefaultCacheControl = h.RemainingArgs()[0]
 		case "headers":
 			sc.DefaultCache.Headers = h.RemainingArgs()
+		case "key":
+			config_key := configurationtypes.Key{}
+			for nesting := h.Nesting(); h.NextBlock(nesting); {
+				directive := h.Val()
+				switch directive {
+				case "disable_body":
+					config_key.DisableBody = true
+				case "disable_host":
+					config_key.DisableHost = true
+				case "disable_method":
+					config_key.DisableMethod = true
+				}
+			}
+			sc.DefaultCache.Key = config_key
 		case "stale":
 			stale, err := time.ParseDuration(h.RemainingArgs()[0])
 			if err == nil {
@@ -501,6 +625,7 @@ func parseCaddyfileHandlerDirective(h httpcaddyfile.Helper) (caddyhttp.Middlewar
 
 	return &SouinCaddyPlugin{
 		Configuration: &sc,
+		CacheKeys:     sc.CfgCacheKeys,
 	}, nil
 }
 

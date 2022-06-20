@@ -6,6 +6,7 @@ import (
 )
 
 const stored_providers_key = "STORED_PROVIDERS_KEY"
+const coalescing_key = "COALESCING"
 
 type storage_providers struct {
 	list map[interface{}]bool
@@ -31,9 +32,8 @@ func (s *SouinCaddyPlugin) Cleanup() error {
 	td := []interface{}{}
 	sp, _ := up.LoadOrStore(stored_providers_key, newStorageProvider())
 	stored_providers := sp.(*storage_providers)
-	fmt.Println(stored_providers.list)
 	up.Range(func(key, value interface{}) bool {
-		if key != stored_providers_key {
+		if key != stored_providers_key && key != coalescing_key {
 			if !stored_providers.list[key] {
 				td = append(td, key)
 			}
