@@ -112,6 +112,7 @@ func (provider *Badger) Prefix(key string, req *http.Request) []byte {
 		defer it.Close()
 		for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
 			if varyVoter(key, req, string(it.Item().Key())) {
+				fmt.Println(string(it.Item().Key()))
 				_ = it.Item().Value(func(val []byte) error {
 					result = val
 					return nil

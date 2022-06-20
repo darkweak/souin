@@ -46,15 +46,15 @@ func TestNutsConnectionFactory(t *testing.T) {
 func TestIShouldBeAbleToReadAndWriteDataInNuts(t *testing.T) {
 	client, matchedURL := getNutsClientAndMatchedURL("Test")
 
-	client.Set("Test", []byte(NUTSVALUE), matchedURL, time.Duration(20)*time.Second)
+	client.Set("Test", []byte(ETCDVALUE), matchedURL, time.Duration(20)*time.Second)
 	time.Sleep(1 * time.Second)
 
 	res := client.Get("Test")
 	if res == nil || len(res) <= 0 {
-		errors.GenerateError(t, fmt.Sprintf("Key %s should exist", NUTSVALUE))
+		errors.GenerateError(t, fmt.Sprintf("Key %s should exist", ETCDVALUE))
 	}
-	if NUTSVALUE != string(res) {
-		errors.GenerateError(t, fmt.Sprintf("%s not corresponding to %s", string(res), NUTSVALUE))
+	if ETCDVALUE != string(res) {
+		errors.GenerateError(t, fmt.Sprintf("%s not corresponding to %s", string(res), ETCDVALUE))
 	}
 }
 

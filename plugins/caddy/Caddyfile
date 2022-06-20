@@ -80,7 +80,7 @@ route /no-reverse-proxy {
 route /surrogate-keys {
     cache
     header Surrogate-Key "KEY-{http.request.header.X-Surrogate-Key-Suffix}"
-    header Vary X-Surrogate-Key-Suffix
+    header Vary X-Surrogate-Key-Suffix,Accept-Encoding
     respond "Hello {http.request.header.X-Surrogate-Key-Suffix}"
 }
 
