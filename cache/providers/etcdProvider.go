@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"regexp"
 	"time"
 
 	t "github.com/darkweak/souin/configurationtypes"
@@ -114,11 +115,18 @@ func (provider *Etcd) Delete(key string) {
 
 // DeleteMany method will delete the responses in Nuts provider if exists corresponding to the regex key param
 func (provider *Etcd) DeleteMany(key string) {
-	r, e := provider.Client.Get(provider.ctx, key, clientv3.WithPrefix())
+	re, e := regexp.Compile(key)
 
-	if e == nil && r != nil {
-		for _, v := range r.Kvs {
-			provider.Delete(string(v.Key))
+	if e != nil {
+		return
+	}
+
+	if r, e := provider.Client.Get(provider.ctx, "\x00", clientv3.WithFromKey()); e == nil {
+		for _, k := range r.Kvs {
+			key := string(k.Key)
+			if re.MatchString(key) {
+				provider.Delete(key)
+			}
 		}
 	}
 }
