@@ -90,14 +90,20 @@ default_cache:
     - GET
     - POST
     - HEAD
-  distributed: true # Use Olric distributed storage
+  distributed: true # Use Olric or Etcd distributed storage
   headers: # Default headers concatenated in stored keys
     - Authorization
   key:
     disable_body: true
     disable_host: true
     disable_method: true
-  olric: # If distributed is set to true, you'll have to define the olric section
+  etcd: # If distributed is set to true, you'll have to define either the etcd or olric section
+    configuration: # Configure directly the Etcd client
+      endpoints: # Define multiple endpoints
+        - etcd-1:2379 # First node
+        - etcd-2:2379 # Second node
+        - etcd-3:2379 # Third node
+  olric: # If distributed is set to true, you'll have to define either the etcd or olric section
     url: 'olric:3320' # Olric server
   regex:
     exclude: 'ARegexHere' # Regex to exclude from cache
@@ -171,6 +177,8 @@ surrogate_keys:
 | `default_cache.key.disable_body`                  | Disable the body part in the key (GraphQL context)                                                                                          | `true`<br/><br/>`(default: false)`                                                                                        |
 | `default_cache.key.disable_host`                  | Disable the host part in the key                                                                                                            | `true`<br/><br/>`(default: false)`                                                                                        |
 | `default_cache.key.disable_method`                | Disable the method part in the key                                                                                                          | `true`<br/><br/>`(default: false)`                                                                                        |
+| `default_cache.etcd`                              | Configure the Etcd cache storage                                                                                                            |                                                                                                                           |
+| `default_cache.etcd.configuration`                | Configure Etcd directly in the Caddyfile or your JSON caddy configuration                                                                   | [See the Etcd configuration for the options](https://pkg.go.dev/go.etcd.io/etcd/clientv3#Config)                          |
 | `default_cache.olric`                             | Configure the Olric cache storage                                                                                                           |                                                                                                                           |
 | `default_cache.olric.path`                        | Configure Olric with a file                                                                                                                 | `/anywhere/olric_configuration.json`                                                                                      |
 | `default_cache.olric.configuration`               | Configure Olric directly in the Caddyfile or your JSON caddy configuration                                                                  | [See the Olric configuration for the options](https://github.com/buraksezer/olric/blob/master/cmd/olricd/olricd.yaml/)    |
@@ -243,9 +251,10 @@ See the sequence diagram for the minimal version below
 Supported providers
  - [Badger](https://github.com/dgraph-io/badger)
  - [NutsDB](https://github.com/nutsdb/nutsdb)
+ - [Etcd](https://github.com/etcd-io/etcd)
  - [Olric](https://github.com/buraksezer/olric)
 
-The cache system sits on top of three providers at the moment. It provides two in-memory storage solutions (badger and nuts), and a distributed storage called Olric because setting, getting, updating and deleting keys in these providers is as easy as it gets.  
+The cache system sits on top of three providers at the moment. It provides two in-memory storage solutions (badger and nuts), and two distributed storages Olric and Etcd because setting, getting, updating and deleting keys in these providers is as easy as it gets.  
 **The Badger provider (default one)**: you can tune its configuration using the badger configuration inside your Souin configuration. In order to do that, you have to declare the `badger` block. See the following json example.
 ```json
 "badger": {
@@ -284,8 +293,19 @@ The cache system sits on top of three providers at the moment. It provides two i
 }
 ```
 In order to do that, the Olric provider need to be either on the same network as the Souin instance when using docker-compose or over the internet, then it will use by default in-memory to avoid network latency as much as possible. 
+
+**The Etcd provider**: you can tune its configuration using the etcd configuration inside your Souin configuration and declare Souin has to use the distributed provider. In order to do that, you have to declare the `etcd` block and the `distributed` directive. See the following json example.
+```json
+"distributed": true,
+"etcd": {
+  "configuration": {
+    # Etcd configuration here...
+  }
+}
+```
+In order to do that, the Etcd provider need to be either on the same network as the Souin instance when using docker-compose or over the internet, then it will use by default in-memory to avoid network latency as much as possible. 
 Souin will return at first the response from the choosen provider when it gives a non-empty response, or fallback to the reverse proxy otherwise.
-Since v1.4.2, Souin supports [Olric](https://github.com/buraksezer/olric) to handle distributed cache.
+Since v1.4.2, Souin supports [Olric](https://github.com/buraksezer/olric) and since v1.6.10 it supports [Etcd](https://github.com/etcd-io/etcd) to handle distributed cache.
 
 ## GraphQL
 This feature is currently in beta.  
@@ -435,11 +455,16 @@ There is the fully configuration below
             disable_method
         }
         log_level debug
+        etcd {
+            configuration {
+                # Your Etcd configuration here
+            }
+        }
         olric {
             url url_to_your_cluster:3320
             path the_path_to_a_file.yaml
             configuration {
-                # Your badger configuration here
+                # Your Olric configuration here
             }
         }
         regex {
@@ -918,3 +943,4 @@ Thanks to these users for contributing or helping this project in any way
 * [Menci](https://github.com/menci)
 * [Duy Nguyen](https://github.com/duy-nguyen-devops)
 * [Kiss Karoly](https://github.com/kresike)
+* [Matthias von Bargen](https://github.com/mattvb91)

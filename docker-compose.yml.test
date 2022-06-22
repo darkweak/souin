@@ -28,6 +28,14 @@ services:
       target: olric
     restart: on-failure
     <<: *networks
+
+  etcd:
+    image: quay.io/coreos/etcd
+    ports:
+      - "2379:2379"
+      - "2380:2380"
+    command: sh -c 'apk update; apk add curl;etcd -listen-client-urls http://0.0.0.0:2379 -advertise-client-urls http://etcd:2379'
+    <<: *networks
 networks:
   your_network:
     external: true

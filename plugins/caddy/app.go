@@ -14,9 +14,9 @@ type SouinApp struct {
 	*DefaultCache
 	Provider         types.AbstractProviderInterface
 	SurrogateStorage providers.SurrogateInterface
-	CacheKeys        map[configurationtypes.RegValue]configurationtypes.Key `json:"cache_keys,omitempty"`
-	API              configurationtypes.API                                 `json:"api,omitempty"`
-	LogLevel         string                                                 `json:"log_level,omitempty"`
+	CacheKeys        map[string]configurationtypes.Key `json:"cache_keys,omitempty"`
+	API              configurationtypes.API            `json:"api,omitempty"`
+	LogLevel         string                            `json:"log_level,omitempty"`
 }
 
 func init() {

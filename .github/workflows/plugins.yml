@@ -144,7 +144,7 @@ jobs:
         name: Wait for Souin is really loaded inside Chi as middleware
         uses: jakejarvis/wait-action@master
         with:
-          time: 20s
+          time: 30s
       -
         name: Set Chi logs configuration result as environment variable
         run: cd plugins/chi/examples && echo "CHI_MIDDLEWARE_RESULT=$(docker-compose logs chi | grep Souin)" >> $GITHUB_ENV
@@ -531,7 +531,7 @@ jobs:
         name: Wait for Souin is really loaded inside Webgo as middleware
         uses: jakejarvis/wait-action@master
         with:
-          time: 20s
+          time: 30s
       -
         name: Set Webgo logs configuration result as environment variable
         run: cd plugins/webgo/examples && echo "WEBGO_MIDDLEWARE_RESULT=$(docker-compose logs webgo | grep Souin)" >> $GITHUB_ENV

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	t "github.com/darkweak/souin/configurationtypes"
@@ -21,6 +22,41 @@ const (
 	bucket = "souin-bucket"
 )
 
+func sanitizeProperties(m map[string]interface{}) map[string]interface{} {
+	iotas := []string{"RWMode", "StartFileLoadingMode"}
+	for _, i := range iotas {
+		if v := m[i]; v != nil {
+			currentMode := nutsdb.FileIO
+			switch v {
+			case 1:
+				currentMode = nutsdb.MMap
+			}
+			m[i] = currentMode
+		}
+	}
+
+	if v := m["EntryIdxMode"]; v != nil {
+		m["EntryIdxMode"] = nutsdb.HintKeyValAndRAMIdxMode
+		switch v {
+		case 1:
+			m["EntryIdxMode"] = nutsdb.HintKeyAndRAMIdxMode
+		case 2:
+			m["EntryIdxMode"] = nutsdb.HintBPTSparseIdxMode
+		}
+	}
+
+	if v := m["SyncEnable"]; v != nil {
+		b, ok := v.(bool)
+		if ok {
+			m["SyncEnable"] = b
+		} else {
+			m["SyncEnable"], _ = strconv.ParseBool(v.(string))
+		}
+	}
+
+	return m
+}
+
 // NutsConnectionFactory function create new Nuts instance
 func NutsConnectionFactory(c t.AbstractConfigurationInterface) (*Nuts, error) {
 	dc := c.GetDefaultCache()
@@ -29,6 +65,7 @@ func NutsConnectionFactory(c t.AbstractConfigurationInterface) (*Nuts, error) {
 	nutsOptions.Dir = "/tmp/souin-nuts"
 	if nutsConfiguration.Configuration != nil {
 		var parsedNuts nutsdb.Options
+		nutsConfiguration.Configuration = sanitizeProperties(nutsConfiguration.Configuration.(map[string]interface{}))
 		if b, e := json.Marshal(nutsConfiguration.Configuration); e == nil {
 			if e = json.Unmarshal(b, &parsedNuts); e != nil {
 				fmt.Println("Impossible to parse the configuration for the Nuts provider", e)
@@ -144,7 +181,7 @@ func (provider *Nuts) Delete(key string) {
 // DeleteMany method will delete the responses in Nuts provider if exists corresponding to the regex key param
 func (provider *Nuts) DeleteMany(key string) {
 	_ = provider.DB.Update(func(tx *nutsdb.Tx) error {
-		if entries, _, err := tx.PrefixScan(bucket, []byte(key), 0, 100); err != nil {
+		if entries, _, err := tx.PrefixSearchScan(bucket, []byte(""), key, 0, 100); err != nil {
 			return err
 		} else {
 			for _, entry := range entries {
