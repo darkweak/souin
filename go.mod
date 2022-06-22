@@ -15,6 +15,7 @@ require (
 	github.com/prometheus/client_golang v1.12.1
 	github.com/prometheus/client_model v0.2.0
 	github.com/xujiajun/nutsdb v0.8.0
+	go.etcd.io/etcd/client/v3 v3.5.4
 	go.uber.org/zap v1.21.0
 	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b

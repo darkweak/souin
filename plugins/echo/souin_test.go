@@ -15,7 +15,7 @@ func Test_New(t *testing.T) {
 	if s.bufPool == nil {
 		t.Error("The bufpool must be set.")
 	}
-	c := Configuration{}
+	c := plugins.BaseConfiguration{}
 	defer func() {
 		if recover() == nil {
 			t.Error("The New method must crash if an incomplete configuration is provided.")

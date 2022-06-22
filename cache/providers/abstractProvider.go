@@ -16,10 +16,14 @@ const stalePrefix = "STALE_"
 func InitializeProvider(configuration configurationtypes.AbstractConfigurationInterface) types.AbstractProviderInterface {
 	var r types.AbstractProviderInterface
 	if configuration.GetDefaultCache().GetDistributed() {
-		if configuration.GetDefaultCache().GetOlric().URL != "" {
-			r, _ = OlricConnectionFactory(configuration)
+		if configuration.GetDefaultCache().GetEtcd().Configuration != nil {
+			r, _ = EtcdConnectionFactory(configuration)
 		} else {
-			r, _ = EmbeddedOlricConnectionFactory(configuration)
+			if configuration.GetDefaultCache().GetOlric().URL != "" {
+				r, _ = OlricConnectionFactory(configuration)
+			} else {
+				r, _ = EmbeddedOlricConnectionFactory(configuration)
+			}
 		}
 	} else if configuration.GetDefaultCache().GetNuts().Configuration != nil || configuration.GetDefaultCache().GetNuts().Path != "" {
 		r, _ = NutsConnectionFactory(configuration)
@@ -46,10 +50,12 @@ func varyVoter(baseKey string, req *http.Request, currentKey string) bool {
 
 		for _, item := range strings.Split(list, ";") {
 			index := strings.LastIndex(item, ":")
-			if len(item) >= index+1 && strings.Contains(req.Header.Get(item[:index]), item[index+1:]) {
-				return true
+			if !(len(item) >= index+1 && req.Header.Get(item[:index]) == item[index+1:]) {
+				return false
 			}
 		}
+
+		return true
 	}
 
 	return false

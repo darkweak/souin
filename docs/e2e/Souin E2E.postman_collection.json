@@ -2,9 +2,165 @@
 	"info": {
 		"_postman_id": "9f52cee6-d2bb-4c17-8169-1bd7126975f4",
 		"name": "Souin E2E",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "17806531"
 	},
 	"item": [
+		{
+			"name": "Beego",
+			"item": [
+				{
+					"name": "Default",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, '', true)"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cache-Control",
+								"value": "",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{app_url}}/default",
+							"host": [
+								"{{app_url}}"
+							],
+							"path": [
+								"default"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Default no cache",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, 'no-cache')"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{app_url}}/default",
+							"host": [
+								"{{app_url}}"
+							],
+							"path": [
+								"default"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Default no store",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, 'no-store')"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cache-Control",
+								"value": "no-store",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{app_url}}/default",
+							"host": [
+								"{{app_url}}"
+							],
+							"path": [
+								"default"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Exclude regex",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/excluded`, '', false, true)"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cache-Control",
+								"value": "",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{app_url}}/excluded",
+							"host": [
+								"{{app_url}}"
+							],
+							"path": [
+								"excluded"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.collectionVariables.set('app_url', pm.collectionVariables.get('beego_url'))"
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			]
+		},
 		{
 			"name": "Caddy",
 			"item": [
@@ -447,7 +603,7 @@
 									"        'Surrogate-Key': key,",
 									"    },",
 									"    method,",
-									"    url: `${utils.getVar(pm, 'app_url')}${utils.getVar(pm, 'souin_base_api')}${utils.getVar(pm, 'souin_api')}/surrogate_keys`,",
+									"    url: `${utils.getVar(pm, 'app_url')}${utils.getVar(pm, 'souin_base_api')}${utils.getVar(pm, 'souin_api')}${method != 'PURGE' ? '/surrogate_keys' : ''}`,",
 									"})",
 									"const KEYS = {",
 									"    PREFIX: {",
@@ -478,8 +634,8 @@
 									"                pm.expect(res).to.have.status(200);",
 									"                pm.expect(res).to.not.have.header(\"Cache-Status\");",
 									"                let jd = res.json();",
-									"                pm.expect(jd[KEYS.PREFIX.ONE]).to.eql(',GET-localhost:4443-/surrogate-keys{-VARY-}X-Surrogate-Key-Suffix:ONE');",
-									"                pm.expect(jd[KEYS.PREFIX.TWO]).to.eql(',GET-localhost:4443-/surrogate-keys{-VARY-}X-Surrogate-Key-Suffix:TWO');",
+									"                pm.expect(jd[KEYS.PREFIX.ONE]).to.eql(',GET-localhost%3A4443-%2Fsurrogate-keys%7B-VARY-%7DX-Surrogate-Key-Suffix%3AONE%3BAccept-Encoding%3Agzip%2C+deflate%2C+br');",
+									"                pm.expect(jd[KEYS.PREFIX.TWO]).to.eql(',GET-localhost%3A4443-%2Fsurrogate-keys%7B-VARY-%7DX-Surrogate-Key-Suffix%3ATWO%3BAccept-Encoding%3Agzip%2C+deflate%2C+br');",
 									"            })",
 									"",
 									"            pm.sendRequest(surrogate_api('PURGE', KEYS.PREFIX.ONE), function(_, res) {",
@@ -490,7 +646,7 @@
 									"                pm.expect(res).to.not.have.header(\"Cache-Status\");",
 									"                let jd = res.json();",
 									"                pm.expect(jd[KEYS.PREFIX.ONE]).to.eql(undefined);",
-									"                pm.expect(jd[KEYS.PREFIX.TWO]).to.eql(',GET-localhost:4443-/surrogate-keys{-VARY-}X-Surrogate-Key-Suffix:TWO');",
+									"                pm.expect(jd[KEYS.PREFIX.TWO]).to.eql(',GET-localhost%3A4443-%2Fsurrogate-keys%7B-VARY-%7DX-Surrogate-Key-Suffix%3ATWO%3BAccept-Encoding%3Agzip%2C+deflate%2C+br');",
 									"            })",
 									"            pm.sendRequest(surrogate_api('PURGE', `${KEYS.PREFIX.ONE}, ${KEYS.PREFIX.TWO}`), function(_, res) {",
 									"                pm.expect(res).to.have.status(204);",
@@ -2620,6 +2776,11 @@
 		{
 			"key": "app_url",
 			"value": ""
+		},
+		{
+			"key": "beego_url",
+			"value": "http://domain.com",
+			"type": "string"
 		}
 	]
 }

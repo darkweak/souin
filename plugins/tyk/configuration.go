@@ -42,6 +42,7 @@ type DefaultCache struct {
 	Headers             []string                         `json:"api,omitempty"`
 	Key                 configurationtypes.Key           `json:"key" yaml:"key"`
 	Olric               configurationtypes.CacheProvider `json:"olric,omitempty"`
+	Etcd                configurationtypes.CacheProvider `json:"etcd,omitempty"`
 	Nuts                configurationtypes.CacheProvider `json:"nuts,omitempty"`
 	Regex               configurationtypes.Regex         `json:"regex,omitempty"`
 	TTL                 Duration                         `json:"ttl,omitempty"`
@@ -82,6 +83,11 @@ func (d *DefaultCache) GetKey() configurationtypes.Key {
 // GetOlric returns olric configuration
 func (d *DefaultCache) GetOlric() configurationtypes.CacheProvider {
 	return d.Olric
+}
+
+// GetEtcd returns etcd configuration
+func (d *DefaultCache) GetEtcd() configurationtypes.CacheProvider {
+	return d.Etcd
 }
 
 // GetNuts returns nuts configuration

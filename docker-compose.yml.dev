@@ -26,6 +26,11 @@ services:
     restart: on-failure
     <<: *networks
 
+  etcd:
+    image: quay.io/coreos/etcd
+    command: sh -c 'apk update; apk add curl;etcd -listen-client-urls http://0.0.0.0:2379 -advertise-client-urls http://etcd:2379'
+    <<: *networks
+
   traefik:
     image: traefik:latest
     command: --providers.docker

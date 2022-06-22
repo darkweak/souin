@@ -24,7 +24,7 @@ const (
 )
 
 var (
-	DefaultConfiguration = Configuration{
+	DefaultConfiguration = plugins.BaseConfiguration{
 		DefaultCache: &configurationtypes.DefaultCache{
 			TTL: configurationtypes.Duration{
 				Duration: 10 * time.Second,
@@ -32,7 +32,7 @@ var (
 		},
 		LogLevel: "info",
 	}
-	DevDefaultConfiguration = Configuration{
+	DevDefaultConfiguration = plugins.BaseConfiguration{
 		API: configurationtypes.API{
 			BasePath: "/souin-api",
 			Prometheus: configurationtypes.APIEndpoint{
@@ -59,7 +59,7 @@ type (
 	key                  string
 	SouinBeegoMiddleware struct {
 		plugins.SouinBasePlugin
-		Configuration *Configuration
+		Configuration *plugins.BaseConfiguration
 		bufPool       *sync.Pool
 	}
 	getterContext struct {
@@ -69,7 +69,7 @@ type (
 	}
 )
 
-func NewHTTPCache(c Configuration) *SouinBeegoMiddleware {
+func NewHTTPCache(c plugins.BaseConfiguration) *SouinBeegoMiddleware {
 	s := SouinBeegoMiddleware{}
 	s.Configuration = &c
 	s.bufPool = &sync.Pool{
@@ -85,8 +85,8 @@ func NewHTTPCache(c Configuration) *SouinBeegoMiddleware {
 	return &s
 }
 
-func configurationPropertyMapper(c map[string]interface{}) Configuration {
-	configuration := Configuration{}
+func configurationPropertyMapper(c map[string]interface{}) plugins.BaseConfiguration {
+	configuration := plugins.BaseConfiguration{}
 
 	for k, v := range c {
 		switch k {

@@ -14,8 +14,6 @@ import (
 )
 
 const BADGERVALUE = "My first data"
-const BYTEKEY = "MyByteKey"
-const NONEXISTENTKEY = "NonexistentKey"
 
 func getBadgerClientAndMatchedURL(key string) (types.AbstractProviderInterface, configurationtypes.URL) {
 	return tests.GetCacheProviderClientAndMatchedURL(
@@ -89,27 +87,13 @@ func TestBadger_GetSetRequestInCache_OneByte(t *testing.T) {
 	time.Sleep(1 * time.Second)
 
 	res := client.Get(BYTEKEY)
-	if 0 == len(res) {
+	if len(res) == 0 {
 		errors.GenerateError(t, fmt.Sprintf("Key %s should exist", BYTEKEY))
 	}
 
 	if string(res) != "A" {
 		errors.GenerateError(t, fmt.Sprintf("%s not corresponding to %v", res, 65))
 	}
-}
-
-func verifyNewValueAfterSet(client types.AbstractProviderInterface, key string, value []byte, t *testing.T) {
-	newValue := client.Get(key)
-
-	if len(newValue) != len(value) {
-		errors.GenerateError(t, fmt.Sprintf("Key %s should be equals to %s, %s provided", key, value, newValue))
-	}
-}
-
-func setValueThenVerify(client types.AbstractProviderInterface, key string, value []byte, matchedURL configurationtypes.URL, ttl time.Duration, t *testing.T) {
-	client.Set(key, value, matchedURL, ttl)
-	time.Sleep(1 * time.Second)
-	verifyNewValueAfterSet(client, key, value, t)
 }
 
 func TestBadger_SetRequestInCache_TTL(t *testing.T) {

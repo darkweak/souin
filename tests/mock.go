@@ -150,6 +150,49 @@ urls:
 `
 }
 
+// EtcdConfiguration simulate the configuration for the Nuts storage
+func EtcdConfiguration() string {
+	return `
+api:
+  basepath: /souin-api
+  security:
+    secret: your_secret_key
+    enable: true
+    users:
+      - username: user1
+        password: test
+  souin:
+    enable: true
+default_cache:
+  etcd:
+    configuration:
+      endpoints:
+        - http://etcd:2379
+  distributed: true
+  headers:
+    - Authorization
+  port:
+    web: 80
+    tls: 443
+  regex:
+    exclude: 'ARegexHere'
+  ttl: 1000s
+reverse_proxy_url: 'http://domain.com:81'
+ssl_providers:
+  - traefik
+urls:
+  'domain.com/':
+    ttl: 1000s
+    headers:
+      - Authorization
+  'mysubdomain.domain.com':
+    ttl: 50s
+    headers:
+      - Authorization
+      - 'Content-Type'
+`
+}
+
 func baseEmbeddedOlricConfiguration(path string) string {
 	return fmt.Sprintf(`
 api:

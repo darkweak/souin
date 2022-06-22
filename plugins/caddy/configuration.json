@@ -2,13 +2,19 @@
   "apps": {
     "cache": {
       "api": {
-        "souin": {}
+        "souin": {
+          "enable": true
+        }
       },
       "cache_keys": {
-        ".+\.css": {
+        ".+.css": {
           "disable_host": true,
           "disable_method": true
         }
+      },
+      "cdn": {
+          "dynamic": true,
+          "strategy": "hard"
       },
       "headers": [
         "Content-Type",
@@ -32,13 +38,18 @@
               ],
               "handle": [
                 {
-                  "handler": "cache"
+                  "handler": "cache",
+                  "cache_keys": {
+                    ".+.css": {
+                      "disable_method": true
+                    }
+                  }
                 },
                 {
                   "handler": "reverse_proxy",
                   "upstreams": [
                     {
-                      "dial": "127.0.0.1:9000"
+                      "dial": "127.0.0.1:3000"
                     }
                   ]
                 }

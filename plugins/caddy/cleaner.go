@@ -32,7 +32,7 @@ func (s *SouinCaddyPlugin) Cleanup() error {
 	td := []interface{}{}
 	sp, _ := up.LoadOrStore(stored_providers_key, newStorageProvider())
 	stored_providers := sp.(*storage_providers)
-	up.Range(func(key, value interface{}) bool {
+	up.Range(func(key, _ interface{}) bool {
 		if key != stored_providers_key && key != coalescing_key {
 			if !stored_providers.list[key] {
 				td = append(td, key)

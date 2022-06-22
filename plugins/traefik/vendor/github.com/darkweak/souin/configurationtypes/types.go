@@ -118,6 +118,7 @@ type DefaultCache struct {
 	Distributed         bool          `json:"distributed" yaml:"distributed"`
 	Headers             []string      `json:"headers" yaml:"headers"`
 	Key                 Key           `json:"key" yaml:"key"`
+	Etcd                CacheProvider `json:"etcd" yaml:"etcd"`
 	Nuts                CacheProvider `json:"nuts" yaml:"nuts"`
 	Olric               CacheProvider `json:"olric" yaml:"olric"`
 	Port                Port          `json:"port" yaml:"port"`
@@ -157,6 +158,11 @@ func (d *DefaultCache) GetKey() Key {
 	return d.Key
 }
 
+// GetEtcd returns etcd configuration
+func (d *DefaultCache) GetEtcd() CacheProvider {
+	return d.Etcd
+}
+
 // GetNuts returns nuts configuration
 func (d *DefaultCache) GetNuts() CacheProvider {
 	return d.Nuts
@@ -193,6 +199,7 @@ type DefaultCacheInterface interface {
 	GetBadger() CacheProvider
 	GetCDN() CDN
 	GetDistributed() bool
+	GetEtcd() CacheProvider
 	GetNuts() CacheProvider
 	GetOlric() CacheProvider
 	GetHeaders() []string

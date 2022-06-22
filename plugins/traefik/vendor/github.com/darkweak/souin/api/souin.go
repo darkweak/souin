@@ -70,6 +70,21 @@ func (s *SouinAPI) IsEnabled() bool {
 	return s.enabled
 }
 
+func (s *SouinAPI) listKeys(search string) []string {
+	res := []string{}
+	re, err := regexp.Compile(search)
+	if err != nil {
+		return res
+	}
+	for _, key := range s.GetAll() {
+		if re.MatchString(key) {
+			res = append(res, key)
+		}
+	}
+
+	return res
+}
+
 // HandleRequest will handle the request
 func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 	res := []byte{}
@@ -85,19 +100,24 @@ func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 		if regexp.MustCompile(s.GetBasePath()+"/surrogate_keys").FindString(r.RequestURI) != "" {
 			res, _ = json.Marshal(s.surrogateStorage.List())
 		} else if compile {
-			w.WriteHeader(http.StatusNotFound)
+			search := regexp.MustCompile(s.GetBasePath()+"/(.+)").FindAllStringSubmatch(r.RequestURI, -1)[0][1]
+			res, _ = json.Marshal(s.listKeys(search))
+			if res == nil {
+				w.WriteHeader(http.StatusNotFound)
+			}
 		} else {
 			res, _ = json.Marshal(s.GetAll())
 		}
 		w.Header().Set("Content-Type", "application/json")
 	case "PURGE":
-		ck, _ := s.surrogateStorage.Purge(r.Header)
-		for _, k := range ck {
-			s.provider.Delete(k)
-		}
 		if compile {
 			submatch := regexp.MustCompile(s.GetBasePath()+"/(.+)").FindAllStringSubmatch(r.RequestURI, -1)[0][1]
 			s.BulkDelete(submatch)
+		} else {
+			ck, _ := s.surrogateStorage.Purge(r.Header)
+			for _, k := range ck {
+				s.provider.Delete(k)
+			}
 		}
 		w.WriteHeader(http.StatusNoContent)
 	default:
