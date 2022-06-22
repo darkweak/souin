@@ -1,7 +1,6 @@
 package providers
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -17,7 +16,6 @@ const stalePrefix = "STALE_"
 func InitializeProvider(configuration configurationtypes.AbstractConfigurationInterface) types.AbstractProviderInterface {
 	var r types.AbstractProviderInterface
 	if configuration.GetDefaultCache().GetDistributed() {
-		fmt.Println("Setup distributed", configuration.GetDefaultCache().GetEtcd())
 		if configuration.GetDefaultCache().GetEtcd().Configuration != nil {
 			r, _ = EtcdConnectionFactory(configuration)
 		} else {

@@ -467,7 +467,6 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 				args := h.RemainingArgs()
 				cfg.DefaultCache.DefaultCacheControl = args[0]
 			case "etcd":
-				fmt.Println("ETCD")
 				cfg.DefaultCache.Distributed = true
 				provider := configurationtypes.CacheProvider{}
 				for nesting := h.Nesting(); h.NextBlock(nesting); {

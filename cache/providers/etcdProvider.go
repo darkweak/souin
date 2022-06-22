@@ -30,8 +30,6 @@ func EtcdConnectionFactory(c t.AbstractConfigurationInterface) (*Etcd, error) {
 	}
 	_ = json.Unmarshal(bc, &etcdConfiguration)
 
-	fmt.Printf("%+v\n", etcdConfiguration)
-
 	cli, err := clientv3.New(etcdConfiguration)
 
 	if err != nil {
