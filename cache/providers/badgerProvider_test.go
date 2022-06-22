@@ -87,7 +87,7 @@ func TestBadger_GetSetRequestInCache_OneByte(t *testing.T) {
 	time.Sleep(1 * time.Second)
 
 	res := client.Get(BYTEKEY)
-	if 0 == len(res) {
+	if len(res) == 0 {
 		errors.GenerateError(t, fmt.Sprintf("Key %s should exist", BYTEKEY))
 	}
 
