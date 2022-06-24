@@ -19,7 +19,8 @@ type Nuts struct {
 }
 
 const (
-	bucket = "souin-bucket"
+	bucket    = "souin-bucket"
+	nutsLimit = 1 << 16
 )
 
 func sanitizeProperties(m map[string]interface{}) map[string]interface{} {
@@ -184,8 +185,9 @@ func (provider *Nuts) Delete(key string) {
 
 // DeleteMany method will delete the responses in Nuts provider if exists corresponding to the regex key param
 func (provider *Nuts) DeleteMany(key string) {
+	fmt.Println(key)
 	_ = provider.DB.Update(func(tx *nutsdb.Tx) error {
-		if entries, _, err := tx.PrefixSearchScan(bucket, []byte(""), key, 0, 100); err != nil {
+		if entries, _, err := tx.PrefixSearchScan(bucket, []byte(""), key, 0, nutsLimit); err != nil {
 			return err
 		} else {
 			for _, entry := range entries {
