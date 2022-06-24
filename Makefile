@@ -6,7 +6,7 @@
 DC=docker-compose
 DC_BUILD=$(DC) build
 DC_EXEC=$(DC) exec
-PLUGINS_LIST=beego caddy chi dotweb echo fiber skipper gin go-zero goyave traefik tyk webgo
+PLUGINS_LIST=beego caddy chi dotweb echo fiber skipper gin go-zero goyave traefik tyk webgo souin
 
 base-build-and-run-%:
 	cd plugins/$* && $(MAKE) prepare

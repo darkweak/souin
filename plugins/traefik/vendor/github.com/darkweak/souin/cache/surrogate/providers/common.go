@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+	"sync"
 
 	"github.com/darkweak/souin/configurationtypes"
 	"go.uber.org/zap"
@@ -71,6 +72,7 @@ type baseStorage struct {
 	dynamic    bool
 	keepStale  bool
 	logger     *zap.Logger
+	mu         *sync.Mutex
 }
 
 func (s *baseStorage) init(config configurationtypes.AbstractConfigurationInterface) {
@@ -102,12 +104,15 @@ func (s *baseStorage) init(config configurationtypes.AbstractConfigurationInterf
 	s.dynamic = config.GetDefaultCache().GetCDN().Dynamic
 	s.logger = config.GetLogger()
 	s.keysRegexp = keysRegexp
+	s.mu = &sync.Mutex{}
 }
 
 func (s *baseStorage) storeTag(tag string, cacheKey string, re *regexp.Regexp) {
 	if currentValue, b := s.Storage[tag]; s.dynamic || b {
 		if !re.MatchString(currentValue) {
+			s.mu.Lock()
 			s.Storage[tag] = currentValue + souinStorageSeparator + cacheKey
+			s.mu.Unlock()
 		}
 	}
 }
@@ -146,7 +151,9 @@ func (s *baseStorage) purgeTag(tag string) []string {
 	delete(s.Storage, tag)
 	if !s.keepStale {
 		toInvalidate = toInvalidate + "," + s.Storage[stalePrefix+tag]
+		s.mu.Lock()
 		delete(s.Storage, stalePrefix+tag)
+		s.mu.Unlock()
 	}
 	return strings.Split(toInvalidate, souinStorageSeparator)
 }

@@ -16,15 +16,15 @@ package nutsdb
 
 import (
 	"errors"
-	"os"
-	"path/filepath"
 
 	mmap "github.com/xujiajun/mmap-go"
 )
 
 // MMapRWManager represents the RWManager which using mmap.
 type MMapRWManager struct {
-	m mmap.MMap
+	path string
+	fdm  *fdManager
+	m    mmap.MMap
 }
 
 var (
@@ -34,28 +34,6 @@ var (
 	// ErrIndexOutOfBound is returned when given offset out of mapped region
 	ErrIndexOutOfBound = errors.New("offset out of mapped region")
 )
-
-// NewMMapRWManager returns a newly initialized MMapRWManager.
-func NewMMapRWManager(path string, capacity int64) (*MMapRWManager, error) {
-	f, err := os.OpenFile(filepath.Clean(path), os.O_CREATE|os.O_RDWR, 0644)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-
-
-	err = Truncate(path, capacity, f)
-	if err != nil {
-		return nil, err
-	}
-
-	m, err := mmap.Map(f, mmap.RDWR, 0)
-	if err != nil {
-		return nil, err
-	}
-
-	return &MMapRWManager{m: m}, nil
-}
 
 // WriteAt copies data to mapped region from the b slice starting at
 // given off and returns number of bytes copied to the mapped region.
@@ -86,7 +64,13 @@ func (mm *MMapRWManager) Sync() (err error) {
 	return mm.m.Flush()
 }
 
-//Close deletes the memory mapped region, flushes any remaining changes
-func (mm *MMapRWManager) Close() (err error) {
+// Release deletes the memory mapped region, flushes any remaining changes
+func (mm *MMapRWManager) Release() (err error) {
+	mm.fdm.reduceUsing(mm.path)
 	return mm.m.Unmap()
+}
+
+// Close will remove the cache in the fdm of the specified path, and call the close method of the os of the file
+func (mm *MMapRWManager) Close() (err error) {
+	return mm.fdm.closeByPath(mm.path)
 }

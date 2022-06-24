@@ -36,8 +36,8 @@ func BadgerConnectionFactory(c t.AbstractConfigurationInterface) (*Badger, error
 		if err := mergo.Merge(&badgerOptions, parsedBadger, mergo.WithOverride); err != nil {
 			fmt.Println("An error occurred during the badgerOptions merge from the default options with your configuration.")
 		}
-	} else {
-		badgerOptions = badgerOptions.WithInMemory(true).WithNumMemtables(1).WithNumLevelZeroTables(1)
+	} else if badgerConfiguration.Path == "" {
+		badgerOptions = badgerOptions.WithInMemory(true)
 	}
 
 	uid := badgerOptions.Dir + badgerOptions.ValueDir

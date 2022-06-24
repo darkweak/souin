@@ -35,6 +35,12 @@ func sanitizeProperties(m map[string]interface{}) map[string]interface{} {
 		}
 	}
 
+	for _, i := range []string{"SegmentSize", "NodeNum", "MaxFdNumsInCache"} {
+		if v := m[i]; v != nil {
+			m[i], _ = v.(int64)
+		}
+	}
+
 	if v := m["EntryIdxMode"]; v != nil {
 		m["EntryIdxMode"] = nutsdb.HintKeyValAndRAMIdxMode
 		switch v {
@@ -46,11 +52,11 @@ func sanitizeProperties(m map[string]interface{}) map[string]interface{} {
 	}
 
 	if v := m["SyncEnable"]; v != nil {
-		b, ok := v.(bool)
-		if ok {
+		m["SyncEnable"] = true
+		if b, ok := v.(bool); ok {
 			m["SyncEnable"] = b
-		} else {
-			m["SyncEnable"], _ = strconv.ParseBool(v.(string))
+		} else if s, ok := v.(string); ok {
+			m["SyncEnable"], _ = strconv.ParseBool(s)
 		}
 	}
 
@@ -88,9 +94,7 @@ func NutsConnectionFactory(c t.AbstractConfigurationInterface) (*Nuts, error) {
 		fmt.Println("Impossible to open the Nuts DB.", e)
 	}
 
-	i := &Nuts{DB: db, stale: dc.GetStale()}
-
-	return i, nil
+	return &Nuts{DB: db, stale: dc.GetStale()}, nil
 }
 
 // ListKeys method returns the list of existing keys
@@ -132,7 +136,7 @@ func (provider *Nuts) Prefix(key string, req *http.Request) []byte {
 	_ = provider.DB.View(func(tx *nutsdb.Tx) error {
 		prefix := []byte(key)
 
-		if entries, _, err := tx.PrefixScan(bucket, prefix, 0, 50); err != nil {
+		if entries, _, err := tx.PrefixSearchScan(bucket, prefix, "^({|$)", 0, 50); err != nil {
 			return err
 		} else {
 			for _, entry := range entries {
