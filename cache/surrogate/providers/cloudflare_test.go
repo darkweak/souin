@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/darkweak/souin/configurationtypes"
@@ -17,6 +18,7 @@ func mockCloudflareProvider() *CloudflareSurrogateStorage {
 			Keys:       make(map[string]configurationtypes.SurrogateKeys),
 			keysRegexp: make(map[string]keysRegexpInner),
 			dynamic:    true,
+			mu:         &sync.Mutex{},
 		},
 		providerAPIKey: "my_api_key",
 		zoneID:         "Zone_id",

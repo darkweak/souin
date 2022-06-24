@@ -3,6 +3,7 @@ package providers
 import (
 	"fmt"
 	"net/http"
+	"sync"
 	"testing"
 
 	"github.com/darkweak/souin/configurationtypes"
@@ -16,6 +17,7 @@ func mockFastlyProvider() *FastlySurrogateStorage {
 			Keys:       make(map[string]configurationtypes.SurrogateKeys),
 			keysRegexp: make(map[string]keysRegexpInner),
 			dynamic:    true,
+			mu:         &sync.Mutex{},
 		},
 		providerAPIKey: "my_key",
 		serviceID:      "123",

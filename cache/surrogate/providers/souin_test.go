@@ -2,6 +2,7 @@ package providers
 
 import (
 	"net/http"
+	"sync"
 	"testing"
 
 	"github.com/darkweak/souin/configurationtypes"
@@ -15,6 +16,7 @@ func mockSouinProvider() *SouinSurrogateStorage {
 			Keys:       make(map[string]configurationtypes.SurrogateKeys),
 			keysRegexp: make(map[string]keysRegexpInner),
 			dynamic:    true,
+			mu:         &sync.Mutex{},
 		},
 	}
 

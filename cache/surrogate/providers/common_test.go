@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/darkweak/souin/configurationtypes"
@@ -22,6 +23,7 @@ func mockCommonProvider() *baseStorage {
 			Keys:       make(map[string]configurationtypes.SurrogateKeys),
 			keysRegexp: make(map[string]keysRegexpInner),
 			dynamic:    true,
+			mu:         &sync.Mutex{},
 		},
 	}
 
