@@ -89,6 +89,9 @@ gatling: ## Launch gatling scenarios
 generate-plantUML: ## Generate plantUML diagrams
 	cd ./docs/plantUML && sh generate.sh && cd ../..
 
+generate-workflow: ## Generate plugin workflow
+	bash .github/workflows/workflow_plugins_generator.sh
+
 golangci-lint: ## Run golangci-lint to ensure the code quality
 	docker run --rm -v $(pwd):/app -w /app golangci/golangci-lint:v1.46.2 golangci-lint run -v
 

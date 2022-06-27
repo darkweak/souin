@@ -1,4 +1,4 @@
-.PHONY: copy-file-to copy-to prepare replace vendor
+.PHONY: copy-file-to copy-to load-checker prepare replace vendor
 
 SOUIN=vendor/github.com/darkweak/souin
 API=$(SOUIN)/api
@@ -11,6 +11,9 @@ copy-to: ## Copy from to
 copy-file-to: ## Copy file from to
 	rm -rf $(base)/$(target)
 	scp -r override/$(target) $(base)/$(target)
+
+load-checker: ## Ensure Souin is running
+	echo "MIDDLEWARE_RESULT=$$(docker-compose logs traefik | grep Souin)"
 
 prepare: vendor ## Prepare traefik plugin
 	cp docker-compose.yml.test docker-compose.yml

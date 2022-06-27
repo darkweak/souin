@@ -923,8 +923,8 @@ github.com/yuin/gopher-lua v0.0.0-20210529063254-f4c35e4016d9/go.mod h1:E1AXubJB
 github.com/yvasiyarov/go-metrics v0.0.0-20140926110328-57bccd1ccd43/go.mod h1:aX5oPXxHm3bOH+xeAttToC8pqch2ScQN/JoXYupl6xs=
 github.com/yvasiyarov/gorelic v0.0.0-20141212073537-a9bba5b9ab50/go.mod h1:NUSPSUX/bi6SeDMUh6brw0nXpxHnc96TguQh0+r/ssA=
 github.com/yvasiyarov/newrelic_platform_go v0.0.0-20140908184405-b21fdbd4370f/go.mod h1:GlGEuHIJweS1mbCqG+7vt2nvWLzLLnRHbXz5JKd/Qbg=
-github.com/zalando/skipper v0.13.220 h1:9WTB4o3xvvaFhat0ttIOkh7RLq01lQrhuJB3fSDHYBU=
-github.com/zalando/skipper v0.13.220/go.mod h1:p5DBgfT2OTBSBqBzdWHpTvPMq4pBsIdio2TEE4IEs8s=
+github.com/zalando/skipper v0.13.221 h1:THWGa7awdmi/aNBT77mWYoeG65PzGms3J+IJ+jQ2zL4=
+github.com/zalando/skipper v0.13.221/go.mod h1:p5DBgfT2OTBSBqBzdWHpTvPMq4pBsIdio2TEE4IEs8s=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.etcd.io/bbolt v1.3.3/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.etcd.io/bbolt v1.3.5/go.mod h1:G5EMThwa9y8QZGBClrRx5EY+Yw9kAhnjy3bSjsnlVTQ=

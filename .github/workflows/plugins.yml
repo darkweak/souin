@@ -4,48 +4,6 @@ on:
   - pull_request
 
 jobs:
-  build-beego-validator:
-    name: Check that Souin build as Beego middleware
-    runs-on: ubuntu-latest
-    steps:
-      -
-        name: Add domain.com host to /etc/hosts
-        run: |
-          sudo echo "127.0.0.1 domain.com" | sudo tee -a /etc/hosts
-      -
-        name: Install Go
-        uses: actions/setup-go@v2
-        with:
-          go-version: 1.16
-      -
-        name: Checkout code
-        uses: actions/checkout@v2
-      -
-        name: Build Souin as Beego plugin
-        run: make build-and-run-beego
-      -
-        name: Wait for Souin is really loaded inside Beego as middleware
-        uses: jakejarvis/wait-action@master
-        with:
-          time: 25s
-      -
-        name: Set Beego logs configuration result as environment variable
-        run: cd plugins/beego/examples && echo "BEEGO_MIDDLEWARE_RESULT=$(docker-compose logs beego | grep Souin)" >> $GITHUB_ENV
-      -
-        name: Check if the configuration is loaded to define if Souin is loaded too
-        uses: nick-invision/assert-action@v1
-        with:
-          expected: '"message":"Souin configuration is now loaded."'
-          actual: ${{ env.BEEGO_MIDDLEWARE_RESULT }}
-          comparison: contains
-      -
-        name: Run Beego E2E tests
-        uses: anthonyvscode/newman-action@v1
-        with:
-          collection: "docs/e2e/Souin E2E.postman_collection.json"
-          folder: Beego
-          reporters: cli
-          delayRequest: 5000
   build-caddy-validator:
     name: Check that Souin build as caddy module
     runs-on: ubuntu-latest
@@ -79,8 +37,8 @@ jobs:
           folder: Caddy
           reporters: cli
           delayRequest: 5000
-  build-echo-validator:
-    name: Check that Souin build as Echo middleware
+  build-beego-validator:
+    name: Check that Souin build as Beego middleware
     runs-on: ubuntu-latest
     steps:
       -
@@ -96,29 +54,29 @@ jobs:
         name: Checkout code
         uses: actions/checkout@v2
       -
-        name: Build Souin as Echo plugin
-        run: make build-and-run-echo
+        name: Build Souin as Beego plugin
+        run: make build-and-run-beego
       -
-        name: Wait for Souin is really loaded inside Echo as middleware
+        name: Wait for Souin is really loaded inside Beego as middleware
         uses: jakejarvis/wait-action@master
         with:
           time: 30s
       -
-        name: Set Echo logs configuration result as environment variable
-        run: cd plugins/echo/examples && echo "ECHO_MIDDLEWARE_RESULT=$(docker-compose logs echo | grep Souin)" >> $GITHUB_ENV
+        name: Set Beego logs configuration result as environment variable
+        run: cd plugins/beego && echo "$(make load-checker)" >> $GITHUB_ENV
       -
         name: Check if the configuration is loaded to define if Souin is loaded too
         uses: nick-invision/assert-action@v1
         with:
-          expected: '"message":"Souin configuration is now loaded."'
-          actual: ${{ env.ECHO_MIDDLEWARE_RESULT }}
+          expected: '"Souin configuration is now loaded."'
+          actual: ${{ env.MIDDLEWARE_RESULT }}
           comparison: contains
       -
-        name: Run Echo E2E tests
+        name: Run Beego E2E tests
         uses: anthonyvscode/newman-action@v1
         with:
           collection: "docs/e2e/Souin E2E.postman_collection.json"
-          folder: Echo
+          folder: Beego
           reporters: cli
           delayRequest: 5000
   build-chi-validator:
@@ -147,13 +105,13 @@ jobs:
           time: 30s
       -
         name: Set Chi logs configuration result as environment variable
-        run: cd plugins/chi/examples && echo "CHI_MIDDLEWARE_RESULT=$(docker-compose logs chi | grep Souin)" >> $GITHUB_ENV
+        run: cd plugins/chi && echo "$(make load-checker)" >> $GITHUB_ENV
       -
         name: Check if the configuration is loaded to define if Souin is loaded too
         uses: nick-invision/assert-action@v1
         with:
-          expected: '"message":"Souin configuration is now loaded."'
-          actual: ${{ env.CHI_MIDDLEWARE_RESULT }}
+          expected: '"Souin configuration is now loaded."'
+          actual: ${{ env.MIDDLEWARE_RESULT }}
           comparison: contains
       -
         name: Run Chi E2E tests
@@ -161,6 +119,90 @@ jobs:
         with:
           collection: "docs/e2e/Souin E2E.postman_collection.json"
           folder: Chi
+          reporters: cli
+          delayRequest: 5000
+  build-dotweb-validator:
+    name: Check that Souin build as Dotweb middleware
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Add domain.com host to /etc/hosts
+        run: |
+          sudo echo "127.0.0.1 domain.com" | sudo tee -a /etc/hosts
+      -
+        name: Install Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.16
+      -
+        name: Checkout code
+        uses: actions/checkout@v2
+      -
+        name: Build Souin as Dotweb plugin
+        run: make build-and-run-dotweb
+      -
+        name: Wait for Souin is really loaded inside Dotweb as middleware
+        uses: jakejarvis/wait-action@master
+        with:
+          time: 30s
+      -
+        name: Set Dotweb logs configuration result as environment variable
+        run: cd plugins/dotweb && echo "$(make load-checker)" >> $GITHUB_ENV
+      -
+        name: Check if the configuration is loaded to define if Souin is loaded too
+        uses: nick-invision/assert-action@v1
+        with:
+          expected: '"Souin configuration is now loaded."'
+          actual: ${{ env.MIDDLEWARE_RESULT }}
+          comparison: contains
+      -
+        name: Run Dotweb E2E tests
+        uses: anthonyvscode/newman-action@v1
+        with:
+          collection: "docs/e2e/Souin E2E.postman_collection.json"
+          folder: Dotweb
+          reporters: cli
+          delayRequest: 5000
+  build-echo-validator:
+    name: Check that Souin build as Echo middleware
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Add domain.com host to /etc/hosts
+        run: |
+          sudo echo "127.0.0.1 domain.com" | sudo tee -a /etc/hosts
+      -
+        name: Install Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.16
+      -
+        name: Checkout code
+        uses: actions/checkout@v2
+      -
+        name: Build Souin as Echo plugin
+        run: make build-and-run-echo
+      -
+        name: Wait for Souin is really loaded inside Echo as middleware
+        uses: jakejarvis/wait-action@master
+        with:
+          time: 30s
+      -
+        name: Set Echo logs configuration result as environment variable
+        run: cd plugins/echo && echo "$(make load-checker)" >> $GITHUB_ENV
+      -
+        name: Check if the configuration is loaded to define if Souin is loaded too
+        uses: nick-invision/assert-action@v1
+        with:
+          expected: '"Souin configuration is now loaded."'
+          actual: ${{ env.MIDDLEWARE_RESULT }}
+          comparison: contains
+      -
+        name: Run Echo E2E tests
+        uses: anthonyvscode/newman-action@v1
+        with:
+          collection: "docs/e2e/Souin E2E.postman_collection.json"
+          folder: Echo
           reporters: cli
           delayRequest: 5000
   build-fiber-validator:
@@ -189,13 +231,13 @@ jobs:
           time: 40s
       -
         name: Set Fiber logs configuration result as environment variable
-        run: cd plugins/fiber/examples && echo "FIBER_MIDDLEWARE_RESULT=$(docker-compose logs fiber | grep Souin)" >> $GITHUB_ENV
+        run: cd plugins/fiber && echo "$(make load-checker)" >> $GITHUB_ENV
       -
         name: Check if the configuration is loaded to define if Souin is loaded too
         uses: nick-invision/assert-action@v1
         with:
-          expected: '"message":"Souin configuration is now loaded."'
-          actual: ${{ env.FIBER_MIDDLEWARE_RESULT }}
+          expected: '"Souin configuration is now loaded."'
+          actual: ${{ env.MIDDLEWARE_RESULT }}
           comparison: contains
       -
         name: Run Fiber E2E tests
@@ -231,13 +273,13 @@ jobs:
           time: 30s
       -
         name: Set Gin logs configuration result as environment variable
-        run: cd plugins/gin/examples && echo "GIN_MIDDLEWARE_RESULT=$(docker-compose logs gin | grep Souin)" >> $GITHUB_ENV
+        run: cd plugins/gin && echo "$(make load-checker)" >> $GITHUB_ENV
       -
         name: Check if the configuration is loaded to define if Souin is loaded too
         uses: nick-invision/assert-action@v1
         with:
-          expected: '"message":"Souin configuration is now loaded."'
-          actual: ${{ env.GIN_MIDDLEWARE_RESULT }}
+          expected: '"Souin configuration is now loaded."'
+          actual: ${{ env.MIDDLEWARE_RESULT }}
           comparison: contains
       -
         name: Run Gin E2E tests
@@ -264,9 +306,6 @@ jobs:
         name: Checkout code
         uses: actions/checkout@v2
       -
-        name: Install goctl
-        run: go install github.com/zeromicro/go-zero/tools/goctl@latest
-      -
         name: Build Souin as Go-zero plugin
         run: make build-and-run-go-zero
       -
@@ -276,13 +315,13 @@ jobs:
           time: 50s
       -
         name: Set Go-zero logs configuration result as environment variable
-        run: cd plugins/go-zero/examples && echo "GO_ZERO_MIDDLEWARE_RESULT=$(docker-compose logs go-zero | grep Souin)" >> $GITHUB_ENV
+        run: cd plugins/go-zero && echo "$(make load-checker)" >> $GITHUB_ENV
       -
         name: Check if the configuration is loaded to define if Souin is loaded too
         uses: nick-invision/assert-action@v1
         with:
-          expected: '"message":"Souin configuration is now loaded."'
-          actual: ${{ env.GO_ZERO_MIDDLEWARE_RESULT }}
+          expected: '"Souin configuration is now loaded."'
+          actual: ${{ env.MIDDLEWARE_RESULT }}
           comparison: contains
       -
         name: Run Go-zero E2E tests
@@ -318,13 +357,13 @@ jobs:
           time: 30s
       -
         name: Set Goyave logs configuration result as environment variable
-        run: cd plugins/goyave/examples && echo "GOYAVE_MIDDLEWARE_RESULT=$(docker-compose logs goyave | grep Souin)" >> $GITHUB_ENV
+        run: cd plugins/goyave && echo "$(make load-checker)" >> $GITHUB_ENV
       -
         name: Check if the configuration is loaded to define if Souin is loaded too
         uses: nick-invision/assert-action@v1
         with:
-          expected: '"message":"Souin configuration is now loaded."'
-          actual: ${{ env.GOYAVE_MIDDLEWARE_RESULT }}
+          expected: '"Souin configuration is now loaded."'
+          actual: ${{ env.MIDDLEWARE_RESULT }}
           comparison: contains
       -
         name: Run Goyave E2E tests
@@ -346,7 +385,7 @@ jobs:
         name: Install Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.16
+          go-version: 1.18
       -
         name: Checkout code
         uses: actions/checkout@v2
@@ -357,16 +396,19 @@ jobs:
         name: Wait for Souin is really loaded inside Skipper as middleware
         uses: jakejarvis/wait-action@master
         with:
-          time: 40s
+          time: 50s
       -
         name: Set Skipper logs configuration result as environment variable
-        run: cd plugins/skipper/examples && echo "SKIPPER_MIDDLEWARE_RESULT=$(docker-compose logs skipper | grep Souin)" >> $GITHUB_ENV
+        run: cd plugins/skipper && echo "$(make load-checker)" >> $GITHUB_ENV
+      -
+        name: Debug
+        run: cd plugins/skipper && cd examples && echo "MIDDLEWARE_RESULT=$(docker-compose logs skipper)"
       -
         name: Check if the configuration is loaded to define if Souin is loaded too
         uses: nick-invision/assert-action@v1
         with:
-          expected: '"message":"Souin configuration is now loaded."'
-          actual: ${{ env.SKIPPER_MIDDLEWARE_RESULT }}
+          expected: '"Souin configuration is now loaded."'
+          actual: ${{ env.MIDDLEWARE_RESULT }}
           comparison: contains
       -
         name: Run Skipper E2E tests
@@ -402,13 +444,13 @@ jobs:
           time: 40s
       -
         name: Set Souin logs configuration result as environment variable
-        run: cd plugins/souin/examples && echo "SOUIN_MIDDLEWARE_RESULT=$(docker-compose logs souin | grep Souin)" >> $GITHUB_ENV
+        run: cd plugins/souin && echo "$(make load-checker)" >> $GITHUB_ENV
       -
         name: Check if the configuration is loaded to define if Souin is loaded too
         uses: nick-invision/assert-action@v1
         with:
-          expected: '"message":"Souin configuration is now loaded."'
-          actual: ${{ env.SOUIN_MIDDLEWARE_RESULT }}
+          expected: '"Souin configuration is now loaded."'
+          actual: ${{ env.MIDDLEWARE_RESULT }}
           comparison: contains
       -
         name: Run Souin E2E tests
@@ -418,10 +460,56 @@ jobs:
           folder: Souin
           reporters: cli
           delayRequest: 5000
+  build-traefik-validator:
+    name: Check that Souin build as Traefik middleware
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Add domain.com host to /etc/hosts
+        run: |
+          sudo echo "127.0.0.1 domain.com" | sudo tee -a /etc/hosts
+      -
+        name: Install Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.16
+      -
+        name: Checkout code
+        uses: actions/checkout@v2
+      -
+        name: Build Souin as Traefik plugin
+        run: make build-and-run-traefik
+      -
+        name: Wait for Souin is really loaded inside Traefik as middleware
+        uses: jakejarvis/wait-action@master
+        with:
+          time: 30s
+      -
+        name: Set Traefik logs configuration result as environment variable
+        run: cd plugins/traefik && echo "$(make load-checker)" >> $GITHUB_ENV
+      -
+        name: Check if the configuration is loaded to define if Souin is loaded too
+        uses: nick-invision/assert-action@v1
+        with:
+          expected: '"Souin configuration is now loaded."'
+          actual: ${{ env.MIDDLEWARE_RESULT }}
+          comparison: contains
+      -
+        name: Run Traefik E2E tests
+        uses: anthonyvscode/newman-action@v1
+        with:
+          collection: "docs/e2e/Souin E2E.postman_collection.json"
+          folder: Traefik
+          reporters: cli
+          delayRequest: 5000
   build-tyk-validator:
     name: Check that Souin build as Tyk middleware
     runs-on: ubuntu-latest
     steps:
+      -
+        name: Add domain.com host to /etc/hosts
+        run: |
+          sudo echo "127.0.0.1 domain.com" | sudo tee -a /etc/hosts
       -
         name: Install Go
         uses: actions/setup-go@v2
@@ -440,13 +528,13 @@ jobs:
           time: 30s
       -
         name: Set Tyk logs configuration result as environment variable
-        run: cd plugins/tyk && echo "TYK_MIDDLEWARE_RESULT=$(docker-compose logs tyk-gateway | grep SouinResponseHandler)" >> $GITHUB_ENV
+        run: cd plugins/tyk && echo "$(make load-checker)" >> $GITHUB_ENV
       -
         name: Check if the configuration is loaded to define if Souin is loaded too
         uses: nick-invision/assert-action@v1
         with:
-          expected: 'level=info msg="Loaded Go response plugin: SouinResponseHandler" mwPath="/opt/tyk-gateway/middleware/souin-plugin.so" mwSymbolName=SouinResponseHandler'
-          actual: ${{ env.TYK_MIDDLEWARE_RESULT }}
+          expected: '"Souin configuration is now loaded."'
+          actual: ${{ env.MIDDLEWARE_RESULT }}
           comparison: contains
       -
         name: Run Tyk E2E tests
@@ -454,58 +542,6 @@ jobs:
         with:
           collection: "docs/e2e/Souin E2E.postman_collection.json"
           folder: Tyk
-          reporters: cli
-          delayRequest: 5000
-  build-traefik-validator:
-    name: Check that Souin build as Træfik plugin
-    runs-on: ubuntu-latest
-    steps:
-      -
-        name: Add domain.com host to /etc/hosts
-        run: |
-          sudo echo "127.0.0.1 domain.com" | sudo tee -a /etc/hosts
-      -
-        name: Install Go
-        uses: actions/setup-go@v2
-        with:
-          go-version: 1.16
-      -
-        name: Checkout code
-        uses: actions/checkout@v2
-      -
-        name: Build Souin as Træfik plugin
-        run: make build-and-run-traefik
-      -
-        name: Wait for Souin is really loaded inside Træfik as plugin
-        uses: jakejarvis/wait-action@master
-        with:
-          time: 30s
-      -
-        name: Set traefik logs file result as environment variable
-        run: cd plugins/traefik && echo "TRAEFIK_FILE_RESULT=$(docker-compose logs traefik | grep 'Starting provider \*file.Provider')" >> $GITHUB_ENV
-      -
-        name: Check logs to define if Souin configuration is loaded too
-        uses: nick-invision/assert-action@v1
-        with:
-          expected: '/souin-configuration.yaml'
-          actual: ${{ env.TRAEFIK_FILE_RESULT }}
-          comparison: contains
-      -
-        name: Set traefik logs configuration result as environment variable
-        run: cd plugins/traefik && echo "TRAEFIK_MIDDLEWARE_RESULT=$(docker-compose logs traefik | grep default_cache)" >> $GITHUB_ENV
-      -
-        name: Check if the configuration is loaded to define if Souin is loaded too
-        uses: nick-invision/assert-action@v1
-        with:
-          expected: '"middlewares\":{\"souin\":{\"plugin\":{\"souin'
-          actual: ${{ env.TRAEFIK_MIDDLEWARE_RESULT }}
-          comparison: contains
-      -
-        name: Run Træfik E2E tests
-        uses: anthonyvscode/newman-action@v1
-        with:
-          collection: "docs/e2e/Souin E2E.postman_collection.json"
-          folder: Traefik
           reporters: cli
           delayRequest: 5000
   build-webgo-validator:
@@ -534,13 +570,13 @@ jobs:
           time: 30s
       -
         name: Set Webgo logs configuration result as environment variable
-        run: cd plugins/webgo/examples && echo "WEBGO_MIDDLEWARE_RESULT=$(docker-compose logs webgo | grep Souin)" >> $GITHUB_ENV
+        run: cd plugins/webgo && echo "$(make load-checker)" >> $GITHUB_ENV
       -
         name: Check if the configuration is loaded to define if Souin is loaded too
         uses: nick-invision/assert-action@v1
         with:
-          expected: '"message":"Souin configuration is now loaded."'
-          actual: ${{ env.WEBGO_MIDDLEWARE_RESULT }}
+          expected: '"Souin configuration is now loaded."'
+          actual: ${{ env.MIDDLEWARE_RESULT }}
           comparison: contains
       -
         name: Run Webgo E2E tests
