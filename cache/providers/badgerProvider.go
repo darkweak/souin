@@ -10,12 +10,14 @@ import (
 	t "github.com/darkweak/souin/configurationtypes"
 	badger "github.com/dgraph-io/badger/v3"
 	"github.com/imdario/mergo"
+	"go.uber.org/zap"
 )
 
 // Badger provider type
 type Badger struct {
 	*badger.DB
-	stale time.Duration
+	stale  time.Duration
+	logger *zap.Logger
 }
 
 var enabledBadgerInstances = make(map[string]*Badger)
@@ -29,12 +31,12 @@ func BadgerConnectionFactory(c t.AbstractConfigurationInterface) (*Badger, error
 		var parsedBadger badger.Options
 		if b, e := json.Marshal(badgerConfiguration.Configuration); e == nil {
 			if e = json.Unmarshal(b, &parsedBadger); e != nil {
-				fmt.Println("Impossible to parse the configuration for the default provider (Badger)", e)
+				c.GetLogger().Sugar().Error("Impossible to parse the configuration for the default provider (Badger)", e)
 			}
 		}
 
 		if err := mergo.Merge(&badgerOptions, parsedBadger, mergo.WithOverride); err != nil {
-			fmt.Println("An error occurred during the badgerOptions merge from the default options with your configuration.")
+			c.GetLogger().Sugar().Error("An error occurred during the badgerOptions merge from the default options with your configuration.")
 		}
 	} else if badgerConfiguration.Path == "" {
 		badgerOptions = badgerOptions.WithInMemory(true)
@@ -48,10 +50,10 @@ func BadgerConnectionFactory(c t.AbstractConfigurationInterface) (*Badger, error
 	db, e := badger.Open(badgerOptions)
 
 	if e != nil {
-		fmt.Println("Impossible to open the Badger DB.", e)
+		c.GetLogger().Sugar().Error("Impossible to open the Badger DB.", e)
 	}
 
-	i := &Badger{DB: db, stale: dc.GetStale()}
+	i := &Badger{DB: db, logger: c.GetLogger(), stale: dc.GetStale()}
 	enabledBadgerInstances[uid] = i
 
 	return i, nil
@@ -112,7 +114,6 @@ func (provider *Badger) Prefix(key string, req *http.Request) []byte {
 		defer it.Close()
 		for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
 			if varyVoter(key, req, string(it.Item().Key())) {
-				fmt.Println(string(it.Item().Key()))
 				_ = it.Item().Value(func(val []byte) error {
 					result = val
 					return nil

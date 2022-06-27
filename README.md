@@ -226,13 +226,16 @@ The base path for the souin API is `/souin`.
 The Souin API supports the invalidation by surrogate keys such as Fastly which will replace the Varnish system. You can read the doc [about this system](https://github.com/darkweak/souin/blob/master/cache/surrogate/README.md).
 This system is able to invalidate by tags your cloud provider cache. Actually it supports Akamai and Fastly but in a near future some other providers would be implemented like Cloudflare or Varnish.
 
-| Method  | Endpoint          | Description                                                                              |
-|:--------|:------------------|:-----------------------------------------------------------------------------------------|
-| `GET`   | `/`               | List stored keys cache                                                                   |
-| `PURGE` | `/{id or regexp}` | Purge selected item(s) depending. The parameter can be either a specific key or a regexp |
-| `PURGE` | `/?ykey={key}`    | Purge selected item(s) corresponding to the target ykey such as Varnish (deprecated)     |
+| Method  | Endpoint          | Headers                                                    | Description                                                                                                                                                                         |
+|:--------|:------------------|:-----------------------------------------------------------|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `GET`   | `/`               | -                                                          | List stored keys cache                                                                                                                                                              |
+| `GET`   | `/surrogate_keys` | -                                                          | List stored keys cache                                                                                                                                                              |
+| `PURGE` | `/{id or regexp}` | -                                                          | Purge selected item(s) depending. The parameter can be either a specific key or a regexp                                                                                            |
+| `PURGE` | `/?ykey={key}`    | -                                                          | Purge selected item(s) corresponding to the target ykey such as Varnish (deprecated)                                                                                                |
+| `PURGE` | `/`               | `Surrogate-Key: Surrogate-Key-First, Surrogate-Key-Second` | Purge selected item(s) belong to the target key in the header `Surrogate-Key` (see [Surrogate-Key system](https://github.com/darkweak/souin/blob/master/cache/surrogate/README.md)) |
 
 ### Security API
+**DEPRECATED**  
 Security API allows users to protect other APIs with JWT authentication.  
 The base path for the security API is `/authentication`.
 

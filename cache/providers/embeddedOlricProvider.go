@@ -2,7 +2,6 @@ package providers
 
 import (
 	"context"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -19,10 +18,11 @@ import (
 
 // EmbeddedOlric provider type
 type EmbeddedOlric struct {
-	dm    *olric.DMap
-	db    *olric.Olric
-	stale time.Duration
-	ct    context.Context
+	dm     *olric.DMap
+	db     *olric.Olric
+	stale  time.Duration
+	logger *zap.Logger
+	ct     context.Context
 }
 
 func tryToLoadConfiguration(olricInstance *config.Config, olricConfiguration t.CacheProvider, logger *zap.Logger) (*config.Config, bool) {
@@ -70,7 +70,7 @@ func EmbeddedOlricConnectionFactory(configuration t.AbstractConfigurationInterfa
 
 	started, cancel := context.WithCancel(context.Background())
 	olricInstance.Started = func() {
-		fmt.Println("Embedded Olric is ready")
+		configuration.GetLogger().Sugar().Error("Embedded Olric is ready")
 		defer cancel()
 	}
 
@@ -96,13 +96,14 @@ func EmbeddedOlricConnectionFactory(configuration t.AbstractConfigurationInterfa
 	}
 	dm, e := db.NewDMap("souin-map")
 
-	fmt.Println("Embedded Olric is ready for this node.")
+	configuration.GetLogger().Sugar().Info("Embedded Olric is ready for this node.")
 
 	return &EmbeddedOlric{
-		dm:    dm,
-		db:    db,
-		stale: configuration.GetDefaultCache().GetStale(),
-		ct:    context.Background(),
+		dm:     dm,
+		db:     db,
+		stale:  configuration.GetDefaultCache().GetStale(),
+		logger: configuration.GetLogger(),
+		ct:     context.Background(),
 	}, e
 }
 
@@ -122,7 +123,7 @@ func (provider *EmbeddedOlric) ListKeys() []string {
 		defer c.Close()
 	}
 	if err != nil {
-		fmt.Printf("An error occurred while trying to list keys in Olric: %s\n", err)
+		provider.logger.Sugar().Errorf("An error occurred while trying to list keys in Olric: %s\n", err)
 		return []string{}
 	}
 
@@ -146,7 +147,7 @@ func (provider *EmbeddedOlric) Prefix(key string, req *http.Request) []byte {
 		defer c.Close()
 	}
 	if err != nil {
-		fmt.Printf("An error occurred while trying to retrieve data in Olric: %s\n", err)
+		provider.logger.Sugar().Errorf("An error occurred while trying to retrieve data in Olric: %s\n", err)
 		return []byte{}
 	}
 
@@ -240,7 +241,7 @@ func (provider *EmbeddedOlric) Reset() error {
 
 // Destruct method will reset or close provider
 func (provider *EmbeddedOlric) Destruct() error {
-	fmt.Println("Destruct current embedded olric...")
+	provider.logger.Sugar().Debug("Destruct current embedded olric...")
 	return provider.Reset()
 }
 

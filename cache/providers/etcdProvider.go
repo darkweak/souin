@@ -33,7 +33,7 @@ func EtcdConnectionFactory(c t.AbstractConfigurationInterface) (*Etcd, error) {
 	cli, err := clientv3.New(etcdConfiguration)
 
 	if err != nil {
-		fmt.Println("Impossible to initialize the Etcd DB.", err)
+		c.GetLogger().Sugar().Error("Impossible to initialize the Etcd DB.", err)
 		return nil, err
 	}
 

@@ -75,12 +75,12 @@ func NutsConnectionFactory(c t.AbstractConfigurationInterface) (*Nuts, error) {
 		nutsConfiguration.Configuration = sanitizeProperties(nutsConfiguration.Configuration.(map[string]interface{}))
 		if b, e := json.Marshal(nutsConfiguration.Configuration); e == nil {
 			if e = json.Unmarshal(b, &parsedNuts); e != nil {
-				fmt.Println("Impossible to parse the configuration for the Nuts provider", e)
+				c.GetLogger().Sugar().Error("Impossible to parse the configuration for the Nuts provider", e)
 			}
 		}
 
 		if err := mergo.Merge(&nutsOptions, parsedNuts, mergo.WithOverride); err != nil {
-			fmt.Println("An error occurred during the nutsOptions merge from the default options with your configuration.")
+			c.GetLogger().Sugar().Error("An error occurred during the nutsOptions merge from the default options with your configuration.")
 		}
 	} else {
 		nutsOptions.RWMode = nutsdb.MMap
@@ -92,7 +92,7 @@ func NutsConnectionFactory(c t.AbstractConfigurationInterface) (*Nuts, error) {
 	db, e := nutsdb.Open(nutsOptions)
 
 	if e != nil {
-		fmt.Println("Impossible to open the Nuts DB.", e)
+		c.GetLogger().Sugar().Error("Impossible to open the Nuts DB.", e)
 	}
 
 	return &Nuts{DB: db, stale: dc.GetStale()}, nil
@@ -185,7 +185,6 @@ func (provider *Nuts) Delete(key string) {
 
 // DeleteMany method will delete the responses in Nuts provider if exists corresponding to the regex key param
 func (provider *Nuts) DeleteMany(key string) {
-	fmt.Println(key)
 	_ = provider.DB.Update(func(tx *nutsdb.Tx) error {
 		if entries, _, err := tx.PrefixSearchScan(bucket, []byte(""), key, 0, nutsLimit); err != nil {
 			return err
