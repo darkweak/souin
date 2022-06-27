@@ -8,6 +8,7 @@ import (
 
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/errors"
+	"go.uber.org/zap"
 )
 
 func mockFastlyProvider() *FastlySurrogateStorage {
@@ -18,6 +19,7 @@ func mockFastlyProvider() *FastlySurrogateStorage {
 			keysRegexp: make(map[string]keysRegexpInner),
 			dynamic:    true,
 			mu:         &sync.Mutex{},
+			logger:     zap.NewNop(),
 		},
 		providerAPIKey: "my_key",
 		serviceID:      "123",

@@ -111,6 +111,7 @@ func (s *baseStorage) storeTag(tag string, cacheKey string, re *regexp.Regexp) {
 	if currentValue, b := s.Storage[tag]; s.dynamic || b {
 		if !re.MatchString(currentValue) {
 			s.mu.Lock()
+			s.logger.Sugar().Debugf("Store the tag %s", tag)
 			s.Storage[tag] = currentValue + souinStorageSeparator + cacheKey
 			s.mu.Unlock()
 		}
@@ -148,10 +149,14 @@ func (s *baseStorage) getSurrogateKey(header http.Header) string {
 
 func (s *baseStorage) purgeTag(tag string) []string {
 	toInvalidate := s.Storage[tag]
+	s.logger.Sugar().Debugf("Purge the tag %s", tag)
+	s.mu.Lock()
 	delete(s.Storage, tag)
+	s.mu.Unlock()
 	if !s.keepStale {
 		toInvalidate = toInvalidate + "," + s.Storage[stalePrefix+tag]
 		s.mu.Lock()
+		s.logger.Sugar().Debugf("Purge the tag %s", stalePrefix+tag)
 		delete(s.Storage, stalePrefix+tag)
 		s.mu.Unlock()
 	}

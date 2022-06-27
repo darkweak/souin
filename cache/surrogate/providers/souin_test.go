@@ -7,6 +7,7 @@ import (
 
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/errors"
+	"go.uber.org/zap"
 )
 
 func mockSouinProvider() *SouinSurrogateStorage {
@@ -17,6 +18,7 @@ func mockSouinProvider() *SouinSurrogateStorage {
 			keysRegexp: make(map[string]keysRegexpInner),
 			dynamic:    true,
 			mu:         &sync.Mutex{},
+			logger:     zap.NewNop(),
 		},
 	}
 

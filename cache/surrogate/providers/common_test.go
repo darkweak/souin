@@ -9,6 +9,7 @@ import (
 
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/errors"
+	"go.uber.org/zap"
 )
 
 const (
@@ -24,6 +25,7 @@ func mockCommonProvider() *baseStorage {
 			keysRegexp: make(map[string]keysRegexpInner),
 			dynamic:    true,
 			mu:         &sync.Mutex{},
+			logger:     zap.NewNop(),
 		},
 	}
 

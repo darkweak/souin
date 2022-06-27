@@ -8,6 +8,7 @@ import (
 
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/errors"
+	"go.uber.org/zap"
 )
 
 func mockAkamaiProvider() *AkamaiSurrogateStorage {
@@ -18,6 +19,7 @@ func mockAkamaiProvider() *AkamaiSurrogateStorage {
 			keysRegexp: make(map[string]keysRegexpInner),
 			dynamic:    true,
 			mu:         &sync.Mutex{},
+			logger:     zap.NewNop(),
 		},
 		url: "http://akamai/invalidate_tag",
 	}
