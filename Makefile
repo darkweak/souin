@@ -6,7 +6,7 @@
 DC=docker-compose
 DC_BUILD=$(DC) build
 DC_EXEC=$(DC) exec
-PLUGINS_LIST=beego caddy chi dotweb echo fiber skipper gin go-zero goyave traefik tyk webgo
+PLUGINS_LIST=beego caddy chi dotweb echo fiber skipper gin go-zero goyave traefik tyk webgo souin
 
 base-build-and-run-%:
 	cd plugins/$* && $(MAKE) prepare
@@ -88,6 +88,9 @@ gatling: ## Launch gatling scenarios
 
 generate-plantUML: ## Generate plantUML diagrams
 	cd ./docs/plantUML && sh generate.sh && cd ../..
+
+generate-workflow: ## Generate plugin workflow
+	bash .github/workflows/workflow_plugins_generator.sh
 
 golangci-lint: ## Run golangci-lint to ensure the code quality
 	docker run --rm -v $(pwd):/app -w /app golangci/golangci-lint:v1.46.2 golangci-lint run -v

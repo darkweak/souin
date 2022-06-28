@@ -20,11 +20,10 @@ func (d *Duration) MarshalYAML() (interface{}, error) {
 }
 
 // UnmarshalYAML parse the time.duration into a Duration object
-func (d *Duration) UnmarshalYAML(b *yaml.Node) error {
-	var e error
+func (d *Duration) UnmarshalYAML(b *yaml.Node) (e error) {
 	d.Duration, e = time.ParseDuration(b.Value) // nolint
 
-	return e
+	return
 }
 
 // MarshalJSON transform the Duration into a time.duration object

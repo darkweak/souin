@@ -34,9 +34,6 @@ var (
 	// ErrScansNoResult is returned when Range or prefixScan or prefixSearchScan are called no result to found.
 	ErrScansNoResult = errors.New("range scans or prefix or prefix and search scans no result")
 
-	// ErrPrefixScansNoResult is returned when prefixScan is called no result to found.
-	ErrPrefixScansNoResult = errors.New("prefix scans no result")
-
 	// ErrPrefixSearchScansNoResult is returned when prefixSearchScan is called no result to found.
 	ErrPrefixSearchScansNoResult = errors.New("prefix and search scans no result")
 
@@ -91,7 +88,6 @@ type (
 		LastKey          []byte
 		LastAddress      int64
 		Filepath         string
-		bucketSize       uint32
 		keyPosMap        map[string]int64
 		enabledKeyPosMap bool
 	}
@@ -323,7 +319,7 @@ func (t *BPTree) WriteNodes(rwMode RWMode, syncEnable bool, flag int) error {
 		return err
 	}
 	defer fd.Close()
-	
+
 	queue = nil
 
 	enqueue(t.root)
@@ -364,14 +360,10 @@ func ReadNode(filePath string, address int64) (bn *BinaryNode, err error) {
 	}
 
 	f, err := os.Open(filepath.Clean(filePath))
-	if os.IsNotExist(err) {
-		return nil, err
-	}
-	defer f.Close()
-
 	if err != nil {
 		return nil, err
 	}
+	defer f.Close()
 
 	size := int64(unsafe.Sizeof(BinaryNode{}))
 
@@ -501,7 +493,7 @@ func getRecordWrapper(numFound int, keys [][]byte, pointers []interface{}) (reco
 	return records, nil
 }
 
-// PrefixScan returns records at the given prefix and limitNum
+// PrefixScan returns records at the given prefix and limitNum.
 // limitNum: limit the number of the scanned records return.
 func (t *BPTree) PrefixScan(prefix []byte, offsetNum int, limitNum int) (records Records, off int, err error) {
 	var (
@@ -515,7 +507,7 @@ func (t *BPTree) PrefixScan(prefix []byte, offsetNum int, limitNum int) (records
 	n = t.FindLeaf(prefix)
 
 	if n == nil {
-		return nil, off, ErrPrefixScansNoResult
+		return nil, off, ErrPrefixScan
 	}
 
 	for j = 0; j < n.KeysNum && compare(n.Keys[j], prefix) < 0; {

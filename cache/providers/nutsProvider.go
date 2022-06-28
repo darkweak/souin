@@ -19,7 +19,8 @@ type Nuts struct {
 }
 
 const (
-	bucket = "souin-bucket"
+	bucket    = "souin-bucket"
+	nutsLimit = 1 << 16
 )
 
 func sanitizeProperties(m map[string]interface{}) map[string]interface{} {
@@ -35,6 +36,12 @@ func sanitizeProperties(m map[string]interface{}) map[string]interface{} {
 		}
 	}
 
+	for _, i := range []string{"SegmentSize", "NodeNum", "MaxFdNumsInCache"} {
+		if v := m[i]; v != nil {
+			m[i], _ = v.(int64)
+		}
+	}
+
 	if v := m["EntryIdxMode"]; v != nil {
 		m["EntryIdxMode"] = nutsdb.HintKeyValAndRAMIdxMode
 		switch v {
@@ -46,11 +53,11 @@ func sanitizeProperties(m map[string]interface{}) map[string]interface{} {
 	}
 
 	if v := m["SyncEnable"]; v != nil {
-		b, ok := v.(bool)
-		if ok {
+		m["SyncEnable"] = true
+		if b, ok := v.(bool); ok {
 			m["SyncEnable"] = b
-		} else {
-			m["SyncEnable"], _ = strconv.ParseBool(v.(string))
+		} else if s, ok := v.(string); ok {
+			m["SyncEnable"], _ = strconv.ParseBool(s)
 		}
 	}
 
@@ -68,12 +75,12 @@ func NutsConnectionFactory(c t.AbstractConfigurationInterface) (*Nuts, error) {
 		nutsConfiguration.Configuration = sanitizeProperties(nutsConfiguration.Configuration.(map[string]interface{}))
 		if b, e := json.Marshal(nutsConfiguration.Configuration); e == nil {
 			if e = json.Unmarshal(b, &parsedNuts); e != nil {
-				fmt.Println("Impossible to parse the configuration for the Nuts provider", e)
+				c.GetLogger().Sugar().Error("Impossible to parse the configuration for the Nuts provider", e)
 			}
 		}
 
 		if err := mergo.Merge(&nutsOptions, parsedNuts, mergo.WithOverride); err != nil {
-			fmt.Println("An error occurred during the nutsOptions merge from the default options with your configuration.")
+			c.GetLogger().Sugar().Error("An error occurred during the nutsOptions merge from the default options with your configuration.")
 		}
 	} else {
 		nutsOptions.RWMode = nutsdb.MMap
@@ -85,12 +92,10 @@ func NutsConnectionFactory(c t.AbstractConfigurationInterface) (*Nuts, error) {
 	db, e := nutsdb.Open(nutsOptions)
 
 	if e != nil {
-		fmt.Println("Impossible to open the Nuts DB.", e)
+		c.GetLogger().Sugar().Error("Impossible to open the Nuts DB.", e)
 	}
 
-	i := &Nuts{DB: db, stale: dc.GetStale()}
-
-	return i, nil
+	return &Nuts{DB: db, stale: dc.GetStale()}, nil
 }
 
 // ListKeys method returns the list of existing keys
@@ -132,7 +137,7 @@ func (provider *Nuts) Prefix(key string, req *http.Request) []byte {
 	_ = provider.DB.View(func(tx *nutsdb.Tx) error {
 		prefix := []byte(key)
 
-		if entries, _, err := tx.PrefixScan(bucket, prefix, 0, 50); err != nil {
+		if entries, _, err := tx.PrefixSearchScan(bucket, prefix, "^({|$)", 0, 50); err != nil {
 			return err
 		} else {
 			for _, entry := range entries {
@@ -181,7 +186,7 @@ func (provider *Nuts) Delete(key string) {
 // DeleteMany method will delete the responses in Nuts provider if exists corresponding to the regex key param
 func (provider *Nuts) DeleteMany(key string) {
 	_ = provider.DB.Update(func(tx *nutsdb.Tx) error {
-		if entries, _, err := tx.PrefixSearchScan(bucket, []byte(""), key, 0, 100); err != nil {
+		if entries, _, err := tx.PrefixSearchScan(bucket, []byte(""), key, 0, nutsLimit); err != nil {
 			return err
 		} else {
 			for _, entry := range entries {
