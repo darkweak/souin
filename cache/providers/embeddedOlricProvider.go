@@ -140,7 +140,7 @@ func (provider *EmbeddedOlric) ListKeys() []string {
 func (provider *EmbeddedOlric) Prefix(key string, req *http.Request) []byte {
 	c, err := provider.dm.Query(query.M{
 		"$onKey": query.M{
-			"$regexMatch": "^" + key,
+			"$regexMatch": "^" + key + "({|$)",
 		},
 	})
 	if c != nil {
