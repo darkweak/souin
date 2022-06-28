@@ -100,6 +100,7 @@ func fromDir(dir string) map[string]*souinInstance {
 			provider = retriever.Provider
 		}
 		retriever.Transport = rfc.NewTransport(provider, ykeys.InitializeYKeys(config.GetYkeys()), surrogate.InitializeSurrogate(config))
+		fmt.Println(`message="Souin configuration is now loaded."`)
 
 		c[def.APIID] = &souinInstance{
 			MapHandler:        api.GenerateHandlerMap(config, retriever.GetTransport()),

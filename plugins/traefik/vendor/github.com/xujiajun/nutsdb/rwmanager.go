@@ -18,10 +18,10 @@ package nutsdb
 type RWMode int
 
 const (
-	//FileIO represents the read and write mode using standard I/O.
+	// FileIO represents the read and write mode using standard I/O.
 	FileIO RWMode = iota
 
-	//MMap represents the read and write mode using mmap.
+	// MMap represents the read and write mode using mmap.
 	MMap
 )
 
@@ -30,5 +30,6 @@ type RWManager interface {
 	WriteAt(b []byte, off int64) (n int, err error)
 	ReadAt(b []byte, off int64) (n int, err error)
 	Sync() (err error)
+	Release() (err error)
 	Close() (err error)
 }

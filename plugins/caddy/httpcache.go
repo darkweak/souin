@@ -268,7 +268,7 @@ func (s *SouinCaddyPlugin) Provision(ctx caddy.Context) error {
 
 			if eo.GetDM() == nil {
 				v, l, e := up.LoadOrNew(key, func() (caddy.Destructor, error) {
-					fmt.Println("Create a new olric instance.")
+					s.logger.Sugar().Debug("Create a new olric instance.")
 					return providers.EmbeddedOlricConnectionFactory(s.Configuration)
 				})
 
@@ -277,7 +277,7 @@ func (s *SouinCaddyPlugin) Provision(ctx caddy.Context) error {
 					s.Retriever.GetTransport().(*rfc.VaryTransport).Provider = v.(types.AbstractProviderInterface)
 				}
 			} else {
-				fmt.Println("Store the olric instance.")
+				s.logger.Sugar().Debug("Store the olric instance.")
 				_, _ = up.LoadOrStore(key, s.Retriever.GetProvider())
 			}
 		}
@@ -286,7 +286,7 @@ func (s *SouinCaddyPlugin) Provision(ctx caddy.Context) error {
 	v, l := up.LoadOrStore(coalescing_key, s.Retriever.GetTransport().GetCoalescingLayerStorage())
 
 	if l {
-		fmt.Println("Loaded coalescing layer from cache.")
+		s.logger.Sugar().Debug("Loaded coalescing layer from cache.")
 		s.Retriever.GetTransport().GetCoalescingLayerStorage().Destruct()
 		s.Retriever.GetTransport().(*rfc.VaryTransport).CoalescingLayerStorage = v.(*types.CoalescingLayerStorage)
 	}

@@ -2,6 +2,7 @@ package traefik
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"regexp"
@@ -177,6 +178,7 @@ func DefaultSouinPluginInitializerFromConfiguration(c configurationtypes.Abstrac
 	}
 
 	retriever.Transport.SetURL(retriever.MatchedURL)
+	fmt.Println("Souin configuration is now loaded.")
 	return retriever
 }
 

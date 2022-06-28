@@ -1,4 +1,7 @@
-.PHONY: prepare replace vendor
+.PHONY: load-checker prepare replace vendor
+
+load-checker: ## Ensure Souin is running
+	echo "MIDDLEWARE_RESULT=$$(docker-compose logs tyk-gateway | grep Souin)"
 
 prepare: vendor ## Prepare tyk plugin
 	cp docker-compose.yml.test docker-compose.yml

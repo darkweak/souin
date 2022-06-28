@@ -1,7 +1,6 @@
 package providers
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 
@@ -9,13 +8,15 @@ import (
 	"github.com/buraksezer/olric/config"
 	"github.com/buraksezer/olric/query"
 	t "github.com/darkweak/souin/configurationtypes"
+	"go.uber.org/zap"
 )
 
 // Olric provider type
 type Olric struct {
 	*client.Client
-	dm    *client.DMap
-	stale time.Duration
+	dm     *client.DMap
+	stale  time.Duration
+	logger *zap.Logger
 }
 
 // OlricConnectionFactory function create new Olric instance
@@ -36,6 +37,7 @@ func OlricConnectionFactory(configuration t.AbstractConfigurationInterface) (*Ol
 		Client: c,
 		dm:     nil,
 		stale:  configuration.GetDefaultCache().GetStale(),
+		logger: configuration.GetLogger(),
 	}, nil
 }
 
@@ -55,7 +57,7 @@ func (provider *Olric) ListKeys() []string {
 		defer c.Close()
 	}
 	if err != nil {
-		fmt.Printf("An error occurred while trying to list keys in Olric: %s\n", err)
+		provider.logger.Sugar().Error("An error occurred while trying to list keys in Olric: %s\n", err)
 		return []string{}
 	}
 
@@ -72,14 +74,14 @@ func (provider *Olric) ListKeys() []string {
 func (provider *Olric) Prefix(key string, req *http.Request) []byte {
 	c, err := provider.dm.Query(query.M{
 		"$onKey": query.M{
-			"$regexMatch": "^" + key,
+			"$regexMatch": "^" + key + "({|$)",
 		},
 	})
 	if c != nil {
 		defer c.Close()
 	}
 	if err != nil {
-		fmt.Printf("An error occurred while trying to retrieve data in Olric: %s\n", err)
+		provider.logger.Sugar().Errorf("An error occurred while trying to retrieve data in Olric: %s\n", err)
 		return []byte{}
 	}
 

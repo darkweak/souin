@@ -3,7 +3,7 @@ module github.com/darkweak/souin/plugins/gin
 go 1.16
 
 require (
-	github.com/darkweak/souin v1.6.9
+	github.com/darkweak/souin v1.6.11
 	github.com/gin-gonic/gin v1.7.7
 )
 
@@ -16,4 +16,4 @@ require (
 	google.golang.org/protobuf v1.27.1 // indirect
 )
 
-replace github.com/darkweak/souin v1.6.9 => ../..
+replace github.com/darkweak/souin v1.6.11 => ../..
