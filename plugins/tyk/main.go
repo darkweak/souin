@@ -63,7 +63,7 @@ func SouinResponseHandler(rw http.ResponseWriter, res *http.Response, _ *http.Re
 
 	if r != nil {
 		rh := r.Header
-		rfc.HitCache(&rh, retriever.GetMatchedURL().TTL.Duration)
+		rfc.HitCache(&rh)
 		r.Header = rh
 		for _, v := range []string{"Age", "Cache-Status"} {
 			h := r.Header.Get(v)

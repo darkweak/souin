@@ -127,9 +127,9 @@ func DefaultSouinPluginCallback(
 		if r != nil {
 			rh := r.Header
 			if stale {
-				rfc.HitStaleCache(&rh, retriever.GetMatchedURL().TTL.Duration)
+				rfc.HitStaleCache(&rh)
 			} else {
-				rfc.HitCache(&rh, retriever.GetMatchedURL().TTL.Duration)
+				rfc.HitCache(&rh)
 				prometheus.Increment(prometheus.CachedResponseCounter)
 			}
 			sendAnyCachedResponse(rh, r, res)

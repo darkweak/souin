@@ -15,7 +15,7 @@ func TestHitCache(t *testing.T) {
 	h.Set("Date", time.Now().UTC().Format(http.TimeFormat))
 	h.Set("Age", "1")
 
-	HitCache(&h, 4*time.Second)
+	HitCache(&h)
 	if h.Get("Cache-Status") == "" || h.Get("Cache-Status") != "Souin; hit; ttl=3" {
 		errors.GenerateError(t, fmt.Sprintf("Cache-Status cannot be null when hit and must match hit, %s given", h.Get("Cache-Status")))
 	}
@@ -24,7 +24,7 @@ func TestHitCache(t *testing.T) {
 	}
 
 	h.Set("Date", "Invalid")
-	HitCache(&h, 0)
+	HitCache(&h)
 	if h.Get("Cache-Status") == "" || h.Get("Cache-Status") != "Souin; fwd=request; detail=MALFORMED-DATE" {
 		errors.GenerateError(t, fmt.Sprintf("Cache-Status cannot be null when hit and must match MALFORMED-DATE, %s given", h.Get("Cache-Status")))
 	}
