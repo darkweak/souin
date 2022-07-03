@@ -18,21 +18,23 @@ const (
 
 // CachedResponse returns the cached http.Response for req if present, and nil
 // otherwise.
-func CachedResponse(c types.AbstractProviderInterface, req *http.Request, cachedKey string, transport types.TransportInterface, update bool) (*http.Response, error) {
+func CachedResponse(c types.AbstractProviderInterface, req *http.Request, cachedKey string, transport types.TransportInterface) (*http.Response, bool, error) {
 	clonedReq := cloneRequest(req)
 	cachedVal := c.Prefix(cachedKey, req)
-	b := bytes.NewBuffer(cachedVal)
-	response, _ := http.ReadResponse(bufio.NewReader(b), clonedReq)
+	response, _ := http.ReadResponse(bufio.NewReader(bytes.NewBuffer(cachedVal)), clonedReq)
 
-	if update && nil != response && ValidateCacheControl(response) {
+	if nil != response && ValidateCacheControl(response) {
 		SetCacheStatusEventually(response)
-		go func() {
-			clonedReq.Response = response
-			// Update current cached response in background
-			_, _ = transport.UpdateCacheEventually(clonedReq)
-		}()
+		return ValidateMaxAgeCachedResponse(req, response), false, nil
+	} else if response == nil {
+		staleCachedVal := c.Prefix(cachedKey, req)
+		response, _ = http.ReadResponse(bufio.NewReader(bytes.NewBuffer(staleCachedVal)), clonedReq)
+		if nil != response && ValidateCacheControl(response) {
+			SetCacheStatusEventually(response)
+		}
+		return ValidateMaxAgeCachedResponse(req, response), true, nil
 	}
-	return response, nil
+	return nil, false, nil
 }
 
 func commonCacheControl(req *http.Request, t http.RoundTripper) (*http.Response, error) {
@@ -54,31 +56,18 @@ func (t *VaryTransport) deleteCache(key string) {
 }
 
 // BaseRoundTrip is the base for RoundTrip
-func (t *VaryTransport) BaseRoundTrip(req *http.Request, shouldReUpdate bool) (string, bool, *http.Response) {
+func (t *VaryTransport) BaseRoundTrip(req *http.Request) (string, bool, *http.Response) {
 	cacheKey := req.Context().Value(context.Key).(string)
 	cacheable := IsVaryCacheable(req)
-	cachedResp := req.Response
-	if cachedResp == nil {
-		cachedResp = new(http.Response)
-	}
 
-	if cachedResp.Header == nil {
-		cachedResp.Header = make(http.Header)
-	}
-
-	if cacheable {
-		cr, _ := CachedResponse(t.GetProvider(), req, cacheKey, t, shouldReUpdate)
-		if cr != nil {
-			cachedResp = cr
-		}
-	} else {
+	if !cacheable {
 		go func() {
 			t.CoalescingLayerStorage.Set(cacheKey)
 		}()
 		t.deleteCache(cacheKey)
 	}
 
-	return cacheKey, cacheable, cachedResp
+	return cacheKey, cacheable, req.Response
 }
 
 func commonVaryMatchesVerification(cachedResp *http.Response, req *http.Request) *http.Response {
@@ -122,10 +111,13 @@ func (t *VaryTransport) UpdateCacheEventually(req *http.Request) (*http.Response
 		req.Response.Header.Set("Cache-Control", t.ConfigurationURL.DefaultCacheControl)
 	}
 
-	cacheKey, cacheable, cachedResp := t.BaseRoundTrip(req, false)
+	cacheKey, cacheable, cachedResp := t.BaseRoundTrip(req)
 
 	if cacheable && cachedResp != nil {
 		rDate, _ := time.Parse(time.RFC1123, req.Header.Get("Date"))
+		if cachedResp.Header == nil {
+			cachedResp.Header = http.Header{}
+		}
 		cachedResp.Header.Set("Date", rDate.Format(http.TimeFormat))
 	} else {
 		if _, err := commonCacheControl(req, t); err != nil {
@@ -153,7 +145,7 @@ func (t *VaryTransport) UpdateCacheEventually(req *http.Request) (*http.Response
 // to give the server a chance to respond with NotModified. If this happens, then the cached Response
 // will be returned.
 func (t *VaryTransport) RoundTrip(req *http.Request) (resp *http.Response, err error) {
-	cacheKey, cacheable, cachedResp := t.BaseRoundTrip(req, true)
+	cacheKey, cacheable, cachedResp := t.BaseRoundTrip(req)
 
 	transport := t.Transport.Transport
 	if transport == nil {

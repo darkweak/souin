@@ -68,7 +68,9 @@ var registered map[string]interface{}
 
 // Increment will increment the counter.
 func Increment(name string) {
-	registered[name].(prometheus.Counter).Inc()
+	if _, ok := registered[name]; ok {
+		registered[name].(prometheus.Counter).Inc()
+	}
 }
 
 // Increment will add the referred value the counter.

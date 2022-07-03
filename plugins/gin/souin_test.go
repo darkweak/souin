@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/darkweak/souin/plugins"
 	"github.com/gin-gonic/gin"
 )
 

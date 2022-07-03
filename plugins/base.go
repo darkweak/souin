@@ -108,69 +108,44 @@ func DefaultSouinPluginCallback(
 ) (e error) {
 	prometheus.Increment(prometheus.RequestCounter)
 	start := time.Now()
-	coalesceable := make(chan bool)
-	responses := make(chan *http.Response)
-	defer func() {
-		close(coalesceable)
-		close(responses)
-	}()
 	cacheCandidate := !strings.Contains(req.Header.Get("Cache-Control"), "no-cache")
 	cacheKey := req.Context().Value(context.Key).(string)
 	retriever.SetMatchedURLFromRequest(req)
 
+	if cacheCandidate {
+		r, stale, err := rfc.CachedResponse(
+			retriever.GetProvider(),
+			req,
+			cacheKey,
+			retriever.GetTransport(),
+		)
+		if err != nil {
+			retriever.GetConfiguration().GetLogger().Sugar().Debugf("An error ocurred while retrieving the (stale)? key %s: %v", cacheKey, err)
+			return err
+		}
+
+		if r != nil {
+			rh := r.Header
+			if stale {
+				rfc.HitStaleCache(&rh, retriever.GetMatchedURL().TTL.Duration)
+			} else {
+				rfc.HitCache(&rh, retriever.GetMatchedURL().TTL.Duration)
+				prometheus.Increment(prometheus.CachedResponseCounter)
+			}
+			sendAnyCachedResponse(rh, r, res)
+
+			return
+		}
+	}
+
+	coalesceable := make(chan bool)
+	defer close(coalesceable)
 	go func() {
 		defer func() {
 			_ = recover()
 		}()
 		coalesceable <- retriever.GetTransport().GetCoalescingLayerStorage().Exists(cacheKey)
 	}()
-
-	if cacheCandidate {
-		go func() {
-			defer func() {
-				_ = recover()
-			}()
-			r, _ := rfc.CachedResponse(
-				retriever.GetProvider(),
-				req,
-				cacheKey,
-				retriever.GetTransport(),
-				false,
-			)
-
-			responses <- rfc.ValidateMaxAgeCachedResponse(req, r)
-
-			r, _ = rfc.CachedResponse(
-				retriever.GetProvider(),
-				req,
-				"STALE_"+cacheKey,
-				retriever.GetTransport(),
-				false,
-			)
-
-			responses <- rfc.ValidateStaleCachedResponse(req, r)
-		}()
-	}
-
-	if cacheCandidate {
-		response, open := <-responses
-		if open && nil != response {
-			rh := response.Header
-			rfc.HitCache(&rh, retriever.GetMatchedURL().TTL.Duration)
-			prometheus.Increment(prometheus.CachedResponseCounter)
-			sendAnyCachedResponse(rh, response, res)
-			return
-		}
-
-		response, open = <-responses
-		if open && nil != response {
-			rh := response.Header
-			rfc.HitStaleCache(&rh, retriever.GetMatchedURL().TTL.Duration)
-			sendAnyCachedResponse(rh, response, res)
-			return
-		}
-	}
-
 	prometheus.Increment(prometheus.NoCachedResponseCounter)
 	if <-coalesceable && rc != nil {
 		rc.Temporize(req, res, nextMiddleware)

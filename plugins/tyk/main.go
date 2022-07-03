@@ -54,12 +54,11 @@ func SouinResponseHandler(rw http.ResponseWriter, res *http.Response, _ *http.Re
 	}
 
 	retriever := currentInstance.Retriever
-	r, _ := rfc.CachedResponse(
+	r, _, _ := rfc.CachedResponse(
 		retriever.GetProvider(),
 		req,
 		req.Context().Value(souin_ctx.Key).(string),
 		retriever.GetTransport(),
-		false,
 	)
 
 	if r != nil {

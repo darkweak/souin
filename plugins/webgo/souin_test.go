@@ -5,10 +5,12 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 	"time"
 
 	"github.com/bnkamalesh/webgo/v6"
+	"github.com/darkweak/souin/plugins"
 )
 
 func Test_NewHTTPCache(t *testing.T) {
@@ -59,6 +61,17 @@ func prepare() (res *httptest.ResponseRecorder, res2 *httptest.ResponseRecorder,
 	router = webgo.NewRouter(cfg, getRoutes()...)
 	router.Use(httpcache.Middleware)
 	return
+}
+
+func Benchmark_SouinWebgoPlugin_Middleware(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		res := httptest.NewRecorder()
+		httpcache := NewHTTPCache(DevDefaultConfiguration)
+		httpcache.Middleware(res, httptest.NewRequest(http.MethodGet, "/handled"+strconv.Itoa(i), nil), func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("Returns something"))
+		})
+	}
 }
 
 func Test_SouinWebgoPlugin_Middleware(t *testing.T) {
