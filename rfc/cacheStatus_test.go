@@ -15,7 +15,7 @@ func TestHitCache(t *testing.T) {
 	h.Set("Date", time.Now().UTC().Format(http.TimeFormat))
 	h.Set("Age", "1")
 
-	HitCache(&h)
+	HitCache(&h, 4*time.Second)
 	if h.Get("Cache-Status") == "" || h.Get("Cache-Status") != "Souin; hit; ttl=3" {
 		errors.GenerateError(t, fmt.Sprintf("Cache-Status cannot be null when hit and must match hit, %s given", h.Get("Cache-Status")))
 	}
@@ -23,8 +23,17 @@ func TestHitCache(t *testing.T) {
 		errors.GenerateError(t, fmt.Sprintf("Date cannot be null when invalid and must match %s, %s given", h.Get("Date"), ti.Format(http.TimeFormat)))
 	}
 
+	h.Set(storedTTLHeader, "2s")
+	HitCache(&h, 4*time.Second)
+	if h.Get("Cache-Status") == "" || h.Get("Cache-Status") != "Souin; hit; ttl=1" {
+		errors.GenerateError(t, fmt.Sprintf("Cache-Status cannot be null when hit and must match hit, %s given", h.Get("Cache-Status")))
+	}
+	if ti, e := http.ParseTime(h.Get("Date")); h.Get("Date") == "" || e != nil || h.Get("Date") != ti.Format(http.TimeFormat) {
+		errors.GenerateError(t, fmt.Sprintf("Date cannot be null when invalid and must match %s, %s given", h.Get("Date"), ti.Format(http.TimeFormat)))
+	}
+
 	h.Set("Date", "Invalid")
-	HitCache(&h)
+	HitCache(&h, 0)
 	if h.Get("Cache-Status") == "" || h.Get("Cache-Status") != "Souin; fwd=request; detail=MALFORMED-DATE" {
 		errors.GenerateError(t, fmt.Sprintf("Cache-Status cannot be null when hit and must match MALFORMED-DATE, %s given", h.Get("Cache-Status")))
 	}

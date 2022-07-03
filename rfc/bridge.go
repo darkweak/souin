@@ -23,7 +23,7 @@ func CachedResponse(c types.AbstractProviderInterface, req *http.Request, cached
 	cachedVal := c.Prefix(cachedKey, req)
 	response, _ := http.ReadResponse(bufio.NewReader(bytes.NewBuffer(cachedVal)), clonedReq)
 
-	if nil != response && ValidateCacheControl(response) {
+	if response != nil && ValidateCacheControl(response) {
 		SetCacheStatusEventually(response)
 		return ValidateMaxAgeCachedResponse(req, response), false, nil
 	} else if response == nil {

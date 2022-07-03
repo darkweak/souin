@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"net/http"
-	"strings"
 	"sync"
 	"time"
 
@@ -94,11 +93,6 @@ func (s *httpcache) Response(ctx filters.FilterContext) {
 	req := ctx.Request()
 	rw := ctx.ResponseWriter()
 	res := ctx.Response()
-	customWriter := &plugins.CustomWriter{
-		Response: ctx.Response(),
-		Buf:      s.bufPool.Get().(*bytes.Buffer),
-		Rw:       rw,
-	}
 	req.Response = res
 	req = s.Retriever.GetContext().Method.SetContext(req)
 	if !plugins.CanHandle(req, s.Retriever) {
@@ -111,14 +105,15 @@ func (s *httpcache) Response(ctx filters.FilterContext) {
 	if plugins.HasMutation(req, rw) {
 		return
 	}
+
+	if req.Response.Header.Get("Cache-Status") != "" {
+		ctx.Serve(req.Response)
+		return
+	}
+
 	if req.Response, e = s.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(req); e != nil {
 		return
 	}
 
-	for h, v := range customWriter.Response.Header {
-		if len(v) > 0 {
-			customWriter.Response.Header.Set(h, strings.Join(v, ", "))
-		}
-	}
-	ctx.Serve(customWriter.Response)
+	ctx.Serve(req.Response)
 }
