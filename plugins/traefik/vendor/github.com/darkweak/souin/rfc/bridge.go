@@ -31,8 +31,8 @@ func CachedResponse(c types.AbstractProviderInterface, req *http.Request, cached
 		response, _ = http.ReadResponse(bufio.NewReader(bytes.NewBuffer(staleCachedVal)), clonedReq)
 		if nil != response && ValidateCacheControl(response) {
 			SetCacheStatusEventually(response)
+			return ValidateMaxAgeCachedResponse(req, response), true, nil
 		}
-		return ValidateMaxAgeCachedResponse(req, response), true, nil
 	}
 	return nil, false, nil
 }
