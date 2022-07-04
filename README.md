@@ -763,7 +763,7 @@ experimental:
   plugins:
     souin:
       moduleName: github.com/darkweak/souin
-      version: 
+      version: v1.6.12
 ```
 After that you can declare either the whole configuration at once in the middleware block or by service. See the examples below.
 ```yaml

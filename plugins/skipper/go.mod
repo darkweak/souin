@@ -5,7 +5,7 @@ go 1.16
 require (
 	github.com/armon/go-metrics v0.4.0 // indirect
 	github.com/buraksezer/consistent v0.9.0 // indirect
-	github.com/darkweak/souin v1.6.11
+	github.com/darkweak/souin v1.6.12
 	github.com/golang/glog v1.0.0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/snappy v0.0.4 // indirect
@@ -16,10 +16,8 @@ require (
 	github.com/hashicorp/go-msgpack v1.1.5 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/memberlist v0.3.1 // indirect
-	github.com/imdario/mergo v0.3.13 // indirect
 	github.com/klauspost/compress v1.15.7 // indirect
 	github.com/miekg/dns v1.1.50 // indirect
-	github.com/prometheus/client_golang v1.12.2 // indirect
 	github.com/prometheus/common v0.35.0 // indirect
 	github.com/zalando/skipper v0.13.225
 	go.opencensus.io v0.23.0 // indirect
@@ -33,4 +31,4 @@ require (
 	google.golang.org/genproto v0.0.0-20220630174209-ad1d48641aa7 // indirect
 )
 
-replace github.com/darkweak/souin v1.6.11 => ../..
+replace github.com/darkweak/souin v1.6.12 => ../..

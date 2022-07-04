@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	github.com/TykTechnologies/tyk v2.9.5+incompatible
-	github.com/darkweak/souin v1.6.11
+	github.com/darkweak/souin v1.6.12
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	go.uber.org/zap v1.21.0
 )
@@ -29,7 +29,6 @@ require (
 	github.com/hashicorp/hcl/v2 v2.13.0 // indirect
 	github.com/hashicorp/memberlist v0.3.1 // indirect
 	github.com/hashicorp/terraform v1.0.1 // indirect
-	github.com/imdario/mergo v0.3.13 // indirect
 	github.com/klauspost/compress v1.15.7 // indirect
 	github.com/lonelycode/go-uuid v0.0.0-20141202165402-ed3ca8a15a93 // indirect
 	github.com/lonelycode/osin v0.0.0-20160423095202-da239c9dacb6 // indirect
@@ -38,7 +37,6 @@ require (
 	github.com/miekg/dns v1.1.50 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/pmylund/go-cache v2.1.0+incompatible // indirect
-	github.com/prometheus/client_golang v1.12.2 // indirect
 	github.com/prometheus/common v0.35.0 // indirect
 	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/x-cray/logrus-prefixed-formatter v0.5.2 // indirect
@@ -62,6 +60,6 @@ require (
 )
 
 replace (
-	github.com/darkweak/souin v1.6.11 => ../..
+	github.com/darkweak/souin v1.6.12 => ../..
 	github.com/hashicorp/terraform v1.0.1 => github.com/hashicorp/terraform v0.14.11
 )
