@@ -125,8 +125,6 @@ func DefaultSouinPluginCallback(
 			rh := r.Header
 			if stale {
 				rfc.HitStaleCache(&rh, retriever.GetMatchedURL().TTL.Duration)
-			} else {
-				rfc.HitCache(&rh, retriever.GetMatchedURL().TTL.Duration)
 			}
 			sendAnyCachedResponse(rh, r, res)
 
