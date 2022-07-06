@@ -160,6 +160,7 @@ type (
 		KeyCount                int // total key number ,include expired, deleted, repeated.
 		closed                  bool
 		isMerging               bool
+		fm                      *fileManager
 	}
 
 	// BPTreeIdx represents the B+ tree index
@@ -197,6 +198,7 @@ func Open(opt Options) (*DB, error) {
 		BPTreeKeyEntryPosMap:    make(map[string]int64),
 		bucketMetas:             make(map[string]*BucketMeta),
 		ActiveCommittedTxIdsIdx: NewTree(),
+		fm:                      newFileManager(opt.RWMode, opt.MaxFdNumsInCache, opt.CleanFdsCacheThreshold),
 	}
 
 	if ok := filesystem.PathIsExist(db.opt.Dir); !ok {
@@ -327,7 +329,7 @@ func (db *DB) Merge() error {
 
 	for _, pendingMergeFId := range pendingMergeFIds {
 		off = 0
-		f, err := NewDataFile(db.getDataPath(int64(pendingMergeFId)), db.opt.SegmentSize, db.opt.RWMode)
+		f, err := db.fm.getDataFile(db.getDataPath(int64(pendingMergeFId)), db.opt.SegmentSize)
 		if err != nil {
 			db.isMerging = false
 			return err
@@ -378,18 +380,23 @@ func (db *DB) Merge() error {
 				if err == ErrIndexOutOfBound {
 					break
 				}
-				f.rwManager.Close()
+				_ = f.rwManager.Release()
 				return fmt.Errorf("when merge operation build hintIndex readAt err: %s", err)
 			}
 		}
 
 		if err := db.reWriteData(pendingMergeEntries); err != nil {
-			f.rwManager.Close()
+			_ = f.rwManager.Release()
 			return err
 		}
 
-		f.rwManager.Close()
-		if err := os.Remove(db.getDataPath(int64(pendingMergeFId))); err != nil {
+		path := db.getDataPath(int64(pendingMergeFId))
+		_ = f.rwManager.Release()
+		err = f.rwManager.Close()
+		if err != nil {
+			return err
+		}
+		if err := os.Remove(path); err != nil {
 			db.isMerging = false
 			return fmt.Errorf("when merge err: %s", err)
 		}
@@ -423,11 +430,20 @@ func (db *DB) Close() error {
 
 	db.closed = true
 
-	db.ActiveFile.rwManager.Close()
+	err := db.ActiveFile.rwManager.Release()
+	if err != nil {
+		return err
+	}
 
 	db.ActiveFile = nil
 
 	db.BPTreeIdx = nil
+
+	err = db.fm.close()
+
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -435,7 +451,7 @@ func (db *DB) Close() error {
 // setActiveFile sets the ActiveFile (DataFile object).
 func (db *DB) setActiveFile() (err error) {
 	filepath := db.getDataPath(db.MaxFileID)
-	db.ActiveFile, err = NewDataFile(filepath, db.opt.SegmentSize, db.opt.RWMode)
+	db.ActiveFile, err = db.fm.getDataFile(filepath, db.opt.SegmentSize)
 	if err != nil {
 		return
 	}
@@ -486,7 +502,7 @@ func (db *DB) getActiveFileWriteOff() (off int64, err error) {
 			}
 
 			off += item.Size()
-			//set ActiveFileActualSize
+			// set ActiveFileActualSize
 			db.ActiveFile.ActualSize = off
 
 		} else {
@@ -519,7 +535,7 @@ func (db *DB) parseDataFiles(dataFileIds []int) (unconfirmedRecords []*Record, c
 	for _, dataID := range dataFileIds {
 		off = 0
 		fID := int64(dataID)
-		f, err := NewDataFile(db.getDataPath(fID), db.opt.SegmentSize, db.opt.StartFileLoadingMode)
+		f, err := db.fm.getDataFile(db.getDataPath(fID), db.opt.SegmentSize)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -571,12 +587,18 @@ func (db *DB) parseDataFiles(dataFileIds []int) (unconfirmedRecords []*Record, c
 				if off >= db.opt.SegmentSize {
 					break
 				}
-				f.rwManager.Close()
+				err := f.rwManager.Release()
+				if err != nil {
+					return nil, nil, err
+				}
 				return nil, nil, fmt.Errorf("when build hintIndex readAt err: %s", err)
 			}
 		}
 
-		f.rwManager.Close()
+		err = f.rwManager.Release()
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 
 	return
@@ -840,7 +862,7 @@ func (db *DB) buildSortedSetIdx(bucket string, r *Record) error {
 	return nil
 }
 
-//buildListIdx builds List index when opening the DB.
+// buildListIdx builds List index when opening the DB.
 func (db *DB) buildListIdx(bucket string, r *Record) error {
 	if _, ok := db.ListIdx[bucket]; !ok {
 		db.ListIdx[bucket] = list.New()
@@ -905,10 +927,10 @@ func (db *DB) buildIndexes() (err error) {
 
 	maxFileID, dataFileIds = db.getMaxFileIDAndFileIDs()
 
-	//init db.ActiveFile
+	// init db.ActiveFile
 	db.MaxFileID = maxFileID
 
-	//set ActiveFile
+	// set ActiveFile
 	if err = db.setActiveFile(); err != nil {
 		return
 	}
@@ -930,82 +952,97 @@ func (db *DB) buildIndexes() (err error) {
 }
 
 // managed calls a block of code that is fully contained in a transaction.
-func (db *DB) managed(writable bool, fn func(tx *Tx) error) error {
+func (db *DB) managed(writable bool, fn func(tx *Tx) error) (err error) {
 	var tx *Tx
 
-	tx, err := db.Begin(writable)
+	tx, err = db.Begin(writable)
 	if err != nil {
 		return err
 	}
-
-	if err = fn(tx); err != nil {
-		if errRollback := tx.Rollback(); errRollback != nil {
-			return errRollback
+	defer func() {
+		var panicked bool
+		if r := recover(); r != nil {
+			// resume normal execution
+			panicked = true
 		}
-		return err
-	}
-
-	if err = tx.Commit(); err != nil {
-		if errRollback := tx.Rollback(); errRollback != nil {
-			return errRollback
+		if panicked || err != nil {
+			if errRollback := tx.Rollback(); errRollback != nil {
+				err = errRollback
+			}
 		}
-		return err
-	}
+	}()
 
-	return nil
+	if err = fn(tx); err == nil {
+		err = tx.Commit()
+	}
+	return err
 }
 
 const bptDir = "bpt"
 
 // getDataPath returns the data path at given fid.
 func (db *DB) getDataPath(fID int64) string {
-	return db.opt.Dir + "/" + strconv2.Int64ToStr(fID) + DataSuffix
+	separator := string(filepath.Separator)
+	return db.opt.Dir + separator + strconv2.Int64ToStr(fID) + DataSuffix
 }
 
 func (db *DB) getMetaPath() string {
-	return db.opt.Dir + "/meta"
+	separator := string(filepath.Separator)
+	return db.opt.Dir + separator + "meta"
 }
 
 func (db *DB) getBucketMetaPath() string {
-	return db.getMetaPath() + "/bucket"
+	separator := string(filepath.Separator)
+	return db.getMetaPath() + separator + "bucket"
 }
 
 func (db *DB) getBucketMetaFilePath(name string) string {
-	return db.getBucketMetaPath() + "/" + name + BucketMetaSuffix
+	separator := string(filepath.Separator)
+	return db.getBucketMetaPath() + separator + name + BucketMetaSuffix
 }
 
 func (db *DB) getBPTDir() string {
-	return db.opt.Dir + "/" + bptDir
+	separator := string(filepath.Separator)
+	return db.opt.Dir + separator + bptDir
 }
 
 func (db *DB) getBPTPath(fID int64) string {
-	return db.getBPTDir() + "/" + strconv2.Int64ToStr(fID) + BPTIndexSuffix
+	separator := string(filepath.Separator)
+	return db.getBPTDir() + separator + strconv2.Int64ToStr(fID) + BPTIndexSuffix
 }
 
 func (db *DB) getBPTRootPath(fID int64) string {
-	return db.getBPTDir() + "/root/" + strconv2.Int64ToStr(fID) + BPTRootIndexSuffix
+	separator := string(filepath.Separator)
+	return db.getBPTDir() + separator + "root" + separator + strconv2.Int64ToStr(fID) + BPTRootIndexSuffix
 }
 
 func (db *DB) getBPTTxIDPath(fID int64) string {
-	return db.getBPTDir() + "/txid/" + strconv2.Int64ToStr(fID) + BPTTxIDIndexSuffix
+	separator := string(filepath.Separator)
+	return db.getBPTDir() + separator + "txid" + separator + strconv2.Int64ToStr(fID) + BPTTxIDIndexSuffix
 }
 
 func (db *DB) getBPTRootTxIDPath(fID int64) string {
-	return db.getBPTDir() + "/txid/" + strconv2.Int64ToStr(fID) + BPTRootTxIDIndexSuffix
+	separator := string(filepath.Separator)
+	return db.getBPTDir() + separator + "txid" + separator + strconv2.Int64ToStr(fID) + BPTRootTxIDIndexSuffix
 }
 
 func (db *DB) getPendingMergeEntries(entry *Entry, pendingMergeEntries []*Entry) []*Entry {
 	if entry.Meta.Ds == DataStructureBPTree {
-		if r, err := db.BPTreeIdx[string(entry.Meta.Bucket)].Find(entry.Key); err == nil {
-			if r.H.Meta.Flag == DataSetFlag {
+		bptIdx, exist := db.BPTreeIdx[string(entry.Meta.Bucket)]
+		if exist {
+			r, err := bptIdx.Find(entry.Key)
+			if err == nil && r.H.Meta.Flag == DataSetFlag {
 				pendingMergeEntries = append(pendingMergeEntries, entry)
 			}
 		}
 	}
 
 	if entry.Meta.Ds == DataStructureSet {
-		if db.SetIdx[string(entry.Meta.Bucket)].SIsMember(string(entry.Key), entry.Value) {
-			pendingMergeEntries = append(pendingMergeEntries, entry)
+		setIdx, exist := db.SetIdx[string(entry.Meta.Bucket)]
+		if exist {
+			if setIdx.SIsMember(string(entry.Key), entry.Value) {
+				pendingMergeEntries = append(pendingMergeEntries, entry)
+			}
 		}
 	}
 
@@ -1013,25 +1050,31 @@ func (db *DB) getPendingMergeEntries(entry *Entry, pendingMergeEntries []*Entry)
 		keyAndScore := strings.Split(string(entry.Key), SeparatorForZSetKey)
 		if len(keyAndScore) == 2 {
 			key := keyAndScore[0]
-			n := db.SortedSetIdx[string(entry.Meta.Bucket)].GetByKey(key)
-			if n != nil {
-				pendingMergeEntries = append(pendingMergeEntries, entry)
+			sortedSetIdx, exist := db.SortedSetIdx[string(entry.Meta.Bucket)]
+			if exist {
+				n := sortedSetIdx.GetByKey(key)
+				if n != nil {
+					pendingMergeEntries = append(pendingMergeEntries, entry)
+				}
 			}
 		}
 	}
 
 	if entry.Meta.Ds == DataStructureList {
-		items, _ := db.ListIdx[string(entry.Meta.Bucket)].LRange(string(entry.Key), 0, -1)
-		ok := false
-		if entry.Meta.Flag == DataRPushFlag || entry.Meta.Flag == DataLPushFlag {
-			for _, item := range items {
-				if string(entry.Value) == string(item) {
-					ok = true
-					break
+		listIdx, exist := db.ListIdx[string(entry.Meta.Bucket)]
+		if exist {
+			items, _ := listIdx.LRange(string(entry.Key), 0, -1)
+			ok := false
+			if entry.Meta.Flag == DataRPushFlag || entry.Meta.Flag == DataLPushFlag {
+				for _, item := range items {
+					if string(entry.Value) == string(item) {
+						ok = true
+						break
+					}
 				}
-			}
-			if ok {
-				pendingMergeEntries = append(pendingMergeEntries, entry)
+				if ok {
+					pendingMergeEntries = append(pendingMergeEntries, entry)
+				}
 			}
 		}
 	}
@@ -1049,7 +1092,7 @@ func (db *DB) reWriteData(pendingMergeEntries []*Entry) error {
 		return err
 	}
 
-	dataFile, err := NewDataFile(db.getDataPath(db.MaxFileID+1), db.opt.SegmentSize, db.opt.RWMode)
+	dataFile, err := db.fm.getDataFile(db.getDataPath(db.MaxFileID+1), db.opt.SegmentSize)
 	if err != nil {
 		db.isMerging = false
 		return err

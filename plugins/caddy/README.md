@@ -49,6 +49,11 @@ There is the fully configuration below
             service_id 123456_id
             zone_id anywhere_zone
         }
+        etcd {
+            configuration {
+                # Your etcd configuration here
+            }
+        }
         key {
             disable_body
             disable_host
@@ -63,7 +68,7 @@ There is the fully configuration below
             url url_to_your_cluster:3320
             path the_path_to_a_file.yaml
             configuration {
-                # Your badger configuration here
+                # Your olric configuration here
             }
         }
         regex {
@@ -204,6 +209,8 @@ What does these directives mean?
 | `nuts`                             | Configure the Nuts cache storage                                                                                                             |                                                                                                                         |
 | `nuts.path`                        | Set the Nuts file path storage                                                                                                               | `/anywhere/nuts/storage`                                                                                                |
 | `nuts.configuration`               | Configure Nuts directly in the Caddyfile or your JSON caddy configuration                                                                    | [See the Nuts configuration for the options](https://github.com/nutsdb/nutsdb#default-options)                          |
+| `etcd`                             | Configure the Etcd cache storage                                                                                                             |                                                                                                                         |
+| `etcd.configuration`               | Configure Etcd directly in the Caddyfile or your JSON caddy configuration                                                                    | [See the Etcd configuration for the options](https://pkg.go.dev/go.etcd.io/etcd/clientv3#Config)                        |
 | `olric`                            | Configure the Olric cache storage                                                                                                            |                                                                                                                         |
 | `olric.path`                       | Configure Olric with a file                                                                                                                  | `/anywhere/olric_configuration.json`                                                                                    |
 | `olric.configuration`              | Configure Olric directly in the Caddyfile or your JSON caddy configuration                                                                   | [See the Olric configuration for the options](https://github.com/buraksezer/olric/blob/master/cmd/olricd/olricd.yaml/)  |

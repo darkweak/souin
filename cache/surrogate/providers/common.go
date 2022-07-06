@@ -2,8 +2,10 @@ package providers
 
 import (
 	"net/http"
+	"net/url"
 	"regexp"
 	"strings"
+	"sync"
 
 	"github.com/darkweak/souin/configurationtypes"
 	"go.uber.org/zap"
@@ -44,9 +46,13 @@ func uniqueTag(values []string) []string {
 	list := []string{}
 
 	for _, item := range values {
+		if item == "" {
+			continue
+		}
 		if _, found := tmp[item]; !found {
 			tmp[item] = true
-			list = append(list, item)
+			i, _ := url.QueryUnescape(item)
+			list = append(list, i)
 		}
 	}
 
@@ -66,13 +72,14 @@ type baseStorage struct {
 	dynamic    bool
 	keepStale  bool
 	logger     *zap.Logger
+	mu         *sync.Mutex
 }
 
 func (s *baseStorage) init(config configurationtypes.AbstractConfigurationInterface) {
 	storage := make(map[string]string)
 	s.Storage = storage
 	s.Keys = config.GetSurrogateKeys()
-	s.keepStale = config.GetDefaultCache().GetCDN().Strategy == "hard"
+	s.keepStale = config.GetDefaultCache().GetCDN().Strategy != "hard"
 	keysRegexp := make(map[string]keysRegexpInner, len(s.Keys))
 	baseRegexp := regexp.MustCompile(".+")
 
@@ -97,12 +104,16 @@ func (s *baseStorage) init(config configurationtypes.AbstractConfigurationInterf
 	s.dynamic = config.GetDefaultCache().GetCDN().Dynamic
 	s.logger = config.GetLogger()
 	s.keysRegexp = keysRegexp
+	s.mu = &sync.Mutex{}
 }
 
 func (s *baseStorage) storeTag(tag string, cacheKey string, re *regexp.Regexp) {
 	if currentValue, b := s.Storage[tag]; s.dynamic || b {
 		if !re.MatchString(currentValue) {
+			s.mu.Lock()
+			s.logger.Sugar().Debugf("Store the tag %s", tag)
 			s.Storage[tag] = currentValue + souinStorageSeparator + cacheKey
+			s.mu.Unlock()
 		}
 	}
 }
@@ -138,10 +149,16 @@ func (s *baseStorage) getSurrogateKey(header http.Header) string {
 
 func (s *baseStorage) purgeTag(tag string) []string {
 	toInvalidate := s.Storage[tag]
+	s.logger.Sugar().Debugf("Purge the tag %s", tag)
+	s.mu.Lock()
 	delete(s.Storage, tag)
+	s.mu.Unlock()
 	if !s.keepStale {
-		toInvalidate = toInvalidate + s.Storage[stalePrefix+tag]
+		toInvalidate = toInvalidate + "," + s.Storage[stalePrefix+tag]
+		s.mu.Lock()
+		s.logger.Sugar().Debugf("Purge the tag %s", stalePrefix+tag)
 		delete(s.Storage, stalePrefix+tag)
+		s.mu.Unlock()
 	}
 	return strings.Split(toInvalidate, souinStorageSeparator)
 }
@@ -149,8 +166,14 @@ func (s *baseStorage) purgeTag(tag string) []string {
 // Store will take the lead to store the cache key for each provided Surrogate-key
 func (s *baseStorage) Store(response *http.Response, cacheKey string) error {
 	h := response.Header
+
+	cacheKey = url.QueryEscape(cacheKey)
 	quoted := regexp.QuoteMeta(souinStorageSeparator + cacheKey)
+	staleKey := stalePrefix + cacheKey
+	staleQuoted := regexp.QuoteMeta(souinStorageSeparator + staleKey)
+
 	urlRegexp := regexp.MustCompile("(^" + regexp.QuoteMeta(cacheKey) + "(" + regexp.QuoteMeta(souinStorageSeparator) + "|$))|(" + quoted + ")|(" + quoted + "$)")
+	staleUrlRegexp := regexp.MustCompile("(^" + regexp.QuoteMeta(staleKey) + "(" + regexp.QuoteMeta(souinStorageSeparator) + "|$))|(" + staleQuoted + ")|(" + staleQuoted + "$)")
 
 	keys := s.ParseHeaders(s.parent.getSurrogateKey(h))
 
@@ -159,10 +182,12 @@ func (s *baseStorage) Store(response *http.Response, cacheKey string) error {
 			for _, control := range controls {
 				if s.parent.candidateStore(control) {
 					s.storeTag(key, cacheKey, urlRegexp)
+					s.storeTag(stalePrefix+key, staleKey, staleUrlRegexp)
 				}
 			}
 		} else {
 			s.storeTag(key, cacheKey, urlRegexp)
+			s.storeTag(stalePrefix+key, staleKey, staleUrlRegexp)
 		}
 	}
 

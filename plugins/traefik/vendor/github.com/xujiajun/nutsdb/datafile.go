@@ -24,7 +24,7 @@ var (
 	ErrCrcZero = errors.New("error crc is 0")
 
 	// ErrCrc is returned when crc is error
-	ErrCrc = errors.New(" crc error")
+	ErrCrc = errors.New("crc error")
 
 	// ErrCapacity is returned when capacity is error.
 	ErrCapacity = errors.New("capacity error")
@@ -45,36 +45,6 @@ type DataFile struct {
 	writeOff   int64
 	ActualSize int64
 	rwManager  RWManager
-}
-
-// NewDataFile returns a newly initialized DataFile object.
-func NewDataFile(path string, capacity int64, rwMode RWMode) (df *DataFile, err error) {
-	var rwManager RWManager
-
-	if capacity <= 0 {
-		return nil, ErrCapacity
-	}
-
-	if rwMode == FileIO {
-		rwManager, err = NewFileIORWManager(path, capacity)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	if rwMode == MMap {
-		rwManager, err = NewMMapRWManager(path, capacity)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return &DataFile{
-		path:       path,
-		writeOff:   0,
-		ActualSize: 0,
-		rwManager:  rwManager,
-	}, nil
 }
 
 // ReadAt returns entry at the given off(offset).
@@ -153,6 +123,10 @@ func (df *DataFile) Sync() (err error) {
 // flushes any remaining changes.
 func (df *DataFile) Close() (err error) {
 	return df.rwManager.Close()
+}
+
+func (df *DataFile) Release() (err error) {
+	return df.rwManager.Release()
 }
 
 // readMetaData returns MetaData at given buf slice.

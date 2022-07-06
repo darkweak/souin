@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/errors"
+	"go.uber.org/zap"
 )
 
 const (
@@ -22,6 +24,8 @@ func mockCommonProvider() *baseStorage {
 			Keys:       make(map[string]configurationtypes.SurrogateKeys),
 			keysRegexp: make(map[string]keysRegexpInner),
 			dynamic:    true,
+			mu:         &sync.Mutex{},
+			logger:     zap.NewNop(),
 		},
 	}
 
@@ -53,7 +57,7 @@ func TestBaseStorage_Purge(t *testing.T) {
 	headerMock.Set(surrogateKey, baseHeaderValue)
 
 	tags, surrogates := bs.Purge(headerMock)
-	if len(tags) != 1 {
+	if len(tags) != 0 {
 		errors.GenerateError(t, "The tags length should be empty.")
 	}
 	if len(surrogates) != 5 {
@@ -63,7 +67,7 @@ func TestBaseStorage_Purge(t *testing.T) {
 	headerMock.Set(surrogateKey, emptyHeaderValue)
 
 	tags, surrogates = bs.Purge(headerMock)
-	if len(tags) != 1 {
+	if len(tags) != 0 {
 		errors.GenerateError(t, "The tags length should be empty.")
 	}
 	if len(surrogates) != 1 {
@@ -71,13 +75,15 @@ func TestBaseStorage_Purge(t *testing.T) {
 	}
 
 	bs.Storage["test0"] = "first,second"
+	bs.Storage["STALE_test0"] = "STALTE_first,STALE_second"
 	bs.Storage["test2"] = "third,fourth"
 	bs.Storage["test5"] = "first,second,fifth"
 	bs.Storage["testInvalid"] = "invalid"
 	headerMock.Set(surrogateKey, baseHeaderValue)
 	tags, surrogates = bs.Purge(headerMock)
-	if len(tags) != 5 {
-		errors.GenerateError(t, "The tags length should be equal to 5.")
+
+	if len(tags) != 6 {
+		errors.GenerateError(t, "The tags length should be equal to 6.")
 	}
 	if len(surrogates) != 5 {
 		errors.GenerateError(t, "The surrogates length should be equal to 5.")

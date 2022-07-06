@@ -20,7 +20,7 @@ const (
 )
 
 var (
-	DefaultConfiguration = Configuration{
+	DefaultConfiguration = plugins.BaseConfiguration{
 		DefaultCache: &configurationtypes.DefaultCache{
 			TTL: configurationtypes.Duration{
 				Duration: 10 * time.Second,
@@ -28,7 +28,7 @@ var (
 		},
 		LogLevel: "info",
 	}
-	DevDefaultConfiguration = Configuration{
+	DevDefaultConfiguration = plugins.BaseConfiguration{
 		API: configurationtypes.API{
 			BasePath: "/souin-api",
 			Prometheus: configurationtypes.APIEndpoint{
@@ -56,7 +56,7 @@ type (
 	key             string
 	SouinEchoPlugin struct {
 		plugins.SouinBasePlugin
-		Configuration *Configuration
+		Configuration *plugins.BaseConfiguration
 		bufPool       *sync.Pool
 	}
 	getterContext struct {
@@ -66,7 +66,7 @@ type (
 	}
 )
 
-func New(c Configuration) *SouinEchoPlugin {
+func New(c plugins.BaseConfiguration) *SouinEchoPlugin {
 	s := SouinEchoPlugin{}
 	s.Configuration = &c
 	s.bufPool = &sync.Pool{

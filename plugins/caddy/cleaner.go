@@ -1,7 +1,6 @@
 package httpcache
 
 import (
-	"fmt"
 	"sync"
 )
 
@@ -28,11 +27,11 @@ func (s *storage_providers) Add(key interface{}) {
 }
 
 func (s *SouinCaddyPlugin) Cleanup() error {
-	fmt.Println("Cleanup...")
+	s.logger.Sugar().Debug("Cleanup...")
 	td := []interface{}{}
 	sp, _ := up.LoadOrStore(stored_providers_key, newStorageProvider())
 	stored_providers := sp.(*storage_providers)
-	up.Range(func(key, value interface{}) bool {
+	up.Range(func(key, _ interface{}) bool {
 		if key != stored_providers_key && key != coalescing_key {
 			if !stored_providers.list[key] {
 				td = append(td, key)
@@ -43,7 +42,7 @@ func (s *SouinCaddyPlugin) Cleanup() error {
 	})
 
 	for _, v := range td {
-		fmt.Printf("Cleaning %v\n", v)
+		s.logger.Sugar().Debugf("Cleaning %v\n", v)
 		up.Delete(v)
 	}
 

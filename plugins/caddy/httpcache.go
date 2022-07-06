@@ -39,7 +39,10 @@ func init() {
 	httpcaddyfile.RegisterHandlerDirective(moduleName, parseCaddyfileHandlerDirective)
 }
 
-// SouinCaddyPlugin allows the user to set up an HTTP cache system, RFC-7234 compliant. This is the development repository of the official cache-handler. It supports the tag based cache purge, distributed and not-distributed storage, key generation tweaking.
+// SouinCaddyPlugin development repository of the cache handler, allows
+// the user to set up an HTTP cache system, RFC-7234 compliant and
+// supports the tag based cache purge, distributed and not-distributed
+// storage, key generation tweaking.
 type SouinCaddyPlugin struct {
 	plugins.SouinBasePlugin
 	Configuration *Configuration
@@ -56,10 +59,12 @@ type SouinCaddyPlugin struct {
 	Badger configurationtypes.CacheProvider `json:"badger,omitempty"`
 	// Configure the global key generation.
 	Key configurationtypes.Key `json:"key,omitempty"`
-	// Configure the Badger cache storage.
+	// Override the cache key generation matching the pattern.
 	CacheKeys map[string]configurationtypes.Key `json:"cache_keys,omitempty"`
 	// Configure the Badger cache storage.
 	Nuts configurationtypes.CacheProvider `json:"nuts,omitempty"`
+	// Enable the Etcd distributed cache storage.
+	Etcd configurationtypes.CacheProvider `json:"etcd,omitempty"`
 	// Enable the Olric distributed cache storage.
 	Olric configurationtypes.CacheProvider `json:"olric,omitempty"`
 	// Time to live for a key, using time.duration.
@@ -136,9 +141,10 @@ func (s *SouinCaddyPlugin) configurationPropertyMapper() error {
 		Nuts:                s.Nuts,
 		Key:                 s.Key,
 		DefaultCacheControl: s.DefaultCacheControl,
-		Distributed:         s.Olric.URL != "" || s.Olric.Path != "" || s.Olric.Configuration != nil,
+		Distributed:         s.Olric.URL != "" || s.Olric.Path != "" || s.Olric.Configuration != nil || s.Etcd.Configuration != nil,
 		Headers:             s.Headers,
 		Olric:               s.Olric,
+		Etcd:                s.Etcd,
 		TTL:                 s.TTL,
 	}
 	if s.Configuration == nil {
@@ -179,6 +185,9 @@ func (s *SouinCaddyPlugin) FromApp(app *SouinApp) error {
 	if s.Configuration.cacheKeys == nil {
 		s.Configuration.cacheKeys = make(map[configurationtypes.RegValue]configurationtypes.Key)
 	}
+	if s.CacheKeys == nil {
+		s.CacheKeys = app.CacheKeys
+	}
 	for k, v := range s.CacheKeys {
 		s.Configuration.cacheKeys[configurationtypes.RegValue{Regexp: regexp.MustCompile(k)}] = v
 	}
@@ -202,6 +211,10 @@ func (s *SouinCaddyPlugin) FromApp(app *SouinApp) error {
 	if dc.Olric.URL == "" || dc.Olric.Path == "" || dc.Olric.Configuration == nil {
 		s.Configuration.DefaultCache.Distributed = appDc.Distributed
 		s.Configuration.DefaultCache.Olric = appDc.Olric
+	}
+	if dc.Etcd.Configuration == nil {
+		s.Configuration.DefaultCache.Distributed = appDc.Distributed
+		s.Configuration.DefaultCache.Etcd = appDc.Etcd
 	}
 	if dc.Badger.Path == "" || dc.Badger.Configuration == nil {
 		s.Configuration.DefaultCache.Badger = appDc.Badger
@@ -255,7 +268,7 @@ func (s *SouinCaddyPlugin) Provision(ctx caddy.Context) error {
 
 			if eo.GetDM() == nil {
 				v, l, e := up.LoadOrNew(key, func() (caddy.Destructor, error) {
-					fmt.Println("Create a new olric instance.")
+					s.logger.Sugar().Debug("Create a new olric instance.")
 					return providers.EmbeddedOlricConnectionFactory(s.Configuration)
 				})
 
@@ -264,7 +277,7 @@ func (s *SouinCaddyPlugin) Provision(ctx caddy.Context) error {
 					s.Retriever.GetTransport().(*rfc.VaryTransport).Provider = v.(types.AbstractProviderInterface)
 				}
 			} else {
-				fmt.Println("Store the olric instance.")
+				s.logger.Sugar().Debug("Store the olric instance.")
 				_, _ = up.LoadOrStore(key, s.Retriever.GetProvider())
 			}
 		}
@@ -273,7 +286,7 @@ func (s *SouinCaddyPlugin) Provision(ctx caddy.Context) error {
 	v, l := up.LoadOrStore(coalescing_key, s.Retriever.GetTransport().GetCoalescingLayerStorage())
 
 	if l {
-		fmt.Println("Loaded coalescing layer from cache.")
+		s.logger.Sugar().Debug("Loaded coalescing layer from cache.")
 		s.Retriever.GetTransport().GetCoalescingLayerStorage().Destruct()
 		s.Retriever.GetTransport().(*rfc.VaryTransport).CoalescingLayerStorage = v.(*types.CoalescingLayerStorage)
 	}
@@ -304,8 +317,10 @@ func parseCaddyfileRecursively(h *caddyfile.Dispenser) interface{} {
 			continue
 		}
 		args := h.RemainingArgs()
-		if len(args) > 0 {
+		if len(args) == 1 {
 			input[val] = args[0]
+		} else if len(args) > 1 {
+			input[val] = args
 		} else {
 			input[val] = parseCaddyfileRecursively(h)
 		}
@@ -451,6 +466,17 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 			case "default_cache_control":
 				args := h.RemainingArgs()
 				cfg.DefaultCache.DefaultCacheControl = args[0]
+			case "etcd":
+				cfg.DefaultCache.Distributed = true
+				provider := configurationtypes.CacheProvider{}
+				for nesting := h.Nesting(); h.NextBlock(nesting); {
+					directive := h.Val()
+					switch directive {
+					case "configuration":
+						provider.Configuration = parseCaddyfileRecursively(h)
+					}
+				}
+				cfg.DefaultCache.Etcd = provider
 			case "headers":
 				cfg.DefaultCache.Headers = append(cfg.DefaultCache.Headers, h.RemainingArgs()...)
 			case "key":
@@ -531,7 +557,7 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 
 	souinApp.DefaultCache = cfg.DefaultCache
 	souinApp.API = cfg.API
-	souinApp.CacheKeys = cfg.cacheKeys
+	souinApp.CacheKeys = cfg.CfgCacheKeys
 
 	return httpcaddyfile.App{
 		Name:  moduleName,

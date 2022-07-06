@@ -17,6 +17,7 @@ type DefaultCache struct {
 	Headers             []string
 	Key                 configurationtypes.Key
 	Olric               configurationtypes.CacheProvider
+	Etcd                configurationtypes.CacheProvider
 	Nuts                configurationtypes.CacheProvider
 	Regex               configurationtypes.Regex
 	TTL                 configurationtypes.Duration
@@ -51,6 +52,11 @@ func (d *DefaultCache) GetHeaders() []string {
 // GetKey returns the default Key generation strategy
 func (d *DefaultCache) GetKey() configurationtypes.Key {
 	return d.Key
+}
+
+// GetEtcd returns etcd configuration
+func (d *DefaultCache) GetEtcd() configurationtypes.CacheProvider {
+	return d.Etcd
 }
 
 // GetNuts returns nuts configuration
