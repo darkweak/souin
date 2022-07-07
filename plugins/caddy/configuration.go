@@ -13,6 +13,7 @@ type DefaultCache struct {
 	Badger              configurationtypes.CacheProvider
 	CDN                 configurationtypes.CDN
 	DefaultCacheControl string
+	ClientCacheControl  string
 	Distributed         bool
 	Headers             []string
 	Key                 configurationtypes.Key
@@ -84,9 +85,14 @@ func (d *DefaultCache) GetStale() time.Duration {
 	return d.Stale.Duration
 }
 
-// GetStale returns the stale duration
+// GetDefaultCacheControl returns the configured default cache control value
 func (d *DefaultCache) GetDefaultCacheControl() string {
 	return d.DefaultCacheControl
+}
+
+// GetClientCacheControl returns the configured client cache control value
+func (d *DefaultCache) GetClientCacheControl() string {
+	return d.ClientCacheControl
 }
 
 //Configuration holder

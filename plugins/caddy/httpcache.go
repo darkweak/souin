@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"regexp"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -71,6 +72,9 @@ type SouinCaddyPlugin struct {
 	TTL configurationtypes.Duration `json:"ttl,omitempty"`
 	// The default Cache-Control header value if none set by the upstream server.
 	DefaultCacheControl string `json:"default_cache_control,omitempty"`
+	// A customized Cache-Control header sent to the client that overrides the
+	// header sent by the upstream server.
+	ClientCacheControl string `json:"client_cache_control,omitempty"`
 }
 
 // CaddyModule returns the Caddy module information.
@@ -127,6 +131,10 @@ func (s *SouinCaddyPlugin) ServeHTTP(rw http.ResponseWriter, r *http.Request, ne
 			return e
 		}
 
+		if s.Configuration.DefaultCache.ClientCacheControl != "" {
+			customWriter.Header().Set("Cache-Control", s.Configuration.DefaultCache.ClientCacheControl)
+		}
+
 		_, _ = customWriter.Send()
 		return e
 	})
@@ -141,6 +149,7 @@ func (s *SouinCaddyPlugin) configurationPropertyMapper() error {
 		Nuts:                s.Nuts,
 		Key:                 s.Key,
 		DefaultCacheControl: s.DefaultCacheControl,
+		ClientCacheControl:  s.ClientCacheControl,
 		Distributed:         s.Olric.URL != "" || s.Olric.Path != "" || s.Olric.Configuration != nil || s.Etcd.Configuration != nil,
 		Headers:             s.Headers,
 		Olric:               s.Olric,
@@ -179,6 +188,7 @@ func (s *SouinCaddyPlugin) FromApp(app *SouinApp) error {
 			Key:                 app.Key,
 			TTL:                 app.TTL,
 			DefaultCacheControl: app.DefaultCacheControl,
+			ClientCacheControl:  app.ClientCacheControl,
 		}
 		return nil
 	}
@@ -207,6 +217,9 @@ func (s *SouinCaddyPlugin) FromApp(app *SouinApp) error {
 	}
 	if dc.DefaultCacheControl == "" {
 		s.Configuration.DefaultCache.DefaultCacheControl = appDc.DefaultCacheControl
+	}
+	if dc.ClientCacheControl == "" && appDc.ClientCacheControl != "" {
+		s.Configuration.DefaultCache.ClientCacheControl = appDc.ClientCacheControl
 	}
 	if dc.Olric.URL == "" || dc.Olric.Path == "" || dc.Olric.Configuration == nil {
 		s.Configuration.DefaultCache.Distributed = appDc.Distributed
@@ -363,6 +376,7 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 				Duration: 120 * time.Second,
 			},
 			DefaultCacheControl: "",
+			ClientCacheControl:  "",
 		},
 		URLs: make(map[string]configurationtypes.URL),
 	}
@@ -465,7 +479,10 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 				cfg.DefaultCache.CDN = cdn
 			case "default_cache_control":
 				args := h.RemainingArgs()
-				cfg.DefaultCache.DefaultCacheControl = args[0]
+				cfg.DefaultCache.DefaultCacheControl = strings.Join(args, " ")
+			case "client_cache_control":
+				args := h.RemainingArgs()
+				cfg.DefaultCache.ClientCacheControl = strings.Join(args, " ")
 			case "etcd":
 				cfg.DefaultCache.Distributed = true
 				provider := configurationtypes.CacheProvider{}
@@ -619,7 +636,9 @@ func parseCaddyfileHandlerDirective(h httpcaddyfile.Helper) (caddyhttp.Middlewar
 			}
 			sc.CfgCacheKeys = cacheKeys
 		case "default_cache_control":
-			sc.DefaultCache.DefaultCacheControl = h.RemainingArgs()[0]
+			sc.DefaultCache.DefaultCacheControl = strings.Join(h.RemainingArgs(), " ")
+		case "client_cache_control":
+			sc.DefaultCache.ClientCacheControl = strings.Join(h.RemainingArgs(), " ")
 		case "headers":
 			sc.DefaultCache.Headers = h.RemainingArgs()
 		case "key":
