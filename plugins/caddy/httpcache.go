@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"regexp"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -465,7 +466,7 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 				cfg.DefaultCache.CDN = cdn
 			case "default_cache_control":
 				args := h.RemainingArgs()
-				cfg.DefaultCache.DefaultCacheControl = args[0]
+				cfg.DefaultCache.DefaultCacheControl = strings.Join(args, " ")
 			case "etcd":
 				cfg.DefaultCache.Distributed = true
 				provider := configurationtypes.CacheProvider{}
@@ -619,7 +620,7 @@ func parseCaddyfileHandlerDirective(h httpcaddyfile.Helper) (caddyhttp.Middlewar
 			}
 			sc.CfgCacheKeys = cacheKeys
 		case "default_cache_control":
-			sc.DefaultCache.DefaultCacheControl = h.RemainingArgs()[0]
+			sc.DefaultCache.DefaultCacheControl = strings.Join(h.RemainingArgs(), " ")
 		case "headers":
 			sc.DefaultCache.Headers = h.RemainingArgs()
 		case "key":
