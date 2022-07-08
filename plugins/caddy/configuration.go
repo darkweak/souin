@@ -84,7 +84,7 @@ func (d *DefaultCache) GetStale() time.Duration {
 	return d.Stale.Duration
 }
 
-// GetStale returns the stale duration
+// GetDefaultCacheControl returns the configured default cache control value
 func (d *DefaultCache) GetDefaultCacheControl() string {
 	return d.DefaultCacheControl
 }
