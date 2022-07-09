@@ -312,7 +312,7 @@ jobs:
         name: Wait for Souin is really loaded inside Go-zero as middleware
         uses: jakejarvis/wait-action@master
         with:
-          time: 50s
+          time: 70s
       -
         name: Set Go-zero logs configuration result as environment variable
         run: cd plugins/go-zero && echo "$(make load-checker)" >> $GITHUB_ENV
@@ -438,7 +438,7 @@ jobs:
         name: Wait for Souin is really loaded inside Skipper as middleware
         uses: jakejarvis/wait-action@master
         with:
-          time: 50s
+          time: 60s
       -
         name: Set Skipper logs configuration result as environment variable
         run: cd plugins/skipper && echo "$(make load-checker)" >> $GITHUB_ENV

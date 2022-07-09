@@ -1,7 +1,7 @@
 #!/bin/bash
 
 plugins=("beego"  "chi"  "dotweb"  "echo"  "fiber"  "gin"  "go-zero"  "goyave"  "kratos"  "skipper"  "souin"  "traefik"  "tyk"  "webgo")
-durations=("35"   "30"   "30"      "30"    "45"     "30"   "50"       "35"      "50"      "50"       "40"     "30"       "30"   "30")
+durations=("35"   "30"   "30"      "30"    "45"     "30"   "70"       "35"      "50"      "60"       "40"     "30"       "30"   "30")
 versions=("16"    "16"   "16"      "16"    "16"     "16"   "16"       "16"      "18"      "18"       "16"     "16"       "16"   "16")
 
 IFS= read -r -d '' tpl <<EOF
