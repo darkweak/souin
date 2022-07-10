@@ -36,6 +36,17 @@ services:
       - "2380:2380"
     command: sh -c 'apk update; apk add curl;etcd -listen-client-urls http://0.0.0.0:2379 -advertise-client-urls http://etcd:2379'
     <<: *networks
+
+  traefik:
+    image: traefik:latest
+    command: --providers.docker
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  whoami:
+    image: traefik/whoami
+    labels:
+      - traefik.http.routers.whoami.rule=Host(`domain.com`)
 networks:
   your_network:
     external: true

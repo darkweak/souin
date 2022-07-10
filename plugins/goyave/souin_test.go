@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/darkweak/souin/plugins"
 	"goyave.dev/goyave/v4"
 	"goyave.dev/goyave/v4/config"
 )
@@ -123,7 +124,7 @@ func (suite *HttpCacheMiddlewareTestSuite) Test_SouinFiberPlugin_Middleware_APIH
 	if string(b) != "[]" {
 		suite.T().Error("The response body must be an empty array because no request has been stored")
 	}
-	res = suite.Middleware(httpcache.Handle, suite.CreateTestRequest(httptest.NewRequest(http.MethodGet, "/handled", nil)), func(response *goyave.Response, r *goyave.Request) {
+	_ = suite.Middleware(httpcache.Handle, suite.CreateTestRequest(httptest.NewRequest(http.MethodGet, "/handled", nil)), func(response *goyave.Response, r *goyave.Request) {
 		response.String(http.StatusOK, "Hello, World 👋!")
 	})
 	res = suite.Middleware(httpcache.Handle, SouinAPIRequest, func(response *goyave.Response, r *goyave.Request) {})

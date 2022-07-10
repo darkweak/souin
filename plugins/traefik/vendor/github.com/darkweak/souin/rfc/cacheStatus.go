@@ -56,7 +56,6 @@ func HitCache(h *http.Header, ttl time.Duration) {
 
 // HitStaleCache set hit and manage age header too
 func HitStaleCache(h *http.Header, ttl time.Duration) {
-	manageAge(h, ttl)
 	h.Set("Cache-Status", h.Get("Cache-Status")+"; fwd=stale")
 }
 
@@ -79,6 +78,7 @@ func manageAge(h *http.Header, ttl time.Duration) {
 		ttl, _ = time.ParseDuration(h.Get(storedTTLHeader))
 		h.Del(storedTTLHeader)
 	}
+
 	cage := correctedInitialAge(utc1, utc2)
 	age := strconv.Itoa(cage)
 	h.Set("Age", age)

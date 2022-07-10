@@ -2,11 +2,15 @@ package souin
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
+	"github.com/darkweak/souin/configurationtypes"
+	"github.com/darkweak/souin/plugins"
 	"github.com/labstack/echo/v4"
 )
 
@@ -91,7 +95,11 @@ func Test_SouinEchoPlugin_Process_APIHandle(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/souin-api/souin", nil)
 	req.Header = http.Header{}
 	res := httptest.NewRecorder()
-	s := New(DevDefaultConfiguration)
+	dc := DevDefaultConfiguration
+	dc.DefaultCache.Nuts = configurationtypes.CacheProvider{
+		Path: "/tmp/souin" + time.Now().UTC().String(),
+	}
+	s := New(dc)
 
 	e := echo.New()
 	c := e.NewContext(req, res)

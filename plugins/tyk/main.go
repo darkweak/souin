@@ -54,17 +54,16 @@ func SouinResponseHandler(rw http.ResponseWriter, res *http.Response, _ *http.Re
 	}
 
 	retriever := currentInstance.Retriever
-	r, _ := rfc.CachedResponse(
+	r, _, _ := rfc.CachedResponse(
 		retriever.GetProvider(),
 		req,
 		req.Context().Value(souin_ctx.Key).(string),
 		retriever.GetTransport(),
-		false,
 	)
 
 	if r != nil {
 		rh := r.Header
-		rfc.HitCache(&rh, retriever.GetMatchedURL().TTL.Duration)
+		// rfc.HitCache(&rh, retriever.GetMatchedURL().TTL.Duration)
 		r.Header = rh
 		for _, v := range []string{"Age", "Cache-Status"} {
 			h := r.Header.Get(v)

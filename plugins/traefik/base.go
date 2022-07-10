@@ -114,33 +114,20 @@ func DefaultSouinPluginCallback(
 	retriever.SetMatchedURLFromRequest(req)
 
 	if !strings.Contains(req.Header.Get("Cache-Control"), "no-cache") {
-		r, _ := rfc.CachedResponse(
+		r, stale, _ := rfc.CachedResponse(
 			retriever.GetProvider(),
 			req,
 			cacheKey,
 			retriever.GetTransport(),
-			false,
 		)
 
 		if r != nil {
 			rh := r.Header
-			rfc.HitCache(&rh, retriever.GetMatchedURL().TTL.Duration)
+			if stale {
+				rfc.HitStaleCache(&rh, retriever.GetMatchedURL().TTL.Duration)
+			}
 			sendAnyCachedResponse(rh, r, res)
-			return
-		}
 
-		r, _ = rfc.CachedResponse(
-			retriever.GetProvider(),
-			req,
-			"STALE_"+cacheKey,
-			retriever.GetTransport(),
-			false,
-		)
-
-		if r != nil {
-			rh := r.Header
-			rfc.HitStaleCache(&rh, retriever.GetMatchedURL().TTL.Duration)
-			sendAnyCachedResponse(rh, r, res)
 			return
 		}
 	}
