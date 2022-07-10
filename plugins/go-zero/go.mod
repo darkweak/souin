@@ -8,7 +8,6 @@ require (
 	github.com/darkweak/souin v1.6.12
 	github.com/go-chi/chi/v5 v5.0.7
 	github.com/golang/glog v1.0.0 // indirect
-	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/google/btree v1.1.2 // indirect
 	github.com/google/flatbuffers v2.0.6+incompatible // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
@@ -19,15 +18,13 @@ require (
 	github.com/klauspost/compress v1.15.7 // indirect
 	github.com/miekg/dns v1.1.50 // indirect
 	github.com/prometheus/common v0.35.0 // indirect
-	github.com/zeromicro/go-zero v1.3.2
+	github.com/zeromicro/go-zero v1.3.0
 	go.opencensus.io v0.23.0 // indirect
 	golang.org/x/net v0.0.0-20220630215102-69896b714898 // indirect
 	golang.org/x/sync v0.0.0-20220601150217-0de741cfad7f // indirect
 	golang.org/x/sys v0.0.0-20220702020025-31831981b65f // indirect
 	golang.org/x/tools v0.1.11 // indirect
-	golang.org/x/xerrors v0.0.0-20220609144429-65e65417b02f // indirect
 	google.golang.org/genproto v0.0.0-20220630174209-ad1d48641aa7 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
 replace github.com/darkweak/souin v1.6.12 => ../..
