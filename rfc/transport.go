@@ -78,9 +78,8 @@ func (t *VaryTransport) SetCache(key string, resp *http.Response) {
 	}
 	if ma > t.ConfigurationURL.TTL.Duration {
 		ma = t.ConfigurationURL.TTL.Duration
-	} else {
-		resp.Header.Set(storedTTLHeader, ma.String())
 	}
+	resp.Header.Set(storedTTLHeader, ma.String())
 	if respBytes, err := httputil.DumpResponse(resp, true); e == nil && err == nil {
 		t.Provider.Set(key, respBytes, t.ConfigurationURL, ma)
 	}

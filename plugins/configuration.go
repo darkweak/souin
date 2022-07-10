@@ -49,12 +49,12 @@ func (c *BaseConfiguration) SetLogger(l *zap.Logger) {
 
 // GetYkeys get the ykeys list
 func (c *BaseConfiguration) GetYkeys() map[string]configurationtypes.SurrogateKeys {
-	return nil
+	return c.SurrogateKeys
 }
 
 // GetSurrogateKeys get the surrogate keys list
 func (c *BaseConfiguration) GetSurrogateKeys() map[string]configurationtypes.SurrogateKeys {
-	return nil
+	return c.SurrogateKeys
 }
 
 // GetCacheKeys get the cache keys rules to override

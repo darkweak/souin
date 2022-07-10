@@ -1,2 +1,5 @@
 etc/
-internal/
+internal/config/
+internal/logic/
+internal/svc/
+internal/types/

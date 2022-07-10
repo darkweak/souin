@@ -45,7 +45,7 @@ github.com/cespare/xxhash/v2
 github.com/coreos/go-semver/semver
 # github.com/coreos/go-systemd/v22 v22.3.2
 github.com/coreos/go-systemd/v22/journal
-# github.com/darkweak/souin v1.6.11 => ../..
+# github.com/darkweak/souin v1.6.12 => ../..
 ## explicit
 github.com/darkweak/souin/api
 github.com/darkweak/souin/api/auth
@@ -122,7 +122,7 @@ github.com/hashicorp/golang-lru/simplelru
 github.com/hashicorp/logutils
 # github.com/hashicorp/memberlist v0.1.5
 github.com/hashicorp/memberlist
-# github.com/imdario/mergo v0.3.12
+# github.com/imdario/mergo v0.3.13
 github.com/imdario/mergo
 # github.com/klauspost/compress v1.12.3
 github.com/klauspost/compress/fse
@@ -141,7 +141,7 @@ github.com/pkg/errors
 # github.com/pquerna/cachecontrol v0.1.0
 ## explicit
 github.com/pquerna/cachecontrol/cacheobject
-# github.com/prometheus/client_golang v1.12.1
+# github.com/prometheus/client_golang v1.12.2
 github.com/prometheus/client_golang/prometheus
 github.com/prometheus/client_golang/prometheus/internal
 github.com/prometheus/client_golang/prometheus/promauto
@@ -328,5 +328,5 @@ google.golang.org/protobuf/types/known/durationpb
 google.golang.org/protobuf/types/known/timestamppb
 # gopkg.in/yaml.v2 v2.4.0
 gopkg.in/yaml.v2
-# gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
+# gopkg.in/yaml.v3 v3.0.0
 gopkg.in/yaml.v3

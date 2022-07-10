@@ -30,7 +30,7 @@ func commonInitializer() (*http.Request, types.AbstractProviderInterface, *VaryT
 func TestCachedResponse_WithUpdate(t *testing.T) {
 	r, c, v := commonInitializer()
 
-	res, err := CachedResponse(c, r, r.Context().Value(context.Key).(string), v, true)
+	res, _, err := CachedResponse(c, r, r.Context().Value(context.Key).(string), v)
 
 	if err != nil {
 		errors.GenerateError(t, "CachedResponse cannot throw error")
@@ -43,7 +43,7 @@ func TestCachedResponse_WithUpdate(t *testing.T) {
 
 func TestCachedResponse_WithoutUpdate(t *testing.T) {
 	r, c, v := commonInitializer()
-	res, err := CachedResponse(c, r, r.Context().Value(context.Key).(string), v, false)
+	res, _, err := CachedResponse(c, r, r.Context().Value(context.Key).(string), v)
 
 	if err != nil {
 		errors.GenerateError(t, "CachedResponse cannot throw error")

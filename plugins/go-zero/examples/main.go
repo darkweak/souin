@@ -4,7 +4,6 @@ import (
 	"flag"
 
 	cache "github.com/darkweak/souin/plugins/go-zero"
-
 	"github.com/darkweak/souin/plugins/go-zero/examples/internal/config"
 	"github.com/darkweak/souin/plugins/go-zero/examples/internal/handler"
 	"github.com/darkweak/souin/plugins/go-zero/examples/internal/svc"
@@ -27,7 +26,6 @@ func main() {
 
 	httpcache := cache.NewHTTPCache(cache.DevDefaultConfiguration)
 	server.Use(httpcache.Handle)
-
 	handler.RegisterHandlers(server, ctx)
 
 	server.Start()

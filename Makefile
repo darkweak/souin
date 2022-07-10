@@ -6,7 +6,7 @@
 DC=docker-compose
 DC_BUILD=$(DC) build
 DC_EXEC=$(DC) exec
-PLUGINS_LIST=beego caddy chi dotweb echo fiber skipper gin go-zero goyave traefik tyk webgo souin
+PLUGINS_LIST=beego caddy chi dotweb echo fiber gin go-zero goyave kratos skipper traefik tyk webgo souin
 
 base-build-and-run-%:
 	cd plugins/$* && $(MAKE) prepare
@@ -28,6 +28,8 @@ build-and-run-dotweb: base-build-and-run-dotweb  ## Run Dotweb with Souin as plu
 build-and-run-echo: base-build-and-run-echo  ## Run Echo with Souin as plugin
 
 build-and-run-fiber: base-build-and-run-fiber  ## Run Fiber with Souin as plugin
+
+build-and-run-kratos: base-build-and-run-kratos  ## Run Kratos with Souin as plugin
 
 build-and-run-skipper: base-build-and-run-skipper  ## Run Skipper with Souin as plugin
 

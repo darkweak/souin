@@ -27,12 +27,13 @@
   8.7. [Gin middleware](#gin-middleware)  
   8.8. [Go-zero middleware](#go-zero-middleware)  
   8.9. [Goyave middleware](#goyave-middleware)  
-  8.10. [Skipper filter](#skipper-filter)  
-  8.11. [Træfik plugin](#træfik-plugin)  
-  8.12. [Tyk plugin](#tyk-plugin)  
-  8.13. [Webgo middleware](#webgo-middleware)  
-  8.14. [Prestashop plugin](#prestashop-plugin)  
-  8.15. [Wordpress plugin](#wordpress-plugin)  
+  8.10. [Kratos filter](#kratos-filter)  
+  8.11. [Skipper filter](#skipper-filter)  
+  8.12. [Træfik plugin](#træfik-plugin)  
+  8.13. [Tyk plugin](#tyk-plugin)  
+  8.14. [Webgo middleware](#webgo-middleware)  
+  8.15. [Prestashop plugin](#prestashop-plugin)  
+  8.16. [Wordpress plugin](#wordpress-plugin)  
 9. [Credits](#credits)
 
 # Souin HTTP cache
@@ -726,6 +727,65 @@ func main() {
 }
 ```
 
+### Kratos filter
+To use Souin as Kratos filter, you can refer to the [Kratos plugin integration folder](https://github.com/darkweak/souin/tree/master/plugins/kratos) to discover how to configure it.  
+You just have to start the Kratos HTTP server with the Souin filter like below:
+```go
+import (
+	httpcache "github.com/darkweak/souin/plugins/kratos"
+	kratos_http "github.com/go-kratos/kratos/v2/transport/http"
+)
+
+func main() {
+	kratos_http.NewServer(
+		kratos_http.Filter(
+			httpcache.NewHTTPCacheFilter(httpcache.DevDefaultConfiguration),
+		),
+	)
+}
+```
+
+You can also use the configuration file to configuration the HTTP cache. Refer to the code block below:
+```
+server: #...
+data: #...
+# HTTP cache part
+httpcache:
+  api:
+    souin: {}
+  default_cache:
+    regex:
+      exclude: /excluded
+    ttl: 5s
+  log_level: debug
+```
+After that you have to edit your server instanciation to use the HTTP cache configuration parser
+```go
+import (
+	httpcache "github.com/darkweak/souin/plugins/kratos"
+	kratos_http "github.com/go-kratos/kratos/v2/transport/http"
+)
+
+func main() {
+  c := config.New(
+		config.WithSource(file.NewSource("examples/configuration.yml")),
+		config.WithDecoder(func(kv *config.KeyValue, v map[string]interface{}) error {
+			return yaml.Unmarshal(kv.Value, v)
+		}),
+	)
+	if err := c.Load(); err != nil {
+		panic(err)
+	}
+
+	server := kratos_http.NewServer(
+		kratos_http.Filter(
+			httpcache.NewHTTPCacheFilter(httpcache.ParseConfiguration(c)),
+		),
+	)
+  // ...
+}
+```
+
 ### Skipper filter
 To use Souin as skipper filter, you can refer to the [Skipper plugin integration folder](https://github.com/darkweak/souin/tree/master/plugins/skipper) to discover how to configure it.  
 You just have to add to your Skipper instance the Souin filter like below:
@@ -763,7 +823,7 @@ experimental:
   plugins:
     souin:
       moduleName: github.com/darkweak/souin
-      version: 
+      version: v1.6.12
 ```
 After that you can declare either the whole configuration at once in the middleware block or by service. See the examples below.
 ```yaml
