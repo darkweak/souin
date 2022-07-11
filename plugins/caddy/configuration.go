@@ -9,19 +9,19 @@ import (
 
 // DefaultCache the struct
 type DefaultCache struct {
-	AllowedHTTPVerbs    []string
-	Badger              configurationtypes.CacheProvider
-	CDN                 configurationtypes.CDN
-	DefaultCacheControl string
-	Distributed         bool
-	Headers             []string
-	Key                 configurationtypes.Key
-	Olric               configurationtypes.CacheProvider
-	Etcd                configurationtypes.CacheProvider
-	Nuts                configurationtypes.CacheProvider
-	Regex               configurationtypes.Regex
-	TTL                 configurationtypes.Duration
-	Stale               configurationtypes.Duration
+	AllowedHTTPVerbs    []string                         `json:"allowed_http_verbs"`
+	Badger              configurationtypes.CacheProvider `json:"badger"`
+	CDN                 configurationtypes.CDN           `json:"cdn"`
+	DefaultCacheControl string                           `json:"default_cache_control"`
+	Distributed         bool                             `json:"distributed"`
+	Headers             []string                         `json:"headers"`
+	Key                 configurationtypes.Key           `json:"key"`
+	Olric               configurationtypes.CacheProvider `json:"olric"`
+	Etcd                configurationtypes.CacheProvider `json:"etcd"`
+	Nuts                configurationtypes.CacheProvider `json:"nuts"`
+	Regex               configurationtypes.Regex         `json:"regex"`
+	TTL                 configurationtypes.Duration      `json:"ttl"`
+	Stale               configurationtypes.Duration      `json:"stale"`
 }
 
 // GetAllowedHTTPVerbs returns the allowed verbs to cache
