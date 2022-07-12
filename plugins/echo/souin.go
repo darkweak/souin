@@ -86,9 +86,9 @@ func (s *SouinEchoPlugin) Process(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		req := c.Request()
 		rw := c.Response().Writer
-		req = s.Retriever.GetContext().Method.SetContext(req)
+		req = s.Retriever.GetContext().SetBaseContext(req)
 		if !plugins.CanHandle(req, s.Retriever) {
-			rw.Header().Add("Cache-Status", "Souin; fwd=uri-miss")
+			rfc.MissCache(rw.Header().Set, req)
 			return next(c)
 		}
 

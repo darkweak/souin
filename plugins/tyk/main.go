@@ -36,16 +36,16 @@ func SouinResponseHandler(rw http.ResponseWriter, res *http.Response, _ *http.Re
 	req.Response = res
 	currentInstance := getInstanceFromRequest(req)
 	if currentInstance == nil {
-		rw.Header().Set("Cache-Status", "Souin; fwd=uri-miss")
+		rfc.MissCache(rw.Header().Set, req)
 		return
 	}
 	if b, _ := currentInstance.HandleInternally(req); b {
 		return
 	}
 	currentInstance.Retriever.SetMatchedURLFromRequest(req)
-	req = currentInstance.Retriever.GetContext().Method.SetContext(req)
+	req = currentInstance.Retriever.GetContext().SetBaseContext(req)
 	if !plugins.CanHandle(req, currentInstance.Retriever) {
-		rw.Header().Set("Cache-Status", "Souin; fwd=uri-miss")
+		rfc.MissCache(rw.Header().Set, req)
 		return
 	}
 	req = currentInstance.Retriever.GetContext().SetContext(req)
@@ -62,9 +62,6 @@ func SouinResponseHandler(rw http.ResponseWriter, res *http.Response, _ *http.Re
 	)
 
 	if r != nil {
-		rh := r.Header
-		// rfc.HitCache(&rh, retriever.GetMatchedURL().TTL.Duration)
-		r.Header = rh
 		for _, v := range []string{"Age", "Cache-Status"} {
 			h := r.Header.Get(v)
 			if h != "" {
@@ -93,7 +90,7 @@ func SouinRequestHandler(rw http.ResponseWriter, r *http.Request) {
 	if currentInstance == nil {
 		return
 	}
-	r = currentInstance.Retriever.GetContext().Method.SetContext(r)
+	r = currentInstance.Retriever.GetContext().SetBaseContext(r)
 	if !plugins.CanHandle(r, currentInstance.Retriever) {
 		return
 	}

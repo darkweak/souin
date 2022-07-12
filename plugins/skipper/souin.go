@@ -56,9 +56,9 @@ func (s *httpcache) CreateFilter(config []interface{}) (filters.Filter, error) {
 
 func (s *httpcache) Request(ctx filters.FilterContext) {
 	rw := ctx.ResponseWriter()
-	req := s.Retriever.GetContext().Method.SetContext(ctx.Request())
+	req := s.Retriever.GetContext().SetBaseContext(ctx.Request())
 	if !plugins.CanHandle(req, s.Retriever) {
-		rw.Header().Add("Cache-Status", "Souin; fwd=uri-miss")
+		rfc.MissCache(rw.Header().Set, req)
 		return
 	}
 
@@ -94,9 +94,9 @@ func (s *httpcache) Response(ctx filters.FilterContext) {
 	rw := ctx.ResponseWriter()
 	res := ctx.Response()
 	req.Response = res
-	req = s.Retriever.GetContext().Method.SetContext(req)
+	req = s.Retriever.GetContext().SetBaseContext(req)
 	if !plugins.CanHandle(req, s.Retriever) {
-		res.Header.Add("Cache-Status", "Souin; fwd=uri-miss")
+		rfc.MissCache(res.Header().Set, req)
 		return
 	}
 

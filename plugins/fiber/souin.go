@@ -119,7 +119,7 @@ func NewHTTPCache(c plugins.BaseConfiguration) *SouinFiberMiddleware {
 func (s *SouinFiberMiddleware) Handle(c *fiber.Ctx) error {
 	var rq http.Request
 	fasthttpadaptor.ConvertRequest(c.Context(), &rq, true)
-	req := s.Retriever.GetContext().Method.SetContext(&rq)
+	req := s.Retriever.GetContext().SetBaseContext(&rq)
 
 	rw := &fiberWriterDecorator{
 		CustomWriter: &plugins.CustomWriter{
@@ -138,7 +138,7 @@ func (s *SouinFiberMiddleware) Handle(c *fiber.Ctx) error {
 	}
 
 	if !plugins.CanHandle(req, s.Retriever) {
-		c.Response().Header.Add("Cache-Status", "Souin; fwd=uri-miss")
+		rfc.MissCache(c.Response().Header.Set, req)
 		return c.Next()
 	}
 

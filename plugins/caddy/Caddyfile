@@ -20,6 +20,7 @@
         headers Content-Type Authorization
         log_level debug
         ttl 1000s
+        stale 10s
         default_cache_control public
     }
 }
@@ -82,6 +83,12 @@ route /surrogate-keys {
     header Surrogate-Key "KEY-{http.request.header.X-Surrogate-Key-Suffix}"
     header Vary X-Surrogate-Key-Suffix,Accept-Encoding
     respond "Hello {http.request.header.X-Surrogate-Key-Suffix}"
+}
+
+route /another-cache-status-name {
+    cache {
+        cache_name Another
+    }
 }
 
 cache @souin-api {
