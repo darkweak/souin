@@ -15,18 +15,18 @@ const storedTTLHeader = "X-Souin-Stored-TTL"
 
 var emptyHeaders = []string{"Expires", "Last-Modified"}
 
-func validateTimeHeader(headers *http.Header, h string, t string) bool {
+func validateTimeHeader(headers *http.Header, h, t, cacheName string) bool {
 	if _, err := http.ParseTime(t); err != nil {
-		setMalformedHeader(headers, h)
+		setMalformedHeader(headers, h, cacheName)
 		return false
 	}
 	return true
 }
 
-func validateEmptyHeaders(headers *http.Header) {
+func validateEmptyHeaders(headers *http.Header, cacheName string) {
 	for _, h := range emptyHeaders {
 		if v := headers.Get(h); v != "" {
-			if !validateTimeHeader(headers, strings.ToUpper(h), v) {
+			if !validateTimeHeader(headers, strings.ToUpper(h), v, cacheName) {
 				return
 			}
 		}
@@ -34,15 +34,15 @@ func validateEmptyHeaders(headers *http.Header) {
 }
 
 // SetRequestCacheStatus set the Cache-Status fwd=request
-func SetRequestCacheStatus(h *http.Header, header string) {
-	h.Set("Cache-Status", "Souin; fwd=request; detail="+header)
+func SetRequestCacheStatus(h *http.Header, header, cacheName string) {
+	h.Set("Cache-Status", cacheName+"; fwd=request; detail="+header)
 }
 
 // ValidateCacheControl check the Cache-Control header
 func ValidateCacheControl(r *http.Response) bool {
 	if _, err := cacheobject.ParseResponseCacheControl(r.Header.Get("Cache-Control")); err != nil {
 		h := r.Header
-		setMalformedHeader(&h, "CACHE-CONTROL")
+		setMalformedHeader(&h, "CACHE-CONTROL", r.Request.Context().Value(context.CacheName).(string))
 		r.Header = h
 
 		return false
@@ -66,7 +66,7 @@ func manageAge(h *http.Header, ttl time.Duration, cacheName string) {
 	dh := h.Get("Date")
 	if dh == "" {
 		h.Set("Date", utc1.Format(http.TimeFormat))
-	} else if !validateTimeHeader(h, "DATE", dh) {
+	} else if !validateTimeHeader(h, "DATE", dh, cacheName) {
 		return
 	}
 
@@ -88,15 +88,16 @@ func manageAge(h *http.Header, ttl time.Duration, cacheName string) {
 	h.Set("Cache-Status", cacheName+"; hit; ttl="+ttlValue)
 }
 
-func setMalformedHeader(headers *http.Header, header string) {
-	SetRequestCacheStatus(headers, "MALFORMED-"+header)
+func setMalformedHeader(headers *http.Header, header, cacheName string) {
+	SetRequestCacheStatus(headers, "MALFORMED-"+header, cacheName)
 }
 
 // SetCacheStatusEventually eventually set cache status header
 func SetCacheStatusEventually(resp *http.Response) *http.Response {
 	h := resp.Header
-	validateEmptyHeaders(&h)
-	manageAge(&h, 0, resp.Request.Context().Value(context.CacheName).(string))
+	cacheName := resp.Request.Context().Value(context.CacheName).(string)
+	validateEmptyHeaders(&h, cacheName)
+	manageAge(&h, 0, cacheName)
 
 	resp.Header = h
 	return resp
