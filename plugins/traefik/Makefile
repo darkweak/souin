@@ -13,7 +13,7 @@ copy-file-to: ## Copy file from to
 	scp -r override/$(target) $(base)/$(target)
 
 load-checker: ## Ensure Souin is running
-	echo "MIDDLEWARE_RESULT=$$(docker-compose logs traefik | grep Souin | tail -n 1)"
+	echo "MIDDLEWARE_RESULT=$$(docker-compose logs traefik | grep 'Souin configuration' | tail -n 1)"
 
 prepare: vendor ## Prepare traefik plugin
 	cp docker-compose.yml.test docker-compose.yml

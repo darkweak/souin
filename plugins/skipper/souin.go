@@ -96,7 +96,7 @@ func (s *httpcache) Response(ctx filters.FilterContext) {
 	req.Response = res
 	req = s.Retriever.GetContext().SetBaseContext(req)
 	if !plugins.CanHandle(req, s.Retriever) {
-		rfc.MissCache(res.Header().Set, req)
+		rfc.MissCache(res.Header.Set, req)
 		return
 	}
 
