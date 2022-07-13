@@ -1,11 +1,13 @@
 package rfc
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/darkweak/souin/context"
 	"github.com/pquerna/cachecontrol/cacheobject"
 )
 
@@ -49,9 +51,9 @@ func ValidateCacheControl(r *http.Response) bool {
 	return true
 }
 
-// HitCache set hit and manage age header too
-func HitCache(h *http.Header, ttl time.Duration) {
-	manageAge(h, ttl)
+// MissCache set miss fwd
+func MissCache(set func(key, value string), req *http.Request) {
+	set("Cache-Status", fmt.Sprintf("%s; fwd=uri-miss", req.Context().Value(context.CacheName)))
 }
 
 // HitStaleCache set hit and manage age header too
@@ -59,7 +61,7 @@ func HitStaleCache(h *http.Header, ttl time.Duration) {
 	h.Set("Cache-Status", h.Get("Cache-Status")+"; fwd=stale")
 }
 
-func manageAge(h *http.Header, ttl time.Duration) {
+func manageAge(h *http.Header, ttl time.Duration, cacheName string) {
 	utc1 := time.Now().UTC()
 	dh := h.Get("Date")
 	if dh == "" {
@@ -83,7 +85,7 @@ func manageAge(h *http.Header, ttl time.Duration) {
 	age := strconv.Itoa(cage)
 	h.Set("Age", age)
 	ttlValue := strconv.Itoa(int(ttl.Seconds()) - cage)
-	h.Set("Cache-Status", "Souin; hit; ttl="+ttlValue)
+	h.Set("Cache-Status", cacheName+"; hit; ttl="+ttlValue)
 }
 
 func setMalformedHeader(headers *http.Header, header string) {
@@ -94,7 +96,7 @@ func setMalformedHeader(headers *http.Header, header string) {
 func SetCacheStatusEventually(resp *http.Response) *http.Response {
 	h := resp.Header
 	validateEmptyHeaders(&h)
-	manageAge(&h, 0)
+	manageAge(&h, 0, resp.Request.Context().Value(context.CacheName).(string))
 
 	resp.Header = h
 	return resp
