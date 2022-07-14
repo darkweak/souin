@@ -5,9 +5,6 @@ import (
 
 	"github.com/darkweak/souin/api/auth"
 	"github.com/darkweak/souin/configurationtypes"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 const (
@@ -56,57 +53,21 @@ func (p *PrometheusAPI) GetBasePath() string {
 
 // IsEnabled will return enabled status
 func (p *PrometheusAPI) IsEnabled() bool {
-	return p.enabled
+	return false
 }
 
 // HandleRequest will handle the request
-func (p *PrometheusAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
-	promhttp.Handler().ServeHTTP(w, r)
-}
+func (p *PrometheusAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {}
 
 var registered map[string]interface{}
 
 // Increment will increment the counter.
-func Increment(name string) {
-	if _, ok := registered[name]; ok {
-		registered[name].(prometheus.Counter).Inc()
-	}
-}
+func Increment(_ string) {}
 
 // Increment will add the referred value the counter.
-func Add(name string, value float64) {
-	if c, ok := registered[name].(prometheus.Counter); ok {
-		c.Add(value)
-	}
-	if g, ok := registered[name].(prometheus.Histogram); ok {
-		g.Observe(value)
-	}
-}
-
-func push(promType, name, help string) {
-	switch promType {
-	case counter:
-		registered[name] = promauto.NewCounter(prometheus.CounterOpts{
-			Name: name,
-			Help: help,
-		})
-
-		return
-	case average:
-		avg := prometheus.NewHistogram(prometheus.HistogramOpts{
-			Name: name,
-			Help: help,
-		})
-		prometheus.MustRegister(avg)
-		registered[name] = avg
-	}
-}
+func Add(_ string, _ float64) {}
 
 // Run populate and prepare the map with the default values.
 func run() {
 	registered = make(map[string]interface{})
-	push(counter, RequestCounter, "Total request counter")
-	push(counter, NoCachedResponseCounter, "No cached response counter")
-	push(counter, CachedResponseCounter, "Cached response counter")
-	push(average, AvgResponseTime, "Average response time")
 }

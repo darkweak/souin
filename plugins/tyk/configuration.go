@@ -1,181 +1,274 @@
 package main
 
 import (
-	"encoding/json"
+	"bytes"
+	"regexp"
+	"sync"
 	"time"
 
+	"github.com/darkweak/souin/api"
+	"github.com/darkweak/souin/cache/coalescing"
 	"github.com/darkweak/souin/configurationtypes"
-	"go.uber.org/zap"
+	"github.com/darkweak/souin/plugins"
 )
 
-// Duration is the super object to handle durations in the configuration
-type Duration struct {
-	time.Duration
-}
+const (
+	configKey       string = "httpcache"
+	path            string = "path"
+	url             string = "url"
+	configurationPK string = "configuration"
+)
 
-// MarshalJSON will marshall the duration into a string duration
-func (d Duration) MarshalJSON() ([]byte, error) {
-	return json.Marshal(d.String())
-}
+func parseAPI(apiConfiguration map[string]interface{}) configurationtypes.API {
+	var a configurationtypes.API
+	var prometheusConfiguration, souinConfiguration map[string]interface{}
 
-// UnmarshalJSON will unmarshall the string duration into a time.Duration
-func (d *Duration) UnmarshalJSON(b []byte) error {
-	if b[0] == '"' {
-		sd := string(b[1 : len(b)-1])
-		d.Duration, _ = time.ParseDuration(sd)
-		return nil
+	for apiK, apiV := range apiConfiguration {
+		switch apiK {
+		case "prometheus":
+			prometheusConfiguration, _ = apiV.(map[string]interface{})
+		case "souin":
+			souinConfiguration, _ = apiV.(map[string]interface{})
+		}
+	}
+	if prometheusConfiguration != nil {
+		a.Prometheus = configurationtypes.APIEndpoint{}
+		a.Prometheus.Enable = true
+		if prometheusConfiguration["basepath"] != nil {
+			a.Prometheus.BasePath, _ = prometheusConfiguration["basepath"].(string)
+		}
+	}
+	if souinConfiguration != nil {
+		a.Souin = configurationtypes.APIEndpoint{}
+		a.Souin.Enable = true
+		if souinConfiguration["basepath"] != nil {
+			a.Souin.BasePath, _ = souinConfiguration["basepath"].(string)
+		}
 	}
 
-	var id int64
-	id, _ = json.Number(string(b)).Int64()
-	d.Duration = time.Duration(id)
-
-	return nil
+	return a
 }
 
-// DefaultCache the struct
-type DefaultCache struct {
-	AllowedHTTPVerbs    []string                         `json:"allowed_http_verbs,omitempty"`
-	Badger              configurationtypes.CacheProvider `json:"badger,omitempty"`
-	CacheName           string                           `json:"cache_name,omitempty"`
-	CDN                 configurationtypes.CDN           `json:"cdn,omitempty"`
-	Distributed         bool
-	Headers             []string                         `json:"api,omitempty"`
-	Key                 configurationtypes.Key           `json:"key" yaml:"key"`
-	Olric               configurationtypes.CacheProvider `json:"olric,omitempty"`
-	Etcd                configurationtypes.CacheProvider `json:"etcd,omitempty"`
-	Nuts                configurationtypes.CacheProvider `json:"nuts,omitempty"`
-	Regex               configurationtypes.Regex         `json:"regex,omitempty"`
-	TTL                 Duration                         `json:"ttl,omitempty"`
-	Stale               configurationtypes.Duration      `json:"stale,omitempty"`
-	DefaultCacheControl string                           `json:"default_cache_control,omitempty"`
+func parseCacheKeys(ccConfiguration map[string]interface{}) map[configurationtypes.RegValue]configurationtypes.Key {
+	cacheKeys := make(map[configurationtypes.RegValue]configurationtypes.Key)
+	for cacheKeysConfigurationK, cacheKeysConfigurationV := range ccConfiguration {
+		ck := configurationtypes.Key{}
+		for cacheKeysConfigurationVMapK := range cacheKeysConfigurationV.(map[string]interface{}) {
+			switch cacheKeysConfigurationVMapK {
+			case "disable_body":
+				ck.DisableBody = true
+			case "disable_host":
+				ck.DisableHost = true
+			case "disable_method":
+				ck.DisableMethod = true
+			}
+		}
+		rg := regexp.MustCompile(cacheKeysConfigurationK)
+		cacheKeys[configurationtypes.RegValue{Regexp: rg}] = ck
+	}
+
+	return cacheKeys
 }
 
-// GetAllowedHTTPVerbs returns the allowed verbs to cache
-func (d *DefaultCache) GetAllowedHTTPVerbs() []string {
-	return d.AllowedHTTPVerbs
+func parseDefaultCache(dcConfiguration map[string]interface{}) *configurationtypes.DefaultCache {
+	dc := configurationtypes.DefaultCache{
+		Distributed: false,
+		Headers:     []string{},
+		Olric: configurationtypes.CacheProvider{
+			URL:           "",
+			Path:          "",
+			Configuration: nil,
+		},
+		Regex:               configurationtypes.Regex{},
+		TTL:                 configurationtypes.Duration{},
+		DefaultCacheControl: "",
+	}
+	for defaultCacheK, defaultCacheV := range dcConfiguration {
+		switch defaultCacheK {
+		case "allowed_http_verbs":
+			dc.AllowedHTTPVerbs = defaultCacheV.([]string)
+		case "badger":
+			provider := configurationtypes.CacheProvider{}
+			for badgerConfigurationK, badgerConfigurationV := range defaultCacheV.(map[string]interface{}) {
+				switch badgerConfigurationK {
+				case url:
+					provider.URL, _ = badgerConfigurationV.(string)
+				case path:
+					provider.Path, _ = badgerConfigurationV.(string)
+				case configurationPK:
+					provider.Configuration = badgerConfigurationV.(map[string]interface{})
+				}
+			}
+			dc.Badger = provider
+		case "cdn":
+			cdn := configurationtypes.CDN{}
+			for cdnConfigurationK, cdnConfigurationV := range defaultCacheV.(map[string]interface{}) {
+				switch cdnConfigurationK {
+				case "api_key":
+					cdn.APIKey, _ = cdnConfigurationV.(string)
+				case "dynamic":
+					cdn.Dynamic = true
+				case "hostname":
+					cdn.Hostname, _ = cdnConfigurationV.(string)
+				case "network":
+					cdn.Network, _ = cdnConfigurationV.(string)
+				case "provider":
+					cdn.Provider, _ = cdnConfigurationV.(string)
+				case "strategy":
+					cdn.Strategy, _ = cdnConfigurationV.(string)
+				}
+			}
+			dc.CDN = cdn
+		case "etcd":
+			provider := configurationtypes.CacheProvider{}
+			for etcdConfigurationK, etcdConfigurationV := range defaultCacheV.(map[string]interface{}) {
+				switch etcdConfigurationK {
+				case url:
+					provider.URL, _ = etcdConfigurationV.(string)
+				case path:
+					provider.Path, _ = etcdConfigurationV.(string)
+				case configurationPK:
+					provider.Configuration = etcdConfigurationV.(map[string]interface{})
+				}
+			}
+			dc.Etcd = provider
+		case "headers":
+			dc.Headers = defaultCacheV.([]string)
+		case "nuts":
+			provider := configurationtypes.CacheProvider{}
+			for nutsConfigurationK, nutsConfigurationV := range defaultCacheV.(map[string]interface{}) {
+				switch nutsConfigurationK {
+				case url:
+					provider.URL, _ = nutsConfigurationV.(string)
+				case path:
+					provider.Path, _ = nutsConfigurationV.(string)
+				case configurationPK:
+					provider.Configuration = nutsConfigurationV.(map[string]interface{})
+				}
+			}
+			dc.Nuts = provider
+		case "olric":
+			provider := configurationtypes.CacheProvider{}
+			for olricConfigurationK, olricConfigurationV := range defaultCacheV.(map[string]interface{}) {
+				switch olricConfigurationK {
+				case url:
+					provider.URL, _ = olricConfigurationV.(string)
+				case path:
+					provider.Path, _ = olricConfigurationV.(string)
+				case configurationPK:
+					provider.Configuration = olricConfigurationV.(map[string]interface{})
+				}
+			}
+			dc.Distributed = true
+			dc.Olric = provider
+		case "regex":
+			exclude := defaultCacheV.(map[string]string)["exclude"]
+			if exclude != "" {
+				dc.Regex = configurationtypes.Regex{Exclude: exclude}
+			}
+		case "ttl":
+			ttl, err := time.ParseDuration(defaultCacheV.(string))
+			if err == nil {
+				dc.TTL = configurationtypes.Duration{Duration: ttl}
+			}
+		case "stale":
+			ttl, err := time.ParseDuration(defaultCacheV.(string))
+			if err == nil {
+				dc.Stale = configurationtypes.Duration{Duration: ttl}
+			}
+		case "default_cache_control":
+			dc.DefaultCacheControl, _ = defaultCacheV.(string)
+		}
+	}
+
+	return &dc
 }
 
-// GetBadger returns the Badger configuration
-func (d *DefaultCache) GetBadger() configurationtypes.CacheProvider {
-	return d.Badger
+func parseURLs(urls map[string]interface{}) map[string]configurationtypes.URL {
+	u := make(map[string]configurationtypes.URL)
+
+	for urlK, urlV := range urls {
+		currentURL := configurationtypes.URL{
+			TTL:     configurationtypes.Duration{},
+			Headers: nil,
+		}
+		currentValue := urlV.(map[string]interface{})
+		if currentValue["headers"] != nil {
+			currentURL.Headers = currentValue["headers"].([]string)
+		}
+
+		if ttl, err := time.ParseDuration(currentValue["ttl"].(string)); err == nil {
+			currentURL.TTL = configurationtypes.Duration{Duration: ttl}
+		}
+		if _, exists := currentValue["default_cache_control"]; exists {
+			currentURL.DefaultCacheControl, _ = currentValue["default_cache_control"].(string)
+		}
+		u[urlK] = currentURL
+	}
+
+	return u
 }
 
-// GetCacheName returns the cache name to use in the Cache-Status response header
-func (d *DefaultCache) GetCacheName() string {
-	return d.CacheName
+func parseSurrogateKeys(surrogates map[string]interface{}) map[string]configurationtypes.SurrogateKeys {
+	u := make(map[string]configurationtypes.SurrogateKeys)
+
+	for surrogateK, surrogateV := range surrogates {
+		surrogate := configurationtypes.SurrogateKeys{}
+		for key, value := range surrogateV.(map[string]interface{}) {
+			switch key {
+			case "headers":
+				surrogate.Headers = value.(map[string]string)
+			case "url":
+				surrogate.URL = value.(string)
+			}
+		}
+		u[surrogateK] = surrogate
+	}
+
+	return u
 }
 
-// GetCDN returns the CDN configuration
-func (d *DefaultCache) GetCDN() configurationtypes.CDN {
-	return d.CDN
+func parseConfiguration(id string, c map[string]interface{}) *souinInstance {
+	c = c[configKey].(map[string]interface{})
+	var configuration plugins.BaseConfiguration
+
+	for key, v := range c {
+		switch key {
+		case "api":
+			configuration.API = parseAPI(v.(map[string]interface{}))
+		case "cache_keys":
+			configuration.CacheKeys = parseCacheKeys(v.(map[string]interface{}))
+		case "default_cache":
+			configuration.DefaultCache = parseDefaultCache(v.(map[string]interface{}))
+		case "log_level":
+			configuration.LogLevel = v.(string)
+		case "urls":
+			configuration.URLs = parseURLs(v.(map[string]interface{}))
+		case "ykeys":
+			configuration.Ykeys = parseSurrogateKeys(v.(map[string]interface{}))
+		case "surrogate_keys":
+			configuration.SurrogateKeys = parseSurrogateKeys(v.(map[string]interface{}))
+		}
+	}
+
+	s := newInstanceFromConfiguration(configuration)
+	definitions[id] = s
+
+	return s
 }
 
-// GetDistributed returns if it uses Olric or not as provider
-func (d *DefaultCache) GetDistributed() bool {
-	return d.Distributed
-}
+func newInstanceFromConfiguration(c plugins.BaseConfiguration) *souinInstance {
+	s := &souinInstance{
+		Configuration: &c,
+		Retriever:     plugins.DefaultSouinPluginInitializerFromConfiguration(&c),
+		bufPool: &sync.Pool{
+			New: func() interface{} {
+				return new(bytes.Buffer)
+			},
+		},
+		RequestCoalescing: coalescing.Initialize(),
+	}
+	s.MapHandler = api.GenerateHandlerMap(s.Configuration, s.Retriever.GetTransport())
 
-// GetHeaders returns the default headers that should be cached
-func (d *DefaultCache) GetHeaders() []string {
-	return d.Headers
+	return s
 }
-
-// GetKey returns the default Key generation strategy
-func (d *DefaultCache) GetKey() configurationtypes.Key {
-	return d.Key
-}
-
-// GetOlric returns olric configuration
-func (d *DefaultCache) GetOlric() configurationtypes.CacheProvider {
-	return d.Olric
-}
-
-// GetEtcd returns etcd configuration
-func (d *DefaultCache) GetEtcd() configurationtypes.CacheProvider {
-	return d.Etcd
-}
-
-// GetNuts returns nuts configuration
-func (d *DefaultCache) GetNuts() configurationtypes.CacheProvider {
-	return d.Nuts
-}
-
-// GetRegex returns the regex that shouldn't be cached
-func (d *DefaultCache) GetRegex() configurationtypes.Regex {
-	return d.Regex
-}
-
-// GetTTL returns the default TTL
-func (d *DefaultCache) GetTTL() time.Duration {
-	return d.TTL.Duration
-}
-
-// GetStale returns the stale duration
-func (d *DefaultCache) GetStale() time.Duration {
-	return d.Stale.Duration
-}
-
-// GetDefaultCacheControl returns the default Cache-Control response header value when empty
-func (d *DefaultCache) GetDefaultCacheControl() string {
-	return d.DefaultCacheControl
-}
-
-//Configuration holder
-type Configuration struct {
-	DefaultCache  *DefaultCache                                          `json:"default_cache,omitempty"`
-	API           configurationtypes.API                                 `json:"api,omitempty"`
-	CacheKeys     map[configurationtypes.RegValue]configurationtypes.Key `yaml:"cache_keys,omitempty"`
-	URLs          map[string]configurationtypes.URL                      `json:"urls,omitempty"`
-	LogLevel      string                                                 `json:"log_level,omitempty"`
-	logger        *zap.Logger
-	Ykeys         map[string]configurationtypes.SurrogateKeys `json:"ykeys,omitempty"`
-	SurrogateKeys map[string]configurationtypes.SurrogateKeys `json:"surrogate_keys,omitempty"`
-}
-
-// GetUrls get the urls list in the configuration
-func (c *Configuration) GetUrls() map[string]configurationtypes.URL {
-	return c.URLs
-}
-
-// GetDefaultCache get the default cache
-func (c *Configuration) GetDefaultCache() configurationtypes.DefaultCacheInterface {
-	return c.DefaultCache
-}
-
-// GetAPI get the default cache
-func (c *Configuration) GetAPI() configurationtypes.API {
-	return c.API
-}
-
-// GetLogLevel get the log level
-func (c *Configuration) GetLogLevel() string {
-	return c.LogLevel
-}
-
-// GetLogger get the logger
-func (c *Configuration) GetLogger() *zap.Logger {
-	return c.logger
-}
-
-// SetLogger set the logger
-func (c *Configuration) SetLogger(l *zap.Logger) {
-	c.logger = l
-}
-
-// GetYkeys get the ykeys list
-func (c *Configuration) GetYkeys() map[string]configurationtypes.SurrogateKeys {
-	return c.Ykeys
-}
-
-// GetSurrogateKeys get the surrogate keys list
-func (c *Configuration) GetSurrogateKeys() map[string]configurationtypes.SurrogateKeys {
-	return c.SurrogateKeys
-}
-
-// GetCacheKeys get the cache keys rules to override
-func (c *Configuration) GetCacheKeys() map[configurationtypes.RegValue]configurationtypes.Key {
-	return c.CacheKeys
-}
-
-var _ configurationtypes.AbstractConfigurationInterface = (*Configuration)(nil)
