@@ -50,6 +50,7 @@ func (provider *Cache) Prefix(key string, req *http.Request) []byte {
 	var result []byte
 
 	for k, v := range provider.Items() {
+		fmt.Println("Current key =>", k, key)
 		if k == key {
 			return v.Object.([]byte)
 		}

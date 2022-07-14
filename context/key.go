@@ -2,6 +2,7 @@ package context
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"regexp"
 
@@ -37,7 +38,8 @@ func (g *keyContext) SetupContext(c configurationtypes.AbstractConfigurationInte
 }
 
 func (g *keyContext) SetContext(req *http.Request) *http.Request {
-	key := req.RequestURI
+	key := req.URL.RequestURI()
+	fmt.Println("The key =>", key)
 
 	body := ""
 	host := ""

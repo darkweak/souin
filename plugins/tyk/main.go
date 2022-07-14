@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 	"sync"
@@ -27,18 +28,20 @@ func getInstanceFromRequest(r *http.Request) (s *souinInstance) {
 }
 
 // SouinResponseHandler stores the response before sent to the client if possible, only returns otherwise
-func SouinResponseHandler(rw http.ResponseWriter, res *http.Response, req *http.Request) {
+func SouinResponseHandler(rw http.ResponseWriter, res *http.Response, rq *http.Request) {
+	res.Request.URL.Host = rq.Host
+	res.Request.Host = rq.Host
+	res.Request.URL.Path = rq.RequestURI
+	res.Request.RequestURI = rq.RequestURI
+	req := res.Request
 	req.Response = res
 	s := getInstanceFromRequest(req)
-	req = s.Retriever.GetContext().SetBaseContext(req)
-	req = s.Retriever.GetContext().SetContext(req)
+	req = s.Retriever.GetContext().SetContext(s.Retriever.GetContext().SetBaseContext(req))
 	res, _ = s.Retriever.GetTransport().UpdateCacheEventually(req)
 }
 
 // SouinRequestHandler handle the Tyk request
 func SouinRequestHandler(rw http.ResponseWriter, r *http.Request) {
-	// TODO remove these lines once Tyk patch the
-
 	s := getInstanceFromRequest(r)
 	req := s.Retriever.GetContext().SetBaseContext(r)
 	if b, handler := s.HandleInternally(req); b {
@@ -82,6 +85,10 @@ func (s *souinInstance) HandleInternally(r *http.Request) (bool, func(http.Respo
 	}
 
 	return false, nil
+}
+
+func init() {
+	fmt.Println(`message="Souin configuration is now loaded."`)
 }
 
 func main() {}
