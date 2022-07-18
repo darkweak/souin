@@ -28,7 +28,6 @@ func validateMaxAgeCachedResponse(req *http.Request, res *http.Response, header 
 	if maxAge, ok := cc[header]; ok {
 		ma, _ := strconv.Atoi(maxAge)
 		a, _ := strconv.Atoi(res.Header.Get("Age"))
-		fmt.Println(ma, addTime, ma+addTime)
 
 		if (ma + addTime) < a {
 			return nil

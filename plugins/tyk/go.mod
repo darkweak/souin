@@ -8,7 +8,7 @@ require (
 	github.com/TykTechnologies/tyk v1.9.2-0.20220711082452-7b07f4c2fd27
 	github.com/armon/go-metrics v0.4.0 // indirect
 	github.com/buraksezer/consistent v0.9.0 // indirect
-	github.com/darkweak/souin v1.6.12
+	github.com/darkweak/souin v1.6.14
 	github.com/eapache/go-resiliency v1.3.0 // indirect
 	github.com/eclipse/paho.mqtt.golang v1.4.1 // indirect
 	github.com/evanphx/json-patch/v5 v5.5.0 // indirect
@@ -52,4 +52,4 @@ require (
 	google.golang.org/grpc v1.48.0 // indirect
 )
 
-replace github.com/darkweak/souin v1.6.12 => ../..
+replace github.com/darkweak/souin v1.6.14 => ../..
