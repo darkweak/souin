@@ -45,19 +45,21 @@
     "strip_listen_path":true
   },
   "active":true,
-  "souin": {
-    "api": {
-      "souin": {
-        "enable": true
+  "config_data": {
+    "httpcache": {
+      "api": {
+        "souin": {
+          "enable": true
+        }
+      },
+      "cdn": {
+        "api_key": "XXXX",
+        "provider": "fastly",
+        "strategy": "soft"
+      },
+      "default_cache": {
+        "ttl": "5s"
       }
-    },
-    "cdn": {
-      "api_key": "XXXX",
-      "provider": "fastly",
-      "strategy": "soft"
-    },
-    "default_cache": {
-      "ttl": "5s"
     }
   }
 }

@@ -55,7 +55,7 @@ func NewHTTPCacheFilter(c plugins.BaseConfiguration) kratos_http.FilterFunc {
 
 func (s *httpcacheKratosPlugin) handle(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-		req := s.Retriever.GetContext().Method.SetContext(r)
+		req := s.Retriever.GetContext().SetBaseContext(r)
 		if b, handler := s.HandleInternally(req); b {
 			handler(rw, req)
 
@@ -63,7 +63,7 @@ func (s *httpcacheKratosPlugin) handle(next http.Handler) http.Handler {
 		}
 
 		if !plugins.CanHandle(req, s.Retriever) {
-			rw.Header().Add("Cache-Status", "Souin; fwd=uri-miss")
+			rfc.MissCache(rw.Header().Set, req)
 			next.ServeHTTP(rw, r)
 
 			return

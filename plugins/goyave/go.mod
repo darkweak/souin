@@ -5,7 +5,7 @@ go 1.16
 require (
 	github.com/armon/go-metrics v0.4.0 // indirect
 	github.com/buraksezer/consistent v0.9.0 // indirect
-	github.com/darkweak/souin v1.6.12
+	github.com/darkweak/souin v1.6.14
 	github.com/golang/glog v1.0.0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/snappy v0.0.4 // indirect
@@ -34,4 +34,4 @@ require (
 	goyave.dev/goyave/v4 v4.4.2
 )
 
-replace github.com/darkweak/souin v1.6.12 => ../..
+replace github.com/darkweak/souin v1.6.14 => ../..

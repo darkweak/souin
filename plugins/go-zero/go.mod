@@ -5,7 +5,7 @@ go 1.16
 require (
 	github.com/armon/go-metrics v0.4.0 // indirect
 	github.com/buraksezer/consistent v0.9.0 // indirect
-	github.com/darkweak/souin v1.6.12
+	github.com/darkweak/souin v1.6.14
 	github.com/go-chi/chi/v5 v5.0.7
 	github.com/golang/glog v1.0.0 // indirect
 	github.com/google/btree v1.1.2 // indirect
@@ -27,4 +27,4 @@ require (
 	google.golang.org/genproto v0.0.0-20220630174209-ad1d48641aa7 // indirect
 )
 
-replace github.com/darkweak/souin v1.6.12 => ../..
+replace github.com/darkweak/souin v1.6.14 => ../..

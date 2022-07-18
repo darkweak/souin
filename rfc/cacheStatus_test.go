@@ -1,66 +1,39 @@
 package rfc
 
 import (
+	"context"
 	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"testing"
-	"time"
 
+	souinCtx "github.com/darkweak/souin/context"
 	"github.com/darkweak/souin/errors"
 )
-
-func TestHitCache(t *testing.T) {
-	h := http.Header{}
-
-	h.Set("Date", time.Now().UTC().Format(http.TimeFormat))
-	h.Set("Age", "1")
-
-	HitCache(&h, 4*time.Second)
-	if h.Get("Cache-Status") == "" || h.Get("Cache-Status") != "Souin; hit; ttl=3" {
-		errors.GenerateError(t, fmt.Sprintf("Cache-Status cannot be null when hit and must match hit, %s given", h.Get("Cache-Status")))
-	}
-	if ti, e := http.ParseTime(h.Get("Date")); h.Get("Date") == "" || e != nil || h.Get("Date") != ti.Format(http.TimeFormat) {
-		errors.GenerateError(t, fmt.Sprintf("Date cannot be null when invalid and must match %s, %s given", h.Get("Date"), ti.Format(http.TimeFormat)))
-	}
-
-	h.Set(storedTTLHeader, "2s")
-	HitCache(&h, 4*time.Second)
-	if h.Get("Cache-Status") == "" || h.Get("Cache-Status") != "Souin; hit; ttl=1" {
-		errors.GenerateError(t, fmt.Sprintf("Cache-Status cannot be null when hit and must match hit, %s given", h.Get("Cache-Status")))
-	}
-	if ti, e := http.ParseTime(h.Get("Date")); h.Get("Date") == "" || e != nil || h.Get("Date") != ti.Format(http.TimeFormat) {
-		errors.GenerateError(t, fmt.Sprintf("Date cannot be null when invalid and must match %s, %s given", h.Get("Date"), ti.Format(http.TimeFormat)))
-	}
-
-	h.Set("Date", "Invalid")
-	HitCache(&h, 0)
-	if h.Get("Cache-Status") == "" || h.Get("Cache-Status") != "Souin; fwd=request; detail=MALFORMED-DATE" {
-		errors.GenerateError(t, fmt.Sprintf("Cache-Status cannot be null when hit and must match MALFORMED-DATE, %s given", h.Get("Cache-Status")))
-	}
-	if h.Get("Date") == "" || h.Get("Date") != "Invalid" {
-		errors.GenerateError(t, fmt.Sprintf("Date cannot be null when invalid and must match Invalid, %s given", h.Get("Date")))
-	}
-}
 
 func TestSetRequestCacheStatus(t *testing.T) {
 	h := http.Header{}
 
-	SetRequestCacheStatus(&h, "AHeader")
+	SetRequestCacheStatus(&h, "AHeader", "Souin")
 	if h.Get("Cache-Status") != "Souin; fwd=request; detail=AHeader" {
 		errors.GenerateError(t, fmt.Sprintf("The Cache-Status must match %s, %s given", "Souin; fwd=request; detail=AHeader", h.Get("Cache-Status")))
 	}
-	SetRequestCacheStatus(&h, "")
+	SetRequestCacheStatus(&h, "", "Souin")
 	if h.Get("Cache-Status") != "Souin; fwd=request; detail=" {
 		errors.GenerateError(t, fmt.Sprintf("The Cache-Status must match %s, %s given", "Souin; fwd=request; detail=", h.Get("Cache-Status")))
 	}
-	SetRequestCacheStatus(&h, "A very long header with spaces")
+	SetRequestCacheStatus(&h, "A very long header with spaces", "Souin")
 	if h.Get("Cache-Status") != "Souin; fwd=request; detail=A very long header with spaces" {
 		errors.GenerateError(t, fmt.Sprintf("The Cache-Status must match %s, %s given", "Souin; fwd=request; detail=A very long header with spaces", h.Get("Cache-Status")))
 	}
 }
 
 func TestValidateCacheControl(t *testing.T) {
-	r := http.Response{}
+	rq := httptest.NewRequest(http.MethodGet, "/", nil)
+	rq = rq.WithContext(context.WithValue(rq.Context(), souinCtx.CacheName, "Souin"))
+	r := http.Response{
+		Request: rq,
+	}
 	r.Header = http.Header{}
 
 	valid := ValidateCacheControl(&r)
@@ -78,12 +51,16 @@ func TestValidateCacheControl(t *testing.T) {
 }
 
 func TestSetCacheStatusEventually(t *testing.T) {
-	r := http.Response{}
+	rq := httptest.NewRequest(http.MethodGet, "/", nil)
+	rq = rq.WithContext(context.WithValue(rq.Context(), souinCtx.CacheName, "This"))
+	r := http.Response{
+		Request: rq,
+	}
 	r.Header = http.Header{}
 
 	SetCacheStatusEventually(&r)
-	if r.Header.Get("Cache-Status") != "Souin; hit; ttl=-1" {
-		errors.GenerateError(t, fmt.Sprintf("The Cache-Status should be equal to Souin; hit; ttl=-1, %s given", r.Header.Get("Cache-Status")))
+	if r.Header.Get("Cache-Status") != "This; hit; ttl=-1" {
+		errors.GenerateError(t, fmt.Sprintf("The Cache-Status should be equal to This; hit; ttl=-1, %s given", r.Header.Get("Cache-Status")))
 	}
 
 	r.Header = http.Header{"Date": []string{"Invalid"}}
@@ -91,7 +68,8 @@ func TestSetCacheStatusEventually(t *testing.T) {
 	if r.Header.Get("Cache-Status") == "" {
 		errors.GenerateError(t, "The Cache-Control shouldn't be empty")
 	}
-	if r.Header.Get("Cache-Status") != "Souin; fwd=request; detail=MALFORMED-DATE" {
+	if r.Header.Get("Cache-Status") != "This; fwd=request; detail=MALFORMED-DATE" {
+		fmt.Println(r.Header.Get("Cache-Status"))
 		errors.GenerateError(t, "The Cache-Control should be equal to MALFORMED-DATE")
 	}
 

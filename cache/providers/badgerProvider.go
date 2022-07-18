@@ -42,7 +42,7 @@ func BadgerConnectionFactory(c t.AbstractConfigurationInterface) (*Badger, error
 		badgerOptions = badgerOptions.WithInMemory(true)
 	}
 
-	uid := badgerOptions.Dir + badgerOptions.ValueDir
+	uid := badgerOptions.Dir + badgerOptions.ValueDir + dc.GetStale().String()
 	if i, ok := enabledBadgerInstances[uid]; ok {
 		return i, nil
 	}

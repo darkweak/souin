@@ -17,6 +17,7 @@ import (
 	"github.com/darkweak/souin/plugins/souin/configuration"
 	"github.com/darkweak/souin/plugins/souin/providers"
 	souintypes "github.com/darkweak/souin/plugins/souin/types"
+	"github.com/darkweak/souin/rfc"
 )
 
 func souinPluginInitializerFromConfiguration(c *configuration.Configuration) *souintypes.SouinRetrieverResponseProperties {
@@ -83,10 +84,10 @@ func main() {
 
 	http.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
 		request.Header.Set("Date", time.Now().UTC().Format(time.RFC1123))
-		request = retriever.GetContext().Method.SetContext(request)
+		request = retriever.GetContext().SetBaseContext(request)
 
 		if !plugins.CanHandle(request, retriever) {
-			writer.Header().Set("Cache-Status", "Souin; fwd=uri-miss")
+			rfc.MissCache(writer.Header().Set, request)
 			return
 		}
 

@@ -84,5 +84,11 @@ route /surrogate-keys {
     respond "Hello {http.request.header.X-Surrogate-Key-Suffix}"
 }
 
+route /another-cache-status-name {
+    cache {
+        cache_name Another
+    }
+}
+
 cache @souin-api {
 }

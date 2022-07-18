@@ -81,9 +81,9 @@ func NewHTTPCache(c plugins.BaseConfiguration) *SouinWebgoMiddleware {
 }
 
 func (s *SouinWebgoMiddleware) Middleware(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
-	req := s.Retriever.GetContext().Method.SetContext(r)
+	req := s.Retriever.GetContext().SetBaseContext(r)
 	if !plugins.CanHandle(req, s.Retriever) {
-		rw.Header().Add("Cache-Status", "Souin; fwd=uri-miss")
+		rfc.MissCache(rw.Header().Set, req)
 		next(rw, r)
 
 		return

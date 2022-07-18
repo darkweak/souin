@@ -23,22 +23,26 @@ func GetVariedCacheKey(req *http.Request, headers []string) string {
 	return req.Context().Value(context.Key).(string) + providers.VarySeparator + strings.Join(headers, ";")
 }
 
-func ValidateMaxAgeCachedResponse(req *http.Request, res *http.Response) *http.Response {
-	if res == nil {
-		return nil
-	}
-
+func validateMaxAgeCachedResponse(req *http.Request, res *http.Response, header string, addTime int) *http.Response {
 	cc := parseCacheControl(req.Header)
-	if maxAge, ok := cc["max-age"]; ok {
+	if maxAge, ok := cc[header]; ok {
 		ma, _ := strconv.Atoi(maxAge)
 		a, _ := strconv.Atoi(res.Header.Get("Age"))
 
-		if ma < a {
+		if (ma + addTime) < a {
 			return nil
 		}
 	}
 
 	return res
+}
+
+func ValidateMaxAgeCachedResponse(req *http.Request, res *http.Response) *http.Response {
+	return validateMaxAgeCachedResponse(req, res, "max-age", 0)
+}
+
+func ValidateMaxAgeCachedStaleResponse(req *http.Request, res *http.Response, addTime int) *http.Response {
+	return validateMaxAgeCachedResponse(req, res, "max-stale", addTime)
 }
 
 func ValidateStaleCachedResponse(req *http.Request, res *http.Response) *http.Response {

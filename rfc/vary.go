@@ -1,9 +1,12 @@
 package rfc
 
 import (
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
+
+	"github.com/darkweak/souin/context"
 )
 
 // varyMatches will return false unless all of the cached values for the headers listed in Vary
@@ -25,7 +28,7 @@ func validateVary(req *http.Request, resp *http.Response, key string, t *VaryTra
 		if len(variedHeaders) > 0 {
 			cacheKey = GetVariedCacheKey(req, variedHeaders)
 		}
-		resp.Header.Set("Cache-Status", "Souin; fwd=uri-miss; stored")
+		resp.Header.Set("Cache-Status", fmt.Sprintf("%s; fwd=uri-miss; stored", req.Context().Value(context.CacheName)))
 		resp.Header.Del("Age")
 		// Delay caching until EOF is reached.
 		resp.Body = &cachingReadCloser{

@@ -114,6 +114,7 @@ type DefaultCache struct {
 	AllowedHTTPVerbs    []string      `json:"allowed_http_verbs" yaml:"allowed_http_verbs"`
 	Badger              CacheProvider `json:"badger" yaml:"badger"`
 	CDN                 CDN           `json:"cdn" yaml:"cdn"`
+	CacheName           string        `json:"cache_name" yaml:"cache_name"`
 	Distributed         bool          `json:"distributed" yaml:"distributed"`
 	Headers             []string      `json:"headers" yaml:"headers"`
 	Key                 Key           `json:"key" yaml:"key"`
@@ -135,6 +136,11 @@ func (d *DefaultCache) GetAllowedHTTPVerbs() []string {
 // GetBadger returns the Badger configuration
 func (d *DefaultCache) GetBadger() CacheProvider {
 	return d.Badger
+}
+
+// GetCacheName returns the cache name to use in the Cache-Status response header
+func (d *DefaultCache) GetCacheName() string {
+	return d.CacheName
 }
 
 // GetCDN returns the CDN configuration
@@ -196,6 +202,7 @@ func (d *DefaultCache) GetDefaultCacheControl() string {
 type DefaultCacheInterface interface {
 	GetAllowedHTTPVerbs() []string
 	GetBadger() CacheProvider
+	GetCacheName() string
 	GetCDN() CDN
 	GetDistributed() bool
 	GetEtcd() CacheProvider

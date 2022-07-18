@@ -70,8 +70,12 @@ type SouinCaddyPlugin struct {
 	Olric configurationtypes.CacheProvider `json:"olric,omitempty"`
 	// Time to live for a key, using time.duration.
 	TTL configurationtypes.Duration `json:"ttl,omitempty"`
+	// Time to live for a stale key, using time.duration.
+	Stale configurationtypes.Duration `json:"stale,omitempty"`
 	// The default Cache-Control header value if none set by the upstream server.
 	DefaultCacheControl string `json:"default_cache_control,omitempty"`
+	// The cache name to use in the Cache-Status response header.
+	CacheName string `json:"cache_name,omitempty"`
 }
 
 // CaddyModule returns the Caddy module information.
@@ -90,14 +94,14 @@ type getterContext struct {
 
 // ServeHTTP implements caddyhttp.MiddlewareHandler.
 func (s *SouinCaddyPlugin) ServeHTTP(rw http.ResponseWriter, r *http.Request, next caddyhttp.Handler) error {
-	req := s.Retriever.GetContext().Method.SetContext(r)
+	req := s.Retriever.GetContext().SetBaseContext(r)
 	if b, handler := s.HandleInternally(req); b {
 		handler(rw, req)
 		return nil
 	}
 
 	if !plugins.CanHandle(req, s.Retriever) {
-		rw.Header().Add("Cache-Status", "Souin; fwd=uri-miss")
+		rfc.MissCache(rw.Header().Set, req)
 		return next.ServeHTTP(rw, r)
 	}
 
@@ -119,7 +123,7 @@ func (s *SouinCaddyPlugin) ServeHTTP(rw http.ResponseWriter, r *http.Request, ne
 	return plugins.DefaultSouinPluginCallback(customWriter, req, s.Retriever, nil, func(_ http.ResponseWriter, _ *http.Request) error {
 		var e error
 		if e = combo.next.ServeHTTP(customWriter, r); e != nil {
-			customWriter.Header().Add("Cache-Status", "Souin; fwd=uri-miss")
+			rfc.MissCache(customWriter.Header().Set, req)
 			return e
 		}
 
@@ -142,11 +146,13 @@ func (s *SouinCaddyPlugin) configurationPropertyMapper() error {
 		Nuts:                s.Nuts,
 		Key:                 s.Key,
 		DefaultCacheControl: s.DefaultCacheControl,
+		CacheName:           s.CacheName,
 		Distributed:         s.Olric.URL != "" || s.Olric.Path != "" || s.Olric.Configuration != nil || s.Etcd.Configuration != nil,
 		Headers:             s.Headers,
 		Olric:               s.Olric,
 		Etcd:                s.Etcd,
 		TTL:                 s.TTL,
+		Stale:               s.Stale,
 	}
 	if s.Configuration == nil {
 		s.Configuration = &Configuration{
@@ -179,7 +185,9 @@ func (s *SouinCaddyPlugin) FromApp(app *SouinApp) error {
 			Headers:             app.Headers,
 			Key:                 app.Key,
 			TTL:                 app.TTL,
+			Stale:               app.Stale,
 			DefaultCacheControl: app.DefaultCacheControl,
+			CacheName:           app.CacheName,
 		}
 		return nil
 	}
@@ -203,11 +211,17 @@ func (s *SouinCaddyPlugin) FromApp(app *SouinApp) error {
 	if dc.TTL.Duration == 0 {
 		s.Configuration.DefaultCache.TTL = appDc.TTL
 	}
+	if dc.Stale.Duration == 0 {
+		s.Configuration.DefaultCache.Stale = appDc.Stale
+	}
 	if !dc.Key.DisableBody && !dc.Key.DisableHost && !dc.Key.DisableMethod {
 		s.Configuration.DefaultCache.Key = appDc.Key
 	}
 	if dc.DefaultCacheControl == "" {
 		s.Configuration.DefaultCache.DefaultCacheControl = appDc.DefaultCacheControl
+	}
+	if dc.CacheName == "" {
+		s.Configuration.DefaultCache.CacheName = appDc.CacheName
 	}
 	if dc.Olric.URL == "" || dc.Olric.Path == "" || dc.Olric.Configuration == nil {
 		s.Configuration.DefaultCache.Distributed = appDc.Distributed
@@ -364,6 +378,7 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 				Duration: 120 * time.Second,
 			},
 			DefaultCacheControl: "",
+			CacheName:           "",
 		},
 		URLs: make(map[string]configurationtypes.URL),
 	}
@@ -444,6 +459,9 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 					cacheKeys[rg] = ck
 				}
 				cfg.CfgCacheKeys = cacheKeys
+			case "cache_name":
+				args := h.RemainingArgs()
+				cfg.DefaultCache.CacheName = args[0]
 			case "cdn":
 				cdn := configurationtypes.CDN{}
 				for nesting := h.Nesting(); h.NextBlock(nesting); {
@@ -619,6 +637,9 @@ func parseCaddyfileHandlerDirective(h httpcaddyfile.Helper) (caddyhttp.Middlewar
 				cacheKeys[val] = ck
 			}
 			sc.CfgCacheKeys = cacheKeys
+		case "cache_name":
+			args := h.RemainingArgs()
+			sc.DefaultCache.CacheName = args[0]
 		case "default_cache_control":
 			sc.DefaultCache.DefaultCacheControl = strings.Join(h.RemainingArgs(), " ")
 		case "headers":
