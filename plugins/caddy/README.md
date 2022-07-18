@@ -38,6 +38,7 @@ There is the fully configuration below
                 disable_method
             }
         }
+        cache_name Another
         cdn {
             api_key XXXX
             dynamic
@@ -163,6 +164,7 @@ cache @matchdefault {
             BypassLockGuard true
         }
     }
+    cache_name ChangeName
     cache_keys {
         (host1|host2).*\.css {
             disable_body
@@ -185,6 +187,7 @@ What does these directives mean?
 | `badger`                           | Configure the Badger cache storage                                                                                                           |                                                                                                                         |
 | `badger.path`                      | Configure Badger with a file                                                                                                                 | `/anywhere/badger_configuration.json`                                                                                   |
 | `badger.configuration`             | Configure Badger directly in the Caddyfile or your JSON caddy configuration                                                                  | [See the Badger configuration for the options](https://dgraph.io/docs/badger/get-started/)                              |
+| `cache_name`                       | Override the cache name to use in the Cache-Status response header                                                                           | `Another` `Caddy` `Cache-Handler` `Souin`                                                                               |
 | `cache_keys`                       | Define the key generation rules for each URI matching the key regexp                                                                         |                                                                                                                         |
 | `cache_keys.{your regexp}`         | Regexp that the URI should match to override the key generation                                                                              | `.+\.css`                                                                                                               |
 | `default_cache.key.disable_body`   | Disable the body part in the key matching the regexp (GraphQL context)                                                                       | `true`<br/><br/>`(default: false)`                                                                                      |
