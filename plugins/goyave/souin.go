@@ -83,7 +83,7 @@ func NewHTTPCache(c plugins.BaseConfiguration) *SouinGoyaveMiddleware {
 
 func (s *SouinGoyaveMiddleware) Handle(next goyave.Handler) goyave.Handler {
 	return func(response *goyave.Response, request *goyave.Request) {
-		req := s.Retriever.GetContext().Method.SetContext(request.Request())
+		req := s.Retriever.GetContext().SetBaseContext(request.Request())
 		if b, handler := s.HandleInternally(req); b {
 			handler(response, req)
 
@@ -91,7 +91,7 @@ func (s *SouinGoyaveMiddleware) Handle(next goyave.Handler) goyave.Handler {
 		}
 
 		if response.Hijacked() || !plugins.CanHandle(req, s.Retriever) {
-			response.Header().Add("Cache-Status", "Souin; fwd=uri-miss")
+			rfc.MissCache(response.Header().Set, req)
 			next(response, request)
 
 			return

@@ -83,9 +83,9 @@ func New(c plugins.BaseConfiguration) *SouinGinPlugin {
 
 func (s *SouinGinPlugin) Process() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		req := s.Retriever.GetContext().Method.SetContext(c.Request)
+		req := s.Retriever.GetContext().SetBaseContext(c.Request)
 		if !plugins.CanHandle(req, s.Retriever) {
-			c.Writer.Header().Add("Cache-Status", "Souin; fwd=uri-miss")
+			rfc.MissCache(c.Writer.Header().Set, req)
 			c.Next()
 			return
 		}
@@ -96,7 +96,7 @@ func (s *SouinGinPlugin) Process() gin.HandlerFunc {
 		}
 
 		if c.Writer.Status() == http.StatusNotFound {
-			c.Writer.Header().Add("Cache-Status", "Souin; fwd=uri-miss")
+			rfc.MissCache(c.Writer.Header().Set, req)
 			c.Next()
 			return
 		}

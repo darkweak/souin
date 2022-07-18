@@ -27,11 +27,12 @@ func CachedResponse(c types.AbstractProviderInterface, req *http.Request, cached
 		SetCacheStatusEventually(response)
 		return ValidateMaxAgeCachedResponse(req, response), false, nil
 	} else if response == nil {
-		staleCachedVal := c.Prefix(cachedKey, req)
+		staleCachedVal := c.Prefix("STALE_"+cachedKey, req)
 		response, _ = http.ReadResponse(bufio.NewReader(bytes.NewBuffer(staleCachedVal)), clonedReq)
 		if nil != response && ValidateCacheControl(response) {
+			addTime, _ := time.ParseDuration(response.Header.Get(storedTTLHeader))
 			SetCacheStatusEventually(response)
-			return ValidateMaxAgeCachedResponse(req, response), true, nil
+			return ValidateMaxAgeCachedStaleResponse(req, response, int(addTime.Seconds())), true, nil
 		}
 	}
 	return nil, false, nil
@@ -130,7 +131,7 @@ func (t *VaryTransport) UpdateCacheEventually(req *http.Request) (*http.Response
 	if cacheable && canStore(parseCacheControl(req.Header), parseCacheControl(req.Response.Header), req.Response.StatusCode) {
 		_ = validateVary(req, req.Response, cacheKey, t)
 	} else {
-		req.Response.Header.Set("Cache-Status", "Souin; fwd=uri-miss")
+		MissCache(req.Response.Header.Set, req)
 	}
 
 	return req.Response, nil
@@ -177,7 +178,7 @@ func (t *VaryTransport) RoundTrip(req *http.Request) (resp *http.Response, err e
 		if resp, err = commonCacheControl(req, transport); err != nil {
 			return nil, err
 		}
-		resp.Header.Set("Cache-Status", "Souin; fwd=uri-miss")
+		MissCache(resp.Header.Set, req)
 	}
 	resp, _ = transport.RoundTrip(req)
 	req.Response = resp

@@ -72,7 +72,7 @@ func (r *CustomWriter) Send() (int, error) {
 
 func HasMutation(req *http.Request, rw http.ResponseWriter) bool {
 	if req.Context().Value(context.IsMutationRequest).(bool) {
-		rw.Header().Add("Cache-Status", "Souin; fwd=uri-miss")
+		rfc.MissCache(rw.Header().Set, req)
 		return true
 	}
 	return false

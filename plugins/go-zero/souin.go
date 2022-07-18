@@ -82,7 +82,7 @@ func NewHTTPCache(c plugins.BaseConfiguration) *SouinGoZeroMiddleware {
 
 func (s *SouinGoZeroMiddleware) Handle(next http.HandlerFunc) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
-		req := s.Retriever.GetContext().Method.SetContext(r)
+		req := s.Retriever.GetContext().SetBaseContext(r)
 		if b, handler := s.HandleInternally(req); b {
 			handler(rw, req)
 
@@ -90,7 +90,7 @@ func (s *SouinGoZeroMiddleware) Handle(next http.HandlerFunc) http.HandlerFunc {
 		}
 
 		if !plugins.CanHandle(req, s.Retriever) {
-			rw.Header().Add("Cache-Status", "Souin; fwd=uri-miss")
+			rfc.MissCache(rw.Header().Set, req)
 			next(rw, r)
 
 			return

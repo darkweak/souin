@@ -1,6 +1,7 @@
 package providers
 
 import (
+	"fmt"
 	"net/http"
 	"regexp"
 	"strings"
@@ -18,7 +19,7 @@ type Cache struct {
 
 // CacheConnectionFactory function create new Cache instance
 func CacheConnectionFactory(c t.AbstractConfigurationInterface) (*Cache, error) {
-	provider := cache.New(1*time.Second, 2*time.Second)
+	provider := cache.New(time.Second, 2*time.Second)
 	return &Cache{Cache: provider, stale: c.GetDefaultCache().GetStale()}, nil
 }
 
@@ -49,6 +50,7 @@ func (provider *Cache) Prefix(key string, req *http.Request) []byte {
 	var result []byte
 
 	for k, v := range provider.Items() {
+		fmt.Println("Current key =>", k, key)
 		if k == key {
 			return v.Object.([]byte)
 		}
@@ -58,7 +60,7 @@ func (provider *Cache) Prefix(key string, req *http.Request) []byte {
 		}
 
 		if varyVoter(key, req, k) {
-			result = v.Object.([]byte)
+			return v.Object.([]byte)
 		}
 	}
 
@@ -67,6 +69,7 @@ func (provider *Cache) Prefix(key string, req *http.Request) []byte {
 
 // Set method will store the response in Cache provider
 func (provider *Cache) Set(key string, value []byte, url t.URL, duration time.Duration) {
+	fmt.Println("Set in the cache", key, duration, url)
 	if duration == 0 {
 		duration = url.TTL.Duration
 	}

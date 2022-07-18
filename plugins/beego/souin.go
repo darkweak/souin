@@ -233,9 +233,9 @@ func (s *SouinBeegoMiddleware) chainHandleFilter(next web.HandleFunc) web.Handle
 	return func(c *beegoCtx.Context) {
 		rw := c.ResponseWriter
 		r := c.Request
-		req := s.Retriever.GetContext().Method.SetContext(r)
+		req := s.Retriever.GetContext().SetBaseContext(r)
 		if !plugins.CanHandle(req, s.Retriever) {
-			c.Output.Header("Cache-Status", "Souin; fwd=uri-miss")
+			rfc.MissCache(c.Output.Header, req)
 			next(c)
 
 			return

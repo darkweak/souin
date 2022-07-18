@@ -51,3 +51,33 @@ func Test_Context_SetContext(t *testing.T) {
 		t.Error("The HashBody context must be an empty string.")
 	}
 }
+
+func Test_Context_SetBaseContext(t *testing.T) {
+	dc := configurationtypes.DefaultCache{
+		CacheName: "Dummy",
+	}
+	c := configuration.Configuration{
+		DefaultCache: &dc,
+	}
+	c.SetLogger(zap.NewNop())
+	co := GetContext()
+
+	co.Init(&c)
+	req := httptest.NewRequest(http.MethodGet, "http://domain.com", nil)
+	req = co.SetBaseContext(req)
+	if !req.Context().Value(SupportedMethod).(bool) {
+		t.Error("The SupportedMethod context must be true.")
+	}
+	if req.Context().Value(CacheName).(string) != "Dummy" {
+		t.Error("The cache name must not be equal to Something.")
+	}
+
+	req = httptest.NewRequest(http.MethodPost, "http://domain.com", nil)
+	req = co.SetBaseContext(req)
+	if req.Context().Value(SupportedMethod).(bool) {
+		t.Error("The SupportedMethod context must be false.")
+	}
+	if req.Context().Value(CacheName).(string) != "Dummy" {
+		t.Error("The cache name must not be equal to Something.")
+	}
+}

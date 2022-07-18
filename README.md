@@ -91,6 +91,7 @@ default_cache:
     - GET
     - POST
     - HEAD
+  cache_name: Souin # Override the cache name to use in the Cache-Status header
   distributed: true # Use Olric or Etcd distributed storage
   headers: # Default headers concatenated in stored keys
     - Authorization
@@ -823,7 +824,7 @@ experimental:
   plugins:
     souin:
       moduleName: github.com/darkweak/souin
-      version: v1.6.12
+      version: v1.6.14
 ```
 After that you can declare either the whole configuration at once in the middleware block or by service. See the examples below.
 ```yaml
@@ -946,15 +947,21 @@ You have to define the use of Souin as `post` and `response` custom middleware. 
     "strip_listen_path":true
   },
   "active":true,
-  "souin": {
-    "api": {
-      "souin": {
-        "enable": true
+  "config_data": {
+    "httpcache": {
+      "api": {
+        "souin": {
+          "enable": true
+        }
+      },
+      "cdn": {
+        "api_key": "XXXX",
+        "provider": "fastly",
+        "strategy": "soft"
+      },
+      "default_cache": {
+        "ttl": "5s"
       }
-    },
-    "default_cache": {
-      "ttl": "5s",
-      "default_cache_control": "no-store"
     }
   }
 }

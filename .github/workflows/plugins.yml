@@ -16,7 +16,7 @@ jobs:
         name: Install Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.17
+          go-version: 1.18
       -
         name: Checkout code
         uses: actions/checkout@v2
@@ -270,7 +270,7 @@ jobs:
         name: Wait for Souin is really loaded inside Gin as middleware
         uses: jakejarvis/wait-action@master
         with:
-          time: 30s
+          time: 40s
       -
         name: Set Gin logs configuration result as environment variable
         run: cd plugins/gin && echo "$(make load-checker)" >> $GITHUB_ENV

@@ -83,7 +83,7 @@ func NewHTTPCache(c plugins.BaseConfiguration) *SouinDotwebMiddleware {
 }
 
 func (s *SouinDotwebMiddleware) Handle(c dotweb.Context) error {
-	req := s.Retriever.GetContext().Method.SetContext(c.Request().Request)
+	req := s.Retriever.GetContext().SetBaseContext(c.Request().Request)
 	rw := c.Response().Writer()
 	if b, handler := s.HandleInternally(req); b {
 		handler(rw, req)
@@ -92,7 +92,7 @@ func (s *SouinDotwebMiddleware) Handle(c dotweb.Context) error {
 	}
 
 	if !plugins.CanHandle(req, s.Retriever) {
-		rw.Header().Add("Cache-Status", "Souin; fwd=uri-miss")
+		rfc.MissCache(rw.Header().Set, req)
 		return s.Next(c)
 	}
 
