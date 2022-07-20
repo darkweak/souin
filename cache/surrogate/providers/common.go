@@ -1,6 +1,7 @@
 package providers
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -200,6 +201,8 @@ func (s *baseStorage) Purge(header http.Header) (cacheKeys []string, surrogateKe
 	for _, su := range surrogates {
 		toInvalidate = append(toInvalidate, s.purgeTag(su)...)
 	}
+
+	fmt.Printf("===== Purging the keys =====\n%+v\n%+v\n======================", uniqueTag(toInvalidate), surrogates)
 
 	return uniqueTag(toInvalidate), surrogates
 }
