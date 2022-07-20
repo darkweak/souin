@@ -178,9 +178,13 @@ func (provider *Nuts) Set(key string, value []byte, url t.URL, duration time.Dur
 
 // Delete method will delete the response in Nuts provider if exists corresponding to key param
 func (provider *Nuts) Delete(key string) {
-	_ = provider.DB.Update(func(tx *nutsdb.Tx) error {
+	e := provider.DB.Update(func(tx *nutsdb.Tx) error {
 		return tx.Delete(bucket, []byte(key))
 	})
+
+	if e != nil {
+		fmt.Printf("An error while deleting the key %s: %v", key, e)
+	}
 }
 
 // DeleteMany method will delete the responses in Nuts provider if exists corresponding to the regex key param
