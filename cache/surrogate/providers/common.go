@@ -211,3 +211,10 @@ func (s *baseStorage) Purge(header http.Header) (cacheKeys []string, surrogateKe
 func (s *baseStorage) List() map[string]string {
 	return s.Storage
 }
+
+// Destruct method will shutdown properly the provider
+func (s *baseStorage) Destruct() error {
+	s.Storage = make(map[string]string)
+
+	return nil
+}

@@ -20,6 +20,7 @@ import (
 	"github.com/darkweak/souin/api"
 	"github.com/darkweak/souin/cache/coalescing"
 	"github.com/darkweak/souin/cache/providers"
+	surrogates_providers "github.com/darkweak/souin/cache/surrogate/providers"
 	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/plugins"
@@ -265,6 +266,10 @@ func (s *SouinCaddyPlugin) Provision(ctx caddy.Context) error {
 		},
 	}
 	s.Retriever = plugins.DefaultSouinPluginInitializerFromConfiguration(s.Configuration)
+	surrogates, ok := up.LoadOrStore(surrogate_key, s.Retriever.GetTransport().GetSurrogateKeys())
+	if ok {
+		s.Retriever.GetTransport().SetSurrogateKeys(surrogates.(surrogates_providers.SurrogateInterface))
+	}
 
 	dc := s.Retriever.GetConfiguration().GetDefaultCache()
 	if dc.GetDistributed() {
