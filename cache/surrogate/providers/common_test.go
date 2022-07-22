@@ -123,4 +123,20 @@ func TestBaseStorage_Store(t *testing.T) {
 	if strings.Contains(bs.Storage["testInvalid"], "stored") {
 		errors.GenerateError(t, "The surrogate storage should not contain stored.")
 	}
+
+	bs = mockCommonProvider()
+	res.Header.Set(surrogateKey, "something")
+	_ = bs.Store(&res, "/something")
+	_ = bs.Store(&res, "/something")
+	res.Header.Set(surrogateKey, "something")
+	_ = bs.Store(&res, "/some")
+	if len(bs.Storage) != 2 {
+		errors.GenerateError(t, "The surrogate storage should contain 2 stored elements.")
+	}
+	if bs.Storage["STALE_something"] != ",STALE_%2Fsomething,STALE_%2Fsome" {
+		errors.GenerateError(t, "The STALE_something surrogate storage entry must contain 2 elements ,STALE_%2Fsomething,STALE_%2Fsome.")
+	}
+	if bs.Storage["something"] != ",%2Fsomething,%2Fsome" {
+		errors.GenerateError(t, "The something surrogate storage entry must contain 2 elements ,%2Fsomething,%2Fsome.")
+	}
 }

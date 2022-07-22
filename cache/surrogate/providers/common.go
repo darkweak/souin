@@ -168,12 +168,10 @@ func (s *baseStorage) Store(response *http.Response, cacheKey string) error {
 	h := response.Header
 
 	cacheKey = url.QueryEscape(cacheKey)
-	quoted := regexp.QuoteMeta(souinStorageSeparator + cacheKey)
 	staleKey := stalePrefix + cacheKey
-	staleQuoted := regexp.QuoteMeta(souinStorageSeparator + staleKey)
 
-	urlRegexp := regexp.MustCompile("(^" + regexp.QuoteMeta(cacheKey) + "(" + regexp.QuoteMeta(souinStorageSeparator) + "|$))|(" + quoted + ")|(" + quoted + "$)")
-	staleUrlRegexp := regexp.MustCompile("(^" + regexp.QuoteMeta(staleKey) + "(" + regexp.QuoteMeta(souinStorageSeparator) + "|$))|(" + staleQuoted + ")|(" + staleQuoted + "$)")
+	urlRegexp := regexp.MustCompile("(^|" + regexp.QuoteMeta(souinStorageSeparator) + ")" + regexp.QuoteMeta(cacheKey) + "(" + regexp.QuoteMeta(souinStorageSeparator) + "|$)")
+	staleUrlRegexp := regexp.MustCompile("(^|" + regexp.QuoteMeta(souinStorageSeparator) + ")" + regexp.QuoteMeta(staleKey) + "(" + regexp.QuoteMeta(souinStorageSeparator) + "|$)")
 
 	keys := s.ParseHeaders(s.parent.getSurrogateKey(h))
 
@@ -209,4 +207,11 @@ func (s *baseStorage) Purge(header http.Header) (cacheKeys []string, surrogateKe
 // List returns the stored keys associated to resources
 func (s *baseStorage) List() map[string]string {
 	return s.Storage
+}
+
+// Destruct method will shutdown properly the provider
+func (s *baseStorage) Destruct() error {
+	s.Storage = make(map[string]string)
+
+	return nil
 }
