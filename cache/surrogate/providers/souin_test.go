@@ -33,17 +33,18 @@ func TestSouinSurrogateStorage_Store(t *testing.T) {
 		Header: http.Header{},
 	}
 	res.Header.Set(surrogateKey, baseHeaderValue)
+	res.Header.Set(surrogateControl, "public, max-age=5")
 
 	var e error
 	if e = sp.Store(&res, "stored"); e != nil {
 		errors.GenerateError(t, "It should not throw an error while store.")
 	}
 
-	if res.Header.Get(surrogateKey) != "" {
-		errors.GenerateError(t, "The response should not contains the Surrogate keys header.")
+	if res.Header.Get(surrogateKey) != "test0, test1,   test2,  test3, test4" {
+		errors.GenerateError(t, "The response should contains the Surrogate-keys header.")
 	}
 
-	if res.Header.Get(surrogateControl) != "" {
-		errors.GenerateError(t, "The response should not contains the Surrogate control header.")
+	if res.Header.Get(surrogateControl) != "public, max-age=5" {
+		errors.GenerateError(t, "The response should contains the Surrogate-control header.")
 	}
 }
