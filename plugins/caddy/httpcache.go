@@ -128,7 +128,9 @@ func (s *SouinCaddyPlugin) ServeHTTP(rw http.ResponseWriter, r *http.Request, ne
 			return e
 		}
 
+		customWriter.Response.Header = customWriter.Rw.Header().Clone()
 		combo.req.Response = customWriter.Response
+
 		if combo.req.Response, e = s.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(combo.req); e != nil {
 			return e
 		}
