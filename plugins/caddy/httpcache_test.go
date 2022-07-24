@@ -81,6 +81,12 @@ func TestMaxStale(t *testing.T) {
 	if resp3.Header.Get("Cache-Status") != "Souin; hit; ttl=-1; fwd=stale" {
 		t.Errorf("unexpected Cache-Status header %v", resp3.Header.Get("Cache-Status"))
 	}
+
+	time.Sleep(3 * time.Second)
+	resp4, _ := tester.AssertResponse(reqMaxStale, 200, "Hello, max-stale!")
+	if resp4.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored" {
+		t.Errorf("unexpected Cache-Status header %v", resp4.Header.Get("Cache-Status"))
+	}
 }
 
 func TestSMaxAge(t *testing.T) {
