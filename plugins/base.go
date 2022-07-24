@@ -80,8 +80,8 @@ func HasMutation(req *http.Request, rw http.ResponseWriter) bool {
 
 // CanHandle detect if the request can be handled by Souin
 func CanHandle(r *http.Request, re types.RetrieverResponsePropertiesInterface) bool {
-	co, err := cacheobject.ParseResponseCacheControl(r.Header.Get("Cache-Control"))
-	return r.Context().Value(context.SupportedMethod).(bool) && err == nil && !co.NoCachePresent && r.Header.Get("Upgrade") != "websocket" && (re.GetExcludeRegexp() == nil || !re.GetExcludeRegexp().MatchString(r.RequestURI))
+	co := r.Context().Value(context.RequestCacheControl).(*cacheobject.RequestCacheDirectives)
+	return r.Context().Value(context.SupportedMethod).(bool) && co != nil && !co.NoCache && r.Header.Get("Upgrade") != "websocket" && (re.GetExcludeRegexp() == nil || !re.GetExcludeRegexp().MatchString(r.RequestURI))
 }
 
 func sendAnyCachedResponse(rh http.Header, response *http.Response, res http.ResponseWriter) {

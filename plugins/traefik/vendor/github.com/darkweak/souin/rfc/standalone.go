@@ -13,6 +13,7 @@ import (
 
 	"github.com/darkweak/souin/cache/providers"
 	"github.com/darkweak/souin/context"
+	"github.com/pquerna/cachecontrol/cacheobject"
 )
 
 // GetVariedCacheKey returns the varied cache key for req and resp.
@@ -42,6 +43,10 @@ func ValidateMaxAgeCachedResponse(req *http.Request, res *http.Response) *http.R
 }
 
 func ValidateMaxAgeCachedStaleResponse(req *http.Request, res *http.Response, addTime int) *http.Response {
+	co := req.Context().Value(context.RequestCacheControl).(*cacheobject.RequestCacheDirectives)
+	if !co.MaxStaleSet || co.MaxStale <= 0 {
+		return nil
+	}
 	return validateMaxAgeCachedResponse(req, res, "max-stale", addTime)
 }
 

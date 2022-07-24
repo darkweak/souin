@@ -114,6 +114,7 @@ func Test_SouinWebgoPlugin_Middleware_CannotHandle(t *testing.T) {
 }
 
 func Test_SouinWebgoPlugin_Middleware_APIHandle(t *testing.T) {
+	time.Sleep(DevDefaultConfiguration.DefaultCache.TTL.Duration)
 	res, res2, router := prepare()
 	req := httptest.NewRequest(http.MethodGet, "/souin-api/souin", nil)
 	req.Header = http.Header{}

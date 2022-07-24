@@ -65,6 +65,15 @@ route /cache-maxage {
     respond "Hello, max-age!"
 }
 
+route /cache-maxstale {
+    cache {
+        ttl 3s
+        stale 5s
+    }
+    header Cache-Control "max-age=5"
+    respond "Hello, max-age!"
+}
+
 route /not-modified {
     cache {
         ttl 5s

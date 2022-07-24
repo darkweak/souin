@@ -2,13 +2,13 @@ package chi
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 
+	"github.com/darkweak/souin/plugins"
 	"github.com/go-chi/chi/v5"
 )
 

@@ -83,8 +83,8 @@ func hasMutation(req *http.Request, rw http.ResponseWriter) bool {
 }
 
 func canHandle(r *http.Request, re types.RetrieverResponsePropertiesInterface) bool {
-	co, err := cacheobject.ParseResponseCacheControl(r.Header.Get("Cache-Control"))
-	return r.Context().Value(souin_ctx.SupportedMethod).(bool) && err == nil && !co.NoCachePresent && r.Header.Get("Upgrade") != "websocket" && (re.GetExcludeRegexp() == nil || !re.GetExcludeRegexp().MatchString(r.RequestURI))
+	co := r.Context().Value(souin_ctx.RequestCacheControl).(*cacheobject.RequestCacheDirectives)
+	return r.Context().Value(souin_ctx.SupportedMethod).(bool) && co != nil && !co.NoCache && r.Header.Get("Upgrade") != "websocket" && (re.GetExcludeRegexp() == nil || !re.GetExcludeRegexp().MatchString(r.RequestURI))
 }
 
 type key string

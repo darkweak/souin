@@ -5,9 +5,13 @@ import (
 	"net/http"
 
 	"github.com/darkweak/souin/configurationtypes"
+	"github.com/pquerna/cachecontrol/cacheobject"
 )
 
-const CacheName ctxKey = "CACHE_NAME"
+const (
+	CacheName           ctxKey = "CACHE_NAME"
+	RequestCacheControl ctxKey = "REQUEST_CACHE_CONTROL"
+)
 
 var defaultCacheName string = "Souin"
 
@@ -23,7 +27,8 @@ func (cc *cacheContext) SetupContext(c configurationtypes.AbstractConfigurationI
 }
 
 func (cc *cacheContext) SetContext(req *http.Request) *http.Request {
-	return req.WithContext(context.WithValue(req.Context(), CacheName, cc.cacheName))
+	co, _ := cacheobject.ParseRequestCacheControl(req.Header.Get("Cache-Control"))
+	return req.WithContext(context.WithValue(context.WithValue(req.Context(), CacheName, cc.cacheName), RequestCacheControl, co))
 }
 
 var _ ctx = (*cacheContext)(nil)

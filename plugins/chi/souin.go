@@ -24,6 +24,9 @@ var (
 			TTL: configurationtypes.Duration{
 				Duration: 10 * time.Second,
 			},
+			Stale: configurationtypes.Duration{
+				Duration: 10 * time.Second,
+			},
 		},
 		LogLevel: "info",
 	}
@@ -43,6 +46,9 @@ var (
 			},
 			TTL: configurationtypes.Duration{
 				Duration: 5 * time.Second,
+			},
+			Stale: configurationtypes.Duration{
+				Duration: 10 * time.Second,
 			},
 		},
 		LogLevel: "debug",

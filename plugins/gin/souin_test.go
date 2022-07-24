@@ -1,8 +1,6 @@
 package gin
 
 import (
-	"encoding/json"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -75,47 +73,5 @@ func Test_SouinGinPlugin_Process_CannotHandle(t *testing.T) {
 	}
 	if res2.Result().Header.Get("Age") != "" {
 		t.Error("The response must not contain a Age header.")
-	}
-}
-
-func Test_SouinGinPlugin_Process_APIHandle(t *testing.T) {
-	req := httptest.NewRequest(http.MethodGet, "/souin-api/souin", nil)
-	req.Header = http.Header{}
-	res := httptest.NewRecorder()
-	gin.SetMode(gin.TestMode)
-	s := New(DevDefaultConfiguration)
-	c, r := gin.CreateTestContext(res)
-	c.Request = req
-	r.Use(s.Process())
-	r.GET("/not-handled", func(c *gin.Context) {
-		c.String(http.StatusOK, "Hello, World!")
-	})
-	r.ServeHTTP(res, c.Request)
-
-	if res.Result().Header.Get("Content-Type") != "application/json" {
-		t.Error("The response must contain be in JSON.")
-	}
-	b, _ := ioutil.ReadAll(res.Result().Body)
-	defer res.Result().Body.Close()
-	if string(b) != "[]" {
-		t.Error("The response body must be an empty array because no request has been stored")
-	}
-	rs := httptest.NewRequest(http.MethodGet, "/handled", nil)
-	res2 := httptest.NewRecorder()
-	s.Process()(&gin.Context{
-		Request: rs,
-	})
-	if res.Result().Header.Get("Content-Type") != "application/json" {
-		t.Error("The response must contain be in JSON.")
-	}
-	b, _ = ioutil.ReadAll(res2.Result().Body)
-	defer res.Result().Body.Close()
-	var payload []string
-	_ = json.Unmarshal(b, &payload)
-	if len(payload) != 2 {
-		t.Error("The system must store 2 items, the fresh and the stale one")
-	}
-	if payload[0] != "GET-example.com-/handled" || payload[1] != "STALE_GET-example.com-/handled" {
-		t.Error("The payload items mismatch from the expectations.")
 	}
 }

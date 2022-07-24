@@ -70,6 +70,9 @@ func (t *VaryTransport) SetSurrogateKeys(s providers.SurrogateInterface) {
 // SetCache set the cache
 func (t *VaryTransport) SetCache(key string, resp *http.Response) {
 	co, e := cacheobject.ParseResponseCacheControl(resp.Header.Get("Cache-Control"))
+	if e != nil {
+		return
+	}
 	ma := t.ConfigurationURL.TTL.Duration
 	if co.MaxAge > 0 {
 		ma = time.Duration(co.MaxAge) * time.Second
@@ -80,7 +83,7 @@ func (t *VaryTransport) SetCache(key string, resp *http.Response) {
 		ma = t.ConfigurationURL.TTL.Duration
 	}
 	resp.Header.Set(storedTTLHeader, ma.String())
-	if respBytes, err := httputil.DumpResponse(resp, true); e == nil && err == nil {
+	if respBytes, err := httputil.DumpResponse(resp, true); err == nil {
 		t.Provider.Set(key, respBytes, t.ConfigurationURL, ma)
 	}
 }

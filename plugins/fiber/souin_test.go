@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/darkweak/souin/plugins"
 	"github.com/gofiber/fiber/v2"
 )
 
