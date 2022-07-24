@@ -1,6 +1,8 @@
 package httpcache
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -37,7 +39,47 @@ func TestMaxAge(t *testing.T) {
 	time.Sleep(2 * time.Second)
 	resp3, _ := tester.AssertGetResponse(`http://localhost:9080/cache-max-age`, 200, "Hello, max-age!")
 	if resp3.Header.Get("Cache-Status") != "Souin; hit; ttl=57" {
+		t.Errorf("unexpected Cache-Status header %v", resp3.Header.Get("Cache-Status"))
+	}
+}
+
+func TestMaxStale(t *testing.T) {
+	tester := caddytest.NewTester(t)
+	tester.InitServer(`
+	{
+		order cache before rewrite
+		http_port     9080
+		https_port    9443
+		cache
+	}
+	localhost:9080 {
+		route /cache-max-stale {
+			cache {
+				stale 5
+			}
+			header Cache-Control "max-age=3"
+			respond "Hello, max-stale!"
+		}
+	}`, "caddyfile")
+
+	maxStaleURL := "http://localhost:9080/cache-max-stale"
+
+	resp1, _ := tester.AssertGetResponse(maxStaleURL, 200, "Hello, max-stale!")
+	if resp1.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored" {
+		t.Errorf("unexpected Cache-Status header %v", resp1.Header)
+	}
+
+	resp2, _ := tester.AssertGetResponse(maxStaleURL, 200, "Hello, max-stale!")
+	if resp2.Header.Get("Cache-Status") != "Souin; hit; ttl=2" {
 		t.Errorf("unexpected Cache-Status header %v", resp2.Header.Get("Cache-Status"))
+	}
+
+	time.Sleep(3 * time.Second)
+	reqMaxStale := httptest.NewRequest(http.MethodGet, maxStaleURL, nil)
+	reqMaxStale.Header = http.Header{"Cache-Control": []string{"max-stale=3"}}
+	resp3, _ := tester.AssertResponse(reqMaxStale, 200, "Hello, max-stale!")
+	if resp3.Header.Get("Cache-Status") != "Souin; hit; ttl=-1; fwd=stale" {
+		t.Errorf("unexpected Cache-Status header %v", resp3.Header.Get("Cache-Status"))
 	}
 }
 
