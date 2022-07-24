@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-chi/chi/v5"
+	"github.com/darkweak/souin/plugins"
 )
 
 func Test_NewHTTPCache(t *testing.T) {
@@ -30,17 +30,8 @@ func defaultHandler(w http.ResponseWriter, _ *http.Request) {
 	w.Write([]byte("Hello, World!"))
 }
 
-func excludedHandler(w http.ResponseWriter, _ *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Hello, Excluded!"))
-}
-
-func prepare() (res *httptest.ResponseRecorder, res2 *httptest.ResponseRecorder, router chi.Router) {
-	r := chi.NewRouter()
-	r.Use(NewHTTPCache(DevDefaultConfiguration).Handle)
-	r.Get("/", defaultHandler)
-	r.Get("/excluded", excludedHandler)
-	router = r
+func prepare() (res *httptest.ResponseRecorder, res2 *httptest.ResponseRecorder, router http.HandlerFunc) {
+	router = NewHTTPCache(DevDefaultConfiguration).Handle(defaultHandler)
 	res = httptest.NewRecorder()
 	res2 = httptest.NewRecorder()
 	return
@@ -50,13 +41,13 @@ func Test_SouinChiPlugin_Middleware(t *testing.T) {
 	res, res2, router := prepare()
 	req := httptest.NewRequest(http.MethodGet, "/handled", nil)
 	req.Header = http.Header{}
-	router.ServeHTTP(res, req)
+	router(res, req)
 
 	if res.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored" {
 		t.Error("The response must contain a Cache-Status header with the stored directive.")
 	}
 
-	router.ServeHTTP(res2, req)
+	router(res2, req)
 	if res2.Result().Header.Get("Cache-Status") != "Souin; hit; ttl=4" {
 		t.Error("The response must contain a Cache-Status header with the hit and ttl directives.")
 	}
@@ -70,13 +61,13 @@ func Test_SouinChiPlugin_Middleware_CannotHandle(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/not-handled", nil)
 	req.Header = http.Header{}
 	req.Header.Add("Cache-Control", "no-cache")
-	router.ServeHTTP(res, req)
+	router(res, req)
 
 	if res.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss" {
 		t.Error("The response must contain a Cache-Status header without the stored directive and with the uri-miss only.")
 	}
 
-	router.ServeHTTP(res2, req)
+	router(res2, req)
 	if res2.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss" {
 		t.Error("The response must contain a Cache-Status header without the stored directive and with the uri-miss only.")
 	}
@@ -90,7 +81,7 @@ func Test_SouinChiPlugin_Middleware_APIHandle(t *testing.T) {
 	res, res2, router := prepare()
 	req := httptest.NewRequest(http.MethodGet, "/souin-api/souin", nil)
 	req.Header = http.Header{}
-	router.ServeHTTP(res, req)
+	router(res, req)
 
 	if res.Result().Header.Get("Content-Type") != "application/json" {
 		t.Error("The response must be in JSON.")
@@ -100,8 +91,8 @@ func Test_SouinChiPlugin_Middleware_APIHandle(t *testing.T) {
 	if string(b) != "[]" {
 		t.Error("The response body must be an empty array because no request has been stored")
 	}
-	router.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/handled", nil))
-	router.ServeHTTP(res2, httptest.NewRequest(http.MethodGet, "/souin-api/souin", nil))
+	router(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/handled", nil))
+	router(res2, httptest.NewRequest(http.MethodGet, "/souin-api/souin", nil))
 	if res2.Result().Header.Get("Content-Type") != "application/json" {
 		t.Error("The response must be in JSON.")
 	}

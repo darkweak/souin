@@ -72,7 +72,7 @@ for i in ${!plugins[@]}; do
         uses: actions/checkout@v2
       -
         name: Run $capitalized tests
-        run: cd plugins/$lower && go test -v ./...
+        run: cd plugins/$lower && go test -v .
       -
         name: Build Souin as $capitalized plugin
         run: make build-and-run-$lower

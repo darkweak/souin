@@ -11,6 +11,7 @@ import (
 	_ "github.com/beego/beego/v2/core/config/json"
 	"github.com/beego/beego/v2/server/web"
 	beegoCtx "github.com/beego/beego/v2/server/web/context"
+	"github.com/darkweak/souin/plugins"
 )
 
 func Test_NewHTTPCache(t *testing.T) {

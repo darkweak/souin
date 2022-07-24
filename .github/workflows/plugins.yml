@@ -58,7 +58,7 @@ jobs:
         uses: actions/checkout@v2
       -
         name: Run Beego tests
-        run: cd plugins/beego && go test -v ./...
+        run: cd plugins/beego && go test -v .
       -
         name: Build Souin as Beego plugin
         run: make build-and-run-beego
@@ -103,7 +103,7 @@ jobs:
         uses: actions/checkout@v2
       -
         name: Run Chi tests
-        run: cd plugins/chi && go test -v ./...
+        run: cd plugins/chi && go test -v .
       -
         name: Build Souin as Chi plugin
         run: make build-and-run-chi
@@ -148,7 +148,7 @@ jobs:
         uses: actions/checkout@v2
       -
         name: Run Dotweb tests
-        run: cd plugins/dotweb && go test -v ./...
+        run: cd plugins/dotweb && go test -v .
       -
         name: Build Souin as Dotweb plugin
         run: make build-and-run-dotweb
@@ -193,7 +193,7 @@ jobs:
         uses: actions/checkout@v2
       -
         name: Run Echo tests
-        run: cd plugins/echo && go test -v ./...
+        run: cd plugins/echo && go test -v .
       -
         name: Build Souin as Echo plugin
         run: make build-and-run-echo
@@ -238,7 +238,7 @@ jobs:
         uses: actions/checkout@v2
       -
         name: Run Fiber tests
-        run: cd plugins/fiber && go test -v ./...
+        run: cd plugins/fiber && go test -v .
       -
         name: Build Souin as Fiber plugin
         run: make build-and-run-fiber
@@ -283,7 +283,7 @@ jobs:
         uses: actions/checkout@v2
       -
         name: Run Gin tests
-        run: cd plugins/gin && go test -v ./...
+        run: cd plugins/gin && go test -v .
       -
         name: Build Souin as Gin plugin
         run: make build-and-run-gin
@@ -328,7 +328,7 @@ jobs:
         uses: actions/checkout@v2
       -
         name: Run Go-zero tests
-        run: cd plugins/go-zero && go test -v ./...
+        run: cd plugins/go-zero && go test -v .
       -
         name: Build Souin as Go-zero plugin
         run: make build-and-run-go-zero
@@ -373,7 +373,7 @@ jobs:
         uses: actions/checkout@v2
       -
         name: Run Goyave tests
-        run: cd plugins/goyave && go test -v ./...
+        run: cd plugins/goyave && go test -v .
       -
         name: Build Souin as Goyave plugin
         run: make build-and-run-goyave
@@ -418,7 +418,7 @@ jobs:
         uses: actions/checkout@v2
       -
         name: Run Kratos tests
-        run: cd plugins/kratos && go test -v ./...
+        run: cd plugins/kratos && go test -v .
       -
         name: Build Souin as Kratos plugin
         run: make build-and-run-kratos
@@ -463,7 +463,7 @@ jobs:
         uses: actions/checkout@v2
       -
         name: Run Skipper tests
-        run: cd plugins/skipper && go test -v ./...
+        run: cd plugins/skipper && go test -v .
       -
         name: Build Souin as Skipper plugin
         run: make build-and-run-skipper
@@ -508,7 +508,7 @@ jobs:
         uses: actions/checkout@v2
       -
         name: Run Souin tests
-        run: cd plugins/souin && go test -v ./...
+        run: cd plugins/souin && go test -v .
       -
         name: Build Souin as Souin plugin
         run: make build-and-run-souin
@@ -553,7 +553,7 @@ jobs:
         uses: actions/checkout@v2
       -
         name: Run Traefik tests
-        run: cd plugins/traefik && go test -v ./...
+        run: cd plugins/traefik && go test -v .
       -
         name: Build Souin as Traefik plugin
         run: make build-and-run-traefik
@@ -598,7 +598,7 @@ jobs:
         uses: actions/checkout@v2
       -
         name: Run Tyk tests
-        run: cd plugins/tyk && go test -v ./...
+        run: cd plugins/tyk && go test -v .
       -
         name: Build Souin as Tyk plugin
         run: make build-and-run-tyk
@@ -643,7 +643,7 @@ jobs:
         uses: actions/checkout@v2
       -
         name: Run Webgo tests
-        run: cd plugins/webgo && go test -v ./...
+        run: cd plugins/webgo && go test -v .
       -
         name: Build Souin as Webgo plugin
         run: make build-and-run-webgo

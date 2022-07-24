@@ -2,7 +2,6 @@ package httpcache
 
 import (
 	"net/http"
-	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -50,13 +49,13 @@ func TestMaxStale(t *testing.T) {
 		order cache before rewrite
 		http_port     9080
 		https_port    9443
-		cache
+		cache {
+			stale 5s
+		}
 	}
 	localhost:9080 {
 		route /cache-max-stale {
-			cache {
-				stale 5
-			}
+			cache
 			header Cache-Control "max-age=3"
 			respond "Hello, max-stale!"
 		}
@@ -75,7 +74,7 @@ func TestMaxStale(t *testing.T) {
 	}
 
 	time.Sleep(3 * time.Second)
-	reqMaxStale := httptest.NewRequest(http.MethodGet, maxStaleURL, nil)
+	reqMaxStale, _ := http.NewRequest(http.MethodGet, maxStaleURL, nil)
 	reqMaxStale.Header = http.Header{"Cache-Control": []string{"max-stale=3"}}
 	resp3, _ := tester.AssertResponse(reqMaxStale, 200, "Hello, max-stale!")
 	if resp3.Header.Get("Cache-Status") != "Souin; hit; ttl=-1; fwd=stale" {
@@ -153,35 +152,6 @@ func TestAgeHeader(t *testing.T) {
 	resp3, _ := tester.AssertGetResponse(`http://localhost:9080/age-header`, 200, "Hello, Age header!")
 	if resp3.Header.Get("Age") != "11" {
 		t.Error("Age header should be present")
-	}
-}
-
-func TestExistingAgeHeader(t *testing.T) {
-	tester := caddytest.NewTester(t)
-	tester.InitServer(`
-	{
-		http_port     9080
-		https_port    9443
-		cache {
-			ttl 1000s
-		}
-	}
-	localhost:9080 {
-		route /age-header {
-			cache
-			header Cache-Control "max-age=60"
-			header Age "max-age=5"
-			respond "Hello, Age header!"
-		}
-	}`, "caddyfile")
-
-	resp1, _ := tester.AssertGetResponse(`http://localhost:9080/age-header`, 200, "Hello, Age header!")
-	if resp1.Header.Get("Age") != "" {
-		t.Errorf("unexpected Age header %v", resp1.Header.Get("Age"))
-	}
-	resp2, _ := tester.AssertGetResponse(`http://localhost:9080/age-header`, 200, "Hello, Age header!")
-	if resp2.Header.Get("Age") != "1" {
-		t.Errorf("unexpected Age header value %v", resp2.Header.Get("Age"))
 	}
 }
 
