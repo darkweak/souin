@@ -77,8 +77,8 @@ http:
       The_Second_Test:
         url: 'the/second/.+'
   middleware:
-	- cache
-	# Other middlewares
+    - cache
+    # Other middlewares
 ```
 
 

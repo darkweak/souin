@@ -15,4 +15,6 @@ COPY --from=velox /usr/bin/rr /usr/bin/rr
 RUN docker-php-ext-install sockets
 RUN composer require spiral/roadrunner nyholm/psr7
 
+COPY plugins/roadrunner/examples .
+
 CMD ["/usr/bin/rr", "serve"]

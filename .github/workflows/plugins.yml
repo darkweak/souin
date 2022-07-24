@@ -491,10 +491,13 @@ jobs:
         name: Wait for Souin is really loaded inside Roadrunner as middleware
         uses: jakejarvis/wait-action@master
         with:
-          time: 30s
+          time: 10s
       -
         name: Set Roadrunner logs configuration result as environment variable
         run: cd plugins/roadrunner && echo "$(make load-checker)" >> $GITHUB_ENV
+      - 
+        name: Debug Roadrunner logs
+        run: cd plugins/roadrunner/examples && echo "$(docker-compose logs)"
       -
         name: Check if the configuration is loaded to define if Souin is loaded too
         uses: nick-invision/assert-action@v1
@@ -632,7 +635,7 @@ jobs:
         name: Wait for Souin is really loaded inside Traefik as middleware
         uses: jakejarvis/wait-action@master
         with:
-          time: 30s
+          time: 20s
       -
         name: Set Traefik logs configuration result as environment variable
         run: cd plugins/traefik && echo "$(make load-checker)" >> $GITHUB_ENV

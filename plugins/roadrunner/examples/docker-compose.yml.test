@@ -10,5 +10,3 @@ services:
         GH_TOKEN: ${GH_APP_TOKEN}
     ports:
       - 80:80
-    volumes:
-      - .:/app

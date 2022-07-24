@@ -80,7 +80,7 @@ func Test_Plugin_Middleware(t *testing.T) {
 	}
 }
 
-func Test_HttpcacheKratosPlugin_NewHTTPCacheFilter_Excluded(t *testing.T) {
+func Test_HttpcacheRoadrunnerPlugin_NewHTTPCacheFilter_Excluded(t *testing.T) {
 	p := &Plugin{}
 	_ = p.Init(&configWrapper{}, nil)
 	handler := p.Middleware(nextFilter)
@@ -102,7 +102,7 @@ func Test_HttpcacheKratosPlugin_NewHTTPCacheFilter_Excluded(t *testing.T) {
 	}
 }
 
-func Test_HttpcacheKratosPlugin_NewHTTPCacheFilter_Mutation(t *testing.T) {
+func Test_HttpcacheRoadrunnerPlugin_NewHTTPCacheFilter_Mutation(t *testing.T) {
 	p := &Plugin{}
 	_ = p.Init(&configWrapper{}, nil)
 	handler := p.Middleware(nextFilter)
@@ -126,7 +126,7 @@ func Test_HttpcacheKratosPlugin_NewHTTPCacheFilter_Mutation(t *testing.T) {
 	}
 }
 
-func Test_HttpcacheKratosPlugin_NewHTTPCacheFilter_API(t *testing.T) {
+func Test_HttpcacheRoadrunnerPlugin_NewHTTPCacheFilter_API(t *testing.T) {
 	p := &Plugin{}
 	_ = p.Init(&configWrapper{}, nil)
 	handler := p.Middleware(nextFilter)
