@@ -787,6 +787,77 @@ func main() {
 }
 ```
 
+### Roadrunner middleware
+To use Souin as roadrunner middleware, you have to build your `rr` binary with the souin dependency.
+```toml
+[velox]
+build_args = ['-trimpath', '-ldflags', '-s -X github.com/roadrunner-server/roadrunner/v2/internal/meta.version=v2.10.7 -X github.com/roadrunner-server/roadrunner/v2/internal/meta.buildTime=10:00:00']
+
+[roadrunner]
+ref = "master"
+
+[github]
+    [github.token]
+    token = "GH_TOKEN"
+
+    [github.plugins]
+    logger = { ref = "master", owner = "roadrunner-server", repository = "logger" }
+    cache = { ref = "master", owner = "darkweak", repository = "souin/plugins/roadrunner" }
+	# others ...
+
+[log]
+level = "debug"
+mode = "development"
+```
+
+After that, you'll be able to set each Souin configuration key under the `http.cache` key.
+```yaml
+# .rr.yaml
+http:
+  # Other http sub keys
+  cache:
+    api:
+      basepath: /httpcache_api
+      prometheus:
+        basepath: /anything-for-prometheus-metrics
+      souin: {}
+    default_cache:
+      allowed_http_verbs:
+        - GET
+        - POST
+        - HEAD
+      cdn:
+        api_key: XXXX
+        dynamic: true
+        hostname: XXXX
+        network: XXXX
+        provider: fastly
+        strategy: soft
+      headers:
+        - Authorization
+      regex:
+        exclude: '/excluded'
+      ttl: 5s
+      stale: 10s
+    log_level: debug
+    ykeys:
+      The_First_Test:
+        headers:
+          Content-Type: '.+'
+      The_Second_Test:
+        url: 'the/second/.+'
+    surrogate_keys:
+      The_First_Test:
+        headers:
+          Content-Type: '.+'
+      The_Second_Test:
+        url: 'the/second/.+'
+  middleware:
+	- cache
+	# Other middlewares
+```
+
+
 ### Skipper filter
 To use Souin as skipper filter, you can refer to the [Skipper plugin integration folder](https://github.com/darkweak/souin/tree/master/plugins/skipper) to discover how to configure it.  
 You just have to add to your Skipper instance the Souin filter like below:

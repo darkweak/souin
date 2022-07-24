@@ -6,7 +6,7 @@ ref = "master"
 
 [github]
     [github.token]
-    token = "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"
+    token = "GH_TOKEN"
 
     [github.plugins]
     logger = { ref = "master", owner = "roadrunner-server", repository = "logger" }

@@ -28,7 +28,7 @@ http:
       regex:
         exclude: '/excluded'
       ttl: 5s
-      stale: 10s
+      stale: 5s
     log_level: debug
     ykeys:
       The_First_Test:

@@ -62,6 +62,8 @@ jobs:
       -
         name: Build Souin as Beego plugin
         run: make build-and-run-beego
+        env:
+          GH_APP_TOKEN: ${{ secrets.GH_APP_TOKEN }}
       -
         name: Wait for Souin is really loaded inside Beego as middleware
         uses: jakejarvis/wait-action@master
@@ -107,6 +109,8 @@ jobs:
       -
         name: Build Souin as Chi plugin
         run: make build-and-run-chi
+        env:
+          GH_APP_TOKEN: ${{ secrets.GH_APP_TOKEN }}
       -
         name: Wait for Souin is really loaded inside Chi as middleware
         uses: jakejarvis/wait-action@master
@@ -152,6 +156,8 @@ jobs:
       -
         name: Build Souin as Dotweb plugin
         run: make build-and-run-dotweb
+        env:
+          GH_APP_TOKEN: ${{ secrets.GH_APP_TOKEN }}
       -
         name: Wait for Souin is really loaded inside Dotweb as middleware
         uses: jakejarvis/wait-action@master
@@ -197,6 +203,8 @@ jobs:
       -
         name: Build Souin as Echo plugin
         run: make build-and-run-echo
+        env:
+          GH_APP_TOKEN: ${{ secrets.GH_APP_TOKEN }}
       -
         name: Wait for Souin is really loaded inside Echo as middleware
         uses: jakejarvis/wait-action@master
@@ -242,6 +250,8 @@ jobs:
       -
         name: Build Souin as Fiber plugin
         run: make build-and-run-fiber
+        env:
+          GH_APP_TOKEN: ${{ secrets.GH_APP_TOKEN }}
       -
         name: Wait for Souin is really loaded inside Fiber as middleware
         uses: jakejarvis/wait-action@master
@@ -287,6 +297,8 @@ jobs:
       -
         name: Build Souin as Gin plugin
         run: make build-and-run-gin
+        env:
+          GH_APP_TOKEN: ${{ secrets.GH_APP_TOKEN }}
       -
         name: Wait for Souin is really loaded inside Gin as middleware
         uses: jakejarvis/wait-action@master
@@ -332,6 +344,8 @@ jobs:
       -
         name: Build Souin as Go-zero plugin
         run: make build-and-run-go-zero
+        env:
+          GH_APP_TOKEN: ${{ secrets.GH_APP_TOKEN }}
       -
         name: Wait for Souin is really loaded inside Go-zero as middleware
         uses: jakejarvis/wait-action@master
@@ -377,6 +391,8 @@ jobs:
       -
         name: Build Souin as Goyave plugin
         run: make build-and-run-goyave
+        env:
+          GH_APP_TOKEN: ${{ secrets.GH_APP_TOKEN }}
       -
         name: Wait for Souin is really loaded inside Goyave as middleware
         uses: jakejarvis/wait-action@master
@@ -422,6 +438,8 @@ jobs:
       -
         name: Build Souin as Kratos plugin
         run: make build-and-run-kratos
+        env:
+          GH_APP_TOKEN: ${{ secrets.GH_APP_TOKEN }}
       -
         name: Wait for Souin is really loaded inside Kratos as middleware
         uses: jakejarvis/wait-action@master
@@ -457,7 +475,7 @@ jobs:
         name: Install Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.16
+          go-version: 1.18
       -
         name: Checkout code
         uses: actions/checkout@v2
@@ -467,6 +485,8 @@ jobs:
       -
         name: Build Souin as Roadrunner plugin
         run: make build-and-run-roadrunner
+        env:
+          GH_APP_TOKEN: ${{ secrets.GH_APP_TOKEN }}
       -
         name: Wait for Souin is really loaded inside Roadrunner as middleware
         uses: jakejarvis/wait-action@master
@@ -512,6 +532,8 @@ jobs:
       -
         name: Build Souin as Skipper plugin
         run: make build-and-run-skipper
+        env:
+          GH_APP_TOKEN: ${{ secrets.GH_APP_TOKEN }}
       -
         name: Wait for Souin is really loaded inside Skipper as middleware
         uses: jakejarvis/wait-action@master
@@ -557,6 +579,8 @@ jobs:
       -
         name: Build Souin as Souin plugin
         run: make build-and-run-souin
+        env:
+          GH_APP_TOKEN: ${{ secrets.GH_APP_TOKEN }}
       -
         name: Wait for Souin is really loaded inside Souin as middleware
         uses: jakejarvis/wait-action@master
@@ -602,6 +626,8 @@ jobs:
       -
         name: Build Souin as Traefik plugin
         run: make build-and-run-traefik
+        env:
+          GH_APP_TOKEN: ${{ secrets.GH_APP_TOKEN }}
       -
         name: Wait for Souin is really loaded inside Traefik as middleware
         uses: jakejarvis/wait-action@master
@@ -647,6 +673,8 @@ jobs:
       -
         name: Build Souin as Tyk plugin
         run: make build-and-run-tyk
+        env:
+          GH_APP_TOKEN: ${{ secrets.GH_APP_TOKEN }}
       -
         name: Wait for Souin is really loaded inside Tyk as middleware
         uses: jakejarvis/wait-action@master
@@ -692,6 +720,8 @@ jobs:
       -
         name: Build Souin as Webgo plugin
         run: make build-and-run-webgo
+        env:
+          GH_APP_TOKEN: ${{ secrets.GH_APP_TOKEN }}
       -
         name: Wait for Souin is really loaded inside Webgo as middleware
         uses: jakejarvis/wait-action@master

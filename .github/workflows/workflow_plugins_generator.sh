@@ -2,7 +2,7 @@
 
 plugins=("beego"  "chi"  "dotweb"  "echo"  "fiber"  "gin"  "go-zero"  "goyave"  "kratos"  "roadrunner"  "skipper"  "souin"  "traefik"  "tyk"  "webgo")
 durations=("35"   "30"   "30"      "30"    "45"     "40"   "50"       "40"      "50"      "30"          "60"       "40"     "30"       "30"   "30")
-versions=("16"    "16"   "16"      "16"    "16"     "16"   "16"       "16"      "18"      "16"          "18"       "16"     "16"       "16"   "16")
+versions=("16"    "16"   "16"      "16"    "16"     "16"   "16"       "16"      "18"      "18"          "18"       "16"     "16"       "16"   "16")
 
 IFS= read -r -d '' tpl <<EOF
 name: Build and validate Souin as plugins
@@ -76,6 +76,8 @@ for i in ${!plugins[@]}; do
       -
         name: Build Souin as $capitalized plugin
         run: make build-and-run-$lower
+        env:
+          GH_APP_TOKEN: \${{ secrets.GH_APP_TOKEN }}
       -
         name: Wait for Souin is really loaded inside $capitalized as middleware
         uses: jakejarvis/wait-action@master

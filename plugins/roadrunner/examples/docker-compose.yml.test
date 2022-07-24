@@ -6,6 +6,8 @@ services:
       context: ../../..
       dockerfile: plugins/roadrunner/examples/Dockerfile.test
       target: development-runner
+      args:
+        GH_TOKEN: ${GH_APP_TOKEN}
     ports:
       - 80:80
     volumes:

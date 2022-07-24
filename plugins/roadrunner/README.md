@@ -1,7 +1,7 @@
-Kratos middleware: Souin
+Roadrunner middleware: Souin
 ================================
 
-This is a distributed HTTP cache module for Kratos based on [Souin](https://github.com/darkweak/souin) cache.  
+This is a distributed HTTP cache module for Roadrunner based on [Souin](https://github.com/darkweak/souin) cache.  
 
 ## Features
 
@@ -11,70 +11,79 @@ This is a distributed HTTP cache module for Kratos based on [Souin](https://gith
  * Builtin support for distributed cache.
  * Tag-based invalidation.
 
+## Build the roadrunner binary
+```toml
+[velox]
+build_args = ['-trimpath', '-ldflags', '-s -X github.com/roadrunner-server/roadrunner/v2/internal/meta.version=v2.10.7 -X github.com/roadrunner-server/roadrunner/v2/internal/meta.buildTime=10:00:00']
 
-## Example
-There is the example about the Souin initialization.
-```go
-import (
-	httpcache "github.com/darkweak/souin/plugins/kratos"
-	kratos_http "github.com/go-kratos/kratos/v2/transport/http"
-)
+[roadrunner]
+ref = "master"
 
-func main() {
-	kratos_http.NewServer(
-		kratos_http.Filter(
-			httpcache.NewHTTPCacheFilter(httpcache.DevDefaultConfiguration),
-		),
-	)
-}
+[github]
+    [github.token]
+    token = "GH_TOKEN"
+
+    [github.plugins]
+    logger = { ref = "master", owner = "roadrunner-server", repository = "logger" }
+    cache = { ref = "master", owner = "darkweak", repository = "souin/plugins/roadrunner" }
+	# others ...
+
+[log]
+level = "debug"
+mode = "development"
 ```
-With that your application will be able to cache the responses if possible and returns at least the `Cache-Status` HTTP header with the different directives mentionned in the RFC specification.  
-You have to pass a Kratos `Configuration` structure into the `New` method (you can use the `DefaultConfiguration` variable to have a built-in production ready configuration).  
-See the full detailled configuration names [here](https://github.com/darkweak/souin#optional-configuration).
 
-You can also use the configuration file to configuration the HTTP cache. Refer to the code block below:
-```
-server: #...
-data: #...
-# HTTP cache part
-httpcache:
-  api:
-    souin: {}
-  default_cache:
-    regex:
-      exclude: /excluded
-    ttl: 5s
-  log_level: debug
-```
-After that you have to edit your server instanciation to use the HTTP cache configuration parser
-```go
-import (
-	httpcache "github.com/darkweak/souin/plugins/kratos"
-	kratos_http "github.com/go-kratos/kratos/v2/transport/http"
-)
-
-func main() {
-  c := config.New(
-		config.WithSource(file.NewSource("examples/configuration.yml")),
-		config.WithDecoder(func(kv *config.KeyValue, v map[string]interface{}) error {
-			return yaml.Unmarshal(kv.Value, v)
-		}),
-	)
-	if err := c.Load(); err != nil {
-		panic(err)
-	}
-
-	server := kratos_http.NewServer(
-		kratos_http.Filter(
-			httpcache.NewHTTPCacheFilter(httpcache.ParseConfiguration(c)),
-		),
-	)
-  // ...
-}
+## Example configuration
+You can set each Souin configuration key under the `http.cache` key. There is a configuration example below.
+```yaml
+# .rr.yaml
+http:
+  # Other http sub keys
+  cache:
+    api:
+      basepath: /httpcache_api
+      prometheus:
+        basepath: /anything-for-prometheus-metrics
+      souin: {}
+    default_cache:
+      allowed_http_verbs:
+        - GET
+        - POST
+        - HEAD
+      cdn:
+        api_key: XXXX
+        dynamic: true
+        hostname: XXXX
+        network: XXXX
+        provider: fastly
+        strategy: soft
+      headers:
+        - Authorization
+      regex:
+        exclude: '/excluded'
+      ttl: 5s
+      stale: 10s
+    log_level: debug
+    ykeys:
+      The_First_Test:
+        headers:
+          Content-Type: '.+'
+      The_Second_Test:
+        url: 'the/second/.+'
+    surrogate_keys:
+      The_First_Test:
+        headers:
+          Content-Type: '.+'
+      The_Second_Test:
+        url: 'the/second/.+'
+  middleware:
+	- cache
+	# Other middlewares
 ```
 
 
 Other resources
 ---------------
 You can find an example for a docker-compose stack inside the `examples` folder.  
-See the [Souin](https://github.com/darkweak/souin) configuration for the full configuration, and its associated [development kratos middleware](https://github.com/darkweak/souin/blob/master/plugins/kratos)  
+See the [Souin](https://github.com/darkweak/souin) configuration for the full configuration, and its associated [development roadrunner middleware](https://github.com/darkweak/souin/blob/master/plugins/roadrunner)  
+
