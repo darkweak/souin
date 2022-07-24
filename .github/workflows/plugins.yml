@@ -445,6 +445,51 @@ jobs:
           folder: Kratos
           reporters: cli
           delayRequest: 5000
+  build-roadrunner-validator:
+    name: Check that Souin build as Roadrunner middleware
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Add domain.com host to /etc/hosts
+        run: |
+          sudo echo "127.0.0.1 domain.com" | sudo tee -a /etc/hosts
+      -
+        name: Install Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.16
+      -
+        name: Checkout code
+        uses: actions/checkout@v2
+      -
+        name: Run Roadrunner tests
+        run: cd plugins/roadrunner && go test -v .
+      -
+        name: Build Souin as Roadrunner plugin
+        run: make build-and-run-roadrunner
+      -
+        name: Wait for Souin is really loaded inside Roadrunner as middleware
+        uses: jakejarvis/wait-action@master
+        with:
+          time: 30s
+      -
+        name: Set Roadrunner logs configuration result as environment variable
+        run: cd plugins/roadrunner && echo "$(make load-checker)" >> $GITHUB_ENV
+      -
+        name: Check if the configuration is loaded to define if Souin is loaded too
+        uses: nick-invision/assert-action@v1
+        with:
+          expected: '"Souin configuration is now loaded."'
+          actual: ${{ env.MIDDLEWARE_RESULT }}
+          comparison: contains
+      -
+        name: Run Roadrunner E2E tests
+        uses: anthonyvscode/newman-action@v1
+        with:
+          collection: "docs/e2e/Souin E2E.postman_collection.json"
+          folder: Roadrunner
+          reporters: cli
+          delayRequest: 5000
   build-skipper-validator:
     name: Check that Souin build as Skipper middleware
     runs-on: ubuntu-latest

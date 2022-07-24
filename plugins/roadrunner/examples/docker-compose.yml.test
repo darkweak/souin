@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  roadrunner:
+    build:
+      context: ../../..
+      dockerfile: plugins/roadrunner/examples/Dockerfile.test
+      target: development-runner
+    ports:
+      - 80:80
+    volumes:
+      - .:/app

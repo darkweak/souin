@@ -1,0 +1,18 @@
+FROM ghcr.io/roadrunner-server/velox:latest as velox
+
+ARG APP_VERSION="undefined"
+ARG BUILD_TIME="undefined"
+ENV CGO_ENABLED=0
+
+COPY plugins/roadrunner/examples/configuration.toml .
+COPY . /opt
+
+RUN vx build -c configuration.toml -o /usr/bin/
+
+FROM composer:latest AS development-runner
+COPY --from=velox /usr/bin/rr /usr/local/bin/rr
+
+RUN docker-php-ext-install sockets
+RUN composer require spiral/roadrunner nyholm/psr7
+
+CMD ["/usr/bin/rr", "serve"]
