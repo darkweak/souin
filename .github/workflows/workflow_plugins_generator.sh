@@ -1,7 +1,7 @@
 #!/bin/bash
 
 plugins=("beego"  "chi"  "dotweb"  "echo"  "fiber"  "gin"  "go-zero"  "goyave"  "kratos"  "skipper"  "souin"  "traefik"  "tyk"  "webgo")
-durations=("35"   "30"   "30"      "30"    "45"     "40"   "50"       "35"      "50"      "60"       "40"     "30"       "30"   "30")
+durations=("35"   "30"   "30"      "30"    "45"     "40"   "50"       "40"      "50"      "60"       "40"     "30"       "30"   "30")
 versions=("16"    "16"   "16"      "16"    "16"     "16"   "16"       "16"      "18"      "18"       "16"     "16"       "16"   "16")
 
 IFS= read -r -d '' tpl <<EOF
@@ -33,6 +33,9 @@ jobs:
       -
         name: Build Souin as caddy module
         run: cd plugins/caddy && xcaddy build --with github.com/darkweak/souin/plugins/caddy=./ --with github.com/darkweak/souin@latest=../..
+      -
+        name: Run Caddy tests
+        run: cd plugins/caddy && go test -v ./...
       -
         name: Run detached caddy
         run: cd plugins/caddy && ./caddy run &
@@ -67,6 +70,9 @@ for i in ${!plugins[@]}; do
       -
         name: Checkout code
         uses: actions/checkout@v2
+      -
+        name: Run $capitalized tests
+        run: cd plugins/$lower && go test -v .
       -
         name: Build Souin as $capitalized plugin
         run: make build-and-run-$lower
