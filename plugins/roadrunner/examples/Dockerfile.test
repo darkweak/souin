@@ -3,7 +3,7 @@ FROM ghcr.io/roadrunner-server/velox:latest as velox
 ARG GH_TOKEN
 ENV CGO_ENABLED=0
 ENV VERSION=v2.10.7
-ENV TIME=$(date +%H:%M) 
+ENV TIME="$(date +%H:%M)"
 
 COPY plugins/roadrunner/examples/configuration.toml .
 COPY . /opt
