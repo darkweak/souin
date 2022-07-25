@@ -9,6 +9,7 @@ COPY . /opt
 WORKDIR /opt/plugins/roadrunner/examples
 RUN sed -i "s/GH_TOKEN/${GH_TOKEN}/" configuration.toml
 
+RUN apk add git
 RUN vx build -c configuration.toml -o /usr/bin/
 
 FROM composer:latest AS development-runner

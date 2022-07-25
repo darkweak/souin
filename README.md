@@ -1086,3 +1086,4 @@ Thanks to these users for contributing or helping this project in any way
 * [Duy Nguyen](https://github.com/duy-nguyen-devops)
 * [Kiss Karoly](https://github.com/kresike)
 * [Matthias von Bargen](https://github.com/mattvb91)
+* [Fred Liang](https://github.com/fredliang44)
