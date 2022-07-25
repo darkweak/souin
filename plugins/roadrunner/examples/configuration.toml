@@ -10,34 +10,10 @@ ref = "master"
 
     [github.plugins]
     logger = { ref = "master", owner = "roadrunner-server", repository = "logger" }
-    temporal = { ref = "master", owner = "temporalio", repository = "roadrunner-temporal" }
-    metrics = { ref = "master", owner = "roadrunner-server", repository = "metrics" }
-    cache = { ref = "master", owner = "roadrunner-server", repository = "cache", replace = "/opt/plugins/roadrunner" }
-    reload = { ref = "master", owner = "roadrunner-server", repository = "reload" }
-    otel = { ref = "master", owner = "roadrunner-server", repository = "otel" }
+    cache = { ref = "master", owner = "roadrunner-server", repository = "cache", replace = "/Users/sylvain/go/src/github.com/darkweak/souin/plugins/roadrunner" }
     server = { ref = "master", owner = "roadrunner-server", repository = "server" }
-    service = { ref = "master", owner = "roadrunner-server", repository = "service" }
-    amqp = { ref = "master", owner = "roadrunner-server", repository = "amqp" }
-    beanstalk = { ref = "master", owner = "roadrunner-server", repository = "beanstalk" }
-    boltdb = { ref = "master", owner = "roadrunner-server", repository = "boltdb" }
-    broadcast = { ref = "master", owner = "roadrunner-server", repository = "broadcast" }
-    fileserver = { ref = "master", owner = "roadrunner-server", repository = "fileserver" }
-    grpc = { ref = "master", owner = "roadrunner-server", repository = "grpc" }
     gzip = { ref = "master", owner = "roadrunner-server", repository = "gzip" }
-    headers = { ref = "master", owner = "roadrunner-server", repository = "headers" }
     http = { ref = "master", owner = "roadrunner-server", repository = "http" }
-    jobs = { ref = "master", owner = "roadrunner-server", repository = "jobs" }
-    memory = { ref = "master", owner = "roadrunner-server", repository = "memory" }
-    nats = { ref = "master", owner = "roadrunner-server", repository = "nats" }
-    new_relic = { ref = "master", owner = "roadrunner-server", repository = "new_relic" }
-    prometheus = { ref = "master", owner = "roadrunner-server", repository = "prometheus" }
-    redis = { ref = "master", owner = "roadrunner-server", repository = "redis" }
-    sqs = { ref = "master", owner = "roadrunner-server", repository = "sqs" }
-    static = { ref = "master", owner = "roadrunner-server", repository = "static" }
-    status = { ref = "master", owner = "roadrunner-server", repository = "status" }
-    kv = { ref = "master", owner = "roadrunner-server", repository = "kv" }
-    memcached = { ref = "master", owner = "roadrunner-server", repository = "memcached" }
-    tcp = { ref = "master", owner = "roadrunner-server", repository = "tcp" }
 
 [log]
 level = "debug"

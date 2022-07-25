@@ -3,6 +3,7 @@ package roadrunner
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -18,8 +19,6 @@ type (
 		*dummyConfiguration
 	}
 )
-
-const ttl = 5 * time.Second
 
 func (*configWrapper) Get(name string) interface{} {
 	var c map[string]interface{}
@@ -80,7 +79,55 @@ func Test_Plugin_Middleware(t *testing.T) {
 	}
 }
 
-func Test_HttpcacheRoadrunnerPlugin_NewHTTPCacheFilter_Excluded(t *testing.T) {
+func Test_Plugin_Middleware_Stale(t *testing.T) {
+	p := &Plugin{}
+	_ = p.Init(&configWrapper{}, nil)
+	handler := p.Middleware(nextFilter)
+
+	var rs *http.Response
+	common := func() {
+		req, res, res2 := prepare("/stale-test")
+		handler.ServeHTTP(res, req)
+		rs := res.Result()
+		rs.Body.Close()
+		if rs.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored" {
+			t.Error("The response must contain a Cache-Status header with the stored directive.")
+		}
+		handler.ServeHTTP(res2, req)
+		rs = res2.Result()
+		rs.Body.Close()
+		if rs.Header.Get("Cache-Status") != "Souin; hit; ttl=4" {
+			t.Error("The response must contain a Cache-Status header with the hit directive.")
+		}
+		if rs.Header.Get("Age") != "1" {
+			t.Error("The response must contain a Age header with the value 1.")
+		}
+	}
+
+	common()
+	req, _, _ := prepare("/stale-test")
+
+	time.Sleep(5 * time.Second)
+	res3 := httptest.NewRecorder()
+	req.Header = http.Header{
+		"Cache-Control": []string{"max-stale=4"},
+	}
+	handler.ServeHTTP(res3, req)
+	rs = res3.Result()
+	rs.Body.Close()
+	if rs.Header.Get("Cache-Status") != "Souin; hit; ttl=-1; fwd=stale" {
+		fmt.Println(rs.Header.Get("Cache-Status"))
+		t.Error("The response must contain a Cache-Status header without the stored directive and with ttl=-1; fwd=stale.")
+	}
+	if rs.Header.Get("Age") != "6" {
+		fmt.Println(rs.Header.Get("Age"))
+		t.Error("The response must contain a Age header.")
+	}
+
+	common()
+}
+
+func Test_Plugin_Middleware_Excluded(t *testing.T) {
 	p := &Plugin{}
 	_ = p.Init(&configWrapper{}, nil)
 	handler := p.Middleware(nextFilter)
@@ -102,7 +149,7 @@ func Test_HttpcacheRoadrunnerPlugin_NewHTTPCacheFilter_Excluded(t *testing.T) {
 	}
 }
 
-func Test_HttpcacheRoadrunnerPlugin_NewHTTPCacheFilter_Mutation(t *testing.T) {
+func Test_Plugin_Middleware_Mutation(t *testing.T) {
 	p := &Plugin{}
 	_ = p.Init(&configWrapper{}, nil)
 	handler := p.Middleware(nextFilter)
@@ -126,7 +173,7 @@ func Test_HttpcacheRoadrunnerPlugin_NewHTTPCacheFilter_Mutation(t *testing.T) {
 	}
 }
 
-func Test_HttpcacheRoadrunnerPlugin_NewHTTPCacheFilter_API(t *testing.T) {
+func Test_Plugin_Middleware_API(t *testing.T) {
 	p := &Plugin{}
 	_ = p.Init(&configWrapper{}, nil)
 	handler := p.Middleware(nextFilter)
