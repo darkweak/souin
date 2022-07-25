@@ -82,6 +82,7 @@ default_cache:
     path: /badger/path
     configuration:
       SyncEnable: false
+  cache_name: Roadrunner
   cdn:
     api_key: XXXX
     dynamic: true
