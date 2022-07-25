@@ -791,7 +791,7 @@ func main() {
 To use Souin as roadrunner middleware, you have to build your `rr` binary with the souin dependency.
 ```toml
 [velox]
-build_args = ['-trimpath', '-ldflags', '-s -X github.com/roadrunner-server/roadrunner/v2/internal/meta.version=v2.10.7 -X github.com/roadrunner-server/roadrunner/v2/internal/meta.buildTime=10:00:00']
+build_args = ['-trimpath', '-ldflags', '-s -X github.com/roadrunner-server/roadrunner/v2/internal/meta.version=${VERSION} -X github.com/roadrunner-server/roadrunner/v2/internal/meta.buildTime=${TIME}']
 
 [roadrunner]
 ref = "master"

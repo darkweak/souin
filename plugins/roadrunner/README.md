@@ -14,7 +14,7 @@ This is a distributed HTTP cache module for Roadrunner based on [Souin](https://
 ## Build the roadrunner binary
 ```toml
 [velox]
-build_args = ['-trimpath', '-ldflags', '-s -X github.com/roadrunner-server/roadrunner/v2/internal/meta.version=v2.10.7 -X github.com/roadrunner-server/roadrunner/v2/internal/meta.buildTime=10:00:00']
+build_args = ['-trimpath', '-ldflags', '-s -X github.com/roadrunner-server/roadrunner/v2/internal/meta.version=${VERSION} -X github.com/roadrunner-server/roadrunner/v2/internal/meta.buildTime=${TIME}']
 
 [roadrunner]
 ref = "master"
