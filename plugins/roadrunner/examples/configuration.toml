@@ -1,0 +1,20 @@
+[velox]
+build_args = ['-trimpath', '-ldflags', '-s -X github.com/roadrunner-server/roadrunner/v2/internal/meta.version=v2.10.7 -X github.com/roadrunner-server/roadrunner/v2/internal/meta.buildTime=10:00:00']
+
+[roadrunner]
+ref = "master"
+
+[github]
+    [github.token]
+    token = "GH_TOKEN"
+
+    [github.plugins]
+    logger = { ref = "master", owner = "roadrunner-server", repository = "logger" }
+    cache = { ref = "master", owner = "roadrunner-server", repository = "cache", replace = "/opt/plugins/roadrunner" }
+    server = { ref = "master", owner = "roadrunner-server", repository = "server" }
+    gzip = { ref = "master", owner = "roadrunner-server", repository = "gzip" }
+    http = { ref = "master", owner = "roadrunner-server", repository = "http" }
+
+[log]
+level = "debug"
+mode = "development"
