@@ -1,0 +1,45 @@
+server:
+  command: "php psr-worker.php"
+http:
+  address: 0.0.0.0:80
+  pool:
+    num_workers: 4
+  cache:
+    api:
+      basepath: /httpcache_api
+      prometheus:
+        basepath: /anything-for-prometheus-metrics
+      souin:
+        basepath: /httpcache
+    default_cache:
+      allowed_http_verbs:
+        - GET
+        - POST
+        - HEAD
+      cdn:
+        api_key: XXXX
+        dynamic: true
+        hostname: XXXX
+        network: XXXX
+        provider: fastly
+        strategy: soft
+      headers:
+        - Authorization
+      regex:
+        exclude: '/excluded'
+      ttl: 5s
+      stale: 5s
+    log_level: debug
+    ykeys:
+      The_First_Test:
+        headers:
+          Content-Type: '.+'
+      The_Second_Test:
+        url: 'the/second/.+'
+    surrogate_keys:
+      The_First_Test:
+        headers:
+          Content-Type: '.+'
+      The_Second_Test:
+        url: 'the/second/.+'
+  middleware: [ "headers", "gzip", "cache" ]

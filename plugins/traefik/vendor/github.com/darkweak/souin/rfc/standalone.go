@@ -24,48 +24,31 @@ func GetVariedCacheKey(req *http.Request, headers []string) string {
 	return req.Context().Value(context.Key).(string) + providers.VarySeparator + strings.Join(headers, ";")
 }
 
-func validateMaxAgeCachedResponse(req *http.Request, res *http.Response, header string, addTime int) *http.Response {
-	cc := parseCacheControl(req.Header)
-	if maxAge, ok := cc[header]; ok {
-		ma, _ := strconv.Atoi(maxAge)
-		a, _ := strconv.Atoi(res.Header.Get("Age"))
+func validateMaxAgeCachedResponse(req *http.Request, res *http.Response, header string, maxAge int, addTime int) *http.Response {
+	a, _ := strconv.Atoi(res.Header.Get("Age"))
 
-		if (ma + addTime) < a {
-			return nil
-		}
+	if maxAge >= 0 && (maxAge+addTime) < a {
+		return nil
 	}
 
 	return res
 }
 
 func ValidateMaxAgeCachedResponse(req *http.Request, res *http.Response) *http.Response {
-	return validateMaxAgeCachedResponse(req, res, "max-age", 0)
+	co := req.Context().Value(context.RequestCacheControl).(*cacheobject.RequestCacheDirectives)
+	if co == nil {
+		return nil
+	}
+	return validateMaxAgeCachedResponse(req, res, "max-age", int(co.MaxAge), 0)
 }
 
 func ValidateMaxAgeCachedStaleResponse(req *http.Request, res *http.Response, addTime int) *http.Response {
 	co := req.Context().Value(context.RequestCacheControl).(*cacheobject.RequestCacheDirectives)
-	if !co.MaxStaleSet || co.MaxStale <= 0 {
-		return nil
-	}
-	return validateMaxAgeCachedResponse(req, res, "max-stale", addTime)
-}
-
-func ValidateStaleCachedResponse(req *http.Request, res *http.Response) *http.Response {
-	if res == nil {
+	if !co.MaxStaleSet && co.MaxStale < 0 {
 		return nil
 	}
 
-	cc := parseCacheControl(req.Header)
-	if maxStale, ok := cc["max-stale"]; ok {
-		ms, _ := strconv.Atoi(maxStale)
-		a, _ := strconv.Atoi(res.Header.Get("Age"))
-
-		if ms < a {
-			return nil
-		}
-	}
-
-	return res
+	return validateMaxAgeCachedResponse(req, res, "max-stale", int(co.MaxStale), addTime)
 }
 
 // getFreshness will return one of fresh/stale/transparent based on the cache-control
