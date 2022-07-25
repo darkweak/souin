@@ -28,12 +28,13 @@
   8.8. [Go-zero middleware](#go-zero-middleware)  
   8.9. [Goyave middleware](#goyave-middleware)  
   8.10. [Kratos filter](#kratos-filter)  
-  8.11. [Skipper filter](#skipper-filter)  
-  8.12. [Træfik plugin](#træfik-plugin)  
-  8.13. [Tyk plugin](#tyk-plugin)  
-  8.14. [Webgo middleware](#webgo-middleware)  
-  8.15. [Prestashop plugin](#prestashop-plugin)  
-  8.16. [Wordpress plugin](#wordpress-plugin)  
+  8.11. [Roadrunner middleware](#roadrunner-middleware)  
+  8.12. [Skipper filter](#skipper-filter)  
+  8.13. [Træfik plugin](#træfik-plugin)  
+  8.14. [Tyk plugin](#tyk-plugin)  
+  8.15. [Webgo middleware](#webgo-middleware)  
+  8.16. [Prestashop plugin](#prestashop-plugin)  
+  8.17. [Wordpress plugin](#wordpress-plugin)  
 9. [Credits](#credits)
 
 # Souin HTTP cache
@@ -895,7 +896,7 @@ experimental:
   plugins:
     souin:
       moduleName: github.com/darkweak/souin
-      version: v1.6.16
+      version: v1.6.17
 ```
 After that you can declare either the whole configuration at once in the middleware block or by service. See the examples below.
 ```yaml
