@@ -22,7 +22,7 @@
         ttl 1000s
         timeout {
             backend 10s
-            cache 100ns
+            cache 10ms
         }
         default_cache_control public
     }
