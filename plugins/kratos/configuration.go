@@ -140,6 +140,8 @@ func parseDefaultCache(dcConfiguration map[string]config.Value) *configurationty
 				}
 			}
 			dc.Badger = provider
+		case "cache_name":
+			dc.CacheName, _ = defaultCacheV.String()
 		case "cdn":
 			cdn := configurationtypes.CDN{}
 			cdnConfiguration, _ := defaultCacheV.Map()

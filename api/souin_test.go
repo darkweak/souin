@@ -141,7 +141,7 @@ func (*mockSurrogateStorageError) Destruct() error {
 
 func TestSouinAPI_HandleRequest(t *testing.T) {
 	souinMock := mockSouinAPI()
-	souinMock.surrogateStorage.Destruct()
+	_ = souinMock.surrogateStorage.Destruct()
 	souinMock.provider.DeleteMany(".+")
 	souinMock.security = &auth.SecurityAPI{}
 
@@ -160,7 +160,7 @@ func TestSouinAPI_HandleRequest(t *testing.T) {
 	sr := res.Result()
 	sr.Header.Set("Surrogate-Key", "THE_KEY")
 	souinMock.provider.Set("first/key/stored", []byte("value"), configurationtypes.URL{}, time.Second)
-	souinMock.surrogateStorage.Store(sr, "first/key/stored")
+	_ = souinMock.surrogateStorage.Store(sr, "first/key/stored")
 	souinMock.security = nil
 	req = httptest.NewRequest(http.MethodGet, "/souin-api/souinbasepath/surrogate_keys", nil)
 	res = httptest.NewRecorder()
