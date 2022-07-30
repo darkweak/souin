@@ -103,7 +103,7 @@ func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 		} else if compile {
 			search := regexp.MustCompile(s.GetBasePath()+"/(.+)").FindAllStringSubmatch(r.RequestURI, -1)[0][1]
 			res, _ = json.Marshal(s.listKeys(search))
-			if res == nil {
+			if len(res) == 2 {
 				w.WriteHeader(http.StatusNotFound)
 			}
 		} else {
