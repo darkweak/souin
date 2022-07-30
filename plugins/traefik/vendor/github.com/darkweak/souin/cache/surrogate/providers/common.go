@@ -91,7 +91,6 @@ func (s *baseStorage) init(config configurationtypes.AbstractConfigurationInterf
 	}
 
 	s.dynamic = config.GetDefaultCache().GetCDN().Dynamic
-	s.logger = config.GetLogger()
 	s.keysRegexp = keysRegexp
 	s.mu = &sync.Mutex{}
 }
@@ -100,7 +99,7 @@ func (s *baseStorage) storeTag(tag string, cacheKey string, re *regexp.Regexp) {
 	if currentValue, b := s.Storage[tag]; s.dynamic || b {
 		if !re.MatchString(currentValue) {
 			s.mu.Lock()
-			s.logger.Sugar().Debugf("Store the tag %s", tag)
+			fmt.Printf("Store the tag %s", tag)
 			s.Storage[tag] = currentValue + souinStorageSeparator + cacheKey
 			s.mu.Unlock()
 		}
