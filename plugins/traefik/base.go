@@ -174,6 +174,8 @@ func DefaultSouinPluginCallback(
 			_, _ = cw.Rw.Write([]byte("Internal server error"))
 			return
 		}
+	case <-errorBackendCh:
+		return
 	}
 }
 
