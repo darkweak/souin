@@ -2,7 +2,7 @@ module github.com/darkweak/souin/plugins/roadrunner
 
 go 1.16
 
-require github.com/darkweak/souin v1.6.17
+require github.com/darkweak/souin v1.6.18
 
 require (
 	github.com/armon/go-metrics v0.4.0 // indirect
@@ -35,4 +35,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 )
 
-replace github.com/darkweak/souin v1.6.17 => ../..
+replace github.com/darkweak/souin v1.6.18 => ../..
