@@ -215,6 +215,10 @@ func (s *SouinCaddyPlugin) FromApp(app *SouinApp) error {
 	if dc.Headers == nil {
 		s.Configuration.DefaultCache.Headers = appDc.Headers
 	}
+
+	if s.Configuration.LogLevel == "" {
+		s.Configuration.LogLevel = app.LogLevel
+	}
 	if dc.TTL.Duration == 0 {
 		s.Configuration.DefaultCache.TTL = appDc.TTL
 	}
@@ -611,6 +615,7 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 	souinApp.DefaultCache = cfg.DefaultCache
 	souinApp.API = cfg.API
 	souinApp.CacheKeys = cfg.CfgCacheKeys
+	souinApp.LogLevel = cfg.LogLevel
 
 	return httpcaddyfile.App{
 		Name:  moduleName,

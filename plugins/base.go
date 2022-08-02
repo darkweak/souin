@@ -109,6 +109,7 @@ func DefaultSouinPluginCallback(
 	rc coalescing.RequestCoalescingInterface,
 	nextMiddleware func(w http.ResponseWriter, r *http.Request) error,
 ) (e error) {
+	retriever.GetConfiguration().GetLogger().Sugar().Debugf("Incoming request: %+v", req)
 	prometheus.Increment(prometheus.RequestCounter)
 	start := time.Now()
 	cacheCandidate := !strings.Contains(req.Header.Get("Cache-Control"), "no-cache")
@@ -160,6 +161,7 @@ func DefaultSouinPluginCallback(
 			return e
 		}
 		if entry != nil {
+			retriever.GetConfiguration().GetLogger().Sugar().Debugf("Serve response from the cache: %+v", entry)
 			sendAnyCachedResponse(entry.Header, entry, res)
 
 			return
