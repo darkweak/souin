@@ -174,6 +174,62 @@ cache @matchdefault {
     }
 }
 
+route /badger-configuration {
+    cache {
+        ttl 15s
+        badger {
+            configuration {
+                Dir /tmp/badger-configuration
+                ValueDir match2
+                ValueLogFileSize 16777216
+                MemTableSize 4194304
+                ValueThreshold 524288
+            }
+        }
+    }
+    respond "Hello badger"
+}
+
+route /etcd-configuration {
+    cache {
+        ttl 15s
+        etcd {
+            configuration {
+                Endpoints etcd1:2379 etcd2:2379 etcd3:2379
+                AutoSyncInterval 1s
+                DialTimeout 1s
+                DialKeepAliveTime 1s
+                DialKeepAliveTimeout 1s
+                MaxCallSendMsgSize 10000000
+                MaxCallRecvMsgSize 10000000
+                Username john
+                Password doe
+                RejectOldCluster false
+                PermitWithoutStream false
+            }
+        }
+    }
+    respond "Hello etcd"
+}
+
+route /nuts-configuration {
+    cache {
+        ttl 15s
+        nuts {
+            configuration {
+                Dir /tmp/nuts-configuration
+                EntryIdxMode 1
+                RWMode 0
+                SegmentSize 1024
+                NodeNum 42
+                SyncEnable true
+                StartFileLoadingMode 1
+            }
+        }
+    }
+    respond "Hello nuts"
+}
+
 cache @souin-api {}
 ```
 What does these directives mean?  
@@ -219,6 +275,9 @@ What does these directives mean?
 | `olric.configuration`              | Configure Olric directly in the Caddyfile or your JSON caddy configuration                                                                   | [See the Olric configuration for the options](https://github.com/buraksezer/olric/blob/master/cmd/olricd/olricd.yaml/)  |
 | `regex.exclude`                    | The regex used to prevent paths being cached                                                                                                 | `^[A-z]+.*$`                                                                                                            |
 | `stale`                            | The stale duration                                                                                                                           | `25m`                                                                                                                   |
+| `timeout`                          | The timeout configuration                                                                                                                    |                                                                                                                           |
+| `timeout.backend`                  | The timeout duration to consider the backend as unreachable                                                                                  | `10s`                                                                                                                     |
+| `timeout.cache`                    | The timeout duration to consider the cache provider as unreachable                                                                           | `10ms`                                                                                                                    |
 | `ttl`                              | The TTL duration                                                                                                                             | `120s`                                                                                                                  |
 | `log_level`                        | The log level                                                                                                                                | `One of DEBUG, INFO, WARN, ERROR, DPANIC, PANIC, FATAL it's case insensitive`                                           |
 

@@ -21,6 +21,7 @@ type DefaultCache struct {
 	Etcd                configurationtypes.CacheProvider `json:"etcd"`
 	Nuts                configurationtypes.CacheProvider `json:"nuts"`
 	Regex               configurationtypes.Regex         `json:"regex"`
+	Timeout             configurationtypes.Timeout       `json:"timeout"`
 	TTL                 configurationtypes.Duration      `json:"ttl"`
 	Stale               configurationtypes.Duration      `json:"stale"`
 }
@@ -78,6 +79,11 @@ func (d *DefaultCache) GetOlric() configurationtypes.CacheProvider {
 // GetRegex returns the regex that shouldn't be cached
 func (d *DefaultCache) GetRegex() configurationtypes.Regex {
 	return d.Regex
+}
+
+// GetTimeout returns the backend and cache timeouts
+func (d *DefaultCache) GetTimeout() configurationtypes.Timeout {
+	return d.Timeout
 }
 
 // GetTTL returns the default TTL

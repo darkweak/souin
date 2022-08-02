@@ -61,6 +61,9 @@ http:
         - Authorization
       regex:
         exclude: '/excluded'
+      timeout:
+        backend: 5s
+        cache: 1ms
       ttl: 5s
       stale: 10s
     log_level: debug

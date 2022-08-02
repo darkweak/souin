@@ -140,6 +140,8 @@ func parseDefaultCache(dcConfiguration map[string]config.Value) *configurationty
 				}
 			}
 			dc.Badger = provider
+		case "cache_name":
+			dc.CacheName, _ = defaultCacheV.String()
 		case "cdn":
 			cdn := configurationtypes.CDN{}
 			cdnConfiguration, _ := defaultCacheV.Map()
@@ -225,6 +227,30 @@ func parseDefaultCache(dcConfiguration map[string]config.Value) *configurationty
 			if exclude != "" {
 				dc.Regex = configurationtypes.Regex{Exclude: exclude}
 			}
+		case "timeout":
+			timeout := configurationtypes.Timeout{}
+			timeoutConfiguration, _ := defaultCacheV.Map()
+			for timeoutK, timeoutV := range timeoutConfiguration {
+				switch timeoutK {
+				case "backend":
+					d := configurationtypes.Duration{}
+					sttl, err := timeoutV.String()
+					ttl, _ := time.ParseDuration(sttl)
+					if err == nil {
+						d.Duration = ttl
+					}
+					timeout.Backend = d
+				case "cache":
+					d := configurationtypes.Duration{}
+					sttl, err := timeoutV.String()
+					ttl, _ := time.ParseDuration(sttl)
+					if err == nil {
+						d.Duration = ttl
+					}
+					timeout.Cache = d
+				}
+			}
+			dc.Timeout = timeout
 		case "ttl":
 			sttl, err := defaultCacheV.String()
 			ttl, _ := time.ParseDuration(sttl)

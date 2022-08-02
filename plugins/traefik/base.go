@@ -2,11 +2,13 @@ package traefik
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/darkweak/souin/api"
 	"github.com/darkweak/souin/cache/coalescing"
@@ -112,27 +114,69 @@ func DefaultSouinPluginCallback(
 ) {
 	cacheKey := req.Context().Value(souin_ctx.Key).(string)
 	retriever.SetMatchedURLFromRequest(req)
+	timeoutCache := req.Context().Value(souin_ctx.TimeoutCache).(time.Duration)
+	cancel := req.Context().Value(souin_ctx.TimeoutCancel).(context.CancelFunc)
+	defer cancel()
+	foundEntry := make(chan *http.Response)
+	errorCacheCh := make(chan error)
 
-	if !strings.Contains(req.Header.Get("Cache-Control"), "no-cache") {
-		r, stale, _ := rfc.CachedResponse(
-			retriever.GetProvider(),
-			req,
-			cacheKey,
-			retriever.GetTransport(),
-		)
+	go func() {
+		if !strings.Contains(req.Header.Get("Cache-Control"), "no-cache") {
+			r, stale, _ := rfc.CachedResponse(
+				retriever.GetProvider(),
+				req,
+				cacheKey,
+				retriever.GetTransport(),
+			)
 
-		if r != nil {
-			rh := r.Header
-			if stale {
-				rfc.HitStaleCache(&rh, retriever.GetMatchedURL().TTL.Duration)
+			if r != nil {
+				rh := r.Header
+				if stale {
+					rfc.HitStaleCache(&rh, retriever.GetMatchedURL().TTL.Duration)
+					r.Header = rh
+				}
+				foundEntry <- r
+				errorCacheCh <- nil
+
+				return
 			}
-			sendAnyCachedResponse(rh, r, res)
+		}
 
+		foundEntry <- nil
+		errorCacheCh <- nil
+	}()
+
+	select {
+	case entry := <-foundEntry:
+		if e := <-errorCacheCh; e != nil {
 			return
 		}
+		if entry != nil {
+			sendAnyCachedResponse(entry.Header, entry, res)
+			return
+		}
+	case <-time.After(timeoutCache):
 	}
 
-	_ = nextMiddleware(res, req)
+	errorBackendCh := make(chan error)
+
+	go func() {
+		errorBackendCh <- nextMiddleware(res, req)
+	}()
+
+	select {
+	case <-req.Context().Done():
+		switch req.Context().Err() {
+		case context.DeadlineExceeded:
+			cw := res.(*CustomWriter)
+			rfc.MissCache(cw.Header().Set, req)
+			cw.WriteHeader(http.StatusGatewayTimeout)
+			_, _ = cw.Rw.Write([]byte("Internal server error"))
+			return
+		}
+	case <-errorBackendCh:
+		return
+	}
 }
 
 // DefaultSouinPluginInitializerFromConfiguration is the default initialization for plugins

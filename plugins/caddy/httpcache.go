@@ -70,6 +70,8 @@ type SouinCaddyPlugin struct {
 	// Enable the Olric distributed cache storage.
 	Olric configurationtypes.CacheProvider `json:"olric,omitempty"`
 	// Time to live for a key, using time.duration.
+	Timeout configurationtypes.Timeout `json:"timeout,omitempty"`
+	// Time to live for a key, using time.duration.
 	TTL configurationtypes.Duration `json:"ttl,omitempty"`
 	// Time to live for a stale key, using time.duration.
 	Stale configurationtypes.Duration `json:"stale,omitempty"`
@@ -154,6 +156,7 @@ func (s *SouinCaddyPlugin) configurationPropertyMapper() error {
 		Headers:             s.Headers,
 		Olric:               s.Olric,
 		Etcd:                s.Etcd,
+		Timeout:             s.Timeout,
 		TTL:                 s.TTL,
 		Stale:               s.Stale,
 	}
@@ -191,6 +194,7 @@ func (s *SouinCaddyPlugin) FromApp(app *SouinApp) error {
 			Stale:               app.Stale,
 			DefaultCacheControl: app.DefaultCacheControl,
 			CacheName:           app.CacheName,
+			Timeout:             app.Timeout,
 		}
 		return nil
 	}
@@ -211,11 +215,21 @@ func (s *SouinCaddyPlugin) FromApp(app *SouinApp) error {
 	if dc.Headers == nil {
 		s.Configuration.DefaultCache.Headers = appDc.Headers
 	}
+
+	if s.Configuration.LogLevel == "" {
+		s.Configuration.LogLevel = app.LogLevel
+	}
 	if dc.TTL.Duration == 0 {
 		s.Configuration.DefaultCache.TTL = appDc.TTL
 	}
 	if dc.Stale.Duration == 0 {
 		s.Configuration.DefaultCache.Stale = appDc.Stale
+	}
+	if dc.Timeout.Backend.Duration == 0 {
+		s.Configuration.DefaultCache.Timeout.Backend = appDc.Timeout.Backend
+	}
+	if dc.Timeout.Cache.Duration == 0 {
+		s.Configuration.DefaultCache.Timeout.Cache = appDc.Timeout.Cache
 	}
 	if !dc.Key.DisableBody && !dc.Key.DisableHost && !dc.Key.DisableMethod {
 		s.Configuration.DefaultCache.Key = appDc.Key
@@ -226,18 +240,16 @@ func (s *SouinCaddyPlugin) FromApp(app *SouinApp) error {
 	if dc.CacheName == "" {
 		s.Configuration.DefaultCache.CacheName = appDc.CacheName
 	}
-	if dc.Olric.URL == "" || dc.Olric.Path == "" || dc.Olric.Configuration == nil {
-		s.Configuration.DefaultCache.Distributed = appDc.Distributed
+	if dc.Olric.URL == "" && dc.Olric.Path == "" && dc.Olric.Configuration == nil {
 		s.Configuration.DefaultCache.Olric = appDc.Olric
 	}
 	if dc.Etcd.Configuration == nil {
-		s.Configuration.DefaultCache.Distributed = appDc.Distributed
 		s.Configuration.DefaultCache.Etcd = appDc.Etcd
 	}
 	if dc.Badger.Path == "" || dc.Badger.Configuration == nil {
 		s.Configuration.DefaultCache.Badger = appDc.Badger
 	}
-	if dc.Nuts.Path == "" || dc.Nuts.Configuration == nil {
+	if dc.Nuts.Path == "" && dc.Nuts.Configuration == nil {
 		s.Configuration.DefaultCache.Nuts = appDc.Nuts
 	}
 	if dc.Regex.Exclude == "" {
@@ -315,9 +327,6 @@ func (s *SouinCaddyPlugin) Provision(ctx caddy.Context) error {
 
 	if app.Provider == nil {
 		app.Provider = s.Retriever.GetProvider()
-	} else {
-		s.Retriever.(*types.RetrieverResponseProperties).Provider = app.Provider
-		s.Retriever.GetTransport().(*rfc.VaryTransport).Provider = app.Provider
 	}
 
 	if app.SurrogateStorage == nil {
@@ -569,6 +578,28 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 				if err == nil {
 					cfg.DefaultCache.Stale.Duration = stale
 				}
+			case "timeout":
+				timeout := configurationtypes.Timeout{}
+				for nesting := h.Nesting(); h.NextBlock(nesting); {
+					directive := h.Val()
+					switch directive {
+					case "backend":
+						d := configurationtypes.Duration{}
+						ttl, err := time.ParseDuration(h.RemainingArgs()[0])
+						if err == nil {
+							d.Duration = ttl
+						}
+						timeout.Backend = d
+					case "cache":
+						d := configurationtypes.Duration{}
+						ttl, err := time.ParseDuration(h.RemainingArgs()[0])
+						if err == nil {
+							d.Duration = ttl
+						}
+						timeout.Cache = d
+					}
+				}
+				cfg.DefaultCache.Timeout = timeout
 			case "ttl":
 				args := h.RemainingArgs()
 				ttl, err := time.ParseDuration(args[0])
@@ -584,6 +615,7 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 	souinApp.DefaultCache = cfg.DefaultCache
 	souinApp.API = cfg.API
 	souinApp.CacheKeys = cfg.CfgCacheKeys
+	souinApp.LogLevel = cfg.LogLevel
 
 	return httpcaddyfile.App{
 		Name:  moduleName,
@@ -649,6 +681,17 @@ func parseCaddyfileHandlerDirective(h httpcaddyfile.Helper) (caddyhttp.Middlewar
 			sc.DefaultCache.CacheName = args[0]
 		case "default_cache_control":
 			sc.DefaultCache.DefaultCacheControl = strings.Join(h.RemainingArgs(), " ")
+		case "etcd":
+			sc.DefaultCache.Distributed = true
+			provider := configurationtypes.CacheProvider{}
+			for nesting := h.Nesting(); h.NextBlock(nesting); {
+				directive := h.Val()
+				switch directive {
+				case "configuration":
+					provider.Configuration = parseCaddyfileRecursively(h.Dispenser)
+				}
+			}
+			sc.DefaultCache.Etcd = provider
 		case "headers":
 			sc.DefaultCache.Headers = h.RemainingArgs()
 		case "key":
@@ -665,11 +708,66 @@ func parseCaddyfileHandlerDirective(h httpcaddyfile.Helper) (caddyhttp.Middlewar
 				}
 			}
 			sc.DefaultCache.Key = config_key
+		case "olric":
+			sc.DefaultCache.Distributed = true
+			provider := configurationtypes.CacheProvider{}
+			for nesting := h.Nesting(); h.NextBlock(nesting); {
+				directive := h.Val()
+				switch directive {
+				case "url":
+					urlArgs := h.RemainingArgs()
+					provider.URL = urlArgs[0]
+				case "path":
+					urlArgs := h.RemainingArgs()
+					provider.Path = urlArgs[0]
+				case "configuration":
+					provider.Configuration = parseCaddyfileRecursively(h.Dispenser)
+				}
+			}
+			sc.DefaultCache.Olric = provider
+		case "nuts":
+			provider := configurationtypes.CacheProvider{}
+			for nesting := h.Nesting(); h.NextBlock(nesting); {
+				directive := h.Val()
+				switch directive {
+				case "url":
+					urlArgs := h.RemainingArgs()
+					provider.URL = urlArgs[0]
+				case "path":
+					urlArgs := h.RemainingArgs()
+					provider.Path = urlArgs[0]
+				case "configuration":
+					provider.Configuration = parseCaddyfileRecursively(h.Dispenser)
+				}
+			}
+			sc.DefaultCache.Nuts = provider
 		case "stale":
 			stale, err := time.ParseDuration(h.RemainingArgs()[0])
 			if err == nil {
 				sc.DefaultCache.Stale.Duration = stale
 			}
+		case "timeout":
+			timeout := configurationtypes.Timeout{}
+			for nesting := h.Nesting(); h.NextBlock(nesting); {
+				directive := h.Val()
+				switch directive {
+				case "backend":
+					d := configurationtypes.Duration{}
+					ttl, err := time.ParseDuration(h.RemainingArgs()[0])
+					if err == nil {
+						d.Duration = ttl
+					}
+					timeout.Backend = d
+				case "cache":
+					d := configurationtypes.Duration{}
+					ttl, err := time.ParseDuration(h.RemainingArgs()[0])
+					if err == nil {
+						d.Duration = ttl
+					}
+					timeout.Cache = d
+				}
+			}
+			sc.DefaultCache.Timeout = timeout
 		case "ttl":
 			ttl, err := time.ParseDuration(h.RemainingArgs()[0])
 			if err == nil {

@@ -2,6 +2,7 @@ package plugins
 
 import (
 	"bytes"
+	ctx "context"
 	"io/ioutil"
 	"net/http"
 	"regexp"
@@ -23,6 +24,8 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
+
+var serverTimeoutMessage = []byte("Internal server error")
 
 // CustomWriter handles the response and provide the way to cache the value
 type CustomWriter struct {
@@ -106,38 +109,68 @@ func DefaultSouinPluginCallback(
 	rc coalescing.RequestCoalescingInterface,
 	nextMiddleware func(w http.ResponseWriter, r *http.Request) error,
 ) (e error) {
+	retriever.GetConfiguration().GetLogger().Sugar().Debugf("Incoming request: %+v", req)
 	prometheus.Increment(prometheus.RequestCounter)
 	start := time.Now()
 	cacheCandidate := !strings.Contains(req.Header.Get("Cache-Control"), "no-cache")
 	cacheKey := req.Context().Value(context.Key).(string)
 	retriever.SetMatchedURLFromRequest(req)
+	timeoutCache := req.Context().Value(context.TimeoutCache).(time.Duration)
+	cancel := req.Context().Value(context.TimeoutCancel).(ctx.CancelFunc)
+	defer cancel()
+	foundEntry := make(chan *http.Response)
+	errorCacheCh := make(chan error)
 
-	if cacheCandidate {
-		r, stale, err := rfc.CachedResponse(
-			retriever.GetProvider(),
-			req,
-			cacheKey,
-			retriever.GetTransport(),
-		)
-		if err != nil {
-			retriever.GetConfiguration().GetLogger().Sugar().Debugf("An error ocurred while retrieving the (stale)? key %s: %v", cacheKey, err)
-			return err
-		}
+	go func() {
+		if cacheCandidate {
+			r, stale, err := rfc.CachedResponse(
+				retriever.GetProvider(),
+				req,
+				cacheKey,
+				retriever.GetTransport(),
+			)
+			if err != nil {
+				retriever.GetConfiguration().GetLogger().Sugar().Debugf("An error ocurred while retrieving the (stale)? key %s: %v", cacheKey, err)
+				foundEntry <- nil
+				errorCacheCh <- err
 
-		if r != nil {
-			rh := r.Header
-			if stale {
-				rfc.HitStaleCache(&rh, retriever.GetMatchedURL().TTL.Duration)
-			} else {
-				prometheus.Increment(prometheus.CachedResponseCounter)
+				return
 			}
-			sendAnyCachedResponse(rh, r, res)
+
+			if r != nil {
+				rh := r.Header
+				if stale {
+					rfc.HitStaleCache(&rh, retriever.GetMatchedURL().TTL.Duration)
+					r.Header = rh
+				} else {
+					prometheus.Increment(prometheus.CachedResponseCounter)
+				}
+				foundEntry <- r
+				errorCacheCh <- nil
+
+				return
+			}
+		}
+		foundEntry <- nil
+		errorCacheCh <- nil
+	}()
+
+	select {
+	case entry := <-foundEntry:
+		if e = <-errorCacheCh; e != nil {
+			return e
+		}
+		if entry != nil {
+			retriever.GetConfiguration().GetLogger().Sugar().Debugf("Serve response from the cache: %+v", entry)
+			sendAnyCachedResponse(entry.Header, entry, res)
 
 			return
 		}
+	case <-time.After(timeoutCache):
 	}
 
 	coalesceable := make(chan bool)
+	errorBackendCh := make(chan error)
 	defer close(coalesceable)
 	go func() {
 		defer func() {
@@ -146,14 +179,34 @@ func DefaultSouinPluginCallback(
 		coalesceable <- retriever.GetTransport().GetCoalescingLayerStorage().Exists(cacheKey)
 	}()
 	prometheus.Increment(prometheus.NoCachedResponseCounter)
-	if <-coalesceable && rc != nil {
-		rc.Temporize(req, res, nextMiddleware)
-	} else {
-		e = nextMiddleware(res, req)
-	}
+
+	go func() {
+		if rc != nil && <-coalesceable {
+			rc.Temporize(req, res, nextMiddleware)
+		} else {
+			errorBackendCh <- nextMiddleware(res, req)
+			return
+		}
+		errorBackendCh <- nil
+	}()
+
 	prometheus.Add(prometheus.AvgResponseTime, float64(time.Since(start).Milliseconds()))
 
-	return e
+	select {
+	case <-req.Context().Done():
+		switch req.Context().Err() {
+		case ctx.DeadlineExceeded:
+			cw := res.(*CustomWriter)
+			rfc.MissCache(cw.Header().Set, req)
+			cw.WriteHeader(http.StatusGatewayTimeout)
+			_, _ = cw.Rw.Write(serverTimeoutMessage)
+			return ctx.DeadlineExceeded
+		}
+	case v := <-errorBackendCh:
+		return v
+	}
+
+	return nil
 }
 
 // DefaultSouinPluginInitializerFromConfiguration is the default initialization for plugins
