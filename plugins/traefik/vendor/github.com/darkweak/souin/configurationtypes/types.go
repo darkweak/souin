@@ -90,6 +90,13 @@ type CacheProvider struct {
 	Configuration interface{} `json:"configuration" yaml:"configuration"`
 }
 
+// Timeout configuration to handle the cache provider and the
+// reverse-proxy timeout.
+type Timeout struct {
+	Backend Duration `json:"backend" yaml:"backend"`
+	Cache   Duration `json:"cache" yaml:"cache"`
+}
+
 // CDN config
 type CDN struct {
 	APIKey    string `json:"api_key,omitempty" yaml:"api_key,omitempty"`
@@ -123,8 +130,9 @@ type DefaultCache struct {
 	Olric               CacheProvider `json:"olric" yaml:"olric"`
 	Port                Port          `json:"port" yaml:"port"`
 	Regex               Regex         `json:"regex" yaml:"regex"`
-	TTL                 Duration      `json:"ttl" yaml:"ttl"`
 	Stale               Duration      `json:"stale" yaml:"stale"`
+	Timeout             Timeout       `json:"timeout" yaml:"timeout"`
+	TTL                 Duration      `json:"ttl" yaml:"ttl"`
 	DefaultCacheControl string        `json:"default_cache_control" yaml:"default_cache_control"`
 }
 
@@ -183,6 +191,11 @@ func (d *DefaultCache) GetRegex() Regex {
 	return d.Regex
 }
 
+// GetTimeout returns the backend and cache timeouts
+func (d *DefaultCache) GetTimeout() Timeout {
+	return d.Timeout
+}
+
 // GetTTL returns the default TTL
 func (d *DefaultCache) GetTTL() time.Duration {
 	return d.TTL.Duration
@@ -211,8 +224,9 @@ type DefaultCacheInterface interface {
 	GetHeaders() []string
 	GetKey() Key
 	GetRegex() Regex
-	GetTTL() time.Duration
 	GetStale() time.Duration
+	GetTimeout() Timeout
+	GetTTL() time.Duration
 	GetDefaultCacheControl() string
 }
 

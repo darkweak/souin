@@ -118,6 +118,28 @@ func parseConfiguration(c map[string]interface{}) Configuration {
 					if exclude != "" {
 						dc.Regex = configurationtypes.Regex{Exclude: exclude}
 					}
+				case "timeout":
+					timeout := configurationtypes.Timeout{}
+					timeoutConfiguration := defaultCacheV.(map[string]interface{})
+					for timeoutK, timeoutV := range timeoutConfiguration {
+						switch timeoutK {
+						case "backend":
+							d := configurationtypes.Duration{}
+							ttl, err := time.ParseDuration(timeoutV.(string))
+							if err == nil {
+								d.Duration = ttl
+							}
+							timeout.Backend = d
+						case "cache":
+							d := configurationtypes.Duration{}
+							ttl, err := time.ParseDuration(timeoutV.(string))
+							if err == nil {
+								d.Duration = ttl
+							}
+							timeout.Cache = d
+						}
+					}
+					dc.Timeout = timeout
 				case "ttl":
 					ttl, err := time.ParseDuration(defaultCacheV.(string))
 					if err == nil {

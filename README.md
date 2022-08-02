@@ -111,6 +111,9 @@ default_cache:
   regex:
     exclude: 'ARegexHere' # Regex to exclude from cache
   stale: 1000s # Stale duration
+  timeout: # Timeout configuration
+    backend: 10s # Backend timeout before returning an HTTP unavailable response
+    cache: 20ms # Cache provider (badger, etcd, nutsdb, olric, depending the configuration you set) timeout before returning a miss
   ttl: 1000s # Default TTL
   default_cache_control: no-store # Set default value for Cache-Control response header if not set by upstream
 log_level: INFO # Logs verbosity [ DEBUG, INFO, WARN, ERROR, DPANIC, PANIC, FATAL ], case do not matter
@@ -175,6 +178,8 @@ surrogate_keys:
 | `default_cache.badger`                            | Configure the Badger cache storage                                                                                                          |                                                                                                                           |
 | `default_cache.badger.path`                       | Configure Badger with a file                                                                                                                | `/anywhere/badger_configuration.json`                                                                                     |
 | `default_cache.badger.configuration`              | Configure Badger directly in the Caddyfile or your JSON caddy configuration                                                                 | [See the Badger configuration for the options](https://dgraph.io/docs/badger/get-started/)                                |
+| `default_cache.etcd`                              | Configure the Etcd cache storage                                                                                                            |                                                                                                                           |
+| `default_cache.etcd.configuration`                | Configure Etcd directly in the Caddyfile or your JSON caddy configuration                                                                   | [See the Etcd configuration for the options](https://pkg.go.dev/go.etcd.io/etcd/clientv3#Config)                          |
 | `default_cache.headers`                           | List of headers to include to the cache                                                                                                     | `- Authorization`<br/><br/>`- Content-Type`<br/><br/>`- X-Additional-Header`                                              |
 | `default_cache.key`                               | Override the key generation with the ability to disable unecessary parts                                                                    |                                                                                                                           |
 | `default_cache.key.disable_body`                  | Disable the body part in the key (GraphQL context)                                                                                          | `true`<br/><br/>`(default: false)`                                                                                        |
@@ -182,12 +187,18 @@ surrogate_keys:
 | `default_cache.key.disable_method`                | Disable the method part in the key                                                                                                          | `true`<br/><br/>`(default: false)`                                                                                        |
 | `default_cache.etcd`                              | Configure the Etcd cache storage                                                                                                            |                                                                                                                           |
 | `default_cache.etcd.configuration`                | Configure Etcd directly in the Caddyfile or your JSON caddy configuration                                                                   | [See the Etcd configuration for the options](https://pkg.go.dev/go.etcd.io/etcd/clientv3#Config)                          |
+| `default_cache.nuts`                              | Configure the Nuts cache storage                                                                                                            |                                                                                                                           |
+| `default_cache.nuts.path`                         | Set the Nuts file path storage                                                                                                              | `/anywhere/nuts/storage`                                                                                                  |
+| `default_cache.nuts.configuration`                | Configure Nuts directly in the Caddyfile or your JSON caddy configuration                                                                   | [See the Nuts configuration for the options](https://github.com/nutsdb/nutsdb#default-options)                            |
 | `default_cache.olric`                             | Configure the Olric cache storage                                                                                                           |                                                                                                                           |
 | `default_cache.olric.path`                        | Configure Olric with a file                                                                                                                 | `/anywhere/olric_configuration.json`                                                                                      |
 | `default_cache.olric.configuration`               | Configure Olric directly in the Caddyfile or your JSON caddy configuration                                                                  | [See the Olric configuration for the options](https://github.com/buraksezer/olric/blob/master/cmd/olricd/olricd.yaml/)    |
 | `default_cache.port.{web,tls}`                    | The device's local HTTP/TLS port that Souin should be listening on                                                                          | Respectively `80` and `443`                                                                                               |
 | `default_cache.regex.exclude`                     | The regex used to prevent paths being cached                                                                                                | `^[A-z]+.*$`                                                                                                              |
 | `default_cache.stale`                             | The stale duration                                                                                                                          | `25m`                                                                                                                     |
+| `default_cache.timeout`                           | The timeout configuration                                                                                                                   |                                                                                                                           |
+| `default_cache.timeout.backend`                   | The timeout duration to consider the backend as unreachable                                                                                 | `10s`                                                                                                                     |
+| `default_cache.timeout.cache`                     | The timeout duration to consider the cache provider as unreachable                                                                          | `10ms`                                                                                                                    |
 | `default_cache.ttl`                               | The TTL duration                                                                                                                            | `120s`                                                                                                                    |
 | `default_cache.default_cache_control`             | Set the default value of `Cache-Control` response header if not set by upstream (Souin treats empty `Cache-Control` as `public` if omitted) | `no-store`                                                                                                                |
 | `log_level`                                       | The log level                                                                                                                               | `One of DEBUG, INFO, WARN, ERROR, DPANIC, PANIC, FATAL it's case insensitive`                                             |
@@ -236,6 +247,7 @@ This system is able to invalidate by tags your cloud provider cache. Actually it
 | `PURGE` | `/{id or regexp}` | -                                                          | Purge selected item(s) depending. The parameter can be either a specific key or a regexp                                                                                            |
 | `PURGE` | `/?ykey={key}`    | -                                                          | Purge selected item(s) corresponding to the target ykey such as Varnish (deprecated)                                                                                                |
 | `PURGE` | `/`               | `Surrogate-Key: Surrogate-Key-First, Surrogate-Key-Second` | Purge selected item(s) belong to the target key in the header `Surrogate-Key` (see [Surrogate-Key system](https://github.com/darkweak/souin/blob/master/cache/surrogate/README.md)) |
+| `PURGE` | `/flush`          | -                                                          | Purge all providers and surrogate storages                                                                                                                                          |
 
 ### Security API
 **DEPRECATED**  
@@ -436,6 +448,7 @@ There is the fully configuration below
         badger {
             path the_path_to_a_file.json
         }
+        cache_name Souin
         cache_keys {
             .*\.something {
                 disable_body
@@ -477,6 +490,10 @@ There is the fully configuration below
             exclude /test2.*
         }
         stale 200s
+        timeout {
+          backend 20s
+          cache 5ms
+        }
         ttl 1000s
         default_cache_control no-store
     }
@@ -789,7 +806,8 @@ func main() {
 ```
 
 ### Roadrunner middleware
-To use Souin as roadrunner middleware, you have to build your `rr` binary with the souin dependency.
+To use Souin as Roadrunner middleware, you can refer to the [Roadrunner plugin integration folder](https://github.com/darkweak/souin/tree/master/plugins/roadrunner) to discover how to configure it.  
+Ysou have to build your `rr` binary with the souin dependency.
 ```toml
 [velox]
 build_args = ['-trimpath', '-ldflags', '-s -X github.com/roadrunner-server/roadrunner/v2/internal/meta.version=${VERSION} -X github.com/roadrunner-server/roadrunner/v2/internal/meta.buildTime=${TIME}']
@@ -838,6 +856,9 @@ http:
         - Authorization
       regex:
         exclude: '/excluded'
+      timeout:
+        backend: 5s
+        cache: 1ms
       ttl: 5s
       stale: 10s
     log_level: debug

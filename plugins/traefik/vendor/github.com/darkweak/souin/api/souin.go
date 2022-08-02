@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"regexp"
 
@@ -102,7 +103,7 @@ func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 		} else if compile {
 			search := regexp.MustCompile(s.GetBasePath()+"/(.+)").FindAllStringSubmatch(r.RequestURI, -1)[0][1]
 			res, _ = json.Marshal(s.listKeys(search))
-			if res == nil {
+			if len(res) == 2 {
 				w.WriteHeader(http.StatusNotFound)
 			}
 		} else {
@@ -111,8 +112,20 @@ func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 	case "PURGE":
 		if compile {
-			submatch := regexp.MustCompile(s.GetBasePath()+"/(.+)").FindAllStringSubmatch(r.RequestURI, -1)[0][1]
-			s.BulkDelete(submatch)
+			keysRg := regexp.MustCompile(s.GetBasePath() + "/(.+)")
+			flushRg := regexp.MustCompile(s.GetBasePath() + "/flush$")
+
+			if flushRg.FindString(r.RequestURI) != "" {
+				s.provider.DeleteMany(".+")
+				e := s.surrogateStorage.Destruct()
+				if e != nil {
+					fmt.Printf("Error while purging the surrogate keys: %+v.", e)
+				}
+				fmt.Println("Successfully clear the cache and the surrogate keys storage.")
+			} else {
+				submatch := keysRg.FindAllStringSubmatch(r.RequestURI, -1)[0][1]
+				s.BulkDelete(submatch)
+			}
 		} else {
 			ck, _ := s.surrogateStorage.Purge(r.Header)
 			for _, k := range ck {
