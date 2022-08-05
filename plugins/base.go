@@ -211,32 +211,34 @@ func DefaultSouinPluginCallback(
 
 // DefaultSouinPluginInitializerFromConfiguration is the default initialization for plugins
 func DefaultSouinPluginInitializerFromConfiguration(c configurationtypes.AbstractConfigurationInterface) *types.RetrieverResponseProperties {
-	var logLevel zapcore.Level
-	if c.GetLogLevel() == "" {
-		logLevel = zapcore.FatalLevel
-	} else if err := logLevel.UnmarshalText([]byte(c.GetLogLevel())); err != nil {
-		logLevel = zapcore.FatalLevel
+	if c.GetLogger() == nil {
+		var logLevel zapcore.Level
+		if c.GetLogLevel() == "" {
+			logLevel = zapcore.FatalLevel
+		} else if err := logLevel.UnmarshalText([]byte(c.GetLogLevel())); err != nil {
+			logLevel = zapcore.FatalLevel
+		}
+		cfg := zap.Config{
+			Encoding:         "json",
+			Level:            zap.NewAtomicLevelAt(logLevel),
+			OutputPaths:      []string{"stderr"},
+			ErrorOutputPaths: []string{"stderr"},
+			EncoderConfig: zapcore.EncoderConfig{
+				MessageKey: "message",
+
+				LevelKey:    "level",
+				EncodeLevel: zapcore.CapitalLevelEncoder,
+
+				TimeKey:    "time",
+				EncodeTime: zapcore.ISO8601TimeEncoder,
+
+				CallerKey:    "caller",
+				EncodeCaller: zapcore.ShortCallerEncoder,
+			},
+		}
+		logger, _ := cfg.Build()
+		c.SetLogger(logger)
 	}
-	cfg := zap.Config{
-		Encoding:         "json",
-		Level:            zap.NewAtomicLevelAt(logLevel),
-		OutputPaths:      []string{"stderr"},
-		ErrorOutputPaths: []string{"stderr"},
-		EncoderConfig: zapcore.EncoderConfig{
-			MessageKey: "message",
-
-			LevelKey:    "level",
-			EncodeLevel: zapcore.CapitalLevelEncoder,
-
-			TimeKey:    "time",
-			EncodeTime: zapcore.ISO8601TimeEncoder,
-
-			CallerKey:    "caller",
-			EncodeCaller: zapcore.ShortCallerEncoder,
-		},
-	}
-	logger, _ := cfg.Build()
-	c.SetLogger(logger)
 
 	provider := providers.InitializeProvider(c)
 	c.GetLogger().Debug("Provider initialized.")
