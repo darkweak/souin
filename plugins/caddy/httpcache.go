@@ -130,14 +130,9 @@ func (s *SouinCaddyPlugin) ServeHTTP(rw http.ResponseWriter, r *http.Request, ne
 			return e
 		}
 
-		customWriter.Response.Header = customWriter.Rw.Header().Clone()
 		combo.req.Response = customWriter.Response
+		combo.req.Response, e = s.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(combo.req)
 
-		if combo.req.Response, e = s.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(combo.req); e != nil {
-			return e
-		}
-
-		_, _ = customWriter.Send()
 		return e
 	})
 }
@@ -241,9 +236,11 @@ func (s *SouinCaddyPlugin) FromApp(app *SouinApp) error {
 		s.Configuration.DefaultCache.CacheName = appDc.CacheName
 	}
 	if dc.Olric.URL == "" && dc.Olric.Path == "" && dc.Olric.Configuration == nil {
+		s.Configuration.DefaultCache.Distributed = appDc.Distributed
 		s.Configuration.DefaultCache.Olric = appDc.Olric
 	}
 	if dc.Etcd.Configuration == nil {
+		s.Configuration.DefaultCache.Distributed = appDc.Distributed
 		s.Configuration.DefaultCache.Etcd = appDc.Etcd
 	}
 	if dc.Badger.Path == "" || dc.Badger.Configuration == nil {
@@ -262,12 +259,12 @@ func (s *SouinCaddyPlugin) FromApp(app *SouinApp) error {
 // Provision to do the provisioning part.
 func (s *SouinCaddyPlugin) Provision(ctx caddy.Context) error {
 	s.logger = ctx.Logger(s)
-	s.Configuration.SetLogger(s.logger)
 
 	if err := s.configurationPropertyMapper(); err != nil {
 		return err
 	}
 
+	s.Configuration.SetLogger(s.logger)
 	ctxApp, _ := ctx.App(moduleName)
 	app := ctxApp.(*SouinApp)
 

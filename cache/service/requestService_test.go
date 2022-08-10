@@ -2,7 +2,7 @@ package service
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -40,7 +40,7 @@ func mockResponse(path string, method string, body string, code int) *http.Respo
 		ProtoMajor:       0,
 		ProtoMinor:       0,
 		Header:           make(map[string][]string),
-		Body:             ioutil.NopCloser(strings.NewReader(body)),
+		Body:             io.NopCloser(strings.NewReader(body)),
 		ContentLength:    0,
 		TransferEncoding: nil,
 		Close:            false,

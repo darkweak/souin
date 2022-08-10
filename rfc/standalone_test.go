@@ -3,7 +3,7 @@ package rfc
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -253,7 +253,7 @@ func TestCachingReadCloser_Read(t *testing.T) {
 
 	b := []byte("Hello world")
 	c = cachingReadCloser{
-		R: ioutil.NopCloser(bytes.NewReader(b)),
+		R: io.NopCloser(bytes.NewReader(b)),
 	}
 
 	res, err := c.Read(b)

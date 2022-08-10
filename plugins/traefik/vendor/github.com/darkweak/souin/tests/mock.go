@@ -2,9 +2,9 @@ package tests
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"regexp"
 
 	"github.com/darkweak/souin/cache/types"
@@ -288,7 +288,7 @@ func EmbeddedOlricPlainConfigurationWithoutAdditionalYAML() string {
 // EmbeddedOlricConfiguration is the olric included configuration
 func EmbeddedOlricConfiguration() string {
 	path := "/tmp/olric.yml"
-	_ = ioutil.WriteFile(
+	_ = os.WriteFile(
 		path,
 		[]byte(
 			`

@@ -2,7 +2,7 @@ package service
 
 import (
 	"bytes"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httputil"
 	"strconv"
@@ -12,7 +12,7 @@ import (
 )
 
 func responseBodyExtractor(resp *http.Response) []byte {
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return []byte("")
 	}
@@ -28,7 +28,7 @@ func responseBodyExtractor(resp *http.Response) []byte {
 func RewriteResponse(resp *http.Response) []byte {
 	b := responseBodyExtractor(resp)
 	lb := len(b)
-	body := ioutil.NopCloser(bytes.NewReader(b))
+	body := io.NopCloser(bytes.NewReader(b))
 	resp.Body = body
 	resp.ContentLength = int64(lb)
 	resp.Header.Set("Content-Length", strconv.Itoa(lb))

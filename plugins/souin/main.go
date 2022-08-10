@@ -108,6 +108,7 @@ func main() {
 			_ = callback(writer, request, *retriever)
 		}
 		retriever.SetMatchedURLFromRequest(request)
+		//nolint
 		coalescing.ServeResponse(writer, request, retriever, plugins.DefaultSouinPluginCallback, rc, func(_ http.ResponseWriter, _ *http.Request) error {
 			return callback(writer, request, *retriever)
 		})

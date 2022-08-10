@@ -3,7 +3,7 @@ package fiber
 import (
 	"bytes"
 	"context"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"sync"
 	"time"
@@ -92,9 +92,9 @@ func convertResponse(stdreq *http.Request, fastresp *fasthttp.Response) *http.Re
 	}
 
 	if body != nil {
-		stdresp.Body = ioutil.NopCloser(bytes.NewReader(body))
+		stdresp.Body = io.NopCloser(bytes.NewReader(body))
 	} else {
-		stdresp.Body = ioutil.NopCloser(bytes.NewReader(nil))
+		stdresp.Body = io.NopCloser(bytes.NewReader(nil))
 	}
 
 	return stdresp
@@ -163,7 +163,6 @@ func (s *SouinFiberMiddleware) Handle(c *fiber.Ctx) error {
 		}
 
 		rw.Response = combo.req.Response
-		_, _ = rw.Send()
 		return e
 	})
 

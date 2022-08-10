@@ -3,7 +3,6 @@ package rfc
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 
 	"github.com/darkweak/souin/context"
@@ -35,7 +34,7 @@ func validateVary(req *http.Request, resp *http.Response, key string, t *VaryTra
 			R: resp.Body,
 			OnEOF: func(r io.Reader) {
 				re := *resp
-				re.Body = ioutil.NopCloser(r)
+				re.Body = io.NopCloser(r)
 				_ = t.SurrogateStorage.Store(&re, cacheKey)
 				t.SetCache(cacheKey, &re)
 				go func() {

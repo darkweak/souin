@@ -2,7 +2,7 @@ package fiber
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -48,7 +48,7 @@ func Test_SouinFiberPlugin_Middleware(t *testing.T) {
 		t.Error(err)
 	}
 
-	b, err := ioutil.ReadAll(res.Body)
+	b, err := io.ReadAll(res.Body)
 	if err != nil {
 		t.Error(err)
 	}
@@ -86,7 +86,7 @@ func Test_SouinFiberPlugin_Middleware_CannotHandle(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, err = ioutil.ReadAll(res.Body)
+	_, err = io.ReadAll(res.Body)
 	if err != nil {
 		t.Error(err)
 	}
@@ -119,7 +119,7 @@ func Test_SouinFiberPlugin_Middleware_APIHandle(t *testing.T) {
 		t.Error(err)
 	}
 
-	b, _ := ioutil.ReadAll(res.Body)
+	b, _ := io.ReadAll(res.Body)
 	res.Body.Close()
 	if string(b) != "[]" {
 		t.Error("The response body must be an empty array because no request has been stored")
@@ -132,7 +132,7 @@ func Test_SouinFiberPlugin_Middleware_APIHandle(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	b, _ = ioutil.ReadAll(res.Body)
+	b, _ = io.ReadAll(res.Body)
 	res.Body.Close()
 	var payload []string
 	_ = json.Unmarshal(b, &payload)

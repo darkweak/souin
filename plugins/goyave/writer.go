@@ -3,7 +3,6 @@ package goyave
 import (
 	"bytes"
 	"io"
-	"io/ioutil"
 	"net/http"
 
 	"goyave.dev/goyave/v4"
@@ -46,7 +45,7 @@ func (g *goyaveWriterDecorator) Write(b []byte) (int, error) {
 	g.goyaveResponse.WriteHeader(g.Response.StatusCode)
 	g.writer.Write(b)
 	if g.Response.Body != nil {
-		b, _ = ioutil.ReadAll(g.Response.Body)
+		b, _ = io.ReadAll(g.Response.Body)
 	}
 	return len(b), nil
 }
@@ -54,7 +53,7 @@ func (g *goyaveWriterDecorator) Write(b []byte) (int, error) {
 func (g *goyaveWriterDecorator) PreWrite(b []byte) {
 	g.Response.StatusCode = g.goyaveResponse.GetStatus()
 	g.buf.Write(b)
-	g.Response.Body = ioutil.NopCloser(g.buf)
+	g.Response.Body = io.NopCloser(g.buf)
 	g.request.Response = g.Response
 	if g.updateCache != nil {
 		g.Response, _ = g.updateCache(g.request)

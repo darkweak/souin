@@ -305,11 +305,8 @@ func (s *SouinBeegoMiddleware) chainHandleFilter(next web.HandleFunc) web.Handle
 
 			combo.req.Response = customWriter.Rw.(*beegoWriterDecorator).Response
 			combo.req.Response.StatusCode = 200
-			if combo.req.Response, e = s.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(combo.req); e != nil {
-				return e
-			}
+			combo.req.Response, e = s.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(combo.req)
 
-			customWriter.Rw.(*beegoWriterDecorator).Send()
 			return e
 		})
 	}

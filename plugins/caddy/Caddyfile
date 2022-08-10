@@ -18,7 +18,6 @@
             exclude /test2.*
         }
         headers Content-Type Authorization
-        log_level debug
         ttl 1000s
         timeout {
             backend 10s
@@ -161,7 +160,6 @@ route /another-cache-status-name {
 
 route /backend-timeout {
     cache {
-        log_level debug
         timeout {
             backend 1s
             cache 1ms

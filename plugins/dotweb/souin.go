@@ -118,11 +118,8 @@ func (s *SouinDotwebMiddleware) Handle(c dotweb.Context) error {
 		combo.next(c)
 
 		combo.req.Response = customWriter.Response
-		if combo.req.Response, e = s.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(combo.req); e != nil {
-			return e
-		}
+		combo.req.Response, e = s.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(combo.req)
 
-		_, _ = customWriter.Send()
 		return e
 	})
 }
