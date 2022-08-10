@@ -277,16 +277,18 @@ func (s *SouinBeegoMiddleware) chainHandleFilter(next web.HandleFunc) web.Handle
 			},
 		}
 
-		customWriter := &plugins.CustomWriter{
+		customWriter := &beegoWriterDecorator{
+			ctx:      customCtx,
+			buf:      s.bufPool.Get().(*bytes.Buffer),
 			Response: &http.Response{},
-			Buf:      s.bufPool.Get().(*bytes.Buffer),
-			Rw: &beegoWriterDecorator{
-				ctx:      customCtx,
-				buf:      s.bufPool.Get().(*bytes.Buffer),
+			CustomWriter: &plugins.CustomWriter{
 				Response: &http.Response{},
+				Buf:      s.bufPool.Get().(*bytes.Buffer),
+				Rw:       rw,
 			},
 		}
-		customCtx.ResponseWriter.ResponseWriter = customWriter.Rw
+
+		customCtx.ResponseWriter.ResponseWriter = customWriter
 		req = s.Retriever.GetContext().SetContext(req)
 		getterCtx := getterContext{next, customWriter, req}
 		ctx := context.WithValue(req.Context(), getterContextCtxKey, getterCtx)
@@ -303,7 +305,7 @@ func (s *SouinBeegoMiddleware) chainHandleFilter(next web.HandleFunc) web.Handle
 			var e error
 			combo.next(customCtx)
 
-			combo.req.Response = customWriter.Rw.(*beegoWriterDecorator).Response
+			combo.req.Response = customWriter.Response
 			combo.req.Response.StatusCode = 200
 			combo.req.Response, e = s.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(combo.req)
 

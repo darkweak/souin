@@ -153,10 +153,13 @@ func (s *SouinFiberMiddleware) Handle(c *fiber.Ctx) error {
 	req.Header.Set("Date", time.Now().UTC().Format(time.RFC1123))
 	combo := ctx.Value(getterContextCtxKey).(getterContext)
 
-	e := plugins.DefaultSouinPluginCallback(rw.CustomWriter, req, s.Retriever, nil, func(_ http.ResponseWriter, _ *http.Request) error {
+	e := plugins.DefaultSouinPluginCallback(rw, req, s.Retriever, nil, func(_ http.ResponseWriter, _ *http.Request) error {
 		var e error
 		c.Next()
 
+		rw.CustomWriter.Rw = &nopWriter{
+			Ctx: c,
+		}
 		combo.req.Response = convertResponse(req, &c.Context().Response)
 		if combo.req.Response, e = s.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(combo.req); e != nil {
 			return e
@@ -167,9 +170,15 @@ func (s *SouinFiberMiddleware) Handle(c *fiber.Ctx) error {
 	})
 
 	rw.Response.Header.Del("X-Souin-Stored-TTL")
-	rCtx := rw.Rw.(*fiberWriter).Ctx.Response()
+	var rCtx *fiber.Ctx
+	switch rw.Rw.(type) {
+	case *nopWriter:
+		rCtx = rw.Rw.(*nopWriter).Ctx
+	case *fiberWriter:
+		rCtx = rw.Rw.(*fiberWriter).Ctx
+	}
 	for hk, hv := range rw.Response.Header {
-		rCtx.Header.Set(hk, hv[0])
+		rCtx.Response().Header.Set(hk, hv[0])
 	}
 
 	return e
