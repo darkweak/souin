@@ -3,12 +3,16 @@ module github.com/darkweak/souin/plugins/tyk
 go 1.16
 
 require (
+	github.com/TykTechnologies/tyk v1.9.2-0.20220711082452-7b07f4c2fd27
+	github.com/darkweak/souin v1.6.18
+	github.com/patrickmn/go-cache v2.1.0+incompatible
+)
+
+require (
 	github.com/HdrHistogram/hdrhistogram-go v1.1.2 // indirect
 	github.com/Shopify/sarama v1.34.1 // indirect
-	github.com/TykTechnologies/tyk v1.9.2-0.20220711082452-7b07f4c2fd27
 	github.com/armon/go-metrics v0.4.0 // indirect
 	github.com/buraksezer/consistent v0.9.0 // indirect
-	github.com/darkweak/souin v1.6.18
 	github.com/eapache/go-resiliency v1.3.0 // indirect
 	github.com/eclipse/paho.mqtt.golang v1.4.1 // indirect
 	github.com/evanphx/json-patch/v5 v5.5.0 // indirect
@@ -29,8 +33,6 @@ require (
 	github.com/miekg/dns v1.1.50 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/nats-io/nats.go v1.16.0 // indirect
-	github.com/patrickmn/go-cache v2.1.0+incompatible
-	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
 	github.com/pierrec/lz4/v4 v4.1.15 // indirect
 	github.com/prometheus/common v0.36.0 // indirect
 	github.com/stretchr/testify v1.7.2 // indirect

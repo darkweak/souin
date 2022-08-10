@@ -15,6 +15,8 @@ replace: ## Replace sources in the vendor folder deeper than the go mod replace
 	rm -rf vendor/github.com/darkweak/souin/cache/providers
 	scp -r override/providers vendor/github.com/darkweak/souin/cache
 	scp -r override/api/prometheus/prometheus.go vendor/github.com/darkweak/souin/api/prometheus/prometheus.go
+	scp -r override/surrogate/providers/cloudflare.go vendor/github.com/darkweak/souin/cache/surrogate/providers/cloudflare.go
+	scp -r override/context/graphql.go vendor/github.com/darkweak/souin/context/graphql.go
 
 vendor: ## Generate vendors for the plugin
 	go mod tidy

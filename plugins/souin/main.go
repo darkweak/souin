@@ -1,12 +1,14 @@
 package main
 
 import (
+	"bytes"
 	"crypto/tls"
 	"fmt"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
 	"net/url"
+	"sync"
 	"time"
 
 	"github.com/darkweak/souin/api"
@@ -52,6 +54,12 @@ func startServer(config *tls.Config, port string) (net.Listener, *http.Server) {
 	}()
 
 	return listener, &server
+}
+
+var bufPool *sync.Pool = &sync.Pool{
+	New: func() interface{} {
+		return new(bytes.Buffer)
+	},
 }
 
 func main() {
@@ -106,11 +114,17 @@ func main() {
 		}
 		if plugins.HasMutation(request, writer) {
 			_ = callback(writer, request, *retriever)
+			return
+		}
+		customWriter := &plugins.CustomWriter{
+			Response: &http.Response{},
+			Buf:      bufPool.Get().(*bytes.Buffer),
+			Rw:       writer,
 		}
 		retriever.SetMatchedURLFromRequest(request)
 		//nolint
-		coalescing.ServeResponse(writer, request, retriever, plugins.DefaultSouinPluginCallback, rc, func(_ http.ResponseWriter, _ *http.Request) error {
-			return callback(writer, request, *retriever)
+		coalescing.ServeResponse(customWriter, request, retriever, plugins.DefaultSouinPluginCallback, rc, func(_ http.ResponseWriter, _ *http.Request) error {
+			return callback(customWriter, request, *retriever)
 		})
 	})
 	go func() {
