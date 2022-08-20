@@ -123,56 +123,6 @@ func TestCloneRequest(t *testing.T) {
 	validateClonedRequest(t, r)
 }
 
-func TestGetEndToEndHeaders(t *testing.T) {
-	res := httptest.NewRecorder().Result()
-	e2eHeaders := getEndToEndHeaders(res.Header)
-
-	if len(e2eHeaders) != 0 {
-		errors.GenerateError(t, fmt.Sprintf("Headers should be equal to %v, %v provided", res.Header, e2eHeaders))
-	}
-
-	header := "Cache"
-	res.Header.Set("Vary", header)
-	res.Header.Set(header, "same")
-	e2eHeaders = getEndToEndHeaders(res.Header)
-	if len(e2eHeaders) != len(res.Header) {
-		errors.GenerateError(t, fmt.Sprintf("Headers should be equal to %v, %v provided", res.Header, e2eHeaders))
-	}
-
-	res.Header.Set("Keep-Alive", "1")
-	res.Header.Set("Connection", "keep-alive")
-	e2eHeaders = getEndToEndHeaders(res.Header)
-	if len(e2eHeaders) != len(res.Header)-2 {
-		errors.GenerateError(t, fmt.Sprintf("Headers should be equal to %v, %v provided", res.Header, e2eHeaders))
-	}
-}
-
-func verifyHeaderslength(t *testing.T, header http.Header, count int) {
-	if len(parseCacheControl(header)) != count {
-		errors.GenerateError(t, fmt.Sprintf("Cache control headers length should be equals to %d", count))
-	}
-}
-
-func TestParseCacheControl(t *testing.T) {
-	res := httptest.NewRecorder().Result()
-	headers := res.Header
-
-	headers.Add("Cache-Control", "no-cache")
-	verifyHeaderslength(t, headers, 1)
-
-	headers.Set("Cache-Control", "no-cache,only-if-cached")
-	verifyHeaderslength(t, headers, 2)
-
-	headers.Set("Cache-Control", "no-cache,,only-if-cached")
-	verifyHeaderslength(t, headers, 2)
-
-	headers.Set("Cache-Control", "no-cache, , only-if-cached")
-	verifyHeaderslength(t, headers, 2)
-
-	headers.Set("Cache-Control", "max-age=3")
-	verifyHeaderslength(t, headers, 1)
-}
-
 func setCacheControlStaleOnHeader(h http.Header, value string) {
 	h.Set("Cache-Control", fmt.Sprintf("stale-if-error=%s", value))
 }
