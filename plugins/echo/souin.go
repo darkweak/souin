@@ -44,7 +44,7 @@ var (
 				Exclude: "/excluded",
 			},
 			TTL: configurationtypes.Duration{
-				Duration: 5 * time.Second,
+				Duration: 20 * time.Second,
 			},
 		},
 		LogLevel: "debug",
@@ -101,7 +101,9 @@ func (s *SouinEchoPlugin) Process(next echo.HandlerFunc) echo.HandlerFunc {
 			Response: &http.Response{},
 			Buf:      s.bufPool.Get().(*bytes.Buffer),
 			Rw:       rw,
+			Req:      req,
 		}
+
 		req = s.Retriever.GetContext().SetContext(req)
 		getterCtx := getterContext{next, customWriter, req}
 		c.Response().Writer = customWriter

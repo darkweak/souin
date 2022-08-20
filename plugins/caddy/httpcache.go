@@ -113,6 +113,7 @@ func (s *SouinCaddyPlugin) ServeHTTP(rw http.ResponseWriter, r *http.Request, ne
 		Response: &http.Response{},
 		Buf:      s.bufPool.Get().(*bytes.Buffer),
 		Rw:       rw,
+		Req:      req,
 	}
 	getterCtx := getterContext{customWriter, req, next}
 	ctx := context.WithValue(req.Context(), getterContextCtxKey, getterCtx)

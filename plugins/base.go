@@ -48,8 +48,8 @@ type CustomWriter struct {
 }
 
 func (r *CustomWriter) calculateCacheHeaders() {
-	co, err := cacheobject.ParseResponseCacheControl(r.Rw.Header().Get("Cache-Control"))
-	if err != nil || co.NoStore {
+	resco, _ := cacheobject.ParseResponseCacheControl(r.Rw.Header().Get("Cache-Control"))
+	if !rfc.CachableStatusCode(r.Response.StatusCode) || resco.NoStore || r.Req.Context().Value(context.RequestCacheControl).(*cacheobject.RequestCacheDirectives).NoStore {
 		rfc.MissCache(r.Rw.Header().Set, r.Req)
 	}
 

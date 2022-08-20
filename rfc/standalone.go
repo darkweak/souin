@@ -178,7 +178,7 @@ func canStaleOnError(respHeaders, reqHeaders http.Header) bool {
 }
 
 func canStore(reqCacheControl cacheControl, respCacheControl cacheControl, status int) (canStore bool) {
-	if !cachableStatusCode(status) {
+	if !CachableStatusCode(status) {
 		return false
 	}
 
@@ -193,7 +193,7 @@ func canStore(reqCacheControl cacheControl, respCacheControl cacheControl, statu
 	return true
 }
 
-func cachableStatusCode(statusCode int) bool {
+func CachableStatusCode(statusCode int) bool {
 	switch statusCode {
 	case 200, 203, 204, 206, 300, 301, 404, 405, 410, 414, 501:
 		return true

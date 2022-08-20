@@ -86,7 +86,7 @@ func TestCachableStatusCode(t *testing.T) {
 	}
 
 	for key, value := range cachable {
-		res := cachableStatusCode(key)
+		res := CachableStatusCode(key)
 		if res != value {
 			msg := fmt.Sprintf("Unexpected response for statusCode %d: %t (expected: %t)", key, res, value)
 			errors.GenerateError(t, msg)
