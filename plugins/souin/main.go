@@ -120,6 +120,7 @@ func main() {
 			Response: &http.Response{},
 			Buf:      bufPool.Get().(*bytes.Buffer),
 			Rw:       writer,
+			Req:      request,
 		}
 		retriever.SetMatchedURLFromRequest(request)
 		//nolint

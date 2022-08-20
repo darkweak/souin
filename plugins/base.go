@@ -80,7 +80,7 @@ func (r *CustomWriter) Write(b []byte) (int, error) {
 	if r.Response.Body == nil {
 		r.Response.Body = io.NopCloser(bytes.NewBuffer(nil))
 	}
-	r.Response.Body.Read(b)
+	_, _ = r.Response.Body.Read(b)
 	r.Buf.Write(b)
 	r.size += len(b)
 	r.Response.Header.Set("Content-Length", fmt.Sprint(r.size))

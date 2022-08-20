@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/darkweak/souin/plugins"
 	"github.com/gin-gonic/gin"
@@ -47,6 +48,7 @@ func Test_SouinGinPlugin_Process(t *testing.T) {
 		t.Error("The response must contain a Cache-Status header with the stored directive.")
 	}
 
+	time.Sleep(time.Millisecond)
 	r.ServeHTTP(res2, c.Request)
 	if res2.Result().Header.Get("Cache-Status") != "Souin; hit; ttl=4" {
 		t.Error("The response must contain a Cache-Status header with the hit and ttl directives.")

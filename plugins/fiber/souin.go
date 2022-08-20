@@ -128,6 +128,7 @@ func (s *SouinFiberMiddleware) Handle(c *fiber.Ctx) error {
 			Rw: &fiberWriter{
 				Ctx: c,
 			},
+			Req: req,
 		},
 	}
 

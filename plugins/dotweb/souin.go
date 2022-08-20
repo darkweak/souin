@@ -100,6 +100,7 @@ func (s *SouinDotwebMiddleware) Handle(c dotweb.Context) error {
 		Response: &http.Response{},
 		Buf:      s.bufPool.Get().(*bytes.Buffer),
 		Rw:       rw,
+		Req:      req,
 	}
 	req = s.Retriever.GetContext().SetContext(req)
 	getterCtx := getterContext{s.Next, customWriter, req}

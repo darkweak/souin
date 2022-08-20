@@ -106,6 +106,7 @@ func (s *SouinChiMiddleware) Handle(next http.Handler) http.Handler {
 			Response: &http.Response{},
 			Buf:      s.bufPool.Get().(*bytes.Buffer),
 			Rw:       rw,
+			Req:      req,
 		}
 		req = s.Retriever.GetContext().SetContext(req)
 		getterCtx := getterContext{next.ServeHTTP, customWriter, req}

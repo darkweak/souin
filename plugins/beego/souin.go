@@ -285,6 +285,7 @@ func (s *SouinBeegoMiddleware) chainHandleFilter(next web.HandleFunc) web.Handle
 				Response: &http.Response{},
 				Buf:      s.bufPool.Get().(*bytes.Buffer),
 				Rw:       rw,
+				Req:      req,
 			},
 		}
 

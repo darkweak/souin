@@ -106,6 +106,7 @@ func (s *SouinGinPlugin) Process() gin.HandlerFunc {
 				Response: &http.Response{},
 				Buf:      s.bufPool.Get().(*bytes.Buffer),
 				Rw:       c.Writer,
+				Req:      req,
 			},
 		}
 		c.Writer = customWriter

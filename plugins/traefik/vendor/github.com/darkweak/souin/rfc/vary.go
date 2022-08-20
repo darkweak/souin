@@ -43,7 +43,7 @@ func validateVary(req *http.Request, resp *http.Response, key string, t *VaryTra
 			},
 		}
 		go func(rs *http.Response) {
-			io.ReadAll(rs.Body)
+			_, _ = io.ReadAll(rs.Body)
 		}(resp)
 		return true
 	}

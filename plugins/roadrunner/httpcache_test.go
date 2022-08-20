@@ -68,6 +68,7 @@ func Test_Plugin_Middleware(t *testing.T) {
 	if rs.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored" {
 		t.Error("The response must contain a Cache-Status header with the stored directive.")
 	}
+	time.Sleep(time.Millisecond)
 	handler.ServeHTTP(res2, req)
 	rs = res2.Result()
 	rs.Body.Close()
@@ -93,6 +94,7 @@ func Test_Plugin_Middleware_Stale(t *testing.T) {
 		if rs.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored" {
 			t.Error("The response must contain a Cache-Status header with the stored directive.")
 		}
+		time.Sleep(2*time.Millisecond)
 		handler.ServeHTTP(res2, req)
 		rs = res2.Result()
 		rs.Body.Close()
@@ -197,6 +199,7 @@ func Test_Plugin_Middleware_API(t *testing.T) {
 	if rs.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored" {
 		t.Error("The response must contain a Cache-Status header with the stored directive.")
 	}
+	time.Sleep(10*time.Millisecond)
 	res3 := httptest.NewRecorder()
 	handler.ServeHTTP(res3, req)
 	rs = res3.Result()

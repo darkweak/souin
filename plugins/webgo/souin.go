@@ -99,6 +99,7 @@ func (s *SouinWebgoMiddleware) Middleware(rw http.ResponseWriter, r *http.Reques
 		Response: &http.Response{},
 		Buf:      s.bufPool.Get().(*bytes.Buffer),
 		Rw:       rw,
+		Req:      req,
 	}
 	req = s.Retriever.GetContext().SetContext(req)
 	getterCtx := getterContext{next, customWriter, req}

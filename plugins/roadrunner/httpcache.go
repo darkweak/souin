@@ -86,6 +86,7 @@ func (p *Plugin) Middleware(next http.Handler) http.Handler {
 			Response: &http.Response{},
 			Buf:      p.bufPool.Get().(*bytes.Buffer),
 			Rw:       rw,
+			Req:      req,
 		}
 		req = p.Retriever.GetContext().SetContext(req)
 		getterCtx := getterContext{next.ServeHTTP, customWriter, req}

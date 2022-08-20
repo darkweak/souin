@@ -57,6 +57,7 @@ func Test_SouinChiPlugin_Middleware(t *testing.T) {
 		t.Error("The response must contain a Cache-Status header with the stored directive.")
 	}
 
+	time.Sleep(10*time.Millisecond)
 	router.ServeHTTP(res2, req)
 	if res2.Result().Header.Get("Cache-Status") != "Souin; hit; ttl=4" {
 		t.Error("The response must contain a Cache-Status header with the hit and ttl directives.")
@@ -102,6 +103,7 @@ func Test_SouinChiPlugin_Middleware_APIHandle(t *testing.T) {
 		t.Error("The response body must be an empty array because no request has been stored")
 	}
 	router.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/handled", nil))
+	time.Sleep(10*time.Millisecond)
 	router.ServeHTTP(res2, httptest.NewRequest(http.MethodGet, "/souin-api/souin", nil))
 	if res2.Result().Header.Get("Content-Type") != "application/json" {
 		t.Error("The response must be in JSON.")

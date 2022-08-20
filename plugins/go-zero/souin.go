@@ -100,6 +100,7 @@ func (s *SouinGoZeroMiddleware) Handle(next http.HandlerFunc) http.HandlerFunc {
 			Response: &http.Response{},
 			Buf:      s.bufPool.Get().(*bytes.Buffer),
 			Rw:       rw,
+			Req:      req,
 		}
 		req = s.Retriever.GetContext().SetContext(req)
 		getterCtx := getterContext{next, customWriter, req}

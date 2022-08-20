@@ -61,6 +61,7 @@ func Test_SouinFiberPlugin_Middleware(t *testing.T) {
 		t.Error("The response must contain a Cache-Status header with the stored directive.")
 	}
 
+	time.Sleep(time.Millisecond)
 	res, _ = app.Test(req)
 	if err != nil {
 		t.Error(err)
@@ -128,6 +129,7 @@ func Test_SouinFiberPlugin_Middleware_APIHandle(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+	time.Sleep(10*time.Millisecond)
 	res, err = app.Test(httptest.NewRequest(http.MethodGet, "/souin-api/souin", nil))
 	if err != nil {
 		t.Error(err)

@@ -18,6 +18,7 @@ require (
 	github.com/hashicorp/memberlist v0.3.1 // indirect
 	github.com/klauspost/compress v1.15.7 // indirect
 	github.com/miekg/dns v1.1.50 // indirect
+	github.com/pquerna/cachecontrol v0.1.0
 	github.com/prometheus/common v0.35.0 // indirect
 	github.com/stretchr/testify v1.8.0 // indirect
 	go.opencensus.io v0.23.0 // indirect
