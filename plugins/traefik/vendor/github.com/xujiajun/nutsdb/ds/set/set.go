@@ -24,9 +24,6 @@ var (
 
 	// ErrKeyNotExist is returned when the key not exist.
 	ErrKeyNotExist = errors.New("key not exist")
-
-	// ErrKeyNotExist is returned when the item received is nil
-	ErrItemEmpty = errors.New("item empty")
 )
 
 // Set represents the Set.
@@ -60,8 +57,8 @@ func (s *Set) SRem(key string, items ...[]byte) error {
 		return ErrKeyNotFound
 	}
 
-	if len(items) == 0 || items[0] == nil {
-		return ErrItemEmpty
+	if len(items[0]) == 0 {
+		return errors.New("item empty")
 	}
 
 	for _, item := range items {

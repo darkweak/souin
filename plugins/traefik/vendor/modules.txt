@@ -163,7 +163,7 @@ github.com/vmihailenco/msgpack
 github.com/vmihailenco/msgpack/codes
 # github.com/xujiajun/mmap-go v1.0.1
 github.com/xujiajun/mmap-go
-# github.com/xujiajun/nutsdb v0.10.0
+# github.com/xujiajun/nutsdb v0.9.0
 github.com/xujiajun/nutsdb
 github.com/xujiajun/nutsdb/ds/list
 github.com/xujiajun/nutsdb/ds/set

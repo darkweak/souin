@@ -323,8 +323,8 @@ github.com/xordataexchange/crypt v0.0.3-0.20170626215501-b2862e3d0a77/go.mod h1:
 github.com/xujiajun/gorouter v1.2.0/go.mod h1:yJrIta+bTNpBM/2UT8hLOaEAFckO+m/qmR3luMIQygM=
 github.com/xujiajun/mmap-go v1.0.1 h1:7Se7ss1fLPPRW+ePgqGpCkfGIZzJV6JPq9Wq9iv/WHc=
 github.com/xujiajun/mmap-go v1.0.1/go.mod h1:CNN6Sw4SL69Sui00p0zEzcZKbt+5HtEnYUsc6BKKRMg=
-github.com/xujiajun/nutsdb v0.10.0 h1:kSxd7MyZiAVQM2I79FK74WneGI+uaHsUdak8dbjzKJc=
-github.com/xujiajun/nutsdb v0.10.0/go.mod h1:8ZdTTF0cEQO+wN940htfHYKswFql2iB6Osckx+GmOoU=
+github.com/xujiajun/nutsdb v0.9.0 h1:vy8rjDp0Sk/SnTAqg61i+G4NIN/3tBKSdZ6rIyKYVIo=
+github.com/xujiajun/nutsdb v0.9.0/go.mod h1:8ZdTTF0cEQO+wN940htfHYKswFql2iB6Osckx+GmOoU=
 github.com/xujiajun/utils v0.0.0-20190123093513-8bf096c4f53b h1:jKG9OiL4T4xQN3IUrhUpc1tG+HfDXppkgVcrAiiaI/0=
 github.com/xujiajun/utils v0.0.0-20190123093513-8bf096c4f53b/go.mod h1:AZd87GYJlUzl82Yab2kTjx1EyXSQCAfZDhpTo1SQC4k=
 github.com/yuin/goldmark v1.1.25/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
