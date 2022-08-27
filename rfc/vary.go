@@ -2,7 +2,6 @@ package rfc
 
 import (
 	"fmt"
-	"io"
 	"net/http"
 
 	"github.com/darkweak/souin/context"
@@ -29,22 +28,11 @@ func validateVary(req *http.Request, resp *http.Response, key string, t *VaryTra
 		}
 		resp.Header.Set("Cache-Status", fmt.Sprintf("%s; fwd=uri-miss; stored", req.Context().Value(context.CacheName)))
 		resp.Header.Del("Age")
-		// Delay caching until EOF is reached.
-		resp.Body = &cachingReadCloser{
-			R: resp.Body,
-			OnEOF: func(r io.Reader) {
-				re := *resp
-				re.Body = io.NopCloser(r)
-				_ = t.SurrogateStorage.Store(&re, cacheKey)
-				t.SetCache(cacheKey, &re)
-				go func() {
-					t.CoalescingLayerStorage.Delete(cacheKey)
-				}()
-			},
-		}
-		go func(rs *http.Response) {
-			_, _ = io.ReadAll(rs.Body)
-		}(resp)
+		_ = t.SurrogateStorage.Store(resp, cacheKey)
+		t.SetCache(cacheKey, resp)
+		go func() {
+			t.CoalescingLayerStorage.Delete(cacheKey)
+		}()
 		return true
 	}
 

@@ -77,14 +77,12 @@ func (r *CustomWriter) WriteHeader(code int) {
 func (r *CustomWriter) Write(b []byte) (int, error) {
 	r.Flush()
 	r.Response.Header = r.Rw.Header()
-	if r.Response.Body == nil {
-		r.Response.Body = io.NopCloser(bytes.NewBuffer(nil))
-	}
-	_, _ = r.Response.Body.Read(b)
-	r.Buf.Write(b)
+	r.Buf.Grow(len(b))
+	_, _ = r.Buf.Write(b)
+	_, _ = r.Rw.Write(b)
+	r.Response.Body = io.NopCloser(r.Buf)
 	r.size += len(b)
 	r.Response.Header.Set("Content-Length", fmt.Sprint(r.size))
-	r.Buf.Reset()
 	return len(b), nil
 }
 
@@ -108,6 +106,7 @@ func (r *CustomWriter) Flush() {
 // Send delays the response to handle Cache-Status
 func (r *CustomWriter) Send() (int, error) {
 	r.Flush()
+	r.Buf.Reset()
 	return 0, nil
 }
 
@@ -246,7 +245,6 @@ func DefaultSouinPluginCallback(
 			_, _ = cw.Rw.Write(nil)
 			return ctx.Canceled
 		default:
-			fmt.Printf("%T => %+v\n", req.Context().Err(), req.Context().Err())
 			return nil
 		}
 	case v := <-errorBackendCh:

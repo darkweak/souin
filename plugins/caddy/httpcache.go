@@ -131,6 +131,7 @@ func (s *SouinCaddyPlugin) ServeHTTP(rw http.ResponseWriter, r *http.Request, ne
 			return e
 		}
 
+		fmt.Printf("CustomWriter => %+v\n%+v\n%+v\n\n", customWriter, customWriter.Rw, customWriter.Response.Body)
 		combo.req.Response = customWriter.Response
 		combo.req.Response, e = s.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(combo.req)
 

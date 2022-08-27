@@ -107,6 +107,9 @@ const (
 
 	// DataListBucketDeleteFlag represents the delete List bucket flag
 	DataListBucketDeleteFlag
+
+	// LRemByIndex represents the data LRemByIndex flag
+	DataLRemByIndex
 )
 
 const (
@@ -182,8 +185,8 @@ type (
 	BucketMetasIdx map[string]*BucketMeta
 )
 
-// Open returns a newly initialized DB object.
-func Open(opt Options) (*DB, error) {
+// open returns a newly initialized DB object.
+func open(opt Options) (*DB, error) {
 	db := &DB{
 		BPTreeIdx:               make(BPTreeIdx),
 		SetIdx:                  make(SetIdx),
@@ -239,6 +242,15 @@ func Open(opt Options) (*DB, error) {
 	}
 
 	return db, nil
+}
+
+// Open returns a newly initialized DB object with Option.
+func Open(options Options, ops ...Option) (*DB, error) {
+	opts := &options
+	for _, do := range ops {
+		do(opts)
+	}
+	return open(*opts)
 }
 
 func (db *DB) checkEntryIdxMode() error {
@@ -908,6 +920,14 @@ func (db *DB) buildListIdx(bucket string, r *Record) error {
 		if err := db.ListIdx[bucket].Ltrim(newKey, start, end); err != nil {
 			return ErrWhenBuildListIdx(err)
 		}
+	case DataLRemByIndex:
+		indexes, err := UnmarshalInts(r.E.Value)
+		if err != nil {
+			return err
+		}
+		if _, err := db.ListIdx[bucket].LRemByIndex(string(r.E.Key), indexes); err != nil {
+			return ErrWhenBuildListIdx(err)
+		}
 	}
 
 	return nil
@@ -1117,7 +1137,8 @@ func (db *DB) isFilterEntry(entry *Entry) bool {
 		entry.Meta.Flag == DataLPopFlag || entry.Meta.Flag == DataLRemFlag ||
 		entry.Meta.Flag == DataLTrimFlag || entry.Meta.Flag == DataZRemFlag ||
 		entry.Meta.Flag == DataZRemRangeByRankFlag || entry.Meta.Flag == DataZPopMaxFlag ||
-		entry.Meta.Flag == DataZPopMinFlag || IsExpired(entry.Meta.TTL, entry.Meta.Timestamp) {
+		entry.Meta.Flag == DataZPopMinFlag || entry.Meta.Flag == DataLRemByIndex ||
+		IsExpired(entry.Meta.TTL, entry.Meta.Timestamp) {
 		return true
 	}
 

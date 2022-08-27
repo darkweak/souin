@@ -121,7 +121,7 @@ func Test_SouinEchoPlugin_Process_APIHandle(t *testing.T) {
 	rs := httptest.NewRequest(http.MethodGet, "/handled", nil)
 	_ = s.Process(handler)(e.NewContext(rs, res))
 	res2 := httptest.NewRecorder()
-	time.Sleep(10*time.Millisecond)
+	time.Sleep(15*time.Millisecond)
 	if err := s.Process(handler)(e.NewContext(req, res2)); err != nil {
 		t.Error("No error must be thrown if everything is good.")
 	}

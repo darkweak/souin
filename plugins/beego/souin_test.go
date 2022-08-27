@@ -2,7 +2,6 @@ package beego
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -61,7 +60,6 @@ func Test_SouinBeegoPlugin_Middleware(t *testing.T) {
 
 	time.Sleep(10*time.Millisecond)
 	web.BeeApp.Handlers.ServeHTTP(res2, req)
-	fmt.Printf("%+v\n", res2.Result().Header)
 	if res2.Result().Header.Get("Cache-Status") != "Souin; hit; ttl=4" {
 		t.Error("The response must contain a Cache-Status header with the hit and ttl directives.")
 	}

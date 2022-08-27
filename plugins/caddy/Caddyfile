@@ -18,6 +18,9 @@
             exclude /test2.*
         }
         headers Content-Type Authorization
+        nuts {
+            path /tmp/nuts-souin
+        }
         ttl 1000s
         timeout {
             backend 10s
@@ -166,6 +169,11 @@ route /backend-timeout {
         }
     }
     reverse_proxy 127.0.0.1:8081
+}
+
+route /stream {
+    cache
+    reverse_proxy 127.0.0.1:81
 }
 
 cache @souin-api {
