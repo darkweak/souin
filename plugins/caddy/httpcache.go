@@ -128,10 +128,10 @@ func (s *SouinCaddyPlugin) ServeHTTP(rw http.ResponseWriter, r *http.Request, ne
 		var e error
 		if e = combo.next.ServeHTTP(customWriter, r); e != nil {
 			rfc.MissCache(customWriter.Header().Set, req)
+			customWriter.SentHeaders()
 			return e
 		}
 
-		fmt.Printf("CustomWriter => %+v\n%+v\n%+v\n\n", customWriter, customWriter.Rw, customWriter.Response.Body)
 		combo.req.Response = customWriter.Response
 		combo.req.Response, e = s.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(combo.req)
 

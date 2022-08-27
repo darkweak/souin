@@ -35,6 +35,7 @@ type souinWriterInterface interface {
 	http.ResponseWriter
 	http.Flusher
 	Send() (int, error)
+	SentHeaders()
 }
 
 // CustomWriter handles the response and provide the way to cache the value
@@ -101,6 +102,11 @@ func (r *CustomWriter) Flush() {
 		}
 		r.headersSent = true
 	}
+}
+
+// SentHeaders will mark the headers as sent
+func (r *CustomWriter) SentHeaders() {
+	r.headersSent = true
 }
 
 // Send delays the response to handle Cache-Status
