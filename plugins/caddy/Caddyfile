@@ -173,5 +173,15 @@ route /stream {
     reverse_proxy 127.0.0.1:81
 }
 
+route /gzip {
+    cache
+    encode {
+        gzip
+        minimum_length 5
+    }
+    header Content-Type text/plain
+    respond "Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip."
+}
+
 cache @souin-api {
 }

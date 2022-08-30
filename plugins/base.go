@@ -33,30 +33,16 @@ var (
 
 type souinWriterInterface interface {
 	http.ResponseWriter
-	http.Flusher
 	Send() (int, error)
-	SentHeaders()
 }
 
 // CustomWriter handles the response and provide the way to cache the value
 type CustomWriter struct {
-	Response    *http.Response
-	Buf         *bytes.Buffer
-	Rw          http.ResponseWriter
-	Req         *http.Request
-	headersSent bool
-	size        int
-}
-
-func (r *CustomWriter) calculateCacheHeaders() {
-	resco, _ := cacheobject.ParseResponseCacheControl(r.Rw.Header().Get("Cache-Control"))
-	if !rfc.CachableStatusCode(r.Response.StatusCode) || resco.NoStore || r.Req.Context().Value(context.RequestCacheControl).(*cacheobject.RequestCacheDirectives).NoStore {
-		rfc.MissCache(r.Rw.Header().Set, r.Req)
-	}
-
-	if r.Rw.Header().Get("Cache-Status") == "" {
-		r.Rw.Header().Set("Cache-Status", fmt.Sprintf("%s; fwd=uri-miss; stored", r.Req.Context().Value(context.CacheName)))
-	}
+	Response *http.Response
+	Buf      *bytes.Buffer
+	Rw       http.ResponseWriter
+	Req      *http.Request
+	size     int
 }
 
 // Header will write the response headers
@@ -76,44 +62,26 @@ func (r *CustomWriter) WriteHeader(code int) {
 
 // Write will write the response body
 func (r *CustomWriter) Write(b []byte) (int, error) {
-	r.Flush()
 	r.Response.Header = r.Rw.Header()
 	r.Buf.Grow(len(b))
 	_, _ = r.Buf.Write(b)
-	_, _ = r.Rw.Write(b)
-	r.Response.Body = io.NopCloser(r.Buf)
+	r.Response.Body = io.NopCloser(bytes.NewBuffer(r.Buf.Bytes()))
 	r.size += len(b)
 	r.Response.Header.Set("Content-Length", fmt.Sprint(r.size))
 	return len(b), nil
 }
 
-// Flush will partially write the response body
-func (r *CustomWriter) Flush() {
+// Send delays the response to handle Cache-Status
+func (r *CustomWriter) Send() (int, error) {
+	r.Response.Header.Del("X-Souin-Stored-TTL")
 	for h, v := range r.Response.Header {
 		if len(v) > 0 {
 			r.Rw.Header().Set(h, strings.Join(v, ", "))
 		}
 	}
-
-	if !r.headersSent {
-		r.calculateCacheHeaders()
-		if flusher, ok := r.Rw.(http.Flusher); ok {
-			flusher.Flush()
-		}
-		r.headersSent = true
-	}
-}
-
-// SentHeaders will mark the headers as sent
-func (r *CustomWriter) SentHeaders() {
-	r.headersSent = true
-}
-
-// Send delays the response to handle Cache-Status
-func (r *CustomWriter) Send() (int, error) {
-	r.Flush()
-	r.Buf.Reset()
-	return 0, nil
+	defer r.Buf.Reset()
+	r.Rw.WriteHeader(r.Response.StatusCode)
+	return r.Rw.Write(r.Buf.Bytes())
 }
 
 func HasMutation(req *http.Request, rw http.ResponseWriter) bool {

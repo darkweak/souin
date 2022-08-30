@@ -59,11 +59,6 @@ func (r *goyaveWriterDecorator) Flush() {
 	}
 }
 
-// SentHeaders will mark the headers as sent
-func (r *goyaveWriterDecorator) SentHeaders() {
-	r.headersSent = true
-}
-
 // WriteHeader will write the response headers
 func (g *goyaveWriterDecorator) WriteHeader(code int) {
 	if g.Response == nil {

@@ -128,7 +128,6 @@ func (s *SouinCaddyPlugin) ServeHTTP(rw http.ResponseWriter, r *http.Request, ne
 		var e error
 		if e = combo.next.ServeHTTP(customWriter, r); e != nil {
 			rfc.MissCache(customWriter.Header().Set, req)
-			customWriter.SentHeaders()
 			return e
 		}
 
