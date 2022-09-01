@@ -47,7 +47,6 @@ func Test_SouinEchoPlugin_Process(t *testing.T) {
 	if res.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored" {
 		t.Error("The response must contain a Cache-Status header with the stored directive.")
 	}
-	time.Sleep(10*time.Millisecond)
 	if err := s.Process(handler)(c2); err != nil {
 		t.Error("No error must be thrown on the second request if everything is good.")
 	}
@@ -121,7 +120,6 @@ func Test_SouinEchoPlugin_Process_APIHandle(t *testing.T) {
 	rs := httptest.NewRequest(http.MethodGet, "/handled", nil)
 	_ = s.Process(handler)(e.NewContext(rs, res))
 	res2 := httptest.NewRecorder()
-	time.Sleep(15*time.Millisecond)
 	if err := s.Process(handler)(e.NewContext(req, res2)); err != nil {
 		t.Error("No error must be thrown if everything is good.")
 	}

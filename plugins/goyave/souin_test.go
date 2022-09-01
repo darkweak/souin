@@ -61,7 +61,6 @@ func (suite *HttpCacheMiddlewareTestSuite) Test_SouinFiberPlugin_Middleware() {
 		suite.T().Error("The response must contain a Cache-Status header with the stored directive.")
 	}
 
-	time.Sleep(time.Millisecond)
 	res = suite.Middleware(httpcache.Handle, request, func(response *goyave.Response, r *goyave.Request) {})
 
 	b, err = io.ReadAll(res.Body)
@@ -128,7 +127,6 @@ func (suite *HttpCacheMiddlewareTestSuite) Test_SouinFiberPlugin_Middleware_APIH
 	_ = suite.Middleware(httpcache.Handle, suite.CreateTestRequest(httptest.NewRequest(http.MethodGet, "/handled", nil)), func(response *goyave.Response, r *goyave.Request) {
 		response.String(http.StatusOK, "Hello, World 👋!")
 	})
-	time.Sleep(10*time.Millisecond)
 	res = suite.Middleware(httpcache.Handle, SouinAPIRequest, func(response *goyave.Response, r *goyave.Request) {})
 	b, _ = io.ReadAll(res.Body)
 	res.Body.Close()

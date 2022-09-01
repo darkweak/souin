@@ -222,7 +222,9 @@ func DefaultSouinPluginCallback(
 			return nil
 		}
 	case v := <-errorBackendCh:
-		_, _ = res.(souinWriterInterface).Send()
+		if v == nil {
+			_, _ = res.(souinWriterInterface).Send()
+		}
 		return v
 	}
 }
