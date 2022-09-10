@@ -49,6 +49,7 @@ func (p *Plugin) Init(cfg config.Configurer, log *zap.Logger) error {
 	}
 
 	c := parseConfiguration(cfg)
+	c.SetLogger(log)
 	p.Configuration = &c
 	p.bufPool = &sync.Pool{
 		New: func() interface{} {
