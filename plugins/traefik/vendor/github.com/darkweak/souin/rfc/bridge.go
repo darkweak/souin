@@ -59,7 +59,8 @@ func (t *VaryTransport) deleteCache(key string) {
 // BaseRoundTrip is the base for RoundTrip
 func (t *VaryTransport) BaseRoundTrip(req *http.Request) (string, bool, *http.Response) {
 	cacheKey := req.Context().Value(context.Key).(string)
-	cacheable := IsVaryCacheable(req)
+	_, err := req.Cookie("authorization")
+	cacheable := IsVaryCacheable(req) && req.Header.Get("Authorization") == "" && err != nil
 
 	if !cacheable {
 		go func() {

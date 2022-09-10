@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/darkweak/go-esi/esi"
 	"github.com/darkweak/souin/api"
 	"github.com/darkweak/souin/api/prometheus"
 	"github.com/darkweak/souin/cache/coalescing"
@@ -74,14 +75,16 @@ func (r *CustomWriter) Write(b []byte) (int, error) {
 // Send delays the response to handle Cache-Status
 func (r *CustomWriter) Send() (int, error) {
 	r.Response.Header.Del("X-Souin-Stored-TTL")
+	defer r.Buf.Reset()
+	b := esi.Parse(r.Buf.Bytes(), r.Req)
 	for h, v := range r.Response.Header {
 		if len(v) > 0 {
 			r.Rw.Header().Set(h, strings.Join(v, ", "))
 		}
 	}
-	defer r.Buf.Reset()
+	r.Rw.Header().Set("Content-Length", fmt.Sprintf("%d", len(b)))
 	r.Rw.WriteHeader(r.Response.StatusCode)
-	return r.Rw.Write(r.Buf.Bytes())
+	return r.Rw.Write(b)
 }
 
 func HasMutation(req *http.Request, rw http.ResponseWriter) bool {
