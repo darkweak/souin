@@ -20,7 +20,18 @@ type Badger struct {
 	logger *zap.Logger
 }
 
-var enabledBadgerInstances = make(map[string]*Badger)
+var (
+	enabledBadgerInstances               = make(map[string]*Badger)
+	_                      badger.Logger = (*badgerLogger)(nil)
+)
+
+type badgerLogger struct {
+	*zap.SugaredLogger
+}
+
+func (b *badgerLogger) Warningf(msg string, params ...interface{}) {
+	b.SugaredLogger.Warnf(msg, params...)
+}
 
 // BadgerConnectionFactory function create new Badger instance
 func BadgerConnectionFactory(c t.AbstractConfigurationInterface) (*Badger, error) {
@@ -42,6 +53,7 @@ func BadgerConnectionFactory(c t.AbstractConfigurationInterface) (*Badger, error
 		badgerOptions = badgerOptions.WithInMemory(true)
 	}
 
+	badgerOptions.Logger = &badgerLogger{SugaredLogger: c.GetLogger().Sugar()}
 	uid := badgerOptions.Dir + badgerOptions.ValueDir + dc.GetStale().String()
 	if i, ok := enabledBadgerInstances[uid]; ok {
 		return i, nil
