@@ -240,6 +240,10 @@ func (s *SouinCaddyPlugin) FromApp(app *SouinApp) error {
 		s.Configuration.DefaultCache.Distributed = appDc.Distributed
 		s.Configuration.DefaultCache.Olric = appDc.Olric
 	}
+	if dc.Redis.URL == "" && dc.Redis.Path == "" && dc.Redis.Configuration == nil {
+		s.Configuration.DefaultCache.Distributed = appDc.Distributed
+		s.Configuration.DefaultCache.Redis = appDc.Redis
+	}
 	if dc.Etcd.Configuration == nil {
 		s.Configuration.DefaultCache.Distributed = appDc.Distributed
 		s.Configuration.DefaultCache.Etcd = appDc.Etcd
@@ -563,6 +567,23 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 					}
 				}
 				cfg.DefaultCache.Olric = provider
+			case "redis":
+				cfg.DefaultCache.Distributed = true
+				provider := configurationtypes.CacheProvider{}
+				for nesting := h.Nesting(); h.NextBlock(nesting); {
+					directive := h.Val()
+					switch directive {
+					case "url":
+						urlArgs := h.RemainingArgs()
+						provider.URL = urlArgs[0]
+					case "path":
+						urlArgs := h.RemainingArgs()
+						provider.Path = urlArgs[0]
+					case "configuration":
+						provider.Configuration = parseCaddyfileRecursively(h)
+					}
+				}
+				cfg.DefaultCache.Redis = provider
 			case "regex":
 				for nesting := h.Nesting(); h.NextBlock(nesting); {
 					directive := h.Val()
@@ -724,6 +745,23 @@ func parseCaddyfileHandlerDirective(h httpcaddyfile.Helper) (caddyhttp.Middlewar
 				}
 			}
 			sc.DefaultCache.Olric = provider
+		case "redis":
+			sc.DefaultCache.Distributed = true
+			provider := configurationtypes.CacheProvider{}
+			for nesting := h.Nesting(); h.NextBlock(nesting); {
+				directive := h.Val()
+				switch directive {
+				case "url":
+					urlArgs := h.RemainingArgs()
+					provider.URL = urlArgs[0]
+				case "path":
+					urlArgs := h.RemainingArgs()
+					provider.Path = urlArgs[0]
+				case "configuration":
+					provider.Configuration = parseCaddyfileRecursively(h.Dispenser)
+				}
+			}
+			sc.DefaultCache.Redis = provider
 		case "nuts":
 			provider := configurationtypes.CacheProvider{}
 			for nesting := h.Nesting(); h.NextBlock(nesting); {
