@@ -52,7 +52,7 @@ jobs:
         name: Install Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.16
+          go-version: 1.18
       -
         name: Checkout code
         uses: actions/checkout@v2
@@ -99,7 +99,7 @@ jobs:
         name: Install Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.16
+          go-version: 1.18
       -
         name: Checkout code
         uses: actions/checkout@v2
@@ -146,7 +146,7 @@ jobs:
         name: Install Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.16
+          go-version: 1.18
       -
         name: Checkout code
         uses: actions/checkout@v2
@@ -193,7 +193,7 @@ jobs:
         name: Install Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.16
+          go-version: 1.18
       -
         name: Checkout code
         uses: actions/checkout@v2
@@ -240,7 +240,7 @@ jobs:
         name: Install Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.16
+          go-version: 1.18
       -
         name: Checkout code
         uses: actions/checkout@v2
@@ -287,7 +287,7 @@ jobs:
         name: Install Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.16
+          go-version: 1.18
       -
         name: Checkout code
         uses: actions/checkout@v2
@@ -334,7 +334,7 @@ jobs:
         name: Install Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.16
+          go-version: 1.18
       -
         name: Checkout code
         uses: actions/checkout@v2
@@ -381,7 +381,7 @@ jobs:
         name: Install Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.16
+          go-version: 1.18
       -
         name: Checkout code
         uses: actions/checkout@v2
@@ -569,7 +569,7 @@ jobs:
         name: Install Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.16
+          go-version: 1.18
       -
         name: Checkout code
         uses: actions/checkout@v2
@@ -616,7 +616,7 @@ jobs:
         name: Install Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.16
+          go-version: 1.18
       -
         name: Checkout code
         uses: actions/checkout@v2
@@ -663,7 +663,7 @@ jobs:
         name: Install Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.16
+          go-version: 1.18
       -
         name: Checkout code
         uses: actions/checkout@v2
@@ -710,7 +710,7 @@ jobs:
         name: Install Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.16
+          go-version: 1.18
       -
         name: Checkout code
         uses: actions/checkout@v2
