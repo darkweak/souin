@@ -40,11 +40,15 @@ var (
 		},
 		DefaultCache: &configurationtypes.DefaultCache{
 			AllowedHTTPVerbs: []string{http.MethodGet},
+			Distributed:      true,
 			Regex: configurationtypes.Regex{
 				Exclude: "/excluded",
 			},
+			Redis: configurationtypes.CacheProvider{
+				URL: "localhost:6379",
+			},
 			TTL: configurationtypes.Duration{
-				Duration: 20 * time.Second,
+				Duration: 5 * time.Minute,
 			},
 		},
 		LogLevel: "debug",

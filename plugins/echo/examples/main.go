@@ -1,8 +1,8 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
-	"time"
 
 	souin_echo "github.com/darkweak/souin/plugins/echo"
 	"github.com/labstack/echo/v4"
@@ -17,14 +17,10 @@ func main() {
 
 	// Handler
 	e.GET("/*", func(c echo.Context) error {
-		c.Response().Header().Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+		c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 		c.Response().WriteHeader(http.StatusOK)
 
-		res := []byte(`{"a": 1}`)
-		for i := 0; i < len(res); i++ {
-			c.Response().Write([]byte{res[i]})
-			time.Sleep(time.Second)
-		}
+		c.Response().Write([]byte(fmt.Sprintf("<html><body><h1>%s%s</h1></body></html>", c.Request().Host, c.Request().URL.Path)))
 
 		return nil
 	})

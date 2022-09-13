@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/buraksezer/olric v0.4.5
-	github.com/darkweak/go-esi v0.0.1
+	github.com/darkweak/go-esi v0.0.3
 	github.com/dgraph-io/badger/v3 v3.2103.2
 	github.com/dgraph-io/ristretto v0.1.0
 	github.com/fsnotify/fsnotify v1.5.1

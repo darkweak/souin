@@ -15,8 +15,9 @@ import (
 // Redis provider type
 type Redis struct {
 	*redis.Client
-	stale time.Duration
-	ctx   context.Context
+	stale     time.Duration
+	ctx       context.Context
+	stopAfter time.Duration
 }
 
 // RedisConnectionFactory function create new Nuts instance
@@ -29,18 +30,21 @@ func RedisConnectionFactory(c t.AbstractConfigurationInterface) (*Redis, error) 
 		_ = json.Unmarshal(bc, &options)
 	} else {
 		options = redis.Options{
-			Addr:     dc.GetRedis().URL,
-			Password: "",
-			DB:       0,
+			Addr:        dc.GetRedis().URL,
+			Password:    "",
+			DB:          0,
+			PoolSize:    1000,
+			PoolTimeout: dc.GetTimeout().Cache.Duration,
 		}
 	}
 
 	cli := redis.NewClient(&options)
 
 	return &Redis{
-		Client: cli,
-		ctx:    context.Background(),
-		stale:  dc.GetStale(),
+		Client:    cli,
+		ctx:       context.Background(),
+		stale:     dc.GetStale(),
+		stopAfter: dc.GetTimeout().Cache.Duration,
 	}, nil
 }
 
@@ -48,11 +52,12 @@ func RedisConnectionFactory(c t.AbstractConfigurationInterface) (*Redis, error) 
 func (provider *Redis) ListKeys() []string {
 	keys := []string{}
 
-	iter := provider.Client.Scan(provider.ctx, 0, "prefix:*", 0).Iterator()
+	iter := provider.Client.Scan(provider.ctx, 0, "*", 0).Iterator()
 	for iter.Next(provider.ctx) {
 		keys = append(keys, string(iter.Val()))
 	}
 	if err := iter.Err(); err != nil {
+		fmt.Println(err)
 		return []string{}
 	}
 
@@ -77,16 +82,33 @@ func (provider *Redis) Get(key string) (item []byte) {
 
 // Prefix method returns the populated response if exists, empty response then
 func (provider *Redis) Prefix(key string, req *http.Request) []byte {
-	iter := provider.Client.Scan(provider.ctx, 0, key+"*", 0).Iterator()
-	for iter.Next(provider.ctx) {
-		fmt.Println(iter.Val())
-		if varyVoter(key, req, iter.Val()) {
-			v, _ := provider.Client.Get(provider.ctx, iter.Val()).Result()
-			return []byte(v)
-		}
-	}
+	in := make(chan []byte)
+	out := make(chan bool)
 
-	return []byte{}
+	iter := provider.Client.Scan(provider.ctx, 0, key+"*", 0).Iterator()
+	go func(iterator *redis.ScanIterator) {
+		for iterator.Next(provider.ctx) {
+			select {
+			case <-out:
+				return
+			case <-time.After(1 * time.Nanosecond):
+				fmt.Println(iterator.Val())
+				if varyVoter(key, req, iter.Val()) {
+					v, _ := provider.Client.Get(provider.ctx, iter.Val()).Result()
+					in <- []byte(v)
+					return
+				}
+			}
+		}
+	}(iter)
+
+	select {
+	case <-time.After(provider.Client.Options().PoolTimeout):
+		out <- true
+		return []byte{}
+	case v := <-in:
+		return v
+	}
 }
 
 // Set method will store the response in Etcd provider
@@ -94,7 +116,6 @@ func (provider *Redis) Set(key string, value []byte, url t.URL, duration time.Du
 	if duration == 0 {
 		duration = url.TTL.Duration
 	}
-	fmt.Println("Set", key, "for", duration)
 
 	if err := provider.Client.Set(provider.ctx, key, value, duration).Err(); err != nil {
 		panic(fmt.Sprintf("Impossible to set value into Redis, %s", err))
@@ -119,7 +140,7 @@ func (provider *Redis) DeleteMany(key string) {
 	}
 
 	keys := []string{}
-	iter := provider.Client.Scan(provider.ctx, 0, "prefix:*", 0).Iterator()
+	iter := provider.Client.Scan(provider.ctx, 0, "*", 0).Iterator()
 	for iter.Next(provider.ctx) {
 		if re.MatchString(iter.Val()) {
 			keys = append(keys, iter.Val())
