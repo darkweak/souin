@@ -44,11 +44,8 @@ var (
 			Regex: configurationtypes.Regex{
 				Exclude: "/excluded",
 			},
-			Redis: configurationtypes.CacheProvider{
-				URL: "localhost:6379",
-			},
 			TTL: configurationtypes.Duration{
-				Duration: 5 * time.Minute,
+				Duration: 5 * time.Second,
 			},
 		},
 		LogLevel: "debug",

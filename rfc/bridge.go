@@ -3,6 +3,7 @@ package rfc
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -106,6 +107,7 @@ func commonVaryMatchesVerification(cachedResp *http.Response, req *http.Request)
 
 // UpdateCacheEventually will handle Request and update the previous one in the cache provider
 func (t *VaryTransport) UpdateCacheEventually(req *http.Request) (*http.Response, error) {
+	fmt.Println("UpdateCacheEventually")
 	if req.Response.Header.Get("Cache-Control") == "" && t.ConfigurationURL.DefaultCacheControl != "" {
 		if req.Response.Header == nil {
 			req.Response.Header = http.Header{}
@@ -147,28 +149,26 @@ func (t *VaryTransport) UpdateCacheEventually(req *http.Request) (*http.Response
 // to give the server a chance to respond with NotModified. If this happens, then the cached Response
 // will be returned.
 func (t *VaryTransport) RoundTrip(req *http.Request) (resp *http.Response, err error) {
-	cacheKey, cacheable, cachedResp := t.BaseRoundTrip(req)
+	cacheKey, cacheable, resp := t.BaseRoundTrip(req)
 
 	transport := t.Transport.Transport
 	if transport == nil {
 		transport = http.DefaultTransport
 	}
 
-	if cacheable && cachedResp != nil {
-		r := commonVaryMatchesVerification(cachedResp, req)
+	if cacheable && resp != nil {
+		r := commonVaryMatchesVerification(resp, req)
 		if r != nil {
 			return r, nil
 		}
 
-		var resp *http.Response
-		resp, err = transport.RoundTrip(req)
 		if (err != nil || resp.StatusCode >= 500) &&
-			req.Context().Value(context.SupportedMethod).(bool) && canStaleOnError(cachedResp.Header, req.Header) {
+			req.Context().Value(context.SupportedMethod).(bool) && canStaleOnError(resp.Header, req.Header) {
 			// In case of transport failure and stale-if-error activated, returns cached content
 			// when available
-			return cachedResp, nil
+			return resp, nil
 		} else {
-			if err != nil || cachedResp.StatusCode != http.StatusOK {
+			if err != nil || resp.StatusCode != http.StatusOK {
 				t.deleteCache(cacheKey)
 			}
 			if err != nil {
@@ -181,7 +181,6 @@ func (t *VaryTransport) RoundTrip(req *http.Request) (resp *http.Response, err e
 		}
 		MissCache(resp.Header.Set, req)
 	}
-	resp, _ = transport.RoundTrip(req)
 	req.Response = resp
 	if !(cacheable && canStore(parseCacheControl(req.Header), parseCacheControl(resp.Header), req.Response.StatusCode) && validateVary(req, resp, cacheKey, t)) {
 		go func() {
