@@ -3,7 +3,6 @@ package rfc
 import (
 	"bufio"
 	"bytes"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -39,10 +38,14 @@ func CachedResponse(c types.AbstractProviderInterface, req *http.Request, cached
 	return nil, false, nil
 }
 
-func commonCacheControl(req *http.Request, t http.RoundTripper) (*http.Response, error) {
+func commonCacheControl(req *http.Request, t http.RoundTripper, withRoundTrip bool) (*http.Response, error) {
 	reqCacheControl := parseCacheControl(req.Header)
 	if _, ok := reqCacheControl["only-if-cached"]; ok {
 		return newGatewayTimeoutResponse(req), nil
+	}
+
+	if !withRoundTrip {
+		return req.Response, nil
 	}
 
 	return t.RoundTrip(req)
@@ -107,7 +110,6 @@ func commonVaryMatchesVerification(cachedResp *http.Response, req *http.Request)
 
 // UpdateCacheEventually will handle Request and update the previous one in the cache provider
 func (t *VaryTransport) UpdateCacheEventually(req *http.Request) (*http.Response, error) {
-	fmt.Println("UpdateCacheEventually")
 	if req.Response.Header.Get("Cache-Control") == "" && t.ConfigurationURL.DefaultCacheControl != "" {
 		if req.Response.Header == nil {
 			req.Response.Header = http.Header{}
@@ -124,7 +126,7 @@ func (t *VaryTransport) UpdateCacheEventually(req *http.Request) (*http.Response
 		}
 		cachedResp.Header.Set("Date", rDate.Format(http.TimeFormat))
 	} else {
-		if _, err := commonCacheControl(req, t); err != nil {
+		if _, err := commonCacheControl(req, t, true); err != nil {
 			return nil, err
 		}
 	}
@@ -176,7 +178,7 @@ func (t *VaryTransport) RoundTrip(req *http.Request) (resp *http.Response, err e
 			}
 		}
 	} else {
-		if resp, err = commonCacheControl(req, transport); err != nil {
+		if resp, err = commonCacheControl(req, transport, false); err != nil {
 			return nil, err
 		}
 		MissCache(resp.Header.Set, req)

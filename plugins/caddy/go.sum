@@ -206,8 +206,8 @@ github.com/buraksezer/olric v0.4.5/go.mod h1:NfdWFw89lWlK9mJRV2iztZfZq9Y6iJfgY4F
 github.com/bwmarrin/snowflake v0.3.0 h1:xm67bEhkKh6ij1790JB83OujPR5CzNe8QuQqAgISZN0=
 github.com/bwmarrin/snowflake v0.3.0/go.mod h1:NdZxfVWX+oR6y2K0o6qAYv6gIOP9rjG0/E9WsDpxqwE=
 github.com/caarlos0/ctrlc v1.0.0/go.mod h1:CdXpj4rmq0q/1Eb44M9zi2nKB0QraNKuRGYGrrHhcQw=
-github.com/caddyserver/caddy/v2 v2.5.2 h1:eCJdLyEyAGzuQTa5Mh3gETnYWDClo1LjtQm2q9RNZrs=
-github.com/caddyserver/caddy/v2 v2.5.2/go.mod h1:/PytcgdNvIxIe1Vner+eq6jf2yCq2sZeG9tGSwYmdiE=
+github.com/caddyserver/caddy/v2 v2.5.0 h1:eRHzZ4l3X6Ag3kUt8nj5IxATprhqKq/wToP7OHlXWA0=
+github.com/caddyserver/caddy/v2 v2.5.0/go.mod h1:E+cb3E3jNt3MgAsObwNNkVEIUzriTlyVktcW4NYCD3E=
 github.com/caddyserver/certmagic v0.16.1 h1:rdSnjcUVJojmL4M0efJ+yHXErrrijS4YYg3FuwRdJkI=
 github.com/caddyserver/certmagic v0.16.1/go.mod h1:jKQ5n+ViHAr6DbPwEGLTSM2vDwTO6EvCKBblBRUvvuQ=
 github.com/campoy/unique v0.0.0-20180121183637-88950e537e7e/go.mod h1:9IOqJGCPMSc6E5ydlp5NIonxObaeu/Iub/X03EKPVYo=
