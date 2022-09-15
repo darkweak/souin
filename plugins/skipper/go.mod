@@ -15,9 +15,9 @@ require (
 	github.com/armon/go-metrics v0.4.0 // indirect
 	github.com/aryszka/jobqueue v0.0.2 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/buraksezer/connpool v0.5.0 // indirect
+	github.com/buraksezer/connpool v0.6.0 // indirect
 	github.com/buraksezer/consistent v0.9.0 // indirect
-	github.com/buraksezer/olric v0.4.5 // indirect
+	github.com/buraksezer/olric v0.4.7 // indirect
 	github.com/bwmarrin/snowflake v0.3.0 // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect

@@ -38,10 +38,14 @@ func CachedResponse(c types.AbstractProviderInterface, req *http.Request, cached
 	return nil, false, nil
 }
 
-func commonCacheControl(req *http.Request, t http.RoundTripper) (*http.Response, error) {
+func commonCacheControl(req *http.Request, t http.RoundTripper, withRoundTrip bool) (*http.Response, error) {
 	reqCacheControl := parseCacheControl(req.Header)
 	if _, ok := reqCacheControl["only-if-cached"]; ok {
 		return newGatewayTimeoutResponse(req), nil
+	}
+
+	if !withRoundTrip {
+		return req.Response, nil
 	}
 
 	return t.RoundTrip(req)
@@ -122,7 +126,7 @@ func (t *VaryTransport) UpdateCacheEventually(req *http.Request) (*http.Response
 		}
 		cachedResp.Header.Set("Date", rDate.Format(http.TimeFormat))
 	} else {
-		if _, err := commonCacheControl(req, t); err != nil {
+		if _, err := commonCacheControl(req, t, true); err != nil {
 			return nil, err
 		}
 	}
@@ -147,28 +151,26 @@ func (t *VaryTransport) UpdateCacheEventually(req *http.Request) (*http.Response
 // to give the server a chance to respond with NotModified. If this happens, then the cached Response
 // will be returned.
 func (t *VaryTransport) RoundTrip(req *http.Request) (resp *http.Response, err error) {
-	cacheKey, cacheable, cachedResp := t.BaseRoundTrip(req)
+	cacheKey, cacheable, resp := t.BaseRoundTrip(req)
 
 	transport := t.Transport.Transport
 	if transport == nil {
 		transport = http.DefaultTransport
 	}
 
-	if cacheable && cachedResp != nil {
-		r := commonVaryMatchesVerification(cachedResp, req)
+	if cacheable && resp != nil {
+		r := commonVaryMatchesVerification(resp, req)
 		if r != nil {
 			return r, nil
 		}
 
-		var resp *http.Response
-		resp, err = transport.RoundTrip(req)
 		if (err != nil || resp.StatusCode >= 500) &&
-			req.Context().Value(context.SupportedMethod).(bool) && canStaleOnError(cachedResp.Header, req.Header) {
+			req.Context().Value(context.SupportedMethod).(bool) && canStaleOnError(resp.Header, req.Header) {
 			// In case of transport failure and stale-if-error activated, returns cached content
 			// when available
-			return cachedResp, nil
+			return resp, nil
 		} else {
-			if err != nil || cachedResp.StatusCode != http.StatusOK {
+			if err != nil || resp.StatusCode != http.StatusOK {
 				t.deleteCache(cacheKey)
 			}
 			if err != nil {
@@ -176,12 +178,11 @@ func (t *VaryTransport) RoundTrip(req *http.Request) (resp *http.Response, err e
 			}
 		}
 	} else {
-		if resp, err = commonCacheControl(req, transport); err != nil {
+		if resp, err = commonCacheControl(req, transport, false); err != nil {
 			return nil, err
 		}
 		MissCache(resp.Header.Set, req)
 	}
-	resp, _ = transport.RoundTrip(req)
 	req.Response = resp
 	if !(cacheable && canStore(parseCacheControl(req.Header), parseCacheControl(resp.Header), req.Response.StatusCode) && validateVary(req, resp, cacheKey, t)) {
 		go func() {

@@ -17,8 +17,8 @@ require (
 	github.com/TykTechnologies/murmur3 v0.0.0-20180602122059-1915e687e465 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/buger/jsonparser v1.1.1 // indirect
-	github.com/buraksezer/connpool v0.5.0 // indirect
-	github.com/buraksezer/olric v0.4.5 // indirect
+	github.com/buraksezer/connpool v0.6.0 // indirect
+	github.com/buraksezer/olric v0.4.7 // indirect
 	github.com/bwmarrin/snowflake v0.3.0 // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
