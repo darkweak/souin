@@ -2,7 +2,7 @@
 
 plugins=("beego"  "chi"  "dotweb"  "echo"  "fiber"  "gin"  "go-zero"  "goyave"  "kratos"  "roadrunner"  "skipper"  "souin"  "traefik"  "tyk"  "webgo")
 durations=("35"   "30"   "30"      "30"    "45"     "40"   "50"       "40"      "50"      "10"          "65"       "40"     "20"       "30"   "35")
-versions=("18"    "18"   "18"      "18"    "18"     "18"   "18"       "18"      "18"      "18"          "18"       "18"     "18"       "18"   "18")
+versions=("18"    "18"   "18"      "18"    "18"     "18"   "18"       "18"      "18"      "18"          "18"       "18"     "18"       "16"   "18")
 
 IFS= read -r -d '' tpl <<EOF
 name: Build and validate Souin as plugins

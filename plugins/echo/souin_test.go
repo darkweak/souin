@@ -2,6 +2,7 @@ package souin
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -50,7 +51,8 @@ func Test_SouinEchoPlugin_Process(t *testing.T) {
 	if err := s.Process(handler)(c2); err != nil {
 		t.Error("No error must be thrown on the second request if everything is good.")
 	}
-	if res2.Result().Header.Get("Cache-Status") != "Souin; hit; ttl=19" {
+	if res2.Result().Header.Get("Cache-Status") != "Souin; hit; ttl=4" {
+		fmt.Println(res2.Result().Header.Get("Cache-Status"))
 		t.Error("The response must contain a Cache-Status header with the hit and ttl directives.")
 	}
 	if res2.Result().Header.Get("Age") != "1" {

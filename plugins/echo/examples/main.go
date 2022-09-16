@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 
 	souin_echo "github.com/darkweak/souin/plugins/echo"
@@ -17,12 +16,7 @@ func main() {
 
 	// Handler
 	e.GET("/*", func(c echo.Context) error {
-		c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
-		c.Response().WriteHeader(http.StatusOK)
-
-		c.Response().Write([]byte(fmt.Sprintf("<html><body><h1>%s%s</h1></body></html>", c.Request().Host, c.Request().URL.Path)))
-
-		return nil
+		return c.String(http.StatusOK, "Hello, World!")
 	})
 
 	e.Logger.Fatal(e.Start(":80"))
