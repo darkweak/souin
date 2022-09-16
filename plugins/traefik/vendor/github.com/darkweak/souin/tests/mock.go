@@ -222,7 +222,7 @@ api:
     enable: true
 default_cache:
   redis:
-    url: localhost:6379
+    url: redis:6379
   distributed: true
   headers:
     - Authorization

@@ -16,7 +16,6 @@ replace: ## Replace sources in the vendor folder deeper than the go mod replace
 	scp -r override/providers vendor/github.com/darkweak/souin/cache
 	scp override/api/prometheus/prometheus.go vendor/github.com/darkweak/souin/api/prometheus/prometheus.go
 	scp override/cache/surrogate/providers/cloudflare.go vendor/github.com/darkweak/souin/cache/surrogate/providers/cloudflare.go
-	scp override/cache/surrogate/providers/common.go vendor/github.com/darkweak/souin/cache/surrogate/providers/common.go
 	scp override/context/graphql.go vendor/github.com/darkweak/souin/context/graphql.go
 	scp override/plugins/base.go vendor/github.com/darkweak/souin/plugins/base.go
 	scp override/rfc/vary.go vendor/github.com/darkweak/souin/rfc/vary.go

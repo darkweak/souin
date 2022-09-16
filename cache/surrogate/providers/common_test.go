@@ -134,7 +134,7 @@ func TestBaseStorage_Store(t *testing.T) {
 	_ = bs.Store(&res, "/some")
 
 	storageSize := 0
-	bs.Storage.Range(func(_, _ any) bool {
+	bs.Storage.Range(func(_, _ interface{}) bool {
 		storageSize++
 		return true
 	})

@@ -220,7 +220,7 @@ func (s *baseStorage) Purge(header http.Header) (cacheKeys []string, surrogateKe
 // List returns the stored keys associated to resources
 func (s *baseStorage) List() map[string]string {
 	m := make(map[string]string)
-	s.Storage.Range(func(key, value any) bool {
+	s.Storage.Range(func(key, value interface{}) bool {
 		m[key.(string)] = value.(string)
 		return true
 	})
@@ -229,7 +229,7 @@ func (s *baseStorage) List() map[string]string {
 
 // Destruct method will shutdown properly the provider
 func (s *baseStorage) Destruct() error {
-	s.Storage.Range(func(key, value any) bool {
+	s.Storage.Range(func(key, value interface{}) bool {
 		s.Storage.Delete(key)
 		return true
 	})
