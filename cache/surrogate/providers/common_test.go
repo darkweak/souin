@@ -20,7 +20,7 @@ const (
 func mockCommonProvider() *baseStorage {
 	sss := &SouinSurrogateStorage{
 		baseStorage: &baseStorage{
-			Storage:    make(map[string]string),
+			Storage:    &sync.Map{},
 			Keys:       make(map[string]configurationtypes.SurrogateKeys),
 			keysRegexp: make(map[string]keysRegexpInner),
 			dynamic:    true,
@@ -74,11 +74,11 @@ func TestBaseStorage_Purge(t *testing.T) {
 		errors.GenerateError(t, "The surrogates length should be equal to 0.")
 	}
 
-	bs.Storage["test0"] = "first,second"
-	bs.Storage["STALE_test0"] = "STALTE_first,STALE_second"
-	bs.Storage["test2"] = "third,fourth"
-	bs.Storage["test5"] = "first,second,fifth"
-	bs.Storage["testInvalid"] = "invalid"
+	bs.Storage.Store("test0", "first,second")
+	bs.Storage.Store("STALE_test0", "STALTE_first,STALE_second")
+	bs.Storage.Store("test2", "third,fourth")
+	bs.Storage.Store("test5", "first,second,fifth")
+	bs.Storage.Store("testInvalid", "invalid")
 	headerMock.Set(surrogateKey, baseHeaderValue)
 	tags, surrogates = bs.Purge(headerMock)
 
@@ -105,22 +105,24 @@ func TestBaseStorage_Store(t *testing.T) {
 	}
 
 	bs = mockCommonProvider()
-	bs.Storage["test0"] = "first,second"
-	bs.Storage["test2"] = "third,fourth"
-	bs.Storage["test5"] = "first,second,fifth"
-	bs.Storage["testInvalid"] = "invalid"
+	bs.Storage.Store("test0", "first,second")
+	bs.Storage.Store("test2", "third,fourth")
+	bs.Storage.Store("test5", "first,second,fifth")
+	bs.Storage.Store("testInvalid", "invalid")
 
 	if e = bs.Store(&res, "stored"); e != nil {
 		errors.GenerateError(t, "It shouldn't throw an error with a valid key.")
 	}
 
 	for i := 0; i < 5; i++ {
-		if !strings.Contains(bs.Storage[fmt.Sprintf("test%d", i)], "stored") {
-			errors.GenerateError(t, fmt.Sprintf("The key test%d must include stored, %s given.", i, bs.Storage[fmt.Sprintf("test%d", i)]))
+		value, _ := bs.Storage.Load(fmt.Sprintf("test%d", i))
+		if !strings.Contains(value.(string), "stored") {
+			errors.GenerateError(t, fmt.Sprintf("The key test%d must include stored, %s given.", i, value.(string)))
 		}
 	}
 
-	if strings.Contains(bs.Storage["testInvalid"], "stored") {
+	value, _ := bs.Storage.Load("testInvalid")
+	if strings.Contains(value.(string), "stored") {
 		errors.GenerateError(t, "The surrogate storage should not contain stored.")
 	}
 
@@ -130,13 +132,47 @@ func TestBaseStorage_Store(t *testing.T) {
 	_ = bs.Store(&res, "/something")
 	res.Header.Set(surrogateKey, "something")
 	_ = bs.Store(&res, "/some")
-	if len(bs.Storage) != 2 {
+
+	storageSize := 0
+	bs.Storage.Range(func(_, _ any) bool {
+		storageSize++
+		return true
+	})
+
+	if storageSize != 2 {
 		errors.GenerateError(t, "The surrogate storage should contain 2 stored elements.")
 	}
-	if bs.Storage["STALE_something"] != ",STALE_%2Fsomething,STALE_%2Fsome" {
+
+	value, _ = bs.Storage.Load("STALE_something")
+	if value.(string) != ",STALE_%2Fsomething,STALE_%2Fsome" {
 		errors.GenerateError(t, "The STALE_something surrogate storage entry must contain 2 elements ,STALE_%2Fsomething,STALE_%2Fsome.")
 	}
-	if bs.Storage["something"] != ",%2Fsomething,%2Fsome" {
+	value, _ = bs.Storage.Load("something")
+	if value.(string) != ",%2Fsomething,%2Fsome" {
 		errors.GenerateError(t, "The something surrogate storage entry must contain 2 elements ,%2Fsomething,%2Fsome.")
+	}
+}
+
+func TestBaseStorage_Store_Load(t *testing.T) {
+	var wg sync.WaitGroup
+	res := http.Response{
+		Header: http.Header{},
+	}
+	bs := mockCommonProvider()
+
+	length := 4000
+	for i := 0; i < length; i++ {
+		wg.Add(1)
+		go func(r http.Response, iteration int, group *sync.WaitGroup) {
+			defer wg.Done()
+			bs.Store(&r, fmt.Sprintf("my_dynamic_cache_key_%d", iteration))
+		}(res, i, &wg)
+	}
+
+	wg.Wait()
+	v, _ := bs.Storage.Load("")
+
+	if len(strings.Split(v.(string), ",")) != length+1 {
+		errors.GenerateError(t, fmt.Sprintf("The surrogate storage should contain %d stored elements, %d given.", length+1, len(strings.Split(v.(string), ","))))
 	}
 }

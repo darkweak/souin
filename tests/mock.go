@@ -64,6 +64,21 @@ ykeys:
 `
 }
 
+// CDNConfiguration is the CDN configuration
+func CDNConfiguration() string {
+	return `
+api:
+  basepath: /souin-api
+  souin:
+    enable: true
+default_cache:
+  ttl: 1000s
+  cdn:
+    dynamic: true
+    strategy: hard
+`
+}
+
 // BadgerConfiguration simulate the configuration for the Badger storage
 func BadgerConfiguration() string {
 	return `
@@ -125,7 +140,6 @@ api:
 default_cache:
   nuts:
     path: "/tmp/nuts"
-  distributed: true
   headers:
     - Authorization
   port:
