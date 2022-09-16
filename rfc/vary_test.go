@@ -110,7 +110,7 @@ func TestValidateVary_Load(t *testing.T) {
 	}
 	var wg sync.WaitGroup
 
-	length := 4000
+	length := 3000
 	for i := 0; i < length; i++ {
 		wg.Add(1)
 		go func(iteration int, group *sync.WaitGroup) {
@@ -130,8 +130,8 @@ func TestValidateVary_Load(t *testing.T) {
 
 	wg.Wait()
 
-	if len(strings.Split(transport.SurrogateStorage.List()["souin_test"], ",")) != 4002 || len(strings.Split(transport.SurrogateStorage.List()["STALE_souin_test"], ",")) != 4002 {
-		errors.GenerateError(t, "The surrogate storage must contain 4002 items in souin_test and STALE_souin_test")
+	if len(strings.Split(transport.SurrogateStorage.List()["souin_test"], ",")) != 3002 || len(strings.Split(transport.SurrogateStorage.List()["STALE_souin_test"], ",")) != 3002 {
+		errors.GenerateError(t, "The surrogate storage must contain 3002 items in souin_test and STALE_souin_test")
 	}
 
 	flushRq, _ := http.NewRequest("PURGE", "http://domain.com/souin-api/souin", nil)

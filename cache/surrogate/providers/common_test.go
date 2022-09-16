@@ -160,7 +160,7 @@ func TestBaseStorage_Store_Load(t *testing.T) {
 	}
 	bs := mockCommonProvider()
 
-	length := 4000
+	length := 3000
 	for i := 0; i < length; i++ {
 		wg.Add(1)
 		go func(r http.Response, iteration int, group *sync.WaitGroup) {
