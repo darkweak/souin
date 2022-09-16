@@ -40,7 +40,6 @@ var (
 		},
 		DefaultCache: &configurationtypes.DefaultCache{
 			AllowedHTTPVerbs: []string{http.MethodGet},
-			Distributed:      true,
 			Regex: configurationtypes.Regex{
 				Exclude: "/excluded",
 			},

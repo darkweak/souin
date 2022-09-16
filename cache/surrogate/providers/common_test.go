@@ -165,7 +165,7 @@ func TestBaseStorage_Store_Load(t *testing.T) {
 		wg.Add(1)
 		go func(r http.Response, iteration int, group *sync.WaitGroup) {
 			defer wg.Done()
-			bs.Store(&r, fmt.Sprintf("my_dynamic_cache_key_%d", iteration))
+			_ = bs.Store(&r, fmt.Sprintf("my_dynamic_cache_key_%d", iteration))
 		}(res, i, &wg)
 	}
 

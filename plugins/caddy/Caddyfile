@@ -17,9 +17,6 @@
         regex {
             exclude /test2.*
         }
-        redis {
-            url localhost:6379
-        }
         headers Content-Type Authorization
         ttl 1000s
         timeout {
