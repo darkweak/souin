@@ -143,7 +143,8 @@ func TestValidateVary_Load(t *testing.T) {
 	if len(transport.SurrogateStorage.List()) != 0 {
 		errors.GenerateError(t, `The surrogate list must be empty because it had "" and "STALE_" that should be deleted.`)
 	}
-	if len(transport.GetProvider().ListKeys()) != 6 {
+	if len(transport.GetProvider().ListKeys()) != 8 {
+		fmt.Println(len(transport.GetProvider().ListKeys()))
 		errors.GenerateError(t, `The provider must have all related keys deleted.`)
 	}
 }
