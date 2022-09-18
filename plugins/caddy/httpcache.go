@@ -67,6 +67,8 @@ type SouinCaddyPlugin struct {
 	Nuts configurationtypes.CacheProvider `json:"nuts,omitempty"`
 	// Enable the Etcd distributed cache storage.
 	Etcd configurationtypes.CacheProvider `json:"etcd,omitempty"`
+	// Enable the Redis distributed cache storage.
+	Redis configurationtypes.CacheProvider `json:"redis,omitempty"`
 	// Enable the Olric distributed cache storage.
 	Olric configurationtypes.CacheProvider `json:"olric,omitempty"`
 	// Time to live for a key, using time.duration.
@@ -148,10 +150,11 @@ func (s *SouinCaddyPlugin) configurationPropertyMapper() error {
 		Key:                 s.Key,
 		DefaultCacheControl: s.DefaultCacheControl,
 		CacheName:           s.CacheName,
-		Distributed:         s.Olric.URL != "" || s.Olric.Path != "" || s.Olric.Configuration != nil || s.Etcd.Configuration != nil,
+		Distributed:         s.Olric.URL != "" || s.Olric.Path != "" || s.Olric.Configuration != nil || s.Etcd.Configuration != nil || s.Redis.URL != "" || s.Redis.Configuration != nil,
 		Headers:             s.Headers,
 		Olric:               s.Olric,
 		Etcd:                s.Etcd,
+		Redis:               s.Redis,
 		Timeout:             s.Timeout,
 		TTL:                 s.TTL,
 		Stale:               s.Stale,

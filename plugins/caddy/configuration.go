@@ -77,7 +77,7 @@ func (d *DefaultCache) GetOlric() configurationtypes.CacheProvider {
 	return d.Olric
 }
 
-// GetRedis returns olric configuration
+// GetRedis returns redis configuration
 func (d *DefaultCache) GetRedis() configurationtypes.CacheProvider {
 	return d.Redis
 }
