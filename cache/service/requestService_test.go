@@ -104,31 +104,6 @@ func shouldNotHaveKey(pathname string, pr types.AbstractProviderInterface) bool 
 	return 0 >= len(pr.Get(pathname))
 }
 
-func mockRewriteResponse(method string, body string, path string, code int) []byte {
-	return RewriteResponse(mockResponse(tests.PATH+path, method, body, code))
-}
-
-func TestKeyShouldBeDeletedOnPost(t *testing.T) {
-	c := tests.MockConfiguration(tests.BaseConfiguration)
-	prs := providers.InitializeProvider(c)
-	populateProviderWithFakeData(prs)
-	res := mockRewriteResponse(http.MethodPost, "My second response", "/1", 201)
-	if len(res) <= 0 {
-		errors.GenerateError(t, "The response should be valid and filled")
-	}
-	time.Sleep(10 * time.Second)
-	if !shouldNotHaveKey(tests.PATH, prs) {
-		errors.GenerateError(t, "The key "+tests.DOMAIN+tests.PATH+" shouldn't exist.")
-	}
-}
-
-func TestRewriteBody(t *testing.T) {
-	response := mockRewriteResponse(http.MethodPost, "My second response", "", 201)
-	if response == nil || len(response) <= 0 {
-		errors.GenerateError(t, "Rewrite body should return an empty response")
-	}
-}
-
 func verifyKeysExists(t *testing.T, path string, keys []string, isKeyDeleted bool, pr types.AbstractProviderInterface) {
 	time.Sleep(10 * time.Second)
 
@@ -179,38 +154,5 @@ func TestRequestReverseProxy(t *testing.T) {
 
 	if response.Proxy == nil || response.Request == nil {
 		errors.GenerateError(t, "Response proxy and request shouldn't be empty")
-	}
-}
-
-func TestCommonLoadingRequest(t *testing.T) {
-	body := "My testable response"
-	lenBody := len([]byte(body))
-	response := responseBodyExtractor(mockResponse(tests.PATH, http.MethodGet, body, 200))
-
-	if "" == string(response) {
-		errors.GenerateError(t, "Body shouldn't be empty")
-	}
-	if body != string(response) || lenBody != len(response) {
-		errors.GenerateError(t, fmt.Sprintf("Body %s doesn't match attempted %s", string(response), body))
-	}
-
-	body = "Another body with <h1>HTML</h1>"
-	lenBody = len([]byte(body))
-	response = responseBodyExtractor(mockResponse(tests.PATH, http.MethodGet, body, 200))
-
-	if "" == string(response) {
-		errors.GenerateError(t, "Body shouldn't be empty")
-	}
-	if body != string(response) || lenBody != len(response) {
-		errors.GenerateError(t, fmt.Sprintf("Body %s doesn't match attempted %s", string(response), body))
-	}
-
-	response = responseBodyExtractor(mockResponse(tests.PATH+"/another", http.MethodGet, body, 200))
-
-	if "" == string(response) {
-		errors.GenerateError(t, "Body shouldn't be empty")
-	}
-	if body != string(response) || lenBody != len(response) {
-		errors.GenerateError(t, fmt.Sprintf("Body %s doesn't match attempted %s", string(response), body))
 	}
 }

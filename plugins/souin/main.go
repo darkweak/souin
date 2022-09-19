@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"crypto/tls"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
 	"net/url"
+	"strings"
 	"sync"
 	"time"
 
@@ -107,7 +109,16 @@ func main() {
 				c.GetLogger().Debug("The request was canceled by the user.")
 				return &errors.CanceledRequestContextError{}
 			default:
-				rr.Proxy.ServeHTTP(rw, rq)
+				res, _ := rr.Proxy.Transport.RoundTrip(rq)
+				for h, hv := range res.Header {
+					rw.Header().Set(h, strings.Join(hv, ", "))
+				}
+				rw.WriteHeader(res.StatusCode)
+
+				body, _ := io.ReadAll(res.Body)
+				defer res.Body.Close()
+				res.Body = io.NopCloser(bytes.NewBuffer(body))
+				_, _ = rw.Write(body)
 			}
 
 			return nil
@@ -123,9 +134,11 @@ func main() {
 			Req:      request,
 		}
 		retriever.SetMatchedURLFromRequest(request)
-		//nolint
-		coalescing.ServeResponse(customWriter, request, retriever, plugins.DefaultSouinPluginCallback, rc, func(_ http.ResponseWriter, _ *http.Request) error {
-			return callback(customWriter, request, *retriever)
+		_ = plugins.DefaultSouinPluginCallback(customWriter, request, retriever, rc, func(w http.ResponseWriter, r *http.Request) (e error) {
+			_ = callback(customWriter, request, *retriever)
+			request.Response = customWriter.Response
+			request.Response, e = retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(request)
+			return
 		})
 	})
 	go func() {
