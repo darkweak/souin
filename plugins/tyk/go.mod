@@ -8,7 +8,6 @@ require (
 	github.com/armon/go-metrics v0.4.1 // indirect
 	github.com/buraksezer/consistent v0.9.0 // indirect
 	github.com/coreos/go-systemd/v22 v22.4.0 // indirect
-	github.com/darkweak/go-esi v0.0.4 // indirect
 	github.com/darkweak/souin v1.6.19
 	github.com/eclipse/paho.mqtt.golang v1.4.1 // indirect
 	github.com/evanphx/json-patch/v5 v5.5.0 // indirect
