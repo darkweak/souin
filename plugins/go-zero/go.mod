@@ -3,7 +3,7 @@ module github.com/darkweak/souin/plugins/go-zero
 go 1.18
 
 require (
-	github.com/darkweak/souin v1.6.18
+	github.com/darkweak/souin v1.6.19
 	github.com/zeromicro/go-zero v1.3.0
 )
 
@@ -18,7 +18,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/coreos/go-semver v0.3.0 // indirect
 	github.com/coreos/go-systemd/v22 v22.3.2 // indirect
-	github.com/darkweak/go-esi v0.0.3 // indirect
+	github.com/darkweak/go-esi v0.0.4 // indirect
 	github.com/dgraph-io/badger/v3 v3.2103.2 // indirect
 	github.com/dgraph-io/ristretto v0.1.0 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
@@ -89,4 +89,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/darkweak/souin v1.6.18 => ../..
+replace github.com/darkweak/souin v1.6.19 => ../..

@@ -3,7 +3,7 @@ module github.com/darkweak/souin/plugins/goyave
 go 1.18
 
 require (
-	github.com/darkweak/souin v1.6.18
+	github.com/darkweak/souin v1.6.19
 	github.com/pquerna/cachecontrol v0.1.0
 	goyave.dev/goyave/v4 v4.4.2
 )
@@ -20,7 +20,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/coreos/go-semver v0.3.0 // indirect
 	github.com/coreos/go-systemd/v22 v22.3.2 // indirect
-	github.com/darkweak/go-esi v0.0.3 // indirect
+	github.com/darkweak/go-esi v0.0.4 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgraph-io/badger/v3 v3.2103.2 // indirect
 	github.com/dgraph-io/ristretto v0.1.0 // indirect
@@ -84,4 +84,4 @@ require (
 	gorm.io/gorm v1.23.5 // indirect
 )
 
-replace github.com/darkweak/souin v1.6.18 => ../..
+replace github.com/darkweak/souin v1.6.19 => ../..

@@ -1,0 +1,9 @@
+{
+    order cache before rewrite
+    cache
+}
+
+80
+
+cache * {
+}

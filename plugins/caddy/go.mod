@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/buraksezer/olric v0.4.7
 	github.com/caddyserver/caddy/v2 v2.5.2
-	github.com/darkweak/souin v1.6.18
+	github.com/darkweak/souin v1.6.19
 	go.uber.org/zap v1.21.0
 )
 
@@ -33,7 +33,7 @@ require (
 	github.com/coreos/go-semver v0.3.0 // indirect
 	github.com/coreos/go-systemd/v22 v22.3.2 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
-	github.com/darkweak/go-esi v0.0.3 // indirect
+	github.com/darkweak/go-esi v0.0.4 // indirect
 	github.com/dgraph-io/badger v1.6.2 // indirect
 	github.com/dgraph-io/badger/v2 v2.2007.4 // indirect
 	github.com/dgraph-io/badger/v3 v3.2103.2 // indirect
@@ -173,4 +173,4 @@ require (
 	howett.net/plist v1.0.0 // indirect
 )
 
-replace github.com/darkweak/souin v1.6.18 => ../..
+replace github.com/darkweak/souin v1.6.19 => ../..
