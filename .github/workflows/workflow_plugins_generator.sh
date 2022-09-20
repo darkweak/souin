@@ -90,7 +90,7 @@ for i in ${!plugins[@]}; do
         name: Check if the configuration is loaded to define if Souin is loaded too
         uses: nick-invision/assert-action@v1
         with:
-          expected: '"Souin configuration is now loaded."'
+          expected: 'Souin configuration is now loaded.'
           actual: \${{ env.MIDDLEWARE_RESULT }}
           comparison: contains
       -
