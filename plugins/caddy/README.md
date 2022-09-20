@@ -9,7 +9,20 @@ This is a distributed HTTP cache module for Caddy based on [Souin](https://githu
  * [RFC 7234](https://httpwg.org/specs/rfc7234.html) compliant HTTP Cache.
  * Sets [the `Cache-Status` HTTP Response Header](https://httpwg.org/http-extensions/draft-ietf-httpbis-cache-header.html)
  * REST API to purge the cache and list stored resources.
+ * ESI tags processing (using the [go-esi package](https://github.com/darkweak/go-esi)).
  * Builtin support for distributed cache.
+
+## Minimal Configuration
+Using the minimal configuration the responses will be cached for `120s`
+```caddy
+{
+    order cache before rewrite
+    cache
+}
+
+cache * {
+}
+```
 
 ## Example Configurations
 There is the fully configuration below
