@@ -5,4 +5,4 @@ default_cache:
     exclude: /excluded
   ttl: 5s
 log_level: debug
-reverse_proxy_url: 'http://domain.com:81'
+reverse_proxy_url: 'http://traefik'

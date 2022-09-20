@@ -267,7 +267,6 @@ func (s *SouinCaddyPlugin) FromApp(app *SouinApp) error {
 // Provision to do the provisioning part.
 func (s *SouinCaddyPlugin) Provision(ctx caddy.Context) error {
 	s.logger = ctx.Logger(s)
-	s.Configuration.SetLogger(s.logger)
 
 	if err := s.configurationPropertyMapper(); err != nil {
 		return err

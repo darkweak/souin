@@ -3,7 +3,7 @@ module github.com/darkweak/souin/plugins/roadrunner
 go 1.18
 
 require (
-	github.com/darkweak/souin v1.6.19
+	github.com/darkweak/souin v1.6.20
 	github.com/roadrunner-server/api/v2 v2.23.0
 	github.com/roadrunner-server/errors v1.2.0
 	go.uber.org/zap v1.23.0
@@ -78,4 +78,4 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
 
-replace github.com/darkweak/souin v1.6.19 => ../..
+replace github.com/darkweak/souin v1.6.20 => ../..
