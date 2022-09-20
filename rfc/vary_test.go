@@ -1,11 +1,19 @@
 package rfc
 
 import (
+	"bytes"
+	ctx "context"
 	"fmt"
+	"io"
+	"net/http"
 	"net/http/httptest"
+	"strings"
+	"sync"
 	"testing"
 
+	"github.com/darkweak/souin/api"
 	"github.com/darkweak/souin/cache/surrogate"
+	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/context"
 
 	"github.com/darkweak/souin/cache/providers"
@@ -54,14 +62,89 @@ func TestVaryMatches(t *testing.T) {
 		errors.GenerateError(t, fmt.Sprintf("It contains valid vary headers in the Response. It should validate it, %v given", res.Header))
 	}
 
-	if len(prs.Get(r.Context().Value(context.Key).(string))) != 0 {
-		errors.GenerateError(t, fmt.Sprintf("The key %s shouldn't exist in the storage provider. %v given", r.Context().Value(context.Key).(string), prs.Get(r.Context().Value(context.Key).(string))))
+	if len(prs.Get(r.Context().Value(context.Key).(string))) == 0 {
+		errors.GenerateError(t, fmt.Sprintf("The key %s should exist in the storage provider. %v given", r.Context().Value(context.Key).(string), prs.Get(r.Context().Value(context.Key).(string))))
 	}
 
 	variedHeaders := headerAllCommaSepValues(res.Header)
 	variedCacheKey := GetVariedCacheKey(r, variedHeaders)
 	b := prs.Get(GetVariedCacheKey(r, headerAllCommaSepValues(res.Header)))
-	if len(b) != 0 {
-		errors.GenerateError(t, fmt.Sprintf("The key %s with headers %v shouldn't exist in the storage provider. %v given", variedCacheKey, variedHeaders, b))
+	if len(b) == 0 {
+		errors.GenerateError(t, fmt.Sprintf("The key %s with headers %v should exist in the storage provider. %v given", variedCacheKey, variedHeaders, b))
+	}
+}
+
+func TestValidateVary_Load(t *testing.T) {
+	if validateVary(nil, nil, "", nil) {
+		errors.GenerateError(t, "The validateVary must return false when a nil response is passed as parameter.")
+	}
+
+	response := &http.Response{
+		Header: http.Header{},
+	}
+	response.Header.Set("Vary", "X-Varied")
+	response.Header.Set("X-Varied", "value")
+	response.Header.Set("Surrogate-Key", "souin_test")
+	response.Body = io.NopCloser(bytes.NewBuffer([]byte("Hello world!")))
+
+	badger, _ := providers.BadgerConnectionFactory(tests.MockConfiguration(tests.CDNConfiguration))
+	transport := NewTransport(
+		badger,
+		ykeys.InitializeYKeys(make(map[string]configurationtypes.SurrogateKeys)),
+		surrogate.InitializeSurrogate(tests.MockConfiguration(tests.CDNConfiguration)),
+	)
+
+	req, _ := http.NewRequest(http.MethodGet, "/", nil)
+	req = req.WithContext(ctx.WithValue(req.Context(), context.CacheName, "Souin"))
+	req = req.WithContext(ctx.WithValue(req.Context(), context.Key, "GET-domain.com-/something"))
+	if !validateVary(req, response, "", transport) {
+		errors.GenerateError(t, "The validateVary must return true when a valid response is passed as parameter.")
+	}
+
+	if response.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored" {
+		errors.GenerateError(t, "The validateVary must set the stored Cache-Status header.")
+	}
+
+	if len(strings.Split(transport.SurrogateStorage.List()["souin_test"], ",")) != 2 || len(strings.Split(transport.SurrogateStorage.List()["STALE_souin_test"], ",")) != 2 {
+		errors.GenerateError(t, "The surrogate storage must contain 2 items in souin_test and STALE_souin_test")
+	}
+	var wg sync.WaitGroup
+
+	length := 3000
+	for i := 0; i < length; i++ {
+		wg.Add(1)
+		go func(iteration int, group *sync.WaitGroup) {
+			defer wg.Done()
+
+			rs := &http.Response{
+				Header: http.Header{},
+			}
+			rs.Header.Set("Surrogate-Key", "souin_test")
+
+			rq := req.WithContext(ctx.WithValue(req.Context(), context.CacheName, "Souin"))
+			if !validateVary(rq, rs, fmt.Sprintf("sk_%d", iteration), transport) {
+				errors.GenerateError(t, "The validateVary must return true when a valid response is passed as parameter.")
+			}
+		}(i, &wg)
+	}
+
+	wg.Wait()
+
+	if len(strings.Split(transport.SurrogateStorage.List()["souin_test"], ",")) != 3002 || len(strings.Split(transport.SurrogateStorage.List()["STALE_souin_test"], ",")) != 3002 {
+		errors.GenerateError(t, "The surrogate storage must contain 3002 items in souin_test and STALE_souin_test")
+	}
+
+	flushRq, _ := http.NewRequest("PURGE", "http://domain.com/souin-api/souin", nil)
+	souinAPI := api.Initialize(transport, tests.MockConfiguration(tests.CDNConfiguration))
+
+	flushRq.Header.Set("Surrogate-Key", "souin_test")
+	souinAPI[1].HandleRequest(httptest.NewRecorder(), flushRq)
+
+	if len(transport.SurrogateStorage.List()) != 0 {
+		errors.GenerateError(t, `The surrogate list must be empty because it had "" and "STALE_" that should be deleted.`)
+	}
+	if len(transport.GetProvider().ListKeys()) != 8 {
+		fmt.Println(len(transport.GetProvider().ListKeys()))
+		errors.GenerateError(t, `The provider must have all related keys deleted.`)
 	}
 }

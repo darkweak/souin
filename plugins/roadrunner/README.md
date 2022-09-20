@@ -25,7 +25,7 @@ ref = "master"
 
     [github.plugins]
     logger = { ref = "master", owner = "roadrunner-server", repository = "logger" }
-    cache = { ref = "master", owner = "darkweak", repository = "souin/plugins/roadrunner" }
+    cache = { ref = "master", owner = "darkweak", repository = "souin", folder = "/plugins/roadrunner" }
 	# others ...
 
 [log]

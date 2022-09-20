@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"regexp"
 	"strings"
@@ -56,7 +56,7 @@ func (r *CustomWriter) WriteHeader(code int) {
 func (r *CustomWriter) Write(b []byte) (int, error) {
 	r.Response.Header = r.Header()
 	r.Buf.Write(b)
-	r.Response.Body = ioutil.NopCloser(r.Buf)
+	r.Response.Body = io.NopCloser(r.Buf)
 	return len(b), nil
 }
 
@@ -71,7 +71,7 @@ func (r *CustomWriter) Send() (int, error) {
 	var b []byte
 
 	if r.Response.Body != nil {
-		b, _ = ioutil.ReadAll(r.Response.Body)
+		b, _ = io.ReadAll(r.Response.Body)
 	}
 	return r.Rw.Write(b)
 }
@@ -99,7 +99,7 @@ func sendAnyCachedResponse(rh http.Header, response *http.Response, res http.Res
 		res.Header().Set(k, v[0])
 	}
 	res.WriteHeader(response.StatusCode)
-	b, _ := ioutil.ReadAll(response.Body)
+	b, _ := io.ReadAll(response.Body)
 	_, _ = res.Write(b)
 	_, _ = res.(*CustomWriter).Send()
 }

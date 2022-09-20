@@ -221,6 +221,24 @@ func parseDefaultCache(dcConfiguration map[string]config.Value) *configurationty
 			}
 			dc.Distributed = true
 			dc.Olric = provider
+		case "redis":
+			provider := configurationtypes.CacheProvider{}
+			redisConfiguration, _ := defaultCacheV.Map()
+			for redisConfigurationK, redisConfigurationV := range redisConfiguration {
+				switch redisConfigurationK {
+				case url:
+					provider.URL, _ = redisConfigurationV.String()
+				case path:
+					provider.Path, _ = redisConfigurationV.String()
+				case configurationPK:
+					configMap, e := redisConfigurationV.Map()
+					if e == nil {
+						provider.Configuration = parseRecursively(configMap)
+					}
+				}
+			}
+			dc.Distributed = true
+			dc.Redis = provider
 		case "regex":
 			regex, _ := defaultCacheV.Map()
 			exclude, _ := regex["exclude"].String()

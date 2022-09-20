@@ -1,8 +1,8 @@
 package configuration
 
 import (
-	"io/ioutil"
 	"log"
+	"os"
 
 	"github.com/darkweak/souin/configurationtypes"
 	"go.uber.org/zap"
@@ -24,7 +24,7 @@ type Configuration struct {
 }
 
 func readFile(path string) []byte {
-	data, err := ioutil.ReadFile(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		log.Fatal(err)
 	}

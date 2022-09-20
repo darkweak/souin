@@ -72,6 +72,7 @@ func (s *httpcache) Request(ctx filters.FilterContext) {
 			Response: ctx.Response(),
 			Buf:      s.bufPool.Get().(*bytes.Buffer),
 			Rw:       rw,
+			Req:      req,
 		},
 	}
 	req.Header.Set("Date", time.Now().UTC().Format(time.RFC1123))

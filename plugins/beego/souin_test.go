@@ -2,7 +2,7 @@ package beego
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -97,7 +97,7 @@ func Test_SouinBeegoPlugin_Middleware_APIHandle(t *testing.T) {
 	if res.Result().Header.Get("Content-Type") != "application/json" {
 		t.Error("The response must be in JSON.")
 	}
-	b, _ := ioutil.ReadAll(res.Result().Body)
+	b, _ := io.ReadAll(res.Result().Body)
 	defer res.Result().Body.Close()
 	if string(b) != "[]" {
 		t.Error("The response body must be an empty array because no request has been stored")
@@ -107,7 +107,7 @@ func Test_SouinBeegoPlugin_Middleware_APIHandle(t *testing.T) {
 	if res2.Result().Header.Get("Content-Type") != "application/json" {
 		t.Error("The response must be in JSON.")
 	}
-	b, _ = ioutil.ReadAll(res2.Result().Body)
+	b, _ = io.ReadAll(res2.Result().Body)
 	defer res2.Result().Body.Close()
 	var payload []string
 	_ = json.Unmarshal(b, &payload)

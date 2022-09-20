@@ -18,3 +18,8 @@ type AbstractProviderInterface interface {
 	Init() error
 	Reset() error
 }
+
+type AbstractReconnectProvider interface {
+	AbstractProviderInterface
+	Reconnect()
+}

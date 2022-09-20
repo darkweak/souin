@@ -14,7 +14,7 @@ import (
 func mockFastlyProvider() *FastlySurrogateStorage {
 	fss := &FastlySurrogateStorage{
 		baseStorage: &baseStorage{
-			Storage:    make(map[string]string),
+			Storage:    &sync.Map{},
 			Keys:       make(map[string]configurationtypes.SurrogateKeys),
 			keysRegexp: make(map[string]keysRegexpInner),
 			dynamic:    true,

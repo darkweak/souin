@@ -3,7 +3,7 @@ package fiber
 import (
 	"bytes"
 	"context"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"sync"
 	"time"
@@ -92,9 +92,9 @@ func convertResponse(stdreq *http.Request, fastresp *fasthttp.Response) *http.Re
 	}
 
 	if body != nil {
-		stdresp.Body = ioutil.NopCloser(bytes.NewReader(body))
+		stdresp.Body = io.NopCloser(bytes.NewReader(body))
 	} else {
-		stdresp.Body = ioutil.NopCloser(bytes.NewReader(nil))
+		stdresp.Body = io.NopCloser(bytes.NewReader(nil))
 	}
 
 	return stdresp
@@ -128,6 +128,7 @@ func (s *SouinFiberMiddleware) Handle(c *fiber.Ctx) error {
 			Rw: &fiberWriter{
 				Ctx: c,
 			},
+			Req: req,
 		},
 	}
 
@@ -153,24 +154,32 @@ func (s *SouinFiberMiddleware) Handle(c *fiber.Ctx) error {
 	req.Header.Set("Date", time.Now().UTC().Format(time.RFC1123))
 	combo := ctx.Value(getterContextCtxKey).(getterContext)
 
-	e := plugins.DefaultSouinPluginCallback(rw.CustomWriter, req, s.Retriever, nil, func(_ http.ResponseWriter, _ *http.Request) error {
+	e := plugins.DefaultSouinPluginCallback(rw, req, s.Retriever, nil, func(_ http.ResponseWriter, _ *http.Request) error {
 		var e error
 		c.Next()
 
+		rw.CustomWriter.Rw = &nopWriter{
+			Ctx: c,
+		}
 		combo.req.Response = convertResponse(req, &c.Context().Response)
 		if combo.req.Response, e = s.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(combo.req); e != nil {
 			return e
 		}
 
 		rw.Response = combo.req.Response
-		_, _ = rw.Send()
 		return e
 	})
 
 	rw.Response.Header.Del("X-Souin-Stored-TTL")
-	rCtx := rw.Rw.(*fiberWriter).Ctx.Response()
+	var rCtx *fiber.Ctx
+	switch rw.Rw.(type) {
+	case *nopWriter:
+		rCtx = rw.Rw.(*nopWriter).Ctx
+	case *fiberWriter:
+		rCtx = rw.Rw.(*fiberWriter).Ctx
+	}
 	for hk, hv := range rw.Response.Header {
-		rCtx.Header.Set(hk, hv[0])
+		rCtx.Response().Header.Set(hk, hv[0])
 	}
 
 	return e

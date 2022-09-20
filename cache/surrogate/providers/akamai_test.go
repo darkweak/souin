@@ -14,7 +14,7 @@ import (
 func mockAkamaiProvider() *AkamaiSurrogateStorage {
 	ass := &AkamaiSurrogateStorage{
 		baseStorage: &baseStorage{
-			Storage:    make(map[string]string),
+			Storage:    &sync.Map{},
 			Keys:       make(map[string]configurationtypes.SurrogateKeys),
 			keysRegexp: make(map[string]keysRegexpInner),
 			dynamic:    true,

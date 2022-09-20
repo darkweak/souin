@@ -2,7 +2,7 @@ package souin
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -37,7 +37,7 @@ func prepare() (res *httptest.ResponseRecorder, res2 *httptest.ResponseRecorder,
 	return
 }
 
-func Test_SouinChiPlugin_Middleware(t *testing.T) {
+func Test_SouinGoZeroPlugin_Middleware(t *testing.T) {
 	res, res2, router := prepare()
 	req := httptest.NewRequest(http.MethodGet, "/handled", nil)
 	req.Header = http.Header{}
@@ -56,7 +56,7 @@ func Test_SouinChiPlugin_Middleware(t *testing.T) {
 	}
 }
 
-func Test_SouinChiPlugin_Middleware_CannotHandle(t *testing.T) {
+func Test_SouinGoZeroPlugin_Middleware_CannotHandle(t *testing.T) {
 	res, res2, router := prepare()
 	req := httptest.NewRequest(http.MethodGet, "/not-handled", nil)
 	req.Header = http.Header{}
@@ -76,7 +76,7 @@ func Test_SouinChiPlugin_Middleware_CannotHandle(t *testing.T) {
 	}
 }
 
-func Test_SouinChiPlugin_Middleware_APIHandle(t *testing.T) {
+func Test_SouinGoZeroPlugin_Middleware_APIHandle(t *testing.T) {
 	time.Sleep(DevDefaultConfiguration.DefaultCache.GetTTL() + DevDefaultConfiguration.GetDefaultCache().GetStale())
 	res, res2, router := prepare()
 	req := httptest.NewRequest(http.MethodGet, "/souin-api/souin", nil)
@@ -86,7 +86,7 @@ func Test_SouinChiPlugin_Middleware_APIHandle(t *testing.T) {
 	if res.Result().Header.Get("Content-Type") != "application/json" {
 		t.Error("The response must be in JSON.")
 	}
-	b, _ := ioutil.ReadAll(res.Result().Body)
+	b, _ := io.ReadAll(res.Result().Body)
 	res.Result().Body.Close()
 	if string(b) != "[]" {
 		t.Error("The response body must be an empty array because no request has been stored")
@@ -96,7 +96,7 @@ func Test_SouinChiPlugin_Middleware_APIHandle(t *testing.T) {
 	if res2.Result().Header.Get("Content-Type") != "application/json" {
 		t.Error("The response must be in JSON.")
 	}
-	b, _ = ioutil.ReadAll(res2.Result().Body)
+	b, _ = io.ReadAll(res2.Result().Body)
 	res2.Result().Body.Close()
 	var payload []string
 	_ = json.Unmarshal(b, &payload)

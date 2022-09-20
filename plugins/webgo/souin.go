@@ -99,6 +99,7 @@ func (s *SouinWebgoMiddleware) Middleware(rw http.ResponseWriter, r *http.Reques
 		Response: &http.Response{},
 		Buf:      s.bufPool.Get().(*bytes.Buffer),
 		Rw:       rw,
+		Req:      req,
 	}
 	req = s.Retriever.GetContext().SetContext(req)
 	getterCtx := getterContext{next, customWriter, req}
@@ -117,11 +118,8 @@ func (s *SouinWebgoMiddleware) Middleware(rw http.ResponseWriter, r *http.Reques
 		combo.next(customWriter, r)
 
 		combo.req.Response = customWriter.Response
-		if combo.req.Response, e = s.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(combo.req); e != nil {
-			return e
-		}
+		combo.req.Response, e = s.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(combo.req)
 
-		_, _ = customWriter.Send()
 		return e
 	})
 }

@@ -67,6 +67,8 @@ type SouinCaddyPlugin struct {
 	Nuts configurationtypes.CacheProvider `json:"nuts,omitempty"`
 	// Enable the Etcd distributed cache storage.
 	Etcd configurationtypes.CacheProvider `json:"etcd,omitempty"`
+	// Enable the Redis distributed cache storage.
+	Redis configurationtypes.CacheProvider `json:"redis,omitempty"`
 	// Enable the Olric distributed cache storage.
 	Olric configurationtypes.CacheProvider `json:"olric,omitempty"`
 	// Time to live for a key, using time.duration.
@@ -113,6 +115,7 @@ func (s *SouinCaddyPlugin) ServeHTTP(rw http.ResponseWriter, r *http.Request, ne
 		Response: &http.Response{},
 		Buf:      s.bufPool.Get().(*bytes.Buffer),
 		Rw:       rw,
+		Req:      req,
 	}
 	getterCtx := getterContext{customWriter, req, next}
 	ctx := context.WithValue(req.Context(), getterContextCtxKey, getterCtx)
@@ -130,14 +133,9 @@ func (s *SouinCaddyPlugin) ServeHTTP(rw http.ResponseWriter, r *http.Request, ne
 			return e
 		}
 
-		customWriter.Response.Header = customWriter.Rw.Header().Clone()
 		combo.req.Response = customWriter.Response
+		combo.req.Response, e = s.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(combo.req)
 
-		if combo.req.Response, e = s.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(combo.req); e != nil {
-			return e
-		}
-
-		_, _ = customWriter.Send()
 		return e
 	})
 }
@@ -152,10 +150,11 @@ func (s *SouinCaddyPlugin) configurationPropertyMapper() error {
 		Key:                 s.Key,
 		DefaultCacheControl: s.DefaultCacheControl,
 		CacheName:           s.CacheName,
-		Distributed:         s.Olric.URL != "" || s.Olric.Path != "" || s.Olric.Configuration != nil || s.Etcd.Configuration != nil,
+		Distributed:         s.Olric.URL != "" || s.Olric.Path != "" || s.Olric.Configuration != nil || s.Etcd.Configuration != nil || s.Redis.URL != "" || s.Redis.Configuration != nil,
 		Headers:             s.Headers,
 		Olric:               s.Olric,
 		Etcd:                s.Etcd,
+		Redis:               s.Redis,
 		Timeout:             s.Timeout,
 		TTL:                 s.TTL,
 		Stale:               s.Stale,
@@ -241,9 +240,15 @@ func (s *SouinCaddyPlugin) FromApp(app *SouinApp) error {
 		s.Configuration.DefaultCache.CacheName = appDc.CacheName
 	}
 	if dc.Olric.URL == "" && dc.Olric.Path == "" && dc.Olric.Configuration == nil {
+		s.Configuration.DefaultCache.Distributed = appDc.Distributed
 		s.Configuration.DefaultCache.Olric = appDc.Olric
 	}
+	if dc.Redis.URL == "" && dc.Redis.Path == "" && dc.Redis.Configuration == nil {
+		s.Configuration.DefaultCache.Distributed = appDc.Distributed
+		s.Configuration.DefaultCache.Redis = appDc.Redis
+	}
 	if dc.Etcd.Configuration == nil {
+		s.Configuration.DefaultCache.Distributed = appDc.Distributed
 		s.Configuration.DefaultCache.Etcd = appDc.Etcd
 	}
 	if dc.Badger.Path == "" || dc.Badger.Configuration == nil {
@@ -268,6 +273,7 @@ func (s *SouinCaddyPlugin) Provision(ctx caddy.Context) error {
 		return err
 	}
 
+	s.Configuration.SetLogger(s.logger)
 	ctxApp, _ := ctx.App(moduleName)
 	app := ctxApp.(*SouinApp)
 
@@ -565,6 +571,23 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 					}
 				}
 				cfg.DefaultCache.Olric = provider
+			case "redis":
+				cfg.DefaultCache.Distributed = true
+				provider := configurationtypes.CacheProvider{}
+				for nesting := h.Nesting(); h.NextBlock(nesting); {
+					directive := h.Val()
+					switch directive {
+					case "url":
+						urlArgs := h.RemainingArgs()
+						provider.URL = urlArgs[0]
+					case "path":
+						urlArgs := h.RemainingArgs()
+						provider.Path = urlArgs[0]
+					case "configuration":
+						provider.Configuration = parseCaddyfileRecursively(h)
+					}
+				}
+				cfg.DefaultCache.Redis = provider
 			case "regex":
 				for nesting := h.Nesting(); h.NextBlock(nesting); {
 					directive := h.Val()
@@ -726,6 +749,23 @@ func parseCaddyfileHandlerDirective(h httpcaddyfile.Helper) (caddyhttp.Middlewar
 				}
 			}
 			sc.DefaultCache.Olric = provider
+		case "redis":
+			sc.DefaultCache.Distributed = true
+			provider := configurationtypes.CacheProvider{}
+			for nesting := h.Nesting(); h.NextBlock(nesting); {
+				directive := h.Val()
+				switch directive {
+				case "url":
+					urlArgs := h.RemainingArgs()
+					provider.URL = urlArgs[0]
+				case "path":
+					urlArgs := h.RemainingArgs()
+					provider.Path = urlArgs[0]
+				case "configuration":
+					provider.Configuration = parseCaddyfileRecursively(h.Dispenser)
+				}
+			}
+			sc.DefaultCache.Redis = provider
 		case "nuts":
 			provider := configurationtypes.CacheProvider{}
 			for nesting := h.Nesting(); h.NextBlock(nesting); {

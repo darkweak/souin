@@ -3,7 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -149,7 +149,7 @@ func TestSouinAPI_HandleRequest(t *testing.T) {
 	res := httptest.NewRecorder()
 
 	souinMock.HandleRequest(res, req)
-	b, _ := ioutil.ReadAll(res.Result().Body)
+	b, _ := io.ReadAll(res.Result().Body)
 	if string(b) != "" {
 		t.Error("The response body must be empty due to invalid token.")
 	}
@@ -166,7 +166,7 @@ func TestSouinAPI_HandleRequest(t *testing.T) {
 	res = httptest.NewRecorder()
 	souinMock.HandleRequest(res, req)
 
-	b, _ = ioutil.ReadAll(res.Result().Body)
+	b, _ = io.ReadAll(res.Result().Body)
 	var surrogates map[string]string
 	_ = json.Unmarshal(b, &surrogates)
 
@@ -191,7 +191,7 @@ func TestSouinAPI_HandleRequest(t *testing.T) {
 	req = httptest.NewRequest(http.MethodGet, "/souin-api/souinbasepath", nil)
 	res = httptest.NewRecorder()
 	souinMock.HandleRequest(res, req)
-	b, _ = ioutil.ReadAll(res.Result().Body)
+	b, _ = io.ReadAll(res.Result().Body)
 	var values []string
 	_ = json.Unmarshal(b, &values)
 

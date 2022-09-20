@@ -1,4 +1,4 @@
-FROM golang:1.16-alpine AS development-runner
+FROM golang:1.18-alpine AS development-runner
 
 ENV CGO_ENABLED=0
 

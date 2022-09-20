@@ -163,6 +163,20 @@ func parseDefaultCache(dcConfiguration map[string]interface{}) *configurationtyp
 			}
 			dc.Distributed = true
 			dc.Olric = provider
+		case "redis":
+			provider := configurationtypes.CacheProvider{}
+			for redisConfigurationK, redisConfigurationV := range defaultCacheV.(map[string]interface{}) {
+				switch redisConfigurationK {
+				case url:
+					provider.URL, _ = redisConfigurationV.(string)
+				case path:
+					provider.Path, _ = redisConfigurationV.(string)
+				case configurationPK:
+					provider.Configuration = redisConfigurationV.(map[string]interface{})
+				}
+			}
+			dc.Distributed = true
+			dc.Redis = provider
 		case "regex":
 			exclude := defaultCacheV.(map[string]string)["exclude"]
 			if exclude != "" {

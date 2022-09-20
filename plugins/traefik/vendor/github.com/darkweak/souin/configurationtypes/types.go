@@ -128,6 +128,7 @@ type DefaultCache struct {
 	Etcd                CacheProvider `json:"etcd" yaml:"etcd"`
 	Nuts                CacheProvider `json:"nuts" yaml:"nuts"`
 	Olric               CacheProvider `json:"olric" yaml:"olric"`
+	Redis               CacheProvider `json:"redis" yaml:"redis"`
 	Port                Port          `json:"port" yaml:"port"`
 	Regex               Regex         `json:"regex" yaml:"regex"`
 	Stale               Duration      `json:"stale" yaml:"stale"`
@@ -186,6 +187,11 @@ func (d *DefaultCache) GetOlric() CacheProvider {
 	return d.Olric
 }
 
+// GetRedis returns olric configuration
+func (d *DefaultCache) GetRedis() CacheProvider {
+	return d.Redis
+}
+
 // GetRegex returns the regex that shouldn't be cached
 func (d *DefaultCache) GetRegex() Regex {
 	return d.Regex
@@ -221,6 +227,7 @@ type DefaultCacheInterface interface {
 	GetEtcd() CacheProvider
 	GetNuts() CacheProvider
 	GetOlric() CacheProvider
+	GetRedis() CacheProvider
 	GetHeaders() []string
 	GetKey() Key
 	GetRegex() Regex

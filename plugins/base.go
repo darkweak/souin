@@ -3,12 +3,14 @@ package plugins
 import (
 	"bytes"
 	ctx "context"
-	"io/ioutil"
+	"fmt"
+	"io"
 	"net/http"
 	"regexp"
 	"strings"
 	"time"
 
+	"github.com/darkweak/go-esi/esi"
 	"github.com/darkweak/souin/api"
 	"github.com/darkweak/souin/api/prometheus"
 	"github.com/darkweak/souin/cache/coalescing"
@@ -25,13 +27,23 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-var serverTimeoutMessage = []byte("Internal server error")
+var (
+	serverTimeoutMessage                      = []byte("Internal server error")
+	_                    souinWriterInterface = (*CustomWriter)(nil)
+)
+
+type souinWriterInterface interface {
+	http.ResponseWriter
+	Send() (int, error)
+}
 
 // CustomWriter handles the response and provide the way to cache the value
 type CustomWriter struct {
 	Response *http.Response
 	Buf      *bytes.Buffer
 	Rw       http.ResponseWriter
+	Req      *http.Request
+	size     int
 }
 
 // Header will write the response headers
@@ -52,24 +64,26 @@ func (r *CustomWriter) WriteHeader(code int) {
 // Write will write the response body
 func (r *CustomWriter) Write(b []byte) (int, error) {
 	r.Response.Header = r.Rw.Header()
-	r.Buf.Write(b)
-	r.Response.Body = ioutil.NopCloser(r.Buf)
+	r.Buf.Grow(len(b))
+	_, _ = r.Buf.Write(b)
+	r.Response.Body = io.NopCloser(bytes.NewBuffer(r.Buf.Bytes()))
+	r.size += len(b)
+	r.Response.Header.Set("Content-Length", fmt.Sprint(r.size))
 	return len(b), nil
 }
 
 // Send delays the response to handle Cache-Status
 func (r *CustomWriter) Send() (int, error) {
+	r.Response.Header.Del("X-Souin-Stored-TTL")
+	defer r.Buf.Reset()
+	b := esi.Parse(r.Buf.Bytes(), r.Req)
 	for h, v := range r.Response.Header {
 		if len(v) > 0 {
 			r.Rw.Header().Set(h, strings.Join(v, ", "))
 		}
 	}
+	r.Rw.Header().Set("Content-Length", fmt.Sprintf("%d", len(b)))
 	r.Rw.WriteHeader(r.Response.StatusCode)
-	var b []byte
-
-	if r.Response.Body != nil {
-		b, _ = ioutil.ReadAll(r.Response.Body)
-	}
 	return r.Rw.Write(b)
 }
 
@@ -93,9 +107,9 @@ func sendAnyCachedResponse(rh http.Header, response *http.Response, res http.Res
 		res.Header().Set(k, v[0])
 	}
 	res.WriteHeader(response.StatusCode)
-	b, _ := ioutil.ReadAll(response.Body)
+	b, _ := io.ReadAll(response.Body)
 	_, _ = res.Write(b)
-	cw, success := res.(*CustomWriter)
+	cw, success := res.(souinWriterInterface)
 	if success {
 		_, _ = cw.Send()
 	}
@@ -121,16 +135,16 @@ func DefaultSouinPluginCallback(
 	foundEntry := make(chan *http.Response)
 	errorCacheCh := make(chan error)
 
-	go func() {
-		if cacheCandidate {
+	go func(isCandidate bool, ret types.RetrieverResponsePropertiesInterface, ckey string) {
+		if isCandidate {
 			r, stale, err := rfc.CachedResponse(
-				retriever.GetProvider(),
+				ret.GetProvider(),
 				req,
-				cacheKey,
-				retriever.GetTransport(),
+				ckey,
+				ret.GetTransport(),
 			)
 			if err != nil {
-				retriever.GetConfiguration().GetLogger().Sugar().Debugf("An error ocurred while retrieving the (stale)? key %s: %v", cacheKey, err)
+				ret.GetConfiguration().GetLogger().Sugar().Debugf("An error ocurred while retrieving the (stale)? key %s: %v", ckey, err)
 				foundEntry <- nil
 				errorCacheCh <- err
 
@@ -140,7 +154,7 @@ func DefaultSouinPluginCallback(
 			if r != nil {
 				rh := r.Header
 				if stale {
-					rfc.HitStaleCache(&rh, retriever.GetMatchedURL().TTL.Duration)
+					rfc.HitStaleCache(&rh, ret.GetMatchedURL().TTL.Duration)
 					r.Header = rh
 				} else {
 					prometheus.Increment(prometheus.CachedResponseCounter)
@@ -153,11 +167,12 @@ func DefaultSouinPluginCallback(
 		}
 		foundEntry <- nil
 		errorCacheCh <- nil
-	}()
+	}(cacheCandidate, retriever, cacheKey)
 
 	select {
 	case entry := <-foundEntry:
 		if e = <-errorCacheCh; e != nil {
+			fmt.Println(e)
 			return e
 		}
 		if entry != nil {
@@ -180,15 +195,15 @@ func DefaultSouinPluginCallback(
 	}()
 	prometheus.Increment(prometheus.NoCachedResponseCounter)
 
-	go func() {
+	go func(rs http.ResponseWriter, rq *http.Request) {
 		if rc != nil && <-coalesceable {
-			rc.Temporize(req, res, nextMiddleware)
+			rc.Temporize(req, rs, nextMiddleware)
 		} else {
-			errorBackendCh <- nextMiddleware(res, req)
+			errorBackendCh <- nextMiddleware(rs, rq)
 			return
 		}
 		errorBackendCh <- nil
-	}()
+	}(res, req)
 
 	prometheus.Add(prometheus.AvgResponseTime, float64(time.Since(start).Milliseconds()))
 
@@ -201,12 +216,20 @@ func DefaultSouinPluginCallback(
 			cw.WriteHeader(http.StatusGatewayTimeout)
 			_, _ = cw.Rw.Write(serverTimeoutMessage)
 			return ctx.DeadlineExceeded
+		case ctx.Canceled:
+			cw := res.(*CustomWriter)
+			rfc.MissCache(cw.Header().Set, req)
+			_, _ = cw.Rw.Write(nil)
+			return ctx.Canceled
+		default:
+			return nil
 		}
 	case v := <-errorBackendCh:
+		if v == nil {
+			_, _ = res.(souinWriterInterface).Send()
+		}
 		return v
 	}
-
-	return nil
 }
 
 // DefaultSouinPluginInitializerFromConfiguration is the default initialization for plugins

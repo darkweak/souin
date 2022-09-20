@@ -177,36 +177,8 @@ func canStaleOnError(respHeaders, reqHeaders http.Header) bool {
 	return false
 }
 
-func getEndToEndHeaders(respHeaders http.Header) []string {
-	// These headers are always hop-by-hop
-	hopByHopHeaders := map[string]struct{}{
-		"Connection":          {},
-		"Keep-Alive":          {},
-		"Proxy-Authenticate":  {},
-		"Proxy-Authorization": {},
-		"Te":                  {},
-		"Trailers":            {},
-		"Transfer-Encoding":   {},
-		"Upgrade":             {},
-	}
-
-	for _, extra := range strings.Split(respHeaders.Get("connection"), ",") {
-		// any header listed in connection, if present, is also considered hop-by-hop
-		if strings.Trim(extra, " ") != "" {
-			hopByHopHeaders[http.CanonicalHeaderKey(extra)] = struct{}{}
-		}
-	}
-	endToEndHeaders := []string{}
-	for respHeader := range respHeaders {
-		if _, ok := hopByHopHeaders[respHeader]; !ok {
-			endToEndHeaders = append(endToEndHeaders, respHeader)
-		}
-	}
-	return endToEndHeaders
-}
-
 func canStore(reqCacheControl cacheControl, respCacheControl cacheControl, status int) (canStore bool) {
-	if !cachableStatusCode(status) {
+	if !CachableStatusCode(status) {
 		return false
 	}
 
@@ -221,7 +193,7 @@ func canStore(reqCacheControl cacheControl, respCacheControl cacheControl, statu
 	return true
 }
 
-func cachableStatusCode(statusCode int) bool {
+func CachableStatusCode(statusCode int) bool {
 	switch statusCode {
 	case 200, 203, 204, 206, 300, 301, 404, 405, 410, 414, 501:
 		return true

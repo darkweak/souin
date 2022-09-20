@@ -2,7 +2,7 @@ package goyave
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -48,7 +48,7 @@ func (suite *HttpCacheMiddlewareTestSuite) Test_SouinFiberPlugin_Middleware() {
 		response.String(http.StatusOK, "Hello, World 👋!")
 	})
 
-	b, err := ioutil.ReadAll(res.Body)
+	b, err := io.ReadAll(res.Body)
 	if err != nil {
 		suite.T().Error(err)
 	}
@@ -63,7 +63,7 @@ func (suite *HttpCacheMiddlewareTestSuite) Test_SouinFiberPlugin_Middleware() {
 
 	res = suite.Middleware(httpcache.Handle, request, func(response *goyave.Response, r *goyave.Request) {})
 
-	b, err = ioutil.ReadAll(res.Body)
+	b, err = io.ReadAll(res.Body)
 	if err != nil {
 		suite.T().Error(err)
 	}
@@ -89,7 +89,7 @@ func (suite *HttpCacheMiddlewareTestSuite) Test_SouinFiberPlugin_Middleware_Cann
 		response.String(http.StatusOK, "Hello, World 👋!")
 	})
 
-	b, err := ioutil.ReadAll(res.Body)
+	b, err := io.ReadAll(res.Body)
 	if err != nil {
 		suite.T().Error(err)
 	}
@@ -119,7 +119,7 @@ func (suite *HttpCacheMiddlewareTestSuite) Test_SouinFiberPlugin_Middleware_APIH
 	res := suite.Middleware(httpcache.Handle, SouinAPIRequest, func(response *goyave.Response, r *goyave.Request) {})
 	time.Sleep(DevDefaultConfiguration.DefaultCache.GetTTL() + DevDefaultConfiguration.GetDefaultCache().GetStale())
 
-	b, _ := ioutil.ReadAll(res.Body)
+	b, _ := io.ReadAll(res.Body)
 	res.Body.Close()
 	if string(b) != "[]" {
 		suite.T().Error("The response body must be an empty array because no request has been stored")
@@ -128,7 +128,7 @@ func (suite *HttpCacheMiddlewareTestSuite) Test_SouinFiberPlugin_Middleware_APIH
 		response.String(http.StatusOK, "Hello, World 👋!")
 	})
 	res = suite.Middleware(httpcache.Handle, SouinAPIRequest, func(response *goyave.Response, r *goyave.Request) {})
-	b, _ = ioutil.ReadAll(res.Body)
+	b, _ = io.ReadAll(res.Body)
 	res.Body.Close()
 	var payload []string
 	_ = json.Unmarshal(b, &payload)
