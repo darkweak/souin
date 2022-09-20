@@ -18,11 +18,10 @@
             exclude /test2.*
         }
         headers Content-Type Authorization
-        log_level debug
         ttl 1000s
         timeout {
             backend 10s
-            cache 10ms
+            cache 100ms
         }
         default_cache_control public
     }
@@ -161,13 +160,27 @@ route /another-cache-status-name {
 
 route /backend-timeout {
     cache {
-        log_level debug
         timeout {
             backend 1s
             cache 1ms
         }
     }
     reverse_proxy 127.0.0.1:8081
+}
+
+route /stream {
+    cache
+    reverse_proxy 127.0.0.1:81
+}
+
+route /gzip {
+    cache
+    encode {
+        gzip
+        minimum_length 5
+    }
+    header Content-Type text/plain
+    respond "Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip."
 }
 
 cache @souin-api {

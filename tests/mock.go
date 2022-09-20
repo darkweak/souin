@@ -2,9 +2,9 @@ package tests
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"regexp"
 
 	"github.com/darkweak/souin/cache/types"
@@ -61,6 +61,21 @@ ykeys:
   The_Second_Test:
     url: 'the/second/.+'
   The_Third_Test:
+`
+}
+
+// CDNConfiguration is the CDN configuration
+func CDNConfiguration() string {
+	return `
+api:
+  basepath: /souin-api
+  souin:
+    enable: true
+default_cache:
+  ttl: 1000s
+  cdn:
+    dynamic: true
+    strategy: hard
 `
 }
 
@@ -125,7 +140,6 @@ api:
 default_cache:
   nuts:
     path: "/tmp/nuts"
-  distributed: true
   headers:
     - Authorization
   port:
@@ -168,6 +182,47 @@ default_cache:
     configuration:
       endpoints:
         - http://etcd:2379
+  distributed: true
+  headers:
+    - Authorization
+  port:
+    web: 80
+    tls: 443
+  regex:
+    exclude: 'ARegexHere'
+  ttl: 1000s
+reverse_proxy_url: 'http://domain.com:81'
+ssl_providers:
+  - traefik
+urls:
+  'domain.com/':
+    ttl: 1000s
+    headers:
+      - Authorization
+  'mysubdomain.domain.com':
+    ttl: 50s
+    headers:
+      - Authorization
+      - 'Content-Type'
+`
+}
+
+// RedisConfiguration simulate the configuration for the Nuts storage
+func RedisConfiguration() string {
+	return `
+api:
+  basepath: /souin-api
+  security:
+    secret: your_secret_key
+    enable: true
+    users:
+      - username: user1
+        password: test
+  souin:
+    enable: true
+default_cache:
+  redis:
+    url: redis:6379
   distributed: true
   headers:
     - Authorization
@@ -288,7 +343,7 @@ func EmbeddedOlricPlainConfigurationWithoutAdditionalYAML() string {
 // EmbeddedOlricConfiguration is the olric included configuration
 func EmbeddedOlricConfiguration() string {
 	path := "/tmp/olric.yml"
-	_ = ioutil.WriteFile(
+	_ = os.WriteFile(
 		path,
 		[]byte(
 			`

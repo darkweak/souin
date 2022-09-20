@@ -10,7 +10,7 @@ ref = "master"
 
     [github.plugins]
     logger = { ref = "master", owner = "roadrunner-server", repository = "logger" }
-    cache = { ref = "master", owner = "roadrunner-server", repository = "cache", replace = "/opt/plugins/roadrunner" }
+    cache = { ref = "master", owner = "darkweak", repository = "souin", folder = "/plugins/roadrunner" }
     server = { ref = "master", owner = "roadrunner-server", repository = "server" }
     gzip = { ref = "master", owner = "roadrunner-server", repository = "gzip" }
     http = { ref = "master", owner = "roadrunner-server", repository = "http" }

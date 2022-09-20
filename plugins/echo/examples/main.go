@@ -19,6 +19,5 @@ func main() {
 		return c.String(http.StatusOK, "Hello, World!")
 	})
 
-	// Start server
 	e.Logger.Fatal(e.Start(":80"))
 }

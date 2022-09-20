@@ -52,7 +52,7 @@ jobs:
         name: Install Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.16
+          go-version: 1.18
       -
         name: Checkout code
         uses: actions/checkout@v2
@@ -99,7 +99,7 @@ jobs:
         name: Install Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.16
+          go-version: 1.18
       -
         name: Checkout code
         uses: actions/checkout@v2
@@ -115,7 +115,7 @@ jobs:
         name: Wait for Souin is really loaded inside Chi as middleware
         uses: jakejarvis/wait-action@master
         with:
-          time: 30s
+          time: 35s
       -
         name: Set Chi logs configuration result as environment variable
         run: cd plugins/chi && echo "$(make load-checker)" >> $GITHUB_ENV
@@ -146,7 +146,7 @@ jobs:
         name: Install Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.16
+          go-version: 1.18
       -
         name: Checkout code
         uses: actions/checkout@v2
@@ -162,7 +162,7 @@ jobs:
         name: Wait for Souin is really loaded inside Dotweb as middleware
         uses: jakejarvis/wait-action@master
         with:
-          time: 30s
+          time: 35s
       -
         name: Set Dotweb logs configuration result as environment variable
         run: cd plugins/dotweb && echo "$(make load-checker)" >> $GITHUB_ENV
@@ -193,7 +193,7 @@ jobs:
         name: Install Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.16
+          go-version: 1.18
       -
         name: Checkout code
         uses: actions/checkout@v2
@@ -209,7 +209,7 @@ jobs:
         name: Wait for Souin is really loaded inside Echo as middleware
         uses: jakejarvis/wait-action@master
         with:
-          time: 30s
+          time: 45s
       -
         name: Set Echo logs configuration result as environment variable
         run: cd plugins/echo && echo "$(make load-checker)" >> $GITHUB_ENV
@@ -240,7 +240,7 @@ jobs:
         name: Install Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.16
+          go-version: 1.18
       -
         name: Checkout code
         uses: actions/checkout@v2
@@ -287,7 +287,7 @@ jobs:
         name: Install Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.16
+          go-version: 1.18
       -
         name: Checkout code
         uses: actions/checkout@v2
@@ -334,7 +334,7 @@ jobs:
         name: Install Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.16
+          go-version: 1.18
       -
         name: Checkout code
         uses: actions/checkout@v2
@@ -381,7 +381,7 @@ jobs:
         name: Install Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.16
+          go-version: 1.18
       -
         name: Checkout code
         uses: actions/checkout@v2
@@ -397,7 +397,7 @@ jobs:
         name: Wait for Souin is really loaded inside Goyave as middleware
         uses: jakejarvis/wait-action@master
         with:
-          time: 40s
+          time: 50s
       -
         name: Set Goyave logs configuration result as environment variable
         run: cd plugins/goyave && echo "$(make load-checker)" >> $GITHUB_ENV
@@ -569,7 +569,7 @@ jobs:
         name: Install Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.16
+          go-version: 1.18
       -
         name: Checkout code
         uses: actions/checkout@v2
@@ -616,7 +616,7 @@ jobs:
         name: Install Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.16
+          go-version: 1.18
       -
         name: Checkout code
         uses: actions/checkout@v2
@@ -663,7 +663,7 @@ jobs:
         name: Install Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.16
+          go-version: 1.18
       -
         name: Checkout code
         uses: actions/checkout@v2
@@ -710,7 +710,7 @@ jobs:
         name: Install Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.16
+          go-version: 1.18
       -
         name: Checkout code
         uses: actions/checkout@v2
@@ -726,7 +726,7 @@ jobs:
         name: Wait for Souin is really loaded inside Webgo as middleware
         uses: jakejarvis/wait-action@master
         with:
-          time: 35s
+          time: 45s
       -
         name: Set Webgo logs configuration result as environment variable
         run: cd plugins/webgo && echo "$(make load-checker)" >> $GITHUB_ENV

@@ -101,7 +101,9 @@ func (s *SouinEchoPlugin) Process(next echo.HandlerFunc) echo.HandlerFunc {
 			Response: &http.Response{},
 			Buf:      s.bufPool.Get().(*bytes.Buffer),
 			Rw:       rw,
+			Req:      req,
 		}
+
 		req = s.Retriever.GetContext().SetContext(req)
 		getterCtx := getterContext{next, customWriter, req}
 		c.Response().Writer = customWriter
@@ -120,11 +122,8 @@ func (s *SouinEchoPlugin) Process(next echo.HandlerFunc) echo.HandlerFunc {
 			}
 
 			combo.req.Response = customWriter.Response
-			if combo.req.Response, e = s.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(combo.req); e != nil {
-				return e
-			}
+			combo.req.Response, e = s.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(combo.req)
 
-			_, _ = customWriter.Send()
 			return e
 		})
 	}

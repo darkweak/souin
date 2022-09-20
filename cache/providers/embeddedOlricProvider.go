@@ -2,7 +2,6 @@ package providers
 
 import (
 	"context"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"time"
@@ -40,7 +39,7 @@ func tryToLoadConfiguration(olricInstance *config.Config, olricConfiguration t.C
 				logger.Error("Impossible to remove the temporary file")
 			}
 		}()
-		if e = ioutil.WriteFile(
+		if e = os.WriteFile(
 			tmpFile,
 			yamlConfig,
 			0600,

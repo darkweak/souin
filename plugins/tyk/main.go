@@ -15,6 +15,14 @@ import (
 	"github.com/darkweak/souin/rfc"
 )
 
+type customWriter struct {
+	http.ResponseWriter
+}
+
+func (c *customWriter) Send() (int, error) {
+	return 0, nil
+}
+
 var definitions map[string]*souinInstance = make(map[string]*souinInstance)
 
 func getInstanceFromRequest(r *http.Request) (s *souinInstance) {
@@ -62,7 +70,11 @@ func SouinRequestHandler(rw http.ResponseWriter, r *http.Request) {
 	}
 	req.Header.Set("Date", time.Now().UTC().Format(time.RFC1123))
 
-	_ = plugins.DefaultSouinPluginCallback(rw, req, s.Retriever, nil, func(_ http.ResponseWriter, _ *http.Request) error {
+	cw := &customWriter{
+		ResponseWriter: rw,
+	}
+
+	_ = plugins.DefaultSouinPluginCallback(cw, req, s.Retriever, nil, func(_ http.ResponseWriter, _ *http.Request) error {
 		return nil
 	})
 }

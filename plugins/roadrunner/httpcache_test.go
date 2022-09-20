@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -154,14 +154,14 @@ func Test_Plugin_Middleware_Mutation(t *testing.T) {
 	_ = p.Init(&configWrapper{}, nil)
 	handler := p.Middleware(nextFilter)
 	req, res, res2 := prepare("/handled")
-	req.Body = ioutil.NopCloser(bytes.NewBuffer([]byte(`{"query":"mutation":{something mutated}}`)))
+	req.Body = io.NopCloser(bytes.NewBuffer([]byte(`{"query":"mutation":{something mutated}}`)))
 	handler.ServeHTTP(res, req)
 	rs := res.Result()
 	rs.Body.Close()
 	if rs.Header.Get("Cache-Status") != "Souin; fwd=uri-miss" {
 		t.Error("The response must contain a Cache-Status header without the stored directive and with the uri-miss only.")
 	}
-	req.Body = ioutil.NopCloser(bytes.NewBuffer([]byte(`{"query":"mutation":{something mutated}}`)))
+	req.Body = io.NopCloser(bytes.NewBuffer([]byte(`{"query":"mutation":{something mutated}}`)))
 	handler.ServeHTTP(res2, req)
 	rs = res2.Result()
 	rs.Body.Close()
@@ -185,7 +185,7 @@ func Test_Plugin_Middleware_API(t *testing.T) {
 	if rs.Header.Get("Content-Type") != "application/json" {
 		t.Error("The response must be in JSON.")
 	}
-	b, _ := ioutil.ReadAll(rs.Body)
+	b, _ := io.ReadAll(rs.Body)
 	res.Result().Body.Close()
 	if string(b) != "[]" {
 		t.Error("The response body must be an empty array because no request has been stored")
@@ -204,7 +204,7 @@ func Test_Plugin_Middleware_API(t *testing.T) {
 	if rs.Header.Get("Content-Type") != "application/json" {
 		t.Error("The response must be in JSON.")
 	}
-	b, _ = ioutil.ReadAll(rs.Body)
+	b, _ = io.ReadAll(rs.Body)
 	rs.Body.Close()
 	var payload []string
 	_ = json.Unmarshal(b, &payload)
