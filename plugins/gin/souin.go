@@ -126,6 +126,9 @@ func (s *SouinGinPlugin) Process() gin.HandlerFunc {
 			combo.c.Next()
 
 			combo.req.Response = customWriter.Response
+			if combo.req.Response.StatusCode == 0 {
+				combo.req.Response.StatusCode = 200
+			}
 			combo.req.Response, e = s.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(combo.req)
 
 			return e
