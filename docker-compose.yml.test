@@ -26,6 +26,8 @@ services:
       context: ./olric
       dockerfile: Dockerfile-olric
       target: olric
+    ports:
+      - 3320:3320
     restart: on-failure
     <<: *networks
 
@@ -35,6 +37,13 @@ services:
       - "2379:2379"
       - "2380:2380"
     command: sh -c 'apk update; apk add curl;etcd -listen-client-urls http://0.0.0.0:2379 -advertise-client-urls http://etcd:2379'
+    <<: *networks
+
+  redis:
+    image: redis:6.2-alpine
+    ports:
+      - 6379:6379
+    command: redis-server
     <<: *networks
 
   traefik:

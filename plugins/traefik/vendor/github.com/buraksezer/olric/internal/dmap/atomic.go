@@ -23,24 +23,28 @@ import (
 	"github.com/buraksezer/olric/internal/protocol"
 )
 
-func (dm *DMap) loadCurrentAtomicInt(e *env) (int, error) {
+func (dm *DMap) loadCurrentAtomicInt(e *env) (int, int64, error) {
 	entry, err := dm.get(e.key)
 	if errors.Is(err, ErrKeyNotFound) {
 		err = nil
 	}
 	if err != nil {
-		return 0, err
+		return 0, 0, err
 	}
 
-	var current int
 	if entry != nil {
+		var current int
 		var value interface{}
 		if err := dm.s.serializer.Unmarshal(entry.Value(), &value); err != nil {
-			return 0, err
+			return 0, 0, err
 		}
-		return valueToInt(value)
+		current, err = valueToInt(value)
+		if err != nil {
+			return 0, 0, err
+		}
+		return current, entry.TTL(), nil
 	}
-	return current, nil
+	return 0, 0, nil
 }
 
 func (dm *DMap) atomicIncrDecr(opcode protocol.OpCode, e *env, delta int) (int, error) {
@@ -53,7 +57,7 @@ func (dm *DMap) atomicIncrDecr(opcode protocol.OpCode, e *env, delta int) (int, 
 		}
 	}()
 
-	current, err := dm.loadCurrentAtomicInt(e)
+	current, ttl, err := dm.loadCurrentAtomicInt(e)
 	if err != nil {
 		return 0, err
 	}
@@ -73,6 +77,10 @@ func (dm *DMap) atomicIncrDecr(opcode protocol.OpCode, e *env, delta int) (int, 
 		return 0, err
 	}
 
+	if ttl != 0 {
+		e.timeout = time.Until(time.UnixMilli(ttl))
+		e.opcode = protocol.OpPutEx
+	}
 	e.value = val
 	err = dm.put(e)
 	if err != nil {

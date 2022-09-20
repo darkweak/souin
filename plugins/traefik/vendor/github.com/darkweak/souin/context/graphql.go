@@ -4,7 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/darkweak/souin/configurationtypes"
@@ -36,7 +36,7 @@ func (g *graphQLContext) SetContext(req *http.Request) *http.Request {
 	rq = rq.WithContext(context.WithValue(rq.Context(), IsMutationRequest, false))
 
 	if g.custom && req.Body != nil {
-		b, _ := ioutil.ReadAll(req.Body)
+		b, _ := io.ReadAll(req.Body)
 		if isMutation(b) {
 			rq = rq.WithContext(context.WithValue(rq.Context(), IsMutationRequest, true))
 		} else {

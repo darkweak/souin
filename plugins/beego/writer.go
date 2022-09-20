@@ -2,7 +2,7 @@ package beego
 
 import (
 	"bytes"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 
@@ -30,7 +30,7 @@ func (b *beegoWriterDecorator) Header() http.Header {
 func (b *beegoWriterDecorator) Write(d []byte) (int, error) {
 	b.ctx.Output.SetStatus(b.Response.StatusCode)
 	b.buf.Write(d)
-	b.Response.Body = ioutil.NopCloser(bytes.NewBuffer(d))
+	b.Response.Body = io.NopCloser(bytes.NewBuffer(d))
 
 	if !b.ctx.ResponseWriter.Started {
 		return b.Send()
@@ -49,9 +49,9 @@ func (b *beegoWriterDecorator) Send() (int, error) {
 	var d []byte
 
 	if b.Response.Body != nil {
-		d, _ = ioutil.ReadAll(b.Response.Body)
+		d, _ = io.ReadAll(b.Response.Body)
 	}
-	b.Response.Body = ioutil.NopCloser(b.buf)
+	b.Response.Body = io.NopCloser(b.buf)
 	return len(d), b.ctx.Output.Body(b.buf.Bytes())
 }
 

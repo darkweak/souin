@@ -73,6 +73,7 @@ func (s *httpcacheKratosPlugin) handle(next http.Handler) http.Handler {
 			Response: &http.Response{},
 			Buf:      s.bufPool.Get().(*bytes.Buffer),
 			Rw:       rw,
+			Req:      req,
 		}
 		req = s.Retriever.GetContext().SetContext(req)
 		getterCtx := getterContext{next.ServeHTTP, customWriter, req}
@@ -91,11 +92,8 @@ func (s *httpcacheKratosPlugin) handle(next http.Handler) http.Handler {
 			combo.next.ServeHTTP(customWriter, r)
 
 			combo.req.Response = customWriter.Response
-			if combo.req.Response, e = s.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(combo.req); e != nil {
-				return e
-			}
+			combo.req.Response, e = s.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(combo.req)
 
-			_, _ = customWriter.Send()
 			return e
 		})
 	})

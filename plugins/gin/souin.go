@@ -106,6 +106,7 @@ func (s *SouinGinPlugin) Process() gin.HandlerFunc {
 				Response: &http.Response{},
 				Buf:      s.bufPool.Get().(*bytes.Buffer),
 				Rw:       c.Writer,
+				Req:      req,
 			},
 		}
 		c.Writer = customWriter
@@ -125,11 +126,8 @@ func (s *SouinGinPlugin) Process() gin.HandlerFunc {
 			combo.c.Next()
 
 			combo.req.Response = customWriter.Response
-			if combo.req.Response, e = s.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(combo.req); e != nil {
-				return e
-			}
+			combo.req.Response, e = s.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(combo.req)
 
-			_, _ = customWriter.Send()
 			return e
 		})
 	}

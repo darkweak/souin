@@ -18,6 +18,8 @@ func InitializeProvider(configuration configurationtypes.AbstractConfigurationIn
 	if configuration.GetDefaultCache().GetDistributed() {
 		if configuration.GetDefaultCache().GetEtcd().Configuration != nil {
 			r, _ = EtcdConnectionFactory(configuration)
+		} else if configuration.GetDefaultCache().GetRedis().Configuration != nil || configuration.GetDefaultCache().GetRedis().URL != "" {
+			r, _ = RedisConnectionFactory(configuration)
 		} else {
 			if configuration.GetDefaultCache().GetOlric().URL != "" {
 				r, _ = OlricConnectionFactory(configuration)

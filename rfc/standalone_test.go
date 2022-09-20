@@ -3,7 +3,7 @@ package rfc
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -86,7 +86,7 @@ func TestCachableStatusCode(t *testing.T) {
 	}
 
 	for key, value := range cachable {
-		res := cachableStatusCode(key)
+		res := CachableStatusCode(key)
 		if res != value {
 			msg := fmt.Sprintf("Unexpected response for statusCode %d: %t (expected: %t)", key, res, value)
 			errors.GenerateError(t, msg)
@@ -121,56 +121,6 @@ func TestCloneRequest(t *testing.T) {
 	r.Header.Set("Vary", header)
 	r.Header.Set(header, "same")
 	validateClonedRequest(t, r)
-}
-
-func TestGetEndToEndHeaders(t *testing.T) {
-	res := httptest.NewRecorder().Result()
-	e2eHeaders := getEndToEndHeaders(res.Header)
-
-	if len(e2eHeaders) != 0 {
-		errors.GenerateError(t, fmt.Sprintf("Headers should be equal to %v, %v provided", res.Header, e2eHeaders))
-	}
-
-	header := "Cache"
-	res.Header.Set("Vary", header)
-	res.Header.Set(header, "same")
-	e2eHeaders = getEndToEndHeaders(res.Header)
-	if len(e2eHeaders) != len(res.Header) {
-		errors.GenerateError(t, fmt.Sprintf("Headers should be equal to %v, %v provided", res.Header, e2eHeaders))
-	}
-
-	res.Header.Set("Keep-Alive", "1")
-	res.Header.Set("Connection", "keep-alive")
-	e2eHeaders = getEndToEndHeaders(res.Header)
-	if len(e2eHeaders) != len(res.Header)-2 {
-		errors.GenerateError(t, fmt.Sprintf("Headers should be equal to %v, %v provided", res.Header, e2eHeaders))
-	}
-}
-
-func verifyHeaderslength(t *testing.T, header http.Header, count int) {
-	if len(parseCacheControl(header)) != count {
-		errors.GenerateError(t, fmt.Sprintf("Cache control headers length should be equals to %d", count))
-	}
-}
-
-func TestParseCacheControl(t *testing.T) {
-	res := httptest.NewRecorder().Result()
-	headers := res.Header
-
-	headers.Add("Cache-Control", "no-cache")
-	verifyHeaderslength(t, headers, 1)
-
-	headers.Set("Cache-Control", "no-cache,only-if-cached")
-	verifyHeaderslength(t, headers, 2)
-
-	headers.Set("Cache-Control", "no-cache,,only-if-cached")
-	verifyHeaderslength(t, headers, 2)
-
-	headers.Set("Cache-Control", "no-cache, , only-if-cached")
-	verifyHeaderslength(t, headers, 2)
-
-	headers.Set("Cache-Control", "max-age=3")
-	verifyHeaderslength(t, headers, 1)
 }
 
 func setCacheControlStaleOnHeader(h http.Header, value string) {
@@ -253,7 +203,7 @@ func TestCachingReadCloser_Read(t *testing.T) {
 
 	b := []byte("Hello world")
 	c = cachingReadCloser{
-		R: ioutil.NopCloser(bytes.NewReader(b)),
+		R: io.NopCloser(bytes.NewReader(b)),
 	}
 
 	res, err := c.Read(b)

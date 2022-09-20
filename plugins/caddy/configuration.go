@@ -18,6 +18,7 @@ type DefaultCache struct {
 	Headers             []string                         `json:"headers"`
 	Key                 configurationtypes.Key           `json:"key"`
 	Olric               configurationtypes.CacheProvider `json:"olric"`
+	Redis               configurationtypes.CacheProvider `json:"redis"`
 	Etcd                configurationtypes.CacheProvider `json:"etcd"`
 	Nuts                configurationtypes.CacheProvider `json:"nuts"`
 	Regex               configurationtypes.Regex         `json:"regex"`
@@ -74,6 +75,11 @@ func (d *DefaultCache) GetNuts() configurationtypes.CacheProvider {
 // GetOlric returns olric configuration
 func (d *DefaultCache) GetOlric() configurationtypes.CacheProvider {
 	return d.Olric
+}
+
+// GetRedis returns redis configuration
+func (d *DefaultCache) GetRedis() configurationtypes.CacheProvider {
+	return d.Redis
 }
 
 // GetRegex returns the regex that shouldn't be cached

@@ -91,6 +91,8 @@ func (c *channelPool) Get(ctx context.Context) (net.Conn, error) {
 	case c.semaphore <- struct{}{}:
 		conn, err := factory()
 		if err != nil {
+			// restore claimed slot, otherwise max is permanently decreased
+			<-c.semaphore
 			return nil, err
 		}
 

@@ -5,8 +5,8 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
+	"os"
 	"strings"
 
 	"github.com/darkweak/souin/plugins/souin/configuration"
@@ -42,7 +42,7 @@ func InitProviders(tlsconfig *tls.Config, configChannel *chan int, configuration
 
 // LoadFromConfigFile load SSL certs from one file by provider
 func (c *CommonProvider) LoadFromConfigFile(tlsconfig *tls.Config, configChannel *chan int) {
-	acmeFile, err := ioutil.ReadFile(c.fileLocation)
+	acmeFile, err := os.ReadFile(c.fileLocation)
 	if nil != err {
 		return
 	}

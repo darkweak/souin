@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/darkweak/souin/cache/types"
 	t "github.com/darkweak/souin/configurationtypes"
 	"github.com/imdario/mergo"
 	"github.com/xujiajun/nutsdb"
@@ -65,7 +66,7 @@ func sanitizeProperties(m map[string]interface{}) map[string]interface{} {
 }
 
 // NutsConnectionFactory function create new Nuts instance
-func NutsConnectionFactory(c t.AbstractConfigurationInterface) (*Nuts, error) {
+func NutsConnectionFactory(c t.AbstractConfigurationInterface) (types.AbstractProviderInterface, error) {
 	dc := c.GetDefaultCache()
 	nutsConfiguration := dc.GetNuts()
 	nutsOptions := nutsdb.DefaultOptions

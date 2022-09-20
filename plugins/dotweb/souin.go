@@ -100,6 +100,7 @@ func (s *SouinDotwebMiddleware) Handle(c dotweb.Context) error {
 		Response: &http.Response{},
 		Buf:      s.bufPool.Get().(*bytes.Buffer),
 		Rw:       rw,
+		Req:      req,
 	}
 	req = s.Retriever.GetContext().SetContext(req)
 	getterCtx := getterContext{s.Next, customWriter, req}
@@ -118,11 +119,8 @@ func (s *SouinDotwebMiddleware) Handle(c dotweb.Context) error {
 		combo.next(c)
 
 		combo.req.Response = customWriter.Response
-		if combo.req.Response, e = s.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(combo.req); e != nil {
-			return e
-		}
+		combo.req.Response, e = s.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(combo.req)
 
-		_, _ = customWriter.Send()
 		return e
 	})
 }

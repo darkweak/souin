@@ -1,12 +1,16 @@
 package main
 
 import (
+	"bytes"
 	"crypto/tls"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
 	"net/url"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/darkweak/souin/api"
@@ -54,6 +58,12 @@ func startServer(config *tls.Config, port string) (net.Listener, *http.Server) {
 	return listener, &server
 }
 
+var bufPool *sync.Pool = &sync.Pool{
+	New: func() interface{} {
+		return new(bytes.Buffer)
+	},
+}
+
 func main() {
 	c := configuration.GetConfiguration()
 	rc := coalescing.Initialize()
@@ -99,17 +109,36 @@ func main() {
 				c.GetLogger().Debug("The request was canceled by the user.")
 				return &errors.CanceledRequestContextError{}
 			default:
-				rr.Proxy.ServeHTTP(rw, rq)
+				res, _ := rr.Proxy.Transport.RoundTrip(rq)
+				for h, hv := range res.Header {
+					rw.Header().Set(h, strings.Join(hv, ", "))
+				}
+				rw.WriteHeader(res.StatusCode)
+
+				body, _ := io.ReadAll(res.Body)
+				defer res.Body.Close()
+				res.Body = io.NopCloser(bytes.NewBuffer(body))
+				_, _ = rw.Write(body)
 			}
 
 			return nil
 		}
 		if plugins.HasMutation(request, writer) {
 			_ = callback(writer, request, *retriever)
+			return
+		}
+		customWriter := &plugins.CustomWriter{
+			Response: &http.Response{},
+			Buf:      bufPool.Get().(*bytes.Buffer),
+			Rw:       writer,
+			Req:      request,
 		}
 		retriever.SetMatchedURLFromRequest(request)
-		coalescing.ServeResponse(writer, request, retriever, plugins.DefaultSouinPluginCallback, rc, func(_ http.ResponseWriter, _ *http.Request) error {
-			return callback(writer, request, *retriever)
+		_ = plugins.DefaultSouinPluginCallback(customWriter, request, retriever, rc, func(w http.ResponseWriter, r *http.Request) (e error) {
+			_ = callback(customWriter, request, *retriever)
+			request.Response = customWriter.Response
+			request.Response, e = retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(request)
+			return
 		})
 	})
 	go func() {

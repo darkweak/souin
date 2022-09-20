@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/darkweak/souin/cache/types"
 	t "github.com/darkweak/souin/configurationtypes"
 	badger "github.com/dgraph-io/badger/v3"
 	"github.com/imdario/mergo"
@@ -34,7 +35,7 @@ func (b *badgerLogger) Warningf(msg string, params ...interface{}) {
 }
 
 // BadgerConnectionFactory function create new Badger instance
-func BadgerConnectionFactory(c t.AbstractConfigurationInterface) (*Badger, error) {
+func BadgerConnectionFactory(c t.AbstractConfigurationInterface) (types.AbstractProviderInterface, error) {
 	dc := c.GetDefaultCache()
 	badgerConfiguration := dc.GetBadger()
 	badgerOptions := badger.DefaultOptions(badgerConfiguration.Path)

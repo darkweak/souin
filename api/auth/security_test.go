@@ -2,7 +2,7 @@ package auth
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -80,7 +80,7 @@ func TestSecurityAPI_HandleRequest(t *testing.T) {
 	if w.Result().StatusCode != http.StatusOK {
 		errors.GenerateError(t, "Status code should be 200")
 	}
-	b, _ := ioutil.ReadAll(w.Result().Body)
+	b, _ := io.ReadAll(w.Result().Body)
 	if len(b) != 0 {
 		errors.GenerateError(t, "Body should be an empty array")
 	}
@@ -92,7 +92,7 @@ func TestSecurityAPI_HandleRequest(t *testing.T) {
 	if w.Result().StatusCode != http.StatusOK {
 		errors.GenerateError(t, "Status code should be 200")
 	}
-	b, _ = ioutil.ReadAll(w.Result().Body)
+	b, _ = io.ReadAll(w.Result().Body)
 	if len(b) != 0 {
 		errors.GenerateError(t, "Body should be an empty array")
 	}

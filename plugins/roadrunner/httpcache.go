@@ -86,6 +86,7 @@ func (p *Plugin) Middleware(next http.Handler) http.Handler {
 			Response: &http.Response{},
 			Buf:      p.bufPool.Get().(*bytes.Buffer),
 			Rw:       rw,
+			Req:      req,
 		}
 		req = p.Retriever.GetContext().SetContext(req)
 		getterCtx := getterContext{next.ServeHTTP, customWriter, req}
@@ -104,11 +105,8 @@ func (p *Plugin) Middleware(next http.Handler) http.Handler {
 			combo.next.ServeHTTP(customWriter, r)
 
 			combo.req.Response = customWriter.Response
-			if combo.req.Response, e = p.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(combo.req); e != nil {
-				return e
-			}
+			combo.req.Response, e = p.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(combo.req)
 
-			_, _ = customWriter.Send()
 			return e
 		})
 	})
