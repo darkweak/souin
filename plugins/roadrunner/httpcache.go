@@ -105,6 +105,9 @@ func (p *Plugin) Middleware(next http.Handler) http.Handler {
 			combo.next.ServeHTTP(customWriter, r)
 
 			combo.req.Response = customWriter.Response
+			if combo.req.Response.StatusCode == 0 {
+				combo.req.Response.StatusCode = 200
+			}
 			combo.req.Response, e = p.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(combo.req)
 
 			return e

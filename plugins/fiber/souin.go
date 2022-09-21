@@ -162,6 +162,9 @@ func (s *SouinFiberMiddleware) Handle(c *fiber.Ctx) error {
 			Ctx: c,
 		}
 		combo.req.Response = convertResponse(req, &c.Context().Response)
+		if combo.req.Response.StatusCode == 0 {
+			combo.req.Response.StatusCode = 200
+		}
 		if combo.req.Response, e = s.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(combo.req); e != nil {
 			return e
 		}

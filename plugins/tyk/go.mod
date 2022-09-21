@@ -8,7 +8,7 @@ require (
 	github.com/armon/go-metrics v0.4.1 // indirect
 	github.com/buraksezer/consistent v0.9.0 // indirect
 	github.com/coreos/go-systemd/v22 v22.4.0 // indirect
-	github.com/darkweak/souin v1.6.20
+	github.com/darkweak/souin v1.6.21
 	github.com/eclipse/paho.mqtt.golang v1.4.1 // indirect
 	github.com/evanphx/json-patch/v5 v5.5.0 // indirect
 	github.com/go-redis/redis/v8 v8.11.5 // indirect
@@ -65,4 +65,4 @@ require (
 	gorm.io/gorm v1.23.9 // indirect
 )
 
-replace github.com/darkweak/souin v1.6.20 => ../..
+replace github.com/darkweak/souin v1.6.21 => ../..
