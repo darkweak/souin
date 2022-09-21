@@ -119,6 +119,9 @@ func (s *SouinGoZeroMiddleware) Handle(next http.HandlerFunc) http.HandlerFunc {
 			combo.next(customWriter, r)
 
 			combo.req.Response = customWriter.Response
+			if combo.req.Response.StatusCode == 0 {
+				combo.req.Response.StatusCode = 200
+			}
 			combo.req.Response, e = s.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(combo.req)
 
 			return e

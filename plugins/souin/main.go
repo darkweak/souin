@@ -137,6 +137,9 @@ func main() {
 		_ = plugins.DefaultSouinPluginCallback(customWriter, request, retriever, rc, func(w http.ResponseWriter, r *http.Request) (e error) {
 			_ = callback(customWriter, request, *retriever)
 			request.Response = customWriter.Response
+			if request.Response.StatusCode == 0 {
+				request.Response.StatusCode = 200
+			}
 			request.Response, e = retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(request)
 			return
 		})
