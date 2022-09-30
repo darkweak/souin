@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/darkweak/souin v1.6.21
-	github.com/labstack/echo/v4 v4.7.2
+	github.com/labstack/echo/v4 v4.9.0
 )
 
 require (
