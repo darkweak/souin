@@ -3,6 +3,7 @@ package rfc
 import (
 	"bufio"
 	"bytes"
+	ctx "context"
 	"net/http"
 	"time"
 
@@ -108,12 +109,25 @@ func commonVaryMatchesVerification(cachedResp *http.Response, req *http.Request)
 	return nil
 }
 
+func getAppropriateCacheControlHeader(h http.Header, cacheName string) string {
+	if v := h.Get(cacheName + "-Cache-Control"); v != "" {
+		return v
+	}
+	if v := h.Get("CDN-Cache-Control"); v != "" {
+		return v
+	}
+	return h.Get("Cache-Control")
+}
+
 // UpdateCacheEventually will handle Request and update the previous one in the cache provider
 func (t *VaryTransport) UpdateCacheEventually(req *http.Request) (*http.Response, error) {
-	if req.Response.Header.Get("Cache-Control") == "" && t.ConfigurationURL.DefaultCacheControl != "" {
+	ccHeaderValue := getAppropriateCacheControlHeader(req.Response.Header, req.Context().Value(context.CacheName).(string))
+	req = req.WithContext(ctx.WithValue(req.Context(), context.CacheControlCtx, ccHeaderValue))
+	if req.Response.Header.Get(ccHeaderValue) == "" && t.ConfigurationURL.DefaultCacheControl != "" {
 		if req.Response.Header == nil {
 			req.Response.Header = http.Header{}
 		}
+		req = req.WithContext(ctx.WithValue(req.Context(), context.CacheControlCtx, t.ConfigurationURL.DefaultCacheControl))
 		req.Response.Header.Set("Cache-Control", t.ConfigurationURL.DefaultCacheControl)
 	}
 
