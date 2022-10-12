@@ -85,7 +85,14 @@ func parseDefaultCache(dcConfiguration map[string]interface{}) *configurationtyp
 	for defaultCacheK, defaultCacheV := range dcConfiguration {
 		switch defaultCacheK {
 		case "allowed_http_verbs":
-			dc.AllowedHTTPVerbs = defaultCacheV.([]string)
+			dc.AllowedHTTPVerbs = make([]string, 0)
+			if values, ok := defaultCacheV.([]string); ok {
+				dc.AllowedHTTPVerbs = values
+			} else if values, ok := defaultCacheV.([]interface{}); ok {
+				for _, v := range values {
+					dc.AllowedHTTPVerbs = append(dc.AllowedHTTPVerbs, v.(string))
+				}
+			}
 		case "badger":
 			provider := configurationtypes.CacheProvider{}
 			for badgerConfigurationK, badgerConfigurationV := range defaultCacheV.(map[string]interface{}) {
@@ -135,7 +142,14 @@ func parseDefaultCache(dcConfiguration map[string]interface{}) *configurationtyp
 			}
 			dc.Etcd = provider
 		case "headers":
-			dc.Headers = defaultCacheV.([]string)
+			dc.Headers = make([]string, 0)
+			if values, ok := defaultCacheV.([]string); ok {
+				dc.Headers = values
+			} else if values, ok := defaultCacheV.([]interface{}); ok {
+				for _, v := range values {
+					dc.Headers = append(dc.Headers, v.(string))
+				}
+			}
 		case "nuts":
 			provider := configurationtypes.CacheProvider{}
 			for nutsConfigurationK, nutsConfigurationV := range defaultCacheV.(map[string]interface{}) {
@@ -235,7 +249,14 @@ func parseURLs(urls map[string]interface{}) map[string]configurationtypes.URL {
 		for k, v := range urlV.(map[string]interface{}) {
 			switch k {
 			case "headers":
-				currentURL.Headers = v.([]string)
+				currentURL.Headers = make([]string, 0)
+				if values, ok := urlV.([]string); ok {
+					currentURL.Headers = values
+				} else if values, ok := urlV.([]interface{}); ok {
+					for _, value := range values {
+						currentURL.Headers = append(currentURL.Headers, value.(string))
+					}
+				}
 			case "ttl":
 				if ttl, err := time.ParseDuration(v.(string)); err == nil {
 					currentURL.TTL = configurationtypes.Duration{Duration: ttl}
