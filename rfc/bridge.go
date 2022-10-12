@@ -123,7 +123,7 @@ func getAppropriateCacheControlHeader(h http.Header, cacheName string) string {
 func (t *VaryTransport) UpdateCacheEventually(req *http.Request) (*http.Response, error) {
 	ccHeaderValue := getAppropriateCacheControlHeader(req.Response.Header, req.Context().Value(context.CacheName).(string))
 	req = req.WithContext(ctx.WithValue(req.Context(), context.CacheControlCtx, ccHeaderValue))
-	if req.Response.Header.Get(ccHeaderValue) == "" && t.ConfigurationURL.DefaultCacheControl != "" {
+	if ccHeaderValue == "" && t.ConfigurationURL.DefaultCacheControl != "" {
 		if req.Response.Header == nil {
 			req.Response.Header = http.Header{}
 		}
