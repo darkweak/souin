@@ -243,6 +243,35 @@ route /nuts-configuration {
     respond "Hello nuts"
 }
 
+route /redis-configuration {
+    cache {
+        ttl 15s
+        redis {
+            configuration {
+                Network my-network
+                Addr 127.0.0.1:6789
+                Username user
+                Password password
+                DB 1
+                MaxRetries 1
+                MinRetryBackoff 5s
+                MaxRetryBackoff 5s
+                DialTimeout 5s
+                ReadTimeout 5s
+                WriteTimeout 5s
+                PoolFIFO true
+                PoolSize 99999
+                PoolTimeout 10s
+                MinIdleConns 100
+                MaxIdleConns 100
+                ConnMaxIdleTime 5s
+                ConnMaxLifetime 5s
+            }
+        }
+    }
+    respond "Hello redis"
+}
+
 cache @souin-api {}
 ```
 What does these directives mean?  
@@ -286,11 +315,14 @@ What does these directives mean?
 | `olric`                            | Configure the Olric cache storage                                                                                                            |                                                                                                                         |
 | `olric.path`                       | Configure Olric with a file                                                                                                                  | `/anywhere/olric_configuration.json`                                                                                    |
 | `olric.configuration`              | Configure Olric directly in the Caddyfile or your JSON caddy configuration                                                                   | [See the Olric configuration for the options](https://github.com/buraksezer/olric/blob/master/cmd/olricd/olricd.yaml/)  |
+| `redis`                            | Configure the Redis cache storage                                                                                                            |                                                                                                                         |
+| `redis.url`                        | Set the Redis url storage                                                                                                                    | `localhost:6379`                                                                                                        |
+| `redis.configuration`              | Configure Redis directly in the Caddyfile or your JSON caddy configuration                                                                   | [See the Nuts configuration for the options](https://github.com/nutsdb/nutsdb#default-options)                          |
 | `regex.exclude`                    | The regex used to prevent paths being cached                                                                                                 | `^[A-z]+.*$`                                                                                                            |
 | `stale`                            | The stale duration                                                                                                                           | `25m`                                                                                                                   |
-| `timeout`                          | The timeout configuration                                                                                                                    |                                                                                                                           |
-| `timeout.backend`                  | The timeout duration to consider the backend as unreachable                                                                                  | `10s`                                                                                                                     |
-| `timeout.cache`                    | The timeout duration to consider the cache provider as unreachable                                                                           | `10ms`                                                                                                                    |
+| `timeout`                          | The timeout configuration                                                                                                                    |                                                                                                                         |
+| `timeout.backend`                  | The timeout duration to consider the backend as unreachable                                                                                  | `10s`                                                                                                                   |
+| `timeout.cache`                    | The timeout duration to consider the cache provider as unreachable                                                                           | `10ms`                                                                                                                  |
 | `ttl`                              | The TTL duration                                                                                                                             | `120s`                                                                                                                  |
 | `log_level`                        | The log level                                                                                                                                | `One of DEBUG, INFO, WARN, ERROR, DPANIC, PANIC, FATAL it's case insensitive`                                           |
 
