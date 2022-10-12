@@ -3,7 +3,6 @@ package providers
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"regexp"
 	"time"
@@ -149,7 +148,7 @@ func (provider *Redis) Set(key string, value []byte, url t.URL, duration time.Du
 			go provider.Reconnect()
 			return
 		}
-		panic(fmt.Sprintf("Impossible to set value into Redis, %s", err))
+		provider.logger.Sugar().Errorf("Impossible to set value into Redis, %v", err)
 	}
 
 	if err := provider.Client.Set(provider.ctx, stalePrefix+key, value, duration+provider.stale).Err(); err != nil {
@@ -157,7 +156,7 @@ func (provider *Redis) Set(key string, value []byte, url t.URL, duration time.Du
 			go provider.Reconnect()
 			return
 		}
-		panic(fmt.Sprintf("Impossible to set value into Redis, %s", err))
+		provider.logger.Sugar().Errorf("Impossible to set value into Redis, %v", err)
 	}
 }
 

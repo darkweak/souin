@@ -3,7 +3,6 @@ package providers
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"regexp"
 	"time"
@@ -136,7 +135,7 @@ func (provider *Etcd) Set(key string, value []byte, url t.URL, duration time.Dur
 			go provider.Reconnect()
 			return
 		}
-		panic(fmt.Sprintf("Impossible to set value into Etcd, %s", err))
+		provider.logger.Sugar().Errorf("Impossible to set value into Etcd, %v", err)
 	}
 
 	_, err = provider.Client.Put(provider.ctx, stalePrefix+key, string(value), clientv3.WithLease(rs.ID))
@@ -146,7 +145,7 @@ func (provider *Etcd) Set(key string, value []byte, url t.URL, duration time.Dur
 			go provider.Reconnect()
 			return
 		}
-		panic(fmt.Sprintf("Impossible to set value into Etcd, %s", err))
+		provider.logger.Sugar().Errorf("Impossible to set value into Etcd, %v", err)
 	}
 }
 
