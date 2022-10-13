@@ -9,22 +9,37 @@ import (
 
 // DefaultCache the struct
 type DefaultCache struct {
-	AllowedHTTPVerbs    []string                         `json:"allowed_http_verbs"`
-	Badger              configurationtypes.CacheProvider `json:"badger"`
-	CacheName           string                           `json:"cache_name"`
-	CDN                 configurationtypes.CDN           `json:"cdn"`
-	DefaultCacheControl string                           `json:"default_cache_control"`
-	Distributed         bool                             `json:"distributed"`
-	Headers             []string                         `json:"headers"`
-	Key                 configurationtypes.Key           `json:"key"`
-	Olric               configurationtypes.CacheProvider `json:"olric"`
-	Redis               configurationtypes.CacheProvider `json:"redis"`
-	Etcd                configurationtypes.CacheProvider `json:"etcd"`
-	Nuts                configurationtypes.CacheProvider `json:"nuts"`
-	Regex               configurationtypes.Regex         `json:"regex"`
-	Timeout             configurationtypes.Timeout       `json:"timeout"`
-	TTL                 configurationtypes.Duration      `json:"ttl"`
-	Stale               configurationtypes.Duration      `json:"stale"`
+	// Allowed HTTP verbs to be cached by the system.
+	AllowedHTTPVerbs []string `json:"allowed_http_verbs"`
+	// Badger provider configuration.
+	Badger configurationtypes.CacheProvider `json:"badger"`
+	// The cache name to use in the Cache-Status response header.
+	CacheName string                 `json:"cache_name"`
+	CDN       configurationtypes.CDN `json:"cdn"`
+	// The default Cache-Control header value if none set by the upstream server.
+	DefaultCacheControl string `json:"default_cache_control"`
+	// Redis provider configuration.
+	Distributed bool `json:"distributed"`
+	// Headers to add to the cache key if they are present.
+	Headers []string `json:"headers"`
+	// Configure the global key generation.
+	Key configurationtypes.Key `json:"key"`
+	// Olric provider configuration.
+	Olric configurationtypes.CacheProvider `json:"olric"`
+	// Redis provider configuration.
+	Redis configurationtypes.CacheProvider `json:"redis"`
+	// Etcd provider configuration.
+	Etcd configurationtypes.CacheProvider `json:"etcd"`
+	// NutsDB provider configuration.
+	Nuts configurationtypes.CacheProvider `json:"nuts"`
+	// Regex to exclude cache.
+	Regex configurationtypes.Regex `json:"regex"`
+	// Time before cache or backend access timeout.
+	Timeout configurationtypes.Timeout `json:"timeout"`
+	// Time to live.
+	TTL configurationtypes.Duration `json:"ttl"`
+	// Stale time to live.
+	Stale configurationtypes.Duration `json:"stale"`
 }
 
 // GetAllowedHTTPVerbs returns the allowed verbs to cache
@@ -109,13 +124,18 @@ func (d *DefaultCache) GetDefaultCacheControl() string {
 
 //Configuration holder
 type Configuration struct {
+	// Default cache to fallback on when none are redefined.
 	DefaultCache *DefaultCache
-	API          configurationtypes.API
+	// API endpoints enablers.
+	API configurationtypes.API
+	// Cache keys configuration.
 	CfgCacheKeys map[string]configurationtypes.Key
-	URLs         map[string]configurationtypes.URL
-	LogLevel     string
-	cacheKeys    map[configurationtypes.RegValue]configurationtypes.Key
-	logger       *zap.Logger
+	// Override the ttl depending the cases.
+	URLs map[string]configurationtypes.URL
+	// Logger level, fallback on caddy's one when not redefined.
+	LogLevel  string
+	cacheKeys map[configurationtypes.RegValue]configurationtypes.Key
+	logger    *zap.Logger
 }
 
 // GetUrls get the urls list in the configuration

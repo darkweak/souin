@@ -20,12 +20,14 @@ Using the minimal configuration the responses will be cached for `120s`
     cache
 }
 
-cache * {
+example.com {
+    cache
+    reverse_proxy your-app:8080
 }
 ```
 
-## Example Configurations
-There is the fully configuration below
+## Global Option Syntax
+Here are all the available options for the global options
 ```caddy
 {
     order cache before rewrite
@@ -96,116 +98,119 @@ There is the fully configuration below
 
 :4443
 respond "Hello World!"
+```
 
-@match path /test1*
-@match2 path /test2*
-@matchdefault path /default
-@souin-api path /souin-api*
+## Cache directive Syntax
+Here are all the available options for the directive options
 
-cache @match {
-    ttl 5s
-    badger {
-        path /tmp/badger/first-match
-        configuration {
-            # Required value
-            ValueDir <string>
+```
+@match path /path
 
-            # Optional
-            SyncWrites <bool>
-            NumVersionsToKeep <int>
-            ReadOnly <bool>
-            Compression <int>
-            InMemory <bool>
-            MetricsEnabled <bool>
-            MemTableSize <int>
-            BaseTableSize <int>
-            BaseLevelSize <int>
-            LevelSizeMultiplier <int>
-            TableSizeMultiplier <int>
-            MaxLevels <int>
-            VLogPercentile <float>
-            ValueThreshold <int>
-            NumMemtables <int>
-            BlockSize <int>
-            BloomFalsePositive <float>
-            BlockCacheSize <int>
-            IndexCacheSize <int>
-            NumLevelZeroTables <int>
-            NumLevelZeroTablesStall <int>
-            ValueLogFileSize <int>
-            ValueLogMaxEntries <int>
-            NumCompactors <int>
-            CompactL0OnClose <bool>
-            LmaxCompaction <bool>
-            ZSTDCompressionLevel <int>
-            VerifyValueChecksum <bool>
-            EncryptionKey <string>
-            EncryptionKey <Duration>
-            BypassLockGuard <bool>
-            ChecksumVerificationMode <int>
-            DetectConflicts <bool>
-            NamespaceOffset <int>
+@match {
+    cache {
+        cache_name ChangeName
+        cache_keys {
+            (host1|host2).*\.css {
+                disable_body
+                disable_host
+                disable_method
+            }
         }
-    }
-}
-
-cache @match2 {
-    ttl 50s
-    badger {
-        path /tmp/badger/second-match
-        configuration {
-            ValueDir match2
-            ValueLogFileSize 16777216
-            MemTableSize 4194304
-            ValueThreshold 524288
-            BypassLockGuard true
+        cdn {
+            api_key XXXX
+            dynamic
+            email darkweak@protonmail.com
+            hostname domain.com
+            network your_network
+            provider fastly
+            strategy soft
+            service_id 123456_id
+            zone_id anywhere_zone
         }
-    }
-    headers Authorization
-    default_cache_control "public, max-age=86400"
-}
-
-cache @matchdefault {
-    ttl 5s
-    badger {
-        path /tmp/badger/default-match
-        configuration {
-            ValueDir default
-            ValueLogFileSize 16777216
-            MemTableSize 4194304
-            ValueThreshold 524288
-            BypassLockGuard true
-        }
-    }
-    cache_name ChangeName
-    cache_keys {
-        (host1|host2).*\.css {
+        key {
             disable_body
             disable_host
             disable_method
         }
+        headers Content-Type Authorization
+        log_level debug
+        regex {
+            exclude /test2.*
+        }
+        stale 200s
+        ttl 1000s
+        default_cache_control no-store
     }
 }
+```
 
-route /badger-configuration {
+## Provider Syntax
+
+### Badger
+The badger provider must have either the path or the configuration directive.
+```
+badger-path.com {
     cache {
-        ttl 15s
+        badger {
+            path /tmp/badger/first-match
+        }
+    }
+}
+```
+```
+badger-configuration.com {
+    cache {
         badger {
             configuration {
-                Dir /tmp/badger-configuration
-                ValueDir match2
-                ValueLogFileSize 16777216
-                MemTableSize 4194304
-                ValueThreshold 524288
+                # Required value
+                ValueDir <string>
+
+                # Optional
+                SyncWrites <bool>
+                NumVersionsToKeep <int>
+                ReadOnly <bool>
+                Compression <int>
+                InMemory <bool>
+                MetricsEnabled <bool>
+                MemTableSize <int>
+                BaseTableSize <int>
+                BaseLevelSize <int>
+                LevelSizeMultiplier <int>
+                TableSizeMultiplier <int>
+                MaxLevels <int>
+                VLogPercentile <float>
+                ValueThreshold <int>
+                NumMemtables <int>
+                BlockSize <int>
+                BloomFalsePositive <float>
+                BlockCacheSize <int>
+                IndexCacheSize <int>
+                NumLevelZeroTables <int>
+                NumLevelZeroTablesStall <int>
+                ValueLogFileSize <int>
+                ValueLogMaxEntries <int>
+                NumCompactors <int>
+                CompactL0OnClose <bool>
+                LmaxCompaction <bool>
+                ZSTDCompressionLevel <int>
+                VerifyValueChecksum <bool>
+                EncryptionKey <string>
+                EncryptionKey <Duration>
+                BypassLockGuard <bool>
+                ChecksumVerificationMode <int>
+                DetectConflicts <bool>
+                NamespaceOffset <int>
             }
         }
     }
-    respond "Hello badger"
 }
+```
 
-route /etcd-configuration {
+### Etcd
+The etcd provider must have the configuration directive.
+```
+etcd-configuration.com {
     cache {
-        ttl 15s
         etcd {
             configuration {
                 Endpoints etcd1:2379 etcd2:2379 etcd3:2379
@@ -222,12 +227,23 @@ route /etcd-configuration {
             }
         }
     }
-    respond "Hello etcd"
 }
+```
 
-route /nuts-configuration {
+### NutsDB
+The nutsdb provider must have either the path or the configuration directive.
+```
+nuts-path.com {
     cache {
-        ttl 15s
+        nuts {
+            path /tmp/nuts-path
+        }
+    }
+}
+```
+```
+nuts-configuration.com {
+    cache {
         nuts {
             configuration {
                 Dir /tmp/nuts-configuration
@@ -240,12 +256,64 @@ route /nuts-configuration {
             }
         }
     }
-    respond "Hello nuts"
 }
+```
 
-route /redis-configuration {
+### Olric
+The olric provider must have either the url directive to work as client mode.
+```
+olric-url.com {
     cache {
-        ttl 15s
+        olric {
+            url olric:3320
+        }
+    }
+}
+```
+
+The olric provider must have either the path or the configuration directive to work as embedded mode.
+```
+olric-path.com {
+    cache {
+        olric {
+            path /path/to/olricd.yml
+        }
+    }
+}
+```
+```
+olric-configuration.com {
+    cache {
+        nuts {
+            configuration {
+                Dir /tmp/nuts-configuration
+                EntryIdxMode 1
+                RWMode 0
+                SegmentSize 1024
+                NodeNum 42
+                SyncEnable true
+                StartFileLoadingMode 1
+            }
+        }
+    }
+}
+```
+
+### Redis
+The redis provider must have either the URL or the configuration directive.
+
+```
+redis-url.com {
+    cache {
+        redis {
+            url 127.0.0.1:6789
+        }
+    }
+}
+```
+```
+redis-configuration.com {
+    cache {
         redis {
             configuration {
                 Network my-network
@@ -269,11 +337,9 @@ route /redis-configuration {
             }
         }
     }
-    respond "Hello redis"
 }
-
-cache @souin-api {}
 ```
+
 What does these directives mean?  
 |  Key                               |  Description                                                                                                                                 |  Value example                                                                                                          |
 |:-----------------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------|:------------------------------------------------------------------------------------------------------------------------|
@@ -330,7 +396,3 @@ Other resources
 ---------------
 You can find an example for the [Caddyfile](Caddyfile) or the [JSON file](configuration.json).  
 See the [Souin](https://github.com/darkweak/souin) configuration for the full configuration, and its associated [Caddyfile](https://github.com/darkweak/souin/blob/master/plugins/caddy/Caddyfile)  
-
-## TODO
-
-* [ ] Improve the API and add relevant endpoints
