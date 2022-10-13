@@ -121,6 +121,11 @@ func getAppropriateCacheControlHeader(h http.Header, cacheName string) string {
 
 // UpdateCacheEventually will handle Request and update the previous one in the cache provider
 func (t *VaryTransport) UpdateCacheEventually(req *http.Request) (*http.Response, error) {
+	select {
+	case <-req.Context().Done():
+		return nil, nil
+	default:
+	}
 	ccHeaderValue := getAppropriateCacheControlHeader(req.Response.Header, req.Context().Value(context.CacheName).(string))
 	req = req.WithContext(ctx.WithValue(req.Context(), context.CacheControlCtx, ccHeaderValue))
 	if ccHeaderValue == "" && t.ConfigurationURL.DefaultCacheControl != "" {
