@@ -68,8 +68,8 @@ func (t *VaryTransport) SetSurrogateKeys(s providers.SurrogateInterface) {
 }
 
 // SetCache set the cache
-func (t *VaryTransport) SetCache(key string, resp *http.Response) {
-	co, e := cacheobject.ParseResponseCacheControl(resp.Header.Get("Cache-Control"))
+func (t *VaryTransport) SetCache(key string, resp *http.Response, ccValue string) {
+	co, e := cacheobject.ParseResponseCacheControl(ccValue)
 	if e != nil {
 		return
 	}

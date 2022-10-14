@@ -36,7 +36,7 @@ func OlricConnectionFactory(configuration t.AbstractConfigurationInterface) (typ
 	}
 	c, err := client.New(&config)
 	if err != nil {
-		panic(err)
+		configuration.GetLogger().Sugar().Errorf("Impossible to connect to Olric, %v", err)
 	}
 
 	return &Olric{
@@ -152,7 +152,7 @@ func (provider *Olric) Set(key string, value []byte, url t.URL, duration time.Du
 			go provider.Reconnect()
 			return
 		}
-		panic(err)
+		provider.logger.Sugar().Errorf("Impossible to set value into Olric, %v", err)
 	}
 
 	if err := provider.dm.PutEx(stalePrefix+key, value, provider.stale+duration); err != nil {
@@ -160,7 +160,7 @@ func (provider *Olric) Set(key string, value []byte, url t.URL, duration time.Du
 			go provider.Reconnect()
 			return
 		}
-		panic(err)
+		provider.logger.Sugar().Errorf("Impossible to set value into Olric, %v", err)
 	}
 }
 
@@ -173,7 +173,7 @@ func (provider *Olric) Delete(key string) {
 	go func() {
 		err := provider.dm.Delete(key)
 		if err != nil {
-			panic(err)
+			provider.logger.Sugar().Errorf("Impossible to delete value into Olric, %v", err)
 		}
 	}()
 }
@@ -206,7 +206,7 @@ func (provider *Olric) DeleteMany(key string) {
 		})
 
 		if err != nil {
-			panic(err)
+			provider.logger.Sugar().Errorf("Impossible to delete values into Olric, %v", err)
 		}
 	}()
 }

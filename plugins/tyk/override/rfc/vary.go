@@ -37,7 +37,7 @@ func validateVary(req *http.Request, resp *http.Response, key string, t *VaryTra
 				re := *resp
 				re.Body = ioutil.NopCloser(r)
 				_ = t.SurrogateStorage.Store(&re, cacheKey)
-				t.SetCache(cacheKey, &re)
+				t.SetCache(cacheKey, &re, req.Context().Value(context.CacheControlCtx).(string))
 				go func() {
 					t.CoalescingLayerStorage.Delete(cacheKey)
 				}()

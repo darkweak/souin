@@ -29,7 +29,7 @@ func validateVary(req *http.Request, resp *http.Response, key string, t *VaryTra
 		resp.Header.Set("Cache-Status", fmt.Sprintf("%s; fwd=uri-miss; stored", req.Context().Value(context.CacheName)))
 		resp.Header.Del("Age")
 		_ = t.SurrogateStorage.Store(resp, cacheKey)
-		t.SetCache(cacheKey, resp)
+		t.SetCache(cacheKey, resp, req.Context().Value(context.CacheControlCtx).(string))
 		go func() {
 			t.CoalescingLayerStorage.Delete(cacheKey)
 		}()

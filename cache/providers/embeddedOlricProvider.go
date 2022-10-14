@@ -181,11 +181,11 @@ func (provider *EmbeddedOlric) Set(key string, value []byte, url t.URL, duration
 	}
 
 	if err := provider.dm.PutEx(key, value, duration); err != nil {
-		panic(err)
+		provider.logger.Sugar().Errorf("Impossible to set value into EmbeddedOlric, %v", err)
 	}
 
 	if err := provider.dm.PutEx(stalePrefix+key, value, provider.stale+duration); err != nil {
-		panic(err)
+		provider.logger.Sugar().Errorf("Impossible to set value into EmbeddedOlric, %v", err)
 	}
 }
 
@@ -194,7 +194,7 @@ func (provider *EmbeddedOlric) Delete(key string) {
 	go func() {
 		err := provider.dm.Delete(key)
 		if err != nil {
-			panic(err)
+			provider.logger.Sugar().Errorf("Impossible to delete a value into EmbeddedOlric, %v", err)
 		}
 	}()
 }
@@ -223,7 +223,7 @@ func (provider *EmbeddedOlric) DeleteMany(key string) {
 		})
 
 		if err != nil {
-			panic(err)
+			provider.logger.Sugar().Errorf("Impossible to delete values into EmbeddedOlric, %v", err)
 		}
 	}()
 }

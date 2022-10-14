@@ -8,6 +8,39 @@ import (
 	"github.com/caddyserver/caddy/v2/caddytest"
 )
 
+func TestMinimal(t *testing.T) {
+	tester := caddytest.NewTester(t)
+	tester.InitServer(`
+	{
+		order cache before rewrite
+		http_port     9080
+		https_port    9443
+		cache
+	}
+	localhost:9080 {
+		route /cache-default {
+			cache
+			respond "Hello, default!"
+		}
+	}`, "caddyfile")
+
+	resp1, _ := tester.AssertGetResponse(`http://localhost:9080/cache-default`, 200, "Hello, default!")
+	if resp1.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored" {
+		t.Errorf("unexpected Cache-Status header %v", resp1.Header)
+	}
+
+	resp2, _ := tester.AssertGetResponse(`http://localhost:9080/cache-default`, 200, "Hello, default!")
+	if resp2.Header.Get("Cache-Status") != "Souin; hit; ttl=59" {
+		t.Errorf("unexpected Cache-Status header %v", resp2.Header.Get("Cache-Status"))
+	}
+
+	time.Sleep(2 * time.Second)
+	resp3, _ := tester.AssertGetResponse(`http://localhost:9080/cache-default`, 200, "Hello, default!")
+	if resp3.Header.Get("Cache-Status") != "Souin; hit; ttl=57" {
+		t.Errorf("unexpected Cache-Status header %v", resp3.Header.Get("Cache-Status"))
+	}
+}
+
 func TestMaxAge(t *testing.T) {
 	tester := caddytest.NewTester(t)
 	tester.InitServer(`

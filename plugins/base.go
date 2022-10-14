@@ -39,15 +39,19 @@ type souinWriterInterface interface {
 
 // CustomWriter handles the response and provide the way to cache the value
 type CustomWriter struct {
-	Response *http.Response
-	Buf      *bytes.Buffer
-	Rw       http.ResponseWriter
-	Req      *http.Request
-	size     int
+	Response    *http.Response
+	Buf         *bytes.Buffer
+	Rw          http.ResponseWriter
+	Req         *http.Request
+	size        int
+	headersSent bool
 }
 
 // Header will write the response headers
 func (r *CustomWriter) Header() http.Header {
+	if r.headersSent {
+		return http.Header{}
+	}
 	return r.Rw.Header()
 }
 
@@ -59,6 +63,7 @@ func (r *CustomWriter) WriteHeader(code int) {
 	if code != 0 {
 		r.Response.StatusCode = code
 	}
+	r.headersSent = true
 }
 
 // Write will write the response body

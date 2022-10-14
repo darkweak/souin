@@ -32,6 +32,7 @@ func TestVaryMatches(t *testing.T) {
 	co := context.GetContext()
 	co.Init(c)
 	r = co.SetContext(r)
+	r = r.WithContext(ctx.WithValue(r.Context(), context.CacheControlCtx, "public"))
 
 	if !varyMatches(res, r) {
 		errors.GenerateError(t, "Vary match should return true if no header sent")
@@ -97,6 +98,7 @@ func TestValidateVary_Load(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodGet, "/", nil)
 	req = req.WithContext(ctx.WithValue(req.Context(), context.CacheName, "Souin"))
 	req = req.WithContext(ctx.WithValue(req.Context(), context.Key, "GET-domain.com-/something"))
+	req = req.WithContext(ctx.WithValue(req.Context(), context.CacheControlCtx, "public"))
 	if !validateVary(req, response, "", transport) {
 		errors.GenerateError(t, "The validateVary must return true when a valid response is passed as parameter.")
 	}

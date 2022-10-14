@@ -23,6 +23,8 @@ type (
 	}
 )
 
+const CacheControlCtx ctxKey = "CACHE-CONTROL-CTX"
+
 func GetContext() *Context {
 	return &Context{
 		CacheName: &cacheContext{},
