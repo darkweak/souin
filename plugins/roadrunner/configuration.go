@@ -86,8 +86,12 @@ func parseDefaultCache(dcConfiguration map[string]interface{}) *configurationtyp
 		switch defaultCacheK {
 		case "allowed_http_verbs":
 			dc.AllowedHTTPVerbs = make([]string, 0)
-			for _, v := range defaultCacheV.([]interface{}) {
-				dc.AllowedHTTPVerbs = append(dc.AllowedHTTPVerbs, v.(string))
+			if values, ok := defaultCacheV.([]string); ok {
+				dc.AllowedHTTPVerbs = values
+			} else if values, ok := defaultCacheV.([]interface{}); ok {
+				for _, v := range values {
+					dc.AllowedHTTPVerbs = append(dc.AllowedHTTPVerbs, v.(string))
+				}
 			}
 		case "badger":
 			provider := configurationtypes.CacheProvider{}
@@ -139,8 +143,12 @@ func parseDefaultCache(dcConfiguration map[string]interface{}) *configurationtyp
 			dc.Etcd = provider
 		case "headers":
 			dc.Headers = make([]string, 0)
-			for _, v := range defaultCacheV.([]interface{}) {
-				dc.Headers = append(dc.Headers, v.(string))
+			if values, ok := defaultCacheV.([]string); ok {
+				dc.Headers = values
+			} else if values, ok := defaultCacheV.([]interface{}); ok {
+				for _, v := range values {
+					dc.Headers = append(dc.Headers, v.(string))
+				}
 			}
 		case "nuts":
 			provider := configurationtypes.CacheProvider{}
@@ -242,8 +250,12 @@ func parseURLs(urls map[string]interface{}) map[string]configurationtypes.URL {
 			switch k {
 			case "headers":
 				currentURL.Headers = make([]string, 0)
-				for _, urlV := range v.([]interface{}) {
-					currentURL.Headers = append(currentURL.Headers, urlV.(string))
+				if values, ok := urlV.([]string); ok {
+					currentURL.Headers = values
+				} else if values, ok := urlV.([]interface{}); ok {
+					for _, value := range values {
+						currentURL.Headers = append(currentURL.Headers, value.(string))
+					}
 				}
 			case "ttl":
 				if ttl, err := time.ParseDuration(v.(string)); err == nil {

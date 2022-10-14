@@ -2,7 +2,6 @@ package providers
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -11,12 +10,14 @@ import (
 	t "github.com/darkweak/souin/configurationtypes"
 	"github.com/imdario/mergo"
 	"github.com/xujiajun/nutsdb"
+	"go.uber.org/zap"
 )
 
 // Nuts provider type
 type Nuts struct {
 	*nutsdb.DB
-	stale time.Duration
+	stale  time.Duration
+	logger *zap.Logger
 }
 
 const (
@@ -96,7 +97,11 @@ func NutsConnectionFactory(c t.AbstractConfigurationInterface) (types.AbstractPr
 		c.GetLogger().Sugar().Error("Impossible to open the Nuts DB.", e)
 	}
 
-	return &Nuts{DB: db, stale: dc.GetStale()}, nil
+	return &Nuts{
+		DB:     db,
+		stale:  dc.GetStale(),
+		logger: c.GetLogger(),
+	}, nil
 }
 
 // ListKeys method returns the list of existing keys
@@ -165,7 +170,7 @@ func (provider *Nuts) Set(key string, value []byte, url t.URL, duration time.Dur
 	})
 
 	if err != nil {
-		panic(fmt.Sprintf("Impossible to set value into Nuts, %s", err))
+		provider.logger.Sugar().Errorf("Impossible to set value into Nuts, %v", err)
 	}
 
 	err = provider.DB.Update(func(tx *nutsdb.Tx) error {
@@ -173,7 +178,7 @@ func (provider *Nuts) Set(key string, value []byte, url t.URL, duration time.Dur
 	})
 
 	if err != nil {
-		panic(fmt.Sprintf("Impossible to set value into Nuts, %s", err))
+		provider.logger.Sugar().Errorf("Impossible to set value into Nuts, %v", err)
 	}
 }
 

@@ -2,7 +2,6 @@ package providers
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"regexp"
 	"time"
@@ -150,7 +149,7 @@ func (provider *Badger) Set(key string, value []byte, url t.URL, duration time.D
 	})
 
 	if err != nil {
-		panic(fmt.Sprintf("Impossible to set value into Badger, %s", err))
+		provider.logger.Sugar().Errorf("Impossible to set value into Badger, %v", err)
 	}
 
 	err = provider.DB.Update(func(txn *badger.Txn) error {
@@ -158,7 +157,7 @@ func (provider *Badger) Set(key string, value []byte, url t.URL, duration time.D
 	})
 
 	if err != nil {
-		panic(fmt.Sprintf("Impossible to set value into Badger, %s", err))
+		provider.logger.Sugar().Errorf("Impossible to set value into Badger, %v", err)
 	}
 }
 

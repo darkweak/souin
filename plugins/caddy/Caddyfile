@@ -104,6 +104,45 @@ route /nuts-configuration {
     respond "Hello nuts"
 }
 
+route /redis-configuration {
+    cache {
+        ttl 15s
+        redis {
+            configuration {
+                Network my-network
+                Addr 127.0.0.1:6789
+                Username user
+                Password password
+                DB 1
+                MaxRetries 1
+                MinRetryBackoff 5s
+                MaxRetryBackoff 5s
+                DialTimeout 5s
+                ReadTimeout 5s
+                WriteTimeout 5s
+                PoolFIFO true
+                PoolSize 99999
+                PoolTimeout 10s
+                MinIdleConns 100
+                MaxIdleConns 100
+                ConnMaxIdleTime 5s
+                ConnMaxLifetime 5s
+            }
+        }
+    }
+    respond "Hello redis"
+}
+
+route /redis-url {
+    cache {
+        ttl 15s
+        redis {
+            url 127.0.0.1:6789
+        }
+    }
+    respond "Hello redis url"
+}
+
 route /vary {
     cache {
         ttl 15s
