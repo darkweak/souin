@@ -125,8 +125,8 @@ func (provider *Etcd) Set(key string, value []byte, url t.URL, duration time.Dur
 		provider.logger.Sugar().Error("Impossible to set the etcd value while reconnecting.")
 		return fmt.Errorf("reconnecting error")
 	}
-	if provider.Client.ActiveConnection().GetState() != connectivity.Ready {
-		return fmt.Errorf("the connection is not ready")
+	if provider.Client.ActiveConnection().GetState() != connectivity.Ready && provider.Client.ActiveConnection().GetState() != connectivity.Idle {
+		return fmt.Errorf("the connection is not ready: %v", provider.Client.ActiveConnection().GetState())
 	}
 	if duration == 0 {
 		duration = url.TTL.Duration

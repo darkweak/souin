@@ -46,7 +46,7 @@ func TestRedisConnectionFactory(t *testing.T) {
 func TestIShouldBeAbleToReadAndWriteDataInRedis(t *testing.T) {
 	client, matchedURL := getRedisClientAndMatchedURL("Test")
 
-	client.Set("Test", []byte(REDISVALUE), matchedURL, time.Duration(20)*time.Second)
+	_ = client.Set("Test", []byte(REDISVALUE), matchedURL, time.Duration(20)*time.Second)
 	time.Sleep(1 * time.Second)
 
 	res := client.Get("Test")
@@ -69,7 +69,7 @@ func TestRedis_GetRequestInCache(t *testing.T) {
 
 func TestRedis_GetSetRequestInCache_OneByte(t *testing.T) {
 	client, matchedURL := getRedisClientAndMatchedURL(BYTEKEY)
-	client.Set(BYTEKEY, []byte("A"), matchedURL, time.Duration(20)*time.Second)
+	_ = client.Set(BYTEKEY, []byte("A"), matchedURL, time.Duration(20)*time.Second)
 	time.Sleep(1 * time.Second)
 
 	res := client.Get(BYTEKEY)

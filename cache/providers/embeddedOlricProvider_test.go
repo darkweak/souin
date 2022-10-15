@@ -38,7 +38,7 @@ func getEmbeddedOlricWithoutYAML(key string) (types.AbstractProviderInterface, c
 
 func TestIShouldBeAbleToReadAndWriteDataInEmbeddedOlric(t *testing.T) {
 	client, u := getEmbeddedOlricClientAndMatchedURL("Test")
-	client.Set("Test", []byte(EMBEDDEDOLRICVALUE), u, time.Duration(10)*time.Second)
+	_ = client.Set("Test", []byte(EMBEDDEDOLRICVALUE), u, time.Duration(10)*time.Second)
 	time.Sleep(3 * time.Second)
 	res := client.Get("Test")
 	if EMBEDDEDOLRICVALUE != string(res) {
@@ -49,7 +49,7 @@ func TestIShouldBeAbleToReadAndWriteDataInEmbeddedOlric(t *testing.T) {
 
 func TestIShouldBeAbleToReadAndWriteDataInEmbeddedOlricWithoutYAML(t *testing.T) {
 	client, u := getEmbeddedOlricWithoutYAML("Test_without")
-	client.Set("Test", []byte(EMBEDDEDOLRICVALUE), u, time.Duration(10)*time.Second)
+	_ = client.Set("Test", []byte(EMBEDDEDOLRICVALUE), u, time.Duration(10)*time.Second)
 	time.Sleep(3 * time.Second)
 	res := client.Get("Test")
 	if EMBEDDEDOLRICVALUE != string(res) {
@@ -69,7 +69,7 @@ func TestEmbeddedOlric_GetRequestInCache(t *testing.T) {
 
 func TestEmbeddedOlric_SetRequestInCache_OneByte(t *testing.T) {
 	client, u := getEmbeddedOlricClientAndMatchedURL(BYTEKEY)
-	client.Set(BYTEKEY, []byte{65}, u, time.Duration(20)*time.Second)
+	_ = client.Set(BYTEKEY, []byte{65}, u, time.Duration(20)*time.Second)
 	_ = client.Reset()
 }
 
