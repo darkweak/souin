@@ -2,6 +2,7 @@ package providers
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -138,10 +139,10 @@ func (provider *Olric) Get(key string) []byte {
 }
 
 // Set method will store the response in Olric provider
-func (provider *Olric) Set(key string, value []byte, url t.URL, duration time.Duration) {
+func (provider *Olric) Set(key string, value []byte, url t.URL, duration time.Duration) error {
 	if provider.reconnecting {
 		provider.logger.Sugar().Error("Impossible to set the olric value while reconnecting.")
-		return
+		return fmt.Errorf("reconnecting error")
 	}
 	if duration == 0 {
 		duration = url.TTL.Duration
@@ -150,18 +151,19 @@ func (provider *Olric) Set(key string, value []byte, url t.URL, duration time.Du
 	if err := provider.dm.PutEx(key, value, duration); err != nil {
 		if !provider.reconnecting {
 			go provider.Reconnect()
-			return
 		}
 		provider.logger.Sugar().Errorf("Impossible to set value into Olric, %v", err)
+		return err
 	}
 
 	if err := provider.dm.PutEx(stalePrefix+key, value, provider.stale+duration); err != nil {
 		if !provider.reconnecting {
 			go provider.Reconnect()
-			return
 		}
 		provider.logger.Sugar().Errorf("Impossible to set value into Olric, %v", err)
 	}
+
+	return nil
 }
 
 // Delete method will delete the response in Olric provider if exists corresponding to key param

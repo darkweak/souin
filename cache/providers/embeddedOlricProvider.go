@@ -175,18 +175,21 @@ func (provider *EmbeddedOlric) Get(key string) []byte {
 }
 
 // Set method will store the response in EmbeddedOlric provider
-func (provider *EmbeddedOlric) Set(key string, value []byte, url t.URL, duration time.Duration) {
+func (provider *EmbeddedOlric) Set(key string, value []byte, url t.URL, duration time.Duration) error {
 	if duration == 0 {
 		duration = url.TTL.Duration
 	}
 
 	if err := provider.dm.PutEx(key, value, duration); err != nil {
 		provider.logger.Sugar().Errorf("Impossible to set value into EmbeddedOlric, %v", err)
+		return err
 	}
 
 	if err := provider.dm.PutEx(stalePrefix+key, value, provider.stale+duration); err != nil {
 		provider.logger.Sugar().Errorf("Impossible to set value into EmbeddedOlric, %v", err)
 	}
+
+	return nil
 }
 
 // Delete method will delete the response in EmbeddedOlric provider if exists corresponding to key param

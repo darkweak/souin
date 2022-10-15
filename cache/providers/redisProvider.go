@@ -3,6 +3,7 @@ package providers
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"regexp"
 	"time"
@@ -134,10 +135,10 @@ func (provider *Redis) Prefix(key string, req *http.Request) []byte {
 }
 
 // Set method will store the response in Etcd provider
-func (provider *Redis) Set(key string, value []byte, url t.URL, duration time.Duration) {
+func (provider *Redis) Set(key string, value []byte, url t.URL, duration time.Duration) error {
 	if provider.reconnecting {
 		provider.logger.Sugar().Error("Impossible to set the redis value while reconnecting.")
-		return
+		return fmt.Errorf("reconnecting error")
 	}
 	if duration == 0 {
 		duration = url.TTL.Duration
@@ -146,18 +147,19 @@ func (provider *Redis) Set(key string, value []byte, url t.URL, duration time.Du
 	if err := provider.Client.Set(provider.ctx, key, value, duration).Err(); err != nil {
 		if !provider.reconnecting {
 			go provider.Reconnect()
-			return
 		}
 		provider.logger.Sugar().Errorf("Impossible to set value into Redis, %v", err)
+		return err
 	}
 
 	if err := provider.Client.Set(provider.ctx, stalePrefix+key, value, duration+provider.stale).Err(); err != nil {
 		if !provider.reconnecting {
 			go provider.Reconnect()
-			return
 		}
 		provider.logger.Sugar().Errorf("Impossible to set value into Redis, %v", err)
 	}
+
+	return nil
 }
 
 // Delete method will delete the response in Etcd provider if exists corresponding to key param

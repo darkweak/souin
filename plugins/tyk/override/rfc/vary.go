@@ -28,8 +28,6 @@ func validateVary(req *http.Request, resp *http.Response, key string, t *VaryTra
 		if len(variedHeaders) > 0 {
 			cacheKey = GetVariedCacheKey(req, variedHeaders)
 		}
-		resp.Header.Set("Cache-Status", fmt.Sprintf("%s; fwd=uri-miss; stored", req.Context().Value(context.CacheName)))
-		resp.Header.Del("Age")
 		// Delay caching until EOF is reached.
 		resp.Body = &cachingReadCloser{
 			R: resp.Body,
@@ -37,7 +35,12 @@ func validateVary(req *http.Request, resp *http.Response, key string, t *VaryTra
 				re := *resp
 				re.Body = ioutil.NopCloser(r)
 				_ = t.SurrogateStorage.Store(&re, cacheKey)
-				t.SetCache(cacheKey, &re, req.Context().Value(context.CacheControlCtx).(string))
+				status := fmt.Sprintf("%s; fwd=uri-miss", req.Context().Value(context.CacheName))
+				if t.SetCache(cacheKey, resp, req.Context().Value(context.CacheControlCtx).(string)) {
+					status += "; stored"
+					_ = t.SurrogateStorage.Store(resp, cacheKey)
+				}
+				resp.Header.Set("Cache-Status", status)
 				go func() {
 					t.CoalescingLayerStorage.Delete(cacheKey)
 				}()

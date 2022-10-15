@@ -139,7 +139,7 @@ func (provider *Badger) Prefix(key string, req *http.Request) []byte {
 }
 
 // Set method will store the response in Badger provider
-func (provider *Badger) Set(key string, value []byte, url t.URL, duration time.Duration) {
+func (provider *Badger) Set(key string, value []byte, url t.URL, duration time.Duration) error {
 	if duration == 0 {
 		duration = url.TTL.Duration
 	}
@@ -150,6 +150,7 @@ func (provider *Badger) Set(key string, value []byte, url t.URL, duration time.D
 
 	if err != nil {
 		provider.logger.Sugar().Errorf("Impossible to set value into Badger, %v", err)
+		return err
 	}
 
 	err = provider.DB.Update(func(txn *badger.Txn) error {
@@ -159,6 +160,8 @@ func (provider *Badger) Set(key string, value []byte, url t.URL, duration time.D
 	if err != nil {
 		provider.logger.Sugar().Errorf("Impossible to set value into Badger, %v", err)
 	}
+
+	return nil
 }
 
 // Delete method will delete the response in Badger provider if exists corresponding to key param
