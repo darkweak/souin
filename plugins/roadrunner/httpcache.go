@@ -11,7 +11,6 @@ import (
 	"github.com/darkweak/souin/cache/coalescing"
 	"github.com/darkweak/souin/plugins"
 	"github.com/darkweak/souin/rfc"
-	"github.com/roadrunner-server/api/v2/plugins/config"
 	"github.com/roadrunner-server/errors"
 	"go.uber.org/zap"
 )
@@ -21,7 +20,17 @@ const (
 )
 
 type (
-	key    string
+	key string
+
+	// Configurer interface used to parse yaml configuration.
+	// Implementation will be provided by the RoadRunner automatically via Init method.
+	Configurer interface {
+		// Get used to get config section
+		Get(name string) any
+		// Has checks if config section exists.
+		Has(name string) bool
+	}
+
 	Plugin struct {
 		plugins.SouinBasePlugin
 		Configuration *plugins.BaseConfiguration
@@ -39,10 +48,10 @@ func (p *Plugin) Name() string {
 	return "cache"
 }
 
-// Init, allows the user to set up an HTTP cache system,
+// Init allows the user to set up an HTTP cache system,
 // RFC-7234 compliant and supports the tag based cache purge,
 // distributed and not-distributed storage, key generation tweaking.
-func (p *Plugin) Init(cfg config.Configurer, log *zap.Logger) error {
+func (p *Plugin) Init(cfg Configurer, log *zap.Logger) error {
 	const op = errors.Op("httpcache_middleware_init")
 	if !cfg.Has(configurationKey) {
 		return errors.E(op, errors.Disabled)
