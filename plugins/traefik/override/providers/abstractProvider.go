@@ -1,6 +1,7 @@
 package providers
 
 import (
+	"github.com/darkweak/souin/cache/types"
 	"net/http"
 	"strings"
 
@@ -12,8 +13,13 @@ const VarySeparator = "{-VARY-}"
 const StalePrefix = "STALE_"
 
 // InitializeProvider allow to generate the providers array according to the configuration
-func InitializeProvider(configuration configurationtypes.AbstractConfigurationInterface) *Cache {
-	r, _ := CacheConnectionFactory(configuration)
+func InitializeProvider(configuration configurationtypes.AbstractConfigurationInterface) types.AbstractProviderInterface {
+	var r types.AbstractProviderInterface
+	if configuration.GetDefaultCache().GetRedis().Configuration != nil || configuration.GetDefaultCache().GetRedis().URL != "" {
+		r, _ = RedisConnectionFactory(configuration)
+	} else {
+		r, _ = CacheConnectionFactory(configuration)
+	}
 	e := r.Init()
 	if e != nil {
 		panic(e)

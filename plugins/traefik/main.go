@@ -36,6 +36,12 @@ func CreateConfig() *TestConfiguration {
 	return &TestConfiguration{}
 }
 
+const (
+	path            = "path"
+	url             = "url"
+	configurationPK = "configuration"
+)
+
 func parseConfiguration(c map[string]interface{}) Configuration {
 	configuration := Configuration{}
 
@@ -118,6 +124,21 @@ func parseConfiguration(c map[string]interface{}) Configuration {
 					if exclude != "" {
 						dc.Regex = configurationtypes.Regex{Exclude: exclude}
 					}
+				case "redis":
+					provider := configurationtypes.CacheProvider{}
+					dc.Distributed = true
+					for redisConfigurationK, redisConfigurationV := range defaultCacheV.(map[string]interface{}) {
+						switch redisConfigurationK {
+						case url:
+							provider.URL, _ = redisConfigurationV.(string)
+						case path:
+							provider.Path, _ = redisConfigurationV.(string)
+						case configurationPK:
+							provider.Configuration = redisConfigurationV.(map[string]interface{})
+						}
+					}
+					dc.Distributed = true
+					dc.Redis = provider
 				case "timeout":
 					timeout := configurationtypes.Timeout{}
 					timeoutConfiguration := defaultCacheV.(map[string]interface{})

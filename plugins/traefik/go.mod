@@ -4,6 +4,7 @@ go 1.18
 
 require (
 	github.com/darkweak/souin v1.6.22
+	github.com/go-redis/redis/v9 v9.0.0-beta.2
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pquerna/cachecontrol v0.1.0
 	go.uber.org/zap v1.21.0
@@ -25,7 +26,6 @@ require (
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/go-chi/stampede v0.5.1 // indirect
-	github.com/go-redis/redis/v9 v9.0.0-beta.2 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b // indirect
