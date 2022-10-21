@@ -118,6 +118,22 @@ func parseConfiguration(c map[string]interface{}) Configuration {
 					if exclude != "" {
 						dc.Regex = configurationtypes.Regex{Exclude: exclude}
 					}
+
+				case "olric":
+					provider := configurationtypes.CacheProvider{}
+					dc.Distributed = true
+					for cfgK, cfgV := range defaultCacheV.(map[string]interface{}) {
+						switch cfgK {
+						case "url":
+							provider.URL, _ = cfgV.(string)
+						case "path":
+							provider.Path, _ = cfgV.(string)
+						case "configuration":
+							provider.Configuration = cfgV.(map[string]interface{})
+						}
+					}
+					dc.Olric = provider
+
 				case "timeout":
 					timeout := configurationtypes.Timeout{}
 					timeoutConfiguration := defaultCacheV.(map[string]interface{})
