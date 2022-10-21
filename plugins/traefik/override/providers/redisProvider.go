@@ -3,13 +3,14 @@ package providers
 import (
 	"context"
 	"encoding/json"
+	"github.com/go-redis/redis/v8"
 	"net/http"
 	"regexp"
 	"time"
 
 	"github.com/darkweak/souin/cache/types"
 	t "github.com/darkweak/souin/configurationtypes"
-	"github.com/go-redis/redis/v9"
+
 	"go.uber.org/zap"
 )
 
