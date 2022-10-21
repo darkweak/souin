@@ -49,13 +49,19 @@ func parseConfiguration(c map[string]interface{}) Configuration {
 				switch apiK {
 				case "prometheus":
 					prometheusConfiguration = make(map[string]interface{})
-					if apiV != nil && len(apiV.(map[string]interface{})) != 0 {
-						prometheusConfiguration = apiV.(map[string]interface{})
+					if apiV != nil {
+						prometheus, ok := apiV.(map[string]interface{})
+						if ok && len(prometheus) != 0 {
+							prometheusConfiguration = apiV.(map[string]interface{})
+						}
 					}
 				case "souin":
 					souinConfiguration = make(map[string]interface{})
-					if apiV != nil && len(apiV.(map[string]interface{})) != 0 {
-						souinConfiguration = apiV.(map[string]interface{})
+					if apiV != nil {
+						souin, ok := apiV.(map[string]interface{})
+						if ok && len(souin) != 0 {
+							souinConfiguration = apiV.(map[string]interface{})
+						}
 					}
 				}
 			}
