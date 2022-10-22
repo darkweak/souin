@@ -1,6 +1,7 @@
 package providers
 
 import (
+	"github.com/darkweak/souin/cache/types"
 	"net/http"
 	"regexp"
 	"strings"
@@ -17,7 +18,7 @@ type Cache struct {
 }
 
 // CacheConnectionFactory function create new Cache instance
-func CacheConnectionFactory(c t.AbstractConfigurationInterface) (*Cache, error) {
+func CacheConnectionFactory(c t.AbstractConfigurationInterface) (types.AbstractProviderInterface, error) {
 	provider := cache.New(1*time.Second, 1*time.Second)
 	return &Cache{Cache: provider, stale: c.GetDefaultCache().GetStale()}, nil
 }

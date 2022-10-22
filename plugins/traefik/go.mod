@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/darkweak/souin v1.6.22
-	github.com/go-redis/redis/v8 v8.11.5
+	github.com/mediocregopher/radix/v4 v4.1.1
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pquerna/cachecontrol v0.1.0
 	go.uber.org/zap v1.21.0
@@ -54,6 +54,7 @@ require (
 	github.com/prometheus/common v0.32.1 // indirect
 	github.com/prometheus/procfs v0.7.3 // indirect
 	github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529 // indirect
+	github.com/tilinna/clock v1.0.2 // indirect
 	github.com/vmihailenco/msgpack v4.0.4+incompatible // indirect
 	github.com/xujiajun/mmap-go v1.0.1 // indirect
 	github.com/xujiajun/nutsdb v0.9.0 // indirect

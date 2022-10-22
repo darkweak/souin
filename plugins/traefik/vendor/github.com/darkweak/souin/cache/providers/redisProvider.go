@@ -2,10 +2,10 @@ package providers
 
 import (
 	"context"
-	"encoding/json"
-	"github.com/go-redis/redis/v8"
+	"github.com/mediocregopher/radix/v4"
 	"net/http"
 	"regexp"
+	"strconv"
 	"time"
 
 	"github.com/darkweak/souin/cache/types"
@@ -16,40 +16,29 @@ import (
 
 // Redis provider type
 type Redis struct {
-	*redis.Client
-	stale         time.Duration
-	ctx           context.Context
-	logger        *zap.Logger
-	reconnecting  bool
-	configuration redis.Options
+	radix.Client
+	stale        time.Duration
+	poolTimeout  time.Duration
+	ctx          context.Context
+	logger       *zap.Logger
+	reconnecting bool
+	addr         string
 }
 
 // RedisConnectionFactory function create new Nuts instance
 func RedisConnectionFactory(c t.AbstractConfigurationInterface) (types.AbstractReconnectProvider, error) {
 	dc := c.GetDefaultCache()
-	bc, _ := json.Marshal(dc.GetRedis().Configuration)
 
-	var options redis.Options
-	if dc.GetRedis().Configuration != nil {
-		_ = json.Unmarshal(bc, &options)
-	} else {
-		options = redis.Options{
-			Addr:        dc.GetRedis().URL,
-			Password:    "",
-			DB:          0,
-			PoolSize:    1000,
-			PoolTimeout: dc.GetTimeout().Cache.Duration,
-		}
+	client, err := (radix.PoolConfig{}).New(context.Background(), "tcp", dc.GetRedis().URL)
+	if err != nil {
+		return nil, err
 	}
-
-	cli := redis.NewClient(&options)
-
 	return &Redis{
-		Client:        cli,
-		ctx:           context.Background(),
-		stale:         dc.GetStale(),
-		configuration: options,
-		logger:        c.GetLogger(),
+		Client: client,
+		ctx:    context.Background(),
+		stale:  dc.GetStale(),
+		logger: c.GetLogger(),
+		addr:   dc.GetRedis().URL,
 	}, nil
 }
 
@@ -61,11 +50,12 @@ func (provider *Redis) ListKeys() []string {
 	}
 	keys := []string{}
 
-	iter := provider.Client.Scan(provider.ctx, 0, "*", 0).Iterator()
-	for iter.Next(provider.ctx) {
-		keys = append(keys, string(iter.Val()))
+	s := (radix.ScannerConfig{Key: "*"}).New(provider.Client)
+	var key string
+	for s.Next(provider.ctx, &key) {
+		keys = append(keys, key)
 	}
-	if err := iter.Err(); err != nil {
+	if err := s.Close(); err != nil {
 		if !provider.reconnecting {
 			go provider.Reconnect()
 		}
@@ -82,15 +72,13 @@ func (provider *Redis) Get(key string) (item []byte) {
 		provider.logger.Sugar().Error("Impossible to get the redis key while reconnecting.")
 		return
 	}
-	r, e := provider.Client.Get(provider.ctx, key).Result()
-	if e != nil {
-		if e != redis.Nil && !provider.reconnecting {
-			go provider.Reconnect()
-		}
-		return
+	var val []byte
+	e := provider.Client.Do(provider.ctx, radix.Cmd(&val, "GET", key))
+	if e != nil && !provider.reconnecting {
+		go provider.Reconnect()
 	}
 
-	item = []byte(r)
+	item = val
 
 	return
 }
@@ -103,30 +91,31 @@ func (provider *Redis) Prefix(key string, req *http.Request) []byte {
 	}
 	in := make(chan []byte)
 	out := make(chan bool)
-
-	iter := provider.Client.Scan(provider.ctx, 0, key+"*", 0).Iterator()
-	go func(iterator *redis.ScanIterator) {
-		for iterator.Next(provider.ctx) {
+	s := (radix.ScannerConfig{Key: key + "*"}).New(provider.Client)
+	go func(iterator radix.Scanner) {
+		var sKey string
+		for iterator.Next(provider.ctx, &sKey) {
 			select {
 			case <-out:
 				return
 			case <-time.After(1 * time.Nanosecond):
-				if varyVoter(key, req, iter.Val()) {
-					v, e := provider.Client.Get(provider.ctx, iter.Val()).Result()
-					if e != redis.Nil && !provider.reconnecting {
+				if varyVoter(key, req, sKey) {
+					var val []byte
+					e := provider.Client.Do(provider.ctx, radix.Cmd(&val, "GET", sKey))
+					if e != nil && !provider.reconnecting {
 						go provider.Reconnect()
 						in <- []byte{}
 						return
 					}
-					in <- []byte(v)
+					in <- val
 					return
 				}
 			}
 		}
-	}(iter)
+	}(s)
 
 	select {
-	case <-time.After(provider.Client.Options().PoolTimeout):
+	case <-time.After(provider.poolTimeout):
 		out <- true
 		return []byte{}
 	case v := <-in:
@@ -143,16 +132,14 @@ func (provider *Redis) Set(key string, value []byte, url t.URL, duration time.Du
 	if duration == 0 {
 		duration = url.TTL.Duration
 	}
-
-	if err := provider.Client.Set(provider.ctx, key, value, duration).Err(); err != nil {
+	if err := provider.Client.Do(provider.ctx, radix.Cmd(nil, "SET", key, string(value), "ex", strconv.FormatInt(int64(duration/time.Second), 10))); err != nil {
 		if !provider.reconnecting {
 			go provider.Reconnect()
 			return
 		}
 		provider.logger.Sugar().Errorf("Impossible to set value into Redis, %v", err)
 	}
-
-	if err := provider.Client.Set(provider.ctx, StalePrefix+key, value, duration+provider.stale).Err(); err != nil {
+	if err := provider.Client.Do(provider.ctx, radix.Cmd(nil, "SET", StalePrefix+key, string(value), "ex", strconv.FormatInt(int64((duration+provider.stale)/time.Second), 10))); err != nil {
 		if !provider.reconnecting {
 			go provider.Reconnect()
 			return
@@ -167,7 +154,7 @@ func (provider *Redis) Delete(key string) {
 		provider.logger.Sugar().Error("Impossible to delete the redis key while reconnecting.")
 		return
 	}
-	_ = provider.Client.Del(provider.ctx, key)
+	_ = provider.Client.Do(provider.ctx, radix.Cmd(nil, "DEL", key))
 }
 
 // DeleteMany method will delete the responses in Nuts provider if exists corresponding to the regex key param
@@ -183,19 +170,21 @@ func (provider *Redis) DeleteMany(key string) {
 	}
 
 	keys := []string{}
-	iter := provider.Client.Scan(provider.ctx, 0, "*", 0).Iterator()
-	for iter.Next(provider.ctx) {
-		if re.MatchString(iter.Val()) {
-			keys = append(keys, iter.Val())
+
+	s := (radix.ScannerConfig{Key: "*"}).New(provider.Client)
+	var skey string
+	for s.Next(provider.ctx, &skey) {
+		if re.MatchString(skey) {
+			keys = append(keys, skey)
 		}
 	}
-
-	if iter.Err() != nil && !provider.reconnecting {
-		go provider.Reconnect()
-		return
+	if err := s.Close(); err != nil {
+		if !provider.reconnecting {
+			go provider.Reconnect()
+			return
+		}
 	}
-
-	provider.Client.Del(provider.ctx, keys...)
+	_ = provider.Client.Do(provider.ctx, radix.Cmd(nil, "DEL", keys...))
 }
 
 // Init method will
@@ -214,8 +203,12 @@ func (provider *Redis) Reset() error {
 
 func (provider *Redis) Reconnect() {
 	provider.reconnecting = true
-
-	if provider.Client = redis.NewClient(&provider.configuration); provider.Client != nil {
+	client, err := (radix.PoolConfig{}).New(provider.ctx, "tcp", provider.addr)
+	if err != nil {
+		time.Sleep(10 * time.Second)
+		provider.Reconnect()
+	}
+	if provider.Client = client; provider.Client != nil {
 		provider.reconnecting = false
 	} else {
 		time.Sleep(10 * time.Second)
