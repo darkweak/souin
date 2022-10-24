@@ -6,7 +6,6 @@ import (
 
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/plugins"
-	"github.com/roadrunner-server/api/v2/plugins/config"
 )
 
 const (
@@ -295,7 +294,7 @@ func parseSurrogateKeys(surrogates map[string]interface{}) map[string]configurat
 
 // ParseConfiguration parse the Roadrunner configuration into a valid HTTP
 // cache configuration object.
-func parseConfiguration(cfg config.Configurer) plugins.BaseConfiguration {
+func parseConfiguration(cfg Configurer) plugins.BaseConfiguration {
 	var configuration plugins.BaseConfiguration
 
 	for key, v := range cfg.Get(configurationKey).(map[string]interface{}) {
