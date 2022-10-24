@@ -648,15 +648,18 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 		Value: caddyconfig.JSON(souinApp, nil),
 	}, nil
 }
-
 func parseCaddyfileHandlerDirective(h httpcaddyfile.Helper) (caddyhttp.MiddlewareHandler, error) {
+	var s SouinCaddyPlugin
+	return &s, s.UnmarshalCaddyfile(h.Dispenser)
+}
+func (s *SouinCaddyPlugin) UnmarshalCaddyfile(h *caddyfile.Dispenser) error {
 	dc := DefaultCache{
 		AllowedHTTPVerbs: make([]string, 0),
 	}
-	sc := Configuration{
+	s.Configuration = &Configuration{
 		DefaultCache: &dc,
 	}
-
+	sc := s.Configuration
 	for h.Next() {
 		directive := h.Val()
 		switch directive {
@@ -673,7 +676,7 @@ func parseCaddyfileHandlerDirective(h httpcaddyfile.Helper) (caddyhttp.Middlewar
 					urlArgs := h.RemainingArgs()
 					provider.Path = urlArgs[0]
 				case "configuration":
-					provider.Configuration = parseCaddyfileRecursively(h.Dispenser)
+					provider.Configuration = parseCaddyfileRecursively(h)
 					provider.Configuration = parseBadgerConfiguration(provider.Configuration.(map[string]interface{}))
 				}
 			}
@@ -702,6 +705,7 @@ func parseCaddyfileHandlerDirective(h httpcaddyfile.Helper) (caddyhttp.Middlewar
 				cacheKeys[val] = ck
 			}
 			sc.CfgCacheKeys = cacheKeys
+			s.CacheKeys = cacheKeys
 		case "cache_name":
 			args := h.RemainingArgs()
 			sc.DefaultCache.CacheName = args[0]
@@ -714,7 +718,7 @@ func parseCaddyfileHandlerDirective(h httpcaddyfile.Helper) (caddyhttp.Middlewar
 				directive := h.Val()
 				switch directive {
 				case "configuration":
-					provider.Configuration = parseCaddyfileRecursively(h.Dispenser)
+					provider.Configuration = parseCaddyfileRecursively(h)
 				}
 			}
 			sc.DefaultCache.Etcd = provider
@@ -747,7 +751,7 @@ func parseCaddyfileHandlerDirective(h httpcaddyfile.Helper) (caddyhttp.Middlewar
 					urlArgs := h.RemainingArgs()
 					provider.Path = urlArgs[0]
 				case "configuration":
-					provider.Configuration = parseCaddyfileRecursively(h.Dispenser)
+					provider.Configuration = parseCaddyfileRecursively(h)
 				}
 			}
 			sc.DefaultCache.Olric = provider
@@ -764,7 +768,7 @@ func parseCaddyfileHandlerDirective(h httpcaddyfile.Helper) (caddyhttp.Middlewar
 					urlArgs := h.RemainingArgs()
 					provider.Path = urlArgs[0]
 				case "configuration":
-					provider.Configuration = parseCaddyfileRecursively(h.Dispenser)
+					provider.Configuration = parseCaddyfileRecursively(h)
 				}
 			}
 			sc.DefaultCache.Redis = provider
@@ -780,7 +784,7 @@ func parseCaddyfileHandlerDirective(h httpcaddyfile.Helper) (caddyhttp.Middlewar
 					urlArgs := h.RemainingArgs()
 					provider.Path = urlArgs[0]
 				case "configuration":
-					provider.Configuration = parseCaddyfileRecursively(h.Dispenser)
+					provider.Configuration = parseCaddyfileRecursively(h)
 				}
 			}
 			sc.DefaultCache.Nuts = provider
@@ -818,11 +822,7 @@ func parseCaddyfileHandlerDirective(h httpcaddyfile.Helper) (caddyhttp.Middlewar
 			}
 		}
 	}
-
-	return &SouinCaddyPlugin{
-		Configuration: &sc,
-		CacheKeys:     sc.CfgCacheKeys,
-	}, nil
+	return nil
 }
 
 // Interface guards
@@ -830,4 +830,5 @@ var (
 	_ caddy.CleanerUpper          = (*SouinCaddyPlugin)(nil)
 	_ caddy.Provisioner           = (*SouinCaddyPlugin)(nil)
 	_ caddyhttp.MiddlewareHandler = (*SouinCaddyPlugin)(nil)
+	_ caddyfile.Unmarshaler       = (*SouinCaddyPlugin)(nil)
 )
