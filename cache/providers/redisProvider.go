@@ -113,7 +113,7 @@ func (provider *Redis) Prefix(key string, req *http.Request) []byte {
 			case <-time.After(1 * time.Nanosecond):
 				if varyVoter(key, req, iter.Val()) {
 					v, e := provider.Client.Get(provider.ctx, iter.Val()).Result()
-					if e != redis.Nil && !provider.reconnecting {
+					if e != nil && e != redis.Nil && !provider.reconnecting {
 						go provider.Reconnect()
 						in <- []byte{}
 						return
