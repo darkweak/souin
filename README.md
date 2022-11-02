@@ -43,7 +43,7 @@
 Souin is a new HTTP cache system suitable for every reverse-proxy. It can be either placed on top of your current reverse-proxy whether it's Apache, Nginx or as plugin in your favorite reverse-proxy like Træfik, Caddy or Tyk.  
 Since it's written in go, it can be deployed on any server and thanks to the docker integration, it will be easy to install on top of a Swarm, or a kubernetes instance.  
 It's RFC compatible, supporting Vary, request coalescing, stale cache-control and other specifications related to the [RFC-7234](https://tools.ietf.org/html/rfc7234).  
-It also supports the [Cache-Status HTTP response header](https://httpwg.org/http-extensions/draft-ietf-httpbis-cache-header.html) and the YKey group such as Varnish.  
+It also supports the [Cache-Status HTTP response header](https://www.rfc-editor.org/rfc/rfc9211) and the YKey group such as Varnish.  
 It supports the ESI tags, thanks to the [go-esi package](https://github.com/darkweak/go-esi).
 
 ## Configuration
