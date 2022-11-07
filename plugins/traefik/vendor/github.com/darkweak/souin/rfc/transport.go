@@ -68,10 +68,10 @@ func (t *VaryTransport) SetSurrogateKeys(s providers.SurrogateInterface) {
 }
 
 // SetCache set the cache
-func (t *VaryTransport) SetCache(key string, resp *http.Response, ccValue string) {
+func (t *VaryTransport) SetCache(key string, resp *http.Response, ccValue string) bool {
 	co, e := cacheobject.ParseResponseCacheControl(ccValue)
 	if e != nil {
-		return
+		return false
 	}
 	ma := t.ConfigurationURL.TTL.Duration
 	if co.MaxAge > 0 {
@@ -86,6 +86,8 @@ func (t *VaryTransport) SetCache(key string, resp *http.Response, ccValue string
 	resp.Header.Set(storedTTLHeader, ma.String())
 	ma = ma - time.Since(date)
 	if respBytes, err := httputil.DumpResponse(resp, true); err == nil {
-		t.Provider.Set(key, respBytes, t.ConfigurationURL, ma)
+		return t.Provider.Set(key, respBytes, t.ConfigurationURL, ma) == nil
 	}
+
+	return false
 }

@@ -2,7 +2,9 @@ package providers
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/buraksezer/olric"
@@ -17,7 +19,7 @@ import (
 // Olric provider type
 type Olric struct {
 	*client.Client
-	dm            *client.DMap
+	dm            *sync.Pool
 	stale         time.Duration
 	logger        *zap.Logger
 	reconnecting  bool
@@ -54,7 +56,9 @@ func (provider *Olric) ListKeys() []string {
 		provider.logger.Sugar().Error("Impossible to list the olric keys while reconnecting.")
 		return []string{}
 	}
-	c, err := provider.dm.Query(query.M{
+	dm := provider.dm.Get().(*client.DMap)
+	defer provider.dm.Put(dm)
+	c, err := dm.Query(query.M{
 		"$onKey": query.M{
 			"$regexMatch": "",
 			"$options": query.M{
@@ -90,7 +94,9 @@ func (provider *Olric) Prefix(key string, req *http.Request) []byte {
 		provider.logger.Sugar().Error("Impossible to get the olric keys by prefix while reconnecting.")
 		return []byte{}
 	}
-	c, err := provider.dm.Query(query.M{
+	dm := provider.dm.Get().(*client.DMap)
+	defer provider.dm.Put(dm)
+	c, err := dm.Query(query.M{
 		"$onKey": query.M{
 			"$regexMatch": "^" + key + "({|$)",
 		},
@@ -125,7 +131,9 @@ func (provider *Olric) Get(key string) []byte {
 		provider.logger.Sugar().Error("Impossible to get the olric key while reconnecting.")
 		return []byte{}
 	}
-	val2, err := provider.dm.Get(key)
+	dm := provider.dm.Get().(*client.DMap)
+	defer provider.dm.Put(dm)
+	val2, err := dm.Get(key)
 
 	if err != nil {
 		if !errors.Is(err, olric.ErrKeyNotFound) && !errors.Is(err, olric.ErrKeyTooLarge) && !provider.reconnecting {
@@ -138,30 +146,33 @@ func (provider *Olric) Get(key string) []byte {
 }
 
 // Set method will store the response in Olric provider
-func (provider *Olric) Set(key string, value []byte, url t.URL, duration time.Duration) {
+func (provider *Olric) Set(key string, value []byte, url t.URL, duration time.Duration) error {
 	if provider.reconnecting {
 		provider.logger.Sugar().Error("Impossible to set the olric value while reconnecting.")
-		return
+		return fmt.Errorf("reconnecting error")
 	}
 	if duration == 0 {
 		duration = url.TTL.Duration
 	}
 
-	if err := provider.dm.PutEx(key, value, duration); err != nil {
+	dm := provider.dm.Get().(*client.DMap)
+	defer provider.dm.Put(dm)
+	if err := dm.PutEx(key, value, duration); err != nil {
 		if !provider.reconnecting {
 			go provider.Reconnect()
-			return
+		}
+		provider.logger.Sugar().Errorf("Impossible to set value into Olric, %v", err)
+		return err
+	}
+
+	if err := dm.PutEx(stalePrefix+key, value, provider.stale+duration); err != nil {
+		if !provider.reconnecting {
+			go provider.Reconnect()
 		}
 		provider.logger.Sugar().Errorf("Impossible to set value into Olric, %v", err)
 	}
 
-	if err := provider.dm.PutEx(stalePrefix+key, value, provider.stale+duration); err != nil {
-		if !provider.reconnecting {
-			go provider.Reconnect()
-			return
-		}
-		provider.logger.Sugar().Errorf("Impossible to set value into Olric, %v", err)
-	}
+	return nil
 }
 
 // Delete method will delete the response in Olric provider if exists corresponding to key param
@@ -171,7 +182,9 @@ func (provider *Olric) Delete(key string) {
 		return
 	}
 	go func() {
-		err := provider.dm.Delete(key)
+		dm := provider.dm.Get().(*client.DMap)
+		defer provider.dm.Put(dm)
+		err := dm.Delete(key)
 		if err != nil {
 			provider.logger.Sugar().Errorf("Impossible to delete value into Olric, %v", err)
 		}
@@ -185,7 +198,9 @@ func (provider *Olric) DeleteMany(key string) {
 		return
 	}
 	go func() {
-		c, err := provider.dm.Query(query.M{
+		dm := provider.dm.Get().(*client.DMap)
+		defer provider.dm.Put(dm)
+		c, err := dm.Query(query.M{
 			"$onKey": query.M{
 				"$regexMatch": key,
 				"$options": query.M{
@@ -213,9 +228,13 @@ func (provider *Olric) DeleteMany(key string) {
 
 // Init method will initialize Olric provider if needed
 func (provider *Olric) Init() error {
-	dm := provider.Client.NewDMap("souin-map")
+	dm := sync.Pool{
+		New: func() interface{} {
+			return provider.Client.NewDMap("souin-map")
+		},
+	}
 
-	provider.dm = dm
+	provider.dm = &dm
 	return nil
 }
 

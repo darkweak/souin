@@ -160,7 +160,7 @@ func (provider *Nuts) Prefix(key string, req *http.Request) []byte {
 }
 
 // Set method will store the response in Nuts provider
-func (provider *Nuts) Set(key string, value []byte, url t.URL, duration time.Duration) {
+func (provider *Nuts) Set(key string, value []byte, url t.URL, duration time.Duration) error {
 	if duration == 0 {
 		duration = url.TTL.Duration
 	}
@@ -171,6 +171,7 @@ func (provider *Nuts) Set(key string, value []byte, url t.URL, duration time.Dur
 
 	if err != nil {
 		provider.logger.Sugar().Errorf("Impossible to set value into Nuts, %v", err)
+		return err
 	}
 
 	err = provider.DB.Update(func(tx *nutsdb.Tx) error {
@@ -180,6 +181,8 @@ func (provider *Nuts) Set(key string, value []byte, url t.URL, duration time.Dur
 	if err != nil {
 		provider.logger.Sugar().Errorf("Impossible to set value into Nuts, %v", err)
 	}
+
+	return nil
 }
 
 // Delete method will delete the response in Nuts provider if exists corresponding to key param

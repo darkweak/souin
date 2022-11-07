@@ -34,7 +34,7 @@ func TestIShouldBeAbleToReadAndWriteDataInOlric(t *testing.T) {
 	defer func() {
 		_ = client.Reset()
 	}()
-	client.Set("Test", []byte(OLRICVALUE), u, time.Duration(10)*time.Second)
+	_ = client.Set("Test", []byte(OLRICVALUE), u, time.Duration(10)*time.Second)
 	time.Sleep(3 * time.Second)
 	res := client.Get("Test")
 	if OLRICVALUE != string(res) {
@@ -58,7 +58,7 @@ func TestOlric_SetRequestInCache_OneByte(t *testing.T) {
 	defer func() {
 		_ = client.Reset()
 	}()
-	client.Set(BYTEKEY, []byte{65}, u, time.Duration(20)*time.Second)
+	_ = client.Set(BYTEKEY, []byte{65}, u, time.Duration(20)*time.Second)
 }
 
 func TestOlric_SetRequestInCache_TTL(t *testing.T) {

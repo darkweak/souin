@@ -57,18 +57,21 @@ func (r *CustomWriter) Header() http.Header {
 
 // WriteHeader will write the response headers
 func (r *CustomWriter) WriteHeader(code int) {
+	if r.headersSent {
+		return
+	}
 	if r.Response == nil {
 		r.Response = &http.Response{}
 	}
 	if code != 0 {
 		r.Response.StatusCode = code
 	}
+	r.Response.Header = r.Rw.Header()
 	r.headersSent = true
 }
 
 // Write will write the response body
 func (r *CustomWriter) Write(b []byte) (int, error) {
-	r.Response.Header = r.Rw.Header()
 	r.Buf.Grow(len(b))
 	_, _ = r.Buf.Write(b)
 	r.Response.Body = io.NopCloser(bytes.NewBuffer(r.Buf.Bytes()))

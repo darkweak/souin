@@ -66,13 +66,15 @@ func (provider *Cache) Prefix(key string, req *http.Request) []byte {
 }
 
 // Set method will store the response in Cache provider
-func (provider *Cache) Set(key string, value []byte, url t.URL, duration time.Duration) {
+func (provider *Cache) Set(key string, value []byte, url t.URL, duration time.Duration) error {
 	if duration == 0 {
 		duration = url.TTL.Duration
 	}
 
 	provider.Cache.Set(key, value, duration)
 	provider.Cache.Set(StalePrefix+key, value, provider.stale+duration)
+
+	return nil
 }
 
 // Delete method will delete the response in Cache provider if exists corresponding to key param

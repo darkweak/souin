@@ -12,7 +12,7 @@ type AbstractProviderInterface interface {
 	ListKeys() []string
 	Prefix(key string, req *http.Request) []byte
 	Get(key string) []byte
-	Set(key string, value []byte, url configurationtypes.URL, duration time.Duration)
+	Set(key string, value []byte, url configurationtypes.URL, duration time.Duration) error
 	Delete(key string)
 	DeleteMany(key string)
 	Init() error

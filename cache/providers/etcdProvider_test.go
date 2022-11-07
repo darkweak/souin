@@ -46,7 +46,7 @@ func TestEtcdConnectionFactory(t *testing.T) {
 func TestIShouldBeAbleToReadAndWriteDataInEtcd(t *testing.T) {
 	client, matchedURL := getEtcdClientAndMatchedURL("Test")
 
-	client.Set("Test", []byte(ETCDVALUE), matchedURL, time.Duration(20)*time.Second)
+	_ = client.Set("Test", []byte(ETCDVALUE), matchedURL, time.Duration(20)*time.Second)
 	time.Sleep(1 * time.Second)
 
 	res := client.Get("Test")
@@ -69,7 +69,7 @@ func TestEtcd_GetRequestInCache(t *testing.T) {
 
 func TestEtcd_GetSetRequestInCache_OneByte(t *testing.T) {
 	client, matchedURL := getEtcdClientAndMatchedURL(BYTEKEY)
-	client.Set(BYTEKEY, []byte("A"), matchedURL, time.Duration(20)*time.Second)
+	_ = client.Set(BYTEKEY, []byte("A"), matchedURL, time.Duration(20)*time.Second)
 	time.Sleep(1 * time.Second)
 
 	res := client.Get(BYTEKEY)

@@ -21,9 +21,9 @@ import (
 )
 
 func populateProviderWithFakeData(provider types.AbstractProviderInterface) {
-	provider.Set(tests.DOMAIN+tests.PATH, []byte("testing value is here for "+tests.PATH), tests.GetMatchedURL(tests.DOMAIN+tests.PATH), time.Duration(20)*time.Second)
+	_ = provider.Set(tests.DOMAIN+tests.PATH, []byte("testing value is here for "+tests.PATH), tests.GetMatchedURL(tests.DOMAIN+tests.PATH), time.Duration(20)*time.Second)
 	for i := 0; i < 25; i++ {
-		provider.Set(
+		_ = provider.Set(
 			fmt.Sprintf("%s%s/%d", tests.DOMAIN, tests.PATH, i),
 			[]byte(fmt.Sprintf("testing value is here for my first init of %s/%d", tests.PATH, i)),
 			tests.GetMatchedURL(tests.DOMAIN+tests.PATH),

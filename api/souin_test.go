@@ -39,8 +39,8 @@ func mockSouinAPI() *SouinAPI {
 
 func TestSouinAPI_BulkDelete(t *testing.T) {
 	souinMock := mockSouinAPI()
-	souinMock.provider.Set("firstKey", []byte("value"), tests.GetMatchedURL("firstKey"), 20*time.Second)
-	souinMock.provider.Set("secondKey", []byte("value"), tests.GetMatchedURL("secondKey"), 20*time.Second)
+	_ = souinMock.provider.Set("firstKey", []byte("value"), tests.GetMatchedURL("firstKey"), 20*time.Second)
+	_ = souinMock.provider.Set("secondKey", []byte("value"), tests.GetMatchedURL("secondKey"), 20*time.Second)
 	time.Sleep(3 * time.Second)
 	if len(souinMock.GetAll()) != 4 {
 		errors.GenerateError(t, "Souin API should have a record")
@@ -53,7 +53,7 @@ func TestSouinAPI_BulkDelete(t *testing.T) {
 
 func TestSouinAPI_Delete(t *testing.T) {
 	souinMock := mockSouinAPI()
-	souinMock.provider.Set("key", []byte("value"), tests.GetMatchedURL("key"), 20*time.Second)
+	_ = souinMock.provider.Set("key", []byte("value"), tests.GetMatchedURL("key"), 20*time.Second)
 	time.Sleep(3 * time.Second)
 	if len(souinMock.GetAll()) != 2 {
 		errors.GenerateError(t, "Souin API should have 2 records")
@@ -76,7 +76,7 @@ func TestSouinAPI_GetAll(t *testing.T) {
 		errors.GenerateError(t, "Souin API don't have any record yet")
 	}
 
-	souinMock.provider.Set("key", []byte("value"), tests.GetMatchedURL("key"), 6*time.Second)
+	_ = souinMock.provider.Set("key", []byte("value"), tests.GetMatchedURL("key"), 6*time.Second)
 	time.Sleep(3 * time.Second)
 	if len(souinMock.GetAll()) != 2 {
 		errors.GenerateError(t, "Souin API should have a record")
@@ -103,10 +103,10 @@ func TestSouinAPI_IsEnabled(t *testing.T) {
 
 func TestSouinAPI_listKeys(t *testing.T) {
 	souinMock := mockSouinAPI()
-	souinMock.provider.Set("FIRST_KEY", []byte("Something"), configurationtypes.URL{}, time.Second)
-	souinMock.provider.Set("SECOND_KEY", []byte("Something"), configurationtypes.URL{}, time.Second)
-	souinMock.provider.Set("NOT_MATCH", []byte("Something"), configurationtypes.URL{}, time.Second)
-	souinMock.provider.Set("NOT_MATCH_KEY_SUFFIX", []byte("Something"), configurationtypes.URL{}, time.Second)
+	_ = souinMock.provider.Set("FIRST_KEY", []byte("Something"), configurationtypes.URL{}, time.Second)
+	_ = souinMock.provider.Set("SECOND_KEY", []byte("Something"), configurationtypes.URL{}, time.Second)
+	_ = souinMock.provider.Set("NOT_MATCH", []byte("Something"), configurationtypes.URL{}, time.Second)
+	_ = souinMock.provider.Set("NOT_MATCH_KEY_SUFFIX", []byte("Something"), configurationtypes.URL{}, time.Second)
 
 	if len(souinMock.listKeys("(error")) != 0 {
 		t.Error("An invalid regexp must return an empty list.")
@@ -159,7 +159,7 @@ func TestSouinAPI_HandleRequest(t *testing.T) {
 
 	sr := res.Result()
 	sr.Header.Set("Surrogate-Key", "THE_KEY")
-	souinMock.provider.Set("first/key/stored", []byte("value"), configurationtypes.URL{}, time.Second)
+	_ = souinMock.provider.Set("first/key/stored", []byte("value"), configurationtypes.URL{}, time.Second)
 	_ = souinMock.surrogateStorage.Store(sr, "first/key/stored")
 	souinMock.security = nil
 	req = httptest.NewRequest(http.MethodGet, "/souin-api/souinbasepath/surrogate_keys", nil)

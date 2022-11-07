@@ -60,7 +60,7 @@ func TestBadgerConnectionFactory(t *testing.T) {
 func TestIShouldBeAbleToReadAndWriteDataInBadger(t *testing.T) {
 	client, matchedURL := getBadgerClientAndMatchedURL("Test")
 
-	client.Set("Test", []byte(BADGERVALUE), matchedURL, time.Duration(20)*time.Second)
+	_ = client.Set("Test", []byte(BADGERVALUE), matchedURL, time.Duration(20)*time.Second)
 	time.Sleep(1 * time.Second)
 
 	res := client.Get("Test")
@@ -83,7 +83,7 @@ func TestBadger_GetRequestInCache(t *testing.T) {
 
 func TestBadger_GetSetRequestInCache_OneByte(t *testing.T) {
 	client, matchedURL := getBadgerClientAndMatchedURL(BYTEKEY)
-	client.Set(BYTEKEY, []byte("A"), matchedURL, time.Duration(20)*time.Second)
+	_ = client.Set(BYTEKEY, []byte("A"), matchedURL, time.Duration(20)*time.Second)
 	time.Sleep(1 * time.Second)
 
 	res := client.Get(BYTEKEY)
@@ -106,7 +106,7 @@ func TestBadger_SetRequestInCache_TTL(t *testing.T) {
 func TestBadger_SetRequestInCache_Negative_TTL(t *testing.T) {
 	client, matchedURL := getBadgerClientAndMatchedURL(BYTEKEY)
 	nv := []byte("New value")
-	client.Set(BYTEKEY, nv, matchedURL, -1)
+	_ = client.Set(BYTEKEY, nv, matchedURL, -1)
 	time.Sleep(1 * time.Second)
 	verifyNewValueAfterSet(client, BYTEKEY, []byte{}, t)
 }
