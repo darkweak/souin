@@ -43,24 +43,25 @@ func parseConfiguration(c map[string]interface{}) Configuration {
 		switch k {
 		case "api":
 			var a configurationtypes.API
-			var prometheusConfiguration, souinConfiguration, securityConfiguration map[string]interface{}
+			var prometheusConfiguration, souinConfiguration map[string]interface{}
 			apiConfiguration := v.(map[string]interface{})
 			for apiK, apiV := range apiConfiguration {
 				switch apiK {
 				case "prometheus":
 					prometheusConfiguration = make(map[string]interface{})
-					if apiV != nil && len(apiV.(string)) != 0 {
-						prometheusConfiguration = apiV.(map[string]interface{})
+					if apiV != nil {
+						prometheus, ok := apiV.(map[string]interface{})
+						if ok && len(prometheus) != 0 {
+							prometheusConfiguration = apiV.(map[string]interface{})
+						}
 					}
 				case "souin":
 					souinConfiguration = make(map[string]interface{})
-					if apiV != nil && len(apiV.(string)) != 0 {
-						souinConfiguration = apiV.(map[string]interface{})
-					}
-				case "security":
-					securityConfiguration = make(map[string]interface{})
-					if apiV != nil && len(apiV.(string)) != 0 {
-						securityConfiguration = apiV.(map[string]interface{})
+					if apiV != nil {
+						souin, ok := apiV.(map[string]interface{})
+						if ok && len(souin) != 0 {
+							souinConfiguration = apiV.(map[string]interface{})
+						}
 					}
 				}
 			}
@@ -70,28 +71,12 @@ func parseConfiguration(c map[string]interface{}) Configuration {
 				if prometheusConfiguration["basepath"] != nil {
 					a.Prometheus.BasePath = prometheusConfiguration["basepath"].(string)
 				}
-				if prometheusConfiguration["security"] != nil {
-					a.Prometheus.Security = prometheusConfiguration["security"].(bool)
-				}
 			}
 			if souinConfiguration != nil {
 				a.Souin = configurationtypes.APIEndpoint{}
 				a.Souin.Enable = true
 				if souinConfiguration["basepath"] != nil {
 					a.Souin.BasePath = souinConfiguration["basepath"].(string)
-				}
-				if souinConfiguration["security"] != nil {
-					a.Souin.Security = souinConfiguration["security"].(bool)
-				}
-			}
-			if securityConfiguration != nil {
-				a.Security = configurationtypes.SecurityAPI{}
-				a.Security.Enable = true
-				if securityConfiguration["basepath"] != nil {
-					a.Security.BasePath = securityConfiguration["basepath"].(string)
-				}
-				if securityConfiguration["users"] != nil {
-					a.Security.Users = securityConfiguration["users"].([]configurationtypes.User)
 				}
 			}
 			configuration.API = a
@@ -111,6 +96,36 @@ func parseConfiguration(c map[string]interface{}) Configuration {
 			defaultCache := v.(map[string]interface{})
 			for defaultCacheK, defaultCacheV := range defaultCache {
 				switch defaultCacheK {
+				case "cache_name":
+					dc.CacheName = defaultCacheV.(string)
+				case "cdn":
+					cdn := configurationtypes.CDN{
+						Dynamic: true,
+					}
+					cdnConfiguration := defaultCacheV.(map[string]interface{})
+					for cdnK, cdnV := range cdnConfiguration {
+						switch cdnK {
+						case "api_key":
+							cdn.APIKey = cdnV.(string)
+						case "dynamic":
+							cdn.Dynamic = cdnV.(bool)
+						case "email":
+							cdn.Email = cdnV.(string)
+						case "hostname":
+							cdn.Hostname = cdnV.(string)
+						case "network":
+							cdn.Network = cdnV.(string)
+						case "provider":
+							cdn.Provider = cdnV.(string)
+						case "service_id":
+							cdn.ServiceID = cdnV.(string)
+						case "strategy":
+							cdn.Strategy = cdnV.(string)
+						case "zone_id":
+							cdn.ZoneID = cdnV.(string)
+						}
+					}
+					dc.CDN = cdn
 				case "headers":
 					dc.Headers = parseStringSlice(defaultCacheV)
 				case "regex":
@@ -155,10 +170,8 @@ func parseConfiguration(c map[string]interface{}) Configuration {
 				}
 			}
 			configuration.DefaultCache = &dc
-			break
 		case "log_level":
 			configuration.LogLevel = v.(string)
-			break
 		case "urls":
 			u := make(map[string]configurationtypes.URL)
 			urls := v.(map[string]interface{})

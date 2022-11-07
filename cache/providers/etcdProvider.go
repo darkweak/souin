@@ -3,6 +3,7 @@ package providers
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"regexp"
 	"time"
@@ -11,6 +12,7 @@ import (
 	t "github.com/darkweak/souin/configurationtypes"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap"
+	"google.golang.org/grpc/connectivity"
 )
 
 // Etcd provider type
@@ -118,24 +120,29 @@ func (provider *Etcd) Prefix(key string, req *http.Request) []byte {
 }
 
 // Set method will store the response in Etcd provider
-func (provider *Etcd) Set(key string, value []byte, url t.URL, duration time.Duration) {
+func (provider *Etcd) Set(key string, value []byte, url t.URL, duration time.Duration) error {
 	if provider.reconnecting {
 		provider.logger.Sugar().Error("Impossible to set the etcd value while reconnecting.")
-		return
+		return fmt.Errorf("reconnecting error")
+	}
+	if provider.Client.ActiveConnection().GetState() != connectivity.Ready && provider.Client.ActiveConnection().GetState() != connectivity.Idle {
+		return fmt.Errorf("the connection is not ready: %v", provider.Client.ActiveConnection().GetState())
 	}
 	if duration == 0 {
 		duration = url.TTL.Duration
 	}
 
-	rs, _ := provider.Client.Grant(context.TODO(), int64(duration.Seconds()))
-	_, err := provider.Client.Put(provider.ctx, key, string(value), clientv3.WithLease(rs.ID))
+	rs, err := provider.Client.Grant(context.TODO(), int64(duration.Seconds()))
+	if err == nil {
+		_, err = provider.Client.Put(provider.ctx, key, string(value), clientv3.WithLease(rs.ID))
+	}
 
 	if err != nil {
 		if !provider.reconnecting {
 			go provider.Reconnect()
-			return
 		}
 		provider.logger.Sugar().Errorf("Impossible to set value into Etcd, %v", err)
+		return err
 	}
 
 	_, err = provider.Client.Put(provider.ctx, stalePrefix+key, string(value), clientv3.WithLease(rs.ID))
@@ -143,10 +150,11 @@ func (provider *Etcd) Set(key string, value []byte, url t.URL, duration time.Dur
 	if err != nil {
 		if !provider.reconnecting {
 			go provider.Reconnect()
-			return
 		}
 		provider.logger.Sugar().Errorf("Impossible to set value into Etcd, %v", err)
 	}
+
+	return nil
 }
 
 // Delete method will delete the response in Etcd provider if exists corresponding to key param

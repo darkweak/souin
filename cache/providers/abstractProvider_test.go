@@ -23,7 +23,7 @@ func verifyNewValueAfterSet(client types.AbstractProviderInterface, key string, 
 }
 
 func setValueThenVerify(client types.AbstractProviderInterface, key string, value []byte, matchedURL configurationtypes.URL, ttl time.Duration, t *testing.T) {
-	client.Set(key, value, matchedURL, ttl)
+	_ = client.Set(key, value, matchedURL, ttl)
 	time.Sleep(1 * time.Second)
 	verifyNewValueAfterSet(client, key, value, t)
 }

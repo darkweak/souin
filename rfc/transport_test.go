@@ -86,6 +86,8 @@ func TestVaryTransport_SetCache(t *testing.T) {
 	key := req.Context().Value(context.Key).(string)
 	prs := providers.InitializeProvider(config)
 	tr := NewTransport(prs, ykeys.InitializeYKeys(config.Ykeys), surrogate.InitializeSurrogate(config))
-	tr.SetCache(key, res, "public")
+	if !tr.SetCache(key, res, "public") {
+		t.Error("The cache must be set.")
+	}
 	time.Sleep(1 * time.Second)
 }
