@@ -43,6 +43,12 @@ func EtcdConnectionFactory(c t.AbstractConfigurationInterface) (types.AbstractRe
 		return nil, err
 	}
 
+	for {
+		if cli.ActiveConnection().GetState() == connectivity.Ready {
+			break
+		}
+	}
+
 	return &Etcd{
 		Client:        cli,
 		ctx:           context.Background(),
@@ -154,7 +160,7 @@ func (provider *Etcd) Set(key string, value []byte, url t.URL, duration time.Dur
 		provider.logger.Sugar().Errorf("Impossible to set value into Etcd, %v", err)
 	}
 
-	return nil
+	return err
 }
 
 // Delete method will delete the response in Etcd provider if exists corresponding to key param
