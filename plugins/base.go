@@ -225,9 +225,6 @@ func DefaultSouinPluginCallback(
 			_, _ = cw.Rw.Write(serverTimeoutMessage)
 			return ctx.DeadlineExceeded
 		case ctx.Canceled:
-			cw := res.(*CustomWriter)
-			rfc.MissCache(cw.Header().Set, req)
-			_, _ = cw.Rw.Write(nil)
 			return ctx.Canceled
 		default:
 			return nil
