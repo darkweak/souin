@@ -225,7 +225,7 @@ func DefaultSouinPluginCallback(
 			_, _ = cw.Rw.Write(serverTimeoutMessage)
 			return ctx.DeadlineExceeded
 		case ctx.Canceled:
-			return ctx.Canceled
+			return nil
 		default:
 			return nil
 		}
