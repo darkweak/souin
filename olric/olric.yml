@@ -1,31 +1,24 @@
 olricd:
   bindAddr: 0.0.0.0
   bindPort: 3320
-  serializer: msgpack
   keepAlivePeriod: 300s
   bootstrapTimeout: 5s
   partitionCount: 271
-  replicaCount: 2
+  replicaCount: 1
   writeQuorum: 1
   readQuorum: 1
   readRepair: false
-  replicationMode: 0 # sync mode. for async, set 1
+  replicationMode: 0
   memberCountQuorum: 1
   routingTablePushInterval: 1m
-
-storageEngines:
-  config:
-    kvstore:
-      tableSize: 4096
+  enableClusterEventsChannel: true
 
 client:
-  dialTimeout: -1s
+  dialTimeout: 5s
   readTimeout: 3s
   writeTimeout: 3s
-  keepAlive: 15s
-  minConn: 1
-  maxConn: 100
-  poolTimeout: 3s
+  idleTimeout: 5m
+  idleCheckFrequency: 1m
 
 logging:
   verbosity: 6
@@ -33,8 +26,8 @@ logging:
   output: stderr
 
 memberlist:
-  environment: local
-  bindAddr: "0.0.0.0"
+  environment: lan
+  bindAddr: 0.0.0.0
   bindPort: 3322
   enableCompression: false
   joinRetryInterval: 1ms
@@ -44,4 +37,4 @@ dmaps:
   engine:
     name: kvstore
     config:
-      tableSize: 4096
+      tableSize: 524288

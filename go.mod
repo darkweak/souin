@@ -3,7 +3,7 @@ module github.com/darkweak/souin
 go 1.16
 
 require (
-	github.com/buraksezer/olric v0.4.7
+	github.com/buraksezer/olric v0.5.0
 	github.com/darkweak/go-esi v0.0.4
 	github.com/dgraph-io/badger/v3 v3.2103.2
 	github.com/dgraph-io/ristretto v0.1.0
@@ -23,6 +23,21 @@ require (
 )
 
 require (
-	golang.org/x/sys v0.0.0-20220622161953-175b2fd9d664 // indirect
+	github.com/armon/go-metrics v0.4.1 // indirect
+	github.com/bits-and-blooms/bitset v1.4.0 // indirect
+	github.com/buraksezer/connpool v0.6.0 // indirect
+	github.com/cespare/xxhash/v2 v2.2.0 // indirect
+	github.com/chzyer/test v1.0.0 // indirect
+	github.com/google/btree v1.1.2 // indirect
+	github.com/hashicorp/errwrap v1.1.0 // indirect
+	github.com/hashicorp/go-immutable-radix v1.3.1 // indirect
+	github.com/hashicorp/go-msgpack v0.5.5 // indirect
+	github.com/miekg/dns v1.1.50 // indirect
+	github.com/tidwall/btree v1.5.2 // indirect
+	github.com/vmihailenco/msgpack v4.0.4+incompatible // indirect
+	golang.org/x/sys v0.3.0 // indirect
+	golang.org/x/tools v0.3.0 // indirect
+	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
+	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/grpc v1.38.0
 )

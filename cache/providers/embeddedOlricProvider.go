@@ -8,7 +8,6 @@ import (
 
 	"github.com/buraksezer/olric"
 	"github.com/buraksezer/olric/config"
-	"github.com/buraksezer/olric/query"
 	t "github.com/darkweak/souin/configurationtypes"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -17,7 +16,7 @@ import (
 
 // EmbeddedOlric provider type
 type EmbeddedOlric struct {
-	dm     *olric.DMap
+	dm     olric.DMap
 	db     *olric.Olric
 	stale  time.Duration
 	logger *zap.Logger
@@ -93,7 +92,7 @@ func EmbeddedOlricConnectionFactory(configuration t.AbstractConfigurationInterfa
 	case err = <-ch:
 	case <-started.Done():
 	}
-	dm, e := db.NewDMap("souin-map")
+	dm, e := db.NewEmbeddedClient().NewDMap("souin-map")
 
 	configuration.GetLogger().Sugar().Info("Embedded Olric is ready for this node.")
 
@@ -108,70 +107,50 @@ func EmbeddedOlricConnectionFactory(configuration t.AbstractConfigurationInterfa
 
 // ListKeys method returns the list of existing keys
 func (provider *EmbeddedOlric) ListKeys() []string {
-	c, err := provider.dm.Query(query.M{
-		"$onKey": query.M{
-			"$regexMatch": "",
-			"$options": query.M{
-				"$onValue": query.M{
-					"$ignore": true,
-				},
-			},
-		},
-	})
-	if c != nil {
-		defer c.Close()
-	}
+
+	records, err := provider.dm.Scan(provider.ct)
 	if err != nil {
 		provider.logger.Sugar().Errorf("An error occurred while trying to list keys in Olric: %s\n", err)
 		return []string{}
 	}
 
 	keys := []string{}
-	_ = c.Range(func(key string, _ interface{}) bool {
-		keys = append(keys, key)
-		return true
-	})
+	for records.Next() {
+		keys = append(keys, records.Key())
+	}
+	records.Close()
 
 	return keys
 }
 
 // Prefix method returns the populated response if exists, empty response then
 func (provider *EmbeddedOlric) Prefix(key string, req *http.Request) []byte {
-	c, err := provider.dm.Query(query.M{
-		"$onKey": query.M{
-			"$regexMatch": "^" + key + "({|$)",
-		},
-	})
-	if c != nil {
-		defer c.Close()
-	}
+	records, err := provider.dm.Scan(provider.ct, olric.Match("^"+key+"({|$)"))
 	if err != nil {
 		provider.logger.Sugar().Errorf("An error occurred while trying to retrieve data in Olric: %s\n", err)
 		return []byte{}
 	}
 
-	res := []byte{}
-	_ = c.Range(func(k string, v interface{}) bool {
-		if varyVoter(key, req, k) {
-			res = v.([]byte)
-			return false
+	for records.Next() {
+		if varyVoter(key, req, records.Key()) {
+			return provider.Get(records.Key())
 		}
+	}
+	records.Close()
 
-		return true
-	})
-
-	return res
+	return []byte{}
 }
 
 // Get method returns the populated response if exists, empty response then
 func (provider *EmbeddedOlric) Get(key string) []byte {
-	val2, err := provider.dm.Get(key)
+	res, err := provider.dm.Get(provider.ct, key)
 
 	if err != nil {
 		return []byte{}
 	}
 
-	return val2.([]byte)
+	val, _ := res.Byte()
+	return val
 }
 
 // Set method will store the response in EmbeddedOlric provider
@@ -180,12 +159,12 @@ func (provider *EmbeddedOlric) Set(key string, value []byte, url t.URL, duration
 		duration = url.TTL.Duration
 	}
 
-	if err := provider.dm.PutEx(key, value, duration); err != nil {
+	if err := provider.dm.Put(provider.ct, key, value, olric.EX(duration)); err != nil {
 		provider.logger.Sugar().Errorf("Impossible to set value into EmbeddedOlric, %v", err)
 		return err
 	}
 
-	if err := provider.dm.PutEx(stalePrefix+key, value, provider.stale+duration); err != nil {
+	if err := provider.dm.Put(provider.ct, stalePrefix+key, value, olric.EX(provider.stale+duration)); err != nil {
 		provider.logger.Sugar().Errorf("Impossible to set value into EmbeddedOlric, %v", err)
 	}
 
@@ -194,41 +173,27 @@ func (provider *EmbeddedOlric) Set(key string, value []byte, url t.URL, duration
 
 // Delete method will delete the response in EmbeddedOlric provider if exists corresponding to key param
 func (provider *EmbeddedOlric) Delete(key string) {
-	go func() {
-		err := provider.dm.Delete(key)
-		if err != nil {
-			provider.logger.Sugar().Errorf("Impossible to delete a value into EmbeddedOlric, %v", err)
-		}
-	}()
+	_, err := provider.dm.Delete(provider.ct, key)
+	if err != nil {
+		provider.logger.Sugar().Errorf("Impossible to delete value into Olric, %v", err)
+	}
 }
 
 // DeleteMany method will delete the responses in EmbeddedOlric provider if exists corresponding to the regex key param
 func (provider *EmbeddedOlric) DeleteMany(key string) {
-	go func() {
-		c, err := provider.dm.Query(query.M{
-			"$onKey": query.M{
-				"$regexMatch": key,
-				"$options": query.M{
-					"$onValue": query.M{
-						"$ignore": true,
-					},
-				},
-			},
-		})
+	records, err := provider.dm.Scan(provider.ct, olric.Match(key))
+	if err != nil {
+		provider.logger.Sugar().Errorf("Impossible to delete values into EmbeddedOlric, %v", err)
+		return
+	}
 
-		if c == nil || err != nil {
-			return
-		}
+	keys := []string{}
+	for records.Next() {
+		keys = append(keys, records.Key())
+	}
+	records.Close()
 
-		err = c.Range(func(key string, _ interface{}) bool {
-			provider.Delete(key)
-			return true
-		})
-
-		if err != nil {
-			provider.logger.Sugar().Errorf("Impossible to delete values into EmbeddedOlric, %v", err)
-		}
-	}()
+	_, _ = provider.dm.Delete(provider.ct, keys...)
 }
 
 // Init method will initialize EmbeddedOlric provider if needed
@@ -248,6 +213,6 @@ func (provider *EmbeddedOlric) Destruct() error {
 }
 
 // GetDM method returns the embbeded instance dm property
-func (provider *EmbeddedOlric) GetDM() *olric.DMap {
+func (provider *EmbeddedOlric) GetDM() olric.DMap {
 	return provider.dm
 }
