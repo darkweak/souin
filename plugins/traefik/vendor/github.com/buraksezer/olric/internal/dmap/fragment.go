@@ -1,4 +1,4 @@
-// Copyright 2018-2021 Burak Sezer
+// Copyright 2018-2022 Burak Sezer
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,23 +17,25 @@ package dmap
 import (
 	"context"
 	"errors"
+	"strings"
 	"sync"
+	"time"
 
+	"github.com/buraksezer/olric/events"
 	"github.com/buraksezer/olric/internal/cluster/partitions"
 	"github.com/buraksezer/olric/internal/discovery"
 	"github.com/buraksezer/olric/internal/protocol"
 	"github.com/buraksezer/olric/pkg/storage"
-	"github.com/vmihailenco/msgpack"
+	"github.com/vmihailenco/msgpack/v5"
 )
 
 type fragment struct {
 	sync.RWMutex
 
-	service   *Service
-	storage   storage.Engine
-	accessLog *accessLog
-	ctx       context.Context
-	cancel    context.CancelFunc
+	service *Service
+	storage storage.Engine
+	ctx     context.Context
+	cancel  context.CancelFunc
 }
 
 func (f *fragment) Stats() storage.Stats {
@@ -75,45 +77,80 @@ func (f *fragment) Length() int {
 	return f.storage.Stats().Length
 }
 
-func (f *fragment) Move(partID uint64, kind partitions.Kind, name string, owner discovery.Member) error {
+func (f *fragment) Move(part *partitions.Partition, name string, owners []discovery.Member) error {
 	f.Lock()
 	defer f.Unlock()
 
-	payload, err := f.storage.Export()
+	i := f.storage.TransferIterator()
+	if !i.Next() {
+		return nil
+	}
+
+	payload, index, err := i.Export()
 	if err != nil {
 		return err
 	}
 	fp := &fragmentPack{
-		PartID:    partID,
-		Kind:      kind,
-		Name:      name,
-		Payload:   payload,
-		AccessLog: f.accessLog.m,
+		PartID:  part.ID(),
+		Kind:    part.Kind(),
+		Name:    strings.TrimPrefix(name, "dmap."),
+		Payload: payload,
 	}
 	value, err := msgpack.Marshal(fp)
 	if err != nil {
 		return err
 	}
 
-	req := protocol.NewSystemMessage(protocol.OpMoveFragment)
-	req.SetValue(value)
-	_, err = f.service.requestTo(owner.String(), req)
-	return err
+	for _, owner := range owners {
+		if f.service.config.EnableClusterEventsChannel {
+			e := &events.FragmentMigrationEvent{
+				Kind:          events.KindFragmentMigrationEvent,
+				Source:        f.service.rt.This().String(),
+				Target:        owner.String(),
+				DataStructure: "dmap",
+				PartitionID:   part.ID(),
+				Identifier:    fp.Name,
+				Length:        len(value),
+				IsBackup:      part.Kind() == partitions.BACKUP,
+				Timestamp:     time.Now().UnixNano(),
+			}
+			f.service.wg.Add(1)
+			go f.service.publishEvent(e)
+		}
+
+		cmd := protocol.NewMoveFragment(value).Command(f.service.ctx)
+		rc := f.service.client.Get(owner.String())
+		err = rc.Process(f.service.ctx, cmd)
+		if err != nil {
+			return err
+		}
+		if err := cmd.Err(); err != nil {
+			return err
+		}
+	}
+
+	return i.Drop(index)
 }
 
 func (dm *DMap) newFragment() (*fragment, error) {
-	str, err := dm.engine.Fork(nil)
+	c := storage.NewConfig(dm.config.engine.Config)
+	engine, err := dm.engine.Fork(c)
+	if err != nil {
+		return nil, err
+	}
+
+	engine.SetLogger(dm.s.config.Logger)
+	err = engine.Start()
 	if err != nil {
 		return nil, err
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	return &fragment{
-		service:   dm.s,
-		accessLog: newAccessLog(),
-		storage:   str,
-		ctx:       ctx,
-		cancel:    cancel,
+		service: dm.s,
+		storage: engine,
+		ctx:     ctx,
+		cancel:  cancel,
 	}, nil
 }
 
@@ -121,11 +158,10 @@ func (dm *DMap) loadOrCreateFragment(part *partitions.Partition) (*fragment, err
 	part.Lock()
 	defer part.Unlock()
 
-	// Creating a new fragment is our critical section here.
-	// It should be protected by a lock.
-
-	fg, ok := part.Map().Load(dm.name)
+	// Critical section here. It should be protected by a lock.
+	fg, ok := part.Map().Load(dm.fragmentName)
 	if ok {
+		// We already have the fragment.
 		return fg.(*fragment), nil
 	}
 
@@ -134,12 +170,12 @@ func (dm *DMap) loadOrCreateFragment(part *partitions.Partition) (*fragment, err
 		return nil, err
 	}
 
-	part.Map().Store(dm.name, f)
+	part.Map().Store(dm.fragmentName, f)
 	return f, nil
 }
 
 func (dm *DMap) loadFragment(part *partitions.Partition) (*fragment, error) {
-	f, ok := part.Map().Load(dm.name)
+	f, ok := part.Map().Load(dm.fragmentName)
 	if !ok {
 		return nil, errFragmentNotFound
 	}

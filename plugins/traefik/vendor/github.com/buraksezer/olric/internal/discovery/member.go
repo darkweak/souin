@@ -1,4 +1,4 @@
-// Copyright 2018-2021 Burak Sezer
+// Copyright 2018-2022 Burak Sezer
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,7 +19,8 @@ import (
 	"time"
 
 	"github.com/buraksezer/olric/config"
-	"github.com/vmihailenco/msgpack"
+	"github.com/cespare/xxhash/v2"
+	"github.com/vmihailenco/msgpack/v5"
 )
 
 // Member represents a node in the cluster.
@@ -56,18 +57,21 @@ func NewMemberFromMetadata(metadata []byte) (Member, error) {
 	return *res, err
 }
 
-func NewMember(c *config.Config) Member {
+func MemberID(name string, birthdate int64) uint64 {
 	// Calculate member's identity. It's useful to compare hosts.
-	birthdate := time.Now().UnixNano()
-
-	buf := make([]byte, 8+len(c.MemberlistConfig.Name))
+	buf := make([]byte, 8+len(name))
 	binary.BigEndian.PutUint64(buf, uint64(birthdate))
-	buf = append(buf, []byte(c.MemberlistConfig.Name)...)
-	nameHash := c.Hasher.Sum64([]byte(c.MemberlistConfig.Name))
+	buf = append(buf, []byte(name)...)
+	return xxhash.Sum64(buf)
+}
+
+func NewMember(c *config.Config) Member {
+	birthdate := time.Now().UnixNano()
+	nameHash := xxhash.Sum64([]byte(c.MemberlistConfig.Name))
 	return Member{
 		Name:      c.MemberlistConfig.Name,
 		NameHash:  nameHash,
-		ID:        c.Hasher.Sum64(buf),
+		ID:        MemberID(c.MemberlistConfig.Name, birthdate),
 		Birthdate: birthdate,
 	}
 }

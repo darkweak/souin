@@ -1,4 +1,4 @@
-// Copyright 2018-2021 Burak Sezer
+// Copyright 2018-2022 Burak Sezer
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,12 +14,14 @@
 
 package neterrors
 
-import "github.com/buraksezer/olric/internal/protocol"
+import (
+	"errors"
+)
 
 var (
-	ErrInvalidArgument  = New(protocol.StatusErrInvalidArgument, "invalid argument")
-	ErrUnknownOperation = New(protocol.StatusErrUnknownOperation, "unknown operation")
-	ErrInternalFailure  = New(protocol.StatusErrInternalFailure, "internal failure")
-	ErrNotImplemented   = New(protocol.StatusErrNotImplemented, "not implemented")
-	ErrOperationTimeout = New(protocol.StatusErrOperationTimeout, "operation timeout")
+	ErrInvalidArgument  = errors.New("invalid argument")
+	ErrUnknownOperation = errors.New("unknown operation")
+	ErrInternalFailure  = errors.New("internal failure")
+	ErrNotImplemented   = errors.New("not implemented")
+	ErrOperationTimeout = errors.New("operation timeout")
 )

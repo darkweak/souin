@@ -311,15 +311,7 @@ func EmbeddedOlricPlainConfigurationWithoutAdditionalYAML() string {
         replicationMode: 1 # sync mode. for async, set 1
         tableSize: 1048576 # 1MB in bytes
         memberCountQuorum: 1
-      
-      client:
-        dialTimeout: "-1s"
-        readTimeout: "30s"
-        writeTimeout: "30s"
-        keepAlive: "150s"
-        minConn: 1
-        maxConn: 100
-      
+
       logging:
         verbosity: 6
         level: "DEBUG"
@@ -361,14 +353,6 @@ olricd:
   replicationMode: 1 # sync mode. for async, set 1
   tableSize: 1048576 # 1MB in bytes
   memberCountQuorum: 1
-
-client:
-  dialTimeout: "-1s"
-  readTimeout: "3s"
-  writeTimeout: "3s"
-  keepAlive: "15s"
-  minConn: 1
-  maxConn: 100
 
 logging:
   verbosity: 6

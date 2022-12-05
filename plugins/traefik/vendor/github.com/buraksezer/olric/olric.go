@@ -1,4 +1,4 @@
-// Copyright 2018-2021 Burak Sezer
+// Copyright 2018-2022 Burak Sezer
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,8 +20,8 @@ service.
 With Olric, you can instantly create a fast, scalable, shared pool of RAM across
 a cluster of computers.
 
-Olric is designed to be a distributed cache. But it also provides distributed
-topics, data replication, failure detection and simple anti-entropy services.
+Olric is designed to be a distributed cache. But it also provides Publish/Subscribe,
+data replication, failure detection and simple anti-entropy services.
 So it can be used as an ordinary key/value data store to scale your cloud
 application.
 */
@@ -31,6 +31,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -43,45 +44,59 @@ import (
 	"github.com/buraksezer/olric/internal/cluster/partitions"
 	"github.com/buraksezer/olric/internal/cluster/routingtable"
 	"github.com/buraksezer/olric/internal/dmap"
-	"github.com/buraksezer/olric/internal/dtopic"
 	"github.com/buraksezer/olric/internal/environment"
 	"github.com/buraksezer/olric/internal/locker"
 	"github.com/buraksezer/olric/internal/protocol"
-	"github.com/buraksezer/olric/internal/streams"
-	"github.com/buraksezer/olric/internal/transport"
+	"github.com/buraksezer/olric/internal/pubsub"
+	"github.com/buraksezer/olric/internal/server"
 	"github.com/buraksezer/olric/pkg/flog"
-	"github.com/buraksezer/olric/pkg/neterrors"
-	"github.com/buraksezer/olric/serializer"
 	"github.com/hashicorp/logutils"
 	"github.com/pkg/errors"
+	"github.com/tidwall/redcon"
 	"golang.org/x/sync/errgroup"
 )
 
 // ReleaseVersion is the current stable version of Olric
-const ReleaseVersion string = "0.4.7"
+const ReleaseVersion string = "0.5.0"
 
 var (
 	// ErrOperationTimeout is returned when an operation times out.
 	ErrOperationTimeout = errors.New("operation timeout")
 
-	// ErrInternalServerError means that something unintentionally went
-	// wrong while processing the request.
-	ErrInternalServerError = errors.New("internal server error")
-
-	// ErrUnknownOperation means that an unidentified message has been
-	// received from a client.
-	ErrUnknownOperation = errors.New("unknown operation")
-
 	// ErrServerGone means that a cluster member is closed unexpectedly.
 	ErrServerGone = errors.New("server is gone")
 
-	// ErrInvalidArgument means that an invalid parameter is sent by the
-	// client or a cluster member.
-	ErrInvalidArgument = errors.New("invalid argument")
+	// ErrKeyNotFound means that returned when a key could not be found.
+	ErrKeyNotFound = errors.New("key not found")
 
-	// ErrNotImplemented means that the requested feature has not been implemented
-	// yet.
-	ErrNotImplemented = errors.New("not implemented")
+	// ErrKeyFound means that the requested key found in the cluster.
+	ErrKeyFound = errors.New("key found")
+
+	// ErrWriteQuorum means that write quorum cannot be reached to operate.
+	ErrWriteQuorum = errors.New("write quorum cannot be reached")
+
+	// ErrReadQuorum means that read quorum cannot be reached to operate.
+	ErrReadQuorum = errors.New("read quorum cannot be reached")
+
+	// ErrLockNotAcquired is returned when the requested lock could not be acquired
+	ErrLockNotAcquired = errors.New("lock not acquired")
+
+	// ErrNoSuchLock is returned when the requested lock does not exist
+	ErrNoSuchLock = errors.New("no such lock")
+
+	// ErrClusterQuorum means that the cluster could not reach a healthy numbers of members to operate.
+	ErrClusterQuorum = errors.New("cannot be reached cluster quorum to operate")
+
+	// ErrKeyTooLarge means that the given key is too large to process.
+	// Maximum length of a key is 256 bytes.
+	ErrKeyTooLarge = errors.New("key too large")
+
+	// ErrEntryTooLarge returned if the required space for an entry is bigger than table size.
+	ErrEntryTooLarge = errors.New("entry too large for the configured table size")
+
+	// ErrConnRefused returned if the target node refused a connection request.
+	// It is good to call RefreshMetadata to update the underlying data structures.
+	ErrConnRefused = errors.New("connection refused")
 )
 
 // Olric implements a distributed cache and in-memory key/value data store.
@@ -89,33 +104,25 @@ var (
 // service.
 type Olric struct {
 	// name is BindAddr:BindPort. It defines servers unique name in the cluster.
-	name       string
-	env        *environment.Environment
-	config     *config.Config
-	log        *flog.Logger
-	hashFunc   hasher.Hasher
-	serializer serializer.Serializer
+	name     string
+	env      *environment.Environment
+	config   *config.Config
+	log      *flog.Logger
+	hashFunc hasher.Hasher
 
 	// Logical units to store data
 	primary *partitions.Partitions
 	backup  *partitions.Partitions
 
-	// Matches opcodes to functions. It's somewhat like an HTTP request
-	// multiplexer
-	operations map[protocol.OpCode]func(w, r protocol.EncodeDecoder)
-
-	// Internal TCP server and its client for peer-to-peer communication.
-	client *transport.Client
-	server *transport.Server
+	// RESP server and clients.
+	server *server.Server
+	client *server.Client
 
 	rt       *routingtable.RoutingTable
 	balancer *balancer.Balancer
 
-	dtopic *dtopic.Service
+	pubsub *pubsub.Service
 	dmap   *dmap.Service
-
-	// Bidirectional stream sockets for Olric clients and nodes.
-	streams *streams.Streams
 
 	// Structures for flow control
 	ctx    context.Context
@@ -166,11 +173,11 @@ func initializeServices(db *Olric) error {
 	db.balancer = balancer.New(db.env)
 
 	// Add Services
-	dt, err := dtopic.NewService(db.env)
+	dt, err := pubsub.NewService(db.env)
 	if err != nil {
 		return err
 	}
-	db.dtopic = dt.(*dtopic.Service)
+	db.pubsub = dt.(*pubsub.Service)
 
 	dm, err := dmap.NewService(db.env)
 	if err != nil {
@@ -202,97 +209,62 @@ func New(c *config.Config) (*Olric, error) {
 	}
 	e.Set("logger", flogger)
 
-	// Start a concurrent TCP server
-	sc := &transport.ServerConfig{
-		BindAddr:        c.BindAddr,
-		BindPort:        c.BindPort,
-		KeepAlivePeriod: c.KeepAlivePeriod,
-		GracefulPeriod:  10 * time.Second,
-	}
-	client := transport.NewClient(c.Client)
-
+	client := server.NewClient(c.Client)
 	e.Set("client", client)
 	e.Set("primary", partitions.New(c.PartitionCount, partitions.PRIMARY))
 	e.Set("backup", partitions.New(c.PartitionCount, partitions.BACKUP))
 	e.Set("locker", locker.New())
-	e.Set("streams", streams.New(e))
-	srv := transport.NewServer(sc, flogger)
 	ctx, cancel := context.WithCancel(context.Background())
 	db := &Olric{
-		name:       c.MemberlistConfig.Name,
-		env:        e,
-		log:        flogger,
-		config:     c,
-		hashFunc:   c.Hasher,
-		serializer: c.Serializer,
-		client:     e.Get("client").(*transport.Client),
-		primary:    e.Get("primary").(*partitions.Partitions),
-		backup:     e.Get("backup").(*partitions.Partitions),
-		streams:    e.Get("streams").(*streams.Streams),
-		operations: make(map[protocol.OpCode]func(w, r protocol.EncodeDecoder)),
-		server:     srv,
-		started:    c.Started,
-		ctx:        ctx,
-		cancel:     cancel,
+		name:     c.MemberlistConfig.Name,
+		env:      e,
+		log:      flogger,
+		config:   c,
+		hashFunc: c.Hasher,
+		client:   client,
+		primary:  e.Get("primary").(*partitions.Partitions),
+		backup:   e.Get("backup").(*partitions.Partitions),
+		started:  c.Started,
+		ctx:      ctx,
+		cancel:   cancel,
 	}
+
+	// Create a Redcon server instance
+	rc := &server.Config{
+		BindAddr:        c.BindAddr,
+		BindPort:        c.BindPort,
+		KeepAlivePeriod: c.KeepAlivePeriod,
+	}
+	srv := server.New(rc, flogger)
+	srv.SetPreConditionFunc(db.preconditionFunc)
+
+	db.server = srv
+	e.Set("server", srv)
 
 	err = initializeServices(db)
 	if err != nil {
 		return nil, err
 	}
 
-	// Add callback functions to routing table.
-	db.rt.AddCallback(db.balancer.Balance)
-	db.registerOperations()
-	db.server.SetDispatcher(db.requestDispatcher)
+	db.registerCommandHandlers()
+
 	return db, nil
 }
 
-func (db *Olric) registerOperations() {
-	// System Messages
-	//
-	// Aliveness
-	db.operations[protocol.OpPing] = db.pingOperation
-
-	// Node Stats
-	db.operations[protocol.OpStats] = db.statsOperation
-
-	// Routing table
-	//
-	db.rt.RegisterOperations(db.operations)
-
-	// Operations on DTopic data structure
-	//
-	db.dtopic.RegisterOperations(db.operations)
-
-	// Operations on DMap data structure
-	//
-	db.dmap.RegisterOperations(db.operations)
-
-	// Operations on message streams
-	//
-	// Bidirectional communication channel for clients and cluster members.
-	db.streams.RegisterOperations(db.operations)
+func (db *Olric) preconditionFunc(conn redcon.Conn, _ redcon.Command) bool {
+	err := db.isOperable()
+	if err != nil {
+		protocol.WriteError(conn, err)
+		return false
+	}
+	return true
 }
 
-func (db *Olric) requestDispatcher(w, r protocol.EncodeDecoder) {
-	// Check bootstrapping status
-	// Exclude protocol.OpUpdateRouting. The node is bootstrapped by this
-	// operation.
-	if r.OpCode() != protocol.OpUpdateRouting {
-		if err := db.isOperable(); err != nil {
-			neterrors.ErrorResponse(w, err)
-			return
-		}
-	}
-
-	// Run the incoming command.
-	f, ok := db.operations[r.OpCode()]
-	if !ok {
-		neterrors.ErrorResponse(w, ErrUnknownOperation)
-		return
-	}
-	f(w, r)
+func (db *Olric) registerCommandHandlers() {
+	db.server.ServeMux().HandleFunc(protocol.Generic.Ping, db.pingCommandHandler)
+	db.server.ServeMux().HandleFunc(protocol.Cluster.RoutingTable, db.clusterRoutingTableCommandHandler)
+	db.server.ServeMux().HandleFunc(protocol.Generic.Stats, db.statsCommandHandler)
+	db.server.ServeMux().HandleFunc(protocol.Cluster.Members, db.clusterMembersCommandHandler)
 }
 
 // callStartedCallback checks passed checkpoint count and calls the callback
@@ -341,39 +313,55 @@ func (db *Olric) isOperable() error {
 	return db.rt.CheckBootstrap()
 }
 
-// Start starts background servers and joins the cluster. You still need to call
-// Shutdown method if Start function returns an early error.
+// Start starts background servers and joins the cluster. You still must call Shutdown
+// method if Start function returns an early error.
 func (db *Olric) Start() error {
-	errGr, ctx := errgroup.WithContext(context.Background())
+	db.log.V(1).Printf("[INFO] Olric %s on %s/%s %s", ReleaseVersion, runtime.GOOS, runtime.GOARCH, runtime.Version())
 
-	// Start the TCP server
+	// This error group is responsible to run the TCP server at background and report errors.
+	errGr, ctx := errgroup.WithContext(context.Background())
 	errGr.Go(func() error {
 		return db.server.ListenAndServe()
 	})
 
 	select {
 	case <-db.server.StartedCtx.Done():
-		// TCP server is started
-		checkpoint.Pass()
+		// TCP server has been started
 	case <-ctx.Done():
-		if err := db.Shutdown(context.Background()); err != nil {
-			db.log.V(2).Printf("[ERROR] Failed to Shutdown: %v", err)
-		}
+		// TCP server could not be started due to an error. There is no need to run
+		// Olric.Shutdown here because we could not start anything.
 		return errGr.Wait()
+	}
+
+	// Balancer works periodically to balance partition data across the cluster.
+	if err := db.balancer.Start(); err != nil {
+		if err != nil {
+			db.log.V(2).Printf("[ERROR] Failed to run the balancer subsystem: %v", err)
+		}
+		return err
 	}
 
 	// Start routing table service and member discovery subsystem.
 	if err := db.rt.Start(); err != nil {
+		if err != nil {
+			db.log.V(2).Printf("[ERROR] Failed to run the routing table subsystem: %v", err)
+		}
 		return err
 	}
 
-	// Start distributed topic service
-	if err := db.dtopic.Start(); err != nil {
+	// Start publish-subscribe service
+	if err := db.pubsub.Start(); err != nil {
+		if err != nil {
+			db.log.V(2).Printf("[ERROR] Failed to run the Publish-Subscribe service: %v", err)
+		}
 		return err
 	}
 
 	// Start distributed map service
 	if err := db.dmap.Start(); err != nil {
+		if err != nil {
+			db.log.V(2).Printf("[ERROR] Failed to run the Distributed Map service: %v", err)
+		}
 		return err
 	}
 
@@ -398,17 +386,26 @@ func (db *Olric) Start() error {
 	db.log.V(2).Printf("[INFO] Olric bindAddr: %s, bindPort: %d",
 		db.config.BindAddr, db.config.BindPort)
 	db.log.V(2).Printf("[INFO] Replication count is %d", db.config.ReplicaCount)
+
+	// Wait for the TCP server.
 	return errGr.Wait()
 }
 
 // Shutdown stops background servers and leaves the cluster.
 func (db *Olric) Shutdown(ctx context.Context) error {
+	select {
+	case <-db.ctx.Done():
+		// Shutdown only once.
+		return nil
+	default:
+	}
+
 	db.cancel()
 
 	var latestError error
 
-	if err := db.dtopic.Shutdown(ctx); err != nil {
-		db.log.V(2).Printf("[ERROR] Failed to shutdown DTopic service: %v", err)
+	if err := db.pubsub.Shutdown(ctx); err != nil {
+		db.log.V(2).Printf("[ERROR] Failed to shutdown PubSub service: %v", err)
 		latestError = err
 	}
 
@@ -417,28 +414,64 @@ func (db *Olric) Shutdown(ctx context.Context) error {
 		latestError = err
 	}
 
-	if err := db.streams.Shutdown(ctx); err != nil {
-		db.log.V(2).Printf("[ERROR] Failed to shutdown stream service: %v", err)
+	if err := db.balancer.Shutdown(ctx); err != nil {
+		db.log.V(2).Printf("[ERROR] Failed to shutdown balancer service: %v", err)
 		latestError = err
 	}
-
-	db.balancer.Shutdown()
 
 	if err := db.rt.Shutdown(ctx); err != nil {
 		db.log.V(2).Printf("[ERROR] Failed to shutdown routing table service: %v", err)
 		latestError = err
 	}
 
+	// Shutdown Redcon server
 	if err := db.server.Shutdown(ctx); err != nil {
-		db.log.V(2).Printf("[ERROR] Failed to shutdown TCP server: %v", err)
+		db.log.V(2).Printf("[ERROR] Failed to shutdown RESP server: %v", err)
 		latestError = err
 	}
 
-	// TODO: It's a good idea to add graceful period here
-	db.wg.Wait()
+	done := make(chan struct{})
+	go func() {
+		defer func() {
+			close(done)
+		}()
+		db.wg.Wait()
+	}()
+
+	select {
+	case <-ctx.Done():
+	case <-done:
+	}
 
 	// db.name will be shown as empty string, if the program is killed before
 	// bootstrapping.
 	db.log.V(2).Printf("[INFO] %s is gone", db.name)
 	return latestError
+}
+
+func convertDMapError(err error) error {
+	switch {
+	case errors.Is(err, dmap.ErrKeyFound):
+		return ErrKeyFound
+	case errors.Is(err, dmap.ErrKeyNotFound):
+		return ErrKeyNotFound
+	case errors.Is(err, dmap.ErrDMapNotFound):
+		return ErrKeyNotFound
+	case errors.Is(err, dmap.ErrLockNotAcquired):
+		return ErrLockNotAcquired
+	case errors.Is(err, dmap.ErrNoSuchLock):
+		return ErrNoSuchLock
+	case errors.Is(err, dmap.ErrReadQuorum):
+		return ErrReadQuorum
+	case errors.Is(err, dmap.ErrWriteQuorum):
+		return ErrWriteQuorum
+	case errors.Is(err, dmap.ErrServerGone):
+		return ErrServerGone
+	case errors.Is(err, dmap.ErrKeyTooLarge):
+		return ErrKeyTooLarge
+	case errors.Is(err, dmap.ErrEntryTooLarge):
+		return ErrEntryTooLarge
+	default:
+		return convertClusterError(err)
+	}
 }

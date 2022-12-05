@@ -1,4 +1,4 @@
-// Copyright 2018-2021 Burak Sezer
+// Copyright 2018-2022 Burak Sezer
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -37,6 +37,11 @@ func (c *Int64Counter) Read() int64 {
 	return atomic.LoadInt64(&c.counter)
 }
 
+// Reset sets zero to the underlying counter.
+func (c *Int64Counter) Reset() {
+	atomic.StoreInt64(&c.counter, 0)
+}
+
 // Int64Gauge is a metric that represents a single numerical value that can
 // arbitrarily go up and down.
 type Int64Gauge struct {
@@ -61,4 +66,9 @@ func (c *Int64Gauge) Decrease(delta int64) {
 // Read returns the current value of gauge.
 func (c *Int64Gauge) Read() int64 {
 	return atomic.LoadInt64(&c.gauge)
+}
+
+// Reset sets zero to the underlying gauge.
+func (c *Int64Gauge) Reset() {
+	atomic.StoreInt64(&c.gauge, 0)
 }

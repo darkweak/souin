@@ -1,4 +1,4 @@
-// Copyright 2018-2021 Burak Sezer
+// Copyright 2018-2022 Burak Sezer
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -51,11 +51,12 @@ func (c *Config) validateMemberlistConfig() error {
 // DefaultLANConfig returns a sane set of configurations for Memberlist. It uses the hostname
 // as the node name, and otherwise sets very conservative values that are sane for most LAN environments.
 // The default configuration errs on the side of caution, choosing values that are optimized for higher convergence
-// at the cost of higher bandwidth usage. Regardless, these values are a good starting point when getting started with memberlist.
+// at the cost of higher bandwidth usage. Regardless, these values are a good starting point when getting started with
+// memberlist.
 //
 // wan:
-// DefaultWANConfig works like DefaultConfig, however it returns a configuration that is optimized for most WAN environments.
-// The default configuration is still very conservative and errs on the side of caution.
+// DefaultWANConfig works like DefaultConfig, however it returns a configuration that is optimized for most WAN
+// environments. The default configuration is still very conservative and errs on the side of caution.
 func NewMemberlistConfig(env string) (*memberlist.Config, error) {
 	e := strings.ToLower(env)
 	switch e {

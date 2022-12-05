@@ -1,6 +1,6 @@
 consistent
 ==========
-[![GoDoc](http://img.shields.io/badge/godoc-reference-blue.svg?style=flat)](https://godoc.org/github.com/buraksezer/consistent) [![Build Status](https://travis-ci.org/buraksezer/consistent.svg?branch=master)](https://travis-ci.org/buraksezer/consistent) [![Coverage](http://gocover.io/_badge/github.com/buraksezer/consistent)](http://gocover.io/github.com/buraksezer/consistent) [![Go Report Card](https://goreportcard.com/badge/github.com/buraksezer/consistent)](https://goreportcard.com/report/github.com/buraksezer/consistent) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Mentioned in Awesome Go](https://awesome.re/mentioned-badge.svg)](https://github.com/avelino/awesome-go)  
+[![Go Reference](https://pkg.go.dev/badge/github.com/buraksezer/consistent.svg)](https://pkg.go.dev/github.com/buraksezer/consistent) ![Build Status](https://github.com/buraksezer/consistent/actions/workflows/tests.yml/badge.svg?branch=master) ![Linter](https://github.com/buraksezer/consistent/actions/workflows/lint.yml/badge.svg?branch=master) [![Coverage](http://gocover.io/_badge/github.com/buraksezer/consistent)](http://gocover.io/github.com/buraksezer/consistent) [![Go Report Card](https://goreportcard.com/badge/github.com/buraksezer/consistent)](https://goreportcard.com/report/github.com/buraksezer/consistent) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Mentioned in Awesome Go](https://awesome.re/mentioned-badge.svg)](https://github.com/avelino/awesome-go)  
 
 
 This library provides a consistent hashing function which simultaneously achieves both uniformity and consistency. 
@@ -15,6 +15,7 @@ Table of Content
 ----------------
 
 - [Overview](#overview)
+- [Notable Users](#notable-users)
 - [Install](#install)
 - [Configuration](#configuration)
 - [Usage](#usage)
@@ -44,6 +45,24 @@ When you want to locate a key by calling `LocateKey`:
 No memory is allocated by `consistent` except hashing when you want to locate a key.
 
 Note that the number of partitions cannot be changed after creation. 
+
+Notable Users
+-------------
+
+[buraksezer/consistent](https://github.com/buraksezer/consistent) is used at production by the following projects:
+
+* [buraksezer/olric](https://github.com/buraksezer/olric): Embeddable, distributed data structures in Go.
+* [open-telemetry/opentelemetry-operator](https://github.com/open-telemetry/opentelemetry-operator): Kubernetes Operator for OpenTelemetry Collector.
+* [megaease/easegress](https://github.com/megaease/easegress): A Cloud Native traffic orchestration system.
+* [chrislusf/seaweedfs](https://github.com/chrislusf/seaweedfs): SeaweedFS is a distributed storage system for blobs, objects, files, and data warehouse, to store and serve billions of files fast!.
+* [erda-project/erda](https://github.com/erda-project/erda): An enterprise-grade Cloud-Native application platform for Kubernetes.
+* [celo-org/celo-blockchain](https://github.com/celo-org/celo-blockchain): Global payments infrastructure built for mobile.
+* [koderover/zadig](https://github.com/koderover/zadig): Zadig is a cloud native, distributed, developer-oriented continuous delivery product.
+* [mason-leap-lab/infinicache](https://github.com/mason-leap-lab/infinicache): InfiniCache: A cost-effective memory cache that is built atop ephemeral serverless functions.
+* [opencord/voltha-lib-go](https://github.com/opencord/voltha-lib-go): Voltha common library code.
+* [kubeedge/edgemesh](https://github.com/kubeedge/edgemesh): Simplified network and services for edge applications.
+* [authorizer-tech/access-controller](https://github.com/authorizer-tech/access-controller) An implementation of a distributed access-control server that is based on Google Zanzibar - "Google's Consistent, Global Authorization System.
+* [Conflux-Chain/confura](https://github.com/Conflux-Chain/confura) Implementation of an Ethereum Infura equivalent public RPC service on Conflux Network.
 
 Install
 -------

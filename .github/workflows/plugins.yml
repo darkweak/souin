@@ -14,12 +14,12 @@ jobs:
           sudo echo "127.0.0.1 domain.com" | sudo tee -a /etc/hosts
       -
         name: Install Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v2
         with:
-          go-version: 1.18
+          go-version: 1.19
       -
         name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
       -
         name: Install xcaddy
         run: go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest
@@ -50,12 +50,12 @@ jobs:
           sudo echo "127.0.0.1 domain.com" | sudo tee -a /etc/hosts
       -
         name: Install Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v2
         with:
-          go-version: 1.18
+          go-version: 1.19
       -
         name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
       -
         name: Run Beego tests
         run: cd plugins/beego && go test -v .
@@ -97,12 +97,12 @@ jobs:
           sudo echo "127.0.0.1 domain.com" | sudo tee -a /etc/hosts
       -
         name: Install Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v2
         with:
-          go-version: 1.18
+          go-version: 1.19
       -
         name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
       -
         name: Run Chi tests
         run: cd plugins/chi && go test -v .
@@ -144,12 +144,12 @@ jobs:
           sudo echo "127.0.0.1 domain.com" | sudo tee -a /etc/hosts
       -
         name: Install Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v2
         with:
-          go-version: 1.18
+          go-version: 1.19
       -
         name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
       -
         name: Run Dotweb tests
         run: cd plugins/dotweb && go test -v .
@@ -191,12 +191,12 @@ jobs:
           sudo echo "127.0.0.1 domain.com" | sudo tee -a /etc/hosts
       -
         name: Install Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v2
         with:
-          go-version: 1.18
+          go-version: 1.19
       -
         name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
       -
         name: Run Echo tests
         run: cd plugins/echo && go test -v .
@@ -238,12 +238,12 @@ jobs:
           sudo echo "127.0.0.1 domain.com" | sudo tee -a /etc/hosts
       -
         name: Install Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v2
         with:
-          go-version: 1.18
+          go-version: 1.19
       -
         name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
       -
         name: Run Fiber tests
         run: cd plugins/fiber && go test -v .
@@ -285,12 +285,12 @@ jobs:
           sudo echo "127.0.0.1 domain.com" | sudo tee -a /etc/hosts
       -
         name: Install Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v2
         with:
-          go-version: 1.18
+          go-version: 1.19
       -
         name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
       -
         name: Run Gin tests
         run: cd plugins/gin && go test -v .
@@ -332,12 +332,12 @@ jobs:
           sudo echo "127.0.0.1 domain.com" | sudo tee -a /etc/hosts
       -
         name: Install Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v2
         with:
-          go-version: 1.18
+          go-version: 1.19
       -
         name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
       -
         name: Run Go-zero tests
         run: cd plugins/go-zero && go test -v .
@@ -379,12 +379,12 @@ jobs:
           sudo echo "127.0.0.1 domain.com" | sudo tee -a /etc/hosts
       -
         name: Install Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v2
         with:
-          go-version: 1.18
+          go-version: 1.19
       -
         name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
       -
         name: Run Goyave tests
         run: cd plugins/goyave && go test -v .
@@ -426,12 +426,12 @@ jobs:
           sudo echo "127.0.0.1 domain.com" | sudo tee -a /etc/hosts
       -
         name: Install Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v2
         with:
-          go-version: 1.18
+          go-version: 1.19
       -
         name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
       -
         name: Run Kratos tests
         run: cd plugins/kratos && go test -v .
@@ -473,12 +473,12 @@ jobs:
           sudo echo "127.0.0.1 domain.com" | sudo tee -a /etc/hosts
       -
         name: Install Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v2
         with:
-          go-version: 1.18
+          go-version: 1.19
       -
         name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
       -
         name: Run Roadrunner tests
         run: cd plugins/roadrunner && go test -v .
@@ -520,12 +520,12 @@ jobs:
           sudo echo "127.0.0.1 domain.com" | sudo tee -a /etc/hosts
       -
         name: Install Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v2
         with:
-          go-version: 1.18
+          go-version: 1.19
       -
         name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
       -
         name: Run Skipper tests
         run: cd plugins/skipper && go test -v .
@@ -567,12 +567,12 @@ jobs:
           sudo echo "127.0.0.1 domain.com" | sudo tee -a /etc/hosts
       -
         name: Install Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v2
         with:
-          go-version: 1.18
+          go-version: 1.19
       -
         name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
       -
         name: Run Souin tests
         run: cd plugins/souin && go test -v .
@@ -614,12 +614,12 @@ jobs:
           sudo echo "127.0.0.1 domain.com" | sudo tee -a /etc/hosts
       -
         name: Install Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v2
         with:
-          go-version: 1.18
+          go-version: 1.19
       -
         name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
       -
         name: Run Traefik tests
         run: cd plugins/traefik && go test -v .
@@ -661,12 +661,12 @@ jobs:
           sudo echo "127.0.0.1 domain.com" | sudo tee -a /etc/hosts
       -
         name: Install Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v2
         with:
-          go-version: 1.18
+          go-version: 1.19
       -
         name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
       -
         name: Run Tyk tests
         run: cd plugins/tyk && go test -v .
@@ -708,12 +708,12 @@ jobs:
           sudo echo "127.0.0.1 domain.com" | sudo tee -a /etc/hosts
       -
         name: Install Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v2
         with:
-          go-version: 1.18
+          go-version: 1.19
       -
         name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
       -
         name: Run Webgo tests
         run: cd plugins/webgo && go test -v .

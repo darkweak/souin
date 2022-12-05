@@ -1,4 +1,4 @@
-// Copyright 2018-2021 Burak Sezer
+// Copyright 2018-2022 Burak Sezer
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
 
 package hasher
 
-import "github.com/cespare/xxhash"
+import "github.com/cespare/xxhash/v2"
 
 // NewDefaultHasher returns an instance of xxhash package which implements the 64-bit variant of
 // xxHash (XXH64) as described at http://cyan4973.github.io/xxHash/.

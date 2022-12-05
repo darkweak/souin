@@ -1,4 +1,4 @@
-// Copyright 2018-2021 Burak Sezer
+// Copyright 2018-2022 Burak Sezer
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,31 +19,26 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/buraksezer/olric/internal/bufpool"
 	"github.com/buraksezer/olric/internal/cluster/partitions"
-	"github.com/buraksezer/olric/internal/protocol"
-	"github.com/buraksezer/olric/pkg/neterrors"
 	"github.com/buraksezer/olric/pkg/storage"
 )
-
-// pool is good for recycling memory while reading messages from the socket.
-var bufferPool = bufpool.New()
 
 const nilTimeout = 0 * time.Second
 
 var (
 	// ErrKeyNotFound is returned when a key could not be found.
-	ErrKeyNotFound  = neterrors.New(protocol.StatusErrKeyNotFound, "key not found")
+	ErrKeyNotFound  = errors.New("key not found")
 	ErrDMapNotFound = errors.New("dmap not found")
 	ErrServerGone   = errors.New("server is gone")
 )
 
 // DMap implements a single-hop distributed hash table.
 type DMap struct {
-	name   string
-	s      *Service
-	engine storage.Engine
-	config *dmapConfig
+	name         string
+	fragmentName string
+	s            *Service
+	engine       storage.Engine
+	config       *dmapConfig
 }
 
 // Name exposes name of the DMap.
@@ -63,7 +58,12 @@ func (s *Service) getDMap(name string) (*DMap, error) {
 	return dm, nil
 }
 
-// NewDMap creates and returns a new DMap instance. It checks member count quorum and bootstrapping status before creating a new DMap.
+func (s *Service) fragmentName(name string) string {
+	return fmt.Sprintf("dmap.%s", name)
+}
+
+// NewDMap creates and returns a new DMap instance. It checks member count quorum
+// and bootstrapping status before creating a new DMap.
 func (s *Service) NewDMap(name string) (*DMap, error) {
 	// Check operation status first:
 	//
@@ -88,20 +88,17 @@ func (s *Service) NewDMap(name string) (*DMap, error) {
 	}
 
 	dm = &DMap{
-		config: &dmapConfig{},
-		name:   name,
-		s:      s,
+		config:       &dmapConfig{},
+		name:         name,
+		fragmentName: s.fragmentName(name),
+		s:            s,
 	}
 	if err := dm.config.load(s.config.DMaps, name); err != nil {
 		return nil, err
 	}
 
-	engine, ok := dm.s.storage.engines[dm.config.storageEngine]
-	if !ok {
-		return nil, fmt.Errorf("storage engine could not be found: %s", dm.config.storageEngine)
-	}
-	dm.engine = engine
-
+	// It's a shortcut.
+	dm.engine = dm.config.engine.Implementation
 	s.dmaps[name] = dm
 	return dm, nil
 }
@@ -126,14 +123,6 @@ func (dm *DMap) getPartitionByHKey(hkey uint64, kind partitions.Kind) *partition
 		panic("unknown partition kind")
 	}
 	return part
-}
-
-func timeoutToTTL(timeout time.Duration) int64 {
-	if timeout.Seconds() == 0 {
-		return 0
-	}
-	// convert nanoseconds to milliseconds
-	return (timeout.Nanoseconds() + time.Now().UnixNano()) / 1000000
 }
 
 func isKeyExpired(ttl int64) bool {

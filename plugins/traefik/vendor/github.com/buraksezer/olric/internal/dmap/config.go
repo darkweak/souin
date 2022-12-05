@@ -1,3 +1,17 @@
+// Copyright 2018-2022 Burak Sezer
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package dmap
 
 import (
@@ -9,13 +23,13 @@ import (
 
 // dmapConfig keeps DMap config control parameters and access-log for keys in a dmap.
 type dmapConfig struct {
+	engine          *config.Engine
 	maxIdleDuration time.Duration
 	ttlDuration     time.Duration
 	maxKeys         int
 	maxInuse        int
 	lruSamples      int
 	evictionPolicy  config.EvictionPolicy
-	storageEngine   string
 }
 
 func (c *dmapConfig) load(dc *config.DMaps, name string) error {
@@ -26,9 +40,7 @@ func (c *dmapConfig) load(dc *config.DMaps, name string) error {
 	c.maxInuse = dc.MaxInuse
 	c.lruSamples = dc.LRUSamples
 	c.evictionPolicy = dc.EvictionPolicy
-	if dc.StorageEngine != "" {
-		c.storageEngine = dc.StorageEngine
-	}
+	c.engine = dc.Engine
 
 	if dc.Custom != nil {
 		// config.DMap struct can be used for fine-grained control.
@@ -55,13 +67,13 @@ func (c *dmapConfig) load(dc *config.DMaps, name string) error {
 			if c.evictionPolicy != cs.EvictionPolicy {
 				c.evictionPolicy = cs.EvictionPolicy
 			}
-			if cs.StorageEngine != "" && c.storageEngine != cs.StorageEngine {
-				c.storageEngine = cs.StorageEngine
+			if c.engine == nil {
+				c.engine = cs.Engine
 			}
 		}
 	}
 
-	// TODO: Create a new function to verify config config.
+	//TODO: Create a new function to verify config.
 	if c.evictionPolicy == config.LRUEviction {
 		if c.maxInuse <= 0 && c.maxKeys <= 0 {
 			return fmt.Errorf("maxInuse or maxKeys have to be greater than zero")
@@ -71,12 +83,5 @@ func (c *dmapConfig) load(dc *config.DMaps, name string) error {
 			c.lruSamples = config.DefaultLRUSamples
 		}
 	}
-	if c.storageEngine == "" {
-		c.storageEngine = config.DefaultStorageEngine
-	}
 	return nil
-}
-
-func (c *dmapConfig) isAccessLogRequired() bool {
-	return c.evictionPolicy == config.LRUEviction || c.maxIdleDuration != 0
 }
