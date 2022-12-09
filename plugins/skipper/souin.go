@@ -58,7 +58,7 @@ func (s *httpcache) Request(ctx filters.FilterContext) {
 	rw := ctx.ResponseWriter()
 	req := s.Retriever.GetContext().SetBaseContext(ctx.Request())
 	if !plugins.CanHandle(req, s.Retriever) {
-		rfc.MissCache(rw.Header().Set, req)
+		rfc.MissCache(rw.Header().Set, req, "CANNOT-HANDLE-REQUEST")
 		return
 	}
 
@@ -97,7 +97,7 @@ func (s *httpcache) Response(ctx filters.FilterContext) {
 	req.Response = res
 	req = s.Retriever.GetContext().SetBaseContext(req)
 	if !plugins.CanHandle(req, s.Retriever) {
-		rfc.MissCache(res.Header.Set, req)
+		rfc.MissCache(res.Header.Set, req, "CANNOT-HANDLE-RESPONSE")
 		return
 	}
 

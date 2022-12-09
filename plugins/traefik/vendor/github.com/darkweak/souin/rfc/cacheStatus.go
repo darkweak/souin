@@ -52,8 +52,8 @@ func ValidateCacheControl(r *http.Response) bool {
 }
 
 // MissCache set miss fwd
-func MissCache(set func(key, value string), req *http.Request) {
-	set("Cache-Status", fmt.Sprintf("%s; fwd=uri-miss", req.Context().Value(context.CacheName)))
+func MissCache(set func(key, value string), req *http.Request, reason string) {
+	set("Cache-Status", fmt.Sprintf("%s; fwd=uri-miss; key=%s; detail=%s", req.Context().Value(context.CacheName), req.Context().Value(context.Key), reason))
 }
 
 // HitStaleCache set hit and manage age header too

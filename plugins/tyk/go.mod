@@ -4,7 +4,6 @@ go 1.16
 
 require (
 	github.com/HdrHistogram/hdrhistogram-go v1.1.2 // indirect
-	github.com/TykTechnologies/graphql-go-tools v1.6.2-0.20220722090845-cc0e21901879 // indirect
 	github.com/TykTechnologies/tyk v1.9.2-0.20220905191535-f610431668e4
 	github.com/coreos/go-systemd/v22 v22.4.0 // indirect
 	github.com/darkweak/souin v1.6.22

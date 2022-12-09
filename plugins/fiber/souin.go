@@ -139,7 +139,7 @@ func (s *SouinFiberMiddleware) Handle(c *fiber.Ctx) error {
 	}
 
 	if !plugins.CanHandle(req, s.Retriever) {
-		rfc.MissCache(c.Response().Header.Set, req)
+		rfc.MissCache(c.Response().Header.Set, req, "CANNOT-HANDLE")
 		return c.Next()
 	}
 

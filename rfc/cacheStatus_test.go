@@ -52,15 +52,17 @@ func TestValidateCacheControl(t *testing.T) {
 
 func TestSetCacheStatusEventually(t *testing.T) {
 	rq := httptest.NewRequest(http.MethodGet, "/", nil)
-	rq = rq.WithContext(context.WithValue(rq.Context(), souinCtx.CacheName, "This"))
+	ctx := context.WithValue(rq.Context(), souinCtx.CacheName, "This")
+	ctx = context.WithValue(ctx, souinCtx.Key, "My-key")
+	rq = rq.WithContext(ctx)
 	r := http.Response{
 		Request: rq,
 	}
 	r.Header = http.Header{}
 
 	SetCacheStatusEventually(&r)
-	if r.Header.Get("Cache-Status") != "This; hit; ttl=-1" {
-		errors.GenerateError(t, fmt.Sprintf("The Cache-Status should be equal to This; hit; ttl=-1, %s given", r.Header.Get("Cache-Status")))
+	if r.Header.Get("Cache-Status") != "This; hit; ttl=-1; key=My-key" {
+		errors.GenerateError(t, fmt.Sprintf("The Cache-Status should be equal to This; hit; ttl=-1; key=My-key, %s given", r.Header.Get("Cache-Status")))
 	}
 
 	r.Header = http.Header{"Date": []string{"Invalid"}}

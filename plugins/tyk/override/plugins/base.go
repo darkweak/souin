@@ -83,7 +83,7 @@ func (r *CustomWriter) Send() (int, error) {
 
 func HasMutation(req *http.Request, rw http.ResponseWriter) bool {
 	if req.Context().Value(context.IsMutationRequest).(bool) {
-		rfc.MissCache(rw.Header().Set, req)
+		rfc.MissCache(rw.Header().Set, req, "IS-MUTATION-REQUEST")
 		return true
 	}
 	return false
@@ -205,7 +205,7 @@ func DefaultSouinPluginCallback(
 		switch req.Context().Err() {
 		case ctx.DeadlineExceeded:
 			cw := res.(*CustomWriter)
-			rfc.MissCache(cw.Header().Set, req)
+			rfc.MissCache(cw.Header().Set, req, "DEADLINE-EXCEEDED")
 			cw.WriteHeader(http.StatusGatewayTimeout)
 			_, _ = cw.Rw.Write(serverTimeoutMessage)
 			return ctx.DeadlineExceeded

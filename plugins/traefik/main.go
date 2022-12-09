@@ -235,7 +235,7 @@ func New(_ context.Context, next http.Handler, config *TestConfiguration, name s
 func (s *SouinTraefikPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	req = s.Retriever.GetContext().SetBaseContext(req)
 	if !(canHandle(req, s.Retriever)) {
-		rfc.MissCache(rw.Header().Set, req)
+		rfc.MissCache(rw.Header().Set, req, "CANNOT-HANDLE")
 		s.next.ServeHTTP(rw, req)
 		return
 	}
@@ -251,7 +251,7 @@ func (s *SouinTraefikPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request
 	req = s.Retriever.GetContext().SetContext(req)
 	isMutation := req.Context().Value(souin_ctx.IsMutationRequest).(bool)
 	if isMutation {
-		rfc.MissCache(rw.Header().Set, req)
+		rfc.MissCache(rw.Header().Set, req, "CANNOT-HANDLE")
 		s.next.ServeHTTP(rw, req)
 		return
 	}
