@@ -1,4 +1,4 @@
-// Copyright 2018-2021 Burak Sezer
+// Copyright 2018-2022 Burak Sezer
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,7 +14,38 @@
 
 package storage
 
-import "log"
+import (
+	"errors"
+	"log"
+)
+
+// ErrKeyTooLarge is an error that indicates the given key is larger than the determined key size.
+// The current maximum key length is 256.
+var ErrKeyTooLarge = errors.New("key too large")
+
+// ErrEntryTooLarge returned if required space for an entry is bigger than table size.
+var ErrEntryTooLarge = errors.New("entry too large for the configured table size")
+
+// ErrKeyNotFound is an error that indicates that the requested key could not be found in the DB.
+var ErrKeyNotFound = errors.New("key not found")
+
+// ErrNotImplemented means that the interface implementation does not support
+// the functionality required to fulfill the request.
+var ErrNotImplemented = errors.New("not implemented yet")
+
+// TransferIterator is an interface to implement iterators to encode and transfer
+// the underlying tables to another Olric member.
+type TransferIterator interface {
+	// Next returns true if there are more tables to Export in the storage instance.
+	// Otherwise, it returns false.
+	Next() bool
+
+	// Export encodes a table and returns result. This encoded table can be moved to another Olric node.
+	Export() ([]byte, int, error)
+
+	// Drop drops a table with its index from the storage engine instance and frees allocated resources.
+	Drop(int) error
+}
 
 // Engine defines methods for a storage engine implementation.
 type Engine interface {
@@ -54,6 +85,9 @@ type Engine interface {
 	// GetTTL extracts TTL of an entry.
 	GetTTL(uint64) (int64, error)
 
+	// GetLastAccess extracts LastAccess of an entry.
+	GetLastAccess(uint64) (int64, error)
+
 	// GetKey extracts key of an entry.
 	GetKey(uint64) (string, error)
 
@@ -61,14 +95,15 @@ type Engine interface {
 	Delete(uint64) error
 
 	// UpdateTTL updates TTL of an entry. It returns ErrKeyNotFound,
-	// if the key doesn't exists.
+	// if the key doesn't exist.
 	UpdateTTL(uint64, Entry) error
 
-	// Import creates a new storage engine instance from its encoded form.
-	Import([]byte) (Engine, error)
+	// TransferIterator returns a new TransferIterator instance to the caller.
+	TransferIterator() TransferIterator
 
-	// Exports encodes a storage engine into its binary form.
-	Export() ([]byte, error)
+	// Import imports an encoded table of the storage engine implementation and
+	// calls f for every Entry item in that table.
+	Import(data []byte, f func(uint64, Entry) error) error
 
 	// Stats returns metrics for an online storage engine.
 	Stats() Stats
@@ -79,8 +114,16 @@ type Engine interface {
 	// Range implements a loop over the storage engine
 	Range(func(uint64, Entry) bool)
 
-	// RegexMatchOnKeys runs a regular expression over keys and loops over the result.
-	RegexMatchOnKeys(string, func(uint64, Entry) bool) error
+	// RangeHKey implements a loop for hashed keys(HKeys).
+	RangeHKey(func(uint64) bool)
+
+	// Scan implements an iterator. The caller starts iterating from the cursor. "count" is the number of entries
+	// that will be returned during the iteration. Scan calls the function "f" on Entry items for every iteration.
+	//It returns the next cursor if everything is okay. Otherwise, it returns an error.
+	Scan(cursor uint64, count int, f func(Entry) bool) (uint64, error)
+
+	// ScanRegexMatch is the same with the Scan method, but it supports regular expressions on keys.
+	ScanRegexMatch(cursor uint64, match string, count int, f func(Entry) bool) (uint64, error)
 
 	// Compaction reorganizes storage tables and reclaims wasted resources.
 	Compaction() (bool, error)

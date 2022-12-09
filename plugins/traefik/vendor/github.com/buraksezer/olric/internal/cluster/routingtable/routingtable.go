@@ -1,4 +1,4 @@
-// Copyright 2018-2021 Burak Sezer
+// Copyright 2018-2022 Burak Sezer
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,22 +21,22 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/buraksezer/olric/internal/protocol"
+
 	"github.com/buraksezer/consistent"
 	"github.com/buraksezer/olric/config"
 	"github.com/buraksezer/olric/internal/checkpoint"
 	"github.com/buraksezer/olric/internal/cluster/partitions"
 	"github.com/buraksezer/olric/internal/discovery"
 	"github.com/buraksezer/olric/internal/environment"
-	"github.com/buraksezer/olric/internal/protocol"
-	"github.com/buraksezer/olric/internal/transport"
+	"github.com/buraksezer/olric/internal/server"
+	"github.com/buraksezer/olric/internal/service"
 	"github.com/buraksezer/olric/pkg/flog"
-	"github.com/buraksezer/olric/pkg/neterrors"
 	"github.com/hashicorp/memberlist"
 )
 
 // ErrClusterQuorum means that the cluster could not reach a healthy numbers of members to operate.
-var ErrClusterQuorum = neterrors.New(protocol.StatusErrClusterQuorum,
-	"cannot be reached cluster quorum to operate")
+var ErrClusterQuorum = errors.New("cannot be reached cluster quorum to operate")
 
 type route struct {
 	Owners  []discovery.Member
@@ -65,7 +65,8 @@ type RoutingTable struct {
 	log              *flog.Logger
 	primary          *partitions.Partitions
 	backup           *partitions.Partitions
-	client           *transport.Client
+	client           *server.Client
+	server           *server.Server
 	discovery        *discovery.Discovery
 	callbacks        []func()
 	callbackMtx      sync.Mutex
@@ -75,7 +76,15 @@ type RoutingTable struct {
 	wg               sync.WaitGroup
 }
 
+func registerErrors() {
+	protocol.SetError("CLUSTERQUORUM", ErrClusterQuorum)
+	protocol.SetError("CLUSTERJOIN", ErrClusterJoin)
+	protocol.SetError("SERVERGONE", ErrServerGone)
+	protocol.SetError("OPERATIONTIMEOUT", ErrOperationTimeout)
+}
+
 func New(e *environment.Environment) *RoutingTable {
+	// The routing table has to be started properly before accepting connections.
 	checkpoint.Add()
 	c := e.Get("config").(*config.Config)
 	log := e.Get("logger").(*flog.Logger)
@@ -87,7 +96,8 @@ func New(e *environment.Environment) *RoutingTable {
 		ReplicationFactor: 20, // TODO: This also may be a configuration param.
 		Load:              c.LoadFactor,
 	}
-	return &RoutingTable{
+
+	rt := &RoutingTable{
 		members:    newMembers(),
 		discovery:  discovery.New(log, c),
 		config:     c,
@@ -95,11 +105,15 @@ func New(e *environment.Environment) *RoutingTable {
 		consistent: consistent.New(nil, cc),
 		primary:    e.Get("primary").(*partitions.Partitions),
 		backup:     e.Get("backup").(*partitions.Partitions),
-		client:     e.Get("client").(*transport.Client),
+		client:     e.Get("client").(*server.Client),
+		server:     e.Get("server").(*server.Server),
 		pushPeriod: c.RoutingTablePushInterval,
 		ctx:        ctx,
 		cancel:     cancel,
 	}
+	registerErrors()
+	rt.RegisterHandlers()
+	return rt
 }
 
 func (r *RoutingTable) Discovery() *discovery.Discovery {
@@ -175,6 +189,12 @@ func (r *RoutingTable) IsBootstrapped() bool {
 // CheckBootstrap is called for every request and checks whether the node is bootstrapped.
 // It has to be very fast for a smooth operation.
 func (r *RoutingTable) CheckBootstrap() error {
+	// Prevent creating expensive structures for every request,
+	// Just check an integer value atomically.
+	if r.IsBootstrapped() {
+		return nil
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), r.config.BootstrapTimeout)
 	defer cancel()
 	return r.tryWithInterval(ctx, 100*time.Millisecond, func() error {
@@ -207,11 +227,6 @@ func (r *RoutingTable) fillRoutingTable() {
 
 func (r *RoutingTable) UpdateEagerly() {
 	r.updateRouting()
-}
-
-func (r *RoutingTable) RegisterOperations(operations map[protocol.OpCode]func(w, r protocol.EncodeDecoder)) {
-	operations[protocol.OpUpdateRouting] = r.updateRoutingOperation
-	operations[protocol.OpLengthOfPart] = r.lengthOfPartOperation
 }
 
 func (r *RoutingTable) updateRouting() {
@@ -252,6 +267,11 @@ func (r *RoutingTable) processClusterEvent(event *discovery.ClusterEvent) {
 		r.Members().Add(member)
 		r.consistent.Add(member)
 		r.log.V(2).Printf("[INFO] Node joined: %s", member)
+
+		if r.config.EnableClusterEventsChannel {
+			r.wg.Add(1)
+			go r.publishNodeJoinEvent(&member)
+		}
 	case memberlist.NodeLeave:
 		if _, err := r.Members().Get(member.ID); err != nil {
 			r.log.V(2).Printf("[ERROR] Unknown node left: %s: %d", event.NodeName, member.ID)
@@ -260,8 +280,15 @@ func (r *RoutingTable) processClusterEvent(event *discovery.ClusterEvent) {
 		r.Members().Delete(member.ID)
 		r.consistent.Remove(event.NodeName)
 		// Don't try to used closed sockets again.
-		r.client.ClosePool(event.NodeName)
 		r.log.V(2).Printf("[INFO] Node left: %s", event.NodeName)
+		if err := r.client.Close(event.NodeName); err != nil {
+			r.log.V(2).Printf("[ERROR] Failed to remove the node from pool %s: %v", event.NodeName, err)
+		}
+
+		if r.config.EnableClusterEventsChannel {
+			r.wg.Add(1)
+			go r.publishNodeLeftEvent(&member)
+		}
 	case memberlist.NodeUpdate:
 		// Node's birthdate may be changed. Close the pool and re-add to the hash ring.
 		// This takes linear time, but member count should be too small for a decent computer!
@@ -269,7 +296,9 @@ func (r *RoutingTable) processClusterEvent(event *discovery.ClusterEvent) {
 			if member.CompareByName(item) {
 				r.Members().Delete(id)
 				r.consistent.Remove(event.NodeName)
-				r.client.ClosePool(event.NodeName)
+				if err := r.client.Close(event.NodeName); err != nil {
+					r.log.V(2).Printf("[ERROR] Failed to remove the node from pool %s: %v", event.NodeName, err)
+				}
 			}
 			return true
 		})
@@ -312,21 +341,6 @@ func (r *RoutingTable) pushPeriodically() {
 			r.updateRouting()
 		}
 	}
-}
-
-func (r *RoutingTable) requestTo(addr string, req protocol.EncodeDecoder) (protocol.EncodeDecoder, error) {
-	resp, err := r.client.RequestTo(addr, req)
-	if err != nil {
-		return nil, err
-	}
-	status := resp.Status()
-	if status == protocol.StatusOK {
-		return resp, nil
-	}
-	if status == protocol.StatusErrInternalFailure {
-		return nil, neterrors.Wrap(neterrors.ErrInternalFailure, string(resp.Value()))
-	}
-	return nil, neterrors.GetByCode(status)
 }
 
 func (r *RoutingTable) Start() error {
@@ -430,3 +444,5 @@ func (r *RoutingTable) Shutdown(ctx context.Context) error {
 	}
 	return nil
 }
+
+var _ service.Service = (*RoutingTable)(nil)

@@ -1,4 +1,4 @@
-// Copyright 2018-2021 Burak Sezer
+// Copyright 2018-2022 Burak Sezer
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,22 +17,20 @@ package dmap
 import (
 	"context"
 	"errors"
-	"fmt"
+	"reflect"
 	"sync"
-	"time"
 
 	"github.com/buraksezer/olric/config"
+	"github.com/buraksezer/olric/events"
 	"github.com/buraksezer/olric/internal/cluster/partitions"
 	"github.com/buraksezer/olric/internal/cluster/routingtable"
 	"github.com/buraksezer/olric/internal/environment"
 	"github.com/buraksezer/olric/internal/locker"
 	"github.com/buraksezer/olric/internal/protocol"
+	"github.com/buraksezer/olric/internal/server"
 	"github.com/buraksezer/olric/internal/service"
-	"github.com/buraksezer/olric/internal/transport"
 	"github.com/buraksezer/olric/pkg/flog"
-	"github.com/buraksezer/olric/pkg/neterrors"
 	"github.com/buraksezer/olric/pkg/storage"
-	"github.com/buraksezer/olric/serializer"
 )
 
 var errFragmentNotFound = errors.New("fragment not found")
@@ -45,46 +43,54 @@ type storageMap struct {
 type Service struct {
 	sync.RWMutex // protects dmaps map
 
-	log        *flog.Logger
-	config     *config.Config
-	client     *transport.Client
-	rt         *routingtable.RoutingTable
-	serializer serializer.Serializer
-	primary    *partitions.Partitions
-	backup     *partitions.Partitions
-	locker     *locker.Locker
-	dmaps      map[string]*DMap
-	operations map[protocol.OpCode]func(w, r protocol.EncodeDecoder)
-	storage    *storageMap
-	wg         sync.WaitGroup
-	ctx        context.Context
-	cancel     context.CancelFunc
+	log     *flog.Logger
+	config  *config.Config
+	client  *server.Client
+	server  *server.Server
+	rt      *routingtable.RoutingTable
+	primary *partitions.Partitions
+	backup  *partitions.Partitions
+	locker  *locker.Locker
+	dmaps   map[string]*DMap
+	storage *storageMap
+	wg      sync.WaitGroup
+	ctx     context.Context
+	cancel  context.CancelFunc
+}
+
+func registerErrors() {
+	protocol.SetError("NOSUCHLOCK", ErrNoSuchLock)
+	protocol.SetError("LOCKNOTACQUIRED", ErrLockNotAcquired)
+	protocol.SetError("READQUORUM", ErrReadQuorum)
+	protocol.SetError("WRITEQUORUM", ErrWriteQuorum)
+	protocol.SetError("DMAPNOTFOUND", ErrDMapNotFound)
+	protocol.SetError("KEYTOOLARGE", ErrKeyTooLarge)
+	protocol.SetError("ENTRYTOOLARGE", ErrEntryTooLarge)
+	protocol.SetError("KEYNOTFOUND", ErrKeyNotFound)
+	protocol.SetError("KEYFOUND", ErrKeyFound)
 }
 
 func NewService(e *environment.Environment) (service.Service, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	s := &Service{
-		config:     e.Get("config").(*config.Config),
-		serializer: e.Get("config").(*config.Config).Serializer,
-		client:     e.Get("client").(*transport.Client),
-		log:        e.Get("logger").(*flog.Logger),
-		rt:         e.Get("routingtable").(*routingtable.RoutingTable),
-		primary:    e.Get("primary").(*partitions.Partitions),
-		backup:     e.Get("backup").(*partitions.Partitions),
-		locker:     e.Get("locker").(*locker.Locker),
+		config:  e.Get("config").(*config.Config),
+		client:  e.Get("client").(*server.Client),
+		server:  e.Get("server").(*server.Server),
+		log:     e.Get("logger").(*flog.Logger),
+		rt:      e.Get("routingtable").(*routingtable.RoutingTable),
+		primary: e.Get("primary").(*partitions.Partitions),
+		backup:  e.Get("backup").(*partitions.Partitions),
+		locker:  e.Get("locker").(*locker.Locker),
 		storage: &storageMap{
 			engines: make(map[string]storage.Engine),
 			configs: make(map[string]map[string]interface{}),
 		},
-		dmaps:      make(map[string]*DMap),
-		operations: make(map[protocol.OpCode]func(w, r protocol.EncodeDecoder)),
-		ctx:        ctx,
-		cancel:     cancel,
+		dmaps:  make(map[string]*DMap),
+		ctx:    ctx,
+		cancel: cancel,
 	}
-	err := s.initializeAndLoadStorageEngines()
-	if err != nil {
-		return nil, err
-	}
+	registerErrors()
+	s.RegisterHandlers()
 	return s, nil
 }
 
@@ -98,92 +104,41 @@ func (s *Service) isAlive() bool {
 	return true
 }
 
-func (s *Service) initializeAndLoadStorageEngines() error {
-	s.storage.configs = s.config.StorageEngines.Config
-	s.storage.engines = s.config.StorageEngines.Impls
-
-	// Load engines as plugin, if any.
-	for _, pluginPath := range s.config.StorageEngines.Plugins {
-		engine, err := storage.LoadAsPlugin(pluginPath)
-		if err != nil {
-			return err
-		}
-		s.storage.engines[engine.Name()] = engine
+func getType(data interface{}) string {
+	t := reflect.TypeOf(data)
+	if t.Kind() == reflect.Ptr {
+		return t.Elem().Name()
 	}
-
-	// Set configuration for the loaded engines.
-	for name, ec := range s.config.StorageEngines.Config {
-		engine, ok := s.storage.engines[name]
-		if !ok {
-			return fmt.Errorf("storage engine implementation is missing: %s", name)
-		}
-		engine.SetConfig(storage.NewConfig(ec))
-	}
-
-	// Start the engines.
-	for _, engine := range s.storage.engines {
-		engine.SetLogger(s.config.Logger)
-		if err := engine.Start(); err != nil {
-			return err
-		}
-		s.log.V(2).Printf("[INFO] Storage engine has been loaded: %s", engine.Name())
-	}
-	return nil
+	return t.Name()
 }
 
-func (s *Service) callCompactionOnStorage(f *fragment) {
+func (s *Service) publishEvent(e events.Event) {
 	defer s.wg.Done()
-	timer := time.NewTimer(50 * time.Millisecond)
-	defer timer.Stop()
 
-	for {
-		timer.Reset(50 * time.Millisecond)
-		select {
-		case <-timer.C:
-			f.Lock()
-			// Compaction returns false if the fragment is closed.
-			done, err := f.Compaction()
-			if err != nil {
-				s.log.V(3).Printf("[ERROR] Failed to run compaction on fragment: %v", err)
-			}
-			if done {
-				// Fragmented tables are merged. Quit.
-				f.Unlock()
-				return
-			}
-			f.Unlock()
-		case <-s.ctx.Done():
-			return
-		}
-	}
-}
-
-func (s *Service) requestTo(addr string, req protocol.EncodeDecoder) (protocol.EncodeDecoder, error) {
-	resp, err := s.client.RequestTo(addr, req)
+	rc := s.client.Get(s.rt.This().String())
+	data, err := e.Encode()
 	if err != nil {
-		return nil, err
+		s.log.V(3).Printf("[ERROR] Failed to encode %s: %v", getType(e), err)
+		return
 	}
-	status := resp.Status()
-	if status == protocol.StatusOK {
-		return resp, nil
+	err = rc.Publish(s.ctx, events.ClusterEventsChannel, data).Err()
+	if err != nil {
+		s.log.V(3).Printf("[ERROR] Failed to publish %s to %s: %v",
+			getType(e), events.ClusterEventsChannel, err)
 	}
-
-	switch resp.Status() {
-	case protocol.StatusErrInternalFailure:
-		return nil, neterrors.Wrap(neterrors.ErrInternalFailure, string(resp.Value()))
-	case protocol.StatusErrInvalidArgument:
-		return nil, neterrors.Wrap(neterrors.ErrInvalidArgument, string(resp.Value()))
-	}
-	return nil, neterrors.GetByCode(status)
 }
 
 // Start starts the distributed map service.
 func (s *Service) Start() error {
 	s.wg.Add(1)
-	go s.janitor()
+	go s.janitorWorker()
+
+	s.wg.Add(1)
+	go s.compactionWorker()
 
 	s.wg.Add(1)
 	go s.evictKeysAtBackground()
+
 	return nil
 }
 

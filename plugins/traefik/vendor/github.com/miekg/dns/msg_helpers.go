@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"net"
+	"sort"
 	"strings"
 )
 
@@ -437,35 +438,6 @@ Option:
 	return edns, off, nil
 }
 
-func makeDataOpt(code uint16) EDNS0 {
-	switch code {
-	case EDNS0NSID:
-		return new(EDNS0_NSID)
-	case EDNS0SUBNET:
-		return new(EDNS0_SUBNET)
-	case EDNS0COOKIE:
-		return new(EDNS0_COOKIE)
-	case EDNS0EXPIRE:
-		return new(EDNS0_EXPIRE)
-	case EDNS0UL:
-		return new(EDNS0_UL)
-	case EDNS0LLQ:
-		return new(EDNS0_LLQ)
-	case EDNS0DAU:
-		return new(EDNS0_DAU)
-	case EDNS0DHU:
-		return new(EDNS0_DHU)
-	case EDNS0N3U:
-		return new(EDNS0_N3U)
-	case EDNS0PADDING:
-		return new(EDNS0_PADDING)
-	default:
-		e := new(EDNS0_LOCAL)
-		e.Code = code
-		return e
-	}
-}
-
 func packDataOpt(options []EDNS0, msg []byte, off int) (int, error) {
 	for _, el := range options {
 		b, err := el.pack()
@@ -504,7 +476,7 @@ func unpackDataNsec(msg []byte, off int) ([]uint16, int, error) {
 	length, window, lastwindow := 0, 0, -1
 	for off < len(msg) {
 		if off+2 > len(msg) {
-			return nsec, len(msg), &Error{err: "overflow unpacking nsecx"}
+			return nsec, len(msg), &Error{err: "overflow unpacking NSEC(3)"}
 		}
 		window = int(msg[off])
 		length = int(msg[off+1])
@@ -512,17 +484,17 @@ func unpackDataNsec(msg []byte, off int) ([]uint16, int, error) {
 		if window <= lastwindow {
 			// RFC 4034: Blocks are present in the NSEC RR RDATA in
 			// increasing numerical order.
-			return nsec, len(msg), &Error{err: "out of order NSEC block"}
+			return nsec, len(msg), &Error{err: "out of order NSEC(3) block in type bitmap"}
 		}
 		if length == 0 {
 			// RFC 4034: Blocks with no types present MUST NOT be included.
-			return nsec, len(msg), &Error{err: "empty NSEC block"}
+			return nsec, len(msg), &Error{err: "empty NSEC(3) block in type bitmap"}
 		}
 		if length > 32 {
-			return nsec, len(msg), &Error{err: "NSEC block too long"}
+			return nsec, len(msg), &Error{err: "NSEC(3) block too long in type bitmap"}
 		}
 		if off+length > len(msg) {
-			return nsec, len(msg), &Error{err: "overflowing NSEC block"}
+			return nsec, len(msg), &Error{err: "overflowing NSEC(3) block in type bitmap"}
 		}
 
 		// Walk the bytes in the window and extract the type bits
@@ -586,6 +558,16 @@ func packDataNsec(bitmap []uint16, msg []byte, off int) (int, error) {
 	if len(bitmap) == 0 {
 		return off, nil
 	}
+	if off > len(msg) {
+		return off, &Error{err: "overflow packing nsec"}
+	}
+	toZero := msg[off:]
+	if maxLen := typeBitMapLen(bitmap); maxLen < len(toZero) {
+		toZero = toZero[:maxLen]
+	}
+	for i := range toZero {
+		toZero[i] = 0
+	}
 	var lastwindow, lastlength uint16
 	for _, t := range bitmap {
 		window := t / 256
@@ -609,6 +591,65 @@ func packDataNsec(bitmap []uint16, msg []byte, off int) (int, error) {
 		lastwindow, lastlength = window, length
 	}
 	off += int(lastlength) + 2
+	return off, nil
+}
+
+func unpackDataSVCB(msg []byte, off int) ([]SVCBKeyValue, int, error) {
+	var xs []SVCBKeyValue
+	var code uint16
+	var length uint16
+	var err error
+	for off < len(msg) {
+		code, off, err = unpackUint16(msg, off)
+		if err != nil {
+			return nil, len(msg), &Error{err: "overflow unpacking SVCB"}
+		}
+		length, off, err = unpackUint16(msg, off)
+		if err != nil || off+int(length) > len(msg) {
+			return nil, len(msg), &Error{err: "overflow unpacking SVCB"}
+		}
+		e := makeSVCBKeyValue(SVCBKey(code))
+		if e == nil {
+			return nil, len(msg), &Error{err: "bad SVCB key"}
+		}
+		if err := e.unpack(msg[off : off+int(length)]); err != nil {
+			return nil, len(msg), err
+		}
+		if len(xs) > 0 && e.Key() <= xs[len(xs)-1].Key() {
+			return nil, len(msg), &Error{err: "SVCB keys not in strictly increasing order"}
+		}
+		xs = append(xs, e)
+		off += int(length)
+	}
+	return xs, off, nil
+}
+
+func packDataSVCB(pairs []SVCBKeyValue, msg []byte, off int) (int, error) {
+	pairs = append([]SVCBKeyValue(nil), pairs...)
+	sort.Slice(pairs, func(i, j int) bool {
+		return pairs[i].Key() < pairs[j].Key()
+	})
+	prev := svcb_RESERVED
+	for _, el := range pairs {
+		if el.Key() == prev {
+			return len(msg), &Error{err: "repeated SVCB keys are not allowed"}
+		}
+		prev = el.Key()
+		packed, err := el.pack()
+		if err != nil {
+			return len(msg), err
+		}
+		off, err = packUint16(uint16(el.Key()), msg, off)
+		if err != nil {
+			return len(msg), &Error{err: "overflow packing SVCB"}
+		}
+		off, err = packUint16(uint16(len(packed)), msg, off)
+		if err != nil || off+len(packed) > len(msg) {
+			return len(msg), &Error{err: "overflow packing SVCB"}
+		}
+		copy(msg[off:off+len(packed)], packed)
+		off += len(packed)
+	}
 	return off, nil
 }
 
@@ -683,6 +724,13 @@ func packDataAplPrefix(p *APLPrefix, msg []byte, off int) (int, error) {
 	if p.Negation {
 		n = 0x80
 	}
+
+	// trim trailing zero bytes as specified in RFC3123 Sections 4.1 and 4.2.
+	i := len(addr) - 1
+	for ; i >= 0 && addr[i] == 0; i-- {
+	}
+	addr = addr[:i+1]
+
 	adflen := uint8(len(addr)) & 0x7f
 	off, err = packUint8(n|adflen, msg, off)
 	if err != nil {
@@ -743,6 +791,8 @@ func unpackDataAplPrefix(msg []byte, off int) (APLPrefix, int, error) {
 	if off+afdlen > len(msg) {
 		return APLPrefix{}, len(msg), &Error{err: "overflow unpacking APL address"}
 	}
+
+	// Address MUST NOT contain trailing zero bytes per RFC3123 Sections 4.1 and 4.2.
 	off += copy(ip, msg[off:off+afdlen])
 	if afdlen > 0 {
 		last := ip[afdlen-1]
@@ -753,10 +803,6 @@ func unpackDataAplPrefix(msg []byte, off int) (APLPrefix, int, error) {
 	ipnet := net.IPNet{
 		IP:   ip,
 		Mask: net.CIDRMask(int(prefix), 8*len(ip)),
-	}
-	network := ipnet.IP.Mask(ipnet.Mask)
-	if !network.Equal(ipnet.IP) {
-		return APLPrefix{}, len(msg), &Error{err: "invalid APL address length"}
 	}
 
 	return APLPrefix{

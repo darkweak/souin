@@ -1,4 +1,4 @@
-// Copyright 2018-2021 Burak Sezer
+// Copyright 2018-2022 Burak Sezer
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 package dmap
 
 import (
+	"context"
 	"runtime"
 
 	"github.com/buraksezer/olric/internal/discovery"
@@ -23,7 +24,7 @@ import (
 	"golang.org/x/sync/semaphore"
 )
 
-func (dm *DMap) destroyOnCluster() error {
+func (dm *DMap) destroyOnCluster(ctx context.Context) error {
 	num := int64(runtime.NumCPU())
 	sem := semaphore.NewWeighted(num)
 
@@ -51,22 +52,23 @@ func (dm *DMap) destroyOnCluster() error {
 			}
 			defer sem.Release(1)
 
-			req := protocol.NewDMapMessage(protocol.OpDestroyDMapInternal)
-			req.SetDMap(dm.name)
-			dm.s.log.V(6).Printf("[DEBUG] Calling Destroy command on %s for %s", addr, dm.name)
-			_, err := dm.s.requestTo(addr, req)
+			dm.s.log.V(6).Printf("[DEBUG] Calling DM.DESTROY command on %s for %s", addr, dm.name)
+			cmd := protocol.NewDestroy(dm.name).SetLocal().Command(dm.s.ctx)
+			rc := dm.s.client.Get(addr)
+			err := rc.Process(ctx, cmd)
 			if err != nil {
-				dm.s.log.V(3).Printf("[ERROR] Failed to destroy DMap: %s on %s", dm.name, addr)
+				dm.s.log.V(3).Printf("[ERROR] DM.DESTROY returned an error: %v", err)
+				return err
 			}
-			return err
+			return cmd.Err()
 		})
 	}
 	return g.Wait()
 }
 
 // Destroy flushes the given DMap on the cluster. You should know that there
-// is no global lock on DMaps. So if you call Put, PutEx and Destroy methods
-// concurrently on the cluster, Put and PutEx calls may set new values to the DMap.
-func (dm *DMap) Destroy() error {
-	return dm.destroyOnCluster()
+// is no global lock on DMaps. So if you call Put, Put with EX and Destroy methods
+// concurrently on the cluster, Put and Put with EX calls may set new values to the DMap.
+func (dm *DMap) Destroy(ctx context.Context) error {
+	return dm.destroyOnCluster(ctx)
 }

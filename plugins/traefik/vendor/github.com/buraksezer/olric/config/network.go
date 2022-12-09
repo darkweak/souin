@@ -1,4 +1,4 @@
-// Copyright 2018-2021 Burak Sezer
+// Copyright 2018-2022 Burak Sezer
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -108,8 +108,6 @@ func getBindIP(ifname, address string) (string, error) {
 			return "", fmt.Errorf("failed to get private interface addresses: %w", err)
 		}
 
-		// Here is the source of this fix and the story behind it: https://github.com/buraksezer/olric/pull/143
-		//
 		// if we could not find a private address, we need to expand our search to a public
 		// ip address
 		if ipStr == "" {
@@ -120,7 +118,7 @@ func getBindIP(ifname, address string) (string, error) {
 		}
 
 		if ipStr == "" {
-			return "", fmt.Errorf("neither private nor public IP address found, and explicit IP not provided")
+			return "", fmt.Errorf("no private IP address found, and explicit IP not provided")
 		}
 
 		parsed := net.ParseIP(ipStr)

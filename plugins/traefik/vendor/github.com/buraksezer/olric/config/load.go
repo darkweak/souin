@@ -1,4 +1,4 @@
-// Copyright 2018-2021 Burak Sezer
+// Copyright 2018-2022 Burak Sezer
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -25,7 +25,6 @@ import (
 
 	"github.com/buraksezer/olric/config/internal/loader"
 	"github.com/buraksezer/olric/hasher"
-	"github.com/buraksezer/olric/serializer"
 	"github.com/hashicorp/memberlist"
 	"github.com/pkg/errors"
 )
@@ -69,6 +68,7 @@ func loadDMapConfig(c *loader.Loader) (*DMaps, error) {
 		}
 		res.MaxIdleDuration = maxIdleDuration
 	}
+
 	if c.DMaps.TTLDuration != "" {
 		ttlDuration, err := time.ParseDuration(c.DMaps.TTLDuration)
 		if err != nil {
@@ -76,6 +76,7 @@ func loadDMapConfig(c *loader.Loader) (*DMaps, error) {
 		}
 		res.TTLDuration = ttlDuration
 	}
+
 	if c.DMaps.CheckEmptyFragmentsInterval != "" {
 		checkEmptyFragmentsInterval, err := time.ParseDuration(c.DMaps.CheckEmptyFragmentsInterval)
 		if err != nil {
@@ -83,12 +84,28 @@ func loadDMapConfig(c *loader.Loader) (*DMaps, error) {
 		}
 		res.CheckEmptyFragmentsInterval = checkEmptyFragmentsInterval
 	}
+
+	if c.DMaps.TriggerCompactionInterval != "" {
+		triggerCompactionInterval, err := time.ParseDuration(c.DMaps.TriggerCompactionInterval)
+		if err != nil {
+			return nil, errors.WithMessage(err, "failed to parse dmap.triggerCompactionInterval")
+		}
+		res.TriggerCompactionInterval = triggerCompactionInterval
+	}
+
 	res.NumEvictionWorkers = c.DMaps.NumEvictionWorkers
 	res.MaxKeys = c.DMaps.MaxKeys
 	res.MaxInuse = c.DMaps.MaxInuse
 	res.EvictionPolicy = EvictionPolicy(c.DMaps.EvictionPolicy)
 	res.LRUSamples = c.DMaps.LRUSamples
-	res.StorageEngine = c.DMaps.StorageEngine
+
+	if c.DMaps.Engine != nil {
+		e := NewEngine()
+		e.Name = c.DMaps.Engine.Name
+		e.Config = c.DMaps.Engine.Config
+		res.Engine = e
+	}
+
 	if c.DMaps.Custom != nil {
 		res.Custom = make(map[string]DMap)
 		for name, dc := range c.DMaps.Custom {
@@ -97,7 +114,12 @@ func loadDMapConfig(c *loader.Loader) (*DMaps, error) {
 				MaxKeys:        dc.MaxKeys,
 				EvictionPolicy: EvictionPolicy(dc.EvictionPolicy),
 				LRUSamples:     dc.LRUSamples,
-				StorageEngine:  dc.StorageEngine,
+			}
+			if dc.Engine != nil {
+				e := NewEngine()
+				e.Name = dc.Engine.Name
+				e.Config = dc.Engine.Config
+				cc.Engine = e
 			}
 			if dc.MaxIdleDuration != "" {
 				maxIdleDuration, err := time.ParseDuration(dc.MaxIdleDuration)
@@ -119,7 +141,7 @@ func loadDMapConfig(c *loader.Loader) (*DMaps, error) {
 	return res, nil
 }
 
-// loadMemberlistConfig creates a new *memberlist.Config by parsing olricd.yaml
+// loadMemberlistConfig creates a new *memberlist.Config by parsing olric.yaml
 func loadMemberlistConfig(c *loader.Loader, mc *memberlist.Config) (*memberlist.Config, error) {
 	var err error
 	if c.Memberlist.BindAddr == "" {
@@ -265,19 +287,6 @@ func Load(filename string) (*Config, error) {
 		c.Logging.Level = DefaultLogLevel
 	}
 
-	// Default serializer is Gob serializer, just set nil or use gob keyword to use it.
-	var sr serializer.Serializer
-	switch {
-	case c.Olricd.Serializer == "json":
-		sr = serializer.NewJSONSerializer()
-	case c.Olricd.Serializer == "msgpack":
-		sr = serializer.NewMsgpackSerializer()
-	case c.Olricd.Serializer == "gob":
-		sr = serializer.NewGobSerializer()
-	default:
-		return nil, fmt.Errorf("invalid serializer: %s", c.Olricd.Serializer)
-	}
-
 	rawMc, err := NewMemberlistConfig(c.Memberlist.Environment)
 	if err != nil {
 		return nil, err
@@ -291,9 +300,11 @@ func Load(filename string) (*Config, error) {
 	var (
 		joinRetryInterval,
 		keepAlivePeriod,
+		idleClose,
 		bootstrapTimeout,
-		routingTablePushInterval,
-		leaveTimeout time.Duration
+		triggerBalancerInterval,
+		leaveTimeout,
+		routingTablePushInterval time.Duration
 	)
 
 	if c.Olricd.KeepAlivePeriod != "" {
@@ -303,6 +314,15 @@ func Load(filename string) (*Config, error) {
 				fmt.Sprintf("failed to parse olricd.keepAlivePeriod: '%s'", c.Olricd.KeepAlivePeriod))
 		}
 	}
+
+	if c.Olricd.IdleClose != "" {
+		idleClose, err = time.ParseDuration(c.Olricd.IdleClose)
+		if err != nil {
+			return nil, errors.WithMessage(err,
+				fmt.Sprintf("failed to parse olricd.idleClose: '%s'", c.Olricd.IdleClose))
+		}
+	}
+
 	if c.Olricd.BootstrapTimeout != "" {
 		bootstrapTimeout, err = time.ParseDuration(c.Olricd.BootstrapTimeout)
 		if err != nil {
@@ -325,6 +345,15 @@ func Load(filename string) (*Config, error) {
 				fmt.Sprintf("failed to parse olricd.routingTablePushInterval: '%s'", c.Olricd.RoutingTablePushInterval))
 		}
 	}
+
+	if c.Olricd.TriggerBalancerInterval != "" {
+		triggerBalancerInterval, err = time.ParseDuration(c.Olricd.TriggerBalancerInterval)
+		if err != nil {
+			return nil, errors.WithMessage(err,
+				fmt.Sprintf("failed to parse olricd.triggerBalancerInterval: '%s'", c.Olricd.TriggerBalancerInterval))
+		}
+	}
+
 	if c.Olricd.LeaveTimeout != "" {
 		leaveTimeout, err = time.ParseDuration(c.Olricd.LeaveTimeout)
 		if err != nil {
@@ -344,41 +373,38 @@ func Load(filename string) (*Config, error) {
 		return nil, err
 	}
 
-	storageEngines := NewStorageEngine()
-	storageEngines.Plugins = c.StorageEngines.Plugins
-	storageEngines.Config = c.StorageEngines.Config
-
 	cfg := &Config{
-		BindAddr:                 c.Olricd.BindAddr,
-		BindPort:                 c.Olricd.BindPort,
-		Interface:                c.Olricd.Interface,
-		ServiceDiscovery:         c.ServiceDiscovery,
-		MemberlistInterface:      c.Memberlist.Interface,
-		MemberlistConfig:         memberlistConfig,
-		Client:                   &clientConfig,
-		LogLevel:                 c.Logging.Level,
-		JoinRetryInterval:        joinRetryInterval,
-		RoutingTablePushInterval: routingTablePushInterval,
-		MaxJoinAttempts:          c.Memberlist.MaxJoinAttempts,
-		Peers:                    c.Memberlist.Peers,
-		PartitionCount:           c.Olricd.PartitionCount,
-		ReplicaCount:             c.Olricd.ReplicaCount,
-		WriteQuorum:              c.Olricd.WriteQuorum,
-		ReadQuorum:               c.Olricd.ReadQuorum,
-		ReplicationMode:          c.Olricd.ReplicationMode,
-		ReadRepair:               c.Olricd.ReadRepair,
-		LoadFactor:               c.Olricd.LoadFactor,
-		MemberCountQuorum:        c.Olricd.MemberCountQuorum,
-		Logger:                   log.New(logOutput, "", log.LstdFlags),
-		LogOutput:                logOutput,
-		LogVerbosity:             c.Logging.Verbosity,
-		Hasher:                   hasher.NewDefaultHasher(),
-		Serializer:               sr,
-		KeepAlivePeriod:          keepAlivePeriod,
-		BootstrapTimeout:         bootstrapTimeout,
-		LeaveTimeout:             leaveTimeout,
-		DMaps:                    dmapConfig,
-		StorageEngines:           storageEngines,
+		BindAddr:                   c.Olricd.BindAddr,
+		BindPort:                   c.Olricd.BindPort,
+		Interface:                  c.Olricd.Interface,
+		ServiceDiscovery:           c.ServiceDiscovery,
+		MemberlistInterface:        c.Memberlist.Interface,
+		MemberlistConfig:           memberlistConfig,
+		Client:                     &clientConfig,
+		LogLevel:                   c.Logging.Level,
+		JoinRetryInterval:          joinRetryInterval,
+		RoutingTablePushInterval:   routingTablePushInterval,
+		TriggerBalancerInterval:    triggerBalancerInterval,
+		EnableClusterEventsChannel: c.Olricd.EnableClusterEventsChannel,
+		MaxJoinAttempts:            c.Memberlist.MaxJoinAttempts,
+		Peers:                      c.Memberlist.Peers,
+		PartitionCount:             c.Olricd.PartitionCount,
+		ReplicaCount:               c.Olricd.ReplicaCount,
+		WriteQuorum:                c.Olricd.WriteQuorum,
+		ReadQuorum:                 c.Olricd.ReadQuorum,
+		ReplicationMode:            c.Olricd.ReplicationMode,
+		ReadRepair:                 c.Olricd.ReadRepair,
+		LoadFactor:                 c.Olricd.LoadFactor,
+		MemberCountQuorum:          c.Olricd.MemberCountQuorum,
+		Logger:                     log.New(logOutput, "", log.LstdFlags),
+		LogOutput:                  logOutput,
+		LogVerbosity:               c.Logging.Verbosity,
+		Hasher:                     hasher.NewDefaultHasher(),
+		KeepAlivePeriod:            keepAlivePeriod,
+		IdleClose:                  idleClose,
+		BootstrapTimeout:           bootstrapTimeout,
+		LeaveTimeout:               leaveTimeout,
+		DMaps:                      dmapConfig,
 	}
 
 	if err := cfg.Sanitize(); err != nil {

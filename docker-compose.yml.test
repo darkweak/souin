@@ -28,6 +28,7 @@ services:
       target: olric
     ports:
       - 3320:3320
+      - 3322:3322
     restart: on-failure
     <<: *networks
 

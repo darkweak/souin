@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Burak Sezer
+// Copyright (c) 2018-2022 Burak Sezer
 // All rights reserved.
 //
 // This code is licensed under the MIT License.
@@ -21,35 +21,39 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-// Package consistent provides a consistent hashing function with bounded loads.
-// For more information about the underlying algorithm, please take a look at
-// https://research.googleblog.com/2017/04/consistent-hashing-with-bounded-loads.html
+// Package consistent provides a consistent hashing function with bounded loads. This implementation also adds
+// partitioning logic on top of the original algorithm. For more information about the underlying algorithm,
+// please take a look at https://research.googleblog.com/2017/04/consistent-hashing-with-bounded-loads.html
 //
 // Example Use:
-// 	cfg := consistent.Config{
-// 		PartitionCount:    71,
-// 		ReplicationFactor: 20,
-// 		Load:              1.25,
-// 		Hasher:            hasher{},
+//
+//	cfg := consistent.Config{
+//		PartitionCount:    71,
+//		ReplicationFactor: 20,
+//		Load:              1.25,
+//		Hasher:            hasher{},
 //	}
 //
-//      // Create a new consistent object
-//      // You may call this with a list of members
-//      // instead of adding them one by one.
+// Now you can create a new Consistent instance. This function can take a list of the members.
+//
 //	c := consistent.New(members, cfg)
 //
-//      // myMember struct just needs to implement a String method.
-//      // New/Add/Remove distributes partitions among members using the algorithm
-//      // defined on Google Research Blog.
+// In the following sample, you add a new Member to the consistent hash ring. myMember is just a Go struct that
+// implements the Member interface. You should know that modifying the consistent hash ring distributes partitions among
+// members using the algorithm defined on Google Research Blog.
+//
 //	c.Add(myMember)
 //
-//	key := []byte("my-key")
-//      // LocateKey hashes the key and calculates partition ID with
-//      // this modulo operation: MOD(hash result, partition count)
-//      // The owner of the partition is already calculated by New/Add/Remove.
-//      // LocateKey just returns the member which's responsible for the key.
-//	member := c.LocateKey(key)
+// Remove a member from the consistent hash ring:
 //
+//	c.Remove(member-name)
+//
+// LocateKey hashes the key and calculates partition ID with this modulo operation: MOD(hash result, partition count)
+// The owner of the partition is already calculated by New/Add/Remove. LocateKey just returns the member that is responsible
+// for the key.
+//
+//	key := []byte("my-key")
+//	member := c.LocateKey(key)
 package consistent
 
 import (
@@ -61,15 +65,16 @@ import (
 	"sync"
 )
 
-var (
-	//ErrInsufficientMemberCount represents an error which means there are not enough members to complete the task.
-	ErrInsufficientMemberCount = errors.New("insufficient member count")
-
-	// ErrMemberNotFound represents an error which means requested member could not be found in consistent hash ring.
-	ErrMemberNotFound = errors.New("member could not be found in ring")
+const (
+	DefaultPartitionCount    int     = 271
+	DefaultReplicationFactor int     = 20
+	DefaultLoad              float64 = 1.25
 )
 
-// Hasher is responsible for generating unsigned, 64 bit hash of provided byte slice.
+// ErrInsufficientMemberCount represents an error which means there are not enough members to complete the task.
+var ErrInsufficientMemberCount = errors.New("insufficient member count")
+
+// Hasher is responsible for generating unsigned, 64-bit hash of provided byte slice.
 // Hasher should minimize collisions (generating same hash for different byte slice)
 // and while performance is also important fast functions are preferable (i.e.
 // you can use FarmHash family).
@@ -84,7 +89,7 @@ type Member interface {
 
 // Config represents a structure to control consistent package.
 type Config struct {
-	// Hasher is responsible for generating unsigned, 64 bit hash of provided byte slice.
+	// Hasher is responsible for generating unsigned, 64-bit hash of provided byte slice.
 	Hasher Hasher
 
 	// Keys are distributed among partitions. Prime numbers are good to
@@ -116,16 +121,26 @@ type Consistent struct {
 
 // New creates and returns a new Consistent object.
 func New(members []Member, config Config) *Consistent {
+	if config.Hasher == nil {
+		panic("Hasher cannot be nil")
+	}
+	if config.PartitionCount == 0 {
+		config.PartitionCount = DefaultPartitionCount
+	}
+	if config.ReplicationFactor == 0 {
+		config.ReplicationFactor = DefaultReplicationFactor
+	}
+	if config.Load == 0 {
+		config.Load = DefaultLoad
+	}
+
 	c := &Consistent{
 		config:         config,
 		members:        make(map[string]*Member),
 		partitionCount: uint64(config.PartitionCount),
 		ring:           make(map[uint64]*Member),
 	}
-	if config.Hasher == nil {
-		panic("Hasher cannot be nil")
-	}
-	// TODO: Check configuration here
+
 	c.hasher = config.Hasher
 	for _, member := range members {
 		c.add(member)
@@ -136,7 +151,7 @@ func New(members []Member, config Config) *Consistent {
 	return c
 }
 
-// GetMembers returns a thread-safe copy of members.
+// GetMembers returns a thread-safe copy of members. If there are no members, it returns an empty slice of Member.
 func (c *Consistent) GetMembers() []Member {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
@@ -151,12 +166,23 @@ func (c *Consistent) GetMembers() []Member {
 
 // AverageLoad exposes the current average load.
 func (c *Consistent) AverageLoad() float64 {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	return c.averageLoad()
+}
+
+func (c *Consistent) averageLoad() float64 {
+	if len(c.members) == 0 {
+		return 0
+	}
+
 	avgLoad := float64(c.partitionCount/uint64(len(c.members))) * c.config.Load
 	return math.Ceil(avgLoad)
 }
 
 func (c *Consistent) distributeWithLoad(partID, idx int, partitions map[int]*Member, loads map[string]float64) {
-	avgLoad := c.AverageLoad()
+	avgLoad := c.averageLoad()
 	var count int
 	for {
 		count++
@@ -285,6 +311,11 @@ func (c *Consistent) GetPartitionOwner(partID int) Member {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
+	return c.getPartitionOwner(partID)
+}
+
+// getPartitionOwner returns the owner of the given partition. It's not thread-safe.
+func (c *Consistent) getPartitionOwner(partID int) Member {
 	member, ok := c.partitions[partID]
 	if !ok {
 		return nil
@@ -303,15 +334,15 @@ func (c *Consistent) getClosestN(partID, count int) ([]Member, error) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
-	res := []Member{}
+	var res []Member
 	if count > len(c.members) {
 		return res, ErrInsufficientMemberCount
 	}
 
 	var ownerKey uint64
-	owner := c.GetPartitionOwner(partID)
+	owner := c.getPartitionOwner(partID)
 	// Hash and sort all the names.
-	keys := []uint64{}
+	var keys []uint64
 	kmems := make(map[uint64]*Member)
 	for name, member := range c.members {
 		key := c.hasher.Sum64([]byte(name))
