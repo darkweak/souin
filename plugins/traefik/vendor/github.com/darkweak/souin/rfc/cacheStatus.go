@@ -53,7 +53,11 @@ func ValidateCacheControl(r *http.Response) bool {
 
 // MissCache set miss fwd
 func MissCache(set func(key, value string), req *http.Request, reason string) {
-	set("Cache-Status", fmt.Sprintf("%s; fwd=uri-miss; key=%s; detail=%s", req.Context().Value(context.CacheName), req.Context().Value(context.Key), reason))
+	key := req.Context().Value(context.Key)
+	if key == nil {
+		key = ""
+	}
+	set("Cache-Status", fmt.Sprintf("%s; fwd=uri-miss; key=%s; detail=%s", req.Context().Value(context.CacheName), key, reason))
 }
 
 // HitStaleCache set hit and manage age header too
@@ -61,7 +65,7 @@ func HitStaleCache(h *http.Header, ttl time.Duration) {
 	h.Set("Cache-Status", h.Get("Cache-Status")+"; fwd=stale")
 }
 
-func manageAge(h *http.Header, ttl time.Duration, cacheName string) {
+func manageAge(h *http.Header, ttl time.Duration, cacheName, key string) {
 	utc1 := time.Now().UTC()
 	dh := h.Get("Date")
 	if dh == "" {
@@ -85,7 +89,7 @@ func manageAge(h *http.Header, ttl time.Duration, cacheName string) {
 	age := strconv.Itoa(cage)
 	h.Set("Age", age)
 	ttlValue := strconv.Itoa(int(ttl.Seconds()) - cage)
-	h.Set("Cache-Status", cacheName+"; hit; ttl="+ttlValue)
+	h.Set("Cache-Status", cacheName+"; hit; ttl="+ttlValue+"; key="+key)
 }
 
 func setMalformedHeader(headers *http.Header, header, cacheName string) {
@@ -97,7 +101,7 @@ func SetCacheStatusEventually(resp *http.Response) *http.Response {
 	h := resp.Header
 	cacheName := resp.Request.Context().Value(context.CacheName).(string)
 	validateEmptyHeaders(&h, cacheName)
-	manageAge(&h, 0, cacheName)
+	manageAge(&h, 0, cacheName, resp.Request.Context().Value(context.Key).(string))
 
 	resp.Header = h
 	return resp

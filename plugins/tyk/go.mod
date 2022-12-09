@@ -6,7 +6,7 @@ require (
 	github.com/HdrHistogram/hdrhistogram-go v1.1.2 // indirect
 	github.com/TykTechnologies/tyk v1.9.2-0.20220905191535-f610431668e4
 	github.com/coreos/go-systemd/v22 v22.4.0 // indirect
-	github.com/darkweak/souin v1.6.22
+	github.com/darkweak/souin v1.6.24
 	github.com/eclipse/paho.mqtt.golang v1.4.1 // indirect
 	github.com/evanphx/json-patch/v5 v5.5.0 // indirect
 	github.com/gobwas/ws v1.1.0 // indirect
@@ -50,4 +50,4 @@ require (
 	gorm.io/gorm v1.23.9 // indirect
 )
 
-replace github.com/darkweak/souin v1.6.22 => ../..
+replace github.com/darkweak/souin v1.6.24 => ../..
