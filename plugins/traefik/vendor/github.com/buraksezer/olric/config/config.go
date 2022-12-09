@@ -1,4 +1,4 @@
-// Copyright 2018-2021 Burak Sezer
+// Copyright 2018-2022 Burak Sezer
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -24,7 +24,6 @@ import (
 	"time"
 
 	"github.com/buraksezer/olric/hasher"
-	"github.com/buraksezer/olric/serializer"
 	"github.com/hashicorp/memberlist"
 )
 
@@ -113,9 +112,6 @@ const (
 	// DefaultJoinRetryInterval denotes a time gap between sequential join attempts.
 	DefaultJoinRetryInterval = time.Second
 
-	// DefaultLeaveTimeout is the default value of maximum amount of time before
-	DefaultLeaveTimeout = 5 * time.Second
-
 	// DefaultMaxJoinAttempts denotes a maximum number of failed join attempts
 	// before forming a standalone cluster.
 	DefaultMaxJoinAttempts = 10
@@ -139,9 +135,24 @@ const (
 	// DefaultRoutingTablePushInterval is interval between routing table push events.
 	DefaultRoutingTablePushInterval = time.Minute
 
+	// DefaultTriggerBalancerInterval is interval between two sequential call of balancer worker.
+	DefaultTriggerBalancerInterval = 15 * time.Second
+
 	// DefaultCheckEmptyFragmentsInterval is the default value of interval between
-	// two sequential call of empty fragment cleaner.
+	// two sequential call of empty fragment cleaner. It's one minute by default.
 	DefaultCheckEmptyFragmentsInterval = time.Minute
+
+	// DefaultTriggerCompactionInterval is the default value of interval between
+	// two sequential call of compaction workers. The compaction worker works until
+	// its work is done. It's 10 minutes by default.
+	DefaultTriggerCompactionInterval = 10 * time.Minute
+
+	// DefaultLeaveTimeout is the default value of maximum amount of time before
+	DefaultLeaveTimeout = 5 * time.Second
+
+	DefaultReadQuorum        = 1
+	DefaultWriteQuorum       = 1
+	DefaultMemberCountQuorum = 1
 
 	// DefaultKeepAlivePeriod is the default value of TCP keepalive. It's 300 seconds.
 	// This option is useful in order to detect dead peers (clients that cannot
@@ -179,12 +190,12 @@ type Config struct {
 	Client *Client
 
 	// KeepAlivePeriod denotes whether the operating system should send
-	// keep-alive messages on the connection. This option is useful in order to
-	// detect dead peers (clients that cannot be reached even if they look
-	// connected). Moreover, if there is network equipment between clients and
-	// servers that need to see some traffic in order to take the connection open,
-	// the option will prevent unexpected connection closed events.
+	// keep-alive messages on the connection.
 	KeepAlivePeriod time.Duration
+
+	// IdleClose will automatically close idle connections after the specified duration.
+	// Use zero to disable this feature.
+	IdleClose time.Duration
 
 	// Timeout for bootstrap control
 	//
@@ -195,8 +206,13 @@ type Config struct {
 	// bootstrapping status without blocking indefinitely.
 	BootstrapTimeout time.Duration
 
-	// RoutingTablePushInterval is interval between routing table push events.
+	// Coordinator member pushes the routing table to cluster members in the case of
+	// node join or left events. It also pushes the table periodically. RoutingTablePushInterval
+	// is the interval between subsequent calls. Default is 1 minute.
 	RoutingTablePushInterval time.Duration
+
+	// TriggerBalancerInterval is interval between two sequential call of balancer worker.
+	TriggerBalancerInterval time.Duration
 
 	// The list of host:port which are used by memberlist for discovery.
 	// Don't confuse it with Name.
@@ -227,11 +243,19 @@ type Config struct {
 	// load for a server in the cluster. Keep it small.
 	LoadFactor float64
 
-	// Default hasher is github.com/cespare/xxhash
-	Hasher hasher.Hasher
+	// Olric can send push cluster events to cluster.events channel. Available cluster events:
+	//
+	// * node-join-event
+	// * node-left-event
+	// * fragment-migration-event
+	// * fragment-received-event
+	//
+	// If you want to receive these events, set true to EnableClusterEventsChannel and subscribe to
+	// cluster.events channel. Default is false.
+	EnableClusterEventsChannel bool
 
-	// Default Serializer implementation uses gob for encoding/decoding.
-	Serializer serializer.Serializer
+	// Default hasher is github.com/cespare/xxhash/v2
+	Hasher hasher.Hasher
 
 	// LogOutput is the writer where logs should be sent. If this is not
 	// set, logging will go to stderr by default. You cannot specify both LogOutput
@@ -253,7 +277,7 @@ type Config struct {
 	// cluster.
 	JoinRetryInterval time.Duration
 
-	// MaxJoinAttempts denotes the maximum number of attemps to join an existing
+	// MaxJoinAttempts denotes the maximum number of attempts to join an existing
 	// cluster before forming a new one.
 	MaxJoinAttempts int
 
@@ -295,9 +319,6 @@ type Config struct {
 	// You have to use NewMemberlistConfig to create a new one.
 	// Then, you may need to modify it to tune for your environment.
 	MemberlistConfig *memberlist.Config
-
-	// StorageEngines contains storage engine configuration and their implementations.
-	StorageEngines *StorageEngines
 }
 
 // Validate finds errors in the current configuration.
@@ -353,10 +374,6 @@ func (c *Config) Validate() error {
 		return err
 	}
 
-	if err := c.StorageEngines.Validate(); err != nil {
-		return fmt.Errorf("failed to validate storage engine configuration: %w", err)
-	}
-
 	switch c.LogLevel {
 	case LogLevelDebug, LogLevelWarn, LogLevelInfo, LogLevelError:
 	default:
@@ -382,13 +399,12 @@ func (c *Config) Sanitize() error {
 
 	if c.Logger == nil {
 		c.Logger = log.New(c.LogOutput, "", log.LstdFlags)
+	} else {
+		c.Logger.SetOutput(c.LogOutput)
 	}
 
 	if c.Hasher == nil {
 		c.Hasher = hasher.NewDefaultHasher()
-	}
-	if c.Serializer == nil {
-		c.Serializer = serializer.NewGobSerializer()
 	}
 
 	if c.BindAddr == "" {
@@ -413,6 +429,18 @@ func (c *Config) Sanitize() error {
 	if c.ReplicaCount == 0 {
 		c.ReplicaCount = MinimumReplicaCount
 	}
+
+	if c.ReadQuorum == 0 {
+		c.ReadQuorum = DefaultReadQuorum
+	}
+	if c.WriteQuorum == 0 {
+		c.WriteQuorum = DefaultWriteQuorum
+	}
+
+	if c.MemberCountQuorum == 0 {
+		c.MemberCountQuorum = DefaultMemberCountQuorum
+	}
+
 	if c.MemberlistConfig == nil {
 		m := memberlist.DefaultLocalConfig()
 		// hostname is assigned to memberlist.BindAddr
@@ -422,10 +450,10 @@ func (c *Config) Sanitize() error {
 		c.MemberlistConfig = m
 	}
 
-	if c.BootstrapTimeout == 0*time.Second {
+	if c.BootstrapTimeout == 0 {
 		c.BootstrapTimeout = DefaultBootstrapTimeout
 	}
-	if c.JoinRetryInterval == 0*time.Second {
+	if c.JoinRetryInterval == 0 {
 		c.JoinRetryInterval = DefaultJoinRetryInterval
 	}
 	if c.MaxJoinAttempts == 0 {
@@ -434,15 +462,25 @@ func (c *Config) Sanitize() error {
 	if c.LeaveTimeout == 0 {
 		c.LeaveTimeout = DefaultLeaveTimeout
 	}
-	if c.RoutingTablePushInterval == 0*time.Second {
+
+	if c.RoutingTablePushInterval == 0 {
 		c.RoutingTablePushInterval = DefaultRoutingTablePushInterval
 	}
-	if c.KeepAlivePeriod == 0*time.Second {
+
+	if c.TriggerBalancerInterval == 0 {
+		c.TriggerBalancerInterval = DefaultTriggerBalancerInterval
+	}
+
+	if c.KeepAlivePeriod == 0 {
 		c.KeepAlivePeriod = DefaultKeepAlivePeriod
 	}
 
 	if c.Client == nil {
 		c.Client = NewClient()
+	}
+
+	if c.DMaps == nil {
+		c.DMaps = &DMaps{}
 	}
 
 	if err := c.Client.Sanitize(); err != nil {
@@ -453,14 +491,13 @@ func (c *Config) Sanitize() error {
 		return fmt.Errorf("failed to sanitize DMap configuration: %w", err)
 	}
 
-	if err := c.StorageEngines.Sanitize(); err != nil {
-		return fmt.Errorf("failed to sanitize storage engine configuration: %w", err)
-	}
 	return nil
 }
 
-// New returns a Config with sane defaults.
-// It takes an env parameter used by memberlist: local, lan and wan.
+// New returns a Config with sane defaults. If you change a configuration parameter,
+// please run Sanitize and Validate functions respectively.
+//
+// New takes an env parameter used by memberlist: local, lan and wan.
 //
 // local:
 //
@@ -493,7 +530,6 @@ func New(env string) *Config {
 		MemberCountQuorum: 1,
 		Peers:             []string{},
 		DMaps:             &DMaps{},
-		StorageEngines:    NewStorageEngine(),
 	}
 
 	m, err := NewMemberlistConfig(env)

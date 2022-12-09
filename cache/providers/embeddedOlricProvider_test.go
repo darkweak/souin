@@ -39,7 +39,6 @@ func getEmbeddedOlricWithoutYAML(key string) (types.AbstractProviderInterface, c
 func TestIShouldBeAbleToReadAndWriteDataInEmbeddedOlric(t *testing.T) {
 	client, u := getEmbeddedOlricClientAndMatchedURL("Test")
 	_ = client.Set("Test", []byte(EMBEDDEDOLRICVALUE), u, time.Duration(10)*time.Second)
-	time.Sleep(3 * time.Second)
 	res := client.Get("Test")
 	if EMBEDDEDOLRICVALUE != string(res) {
 		errors.GenerateError(t, fmt.Sprintf("%s not corresponding to %s", res, EMBEDDEDOLRICVALUE))

@@ -1,4 +1,4 @@
-// Copyright 2018-2021 Burak Sezer
+// Copyright 2018-2022 Burak Sezer
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@ import (
 	"github.com/buraksezer/consistent"
 	"github.com/buraksezer/olric/internal/discovery"
 	"github.com/buraksezer/olric/internal/protocol"
-	"github.com/vmihailenco/msgpack"
 )
 
 func (r *RoutingTable) distributePrimaryCopies(partID uint64) []discovery.Member {
@@ -45,10 +44,11 @@ func (r *RoutingTable) distributePrimaryCopies(partID uint64) []discovery.Member
 			r.log.V(6).Printf("[DEBUG] Failed to find %s in the cluster: %v", owner, err)
 			owners = append(owners[:i], owners[i+1:]...)
 			i--
+			r.log.V(3).Printf("[INFO] Member: %s has been deleted from the primary owners list of PartID: %v", owner.String(), partID)
 			continue
 		}
 		if !owner.CompareByID(current) {
-			r.log.V(4).Printf("[WARN] One of the partitions owners is probably re-joined: %s", current)
+			r.log.V(3).Printf("[WARN] One of the partitions owners is probably re-joined: %s", current)
 			owners = append(owners[:i], owners[i+1:]...)
 			i--
 			continue
@@ -58,22 +58,24 @@ func (r *RoutingTable) distributePrimaryCopies(partID uint64) []discovery.Member
 	// Prune empty nodes
 	for i := 0; i < len(owners); i++ {
 		owner := owners[i]
-		req := protocol.NewSystemMessage(protocol.OpLengthOfPart)
-		req.SetExtra(protocol.LengthOfPartExtra{PartID: partID})
-		res, err := r.requestTo(owner.String(), req)
+		cmd := protocol.NewLengthOfPart(partID).Command(r.ctx)
+		rc := r.client.Get(owner.String())
+		err := rc.Process(r.ctx, cmd)
 		if err != nil {
-			r.log.V(3).Printf("[ERROR] Failed to check key count on partition: %d: %v", partID, err)
-			// Pass it. If the node is gone, memberlist package will notify us.
+			r.log.V(6).Printf("[DEBUG] Failed to check key count on backup "+
+				"partition: %d: %v", partID, err)
+			// Pass it. If the node is down, memberlist package will send a leave event.
 			continue
 		}
 
-		var count int32
-		err = msgpack.Unmarshal(res.Value(), &count)
+		count, err := cmd.Result()
 		if err != nil {
-			// This may be a temporary issue.
-			// Pass it. If the node is gone, memberlist package will notify us.
+			r.log.V(6).Printf("[DEBUG] Failed to check key count on backup "+
+				"partition: %d: %v", partID, err)
+			// Pass it. If the node is down, memberlist package will send a leave event.
 			continue
 		}
+
 		if count == 0 {
 			// Empty partition. Delete it from ownership list.
 			owners = append(owners[:i], owners[i+1:]...)
@@ -149,6 +151,7 @@ func (r *RoutingTable) distributeBackups(partID uint64) []discovery.Member {
 			// Delete it.
 			owners = append(owners[:i], owners[i+1:]...)
 			i--
+			r.log.V(6).Printf("[INFO] Member: %s has been deleted from the backup owners list of PartID: %v", backup.String(), partID)
 			continue
 		}
 		if !backup.CompareByID(cur) {
@@ -163,25 +166,20 @@ func (r *RoutingTable) distributeBackups(partID uint64) []discovery.Member {
 	// Prune empty nodes
 	for i := 0; i < len(owners); i++ {
 		backup := owners[i]
-		req := protocol.NewSystemMessage(protocol.OpLengthOfPart)
-		req.SetExtra(protocol.LengthOfPartExtra{
-			PartID: partID,
-			Backup: true,
-		})
-		res, err := r.requestTo(backup.String(), req)
+		cmd := protocol.NewLengthOfPart(partID).SetReplica().Command(r.ctx)
+		rc := r.client.Get(backup.String())
+		err := rc.Process(r.ctx, cmd)
 		if err != nil {
-			r.log.V(3).Printf("[ERROR] Failed to check key count on backup "+
+			r.log.V(6).Printf("[DEBUG] Failed to check key count on backup "+
 				"partition: %d: %v", partID, err)
 			// Pass it. If the node is down, memberlist package will send a leave event.
 			continue
 		}
-
-		var count int32
-		err = msgpack.Unmarshal(res.Value(), &count)
+		count, err := cmd.Result()
 		if err != nil {
-			r.log.V(3).Printf("[ERROR] Failed to unmarshal key count "+
-				"while checking replica partition: %d: %v", partID, err)
-			// This may be a temporary event. Pass it.
+			r.log.V(6).Printf("[DEBUG] Failed to check key count on backup "+
+				"partition: %d: %v", partID, err)
+			// Pass it. If the node is down, memberlist package will send a leave event.
 			continue
 		}
 
@@ -196,7 +194,7 @@ func (r *RoutingTable) distributeBackups(partID uint64) []discovery.Member {
 			//   a new node joined. Then, we transfer the ownership safely.
 			// * During this incident, a node owns a primary and backup replicas at the same time.
 			if !isOwner(backup, newOwners) {
-				r.log.V(3).Printf("[WARN] %s still hosts backup replica "+
+				r.log.V(3).Printf("[WARN] %s hosts primary and replica copies "+
 					"for PartID: %d", backup, partID)
 			}
 			continue

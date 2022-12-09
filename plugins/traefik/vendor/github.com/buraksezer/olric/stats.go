@@ -1,4 +1,4 @@
-// Copyright 2018-2021 Burak Sezer
+// Copyright 2018-2022 Burak Sezer
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,18 +15,19 @@
 package olric
 
 import (
+	"encoding/json"
 	"os"
 	"runtime"
+	"strings"
 
 	"github.com/buraksezer/olric/internal/cluster/partitions"
 	"github.com/buraksezer/olric/internal/discovery"
 	"github.com/buraksezer/olric/internal/dmap"
-	"github.com/buraksezer/olric/internal/dtopic"
 	"github.com/buraksezer/olric/internal/protocol"
-	"github.com/buraksezer/olric/internal/transport"
-	"github.com/buraksezer/olric/pkg/neterrors"
+	"github.com/buraksezer/olric/internal/pubsub"
+	"github.com/buraksezer/olric/internal/server"
 	"github.com/buraksezer/olric/stats"
-	"github.com/vmihailenco/msgpack"
+	"github.com/tidwall/redcon"
 )
 
 func toMember(member discovery.Member) stats.Member {
@@ -65,7 +66,8 @@ func (db *Olric) collectPartitionMetrics(partID uint64, part *partitions.Partiti
 		tmp.SlabInfo.Allocated = st.Allocated
 		tmp.SlabInfo.Garbage = st.Garbage
 		tmp.SlabInfo.Inuse = st.Inuse
-		p.DMaps[name.(string)] = tmp
+		dmapName := strings.TrimPrefix(name.(string), "dmap.")
+		p.DMaps[dmapName] = tmp
 		return true
 	})
 	return p
@@ -92,11 +94,11 @@ func (db *Olric) stats(cfg statsConfig) stats.Stats {
 		Backups:            make(map[stats.PartitionID]stats.Partition),
 		ClusterMembers:     make(map[stats.MemberID]stats.Member),
 		Network: stats.Network{
-			ConnectionsTotal:   transport.ConnectionsTotal.Read(),
-			CurrentConnections: transport.CurrentConnections.Read(),
-			WrittenBytesTotal:  transport.WrittenBytesTotal.Read(),
-			ReadBytesTotal:     transport.ReadBytesTotal.Read(),
-			CommandsTotal:      transport.CommandsTotal.Read(),
+			ConnectionsTotal:   server.ConnectionsTotal.Read(),
+			CurrentConnections: server.CurrentConnections.Read(),
+			WrittenBytesTotal:  server.WrittenBytesTotal.Read(),
+			ReadBytesTotal:     server.ReadBytesTotal.Read(),
+			CommandsTotal:      server.CommandsTotal.Read(),
 		},
 		DMaps: stats.DMaps{
 			EntriesTotal: dmap.EntriesTotal.Read(),
@@ -106,10 +108,12 @@ func (db *Olric) stats(cfg statsConfig) stats.Stats {
 			GetHits:      dmap.GetHits.Read(),
 			EvictedTotal: dmap.EvictedTotal.Read(),
 		},
-		DTopics: stats.DTopics{
-			PublishedTotal:   dtopic.PublishedTotal.Read(),
-			CurrentListeners: dtopic.CurrentListeners.Read(),
-			ListenersTotal:   dtopic.ListenersTotal.Read(),
+		PubSub: stats.PubSub{
+			PublishedTotal:      pubsub.PublishedTotal.Read(),
+			CurrentSubscribers:  pubsub.CurrentSubscribers.Read(),
+			SubscribersTotal:    pubsub.SubscribersTotal.Read(),
+			CurrentPSubscribers: pubsub.CurrentPSubscribers.Read(),
+			PSubscribersTotal:   pubsub.PSubscribersTotal.Read(),
 		},
 	}
 
@@ -146,42 +150,22 @@ func (db *Olric) stats(cfg statsConfig) stats.Stats {
 	return s
 }
 
-func (db *Olric) statsOperation(w, r protocol.EncodeDecoder) {
-	extra := r.Extra().(protocol.StatsExtra)
-	cfg := statsConfig{
-		CollectRuntime: extra.CollectRuntime,
-	}
-	s := db.stats(cfg)
-	value, err := msgpack.Marshal(s)
+func (db *Olric) statsCommandHandler(conn redcon.Conn, cmd redcon.Command) {
+	statsCmd, err := protocol.ParseStatsCommand(cmd)
 	if err != nil {
-		neterrors.ErrorResponse(w, err)
+		protocol.WriteError(conn, err)
 		return
 	}
-	w.SetStatus(protocol.StatusOK)
-	w.SetValue(value)
-}
 
-type statsConfig struct {
-	CollectRuntime bool
-}
-
-type StatsOption func(*statsConfig)
-
-func CollectRuntime() StatsOption {
-	return func(cfg *statsConfig) {
-		cfg.CollectRuntime = true
+	sc := statsConfig{}
+	if statsCmd.CollectRuntime {
+		sc.CollectRuntime = true
 	}
-}
-
-// Stats exposes some useful metrics to monitor an Olric node.
-func (db *Olric) Stats(options ...StatsOption) (stats.Stats, error) {
-	if err := db.isOperable(); err != nil {
-		// this node is not bootstrapped yet.
-		return stats.Stats{}, err
+	memberStats := db.stats(sc)
+	data, err := json.Marshal(memberStats)
+	if err != nil {
+		protocol.WriteError(conn, err)
+		return
 	}
-	var cfg statsConfig
-	for _, opt := range options {
-		opt(&cfg)
-	}
-	return db.stats(cfg), nil
+	conn.WriteBulk(data)
 }

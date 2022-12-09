@@ -1,6 +1,7 @@
 package providers
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -8,9 +9,7 @@ import (
 	"time"
 
 	"github.com/buraksezer/olric"
-	"github.com/buraksezer/olric/client"
 	"github.com/buraksezer/olric/config"
-	"github.com/buraksezer/olric/query"
 	"github.com/darkweak/souin/cache/types"
 	t "github.com/darkweak/souin/configurationtypes"
 	"go.uber.org/zap"
@@ -18,35 +17,29 @@ import (
 
 // Olric provider type
 type Olric struct {
-	*client.Client
+	*olric.ClusterClient
 	dm            *sync.Pool
 	stale         time.Duration
 	logger        *zap.Logger
+	addresses     []string
 	reconnecting  bool
-	configuration client.Config
+	configuration config.Client
 }
 
 // OlricConnectionFactory function create new Olric instance
 func OlricConnectionFactory(configuration t.AbstractConfigurationInterface) (types.AbstractReconnectProvider, error) {
-	config := client.Config{
-		Servers: []string{configuration.GetDefaultCache().GetOlric().URL},
-		Client: &config.Client{
-			DialTimeout: time.Second,
-			KeepAlive:   time.Second,
-			MaxConn:     10,
-		},
-	}
-	c, err := client.New(&config)
+	c, err := olric.NewClusterClient([]string{configuration.GetDefaultCache().GetOlric().URL})
 	if err != nil {
 		configuration.GetLogger().Sugar().Errorf("Impossible to connect to Olric, %v", err)
 	}
 
 	return &Olric{
-		Client:        c,
+		ClusterClient: c,
 		dm:            nil,
 		stale:         configuration.GetDefaultCache().GetStale(),
 		logger:        configuration.GetLogger(),
-		configuration: config,
+		configuration: config.Client{},
+		addresses:     []string{configuration.GetDefaultCache().GetOlric().URL},
 	}, nil
 }
 
@@ -56,21 +49,10 @@ func (provider *Olric) ListKeys() []string {
 		provider.logger.Sugar().Error("Impossible to list the olric keys while reconnecting.")
 		return []string{}
 	}
-	dm := provider.dm.Get().(*client.DMap)
+	dm := provider.dm.Get().(olric.DMap)
 	defer provider.dm.Put(dm)
-	c, err := dm.Query(query.M{
-		"$onKey": query.M{
-			"$regexMatch": "",
-			"$options": query.M{
-				"$onValue": query.M{
-					"$ignore": true,
-				},
-			},
-		},
-	})
-	if c != nil {
-		defer c.Close()
-	}
+
+	records, err := dm.Scan(context.Background())
 	if err != nil {
 		if !provider.reconnecting {
 			go provider.Reconnect()
@@ -80,10 +62,10 @@ func (provider *Olric) ListKeys() []string {
 	}
 
 	keys := []string{}
-	_ = c.Range(func(key string, _ interface{}) bool {
-		keys = append(keys, key)
-		return true
-	})
+	for records.Next() {
+		keys = append(keys, records.Key())
+	}
+	records.Close()
 
 	return keys
 }
@@ -94,16 +76,10 @@ func (provider *Olric) Prefix(key string, req *http.Request) []byte {
 		provider.logger.Sugar().Error("Impossible to get the olric keys by prefix while reconnecting.")
 		return []byte{}
 	}
-	dm := provider.dm.Get().(*client.DMap)
+	dm := provider.dm.Get().(olric.DMap)
 	defer provider.dm.Put(dm)
-	c, err := dm.Query(query.M{
-		"$onKey": query.M{
-			"$regexMatch": "^" + key + "({|$)",
-		},
-	})
-	if c != nil {
-		defer c.Close()
-	}
+
+	records, err := dm.Scan(context.Background(), olric.Match("^"+key+"({|$)"))
 	if err != nil {
 		if !provider.reconnecting {
 			go provider.Reconnect()
@@ -112,17 +88,14 @@ func (provider *Olric) Prefix(key string, req *http.Request) []byte {
 		return []byte{}
 	}
 
-	res := []byte{}
-	_ = c.Range(func(k string, v interface{}) bool {
-		if varyVoter(key, req, k) {
-			res = v.([]byte)
-			return false
+	for records.Next() {
+		if varyVoter(key, req, records.Key()) {
+			return provider.Get(records.Key())
 		}
+	}
+	records.Close()
 
-		return true
-	})
-
-	return res
+	return []byte{}
 }
 
 // Get method returns the populated response if exists, empty response then
@@ -131,9 +104,9 @@ func (provider *Olric) Get(key string) []byte {
 		provider.logger.Sugar().Error("Impossible to get the olric key while reconnecting.")
 		return []byte{}
 	}
-	dm := provider.dm.Get().(*client.DMap)
+	dm := provider.dm.Get().(olric.DMap)
 	defer provider.dm.Put(dm)
-	val2, err := dm.Get(key)
+	res, err := dm.Get(context.Background(), key)
 
 	if err != nil {
 		if !errors.Is(err, olric.ErrKeyNotFound) && !errors.Is(err, olric.ErrKeyTooLarge) && !provider.reconnecting {
@@ -142,7 +115,8 @@ func (provider *Olric) Get(key string) []byte {
 		return []byte{}
 	}
 
-	return val2.([]byte)
+	val, _ := res.Byte()
+	return val
 }
 
 // Set method will store the response in Olric provider
@@ -155,9 +129,10 @@ func (provider *Olric) Set(key string, value []byte, url t.URL, duration time.Du
 		duration = url.TTL.Duration
 	}
 
-	dm := provider.dm.Get().(*client.DMap)
+	fmt.Println("STORE IN OLRIC")
+	dm := provider.dm.Get().(olric.DMap)
 	defer provider.dm.Put(dm)
-	if err := dm.PutEx(key, value, duration); err != nil {
+	if err := dm.Put(context.Background(), key, value, olric.EX(duration)); err != nil {
 		if !provider.reconnecting {
 			go provider.Reconnect()
 		}
@@ -165,7 +140,7 @@ func (provider *Olric) Set(key string, value []byte, url t.URL, duration time.Du
 		return err
 	}
 
-	if err := dm.PutEx(stalePrefix+key, value, provider.stale+duration); err != nil {
+	if err := dm.Put(context.Background(), stalePrefix+key, value, olric.EX(provider.stale+duration)); err != nil {
 		if !provider.reconnecting {
 			go provider.Reconnect()
 		}
@@ -181,14 +156,12 @@ func (provider *Olric) Delete(key string) {
 		provider.logger.Sugar().Error("Impossible to delete the olric key while reconnecting.")
 		return
 	}
-	go func() {
-		dm := provider.dm.Get().(*client.DMap)
-		defer provider.dm.Put(dm)
-		err := dm.Delete(key)
-		if err != nil {
-			provider.logger.Sugar().Errorf("Impossible to delete value into Olric, %v", err)
-		}
-	}()
+	dm := provider.dm.Get().(olric.DMap)
+	defer provider.dm.Put(dm)
+	_, err := dm.Delete(context.Background(), key)
+	if err != nil {
+		provider.logger.Sugar().Errorf("Impossible to delete value into Olric, %v", err)
+	}
 }
 
 // DeleteMany method will delete the responses in Olric provider if exists corresponding to the regex key param
@@ -197,40 +170,33 @@ func (provider *Olric) DeleteMany(key string) {
 		provider.logger.Sugar().Error("Impossible to delete the olric keys while reconnecting.")
 		return
 	}
-	go func() {
-		dm := provider.dm.Get().(*client.DMap)
-		defer provider.dm.Put(dm)
-		c, err := dm.Query(query.M{
-			"$onKey": query.M{
-				"$regexMatch": key,
-				"$options": query.M{
-					"$onValue": query.M{
-						"$ignore": true,
-					},
-				},
-			},
-		})
 
-		if c == nil || err != nil {
-			return
+	dm := provider.dm.Get().(olric.DMap)
+	defer provider.dm.Put(dm)
+	records, err := dm.Scan(context.Background(), olric.Match(key))
+	if err != nil {
+		if !provider.reconnecting {
+			go provider.Reconnect()
 		}
+		provider.logger.Sugar().Error("An error occurred while trying to list keys in Olric: %s\n", err)
+		return
+	}
 
-		err = c.Range(func(key string, _ interface{}) bool {
-			provider.Delete(key)
-			return true
-		})
+	keys := []string{}
+	for records.Next() {
+		keys = append(keys, records.Key())
+	}
+	records.Close()
 
-		if err != nil {
-			provider.logger.Sugar().Errorf("Impossible to delete values into Olric, %v", err)
-		}
-	}()
+	_, _ = dm.Delete(context.Background(), keys...)
 }
 
 // Init method will initialize Olric provider if needed
 func (provider *Olric) Init() error {
 	dm := sync.Pool{
 		New: func() interface{} {
-			return provider.Client.NewDMap("souin-map")
+			dmap, _ := provider.ClusterClient.NewDMap("souin-map")
+			return dmap
 		},
 	}
 
@@ -240,7 +206,7 @@ func (provider *Olric) Init() error {
 
 // Reset method will reset or close provider
 func (provider *Olric) Reset() error {
-	provider.Client.Close()
+	provider.ClusterClient.Close(context.Background())
 
 	return nil
 }
@@ -248,8 +214,8 @@ func (provider *Olric) Reset() error {
 func (provider *Olric) Reconnect() {
 	provider.reconnecting = true
 
-	if c, err := client.New(&provider.configuration); err == nil && c != nil {
-		provider.Client = c
+	if c, err := olric.NewClusterClient(provider.addresses, olric.WithConfig(&provider.configuration)); err == nil && c != nil {
+		provider.ClusterClient = c
 		provider.reconnecting = false
 	} else {
 		time.Sleep(10 * time.Second)

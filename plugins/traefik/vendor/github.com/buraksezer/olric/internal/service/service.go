@@ -1,4 +1,4 @@
-// Copyright 2018-2021 Burak Sezer
+// Copyright 2018-2022 Burak Sezer
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,11 +16,10 @@ package service
 
 import (
 	"context"
-	"github.com/buraksezer/olric/internal/protocol"
 )
 
 type Service interface {
 	Start() error
-	RegisterOperations(map[protocol.OpCode]func(w, r protocol.EncodeDecoder))
+	RegisterHandlers()
 	Shutdown(ctx context.Context) error
 }

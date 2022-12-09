@@ -1,4 +1,4 @@
-// Copyright 2018-2021 Burak Sezer
+// Copyright 2018-2022 Burak Sezer
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ type Fragment interface {
 	Name() string
 	Stats() storage.Stats
 	Length() int
-	Move(partID uint64, kind Kind, name string, owner discovery.Member) error
+	Move(*Partition, string, []discovery.Member) error
 	Compaction() (bool, error)
 	Destroy() error
 	Close() error

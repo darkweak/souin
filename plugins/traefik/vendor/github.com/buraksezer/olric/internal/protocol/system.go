@@ -1,4 +1,4 @@
-// Copyright 2018-2021 Burak Sezer
+// Copyright 2018-2022 Burak Sezer
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,168 +15,190 @@
 package protocol
 
 import (
-	"bytes"
-	"encoding/binary"
+	"context"
 	"fmt"
+	"strconv"
+
+	"github.com/buraksezer/olric/internal/util"
+	"github.com/go-redis/redis/v8"
+	"github.com/tidwall/redcon"
 )
 
-const SystemMessageHeaderSize uint32 = 3
-
-const (
-	MagicSystemReq MagicCode = 0xE8
-	MagicSystemRes MagicCode = 0xE9
-)
-
-// Header defines a message header for both request and response.
-type SystemMessageHeader struct {
-	Op         OpCode     // 1
-	ExtraLen   uint8      // 1
-	StatusCode StatusCode // 1
+type Ping struct {
+	Message string
 }
 
-type SystemMessage struct {
-	Header
-	SystemMessageHeader
-	extra interface{}
-	value []byte
-	buf   *bytes.Buffer
+func NewPing() *Ping {
+	return &Ping{}
 }
 
-func NewSystemMessage(opcode OpCode) *SystemMessage {
-	return &SystemMessage{
-		Header: Header{
-			Magic:   MagicSystemReq,
-			Version: Version1,
-		},
-		SystemMessageHeader: SystemMessageHeader{
-			Op: opcode,
-		},
+func (p *Ping) SetMessage(m string) *Ping {
+	p.Message = m
+	return p
+}
+
+func (p *Ping) Command(ctx context.Context) *redis.StringCmd {
+	var args []interface{}
+	args = append(args, Generic.Ping)
+	if p.Message != "" {
+		args = append(args, p.Message)
+	}
+	return redis.NewStringCmd(ctx, args...)
+}
+
+func ParsePingCommand(cmd redcon.Command) (*Ping, error) {
+	if len(cmd.Args) < 1 {
+		return nil, errWrongNumber(cmd.Args)
+	}
+
+	p := NewPing()
+	if len(cmd.Args) == 2 {
+		p.SetMessage(util.BytesToString(cmd.Args[1]))
+	}
+	return p, nil
+}
+
+type MoveFragment struct {
+	Payload []byte
+}
+
+func NewMoveFragment(payload []byte) *MoveFragment {
+	return &MoveFragment{
+		Payload: payload,
 	}
 }
 
-func NewSystemMessageFromRequest(buf *bytes.Buffer) *SystemMessage {
-	return &SystemMessage{
-		Header: Header{
-			Magic:         MagicSystemReq,
-			Version:       Version1,
-			MessageLength: uint32(buf.Len()),
-		},
-		SystemMessageHeader: SystemMessageHeader{},
-		buf:                 buf,
+func (m *MoveFragment) Command(ctx context.Context) *redis.StatusCmd {
+	var args []interface{}
+	args = append(args, Internal.MoveFragment)
+	args = append(args, m.Payload)
+	return redis.NewStatusCmd(ctx, args...)
+}
+
+func ParseMoveFragmentCommand(cmd redcon.Command) (*MoveFragment, error) {
+	if len(cmd.Args) < 2 {
+		return nil, errWrongNumber(cmd.Args)
+	}
+
+	return NewMoveFragment(cmd.Args[1]), nil
+}
+
+type UpdateRouting struct {
+	Payload       []byte
+	CoordinatorID uint64
+}
+
+func NewUpdateRouting(payload []byte, coordinatorID uint64) *UpdateRouting {
+	return &UpdateRouting{
+		Payload:       payload,
+		CoordinatorID: coordinatorID,
 	}
 }
 
-func (s *SystemMessage) Response(buf *bytes.Buffer) EncodeDecoder {
-	msg := &SystemMessage{
-		Header: Header{
-			Magic:   MagicSystemRes,
-			Version: Version1,
-		},
-		SystemMessageHeader: SystemMessageHeader{
-			Op: s.Op,
-		},
-		buf: s.buf,
+func (u *UpdateRouting) Command(ctx context.Context) *redis.StringCmd {
+	var args []interface{}
+	args = append(args, Internal.UpdateRouting)
+	args = append(args, u.Payload)
+	args = append(args, u.CoordinatorID)
+	return redis.NewStringCmd(ctx, args...)
+}
+
+func ParseUpdateRoutingCommand(cmd redcon.Command) (*UpdateRouting, error) {
+	if len(cmd.Args) < 2 {
+		return nil, errWrongNumber(cmd.Args)
 	}
-	if buf != nil {
-		msg.buf = buf
-	} else {
-		s.buf.Reset()
-		msg.buf = s.buf
-	}
-	msg.MessageLength = uint32(s.buf.Len())
-	return msg
-}
-
-func (s *SystemMessage) SetStatus(code StatusCode) {
-	s.StatusCode = code
-}
-
-func (s *SystemMessage) Status() StatusCode {
-	return s.StatusCode
-}
-
-func (s *SystemMessage) SetValue(value []byte) {
-	s.value = value
-}
-
-func (s *SystemMessage) Value() []byte {
-	return s.value
-}
-
-func (s *SystemMessage) OpCode() OpCode {
-	return s.Op
-}
-
-func (s *SystemMessage) SetBuffer(buf *bytes.Buffer) {
-	s.buf = buf
-}
-
-func (s *SystemMessage) Buffer() *bytes.Buffer {
-	return s.buf
-}
-
-func (s *SystemMessage) SetExtra(extra interface{}) {
-	s.extra = extra
-}
-
-func (s *SystemMessage) Extra() interface{} {
-	return s.extra
-}
-
-// Encode writes a protocol message to given TCP connection by encoding it.
-func (s *SystemMessage) Encode() error {
-	// Calculate lengths here
-	if s.extra != nil {
-		s.ExtraLen = uint8(binary.Size(s.extra))
-	}
-	s.MessageLength = SystemMessageHeaderSize + uint32(len(s.value)+int(s.ExtraLen))
-
-	err := binary.Write(s.buf, binary.BigEndian, s.Header)
+	coordinatorID, err := strconv.ParseUint(util.BytesToString(cmd.Args[2]), 10, 64)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	err = binary.Write(s.buf, binary.BigEndian, s.SystemMessageHeader)
+	return NewUpdateRouting(cmd.Args[1], coordinatorID), nil
+}
+
+type LengthOfPart struct {
+	PartID  uint64
+	Replica bool
+}
+
+func NewLengthOfPart(partID uint64) *LengthOfPart {
+	return &LengthOfPart{
+		PartID: partID,
+	}
+}
+
+func (l *LengthOfPart) SetReplica() *LengthOfPart {
+	l.Replica = true
+	return l
+}
+
+func (l *LengthOfPart) Command(ctx context.Context) *redis.IntCmd {
+	var args []interface{}
+	args = append(args, Internal.LengthOfPart)
+	args = append(args, l.PartID)
+	if l.Replica {
+		args = append(args, "RC")
+	}
+	return redis.NewIntCmd(ctx, args...)
+}
+
+func ParseLengthOfPartCommand(cmd redcon.Command) (*LengthOfPart, error) {
+	if len(cmd.Args) < 2 {
+		return nil, errWrongNumber(cmd.Args)
+	}
+	partID, err := strconv.ParseUint(util.BytesToString(cmd.Args[1]), 10, 64)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	if s.extra != nil {
-		err = binary.Write(s.buf, binary.BigEndian, s.extra)
-		if err != nil {
-			return err
+	l := NewLengthOfPart(partID)
+	if len(cmd.Args) == 3 {
+		arg := util.BytesToString(cmd.Args[2])
+		if arg == "RC" {
+			l.SetReplica()
+		} else {
+			return nil, fmt.Errorf("%w: %s", ErrInvalidArgument, arg)
 		}
 	}
 
-	_, err = s.buf.Write(s.value)
-	return err
+	return l, nil
 }
 
-func (s *SystemMessage) Decode() error {
-	err := binary.Read(s.buf, binary.BigEndian, &s.SystemMessageHeader)
-	if err != nil {
-		return err
+type Stats struct {
+	CollectRuntime bool
+}
+
+func NewStats() *Stats {
+	return &Stats{}
+}
+
+func (s *Stats) SetCollectRuntime() *Stats {
+	s.CollectRuntime = true
+	return s
+}
+
+func (s *Stats) Command(ctx context.Context) *redis.StringCmd {
+	var args []interface{}
+	args = append(args, Generic.Stats)
+	if s.CollectRuntime {
+		args = append(args, "CR")
 	}
-	if s.Magic != MagicSystemReq && s.Magic != MagicSystemRes {
-		return fmt.Errorf("invalid System message")
+	return redis.NewStringCmd(ctx, args...)
+}
+
+func ParseStatsCommand(cmd redcon.Command) (*Stats, error) {
+	if len(cmd.Args) < 1 {
+		return nil, errWrongNumber(cmd.Args)
 	}
 
-	if s.Magic == MagicSystemReq && s.ExtraLen > 0 {
-		raw := s.buf.Next(int(s.ExtraLen))
-		extra, err := loadExtras(raw, s.Op)
-		if err != nil {
-			return err
+	s := NewStats()
+	if len(cmd.Args) == 2 {
+		arg := util.BytesToString(cmd.Args[1])
+		if arg == "CR" {
+			s.SetCollectRuntime()
+		} else {
+			return nil, fmt.Errorf("%w: %s", ErrInvalidArgument, arg)
 		}
-		s.extra = extra
 	}
 
-	// There is no maximum value for BodyLen which also includes ValueLen.
-	// So our limit is available memory amount at the time of execution.
-	// Please note that maximum partition size should not exceed 50MB for a smooth operation.
-	vlen := int(s.MessageLength) - int(s.ExtraLen) - int(SystemMessageHeaderSize)
-	if vlen != 0 {
-		s.value = make([]byte, vlen)
-		copy(s.value, s.buf.Next(vlen))
-	}
-	return nil
+	return s, nil
 }

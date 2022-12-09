@@ -4,6 +4,9 @@
 *.so
 *.dylib
 
+# Vim creates this
+*.swp
+
 # Test binary, build with `go test -c`
 *.test
 
@@ -12,3 +15,10 @@
 
 # Project-local glide cache, RE: https://github.com/Masterminds/glide/issues/736
 .glide/
+
+# GoLand creates this
+.idea/
+
+# OSX creates this
+.DS_Store
+

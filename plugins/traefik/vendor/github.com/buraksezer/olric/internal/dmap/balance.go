@@ -1,4 +1,4 @@
-// Copyright 2018-2021 Burak Sezer
+// Copyright 2018-2022 Burak Sezer
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,33 +17,41 @@ package dmap
 import (
 	"errors"
 	"fmt"
-	"github.com/buraksezer/olric/pkg/neterrors"
+	"time"
 
+	"github.com/buraksezer/olric/events"
 	"github.com/buraksezer/olric/internal/cluster/partitions"
 	"github.com/buraksezer/olric/internal/protocol"
+	"github.com/buraksezer/olric/pkg/neterrors"
 	"github.com/buraksezer/olric/pkg/storage"
-	"github.com/vmihailenco/msgpack"
+	"github.com/tidwall/redcon"
+	"github.com/vmihailenco/msgpack/v5"
 )
 
 type fragmentPack struct {
-	PartID    uint64
-	Kind      partitions.Kind
-	Name      string
-	Payload   []byte
-	AccessLog map[uint64]int64
+	PartID  uint64
+	Kind    partitions.Kind
+	Name    string
+	Payload []byte
 }
 
-func (dm *DMap) selectVersionForMerge(f *fragment, hkey uint64, entry storage.Entry) (storage.Entry, error) {
+func (dm *DMap) fragmentMergeFunction(f *fragment, hkey uint64, entry storage.Entry) error {
 	current, err := f.storage.Get(hkey)
 	if errors.Is(err, storage.ErrKeyNotFound) {
-		return entry, nil
+		return f.storage.Put(hkey, entry)
 	}
 	if err != nil {
-		return nil, err
+		return err
 	}
+
 	versions := []*version{{entry: current}, {entry: entry}}
 	versions = dm.sortVersions(versions)
-	return versions[0].entry, nil
+	winner := versions[0].entry
+	if winner == current {
+		// No need to insert the winner
+		return nil
+	}
+	return f.storage.Put(hkey, winner)
 }
 
 func (dm *DMap) mergeFragments(part *partitions.Partition, fp *fragmentPack) error {
@@ -56,49 +64,9 @@ func (dm *DMap) mergeFragments(part *partitions.Partition, fp *fragmentPack) err
 	f.Lock()
 	defer f.Unlock()
 
-	// TODO: This may be useless. Check it.
-	defer part.Map().Store(fp.Name, f)
-
-	s, err := f.storage.Import(fp.Payload)
-	if err != nil {
-		return err
-	}
-
-	// Merge accessLog.
-	if dm.config != nil && dm.config.isAccessLogRequired() {
-		f.accessLog = &accessLog{
-			m: fp.AccessLog,
-		}
-	}
-
-	if f.storage.Stats().Length == 0 {
-		// DMap has no keys. Set the imported storage instance.
-		// The old one will be garbage collected.
-		f.storage = s
-		return nil
-	}
-
-	// DMap has some keys. Merge with the new one.
-	var mergeErr error
-	s.Range(func(hkey uint64, entry storage.Entry) bool {
-		winner, err := dm.selectVersionForMerge(f, hkey, entry)
-		if err != nil {
-			mergeErr = err
-			return false
-		}
-		// TODO: Don't put the winner again if it comes from dm.storage
-		mergeErr = f.storage.Put(hkey, winner)
-		if errors.Is(mergeErr, storage.ErrFragmented) {
-			dm.s.wg.Add(1)
-			go dm.s.callCompactionOnStorage(f)
-			mergeErr = nil
-		}
-		if mergeErr != nil {
-			return false
-		}
-		return true
+	return f.storage.Import(fp.Payload, func(hkey uint64, entry storage.Entry) error {
+		return dm.fragmentMergeFunction(f, hkey, entry)
 	})
-	return mergeErr
 }
 
 func (s *Service) checkOwnership(part *partitions.Partition) bool {
@@ -125,29 +93,29 @@ func (s *Service) validateFragmentPack(fp *fragmentPack) error {
 
 	// Check ownership before merging. This is useful to prevent data corruption in network partitioning case.
 	if !s.checkOwnership(part) {
-		return neterrors.Wrap(neterrors.ErrInvalidArgument,
-			fmt.Sprintf("partID: %d (kind: %s) doesn't belong to %s", fp.PartID, fp.Kind, s.rt.This()))
+		return fmt.Errorf("%w: %s",
+			neterrors.ErrInvalidArgument, fmt.Sprintf("partID: %d (kind: %s) doesn't belong to %s",
+				fp.PartID, fp.Kind, s.rt.This()))
 	}
 	return nil
 }
 
-func (s *Service) extractFragmentPack(r protocol.EncodeDecoder) (*fragmentPack, error) {
-	req := r.(*protocol.SystemMessage)
+func (s *Service) moveFragmentCommandHandler(conn redcon.Conn, cmd redcon.Command) {
+	moveFragmentCmd, err := protocol.ParseMoveFragmentCommand(cmd)
+	if err != nil {
+		protocol.WriteError(conn, err)
+		return
+	}
 	fp := &fragmentPack{}
-	err := msgpack.Unmarshal(req.Value(), fp)
-	return fp, err
-}
-
-func (s *Service) moveFragmentOperation(w, r protocol.EncodeDecoder) {
-	fp, err := s.extractFragmentPack(r)
+	err = msgpack.Unmarshal(moveFragmentCmd.Payload, fp)
 	if err != nil {
 		s.log.V(2).Printf("[ERROR] Failed to unmarshal DMap: %v", err)
-		neterrors.ErrorResponse(w, err)
+		protocol.WriteError(conn, err)
 		return
 	}
 
 	if err = s.validateFragmentPack(fp); err != nil {
-		neterrors.ErrorResponse(w, err)
+		protocol.WriteError(conn, err)
 		return
 	}
 
@@ -161,15 +129,32 @@ func (s *Service) moveFragmentOperation(w, r protocol.EncodeDecoder) {
 
 	dm, err := s.NewDMap(fp.Name)
 	if err != nil {
-		neterrors.ErrorResponse(w, err)
+		protocol.WriteError(conn, err)
 		return
 	}
+
 	err = dm.mergeFragments(part, fp)
 	if err != nil {
 		s.log.V(2).Printf("[ERROR] Failed to merge Received DMap (kind: %s): %s on PartID: %d: %v",
 			fp.Kind, fp.Name, fp.PartID, err)
-		neterrors.ErrorResponse(w, err)
+		protocol.WriteError(conn, err)
 		return
 	}
-	w.SetStatus(protocol.StatusOK)
+
+	if s.config.EnableClusterEventsChannel {
+		e := &events.FragmentReceivedEvent{
+			Kind:          events.KindFragmentReceivedEvent,
+			Source:        s.rt.This().String(),
+			DataStructure: "dmap",
+			PartitionID:   part.ID(),
+			Identifier:    fp.Name,
+			Length:        len(moveFragmentCmd.Payload),
+			IsBackup:      part.Kind() == partitions.BACKUP,
+			Timestamp:     time.Now().UnixNano(),
+		}
+		s.wg.Add(1)
+		go s.publishEvent(e)
+	}
+
+	conn.WriteString(protocol.StatusOK)
 }
