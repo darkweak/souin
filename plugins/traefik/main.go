@@ -251,7 +251,7 @@ func (s *SouinTraefikPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request
 	req = s.Retriever.GetContext().SetContext(req)
 	isMutation := req.Context().Value(souin_ctx.IsMutationRequest).(bool)
 	if isMutation {
-		rfc.MissCache(rw.Header().Set, req, "CANNOT-HANDLE")
+		rfc.MissCache(rw.Header().Set, req, "IS-MUTATION-REQUEST")
 		s.next.ServeHTTP(rw, req)
 		return
 	}

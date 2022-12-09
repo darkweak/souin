@@ -19,7 +19,7 @@ jobs:
         uses: golangci/golangci-lint-action@v3
   unit-test-golang:
     needs: lint-validation
-    name: Checkout code and validate tests
+    name: Unit tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -36,7 +36,7 @@ jobs:
         run: go test -v -race $(go list ./... | grep -v cache/providers)
   unit-test-golang-with-services:
     needs: lint-validation
-    name: Checkout code and validate tests
+    name: Unit tests with external services
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -51,7 +51,7 @@ jobs:
         run: docker-compose -f docker-compose.yml.test up -d --build --force-recreate --remove-orphans
       - name: Test
         # disabled race to pass the EmbeddedOlric test
-        run: docker-compose -f docker-compose.yml.test exec -T souin go test -v cache/providers
+        run: docker-compose -f docker-compose.yml.test exec -T souin go test -v ./cache/providers
   validate-prod-container-building:
     needs: unit-test-golang-with-services
     name: Validate that the container build for prod

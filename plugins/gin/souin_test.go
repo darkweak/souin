@@ -48,7 +48,7 @@ func Test_SouinGinPlugin_Process(t *testing.T) {
 	}
 
 	r.ServeHTTP(res2, c.Request)
-	if res2.Result().Header.Get("Cache-Status") != "Souin; hit; ttl=4" {
+	if res2.Result().Header.Get("Cache-Status") != "Souin; hit; ttl=4; key=GET-example.com-/handled" {
 		t.Error("The response must contain a Cache-Status header with the hit and ttl directives.")
 	}
 	if res2.Result().Header.Get("Age") != "1" {
@@ -58,17 +58,18 @@ func Test_SouinGinPlugin_Process(t *testing.T) {
 
 func Test_SouinGinPlugin_Process_CannotHandle(t *testing.T) {
 	res, res2, c, r := prepare()
-	r.GET("/not-handled", func(c *gin.Context) {
+	c.Request.Header.Set("Cache-Control", "no-cache")
+	r.GET("/handled", func(c *gin.Context) {
 		c.String(http.StatusOK, "Hello, World!")
 	})
 	r.ServeHTTP(res, c.Request)
 
-	if res.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss" {
+	if res.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; key=; detail=CANNOT-HANDLE" {
 		t.Error("The response must contain a Cache-Status header without the stored directive and with the uri-miss only.")
 	}
 
 	r.ServeHTTP(res2, c.Request)
-	if res2.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss" {
+	if res2.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; key=; detail=CANNOT-HANDLE" {
 		t.Error("The response must contain a Cache-Status header without the stored directive and with the uri-miss only.")
 	}
 	if res2.Result().Header.Get("Age") != "" {

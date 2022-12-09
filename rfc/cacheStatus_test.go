@@ -71,7 +71,6 @@ func TestSetCacheStatusEventually(t *testing.T) {
 		errors.GenerateError(t, "The Cache-Control shouldn't be empty")
 	}
 	if r.Header.Get("Cache-Status") != "This; fwd=request; detail=MALFORMED-DATE" {
-		fmt.Println(r.Header.Get("Cache-Status"))
 		errors.GenerateError(t, "The Cache-Control should be equal to MALFORMED-DATE")
 	}
 
