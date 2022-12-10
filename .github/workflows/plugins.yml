@@ -68,7 +68,7 @@ jobs:
         name: Wait for Souin is really loaded inside Beego as middleware
         uses: jakejarvis/wait-action@master
         with:
-          time: 35s
+          time: 40s
       -
         name: Set Beego logs configuration result as environment variable
         run: cd plugins/beego && echo "$(make load-checker)" >> $GITHUB_ENV
@@ -115,7 +115,7 @@ jobs:
         name: Wait for Souin is really loaded inside Chi as middleware
         uses: jakejarvis/wait-action@master
         with:
-          time: 35s
+          time: 40s
       -
         name: Set Chi logs configuration result as environment variable
         run: cd plugins/chi && echo "$(make load-checker)" >> $GITHUB_ENV
@@ -162,7 +162,7 @@ jobs:
         name: Wait for Souin is really loaded inside Dotweb as middleware
         uses: jakejarvis/wait-action@master
         with:
-          time: 35s
+          time: 40s
       -
         name: Set Dotweb logs configuration result as environment variable
         run: cd plugins/dotweb && echo "$(make load-checker)" >> $GITHUB_ENV
@@ -256,7 +256,7 @@ jobs:
         name: Wait for Souin is really loaded inside Fiber as middleware
         uses: jakejarvis/wait-action@master
         with:
-          time: 45s
+          time: 50s
       -
         name: Set Fiber logs configuration result as environment variable
         run: cd plugins/fiber && echo "$(make load-checker)" >> $GITHUB_ENV
