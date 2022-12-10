@@ -15,9 +15,10 @@
 package routingtable
 
 import (
-	"github.com/buraksezer/olric/internal/protocol"
 	"runtime"
 	"sync"
+
+	"github.com/buraksezer/olric/internal/protocol"
 
 	"github.com/buraksezer/olric/internal/discovery"
 	"github.com/vmihailenco/msgpack/v5"

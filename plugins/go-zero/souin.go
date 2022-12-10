@@ -90,7 +90,7 @@ func (s *SouinGoZeroMiddleware) Handle(next http.HandlerFunc) http.HandlerFunc {
 		}
 
 		if !plugins.CanHandle(req, s.Retriever) {
-			rfc.MissCache(rw.Header().Set, req)
+			rfc.MissCache(rw.Header().Set, req, "CANNOT-HANDLE")
 			next(rw, r)
 
 			return

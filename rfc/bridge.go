@@ -155,7 +155,7 @@ func (t *VaryTransport) UpdateCacheEventually(req *http.Request) (*http.Response
 	if cacheable && canStore(parseCacheControl(req.Header), parseCacheControl(req.Response.Header), req.Response.StatusCode) {
 		_ = validateVary(req, req.Response, cacheKey, t)
 	} else {
-		MissCache(req.Response.Header.Set, req)
+		MissCache(req.Response.Header.Set, req, "NOT-CACHEABLE")
 	}
 
 	return req.Response, nil
@@ -200,7 +200,7 @@ func (t *VaryTransport) RoundTrip(req *http.Request) (resp *http.Response, err e
 		if resp, err = commonCacheControl(req, transport, false); err != nil {
 			return nil, err
 		}
-		MissCache(resp.Header.Set, req)
+		MissCache(resp.Header.Set, req, "NOT-CACHEABLE-OR-NIL-RESPONSE")
 	}
 	req.Response = resp
 	if !(cacheable && canStore(parseCacheControl(req.Header), parseCacheControl(resp.Header), req.Response.StatusCode) && validateVary(req, resp, cacheKey, t)) {

@@ -106,7 +106,7 @@ func (s *SouinCaddyPlugin) ServeHTTP(rw http.ResponseWriter, r *http.Request, ne
 	}
 
 	if !plugins.CanHandle(req, s.Retriever) {
-		rfc.MissCache(rw.Header().Set, req)
+		rfc.MissCache(rw.Header().Set, req, "CANNOT-HANDLE")
 		return next.ServeHTTP(rw, r)
 	}
 
@@ -129,7 +129,7 @@ func (s *SouinCaddyPlugin) ServeHTTP(rw http.ResponseWriter, r *http.Request, ne
 	return plugins.DefaultSouinPluginCallback(customWriter, req, s.Retriever, nil, func(_ http.ResponseWriter, _ *http.Request) error {
 		var e error
 		if e = combo.next.ServeHTTP(customWriter, r); e != nil {
-			rfc.MissCache(customWriter.Header().Set, req)
+			rfc.MissCache(customWriter.Header().Set, req, "SERVE-HTTP-ERROR")
 			return e
 		}
 
