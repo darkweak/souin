@@ -96,7 +96,7 @@ func (s *SouinChiMiddleware) Handle(next http.Handler) http.Handler {
 		}
 
 		if !plugins.CanHandle(req, s.Retriever) {
-			rfc.MissCache(rw.Header().Set, req)
+			rfc.MissCache(rw.Header().Set, req, "CANNOT-HANDLE")
 			next.ServeHTTP(rw, r)
 
 			return

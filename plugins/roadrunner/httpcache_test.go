@@ -3,7 +3,6 @@ package roadrunner
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -80,7 +79,7 @@ func Test_Plugin_Middleware(t *testing.T) {
 	if err != nil {
 		t.Error("body close error")
 	}
-	if rs.Header.Get("Cache-Status") != "Souin; hit; ttl=4" {
+	if rs.Header.Get("Cache-Status") != "Souin; hit; ttl=4; key=GET-example.com-/handled" {
 		t.Error("The response must contain a Cache-Status header with the hit and ttl directives.")
 	}
 	if rs.Header.Get("Age") != "1" {
@@ -111,7 +110,7 @@ func Test_Plugin_Middleware_Stale(t *testing.T) {
 		if err != nil {
 			t.Error("body close error")
 		}
-		if rs.Header.Get("Cache-Status") != "Souin; hit; ttl=4" {
+		if rs.Header.Get("Cache-Status") != "Souin; hit; ttl=4; key=GET-example.com-/stale-test" {
 			t.Error("The response must contain a Cache-Status header with the hit directive.")
 		}
 		if rs.Header.Get("Age") != "1" {
@@ -133,12 +132,10 @@ func Test_Plugin_Middleware_Stale(t *testing.T) {
 	if err != nil {
 		t.Error("body close error")
 	}
-	if rs.Header.Get("Cache-Status") != "Souin; hit; ttl=-1; fwd=stale" {
-		fmt.Println(rs.Header.Get("Cache-Status"))
+	if rs.Header.Get("Cache-Status") != "Souin; hit; ttl=-1; key=GET-example.com-/stale-test; fwd=stale" {
 		t.Error("The response must contain a Cache-Status header without the stored directive and with ttl=-1; fwd=stale.")
 	}
 	if rs.Header.Get("Age") != "6" {
-		fmt.Println(rs.Header.Get("Age"))
 		t.Error("The response must contain a Age header.")
 	}
 
@@ -156,7 +153,7 @@ func Test_Plugin_Middleware_Excluded(t *testing.T) {
 	if err != nil {
 		t.Error("body close error")
 	}
-	if rs.Header.Get("Cache-Status") != "Souin; fwd=uri-miss" {
+	if rs.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; key=; detail=CANNOT-HANDLE" {
 		t.Error("The response must contain a Cache-Status header without the stored directive and with the uri-miss only.")
 	}
 	handler.ServeHTTP(res2, req)
@@ -165,7 +162,7 @@ func Test_Plugin_Middleware_Excluded(t *testing.T) {
 	if err != nil {
 		t.Error("body close error")
 	}
-	if rs.Header.Get("Cache-Status") != "Souin; fwd=uri-miss" {
+	if rs.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; key=; detail=CANNOT-HANDLE" {
 		t.Error("The response must contain a Cache-Status header without the stored directive and with the uri-miss only.")
 	}
 	if rs.Header.Get("Age") != "" {
@@ -185,7 +182,7 @@ func Test_Plugin_Middleware_Mutation(t *testing.T) {
 	if err != nil {
 		t.Error("body close error")
 	}
-	if rs.Header.Get("Cache-Status") != "Souin; fwd=uri-miss" {
+	if rs.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; key=GET-example.com-/handled; detail=IS-MUTATION-REQUEST" {
 		t.Error("The response must contain a Cache-Status header without the stored directive and with the uri-miss only.")
 	}
 	req.Body = io.NopCloser(bytes.NewBuffer([]byte(`{"query":"mutation":{something mutated}}`)))
@@ -195,7 +192,7 @@ func Test_Plugin_Middleware_Mutation(t *testing.T) {
 	if err != nil {
 		t.Error("body close error")
 	}
-	if rs.Header.Get("Cache-Status") != "Souin; fwd=uri-miss" {
+	if rs.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; key=GET-example.com-/handled; detail=IS-MUTATION-REQUEST" {
 		t.Error("The response must contain a Cache-Status header without the stored directive and with the uri-miss only.")
 	}
 	if rs.Header.Get("Age") != "" {

@@ -85,7 +85,7 @@ func (s *SouinGinPlugin) Process() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		req := s.Retriever.GetContext().SetBaseContext(c.Request)
 		if !plugins.CanHandle(req, s.Retriever) {
-			rfc.MissCache(c.Writer.Header().Set, req)
+			rfc.MissCache(c.Writer.Header().Set, req, "CANNOT-HANDLE")
 			c.Next()
 			return
 		}
@@ -96,7 +96,7 @@ func (s *SouinGinPlugin) Process() gin.HandlerFunc {
 		}
 
 		if c.Writer.Status() == http.StatusNotFound {
-			rfc.MissCache(c.Writer.Header().Set, req)
+			rfc.MissCache(c.Writer.Header().Set, req, "STATUS-NOT-FOUND")
 			c.Next()
 			return
 		}

@@ -29,7 +29,7 @@ type (
 func (r *goyaveWriterDecorator) calculateCacheHeaders() {
 	resco, _ := cacheobject.ParseResponseCacheControl(r.goyaveResponse.Header().Get("Cache-Control"))
 	if !rfc.CachableStatusCode(r.Response.StatusCode) || resco.NoStore || r.Req.Context().Value(context.RequestCacheControl).(*cacheobject.RequestCacheDirectives).NoStore {
-		rfc.MissCache(r.goyaveResponse.Header().Set, r.Req)
+		rfc.MissCache(r.goyaveResponse.Header().Set, r.Req, "CANNOT-STORE")
 	}
 
 	if r.goyaveResponse.Header().Get("Cache-Status") == "" {

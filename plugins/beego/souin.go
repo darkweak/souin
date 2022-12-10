@@ -256,7 +256,7 @@ func (s *SouinBeegoMiddleware) chainHandleFilter(next web.HandleFunc) web.Handle
 		r := c.Request
 		req := s.Retriever.GetContext().SetBaseContext(r)
 		if !plugins.CanHandle(req, s.Retriever) {
-			rfc.MissCache(c.Output.Header, req)
+			rfc.MissCache(c.Output.Header, req, "CANNOT-HANDLE")
 			next(c)
 
 			return

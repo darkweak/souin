@@ -92,7 +92,7 @@ func (s *SouinDotwebMiddleware) Handle(c dotweb.Context) error {
 	}
 
 	if !plugins.CanHandle(req, s.Retriever) {
-		rfc.MissCache(rw.Header().Set, req)
+		rfc.MissCache(rw.Header().Set, req, "CANNOT-HANDLE")
 		return s.Next(c)
 	}
 

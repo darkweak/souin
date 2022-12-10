@@ -91,7 +91,7 @@ func (s *SouinGoyaveMiddleware) Handle(next goyave.Handler) goyave.Handler {
 		}
 
 		if response.Hijacked() || !plugins.CanHandle(req, s.Retriever) {
-			rfc.MissCache(response.Header().Set, req)
+			rfc.MissCache(response.Header().Set, req, "CANNOT-HANDLE")
 			next(response, request)
 
 			return

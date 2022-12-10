@@ -97,7 +97,7 @@ func main() {
 		request = retriever.GetContext().SetBaseContext(request)
 
 		if !plugins.CanHandle(request, retriever) {
-			rfc.MissCache(writer.Header().Set, request)
+			rfc.MissCache(writer.Header().Set, request, "CANNOT-HANDLE")
 			return
 		}
 

@@ -88,7 +88,7 @@ func (s *SouinEchoPlugin) Process(next echo.HandlerFunc) echo.HandlerFunc {
 		rw := c.Response().Writer
 		req = s.Retriever.GetContext().SetBaseContext(req)
 		if !plugins.CanHandle(req, s.Retriever) {
-			rfc.MissCache(rw.Header().Set, req)
+			rfc.MissCache(rw.Header().Set, req, "CANNOT-HANDLE")
 			return next(c)
 		}
 

@@ -43,6 +43,9 @@ func SouinResponseHandler(rw http.ResponseWriter, res *http.Response, rq *http.R
 	res.Request.RequestURI = rq.RequestURI
 	req := res.Request
 	req.Response = res
+	if rw.Header().Get("Cache-Status") != "" {
+		return
+	}
 	s := getInstanceFromRequest(req)
 	req = s.Retriever.GetContext().SetContext(s.Retriever.GetContext().SetBaseContext(req))
 	res, _ = s.Retriever.GetTransport().UpdateCacheEventually(req)
@@ -59,7 +62,7 @@ func SouinRequestHandler(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	if !plugins.CanHandle(req, s.Retriever) {
-		rfc.MissCache(rw.Header().Set, req)
+		rfc.MissCache(rw.Header().Set, req, "CANNOT-HANDLE")
 
 		return
 	}

@@ -146,7 +146,8 @@
 					"script": {
 						"type": "text/javascript",
 						"exec": [
-							"pm.collectionVariables.set('app_url', pm.collectionVariables.get('beego_url'))"
+							"pm.collectionVariables.set('app_url', pm.collectionVariables.get('beego_url'))",
+							"pm.collectionVariables.set('current_host', pm.collectionVariables.get('beego_url').match(/^https?\\:\\/\\/([^\\/?#]+)(?:[\\/?#]|$)/i)[1])"
 						]
 					}
 				},
@@ -410,6 +411,40 @@
 					"response": []
 				},
 				{
+					"name": "Gzip",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.validateAge(pm, 999, `${utils.getVar(pm, 'app_url')}/gzip`)"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cache-Control",
+								"value": "",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{app_url}}/gzip",
+							"host": [
+								"{{app_url}}"
+							],
+							"path": [
+								"gzip"
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "Default no cache",
 					"event": [
 						{
@@ -471,6 +506,40 @@
 							],
 							"path": [
 								"vary"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "304",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.validateAge(pm, 4, `${utils.getVar(pm, 'app_url')}/cache-maxage`)"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cache-Control",
+								"value": "",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{app_url}}/cache-maxage",
+							"host": [
+								"{{app_url}}"
+							],
+							"path": [
+								"cache-maxage"
 							]
 						}
 					},
@@ -694,7 +763,8 @@
 					"script": {
 						"type": "text/javascript",
 						"exec": [
-							"pm.collectionVariables.set('app_url', pm.collectionVariables.get('caddy_url'))"
+							"pm.collectionVariables.set('app_url', pm.collectionVariables.get('caddy_url'))",
+							"pm.collectionVariables.set('current_host', pm.collectionVariables.get('caddy_url').match(/^https?\\:\\/\\/([^\\/?#]+)(?:[\\/?#]|$)/i)[1])"
 						]
 					}
 				},
@@ -849,7 +919,8 @@
 					"script": {
 						"type": "text/javascript",
 						"exec": [
-							"pm.collectionVariables.set('app_url', pm.collectionVariables.get('echo_url'))"
+							"pm.collectionVariables.set('app_url', pm.collectionVariables.get('echo_url'))",
+							"pm.collectionVariables.set('current_host', pm.collectionVariables.get('echo_url').match(/^https?\\:\\/\\/([^\\/?#]+)(?:[\\/?#]|$)/i)[1])"
 						]
 					}
 				},
@@ -1004,7 +1075,8 @@
 					"script": {
 						"type": "text/javascript",
 						"exec": [
-							"pm.collectionVariables.set('app_url', pm.collectionVariables.get('chi_url'))"
+							"pm.collectionVariables.set('app_url', pm.collectionVariables.get('chi_url'))",
+							"pm.collectionVariables.set('current_host', pm.collectionVariables.get('chi_url').match(/^https?\\:\\/\\/([^\\/?#]+)(?:[\\/?#]|$)/i)[1])"
 						]
 					}
 				},
@@ -1159,7 +1231,8 @@
 					"script": {
 						"type": "text/javascript",
 						"exec": [
-							"pm.collectionVariables.set('app_url', pm.collectionVariables.get('dotweb_url'))"
+							"pm.collectionVariables.set('app_url', pm.collectionVariables.get('dotweb_url'))",
+							"pm.collectionVariables.set('current_host', pm.collectionVariables.get('dotweb_url').match(/^https?\\:\\/\\/([^\\/?#]+)(?:[\\/?#]|$)/i)[1])"
 						]
 					}
 				},
@@ -1314,7 +1387,8 @@
 					"script": {
 						"type": "text/javascript",
 						"exec": [
-							"pm.collectionVariables.set('app_url', pm.collectionVariables.get('fiber_url'))"
+							"pm.collectionVariables.set('app_url', pm.collectionVariables.get('fiber_url'))",
+							"pm.collectionVariables.set('current_host', pm.collectionVariables.get('fiber_url').match(/^https?\\:\\/\\/([^\\/?#]+)(?:[\\/?#]|$)/i)[1])"
 						]
 					}
 				},
@@ -1469,7 +1543,8 @@
 					"script": {
 						"type": "text/javascript",
 						"exec": [
-							"pm.collectionVariables.set('app_url', pm.collectionVariables.get('gin_url'))"
+							"pm.collectionVariables.set('app_url', pm.collectionVariables.get('gin_url'))",
+							"pm.collectionVariables.set('current_host', pm.collectionVariables.get('gin_url').match(/^https?\\:\\/\\/([^\\/?#]+)(?:[\\/?#]|$)/i)[1])"
 						]
 					}
 				},
@@ -1624,7 +1699,8 @@
 					"script": {
 						"type": "text/javascript",
 						"exec": [
-							"pm.collectionVariables.set('app_url', pm.collectionVariables.get('go-zero_url'))"
+							"pm.collectionVariables.set('app_url', pm.collectionVariables.get('go-zero_url'))",
+							"pm.collectionVariables.set('current_host', pm.collectionVariables.get('go-zero_url').match(/^https?\\:\\/\\/([^\\/?#]+)(?:[\\/?#]|$)/i)[1])"
 						]
 					}
 				},
@@ -1779,7 +1855,8 @@
 					"script": {
 						"type": "text/javascript",
 						"exec": [
-							"pm.collectionVariables.set('app_url', pm.collectionVariables.get('goyave_url'))"
+							"pm.collectionVariables.set('app_url', pm.collectionVariables.get('goyave_url'))",
+							"pm.collectionVariables.set('current_host', pm.collectionVariables.get('goyave_url').match(/^https?\\:\\/\\/([^\\/?#]+)(?:[\\/?#]|$)/i)[1])"
 						]
 					}
 				},
@@ -1934,7 +2011,8 @@
 					"script": {
 						"type": "text/javascript",
 						"exec": [
-							"pm.collectionVariables.set('app_url', pm.collectionVariables.get('kratos_url'))"
+							"pm.collectionVariables.set('app_url', pm.collectionVariables.get('kratos_url'))",
+							"pm.collectionVariables.set('current_host', pm.collectionVariables.get('kratos_url').match(/^https?\\:\\/\\/([^\\/?#]+)(?:[\\/?#]|$)/i)[1])"
 						]
 					}
 				},
@@ -2089,7 +2167,8 @@
 					"script": {
 						"type": "text/javascript",
 						"exec": [
-							"pm.collectionVariables.set('app_url', pm.collectionVariables.get('roadrunner_url'))"
+							"pm.collectionVariables.set('app_url', pm.collectionVariables.get('roadrunner_url'))",
+							"pm.collectionVariables.set('current_host', pm.collectionVariables.get('roadrunner_url').match(/^https?\\:\\/\\/([^\\/?#]+)(?:[\\/?#]|$)/i)[1])"
 						]
 					}
 				},
@@ -2244,7 +2323,8 @@
 					"script": {
 						"type": "text/javascript",
 						"exec": [
-							"pm.collectionVariables.set('app_url', pm.collectionVariables.get('skipper_url'))"
+							"pm.collectionVariables.set('app_url', pm.collectionVariables.get('skipper_url'))",
+							"pm.collectionVariables.set('current_host', pm.collectionVariables.get('skipper_url').match(/^https?\\:\\/\\/([^\\/?#]+)(?:[\\/?#]|$)/i)[1])"
 						]
 					}
 				},
@@ -2365,7 +2445,8 @@
 					"script": {
 						"type": "text/javascript",
 						"exec": [
-							"pm.collectionVariables.set('app_url', pm.collectionVariables.get('souin_url'))"
+							"pm.collectionVariables.set('app_url', pm.collectionVariables.get('souin_url'))",
+							"pm.collectionVariables.set('current_host', pm.collectionVariables.get('souin_url').match(/^https?\\:\\/\\/([^\\/?#]+)(?:[\\/?#]|$)/i)[1])"
 						]
 					}
 				},
@@ -2454,7 +2535,13 @@
 					],
 					"request": {
 						"method": "GET",
-						"header": [],
+						"header": [
+							{
+								"key": "Cache-Control",
+								"value": "no-store",
+								"type": "text"
+							}
+						],
 						"url": {
 							"raw": "{{app_url}}",
 							"host": [
@@ -2505,7 +2592,8 @@
 					"script": {
 						"type": "text/javascript",
 						"exec": [
-							"pm.collectionVariables.set('app_url', pm.collectionVariables.get('traefik_url'))"
+							"pm.collectionVariables.set('app_url', pm.collectionVariables.get('traefik_url'))",
+							"pm.collectionVariables.set('current_host', pm.collectionVariables.get('traefik_url').match(/^https?\\:\\/\\/([^\\/?#]+)(?:[\\/?#]|$)/i)[1])"
 						]
 					}
 				},
@@ -2600,7 +2688,13 @@
 					],
 					"request": {
 						"method": "GET",
-						"header": [],
+						"header": [
+							{
+								"key": "Cache-Control",
+								"value": "no-store",
+								"type": "text"
+							}
+						],
 						"url": {
 							"raw": "{{app_url}}/",
 							"host": [
@@ -2620,7 +2714,8 @@
 					"script": {
 						"type": "text/javascript",
 						"exec": [
-							"pm.collectionVariables.set('app_url', pm.collectionVariables.get('tyk_url'))"
+							"pm.collectionVariables.set('app_url', pm.collectionVariables.get('tyk_url'))",
+							"pm.collectionVariables.set('current_host', pm.collectionVariables.get('tyk_url').match(/^https?\\:\\/\\/([^\\/?#]+)(?:[\\/?#]|$)/i)[1])"
 						]
 					}
 				},
@@ -2775,7 +2870,8 @@
 					"script": {
 						"type": "text/javascript",
 						"exec": [
-							"pm.collectionVariables.set('app_url', pm.collectionVariables.get('webgo_url'))"
+							"pm.collectionVariables.set('app_url', pm.collectionVariables.get('webgo_url'))",
+							"pm.collectionVariables.set('current_host', pm.collectionVariables.get('webgo_url').match(/^https?\\:\\/\\/([^\\/?#]+)(?:[\\/?#]|$)/i)[1])"
 						]
 					}
 				},
@@ -2813,14 +2909,14 @@
 					"            pm.response.to.have.status(200);",
 					"            if (exclude) {",
 					"                pm.response.to.have.header(\"Cache-Status\");",
-					"                pm.expect(pm.response.headers.get(\"Cache-Status\")).to.eql(\"Souin; fwd=uri-miss\");",
+					"                pm.expect(pm.response.headers.get(\"Cache-Status\")).to.eql(\"Souin; fwd=uri-miss; key=; detail=CANNOT-HANDLE\");",
 					"            } else {",
 					"                pm.response.to.have.header(\"Cache-Status\");",
 					"                if (isStore) {",
 					"                    pm.expect(pm.response.headers.get(\"Cache-Status\")).to.eql(\"Souin; fwd=uri-miss; stored\");",
 					"                } else {",
 					"                    pm.response.to.have.header(\"Cache-Status\");",
-					"                    pm.expect(pm.response.headers.get(\"Cache-Status\")).to.eql(\"Souin; fwd=uri-miss\");",
+					"                    pm.expect(pm.response.headers.get(\"Cache-Status\")).to.eql(`Souin; fwd=uri-miss; ${ cacheControl == \"no-store\" ? `key=GET-${pm.collectionVariables.get('current_host')}-${pm.request.url.getPath()}; detail=NOT-CACHEABLE` : 'key=; detail=CANNOT-HANDLE'}`);",
 					"                }",
 					"            }",
 					"            pm.response.to.not.have.header(\"Age\");",
@@ -2831,7 +2927,7 @@
 					"                    expected.to.have.status(200);",
 					"                    if (exclude) {",
 					"                        pm.response.to.have.header(\"Cache-Status\");",
-					"                        pm.expect(pm.response.headers.get(\"Cache-Status\")).to.eql(\"Souin; fwd=uri-miss\");",
+					"                        pm.expect(pm.response.headers.get(\"Cache-Status\")).to.eql(\"Souin; fwd=uri-miss; key=; detail=CANNOT-HANDLE\");",
 					"                    } else {",
 					"                        expected.to.have.header(\"Cache-Status\");",
 					"",
@@ -2840,7 +2936,7 @@
 					"                            pm.expect(response.headers.get(\"Cache-Status\")).to.include(\"Souin; hit; ttl=\");",
 					"                        } else {",
 					"                            expected.to.not.have.header(\"Age\");",
-					"                            pm.expect(response.headers.get(\"Cache-Status\")).to.eql(\"Souin; fwd=uri-miss\");",
+					"                            pm.expect(response.headers.get(\"Cache-Status\")).to.eql(`Souin; fwd=uri-miss; ${ cacheControl == \"no-store\" ? `key=GET-${pm.collectionVariables.get('current_host')}-${pm.request.url.getPath()}; detail=NOT-CACHEABLE` : 'key=; detail=CANNOT-HANDLE'}`);",
 					"                        }",
 					"                    }",
 					"                }",
@@ -2851,7 +2947,7 @@
 					"        pm.test(\"Status code is 502 with Cache-Status header\", function () {",
 					"            pm.response.to.have.status(502);",
 					"            pm.response.to.have.header(\"Cache-Status\");",
-					"            pm.expect(pm.response.headers.get(\"Cache-Status\")).to.eql(\"Souin; fwd=uri-miss\");",
+					"            pm.expect(pm.response.headers.get(\"Cache-Status\")).to.eql(`Souin; fwd=uri-miss; key=GET-${pm.collectionVariables.get('current_host')}-/no-reverse-proxy; detail=SERVE-HTTP-ERROR`);",
 					"            pm.response.to.not.have.header(\"Age\");",
 					"        });",
 					"        pm.sendRequest(utils.request(baseUrl, ''), function (_, response) {",
@@ -2859,7 +2955,7 @@
 					"                const expected = pm.expect(response);",
 					"                expected.to.have.status(502);",
 					"                expected.to.have.header(\"Cache-Status\");",
-					"                pm.expect(response.headers.get(\"Cache-Status\")).to.eql(\"Souin; fwd=uri-miss\");",
+					"                pm.expect(response.headers.get(\"Cache-Status\")).to.eql(`Souin; fwd=uri-miss; key=GET-${pm.collectionVariables.get('current_host')}-/no-reverse-proxy; detail=SERVE-HTTP-ERROR`);",
 					"                pm.response.to.not.have.header(\"Age\");",
 					"            });",
 					"        });",
@@ -3101,6 +3197,10 @@
 			"key": "roadrunner_url",
 			"value": "http://domain.com",
 			"type": "string"
+		},
+		{
+			"key": "current_host",
+			"value": ""
 		}
 	]
 }
