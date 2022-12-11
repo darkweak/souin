@@ -246,6 +246,22 @@ func (tx *Tx) ZGetByKey(bucket string, key []byte) (*zset.SortedSetNode, error) 
 	return nil, ErrNotFoundKey
 }
 
+// ZKeys find all keys matching a given pattern
+func (tx *Tx) ZKeys(bucket, pattern string, f func(key string) bool) error {
+	if err := tx.checkTxIsClosed(); err != nil {
+		return err
+	}
+	if _, ok := tx.db.SortedSetIdx[bucket]; !ok {
+		return ErrBucket
+	}
+	for key := range tx.db.SortedSetIdx[bucket].Dict {
+		if end, err := MatchForRange(pattern, key, f); end || err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // ErrSeparatorForZSetKey returns when zSet key contains the SeparatorForZSetKey flag.
 func ErrSeparatorForZSetKey() error {
 	return errors.New("contain separator (" + SeparatorForZSetKey + ") for ZSet key")

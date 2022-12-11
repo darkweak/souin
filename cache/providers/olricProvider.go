@@ -129,7 +129,6 @@ func (provider *Olric) Set(key string, value []byte, url t.URL, duration time.Du
 		duration = url.TTL.Duration
 	}
 
-	fmt.Println("STORE IN OLRIC")
 	dm := provider.dm.Get().(olric.DMap)
 	defer provider.dm.Put(dm)
 	if err := dm.Put(context.Background(), key, value, olric.EX(duration)); err != nil {

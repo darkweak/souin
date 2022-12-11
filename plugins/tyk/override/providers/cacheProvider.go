@@ -1,7 +1,6 @@
 package providers
 
 import (
-	"fmt"
 	"net/http"
 	"regexp"
 	"strings"
@@ -50,7 +49,6 @@ func (provider *Cache) Prefix(key string, req *http.Request) []byte {
 	var result []byte
 
 	for k, v := range provider.Items() {
-		fmt.Println("Current key =>", k, key)
 		if k == key {
 			return v.Object.([]byte)
 		}
@@ -69,7 +67,6 @@ func (provider *Cache) Prefix(key string, req *http.Request) []byte {
 
 // Set method will store the response in Cache provider
 func (provider *Cache) Set(key string, value []byte, url t.URL, duration time.Duration) error {
-	fmt.Println("Set in the cache", key, duration, url)
 	if duration == 0 {
 		duration = url.TTL.Duration
 	}

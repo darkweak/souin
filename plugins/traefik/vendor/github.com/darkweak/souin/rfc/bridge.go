@@ -4,7 +4,9 @@ import (
 	"bufio"
 	"bytes"
 	ctx "context"
+	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/darkweak/souin/cache/types"
@@ -61,11 +63,26 @@ func (t *VaryTransport) deleteCache(key string) {
 	t.Transport.Provider.Delete(key)
 }
 
+func canBypassHeader(headers http.Header, bypassed []string) bool {
+	if headers.Get("Authorization") == "" {
+		return true
+	}
+
+	for _, header := range bypassed {
+		if strings.ToLower(header) == "authorization" {
+			return true
+		}
+	}
+
+	return false
+}
+
 // BaseRoundTrip is the base for RoundTrip
 func (t *VaryTransport) BaseRoundTrip(req *http.Request) (string, bool, *http.Response) {
 	cacheKey := req.Context().Value(context.Key).(string)
 	_, err := req.Cookie("authorization")
-	cacheable := IsVaryCacheable(req) && req.Header.Get("Authorization") == "" && err != nil
+	fmt.Println("IGNORED HEADERS =>", req.Context().Value(context.IgnoredHeaders).([]string))
+	cacheable := IsVaryCacheable(req) && canBypassHeader(req.Header, req.Context().Value(context.IgnoredHeaders).([]string)) && err != nil
 
 	if !cacheable {
 		go func() {

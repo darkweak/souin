@@ -17,7 +17,6 @@
         regex {
             exclude /test2.*
         }
-        headers Content-Type Authorization
         ttl 1000s
         timeout {
             backend 10s
@@ -41,7 +40,6 @@ cache @match {
 
 cache @match2 {
     ttl 50s
-    headers Authorization
 }
 
 cache @matchdefault {
@@ -220,6 +218,39 @@ route /gzip {
     }
     header Content-Type text/plain
     respond "Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip."
+}
+
+route /custom-key/without-* {
+    cache {
+        cache_keys {
+            body {
+                disable_body
+            }
+            host {
+                disable_host
+            }
+            method {
+                disable_method
+            }
+            everything-with-content-type {
+                disable_method
+                headers Content-Type
+            }
+        }
+    }
+    respond "Hello to the authenticated user."
+}
+
+route /cache-authorization {
+    cache {
+        cache_keys {
+            /.+ {
+                headers Authorization
+            }
+        }
+    }
+    header Souin-Cache-Control public
+    respond "Hello to the authenticated user."
 }
 
 cache @souin-api {

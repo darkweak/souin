@@ -92,6 +92,12 @@ func parseCacheKeys(ccConfiguration map[string]config.Value) map[configurationty
 				ck.DisableHost = true
 			case "disable_method":
 				ck.DisableMethod = true
+			case "headers":
+				headers, _ := cacheKeysConfigurationVMap["headers"].Slice()
+				for _, header := range headers {
+					h, _ := header.String()
+					ck.Headers = append(ck.Headers, h)
+				}
 			}
 		}
 		rg := regexp.MustCompile(cacheKeysConfigurationK)

@@ -11,7 +11,9 @@ NutsDB is a simple, fast, embeddable and persistent key/value store written in p
 It supports fully serializable transactions and many data structures such as list、set、sorted set. All operations happen inside a Tx. Tx represents a transaction, which can be read-only or read-write. Read-only transactions can read values for a given bucket and a given key or iterate over a set of key-value pairs. Read-write transactions can read, update and delete keys from the DB.
 
 ## Announcement
-v0.9.0 release, see for details: https://github.com/nutsdb/nutsdb/issues/167
+* v0.11.0 release, see for details: https://github.com/nutsdb/nutsdb/issues/219
+* v0.10.0 release, see for details: https://github.com/nutsdb/nutsdb/issues/193
+* v0.9.0 release, see for details: https://github.com/nutsdb/nutsdb/issues/167
 
 📢 Note: Starting from v0.9.0, **defaultSegmentSize** in **DefaultOptions** has been adjusted from **8MB** to **256MB**. The original value is the default value, which needs to be manually changed to 8MB, otherwise the original data will not be parsed. The reason for the size adjustment here is that there is a cache for file descriptors starting from v0.9.0 (detail see https://github.com/nutsdb/nutsdb/pull/164 ), so users need to look at the number of fds they use on the server, which can be set manually. If you have any questions, you can open an issue.
 
@@ -23,83 +25,88 @@ v0.9.0 release, see for details: https://github.com/nutsdb/nutsdb/issues/167
 
 ## Table of Contents
 
-- [Getting Started](#getting-started)
-  - [Installing](#installing)
-  - [Opening a database](#opening-a-database)
-  - [Options](#options)
-    - [Default Options](#default-options)
-  - [Transactions](#transactions)
-    - [Read-write transactions](#read-write-transactions)
-    - [Read-only transactions](#read-only-transactions)
-    - [Managing transactions manually](#managing-transactions-manually)
-  - [Using buckets](#using-buckets)
-    - [Delete bucket](#delete-bucket)
-    - [Iterate buckets](#iterate-buckets)
-  - [Using key/value pairs](#using-keyvalue-pairs)
-  - [Using TTL(Time To Live)](#using-ttltime-to-live)
-  - [Iterating over keys](#iterating-over-keys)
-    - [Prefix scans](#prefix-scans)
-    - [Prefix search scans](#prefix-search-scans)
-    - [Range scans](#range-scans)
-    - [Get all](#get-all)
-  - [Merge Operation](#merge-operation)
-  - [Database backup](#database-backup)
-- [Using in memory mode](#using-in-memory-mode)
-- [Using Other data structures](#using-other-data-structures)
-   - [List](#list)
-     - [RPush](#rpush)
-     - [LPush](#lpush)
-     - [LPop](#lpop)
-     - [LPeek](#lpeek)
-     - [RPop](#rpop)
-     - [RPeek](#rpeek)
-     - [LRange](#lrange)
-     - [LRem](#lrem)
-     - [LSet](#lset)
-     - [Ltrim](#ltrim)
-     - [LSize](#lsize)
-   - [Set](#set)
-     - [SAdd](#sadd)
-     - [SAreMembers](#saremembers)
-     - [SCard](#scard)
-     - [SDiffByOneBucket](#sdiffbyonebucket)
-     - [SDiffByTwoBuckets](#sdiffbytwobuckets)
-     - [SHasKey](#shaskey)
-     - [SIsMember](#sismember)
-     - [SMembers](#smembers)
-     - [SMoveByOneBucket](#smovebyonebucket)
-     - [SMoveByTwoBuckets](#smovebytwobuckets)
-     - [SPop](#spop)
-     - [SRem](#srem)
-     - [SUnionByOneBucket](#sunionbyonebucket)
-     - [SUnionByTwoBucket](#sunionbytwobuckets)
-   - [Sorted Set](#sorted-set)
-     - [ZAdd](#zadd)
-     - [ZCard](#zcard)
-     - [ZCount](#zcount)
-     - [ZGetByKey](#zgetbykey)
-     - [ZMembers](#zmembers)
-     - [ZPeekMax](#zpeekmax)
-     - [ZPeekMin](#zpeekmin)
-     - [ZPopMax](#zpopmax)
-     - [ZPopMin](#zpopmin)
-     - [ZRangeByRank](#zrangebyrank)
-     - [ZRangeByScore](#zrangebyscore)
-     - [ZRank](#zrank)
-     - [ZRevRank](#zrevrank)
-     - [ZRem](#zrem)
-     - [ZRemRangeByRank](#zremrangebyrank)
-     - [ZScore](#zscore)
-- [Comparison with other databases](#comparison-with-other-databases)
-   - [BoltDB](#boltdb)
-   - [LevelDB, RocksDB](#leveldb-rocksdb)
-   - [Badger](#badger)
-- [Benchmarks](#benchmarks)
-- [Caveats & Limitations](#caveats--limitations)
-- [Contact](#contact)
-- [Contributing](#contributing)
-- [Acknowledgements](#acknowledgements)
-- [License](#license)
+  - [Getting Started](#getting-started)
+    - [Installing](#installing)
+    - [Opening a database](#opening-a-database)
+    - [Options](#options)
+      - [Default Options](#default-options)
+    - [Transactions](#transactions)
+      - [Read-write transactions](#read-write-transactions)
+      - [Read-only transactions](#read-only-transactions)
+      - [Managing transactions manually](#managing-transactions-manually)
+    - [Using buckets](#using-buckets)
+      - [Iterate buckets](#iterate-buckets)
+      - [Delete bucket](#delete-bucket)
+    - [Using key/value pairs](#using-keyvalue-pairs)
+    - [Using TTL(Time To Live)](#using-ttltime-to-live)
+    - [Iterating over keys](#iterating-over-keys)
+      - [Prefix scans](#prefix-scans)
+      - [Prefix search scans](#prefix-search-scans)
+      - [Range scans](#range-scans)
+      - [Get all](#get-all)
+      - [Iterator](#iterator)
+    - [Merge Operation](#merge-operation)
+    - [Database backup](#database-backup)
+    - [Using in memory mode](#using-in-memory-mode)
+    - [Using other data structures](#using-other-data-structures)
+      - [List](#list)
+        - [RPush](#rpush)
+        - [LPush](#lpush)
+        - [LPop](#lpop)
+        - [LPeek](#lpeek)
+        - [RPop](#rpop)
+        - [RPeek](#rpeek)
+        - [LRange](#lrange)
+        - [LRem](#lrem)
+        - [LRemByIndex](#lrembyindex)
+        - [LSet](#lset)
+        - [Ltrim](#ltrim)
+        - [LSize](#lsize)
+        - [LKeys](#lkeys)
+      - [Set](#set)
+        - [SAdd](#sadd)
+        - [SAreMembers](#saremembers)
+        - [SCard](#scard)
+        - [SDiffByOneBucket](#sdiffbyonebucket)
+        - [SDiffByTwoBuckets](#sdiffbytwobuckets)
+        - [SHasKey](#shaskey)
+        - [SIsMember](#sismember)
+        - [SMembers](#smembers)
+        - [SMoveByOneBucket](#smovebyonebucket)
+        - [SMoveByTwoBuckets](#smovebytwobuckets)
+        - [SPop](#spop)
+        - [SRem](#srem)
+        - [SUnionByOneBucket](#sunionbyonebucket)
+        - [SUnionByTwoBuckets](#sunionbytwobuckets)
+        - [SKeys](#skeys)
+      - [Sorted Set](#sorted-set)
+        - [ZAdd](#zadd)
+        - [ZCard](#zcard)
+        - [ZCount](#zcount)
+        - [ZGetByKey](#zgetbykey)
+        - [ZMembers](#zmembers)
+        - [ZPeekMax](#zpeekmax)
+        - [ZPeekMin](#zpeekmin)
+        - [ZPopMax](#zpopmax)
+        - [ZPopMin](#zpopmin)
+        - [ZRangeByRank](#zrangebyrank)
+        - [ZRangeByScore](#zrangebyscore)
+        - [ZRank](#zrank)
+        - [ZKeys](#zkeys)
+      - [ZRevRank](#zrevrank)
+        - [ZRem](#zrem)
+        - [ZRemRangeByRank](#zremrangebyrank)
+        - [ZScore](#zscore)
+    - [Comparison with other databases](#comparison-with-other-databases)
+      - [BoltDB](#boltdb)
+      - [LevelDB, RocksDB](#leveldb-rocksdb)
+      - [Badger](#badger)
+    - [Benchmarks](#benchmarks)
+    - [Caveats & Limitations](#caveats--limitations)
+    - [Contact](#contact)
+    - [Contributing](#contributing)
+    - [Acknowledgements](#acknowledgements)
+    - [License](#license)
 
 ## Getting Started
 
@@ -127,9 +134,10 @@ import (
 func main() {
     // Open the database located in the /tmp/nutsdb directory.
     // It will be created if it doesn't exist.
-    opt := nutsdb.DefaultOptions
-    opt.Dir = "/tmp/nutsdb"
-    db, err := nutsdb.Open(opt)
+    db, err := nutsdb.Open(
+        nutsdb.DefaultOptions,
+        nutsdb.WithDir("/tmp/nutsdb"),
+    )
     if err != nil {
         log.Fatal(err)
     }
@@ -196,7 +204,7 @@ var DefaultOptions = Options{
 NutsDB allows only one read-write transaction at a time but allows as many read-only transactions as you want at a time. Each transaction has a consistent view of the data as it existed when the transaction started.
 
 When a transaction fails, it will roll back, and revert all changes that occurred to the database during that transaction.
-if set the option `SyncEnable` true When a read/write transaction succeeds all changes are persisted to disk.
+If the option `SyncEnable` is set to true, when a read/write transaction succeeds, all changes are persisted to disk.
 
 Creating transaction from the `DB` is thread safe.
 
@@ -290,14 +298,18 @@ Also, this bucket is related to the data structure you use. Different data index
 
 #### Iterate buckets
 
-IterateBuckets iterate over all the bucket. IterateBuckets function has two parameters: `ds` and function `f`.
+IterateBuckets iterates over all the buckets that match the pattern. IterateBuckets function has three parameters: `ds`, `pattern` and function `f`.
 
 The current version of the Iterate Buckets method supports the following EntryId Modes:
 
 * `HintKeyValAndRAMIdxMode`：represents ram index (key and value) mode.
 * `HintKeyAndRAMIdxMode`：represents ram index (only key) mode.
 
-The current version of `ds` (represents the data structure)：
+The `pattern` added in version `0.11.0` (represents the pattern to match):
+
+* `pattern` syntax refer to: `filepath.Match`
+
+The current version of `ds` (represents the data structure):
 
 * DataStructureSet
 * DataStructureSortedSet
@@ -307,8 +319,10 @@ The current version of `ds` (represents the data structure)：
 ```go
 if err := db.View(
     func(tx *nutsdb.Tx) error {
-        return tx.IterateBuckets(nutsdb.DataStructureBPTree, func(bucket string) {
+        return tx.IterateBuckets(nutsdb.DataStructureBPTree, "*", func(bucket string) bool {
             fmt.Println("bucket: ", bucket)
+            // true: continue, false: break
+            return true
         })
     }); err != nil {
     log.Fatal(err)
@@ -541,6 +555,51 @@ if err := db.View(
     log.Println(err)
 }
 ```
+
+#### iterator
+
+The option parameter 'Reverse' that determines whether the iterator is forward or Reverse. The current version does not support the iterator for HintBPTSparseIdxMode.
+
+#### forward iterator
+```go
+tx, err := db.Begin(false)
+iterator := nutsdb.NewIterator(tx, bucket, nutsdb.IteratorOptions{Reverse: false})
+i := 0
+for i < 10 {
+    ok, err := iterator.SetNext()
+    fmt.Println("ok, err", ok, err)
+    fmt.Println("Key: ", string(iterator.Entry().Key))
+    fmt.Println("Value: ", string(iterator.Entry().Value))
+    fmt.Println()
+    i++
+}
+err = tx.Commit()
+if err != nil {
+    panic(err)
+}
+```
+
+#### reverse iterator
+
+
+```go
+tx, err := db.Begin(false)
+iterator := nutsdb.NewIterator(tx, bucket, nutsdb.IteratorOptions{Reverse: true})
+i := 0
+for i < 10 {
+    ok, err := iterator.SetNext()
+    fmt.Println("ok, err", ok, err)
+    fmt.Println("Key: ", string(iterator.Entry().Key))
+    fmt.Println("Value: ", string(iterator.Entry().Value))
+    fmt.Println()
+    i++
+}
+err = tx.Commit()
+if err != nil {
+    panic(err)
+}
+    
+  ```
 ### Merge Operation
 
 In order to maintain high-performance writing, NutsDB will write multiple copies of the same key. If your service has multiple updates or deletions to the same key, and you want to merge the same key, you can use NutsDB to provide `db.Merge()`method. This method requires you to write a merge strategy according to the actual situation. Once executed, it will block normal write requests, so it is best to avoid peak periods, such as scheduled execution in the middle of the night.
@@ -558,7 +617,7 @@ Notice: the `HintBPTSparseIdxMode` mode does not support the merge operation of 
 
 ### Database backup
 
-NutsDB is easy to backup. You can use the `db.Backup()` function at given dir, call this function from a read-only transaction, it will perform a hot backup and not block your other database reads and writes.
+NutsDB is easy to backup. You can use the `db.Backup()` function at given dir, call this function from a read-only transaction, and it will perform a hot backup and not block your other database reads and writes.
 
 ```golang
 err = db.Backup(dir)
@@ -612,6 +671,8 @@ fmt.Println("entry.Value", string(entry.Value)) // entry.Value val1
 
 ```
 
+In memory mode, there are some non-memory mode APIs that have not yet been implemented. If you need, you can submit an issue and explain your request.
+
 ### Using other data structures
 
 The syntax here is modeled after [Redis commands](https://redis.io/commands)
@@ -620,7 +681,7 @@ The syntax here is modeled after [Redis commands](https://redis.io/commands)
 
 ##### RPush
 
-Inserts the values at the tail of the list stored in the bucket at given bucket,key and values.
+Inserts the values at the tail of the list stored in the bucket at given bucket, key and values.
 
 ```golang
 if err := db.Update(
@@ -636,7 +697,7 @@ if err := db.Update(
 
 ##### LPush 
 
-Inserts the values at the head of the list stored in the bucket at given bucket,key and values.
+Inserts the values at the head of the list stored in the bucket at given bucket, key and values.
 
 ```golang
 if err := db.Update(
@@ -778,6 +839,26 @@ if err := db.Update(
 }
 ```
 
+##### LRemByIndex
+
+Note: This feature can be used starting from v0.10.0
+
+Remove the element at a specified position (single or multiple) from the list
+
+
+```golang
+if err := db.Update(
+    func(tx *nutsdb.Tx) error {
+        bucket := "bucketForList"
+        key := []byte("myList")
+        removedNum, err := tx.LRemByIndex(bucket, key, 0, 1)
+        fmt.Printf("removed num %d\n", removedNum)
+        return err
+    }); err != nil {
+    log.Fatal(err)
+}
+```
+
 ##### LSet 
 
 Sets the list element at index to value.
@@ -801,7 +882,7 @@ if err := db.Update(
 ##### Ltrim 
 
 Trims an existing list so that it will contain only the specified range of elements specified.
-the offsets start and stop are zero-based indexes 0 being the first element of the list (the head of the list),
+The offsets start and stop are zero-based indexes 0 being the first element of the list (the head of the list),
 1 being the next element and so on.Start and end can also be negative numbers indicating offsets from the end of the list,
 where -1 is the last element of the list, -2 the penultimate element and so on.
 
@@ -831,6 +912,28 @@ if err := db.Update(
             fmt.Println("myList size is ",size)
         }
         return nil
+    }); err != nil {
+    log.Fatal(err)
+}
+```
+
+##### LKeys
+
+find all `keys` of type `List` matching a given `pattern`, similar to Redis command: [KEYS](https://redis.io/commands/keys/)
+
+Note: pattern matching use `filepath.Match`, It is different from redis' behavior in some details, such as `[`.
+
+```golang
+if err := db.View(
+    func(tx *nutsdb.Tx) error {
+        var keys []string
+        err := tx.LKeys(bucket, "*", func(key string) bool {
+            keys = append(keys, key)
+            // true: continue, false: break
+            return true
+        })
+        fmt.Printf("keys: %v\n", keys)
+        return err
     }); err != nil {
     log.Fatal(err)
 }
@@ -1001,7 +1104,7 @@ if err := db.View(
 ```
 ##### SIsMember 
 
-Returns if member is a member of the set stored int the bucket at given bucket,key and item.
+Returns if member is a member of the set stored in the bucket at given bucket, key and item.
 
 ```go
 bucket := "bucketForSet"
@@ -1020,7 +1123,7 @@ if err := db.View(
 ```
 ##### SMembers 
 
-Returns all the members of the set value stored int the bucket at given bucket and key.
+Returns all the members of the set value stored in the bucket at given bucket and key.
 
 ```
 bucket := "bucketForSet"
@@ -1184,7 +1287,7 @@ if err := db.Update(
 ```
 ##### SRem 
 
-Removes the specified members from the set stored int the bucket at given bucket,key and items.
+Removes the specified members from the set stored in the bucket at given bucket,key and items.
 
 ```go
 bucket6:="bucket6"
@@ -1297,6 +1400,28 @@ if err := db.View(
             }
         }
         return nil
+    }); err != nil {
+    log.Fatal(err)
+}
+```
+
+##### SKeys
+
+find all `keys` of type `Set` matching a given `pattern`, similar to Redis command: [KEYS](https://redis.io/commands/keys/)
+
+Note: pattern matching use `filepath.Match`, It is different from redis' behavior in some details, such as `[`.
+
+```golang
+if err := db.View(
+    func(tx *nutsdb.Tx) error {
+        var keys []string
+        err := tx.SKeys(bucket, "*", func(key string) bool {
+            keys = append(keys, key)
+            // true: continue, false: break
+            return true
+        })
+        fmt.Printf("keys: %v\n", keys)
+        return err
     }); err != nil {
     log.Fatal(err)
 }
@@ -1854,19 +1979,42 @@ if err := db.View(
     log.Fatal(err)
 }
 ```
+
+##### ZKeys
+
+find all `keys` of type `Sorted Set` matching a given `pattern`, similar to Redis command: [KEYS](https://redis.io/commands/keys/)
+
+Note: pattern matching use `filepath.Match`, It is different from redis' behavior in some details, such as `[`.
+
+```golang
+if err := db.View(
+    func(tx *nutsdb.Tx) error {
+        var keys []string
+        err := tx.ZKeys(bucket, "*", func(key string) bool {
+            keys = append(keys, key)
+            // true: continue, false: break
+            return true
+        })
+        fmt.Printf("keys: %v\n", keys)
+        return err
+    }); err != nil {
+    log.Fatal(err)
+}
+```
+
 ### Comparison with other databases
 
 #### BoltDB
 
-BoltDB is similar to NutsDB, both use B+tree and support transaction. However, Bolt uses a B+tree internally and only a single file, and NutsDB is based on bitcask model with  multiple log files. NutsDB supports TTL and many data structures, but BoltDB not supports them .
+BoltDB is similar to NutsDB, both use B+tree and support transaction. However, Bolt uses a B+tree internally and only a single file, and NutsDB is based on bitcask model with multiple log files. NutsDB supports TTL and many data structures, but BoltDB does not support them .
 
 #### LevelDB, RocksDB
 
-LevelDB and RocksDB are based on a log-structured merge-tree (LSM tree).An LSM tree optimizes random writes by using a write ahead log and multi-tiered, sorted files called SSTables. LevelDB does not have transactions. It supports batch writing of key/values pairs and it supports read snapshots but it will not give you the ability to do a compare-and-swap operation safely. NutsDB supports many data structures, but they not support them.
+LevelDB and RocksDB are based on a log-structured merge-tree (LSM tree).An LSM tree optimizes random writes by using a write ahead log and multi-tiered, sorted files called SSTables. LevelDB does not have transactions. It supports batch writing of key/value pairs and it supports read snapshots but it will not give you the ability to do a compare-and-swap operation safely. NutsDB supports many data structures, but RocksDB does not support them.
 
 #### Badger
 
-Badger is based in LSM tree with value log. It designed for SSDs. It also supports transaction and TTL. But in my benchmark its write performance is not as good as i thought. In addition, NutsDB supports data structures such as list、set、sorted set, but Badger not supports them.
+Badger is based in LSM tree with value log. It designed for SSDs. It also supports transaction and TTL. But in my benchmark its write performance is not as good as i thought. In addition, NutsDB supports data structures such as list、set、sorted set, but Badger does not support them.
 
 ### Benchmarks
 

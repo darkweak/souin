@@ -53,7 +53,7 @@ func parseCacheKeys(ccConfiguration map[string]interface{}) map[configurationtyp
 	cacheKeys := make(map[configurationtypes.RegValue]configurationtypes.Key)
 	for cacheKeysConfigurationK, cacheKeysConfigurationV := range ccConfiguration {
 		ck := configurationtypes.Key{}
-		for cacheKeysConfigurationVMapK := range cacheKeysConfigurationV.(map[string]interface{}) {
+		for cacheKeysConfigurationVMapK, cacheKeysConfigurationVMapV := range cacheKeysConfigurationV.(map[string]interface{}) {
 			switch cacheKeysConfigurationVMapK {
 			case "disable_body":
 				ck.DisableBody = true
@@ -61,6 +61,8 @@ func parseCacheKeys(ccConfiguration map[string]interface{}) map[configurationtyp
 				ck.DisableHost = true
 			case "disable_method":
 				ck.DisableMethod = true
+			case "headers":
+				ck.Headers = cacheKeysConfigurationVMapV.([]string)
 			}
 		}
 		rg := regexp.MustCompile(cacheKeysConfigurationK)

@@ -52,24 +52,86 @@ type Options struct {
 	// if SyncEnable is true, slower but persistent.
 	SyncEnable bool
 
-	// StartFileLoadingMode represents when open a database which RWMode to load files.
-	StartFileLoadingMode RWMode
-
 	// MaxFdNumsInCache represents the max numbers of fd in cache.
 	MaxFdNumsInCache int
 
 	// CleanFdsCacheThreshold represents the maximum threshold for recycling fd, it should be between 0 and 1.
 	CleanFdsCacheThreshold float64
+
+	// BufferSizeOfRecovery represents the buffer size of recoveryReader buffer Size
+	BufferSizeOfRecovery int
 }
 
-var defaultSegmentSize int64 = 256 * 1024 * 1024
+const (
+	B = 1
+
+	KB = 1024 * B
+
+	MB = 1024 * KB
+
+	GB = 1024 * MB
+)
+
+// defaultSegmentSize is default data file size.
+var defaultSegmentSize int64 = 256 * MB
 
 // DefaultOptions represents the default options.
-var DefaultOptions = Options{
-	EntryIdxMode:         HintKeyValAndRAMIdxMode,
-	SegmentSize:          defaultSegmentSize,
-	NodeNum:              1,
-	RWMode:               FileIO,
-	SyncEnable:           true,
-	StartFileLoadingMode: MMap,
+var DefaultOptions = func() Options {
+	return Options{
+		EntryIdxMode: HintKeyValAndRAMIdxMode,
+		SegmentSize:  defaultSegmentSize,
+		NodeNum:      1,
+		RWMode:       FileIO,
+		SyncEnable:   true,
+	}
+}()
+
+type Option func(*Options)
+
+func WithDir(dir string) Option {
+	return func(opt *Options) {
+		opt.Dir = dir
+	}
+}
+
+func WithEntryIdxMode(entryIdxMode EntryIdxMode) Option {
+	return func(opt *Options) {
+		opt.EntryIdxMode = entryIdxMode
+	}
+}
+
+func WithRWMode(rwMode RWMode) Option {
+	return func(opt *Options) {
+		opt.RWMode = rwMode
+	}
+}
+
+func WithSegmentSize(size int64) Option {
+	return func(opt *Options) {
+		opt.SegmentSize = size
+	}
+}
+
+func WithNodeNum(num int64) Option {
+	return func(opt *Options) {
+		opt.NodeNum = num
+	}
+}
+
+func WithSyncEnable(enable bool) Option {
+	return func(opt *Options) {
+		opt.SyncEnable = enable
+	}
+}
+
+func WithMaxFdNumsInCache(num int) Option {
+	return func(opt *Options) {
+		opt.MaxFdNumsInCache = num
+	}
+}
+
+func WithCleanFdsCacheThreshold(threshold float64) Option {
+	return func(opt *Options) {
+		opt.CleanFdsCacheThreshold = threshold
+	}
 }

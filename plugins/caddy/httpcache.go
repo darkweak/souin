@@ -478,6 +478,8 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 							ck.DisableHost = true
 						case "disable_method":
 							ck.DisableMethod = true
+						case "headers":
+							ck.Headers = h.RemainingArgs()
 						}
 					}
 
@@ -699,6 +701,8 @@ func (s *SouinCaddyPlugin) UnmarshalCaddyfile(h *caddyfile.Dispenser) error {
 						ck.DisableHost = true
 					case "disable_method":
 						ck.DisableMethod = true
+					case "headers":
+						ck.Headers = h.RemainingArgs()
 					}
 				}
 

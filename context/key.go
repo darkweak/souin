@@ -9,13 +9,15 @@ import (
 )
 
 const (
-	Key ctxKey = "CACHE_KEY"
+	Key            ctxKey = "CACHE_KEY"
+	IgnoredHeaders ctxKey = "IGNORE_HEADERS"
 )
 
 type keyContext struct {
 	disable_body   bool
 	disable_host   bool
 	disable_method bool
+	headers        []string
 	overrides      map[*regexp.Regexp]keyContext
 }
 
@@ -24,6 +26,7 @@ func (g *keyContext) SetupContext(c configurationtypes.AbstractConfigurationInte
 	g.disable_body = k.DisableBody
 	g.disable_host = k.DisableHost
 	g.disable_method = k.DisableMethod
+	g.headers = k.Headers
 
 	g.overrides = make(map[*regexp.Regexp]keyContext)
 
@@ -32,16 +35,19 @@ func (g *keyContext) SetupContext(c configurationtypes.AbstractConfigurationInte
 			disable_body:   v.DisableBody,
 			disable_host:   v.DisableHost,
 			disable_method: v.DisableMethod,
+			headers:        v.Headers,
 		}
 	}
 }
 
 func (g *keyContext) SetContext(req *http.Request) *http.Request {
 	key := req.URL.RequestURI()
+	var headers []string
 
 	body := ""
 	host := ""
 	method := ""
+	headerValues := ""
 
 	if !g.disable_body {
 		body = req.Context().Value(HashBody).(string)
@@ -53,6 +59,11 @@ func (g *keyContext) SetContext(req *http.Request) *http.Request {
 
 	if !g.disable_method {
 		method = req.Method + "-"
+	}
+
+	headers = g.headers
+	for _, hn := range g.headers {
+		headerValues += "-" + req.Header.Get(hn)
 	}
 
 	for k, v := range g.overrides {
@@ -68,11 +79,18 @@ func (g *keyContext) SetContext(req *http.Request) *http.Request {
 			if !v.disable_host {
 				host = req.Host + "-"
 			}
+			if len(v.headers) > 0 {
+				headerValues = ""
+				for _, hn := range v.headers {
+					headers = v.headers
+					headerValues += "-" + req.Header.Get(hn)
+				}
+			}
 			break
 		}
 	}
 
-	return req.WithContext(context.WithValue(req.Context(), Key, method+host+key+body))
+	return req.WithContext(context.WithValue(context.WithValue(req.Context(), Key, method+host+key+body+headerValues), IgnoredHeaders, headers))
 }
 
 var _ ctx = (*keyContext)(nil)
