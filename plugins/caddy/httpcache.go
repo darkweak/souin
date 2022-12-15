@@ -242,16 +242,16 @@ func (s *SouinCaddyPlugin) FromApp(app *SouinApp) error {
 	if dc.CacheName == "" {
 		s.Configuration.DefaultCache.CacheName = appDc.CacheName
 	}
-	if dc.Olric.URL == "" && dc.Olric.Path == "" && dc.Olric.Configuration == nil {
+	if dc.Etcd.Configuration == nil && dc.Redis.URL == "" && dc.Redis.Path == "" && dc.Redis.Configuration == nil && dc.Olric.URL == "" && dc.Olric.Path == "" && dc.Olric.Configuration == nil {
 		s.Configuration.DefaultCache.Distributed = appDc.Distributed
+	}
+	if dc.Olric.URL == "" && dc.Olric.Path == "" && dc.Olric.Configuration == nil {
 		s.Configuration.DefaultCache.Olric = appDc.Olric
 	}
 	if dc.Redis.URL == "" && dc.Redis.Path == "" && dc.Redis.Configuration == nil {
-		s.Configuration.DefaultCache.Distributed = appDc.Distributed
 		s.Configuration.DefaultCache.Redis = appDc.Redis
 	}
 	if dc.Etcd.Configuration == nil {
-		s.Configuration.DefaultCache.Distributed = appDc.Distributed
 		s.Configuration.DefaultCache.Etcd = appDc.Etcd
 	}
 	if dc.Badger.Path == "" || dc.Badger.Configuration == nil {
@@ -385,6 +385,23 @@ func parseBadgerConfiguration(c map[string]interface{}) map[string]interface{} {
 		case "EncryptionKey":
 			c[k] = []byte(v.(string))
 		case "EncryptionKeyRotationDuration":
+			c[k], _ = time.ParseDuration(v.(string))
+		}
+	}
+
+	return c
+}
+
+func parseRedisConfiguration(c map[string]interface{}) map[string]interface{} {
+	for k, v := range c {
+		switch k {
+		case "Network", "Addr", "Username", "Password":
+			c[k] = v
+		case "PoolFIFO":
+			c[k] = true
+		case "DB", "MaxRetries", "PoolSize", "MinIdleConns", "MaxIdleConns":
+			c[k], _ = strconv.Atoi(v.(string))
+		case "MinRetryBackoff", "MaxRetryBackoff", "DialTimeout", "ReadTimeout", "WriteTimeout", "PoolTimeout", "ConnMaxIdleTime", "ConnMaxLifetime":
 			c[k], _ = time.ParseDuration(v.(string))
 		}
 	}
@@ -589,6 +606,7 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 						provider.Path = urlArgs[0]
 					case "configuration":
 						provider.Configuration = parseCaddyfileRecursively(h)
+						provider.Configuration = parseRedisConfiguration(provider.Configuration.(map[string]interface{}))
 					}
 				}
 				cfg.DefaultCache.Redis = provider
@@ -773,6 +791,7 @@ func (s *SouinCaddyPlugin) UnmarshalCaddyfile(h *caddyfile.Dispenser) error {
 					provider.Path = urlArgs[0]
 				case "configuration":
 					provider.Configuration = parseCaddyfileRecursively(h)
+					provider.Configuration = parseRedisConfiguration(provider.Configuration.(map[string]interface{}))
 				}
 			}
 			sc.DefaultCache.Redis = provider

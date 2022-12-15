@@ -31,7 +31,9 @@ func RedisConnectionFactory(c t.AbstractConfigurationInterface) (types.AbstractR
 
 	var options redis.Options
 	if dc.GetRedis().Configuration != nil {
-		_ = json.Unmarshal(bc, &options)
+		if err := json.Unmarshal(bc, &options); err != nil {
+			c.GetLogger().Sugar().Infof("Cannot parse your redis configuration: %+v", err)
+		}
 	} else {
 		options = redis.Options{
 			Addr:        dc.GetRedis().URL,
