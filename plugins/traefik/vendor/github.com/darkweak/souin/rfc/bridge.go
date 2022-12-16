@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	ctx "context"
-	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -81,7 +80,6 @@ func canBypassHeader(headers http.Header, bypassed []string) bool {
 func (t *VaryTransport) BaseRoundTrip(req *http.Request) (string, bool, *http.Response) {
 	cacheKey := req.Context().Value(context.Key).(string)
 	_, err := req.Cookie("authorization")
-	fmt.Println("IGNORED HEADERS =>", req.Context().Value(context.IgnoredHeaders).([]string))
 	cacheable := IsVaryCacheable(req) && canBypassHeader(req.Header, req.Context().Value(context.IgnoredHeaders).([]string)) && err != nil
 
 	if !cacheable {

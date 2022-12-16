@@ -59,6 +59,8 @@ func parseCacheKeys(ccConfiguration map[string]interface{}) map[configurationtyp
 				ck.DisableHost = true
 			case "disable_method":
 				ck.DisableMethod = true
+			case "hide":
+				ck.Hide = true
 			case "headers":
 				ck.Headers = make([]string, 0)
 				if values, ok := cacheKeysConfigurationVMapV.([]string); ok {

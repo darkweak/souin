@@ -234,7 +234,7 @@ func (s *SouinCaddyPlugin) FromApp(app *SouinApp) error {
 	if dc.Timeout.Cache.Duration == 0 {
 		s.Configuration.DefaultCache.Timeout.Cache = appDc.Timeout.Cache
 	}
-	if !dc.Key.DisableBody && !dc.Key.DisableHost && !dc.Key.DisableMethod {
+	if !dc.Key.DisableBody && !dc.Key.DisableHost && !dc.Key.DisableMethod && !dc.Key.Hide {
 		s.Configuration.DefaultCache.Key = appDc.Key
 	}
 	if dc.DefaultCacheControl == "" {
@@ -496,6 +496,8 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 							ck.DisableHost = true
 						case "disable_method":
 							ck.DisableMethod = true
+						case "hide":
+							ck.Hide = true
 						case "headers":
 							ck.Headers = h.RemainingArgs()
 						}
@@ -554,6 +556,10 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 						config_key.DisableHost = true
 					case "disable_method":
 						config_key.DisableMethod = true
+					case "hide":
+						config_key.Hide = true
+					case "headers":
+						config_key.Headers = h.RemainingArgs()
 					}
 				}
 				cfg.DefaultCache.Key = config_key
@@ -720,6 +726,8 @@ func (s *SouinCaddyPlugin) UnmarshalCaddyfile(h *caddyfile.Dispenser) error {
 						ck.DisableHost = true
 					case "disable_method":
 						ck.DisableMethod = true
+					case "hide":
+						ck.Hide = true
 					case "headers":
 						ck.Headers = h.RemainingArgs()
 					}
@@ -758,6 +766,10 @@ func (s *SouinCaddyPlugin) UnmarshalCaddyfile(h *caddyfile.Dispenser) error {
 					config_key.DisableHost = true
 				case "disable_method":
 					config_key.DisableMethod = true
+				case "hide":
+					config_key.Hide = true
+				case "headers":
+					config_key.Headers = h.RemainingArgs()
 				}
 			}
 			sc.DefaultCache.Key = config_key

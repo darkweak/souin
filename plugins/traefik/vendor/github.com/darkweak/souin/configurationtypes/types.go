@@ -114,6 +114,7 @@ type Key struct {
 	DisableBody   bool     `json:"disable_body" yaml:"disable_body"`
 	DisableHost   bool     `json:"disable_host" yaml:"disable_host"`
 	DisableMethod bool     `json:"disable_method" yaml:"disable_method"`
+	Hide          bool     `json:"hide" yaml:"hide"`
 	Headers       []string `json:"headers" yaml:"headers"`
 }
 
