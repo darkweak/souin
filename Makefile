@@ -120,6 +120,7 @@ up: ## Up containers
 validate: lint tests down health-check-prod ## Run lint, tests and ensure prod can build
 
 vendor-plugins: ## Generate and prepare vendors for each plugin
+	go mod tidy && go mod download
 	for plugin in $(PLUGINS_LIST) ; do \
         cd plugins/$$plugin && ($(MAKE) vendor || true) && cd -; \
     done

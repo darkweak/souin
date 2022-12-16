@@ -120,6 +120,7 @@ func (s *SouinCaddyPlugin) ServeHTTP(rw http.ResponseWriter, r *http.Request, ne
 	getterCtx := getterContext{customWriter, req, next}
 	ctx := context.WithValue(req.Context(), getterContextCtxKey, getterCtx)
 	req = req.WithContext(ctx)
+	r.Body = req.Body
 	if plugins.HasMutation(req, rw) {
 		return next.ServeHTTP(rw, r)
 	}
