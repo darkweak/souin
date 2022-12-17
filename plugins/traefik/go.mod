@@ -3,7 +3,7 @@ module github.com/darkweak/souin/plugins/traefik
 go 1.19
 
 require (
-	github.com/darkweak/souin v1.6.24
+	github.com/darkweak/souin v1.6.26
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pquerna/cachecontrol v0.1.0
 	go.uber.org/zap v1.24.0
@@ -83,4 +83,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/darkweak/souin v1.6.24 => ../..
+replace github.com/darkweak/souin v1.6.26 => ../..
