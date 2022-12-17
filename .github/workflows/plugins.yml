@@ -73,7 +73,7 @@ jobs:
         name: Wait for Souin is really loaded inside Beego as middleware
         uses: jakejarvis/wait-action@master
         with:
-          time: 40s
+          time: 50s
       -
         name: Set Beego logs configuration result as environment variable
         run: cd plugins/beego && echo "$(make load-checker)" >> $GITHUB_ENV
@@ -308,7 +308,7 @@ jobs:
         name: Wait for Souin is really loaded inside Gin as middleware
         uses: jakejarvis/wait-action@master
         with:
-          time: 40s
+          time: 50s
       -
         name: Set Gin logs configuration result as environment variable
         run: cd plugins/gin && echo "$(make load-checker)" >> $GITHUB_ENV
@@ -590,7 +590,7 @@ jobs:
         name: Wait for Souin is really loaded inside Souin as middleware
         uses: jakejarvis/wait-action@master
         with:
-          time: 40s
+          time: 50s
       -
         name: Set Souin logs configuration result as environment variable
         run: cd plugins/souin && echo "$(make load-checker)" >> $GITHUB_ENV
