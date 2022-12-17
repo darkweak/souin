@@ -14,6 +14,11 @@ jobs:
   build-caddy-validator:
     name: Check that Souin build as caddy module
     runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis
+        ports:
+          - 6379:6379
     steps:
       -
         name: Add domain.com host to /etc/hosts
