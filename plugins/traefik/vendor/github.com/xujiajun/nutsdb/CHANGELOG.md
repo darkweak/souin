@@ -98,3 +98,35 @@
 * [Test] test:complete tx_zset tests with testify (#162) @bigdaronlee163
 * [Chore] remove unused member (#157) @xpzouying
 * [Style]  format code comments etc. (#140) @moyrne
+
+## v0.10.0（2022-08-13）
+* [Bug Fix]List data structure with count parameter negative, lack of boundary judgment (#183) @andrewhzy
+* [New Feature] add LRemByIndex (#174) @Nailcui
+* [New Feature] add LKeys SKeys ZKeys API (#175) @Nailcui
+* [New Feature] add Iterator API (HintKeyAndRAMIdxMode and HintKeyValAndRAMIdxMode)(#191) @zeina1i
+* [Refactor] graceful options parameters (#185) @Nailcui
+* [Test] Add rwmanager fileio test (#170) @zeina1i
+* [Test] Improve code coverage about list  (#183) @andrewhzy
+* [Test] Test coverage improvement for inmemory  (#187) @andrewhzy
+* [Docs] A few corrections in ReadME file (#171) @kwakubiney
+
+## v0.11.0（2022-10-31）
+* [Bug Fix] In BPTSparse when combination of bucket and key is repeated (#207) @ShiMaRing
+* [Bug Fix] MInInt function compatible with 32-bit operating systems (#208) @xujiajun
+* [Bug Fix] Index EOF issue#213 (#214) @xujiajun
+* [Perf] Optimize concurrent read performance (#205) @elliotchenzichang
+* [Perf] Use biobuf optimaze startspeed (#212) @elliotchenzichang
+* [New Feature] Support reverse iterator (EntryIdxMode: HintKeyAndRAMIdxMode and HintKeyValAndRAMIdxMode) (#202) @zeina1i
+* [New Feature] Add support for IterateBuckets regularized matching (#198) @Nailcui
+* [New Feature] list all key of bucket in memory mode (#206) @Nailcui
+* [New Feature] Add PrefixScan in memory mode  (#211) @Nailcui
+* [Refactor] make default options to be created in a factory method (#196) @elliotchenzichang
+* [Refactor] use size constant value (#204) @elliotchenzichang
+* [Chore] add iterator example (#209) @xujiajun
+* [Chore] remove option StartFileLoadingMode (#218) @xujiajun
+
+## v0.11.1（2022-11-13）
+* [Bug Fix] avoid nil of it.current (#233) @mindon
+* [Bug Fix] it.current may be nil when options.Reverse is false (#234) @xujiajun
+* [Refactor] changing the lock to be one of property of the structure can make the code more readable.(#228) @elliotchenzichang
+* [New Feature] add buffer size of recovery reader as param (#230) @elliotchenzichang

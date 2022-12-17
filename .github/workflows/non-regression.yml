@@ -28,11 +28,7 @@ jobs:
         uses: actions/setup-go@v3
         with:
           go-version: 1.19
-      - name: Build the stack
-        run: docker network create your_network || true
-      - name: Build the stack
-        run: docker-compose -f docker-compose.yml.test up -d --build --force-recreate --remove-orphans
-      - name: Test
+      - name: Run unit static tests
         run: go test -v -race $(go list ./... | grep -v cache/providers)
   unit-test-golang-with-services:
     needs: lint-validation
@@ -45,11 +41,11 @@ jobs:
         uses: actions/setup-go@v3
         with:
           go-version: 1.19
-      - name: Build the stack
-        run: docker network create your_network || true
-      - name: Build the stack
-        run: docker-compose -f docker-compose.yml.test up -d --build --force-recreate --remove-orphans
-      - name: Test
+      - name: Build and run the docker stack
+        run: |
+          docker network create your_network || true
+          docker-compose -f docker-compose.yml.test up -d --build --force-recreate --remove-orphans
+      - name: Run tests
         # disabled race to pass the EmbeddedOlric test
         run: docker-compose -f docker-compose.yml.test exec -T souin go test -v ./cache/providers
   validate-prod-container-building:

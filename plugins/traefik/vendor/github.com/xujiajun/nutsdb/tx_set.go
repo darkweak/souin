@@ -300,6 +300,22 @@ func (tx *Tx) SUnionByTwoBuckets(bucket1 string, key1 []byte, bucket2 string, ke
 	return
 }
 
+// SKeys find all keys matching a given pattern
+func (tx *Tx) SKeys(bucket, pattern string, f func(key string) bool) error {
+	if err := tx.checkTxIsClosed(); err != nil {
+		return err
+	}
+	if _, ok := tx.db.SetIdx[bucket]; !ok {
+		return ErrBucket
+	}
+	for key := range tx.db.SetIdx[bucket].M {
+		if end, err := MatchForRange(pattern, key, f); end || err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // ErrBucketAndKey returns when bucket or key not found.
 func ErrBucketAndKey(bucket string, key []byte) error {
 	return errors.Wrapf(ErrBucketNotFound, "bucket:%s, key:%s", bucket, key)

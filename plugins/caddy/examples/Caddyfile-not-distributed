@@ -1,7 +1,6 @@
 {
     order cache before rewrite
     cache {
-        headers Content-Type Authorization
         log_level info
         ttl 1000s
         default_cache_control no-store
@@ -16,12 +15,10 @@
 
 cache @match {
     ttl 30s
-    headers Cookie
 }
 
 cache @match2 {
     ttl 50s
-    headers Authorization
     default_cache_control "public, max-age=86400"
 }
 

@@ -13,7 +13,7 @@ import (
 // otherwise you will receive an error: (error) ERR syntax error.
 // For example:
 //
-//    rdb.Set(ctx, key, value, redis.KeepTTL)
+//	rdb.Set(ctx, key, value, redis.KeepTTL)
 const KeepTTL = -1
 
 func usePrecise(dur time.Duration) bool {
@@ -207,6 +207,7 @@ type Cmdable interface {
 	SDiff(ctx context.Context, keys ...string) *StringSliceCmd
 	SDiffStore(ctx context.Context, destination string, keys ...string) *IntCmd
 	SInter(ctx context.Context, keys ...string) *StringSliceCmd
+	SInterCard(ctx context.Context, limit int64, keys ...string) *IntCmd
 	SInterStore(ctx context.Context, destination string, keys ...string) *IntCmd
 	SIsMember(ctx context.Context, key string, member interface{}) *BoolCmd
 	SMIsMember(ctx context.Context, key string, members ...interface{}) *BoolSliceCmd
@@ -339,15 +340,20 @@ type Cmdable interface {
 
 	Eval(ctx context.Context, script string, keys []string, args ...interface{}) *Cmd
 	EvalSha(ctx context.Context, sha1 string, keys []string, args ...interface{}) *Cmd
+	EvalRO(ctx context.Context, script string, keys []string, args ...interface{}) *Cmd
+	EvalShaRO(ctx context.Context, sha1 string, keys []string, args ...interface{}) *Cmd
 	ScriptExists(ctx context.Context, hashes ...string) *BoolSliceCmd
 	ScriptFlush(ctx context.Context) *StatusCmd
 	ScriptKill(ctx context.Context) *StatusCmd
 	ScriptLoad(ctx context.Context, script string) *StringCmd
 
 	Publish(ctx context.Context, channel string, message interface{}) *IntCmd
+	SPublish(ctx context.Context, channel string, message interface{}) *IntCmd
 	PubSubChannels(ctx context.Context, pattern string) *StringSliceCmd
-	PubSubNumSub(ctx context.Context, channels ...string) *StringIntMapCmd
+	PubSubNumSub(ctx context.Context, channels ...string) *MapStringIntCmd
 	PubSubNumPat(ctx context.Context) *IntCmd
+	PubSubShardChannels(ctx context.Context, pattern string) *StringSliceCmd
+	PubSubShardNumSub(ctx context.Context, channels ...string) *MapStringIntCmd
 
 	ClusterSlots(ctx context.Context) *ClusterSlotsCmd
 	ClusterNodes(ctx context.Context) *StringCmd
@@ -1607,6 +1613,22 @@ func (c cmdable) SInter(ctx context.Context, keys ...string) *StringSliceCmd {
 	return cmd
 }
 
+func (c cmdable) SInterCard(ctx context.Context, limit int64, keys ...string) *IntCmd {
+	args := make([]interface{}, 4+len(keys))
+	args[0] = "sintercard"
+	numkeys := int64(0)
+	for i, key := range keys {
+		args[2+i] = key
+		numkeys++
+	}
+	args[1] = numkeys
+	args[2+numkeys] = "limit"
+	args[3+numkeys] = limit
+	cmd := NewIntCmd(ctx, args...)
+	_ = c(ctx, cmd)
+	return cmd
+}
+
 func (c cmdable) SInterStore(ctx context.Context, destination string, keys ...string) *IntCmd {
 	args := make([]interface{}, 2+len(keys))
 	args[0] = "sinterstore"
@@ -1738,8 +1760,6 @@ type XAddArgs struct {
 	Values interface{}
 }
 
-// XAdd a.Limit has a bug, please confirm it and use it.
-// issue: https://github.com/redis/redis/issues/9046
 func (c cmdable) XAdd(ctx context.Context, a *XAddArgs) *StringCmd {
 	args := make([]interface{}, 0, 11)
 	args = append(args, "xadd", a.Stream)
@@ -2047,8 +2067,10 @@ func xClaimArgs(a *XClaimArgs) []interface{} {
 
 // xTrim If approx is true, add the "~" parameter, otherwise it is the default "=" (redis default).
 // example:
-//		XTRIM key MAXLEN/MINID threshold LIMIT limit.
-//		XTRIM key MAXLEN/MINID ~ threshold LIMIT limit.
+//
+//	XTRIM key MAXLEN/MINID threshold LIMIT limit.
+//	XTRIM key MAXLEN/MINID ~ threshold LIMIT limit.
+//
 // The redis-server version is lower than 6.2, please set limit to 0.
 func (c cmdable) xTrim(
 	ctx context.Context, key, strategy string,
@@ -2074,22 +2096,14 @@ func (c cmdable) XTrimMaxLen(ctx context.Context, key string, maxLen int64) *Int
 	return c.xTrim(ctx, key, "maxlen", false, maxLen, 0)
 }
 
-// XTrimMaxLenApprox LIMIT has a bug, please confirm it and use it.
-// issue: https://github.com/redis/redis/issues/9046
-// cmd: XTRIM key MAXLEN ~ maxLen LIMIT limit
 func (c cmdable) XTrimMaxLenApprox(ctx context.Context, key string, maxLen, limit int64) *IntCmd {
 	return c.xTrim(ctx, key, "maxlen", true, maxLen, limit)
 }
 
-// XTrimMinID No `~` rules are used, `limit` cannot be used.
-// cmd: XTRIM key MINID minID
 func (c cmdable) XTrimMinID(ctx context.Context, key string, minID string) *IntCmd {
 	return c.xTrim(ctx, key, "minid", false, minID, 0)
 }
 
-// XTrimMinIDApprox LIMIT has a bug, please confirm it and use it.
-// issue: https://github.com/redis/redis/issues/9046
-// cmd: XTRIM key MINID ~ minID LIMIT limit
 func (c cmdable) XTrimMinIDApprox(ctx context.Context, key string, minID string, limit int64) *IntCmd {
 	return c.xTrim(ctx, key, "minid", true, minID, limit)
 }
@@ -2386,11 +2400,13 @@ func (c cmdable) ZPopMin(ctx context.Context, key string, count ...int64) *ZSlic
 
 // ZRangeArgs is all the options of the ZRange command.
 // In version> 6.2.0, you can replace the(cmd):
-//		ZREVRANGE,
-//		ZRANGEBYSCORE,
-//		ZREVRANGEBYSCORE,
-//		ZRANGEBYLEX,
-//		ZREVRANGEBYLEX.
+//
+//	ZREVRANGE,
+//	ZRANGEBYSCORE,
+//	ZREVRANGEBYSCORE,
+//	ZRANGEBYLEX,
+//	ZREVRANGEBYLEX.
+//
 // Please pay attention to your redis-server version.
 //
 // Rev, ByScore, ByLex and Offset+Count options require redis-server 6.2.0 and higher.
@@ -2794,7 +2810,7 @@ func (c cmdable) ClientKill(ctx context.Context, ipPort string) *StatusCmd {
 
 // ClientKillByFilter is new style syntax, while the ClientKill is old
 //
-//   CLIENT KILL <option> [value] ... <option> [value]
+//	CLIENT KILL <option> [value] ... <option> [value]
 func (c cmdable) ClientKillByFilter(ctx context.Context, keys ...string) *IntCmd {
 	args := make([]interface{}, 2+len(keys))
 	args[0] = "client"
@@ -2897,10 +2913,11 @@ func (c cmdable) FlushDBAsync(ctx context.Context) *StatusCmd {
 	return cmd
 }
 
-func (c cmdable) Info(ctx context.Context, section ...string) *StringCmd {
-	args := []interface{}{"info"}
-	if len(section) > 0 {
-		args = append(args, section[0])
+func (c cmdable) Info(ctx context.Context, sections ...string) *StringCmd {
+	args := make([]interface{}, 1+len(sections))
+	args[0] = "info"
+	for i, section := range sections {
+		args[i+1] = section
 	}
 	cmd := NewStringCmd(ctx, args...)
 	_ = c(ctx, cmd)
@@ -3010,24 +3027,25 @@ func (c cmdable) MemoryUsage(ctx context.Context, key string, samples ...int) *I
 //------------------------------------------------------------------------------
 
 func (c cmdable) Eval(ctx context.Context, script string, keys []string, args ...interface{}) *Cmd {
-	cmdArgs := make([]interface{}, 3+len(keys), 3+len(keys)+len(args))
-	cmdArgs[0] = "eval"
-	cmdArgs[1] = script
-	cmdArgs[2] = len(keys)
-	for i, key := range keys {
-		cmdArgs[3+i] = key
-	}
-	cmdArgs = appendArgs(cmdArgs, args)
-	cmd := NewCmd(ctx, cmdArgs...)
-	cmd.SetFirstKeyPos(3)
-	_ = c(ctx, cmd)
-	return cmd
+	return c.eval(ctx, "eval", script, keys, args...)
+}
+
+func (c cmdable) EvalRO(ctx context.Context, script string, keys []string, args ...interface{}) *Cmd {
+	return c.eval(ctx, "eval_ro", script, keys, args...)
 }
 
 func (c cmdable) EvalSha(ctx context.Context, sha1 string, keys []string, args ...interface{}) *Cmd {
+	return c.eval(ctx, "evalsha", sha1, keys, args...)
+}
+
+func (c cmdable) EvalShaRO(ctx context.Context, sha1 string, keys []string, args ...interface{}) *Cmd {
+	return c.eval(ctx, "evalsha_ro", sha1, keys, args...)
+}
+
+func (c cmdable) eval(ctx context.Context, name, payload string, keys []string, args ...interface{}) *Cmd {
 	cmdArgs := make([]interface{}, 3+len(keys), 3+len(keys)+len(args))
-	cmdArgs[0] = "evalsha"
-	cmdArgs[1] = sha1
+	cmdArgs[0] = name
+	cmdArgs[1] = payload
 	cmdArgs[2] = len(keys)
 	for i, key := range keys {
 		cmdArgs[3+i] = key
@@ -3078,6 +3096,12 @@ func (c cmdable) Publish(ctx context.Context, channel string, message interface{
 	return cmd
 }
 
+func (c cmdable) SPublish(ctx context.Context, channel string, message interface{}) *IntCmd {
+	cmd := NewIntCmd(ctx, "spublish", channel, message)
+	_ = c(ctx, cmd)
+	return cmd
+}
+
 func (c cmdable) PubSubChannels(ctx context.Context, pattern string) *StringSliceCmd {
 	args := []interface{}{"pubsub", "channels"}
 	if pattern != "*" {
@@ -3088,14 +3112,36 @@ func (c cmdable) PubSubChannels(ctx context.Context, pattern string) *StringSlic
 	return cmd
 }
 
-func (c cmdable) PubSubNumSub(ctx context.Context, channels ...string) *StringIntMapCmd {
+func (c cmdable) PubSubNumSub(ctx context.Context, channels ...string) *MapStringIntCmd {
 	args := make([]interface{}, 2+len(channels))
 	args[0] = "pubsub"
 	args[1] = "numsub"
 	for i, channel := range channels {
 		args[2+i] = channel
 	}
-	cmd := NewStringIntMapCmd(ctx, args...)
+	cmd := NewMapStringIntCmd(ctx, args...)
+	_ = c(ctx, cmd)
+	return cmd
+}
+
+func (c cmdable) PubSubShardChannels(ctx context.Context, pattern string) *StringSliceCmd {
+	args := []interface{}{"pubsub", "shardchannels"}
+	if pattern != "*" {
+		args = append(args, pattern)
+	}
+	cmd := NewStringSliceCmd(ctx, args...)
+	_ = c(ctx, cmd)
+	return cmd
+}
+
+func (c cmdable) PubSubShardNumSub(ctx context.Context, channels ...string) *MapStringIntCmd {
+	args := make([]interface{}, 2+len(channels))
+	args[0] = "pubsub"
+	args[1] = "shardnumsub"
+	for i, channel := range channels {
+		args[2+i] = channel
+	}
+	cmd := NewMapStringIntCmd(ctx, args...)
 	_ = c(ctx, cmd)
 	return cmd
 }
