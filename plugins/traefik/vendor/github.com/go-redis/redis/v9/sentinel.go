@@ -59,9 +59,10 @@ type FailoverOptions struct {
 	MinRetryBackoff time.Duration
 	MaxRetryBackoff time.Duration
 
-	DialTimeout  time.Duration
-	ReadTimeout  time.Duration
-	WriteTimeout time.Duration
+	DialTimeout           time.Duration
+	ReadTimeout           time.Duration
+	WriteTimeout          time.Duration
+	ContextTimeoutEnabled bool
 
 	PoolFIFO bool
 
@@ -90,9 +91,10 @@ func (opt *FailoverOptions) clientOptions() *Options {
 		MinRetryBackoff: opt.MinRetryBackoff,
 		MaxRetryBackoff: opt.MaxRetryBackoff,
 
-		DialTimeout:  opt.DialTimeout,
-		ReadTimeout:  opt.ReadTimeout,
-		WriteTimeout: opt.WriteTimeout,
+		DialTimeout:           opt.DialTimeout,
+		ReadTimeout:           opt.ReadTimeout,
+		WriteTimeout:          opt.WriteTimeout,
+		ContextTimeoutEnabled: opt.ContextTimeoutEnabled,
 
 		PoolFIFO:        opt.PoolFIFO,
 		PoolSize:        opt.PoolSize,
@@ -196,7 +198,18 @@ func NewFailoverClient(failoverOpt *FailoverOptions) *Client {
 	opt.Dialer = masterReplicaDialer(failover)
 	opt.init()
 
-	connPool := newConnPool(opt)
+	var connPool *pool.ConnPool
+
+	rdb := &Client{
+		baseClient: &baseClient{
+			opt: opt,
+		},
+	}
+	rdb.init()
+
+	connPool = newConnPool(opt, rdb.hooks.dial)
+	rdb.connPool = connPool
+	rdb.onClose = failover.Close
 
 	failover.mu.Lock()
 	failover.onFailover = func(ctx context.Context, addr string) {
@@ -206,13 +219,7 @@ func NewFailoverClient(failoverOpt *FailoverOptions) *Client {
 	}
 	failover.mu.Unlock()
 
-	c := Client{
-		baseClient: newBaseClient(opt, connPool),
-	}
-	c.cmdable = c.Process
-	c.onClose = failover.Close
-
-	return &c
+	return rdb
 }
 
 func masterReplicaDialer(
@@ -260,15 +267,21 @@ func NewSentinelClient(opt *Options) *SentinelClient {
 	opt.init()
 	c := &SentinelClient{
 		baseClient: &baseClient{
-			opt:      opt,
-			connPool: newConnPool(opt),
+			opt: opt,
 		},
 	}
+
+	c.hooks.setDial(c.baseClient.dial)
+	c.hooks.setProcess(c.baseClient.process)
+	c.connPool = newConnPool(opt, c.hooks.dial)
+
 	return c
 }
 
 func (c *SentinelClient) Process(ctx context.Context, cmd Cmder) error {
-	return c.hooks.process(ctx, cmd, c.baseClient.process)
+	err := c.hooks.process(ctx, cmd)
+	cmd.SetErr(err)
+	return err
 }
 
 func (c *SentinelClient) pubSub() *PubSub {
@@ -472,8 +485,15 @@ func (c *sentinelFailover) MasterAddr(ctx context.Context) (string, error) {
 	c.mu.RUnlock()
 
 	if sentinel != nil {
-		addr := c.getMasterAddr(ctx, sentinel)
-		if addr != "" {
+		addr, err := c.getMasterAddr(ctx, sentinel)
+		if err != nil {
+			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+				return "", err
+			}
+			// Continue on other errors
+			internal.Logger.Printf(ctx, "sentinel: GetMasterAddrByName name=%q failed: %s",
+				c.opt.MasterName, err)
+		} else {
 			return addr, nil
 		}
 	}
@@ -482,11 +502,18 @@ func (c *sentinelFailover) MasterAddr(ctx context.Context) (string, error) {
 	defer c.mu.Unlock()
 
 	if c.sentinel != nil {
-		addr := c.getMasterAddr(ctx, c.sentinel)
-		if addr != "" {
+		addr, err := c.getMasterAddr(ctx, c.sentinel)
+		if err != nil {
+			_ = c.closeSentinel()
+			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+				return "", err
+			}
+			// Continue on other errors
+			internal.Logger.Printf(ctx, "sentinel: GetMasterAddrByName name=%q failed: %s",
+				c.opt.MasterName, err)
+		} else {
 			return addr, nil
 		}
-		_ = c.closeSentinel()
 	}
 
 	for i, sentinelAddr := range c.sentinelAddrs {
@@ -494,9 +521,12 @@ func (c *sentinelFailover) MasterAddr(ctx context.Context) (string, error) {
 
 		masterAddr, err := sentinel.GetMasterAddrByName(ctx, c.opt.MasterName).Result()
 		if err != nil {
+			_ = sentinel.Close()
+			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+				return "", err
+			}
 			internal.Logger.Printf(ctx, "sentinel: GetMasterAddrByName master=%q failed: %s",
 				c.opt.MasterName, err)
-			_ = sentinel.Close()
 			continue
 		}
 
@@ -517,8 +547,15 @@ func (c *sentinelFailover) replicaAddrs(ctx context.Context, useDisconnected boo
 	c.mu.RUnlock()
 
 	if sentinel != nil {
-		addrs := c.getReplicaAddrs(ctx, sentinel)
-		if len(addrs) > 0 {
+		addrs, err := c.getReplicaAddrs(ctx, sentinel)
+		if err != nil {
+			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+				return nil, err
+			}
+			// Continue on other errors
+			internal.Logger.Printf(ctx, "sentinel: Replicas name=%q failed: %s",
+				c.opt.MasterName, err)
+		} else if len(addrs) > 0 {
 			return addrs, nil
 		}
 	}
@@ -527,11 +564,21 @@ func (c *sentinelFailover) replicaAddrs(ctx context.Context, useDisconnected boo
 	defer c.mu.Unlock()
 
 	if c.sentinel != nil {
-		addrs := c.getReplicaAddrs(ctx, c.sentinel)
-		if len(addrs) > 0 {
+		addrs, err := c.getReplicaAddrs(ctx, c.sentinel)
+		if err != nil {
+			_ = c.closeSentinel()
+			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+				return nil, err
+			}
+			// Continue on other errors
+			internal.Logger.Printf(ctx, "sentinel: Replicas name=%q failed: %s",
+				c.opt.MasterName, err)
+		} else if len(addrs) > 0 {
 			return addrs, nil
+		} else {
+			// No error and no replicas.
+			_ = c.closeSentinel()
 		}
-		_ = c.closeSentinel()
 	}
 
 	var sentinelReachable bool
@@ -541,9 +588,12 @@ func (c *sentinelFailover) replicaAddrs(ctx context.Context, useDisconnected boo
 
 		replicas, err := sentinel.Replicas(ctx, c.opt.MasterName).Result()
 		if err != nil {
+			_ = sentinel.Close()
+			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+				return nil, err
+			}
 			internal.Logger.Printf(ctx, "sentinel: Replicas master=%q failed: %s",
 				c.opt.MasterName, err)
-			_ = sentinel.Close()
 			continue
 		}
 		sentinelReachable = true
@@ -564,24 +614,22 @@ func (c *sentinelFailover) replicaAddrs(ctx context.Context, useDisconnected boo
 	return []string{}, errors.New("redis: all sentinels specified in configuration are unreachable")
 }
 
-func (c *sentinelFailover) getMasterAddr(ctx context.Context, sentinel *SentinelClient) string {
+func (c *sentinelFailover) getMasterAddr(ctx context.Context, sentinel *SentinelClient) (string, error) {
 	addr, err := sentinel.GetMasterAddrByName(ctx, c.opt.MasterName).Result()
 	if err != nil {
-		internal.Logger.Printf(ctx, "sentinel: GetMasterAddrByName name=%q failed: %s",
-			c.opt.MasterName, err)
-		return ""
+		return "", err
 	}
-	return net.JoinHostPort(addr[0], addr[1])
+	return net.JoinHostPort(addr[0], addr[1]), nil
 }
 
-func (c *sentinelFailover) getReplicaAddrs(ctx context.Context, sentinel *SentinelClient) []string {
+func (c *sentinelFailover) getReplicaAddrs(ctx context.Context, sentinel *SentinelClient) ([]string, error) {
 	addrs, err := sentinel.Replicas(ctx, c.opt.MasterName).Result()
 	if err != nil {
 		internal.Logger.Printf(ctx, "sentinel: Replicas name=%q failed: %s",
 			c.opt.MasterName, err)
-		return nil
+		return nil, err
 	}
-	return parseReplicaAddrs(addrs, false)
+	return parseReplicaAddrs(addrs, false), nil
 }
 
 func parseReplicaAddrs(addrs []map[string]string, keepDisconnected bool) []string {

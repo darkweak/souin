@@ -107,6 +107,9 @@ const (
 
 	// DataListBucketDeleteFlag represents the delete List bucket flag
 	DataListBucketDeleteFlag
+
+	// LRemByIndex represents the data LRemByIndex flag
+	DataLRemByIndex
 )
 
 const (
@@ -182,8 +185,8 @@ type (
 	BucketMetasIdx map[string]*BucketMeta
 )
 
-// Open returns a newly initialized DB object.
-func Open(opt Options) (*DB, error) {
+// open returns a newly initialized DB object.
+func open(opt Options) (*DB, error) {
 	db := &DB{
 		BPTreeIdx:               make(BPTreeIdx),
 		SetIdx:                  make(SetIdx),
@@ -239,6 +242,15 @@ func Open(opt Options) (*DB, error) {
 	}
 
 	return db, nil
+}
+
+// Open returns a newly initialized DB object with Option.
+func Open(options Options, ops ...Option) (*DB, error) {
+	opts := &options
+	for _, do := range ops {
+		do(opts)
+	}
+	return open(*opts)
 }
 
 func (db *DB) checkEntryIdxMode() error {
@@ -306,7 +318,7 @@ func (db *DB) View(fn func(tx *Tx) error) error {
 // 4. At last remove the merged files.
 //
 // Caveat: Merge is Called means starting multiple write transactions, and it
-// will effect the other write request. so execute it at the appropriate time.
+// will affect the other write request. so execute it at the appropriate time.
 func (db *DB) Merge() error {
 	var (
 		off                 int64
@@ -492,7 +504,7 @@ func (db *DB) getMaxFileIDAndFileIDs() (maxFileID int64, dataFileIds []int) {
 	return
 }
 
-// getActiveFileWriteOff returns the write offset of activeFile.
+// getActiveFileWriteOff returns the write-offset of activeFile.
 func (db *DB) getActiveFileWriteOff() (off int64, err error) {
 	off = 0
 	for {
@@ -535,13 +547,14 @@ func (db *DB) parseDataFiles(dataFileIds []int) (unconfirmedRecords []*Record, c
 	for _, dataID := range dataFileIds {
 		off = 0
 		fID := int64(dataID)
-		f, err := db.fm.getDataFile(db.getDataPath(fID), db.opt.SegmentSize)
+		path := db.getDataPath(fID)
+		f, err := newFileRecovery(path, db.opt.BufferSizeOfRecovery)
 		if err != nil {
 			return nil, nil, err
 		}
 
 		for {
-			if entry, err := f.ReadAt(int(off)); err == nil {
+			if entry, err := f.readEntry(); err == nil {
 				if entry == nil {
 					break
 				}
@@ -572,7 +585,7 @@ func (db *DB) parseDataFiles(dataFileIds []int) (unconfirmedRecords []*Record, c
 				})
 
 				if db.opt.EntryIdxMode == HintBPTSparseIdxMode {
-					db.BPTreeKeyEntryPosMap[string(entry.Meta.Bucket)+string(entry.Key)] = off
+					db.BPTreeKeyEntryPosMap[string(getNewKey(string(entry.Meta.Bucket), entry.Key))] = off
 				}
 
 				off += entry.Size()
@@ -587,7 +600,6 @@ func (db *DB) parseDataFiles(dataFileIds []int) (unconfirmedRecords []*Record, c
 				if off >= db.opt.SegmentSize {
 					break
 				}
-				err := f.rwManager.Release()
 				if err != nil {
 					return nil, nil, err
 				}
@@ -595,7 +607,6 @@ func (db *DB) parseDataFiles(dataFileIds []int) (unconfirmedRecords []*Record, c
 			}
 		}
 
-		err = f.rwManager.Release()
 		if err != nil {
 			return nil, nil, err
 		}
@@ -616,7 +627,7 @@ func (db *DB) buildBPTreeRootIdxes(dataFileIds []int) error {
 	for i := 0; i < len(dataFileIds[0:dataFileIdsSize-1]); i++ {
 		off = 0
 		path := db.getBPTRootPath(int64(dataFileIds[i]))
-		fd, err := os.OpenFile(filepath.Clean(path), os.O_CREATE|os.O_RDWR, 0644)
+		fd, err := os.OpenFile(filepath.Clean(path), os.O_RDWR, os.ModePerm)
 		if err != nil {
 			return err
 		}
@@ -658,9 +669,7 @@ func (db *DB) buildBPTreeIdx(bucket string, r *Record) error {
 }
 
 func (db *DB) buildActiveBPTreeIdx(r *Record) error {
-	newKey := r.H.Meta.Bucket
-	newKey = append(newKey, r.H.Key...)
-
+	newKey := getNewKey(string(r.H.Meta.Bucket), r.H.Key)
 	if err := db.ActiveBPTreeIdx.Insert(newKey, r.E, r.H, CountFlagEnabled); err != nil {
 		return fmt.Errorf("when build BPTreeIdx insert index err: %s", err)
 	}
@@ -686,6 +695,9 @@ func (db *DB) buildBucketMetaIdx() error {
 				name = strings.TrimSuffix(name, BucketMetaSuffix)
 
 				bucketMeta, err := ReadBucketMeta(db.getBucketMetaFilePath(name))
+				if err == io.EOF {
+					break
+				}
 				if err != nil {
 					return err
 				}
@@ -908,6 +920,14 @@ func (db *DB) buildListIdx(bucket string, r *Record) error {
 		if err := db.ListIdx[bucket].Ltrim(newKey, start, end); err != nil {
 			return ErrWhenBuildListIdx(err)
 		}
+	case DataLRemByIndex:
+		indexes, err := UnmarshalInts(r.E.Value)
+		if err != nil {
+			return err
+		}
+		if _, err := db.ListIdx[bucket].LRemByIndex(string(r.E.Key), indexes); err != nil {
+			return ErrWhenBuildListIdx(err)
+		}
 	}
 
 	return nil
@@ -1117,7 +1137,8 @@ func (db *DB) isFilterEntry(entry *Entry) bool {
 		entry.Meta.Flag == DataLPopFlag || entry.Meta.Flag == DataLRemFlag ||
 		entry.Meta.Flag == DataLTrimFlag || entry.Meta.Flag == DataZRemFlag ||
 		entry.Meta.Flag == DataZRemRangeByRankFlag || entry.Meta.Flag == DataZPopMaxFlag ||
-		entry.Meta.Flag == DataZPopMinFlag || IsExpired(entry.Meta.TTL, entry.Meta.Timestamp) {
+		entry.Meta.Flag == DataZPopMinFlag || entry.Meta.Flag == DataLRemByIndex ||
+		IsExpired(entry.Meta.TTL, entry.Meta.Timestamp) {
 		return true
 	}
 

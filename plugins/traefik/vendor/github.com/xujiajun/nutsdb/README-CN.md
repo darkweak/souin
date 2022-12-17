@@ -15,7 +15,9 @@ NutsDB支持事务，从v0.2.0之后的版本开始支持ACID的特性，建议�
 欢迎对NutsDB感兴趣的加群、一起开发，具体看这个issue：https://github.com/nutsdb/nutsdb/issues/116
 
 ### 公告
-v0.9.0 release，详情见： https://github.com/nutsdb/nutsdb/issues/167
+* v0.11.0 release, 详情见： https://github.com/nutsdb/nutsdb/issues/219
+* v0.10.0 release, 详情见： https://github.com/nutsdb/nutsdb/issues/193
+* v0.9.0 release，详情见： https://github.com/nutsdb/nutsdb/issues/167
 
 📢 注意：从v0.9.0开始，**DefaultOptions**里面的**defaultSegmentSize**做了调整从原来的**8MB**变成了**256MB**，如果你原来设置256MB不用改，如果原来使用的是默认值的，需要手动改成8MB，不然原来的数据不会解析。这边的大小调整原因是从v0.9.0开始有对文件描述符的缓存（详解见PR https://github.com/nutsdb/nutsdb/issues/164 ），所以需要用户看下自己的fd数量，有不清楚可以提issue或者群里问。
 
@@ -50,6 +52,7 @@ https://www.bilibili.com/video/BV1T34y1x7AS/
     - [前缀后的正则搜索扫描](#前缀后的正则扫描)    
     - [范围扫描](#范围扫描)
     - [获取全部的key和value](#获取全部的key和value)
+    - [迭代器](#迭代器)
   - [合并操作](#合并操作)
   - [数据库备份](#数据库备份)
 - [使用内存模式](#使用内存模式)
@@ -63,9 +66,11 @@ https://www.bilibili.com/video/BV1T34y1x7AS/
      - [RPeek](#rpeek)
      - [LRange](#lrange)
      - [LRem](#lrem)
+     - [LRemByIndex](#lrembyindex)
      - [LSet](#lset)    
      - [Ltrim](#ltrim)
      - [LSize](#lsize)      
+     - [LKeys](#lkeys)
    - [Set](#set)
      - [SAdd](#sadd)
      - [SAreMembers](#saremembers)
@@ -81,6 +86,7 @@ https://www.bilibili.com/video/BV1T34y1x7AS/
      - [SRem](#srem)
      - [SUnionByOneBucket](#sunionbyonebucket)
      - [SUnionByTwoBucket](#sunionbytwobuckets)
+     - [SKeys](#skeys)
    - [Sorted Set](#sorted-set)
      - [ZAdd](#zadd)
      - [ZCard](#zcard)
@@ -98,6 +104,7 @@ https://www.bilibili.com/video/BV1T34y1x7AS/
      - [ZRem](#zrem)
      - [ZRemRangeByRank](#zremrangebyrank)
      - [ZScore](#zscore)
+     - [ZKeys](#zkeys)
 - [与其他数据库的比较](#与其他数据库的比较)
    - [BoltDB](#boltdb)
    - [LevelDB, RocksDB](#leveldb-rocksdb)
@@ -135,9 +142,10 @@ import (
 )
 
 func main() {
-    opt := nutsdb.DefaultOptions
-    opt.Dir = "/tmp/nutsdb" //这边数据库会自动创建这个目录文件
-    db, err := nutsdb.Open(opt)
+    db, err := nutsdb.Open(
+        nutsdb.DefaultOptions,
+        nutsdb.WithDir("/tmp/nutsdb"), // 数据库会自动创建这个目录文件
+    )
     if err != nil {
         log.Fatal(err)
     }
@@ -325,8 +333,10 @@ IterateBuckets支持迭代指定ds的迭代。
 
 if err := db.View(
     func(tx *nutsdb.Tx) error {
-        return tx.IterateBuckets(nutsdb.DataStructureBPTree, func(bucket string) {
+        return tx.IterateBuckets(nutsdb.DataStructureBPTree, "*", func(bucket string) bool {
             fmt.Println("bucket: ", bucket)
+            // true: continue, false: break
+            return true
         })
     }); err != nil {
     log.Fatal(err)
@@ -558,6 +568,54 @@ if err := db.View(
     log.Println(err)
 }
 ```
+
+### 迭代器
+
+主要是迭代器的选项参数`Reverse`的值来决定正向还是反向迭代器, 当前版本还不支持HintBPTSparseIdxMode的迭代器
+
+
+#### 正向的迭代器
+
+```go
+tx, err := db.Begin(false)
+iterator := nutsdb.NewIterator(tx, bucket, nutsdb.IteratorOptions{Reverse: false})
+i := 0
+for i < 10 {
+    ok, err := iterator.SetNext()
+    fmt.Println("ok, err", ok, err)
+    fmt.Println("Key: ", string(iterator.Entry().Key))
+    fmt.Println("Value: ", string(iterator.Entry().Value))
+    fmt.Println()
+    i++
+}
+err = tx.Commit()
+if err != nil {
+    panic(err)
+}
+```
+
+#### 反向的迭代器
+
+```go
+tx, err := db.Begin(false)
+iterator := nutsdb.NewIterator(tx, bucket, nutsdb.IteratorOptions{Reverse: true})
+i := 0
+for i < 10 {
+    ok, err := iterator.SetNext()
+    fmt.Println("ok, err", ok, err)
+    fmt.Println("Key: ", string(iterator.Entry().Key))
+    fmt.Println("Value: ", string(iterator.Entry().Value))
+    fmt.Println()
+    i++
+}
+err = tx.Commit()
+if err != nil {
+    panic(err)
+}
+```
+
+
+
 ### 合并操作
 
 nutsdb为了保持高性能写，同一个key会写多份，如果你的服务，有对同一个key多次的更新或者删除，你希望对同一个key做合并，可以使用NutsDB提供了`db.Merge()`方法。
@@ -601,7 +659,7 @@ if err != nil {
 
 ### 使用内存模式
 
-NutsDB从0.7.0版本开始支持内存模式，这个模式下，重启数据库，数据会丢失的。
+NutsDB从0.7.0版本开始支持内存模式，这个模式下，重启数据库，数据会丢失的。另外，内存模式有一些API，相对非内存模型，并没有实现，如果你发现有缺少的，并希望实现，请提交issue说明情况。
 
 例子：
 
@@ -795,6 +853,25 @@ if err := db.Update(
 }
 ```
 
+##### LRemByIndex
+
+注意: 这个方法在 v0.10.0版本开始支持
+
+移除列表中指定位置（单个或多个位置）的元素
+
+```golang
+if err := db.Update(
+    func(tx *nutsdb.Tx) error {
+        bucket := "bucketForList"
+        key := []byte("myList")
+        removedNum, err := tx.LRemByIndex(bucket, key, 0, 1)
+        fmt.Printf("removed num %d\n", removedNum)
+        return err
+    }); err != nil {
+    log.Fatal(err)
+}
+```
+
 ##### LSet 
 
 设置指定bucket的指定list的index位置的的值为value。
@@ -849,6 +926,28 @@ if err := db.Update(
             fmt.Println("myList size is ",size)
         }
         return nil
+    }); err != nil {
+    log.Fatal(err)
+}
+```
+
+##### LKeys
+
+查找`List`类型的所有匹配指定模式`pattern`的`key`，类似于Redis命令: [KEYS](https://redis.io/commands/keys/)
+
+注意：模式匹配使用 Go 标准库的`filepath.Match`，部分细节上和redis的行为有区别，比如对于 `[` 的处理。
+
+```golang
+if err := db.View(
+    func(tx *nutsdb.Tx) error {
+        var keys []string
+        err := tx.LKeys(bucket, "*", func(key string) bool {
+            keys = append(keys, key)
+            // true: continue, false: break
+            return true
+        })
+        fmt.Printf("keys: %v\n", keys)
+        return err
     }); err != nil {
     log.Fatal(err)
 }
@@ -1315,6 +1414,28 @@ if err := db.View(
             }
         }
         return nil
+    }); err != nil {
+    log.Fatal(err)
+}
+```
+
+##### SKeys
+
+查找`Set`类型的所有匹配指定模式`pattern`的`key`，类似于Redis命令: [KEYS](https://redis.io/commands/keys/)
+
+注意：模式匹配使用 Go 标准库的`filepath.Match`，部分细节上和redis的行为有区别，比如对于 `[` 的处理。
+
+```golang
+if err := db.View(
+    func(tx *nutsdb.Tx) error {
+        var keys []string
+        err := tx.SKeys(bucket, "*", func(key string) bool {
+            keys = append(keys, key)
+            // true: continue, false: break
+            return true
+        })
+        fmt.Printf("keys: %v\n", keys)
+        return err
     }); err != nil {
     log.Fatal(err)
 }
@@ -1874,6 +1995,29 @@ if err := db.View(
     log.Fatal(err)
 }
 ```
+
+##### ZKeys
+
+查找`Sorted Set`类型的所有匹配指定模式`pattern`的`key`，类似于Redis命令: [KEYS](https://redis.io/commands/keys/)
+
+注意：模式匹配使用 Go 标准库的`filepath.Match`，部分细节上和redis的行为有区别，比如对于 `[` 的处理。
+
+```golang
+if err := db.View(
+    func(tx *nutsdb.Tx) error {
+        var keys []string
+        err := tx.ZKeys(bucket, "*", func(key string) bool {
+            keys = append(keys, key)
+            // true: continue, false: break
+            return true
+        })
+        fmt.Printf("keys: %v\n", keys)
+        return err
+    }); err != nil {
+    log.Fatal(err)
+}
+```
+
 ### 与其他数据库的比较
 
 #### BoltDB

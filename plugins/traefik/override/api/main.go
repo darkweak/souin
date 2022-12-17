@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/darkweak/souin/api/auth"
@@ -36,7 +35,6 @@ func GenerateHandlerMap(
 				hm[basePathAPIS+endpoint.GetBasePath()] = e.HandleRequest
 			}
 			if e, ok := endpoint.(*prometheus.PrometheusAPI); ok {
-				fmt.Println(basePathAPIS + endpoint.GetBasePath())
 				hm[basePathAPIS+endpoint.GetBasePath()] = e.HandleRequest
 			}
 			if e, ok := endpoint.(*auth.SecurityAPI); ok {

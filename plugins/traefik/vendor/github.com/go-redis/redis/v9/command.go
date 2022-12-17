@@ -65,7 +65,7 @@ func cmdFirstKeyPos(cmd Cmder, info *CommandInfo) int {
 	}
 
 	switch cmd.Name() {
-	case "eval", "evalsha":
+	case "eval", "evalsha", "eval_ro", "evalsha_ro":
 		if cmd.stringArg(2) != "0" {
 			return 3
 		}
@@ -104,7 +104,7 @@ func cmdString(cmd Cmder, val interface{}) string {
 		b = internal.AppendArg(b, val)
 	}
 
-	return internal.String(b)
+	return util.BytesToString(b)
 }
 
 //------------------------------------------------------------------------------
@@ -1093,6 +1093,10 @@ func NewKeyValueSliceCmd(ctx context.Context, args ...interface{}) *KeyValueSlic
 	}
 }
 
+func (cmd *KeyValueSliceCmd) SetVal(val []KeyValue) {
+	cmd.val = val
+}
+
 func (cmd *KeyValueSliceCmd) Val() []KeyValue {
 	return cmd.val
 }
@@ -1288,16 +1292,16 @@ func (cmd *MapStringStringCmd) readReply(rd *proto.Reader) error {
 
 //------------------------------------------------------------------------------
 
-type StringIntMapCmd struct {
+type MapStringIntCmd struct {
 	baseCmd
 
 	val map[string]int64
 }
 
-var _ Cmder = (*StringIntMapCmd)(nil)
+var _ Cmder = (*MapStringIntCmd)(nil)
 
-func NewStringIntMapCmd(ctx context.Context, args ...interface{}) *StringIntMapCmd {
-	return &StringIntMapCmd{
+func NewMapStringIntCmd(ctx context.Context, args ...interface{}) *MapStringIntCmd {
+	return &MapStringIntCmd{
 		baseCmd: baseCmd{
 			ctx:  ctx,
 			args: args,
@@ -1305,23 +1309,23 @@ func NewStringIntMapCmd(ctx context.Context, args ...interface{}) *StringIntMapC
 	}
 }
 
-func (cmd *StringIntMapCmd) SetVal(val map[string]int64) {
+func (cmd *MapStringIntCmd) SetVal(val map[string]int64) {
 	cmd.val = val
 }
 
-func (cmd *StringIntMapCmd) Val() map[string]int64 {
+func (cmd *MapStringIntCmd) Val() map[string]int64 {
 	return cmd.val
 }
 
-func (cmd *StringIntMapCmd) Result() (map[string]int64, error) {
+func (cmd *MapStringIntCmd) Result() (map[string]int64, error) {
 	return cmd.val, cmd.err
 }
 
-func (cmd *StringIntMapCmd) String() string {
+func (cmd *MapStringIntCmd) String() string {
 	return cmdString(cmd, cmd.val)
 }
 
-func (cmd *StringIntMapCmd) readReply(rd *proto.Reader) error {
+func (cmd *MapStringIntCmd) readReply(rd *proto.Reader) error {
 	n, err := rd.ReadMapLen()
 	if err != nil {
 		return err
@@ -2822,19 +2826,14 @@ func (cmd *ClusterSlotsCmd) readReply(rd *proto.Reader) error {
 			}
 
 			if nn >= 4 {
-				networkingMetadata := make(map[string]string)
-
 				metadataLength, err := rd.ReadMapLen()
 				if err != nil {
 					return err
 				}
 
-				if metadataLength%2 != 0 {
-					return fmt.Errorf(
-						"got %d elements in metadata, expected an even number", metadataLength)
-				}
+				networkingMetadata := make(map[string]string, metadataLength)
 
-				for i := 0; i < metadataLength; i += 2 {
+				for i := 0; i < metadataLength; i++ {
 					key, err := rd.ReadString()
 					if err != nil {
 						return err
@@ -3120,6 +3119,10 @@ func NewGeoSearchLocationCmd(
 		},
 		opt: opt,
 	}
+}
+
+func (cmd *GeoSearchLocationCmd) SetVal(val []GeoLocation) {
+	cmd.val = val
 }
 
 func (cmd *GeoSearchLocationCmd) Val() []GeoLocation {
@@ -3578,6 +3581,10 @@ func NewMapStringInterfaceCmd(ctx context.Context, args ...interface{}) *MapStri
 	}
 }
 
+func (cmd *MapStringInterfaceCmd) SetVal(val map[string]interface{}) {
+	cmd.val = val
+}
+
 func (cmd *MapStringInterfaceCmd) Val() map[string]interface{} {
 	return cmd.val
 }
@@ -3636,6 +3643,10 @@ func NewMapStringStringSliceCmd(ctx context.Context, args ...interface{}) *MapSt
 			args: args,
 		},
 	}
+}
+
+func (cmd *MapStringStringSliceCmd) SetVal(val []map[string]string) {
+	cmd.val = val
 }
 
 func (cmd *MapStringStringSliceCmd) Val() []map[string]string {

@@ -1,6 +1,7 @@
 package rfc
 
 import (
+	ctx "context"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -51,13 +52,19 @@ func ValidateCacheControl(r *http.Response) bool {
 	return true
 }
 
+func getCacheKeyFromCtx(currentCtx ctx.Context) string {
+	key := currentCtx.Value(context.Key)
+	displayable := currentCtx.Value(context.DisplayableKey)
+	if key == nil || displayable == nil || !displayable.(bool) {
+		return ""
+	}
+
+	return key.(string)
+}
+
 // MissCache set miss fwd
 func MissCache(set func(key, value string), req *http.Request, reason string) {
-	key := req.Context().Value(context.Key)
-	if key == nil {
-		key = ""
-	}
-	set("Cache-Status", fmt.Sprintf("%s; fwd=uri-miss; key=%s; detail=%s", req.Context().Value(context.CacheName), key, reason))
+	set("Cache-Status", fmt.Sprintf("%s; fwd=uri-miss; key=%s; detail=%s", req.Context().Value(context.CacheName), getCacheKeyFromCtx(req.Context()), reason))
 }
 
 // HitStaleCache set hit and manage age header too
@@ -101,7 +108,7 @@ func SetCacheStatusEventually(resp *http.Response) *http.Response {
 	h := resp.Header
 	cacheName := resp.Request.Context().Value(context.CacheName).(string)
 	validateEmptyHeaders(&h, cacheName)
-	manageAge(&h, 0, cacheName, resp.Request.Context().Value(context.Key).(string))
+	manageAge(&h, 0, cacheName, getCacheKeyFromCtx(resp.Request.Context()))
 
 	resp.Header = h
 	return resp

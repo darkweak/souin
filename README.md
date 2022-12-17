@@ -80,9 +80,12 @@ api:
     basepath: /anything-for-souin # Change the souin endpoint basepath
 cache_keys:
   '.*\.css':
-    disable_body: true
-    disable_host: true
-    disable_method: true
+    disable_body: true # Prevent the body from being used in the cache key
+    disable_host: true # Prevent the host from being used in the cache key
+    disable_method: true # Prevent the method from being used in the cache key
+    headers: # Add headers to the key
+      - Authorization # Add the header value in the key
+      - Content-Type # Add the header value in the key
 cdn: # If Souin is set after a CDN fill these informations
   api_key: XXXX # Your provider API key if mandatory
   provider: fastly # The provider placed before Souin (e.g. fastly, cloudflare, akamai, varnish)
@@ -95,12 +98,13 @@ default_cache:
     - HEAD
   cache_name: Souin # Override the cache name to use in the Cache-Status header
   distributed: true # Use Olric or Etcd distributed storage
-  headers: # Default headers concatenated in stored keys
-    - Authorization
   key:
-    disable_body: true
-    disable_host: true
-    disable_method: true
+    disable_body: true # Prevent the body from being used in the cache key
+    disable_host: true # Prevent the host from being used in the cache key
+    disable_method: true # Prevent the method from being used in the cache key
+    headers: # Add headers to the key
+      - Authorization # Add the header value in the key
+      - Content-Type # Add the header value in the key
   etcd: # If distributed is set to true, you'll have to define either the etcd or olric section
     configuration: # Configure directly the Etcd client
       endpoints: # Define multiple endpoints
@@ -125,13 +129,8 @@ urls:
     ttl: 1000s # Override default TTL
   'https:\/\/domain.com\/second-route': # Second regex route configuration
     ttl: 10s # Override default TTL
-    headers: # Override default headers
-    - Authorization
   'https?:\/\/mysubdomain\.domain\.com': # Third regex route configuration
-    ttl: 50s # Override default TTL
-    headers: # Override default headers
-    - Authorization
-    - 'Content-Type'
+    ttl: 50s # Override default TTL'
     default_cache_control: public, max-age=86400 # Override default default Cache-Control
 ykeys:
   The_First_Test:
@@ -162,9 +161,10 @@ surrogate_keys:
 | `api.souin.security`                              | Enable JWT validation to access the resource                                                                                                | `true`<br/><br/>`(default: false)`                                                                                        |
 | `cache_keys`                                      | Define the key generation rules for each URI matching the key regexp                                                                        |                                                                                                                           |
 | `cache_keys.{your regexp}`                        | Regexp that the URI should match to override the key generation                                                                             | `.+\.css`                                                                                                                 |
-| `default_cache.key.disable_body`                  | Disable the body part in the key matching the regexp (GraphQL context)                                                                      | `true`<br/><br/>`(default: false)`                                                                                        |
-| `default_cache.key.disable_host`                  | Disable the host part in the key matching the regexp                                                                                        | `true`<br/><br/>`(default: false)`                                                                                        |
-| `default_cache.key.disable_method`                | Disable the method part in the key matching the regexp                                                                                      | `true`<br/><br/>`(default: false)`                                                                                        |
+| `cache_keys.{your regexp}.disable_body`           | Disable the body part in the key matching the regexp (GraphQL context)                                                                      | `true`<br/><br/>`(default: false)`                                                                                        |
+| `cache_keys.{your regexp}.disable_host`           | Disable the host part in the key matching the regexp                                                                                        | `true`<br/><br/>`(default: false)`                                                                                        |
+| `cache_keys.{your regexp}.disable_method`         | Disable the method part in the key matching the regexp                                                                                      | `true`<br/><br/>`(default: false)`                                                                                        |
+| `cache_keys.{your regexp}.headers`                | Add headers to the key matching the regexp                                                                                                  | `- Authorization`<br/><br/>`- Content-Type`<br/><br/>`- X-Additional-Header`                                              |
 | `cdn`                                             | The CDN management, if you use any cdn to proxy your requests Souin will handle that                                                        |                                                                                                                           |
 | `cdn.provider`                                    | The provider placed before Souin                                                                                                            | `akamai`<br/><br/>`fastly`<br/><br/>`souin`                                                                               |
 | `cdn.api_key`                                     | The api key used to access to the provider                                                                                                  | `XXXX`                                                                                                                    |
@@ -181,13 +181,13 @@ surrogate_keys:
 | `default_cache.badger.configuration`              | Configure Badger directly in the Caddyfile or your JSON caddy configuration                                                                 | [See the Badger configuration for the options](https://dgraph.io/docs/badger/get-started/)                                |
 | `default_cache.etcd`                              | Configure the Etcd cache storage                                                                                                            |                                                                                                                           |
 | `default_cache.etcd.configuration`                | Configure Etcd directly in the Caddyfile or your JSON caddy configuration                                                                   | [See the Etcd configuration for the options](https://pkg.go.dev/go.etcd.io/etcd/clientv3#Config)                          |
-| `default_cache.headers`                           | List of headers to include to the cache                                                                                                     | `- Authorization`<br/><br/>`- Content-Type`<br/><br/>`- X-Additional-Header`                                              |
+| `default_cache.etcd`                              | Configure the Etcd cache storage                                                                                                            |                                                                                                                           |
+| `default_cache.etcd.configuration`                | Configure Etcd directly in the Caddyfile or your JSON caddy configuration                                                                   | [See the Etcd configuration for the options](https://pkg.go.dev/go.etcd.io/etcd/clientv3#Config)                          |
 | `default_cache.key`                               | Override the key generation with the ability to disable unecessary parts                                                                    |                                                                                                                           |
 | `default_cache.key.disable_body`                  | Disable the body part in the key (GraphQL context)                                                                                          | `true`<br/><br/>`(default: false)`                                                                                        |
 | `default_cache.key.disable_host`                  | Disable the host part in the key                                                                                                            | `true`<br/><br/>`(default: false)`                                                                                        |
 | `default_cache.key.disable_method`                | Disable the method part in the key                                                                                                          | `true`<br/><br/>`(default: false)`                                                                                        |
-| `default_cache.etcd`                              | Configure the Etcd cache storage                                                                                                            |                                                                                                                           |
-| `default_cache.etcd.configuration`                | Configure Etcd directly in the Caddyfile or your JSON caddy configuration                                                                   | [See the Etcd configuration for the options](https://pkg.go.dev/go.etcd.io/etcd/clientv3#Config)                          |
+| `default_cache.key.headers`                       | Add headers to the key matching the regexp                                                                                                  | `- Authorization`<br/><br/>`- Content-Type`<br/><br/>`- X-Additional-Header`                                              |
 | `default_cache.nuts`                              | Configure the Nuts cache storage                                                                                                            |                                                                                                                           |
 | `default_cache.nuts.path`                         | Set the Nuts file path storage                                                                                                              | `/anywhere/nuts/storage`                                                                                                  |
 | `default_cache.nuts.configuration`                | Configure Nuts directly in the Caddyfile or your JSON caddy configuration                                                                   | [See the Nuts configuration for the options](https://github.com/nutsdb/nutsdb#default-options)                            |
@@ -208,7 +208,6 @@ surrogate_keys:
 | `urls.{your url or regex}`                        | List of your custom configuration depending each URL or regex                                                                               | 'https:\/\/yourdomain.com'                                                                                                |
 | `urls.{your url or regex}.ttl`                    | Override the default TTL if defined                                                                                                         | `90s`<br/><br/>`10m`                                                                                                      |
 | `urls.{your url or regex}.default_cache_control`  | Override the default default `Cache-Control` if defined                                                                                     | `public, max-age=86400`                                                                                                   |
-| `urls.{your url or regex}.headers`                | Override the default headers if defined                                                                                                     | `- Authorization`<br/><br/>`- 'Content-Type'`                                                                             |
 | `surrogate_keys.{key name}.headers`               | Headers that should match to be part of the surrogate key group                                                                             | `Authorization: ey.+`<br/><br/>`Content-Type: json`                                                                       |
 | `surrogate_keys.{key name}.headers.{header name}` | Header name that should be present a match the regex to be part of the surrogate key group                                                  | `Content-Type: json`                                                                                                      |
 | `surrogate_keys.{key name}.url`                   | Url that should match to be part of the surrogate key group                                                                                 | `.+`                                                                                                                      |
@@ -455,6 +454,7 @@ There is the fully configuration below
                 disable_body
                 disable_host
                 disable_method
+                headers X-Token Authorization
             }
         }
         cdn {
@@ -468,11 +468,11 @@ There is the fully configuration below
             service_id 123456_id
             zone_id anywhere_zone
         }
-        headers Content-Type Authorization
         key {
             disable_body
             disable_host
             disable_method
+            headers Content-Type Authorization
         }
         log_level debug
         etcd {
@@ -567,7 +567,6 @@ cache @match2 {
             BypassLockGuard true
         }
     }
-    headers Authorization
     default_cache_control "public, max-age=86400"
 }
 
@@ -853,8 +852,6 @@ http:
         network: XXXX
         provider: fastly
         strategy: soft
-      headers:
-        - Authorization
       regex:
         exclude: '/excluded'
       timeout:
@@ -905,7 +902,7 @@ func main() {
 After that you will be able to declare the httpcache filter in your eskip file.
 ```
 hello: Path("/hello") 
-  -> httpcache(`{"api":{"basepath":"/souin-api","security":{"secret":"your_secret_key","enable":true,"users":[{"username":"user1","password":"test"}]},"souin":{"security":true,"enable":true}},"default_cache":{"headers":["Authorization"],"regex":{"exclude":"ARegexHere"},"ttl":"10s","stale":"10s"},"log_level":"INFO"}`)
+  -> httpcache(`{"api":{"basepath":"/souin-api","security":{"secret":"your_secret_key","enable":true,"users":[{"username":"user1","password":"test"}]},"souin":{"security":true,"enable":true}},"default_cache":{"regex":{"exclude":"ARegexHere"},"ttl":"10s","stale":"10s"},"log_level":"INFO"}`)
   -> "https://www.example.org"
 ```
 
@@ -938,9 +935,6 @@ http:
             prometheus: {}
             souin: {}
           default_cache:
-            headers:
-              - Authorization
-              - Content-Type
             regex:
               exclude: '/test_exclude.*'
             ttl: 5s
@@ -949,13 +943,8 @@ http:
           urls:
             'domain.com/testing':
               ttl: 5s
-              headers:
-                - Authorization
             'mysubdomain.domain.com':
               ttl: 50s
-              headers:
-                - Authorization
-                - 'Content-Type'
               default_cache_control: public, max-age=86400
           ykeys:
             The_First_Test:
@@ -985,7 +974,6 @@ services:
       # other labels...
       - traefik.http.routers.whoami.middlewares=http-cache
       - traefik.http.middlewares.http-cache.plugin.souin.api.souin
-      - traefik.http.middlewares.http-cache.plugin.souin.default_cache.headers=Authorization,Content-Type
       - traefik.http.middlewares.http-cache.plugin.souin.default_cache.ttl=10s
       - traefik.http.middlewares.http-cache.plugin.souin.log_level=debug
 ```

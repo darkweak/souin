@@ -192,19 +192,19 @@ func DefaultSouinPluginCallback(
 	case <-time.After(timeoutCache):
 	}
 
-	coalesceable := make(chan bool)
+	// coalesceable := make(chan bool)
 	errorBackendCh := make(chan error)
-	defer close(coalesceable)
-	go func() {
-		defer func() {
-			_ = recover()
-		}()
-		coalesceable <- retriever.GetTransport().GetCoalescingLayerStorage().Exists(cacheKey)
-	}()
+	// defer close(coalesceable)
+	// go func() {
+	// 	defer func() {
+	// 		_ = recover()
+	// 	}()
+	// 	coalesceable <- retriever.GetTransport().GetCoalescingLayerStorage().Exists(cacheKey)
+	// }()
 	prometheus.Increment(prometheus.NoCachedResponseCounter)
 
 	go func(rs http.ResponseWriter, rq *http.Request) {
-		if rc != nil && <-coalesceable {
+		if rc != nil /*&& <-coalesceable*/ {
 			rc.Temporize(req, rs, nextMiddleware)
 		} else {
 			errorBackendCh <- nextMiddleware(rs, rq)

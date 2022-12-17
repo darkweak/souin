@@ -17,7 +17,6 @@
         regex {
             exclude /test2.*
         }
-        headers Content-Type Authorization
         ttl 1000s
         timeout {
             backend 10s
@@ -41,7 +40,6 @@ cache @match {
 
 cache @match2 {
     ttl 50s
-    headers Authorization
 }
 
 cache @matchdefault {
@@ -64,27 +62,27 @@ route /badger-configuration {
     respond "Hello badger"
 }
 
-route /etcd-configuration {
-    cache {
-        ttl 15s
-        etcd {
-            configuration {
-                Endpoints etcd1:2379 etcd2:2379 etcd3:2379
-                AutoSyncInterval 1s
-                DialTimeout 1s
-                DialKeepAliveTime 1s
-                DialKeepAliveTimeout 1s
-                MaxCallSendMsgSize 10000000
-                MaxCallRecvMsgSize 10000000
-                Username john
-                Password doe
-                RejectOldCluster false
-                PermitWithoutStream false
-            }
-        }
-    }
-    respond "Hello etcd"
-}
+# route /etcd-configuration {
+#     cache {
+#         ttl 15s
+#         etcd {
+#             configuration {
+#                 Endpoints etcd1:2379 etcd2:2379 etcd3:2379
+#                 AutoSyncInterval 1s
+#                 DialTimeout 1s
+#                 DialKeepAliveTime 1s
+#                 DialKeepAliveTimeout 1s
+#                 MaxCallSendMsgSize 10000000
+#                 MaxCallRecvMsgSize 10000000
+#                 Username john
+#                 Password doe
+#                 RejectOldCluster false
+#                 PermitWithoutStream false
+#             }
+#         }
+#     }
+#     respond "Hello etcd"
+# }
 
 route /nuts-configuration {
     cache {
@@ -110,7 +108,7 @@ route /redis-configuration {
         redis {
             configuration {
                 Network my-network
-                Addr 127.0.0.1:6789
+                Addr 127.0.0.1:6379
                 Username user
                 Password password
                 DB 1
@@ -137,7 +135,7 @@ route /redis-url {
     cache {
         ttl 15s
         redis {
-            url 127.0.0.1:6789
+            url 127.0.0.1:6379
         }
     }
     respond "Hello redis url"
@@ -220,6 +218,39 @@ route /gzip {
     }
     header Content-Type text/plain
     respond "Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip. Hello, gzip."
+}
+
+route /custom-key/without-* {
+    cache {
+        cache_keys {
+            body {
+                disable_body
+            }
+            host {
+                disable_host
+            }
+            method {
+                disable_method
+            }
+            everything-with-content-type {
+                disable_method
+                headers Content-Type
+            }
+        }
+    }
+    respond "Hello to the authenticated user."
+}
+
+route /cache-authorization {
+    cache {
+        cache_keys {
+            /.+ {
+                headers Authorization
+            }
+        }
+    }
+    header Souin-Cache-Control public
+    respond "Hello to the authenticated user."
 }
 
 cache @souin-api {

@@ -16,6 +16,7 @@ package nutsdb
 
 import (
 	"bytes"
+	"sort"
 	"strings"
 	"time"
 
@@ -165,7 +166,7 @@ func (tx *Tx) LRem(bucket string, key []byte, count int, value []byte) (removedN
 		return 0, err
 	}
 
-	if count > size || -count > size {
+	if count > size || count < -size {
 		return 0, list.ErrCount
 	}
 
@@ -249,4 +250,45 @@ func (tx *Tx) LTrim(bucket string, key []byte, start, end int) error {
 	newKey := buffer.Bytes()
 
 	return tx.push(bucket, newKey, DataLTrimFlag, []byte(strconv2.IntToStr(end)))
+}
+
+// LRemByIndex remove the list element at specified index
+func (tx *Tx) LRemByIndex(bucket string, key []byte, indexes ...int) (removedNum int, err error) {
+	if err := tx.checkTxIsClosed(); err != nil {
+		return 0, err
+	}
+
+	if _, ok := tx.db.ListIdx[bucket]; !ok {
+		return 0, ErrBucket
+	}
+	sort.Ints(indexes)
+	removedNum, err = tx.db.ListIdx[bucket].LRemByIndexPreCheck(string(key), indexes)
+	if removedNum == 0 || err != nil {
+		return
+	}
+	data, err := MarshalInts(indexes)
+	if err != nil {
+		return 0, err
+	}
+	err = tx.push(bucket, key, DataLRemByIndex, data)
+	if err != nil {
+		return 0, err
+	}
+	return
+}
+
+// LKeys find all keys matching a given pattern
+func (tx *Tx) LKeys(bucket, pattern string, f func(key string) bool) error {
+	if err := tx.checkTxIsClosed(); err != nil {
+		return err
+	}
+	if _, ok := tx.db.ListIdx[bucket]; !ok {
+		return ErrBucket
+	}
+	for key := range tx.db.ListIdx[bucket].Items {
+		if end, err := MatchForRange(pattern, key, f); end || err != nil {
+			return err
+		}
+	}
+	return nil
 }
