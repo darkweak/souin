@@ -1,6 +1,7 @@
 package httpcache
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 	"time"
@@ -216,7 +217,8 @@ func TestNotHandledRoute(t *testing.T) {
 		}
 	}`, "caddyfile")
 
-	resp1, _ := tester.AssertGetResponse(`http://localhost:9080/not-handled`, 200, "Hello, Age header!")
+	resp1, v := tester.AssertGetResponse(`http://localhost:9080/not-handled`, 200, "Hello, Age header!")
+	fmt.Printf("%+v\n\n\n\n", v)
 	if resp1.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; key=; detail=CANNOT-HANDLE" {
 		t.Errorf("unexpected Cache-Status header value %v", resp1.Header.Get("Cache-Status"))
 	}

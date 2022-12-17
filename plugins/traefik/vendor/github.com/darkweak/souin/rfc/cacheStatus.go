@@ -54,8 +54,8 @@ func ValidateCacheControl(r *http.Response) bool {
 
 func getCacheKeyFromCtx(currentCtx ctx.Context) string {
 	key := currentCtx.Value(context.Key)
-	displayable := currentCtx.Value(context.DisplayableKey).(bool)
-	if key == nil || !displayable {
+	displayable := currentCtx.Value(context.DisplayableKey)
+	if key == nil || displayable == nil || !displayable.(bool) {
 		return ""
 	}
 

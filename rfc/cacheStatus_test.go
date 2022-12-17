@@ -54,6 +54,7 @@ func TestSetCacheStatusEventually(t *testing.T) {
 	rq := httptest.NewRequest(http.MethodGet, "/", nil)
 	ctx := context.WithValue(rq.Context(), souinCtx.CacheName, "This")
 	ctx = context.WithValue(ctx, souinCtx.Key, "My-key")
+	ctx = context.WithValue(ctx, souinCtx.DisplayableKey, true)
 	rq = rq.WithContext(ctx)
 	r := http.Response{
 		Request: rq,
