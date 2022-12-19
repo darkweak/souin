@@ -26,7 +26,6 @@ import (
 	"google.golang.org/grpc/balancer"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/internal/channelz"
-	istatus "google.golang.org/grpc/internal/status"
 	"google.golang.org/grpc/internal/transport"
 	"google.golang.org/grpc/status"
 )
@@ -130,13 +129,9 @@ func (pw *pickerWrapper) pick(ctx context.Context, failfast bool, info balancer.
 			if err == balancer.ErrNoSubConnAvailable {
 				continue
 			}
-			if st, ok := status.FromError(err); ok {
+			if _, ok := status.FromError(err); ok {
 				// Status error: end the RPC unconditionally with this status.
-				// First restrict the code to the list allowed by gRFC A54.
-				if istatus.IsRestrictedControlPlaneCode(st) {
-					err = status.Errorf(codes.Internal, "received picker error with illegal status: %v", err)
-				}
-				return nil, nil, dropError{error: err}
+				return nil, nil, err
 			}
 			// For all other errors, wait for ready RPCs should block and other
 			// RPCs should fail with unavailable.
@@ -149,7 +144,7 @@ func (pw *pickerWrapper) pick(ctx context.Context, failfast bool, info balancer.
 
 		acw, ok := pickResult.SubConn.(*acBalancerWrapper)
 		if !ok {
-			logger.Errorf("subconn returned from pick is type %T, not *acBalancerWrapper", pickResult.SubConn)
+			logger.Error("subconn returned from pick is not *acBalancerWrapper")
 			continue
 		}
 		if t := acw.getAddrConn().getReadyTransport(); t != nil {
@@ -179,10 +174,4 @@ func (pw *pickerWrapper) close() {
 	}
 	pw.done = true
 	close(pw.blockingCh)
-}
-
-// dropError is a wrapper error that indicates the LB policy wishes to drop the
-// RPC and not retry it.
-type dropError struct {
-	error
 }

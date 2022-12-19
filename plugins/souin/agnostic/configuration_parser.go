@@ -85,7 +85,10 @@ func parseDefaultCache(dcConfiguration map[string]interface{}) *configurationtyp
 	for defaultCacheK, defaultCacheV := range dcConfiguration {
 		switch defaultCacheK {
 		case "allowed_http_verbs":
-			dc.AllowedHTTPVerbs = defaultCacheV.([]string)
+			dc.AllowedHTTPVerbs = make([]string, 0)
+			for _, h := range defaultCacheV.([]interface{}) {
+				dc.AllowedHTTPVerbs = append(dc.AllowedHTTPVerbs, h.(string))
+			}
 		case "badger":
 			provider := configurationtypes.CacheProvider{}
 			for badgerConfigurationK, badgerConfigurationV := range defaultCacheV.(map[string]interface{}) {
