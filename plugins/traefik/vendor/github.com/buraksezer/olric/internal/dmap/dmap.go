@@ -65,7 +65,6 @@ func (s *Service) fragmentName(name string) string {
 // NewDMap creates and returns a new DMap instance. It checks member count quorum
 // and bootstrapping status before creating a new DMap.
 func (s *Service) NewDMap(name string) (*DMap, error) {
-	fmt.Println("s.rt.CheckMemberCountQuorum()", s.rt.CheckMemberCountQuorum())
 	// Check operation status first:
 	//
 	// * Checks member count in the cluster, returns ErrClusterQuorum if
@@ -75,7 +74,6 @@ func (s *Service) NewDMap(name string) (*DMap, error) {
 	if err := s.rt.CheckMemberCountQuorum(); err != nil {
 		return nil, err
 	}
-	fmt.Println("s.rt.CheckBootstrap()", s.rt.CheckBootstrap())
 	// An Olric node has to be bootstrapped to function properly.
 	if err := s.rt.CheckBootstrap(); err != nil {
 		return nil, err

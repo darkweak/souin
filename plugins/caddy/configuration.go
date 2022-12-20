@@ -1,8 +1,11 @@
 package httpcache
 
 import (
+	"strconv"
+	"strings"
 	"time"
 
+	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
 	"github.com/darkweak/souin/configurationtypes"
 	"go.uber.org/zap"
 )
@@ -122,7 +125,7 @@ func (d *DefaultCache) GetDefaultCacheControl() string {
 	return d.DefaultCacheControl
 }
 
-//Configuration holder
+// Configuration holder
 type Configuration struct {
 	// Default cache to fallback on when none are redefined.
 	DefaultCache *DefaultCache
@@ -184,3 +187,308 @@ func (c *Configuration) GetCacheKeys() map[configurationtypes.RegValue]configura
 }
 
 var _ configurationtypes.AbstractConfigurationInterface = (*Configuration)(nil)
+
+func parseCaddyfileRecursively(h *caddyfile.Dispenser) interface{} {
+	input := make(map[string]interface{})
+	for nesting := h.Nesting(); h.NextBlock(nesting); {
+		val := h.Val()
+		if val == "}" || val == "{" {
+			continue
+		}
+		args := h.RemainingArgs()
+		if len(args) == 1 {
+			input[val] = args[0]
+		} else if len(args) > 1 {
+			input[val] = args
+		} else {
+			input[val] = parseCaddyfileRecursively(h)
+		}
+	}
+
+	return input
+}
+
+func parseBadgerConfiguration(c map[string]interface{}) map[string]interface{} {
+	for k, v := range c {
+		switch k {
+		case "Dir", "ValueDir":
+			c[k] = v
+		case "SyncWrites", "ReadOnly", "InMemory", "MetricsEnabled", "CompactL0OnClose", "LmaxCompaction", "VerifyValueChecksum", "BypassLockGuard", "DetectConflicts":
+			c[k] = true
+		case "NumVersionsToKeep", "NumGoroutines", "MemTableSize", "BaseTableSize", "BaseLevelSize", "LevelSizeMultiplier", "TableSizeMultiplier", "MaxLevels", "ValueThreshold", "NumMemtables", "BlockSize", "BlockCacheSize", "IndexCacheSize", "NumLevelZeroTables", "NumLevelZeroTablesStall", "ValueLogFileSize", "NumCompactors", "ZSTDCompressionLevel", "ChecksumVerificationMode", "NamespaceOffset":
+			c[k], _ = strconv.Atoi(v.(string))
+		case "Compression", "ValueLogMaxEntries":
+			c[k], _ = strconv.ParseUint(v.(string), 10, 32)
+		case "VLogPercentile", "BloomFalsePositive":
+			c[k], _ = strconv.ParseFloat(v.(string), 64)
+		case "EncryptionKey":
+			c[k] = []byte(v.(string))
+		case "EncryptionKeyRotationDuration":
+			c[k], _ = time.ParseDuration(v.(string))
+		}
+	}
+
+	return c
+}
+
+func parseRedisConfiguration(c map[string]interface{}) map[string]interface{} {
+	for k, v := range c {
+		switch k {
+		case "Network", "Addr", "Username", "Password":
+			c[k] = v
+		case "PoolFIFO":
+			c[k] = true
+		case "DB", "MaxRetries", "PoolSize", "MinIdleConns", "MaxIdleConns":
+			c[k], _ = strconv.Atoi(v.(string))
+		case "MinRetryBackoff", "MaxRetryBackoff", "DialTimeout", "ReadTimeout", "WriteTimeout", "PoolTimeout", "ConnMaxIdleTime", "ConnMaxLifetime":
+			c[k], _ = time.ParseDuration(v.(string))
+		}
+	}
+
+	return c
+}
+
+func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isBlocking bool) error {
+	for h.Next() {
+		for nesting := h.Nesting(); h.NextBlock(nesting); {
+			rootOption := h.Val()
+			switch rootOption {
+			case "allowed_http_verbs":
+				allowed := cfg.DefaultCache.AllowedHTTPVerbs
+				allowed = append(allowed, h.RemainingArgs()...)
+				cfg.DefaultCache.AllowedHTTPVerbs = allowed
+			case "api":
+				apiConfiguration := configurationtypes.API{}
+				for nesting := h.Nesting(); h.NextBlock(nesting); {
+					directive := h.Val()
+					switch directive {
+					case "basepath":
+						apiConfiguration.BasePath = h.RemainingArgs()[0]
+					case "prometheus":
+						apiConfiguration.Prometheus = configurationtypes.APIEndpoint{}
+						apiConfiguration.Prometheus.Enable = true
+						for nesting := h.Nesting(); h.NextBlock(nesting); {
+							directive := h.Val()
+							switch directive {
+							case "basepath":
+								apiConfiguration.Prometheus.BasePath = h.RemainingArgs()[0]
+							}
+						}
+					case "souin":
+						apiConfiguration.Souin = configurationtypes.APIEndpoint{}
+						apiConfiguration.Souin.Enable = true
+						for nesting := h.Nesting(); h.NextBlock(nesting); {
+							directive := h.Val()
+							switch directive {
+							case "basepath":
+								apiConfiguration.Souin.BasePath = h.RemainingArgs()[0]
+							}
+						}
+					}
+				}
+				cfg.API = apiConfiguration
+			case "badger":
+				provider := configurationtypes.CacheProvider{}
+				for nesting := h.Nesting(); h.NextBlock(nesting); {
+					directive := h.Val()
+					switch directive {
+					case "path":
+						urlArgs := h.RemainingArgs()
+						provider.Path = urlArgs[0]
+					case "configuration":
+						provider.Configuration = parseCaddyfileRecursively(h)
+						provider.Configuration = parseBadgerConfiguration(provider.Configuration.(map[string]interface{}))
+					}
+				}
+				cfg.DefaultCache.Badger = provider
+			case "cache_keys":
+				cacheKeys := cfg.CfgCacheKeys
+				if cacheKeys == nil {
+					cacheKeys = make(map[string]configurationtypes.Key)
+				}
+				for nesting := h.Nesting(); h.NextBlock(nesting); {
+					rg := h.Val()
+					ck := configurationtypes.Key{}
+
+					for nesting := h.Nesting(); h.NextBlock(nesting); {
+						directive := h.Val()
+						switch directive {
+						case "disable_body":
+							ck.DisableBody = true
+						case "disable_host":
+							ck.DisableHost = true
+						case "disable_method":
+							ck.DisableMethod = true
+						case "hide":
+							ck.Hide = true
+						case "headers":
+							ck.Headers = h.RemainingArgs()
+						}
+					}
+
+					cacheKeys[rg] = ck
+				}
+				cfg.CfgCacheKeys = cacheKeys
+			case "cache_name":
+				args := h.RemainingArgs()
+				cfg.DefaultCache.CacheName = args[0]
+			case "cdn":
+				cdn := configurationtypes.CDN{}
+				for nesting := h.Nesting(); h.NextBlock(nesting); {
+					directive := h.Val()
+					switch directive {
+					case "api_key":
+						cdn.APIKey = h.RemainingArgs()[0]
+					case "dynamic":
+						cdn.Dynamic = true
+					case "hostname":
+						cdn.Hostname = h.RemainingArgs()[0]
+					case "network":
+						cdn.Network = h.RemainingArgs()[0]
+					case "provider":
+						cdn.Provider = h.RemainingArgs()[0]
+					case "strategy":
+						cdn.Strategy = h.RemainingArgs()[0]
+					}
+				}
+				cfg.DefaultCache.CDN = cdn
+			case "default_cache_control":
+				args := h.RemainingArgs()
+				cfg.DefaultCache.DefaultCacheControl = strings.Join(args, " ")
+			case "etcd":
+				cfg.DefaultCache.Distributed = true
+				provider := configurationtypes.CacheProvider{}
+				for nesting := h.Nesting(); h.NextBlock(nesting); {
+					directive := h.Val()
+					switch directive {
+					case "configuration":
+						provider.Configuration = parseCaddyfileRecursively(h)
+					}
+				}
+				cfg.DefaultCache.Etcd = provider
+			case "headers":
+				cfg.DefaultCache.Headers = append(cfg.DefaultCache.Headers, h.RemainingArgs()...)
+			case "key":
+				config_key := configurationtypes.Key{}
+				for nesting := h.Nesting(); h.NextBlock(nesting); {
+					directive := h.Val()
+					switch directive {
+					case "disable_body":
+						config_key.DisableBody = true
+					case "disable_host":
+						config_key.DisableHost = true
+					case "disable_method":
+						config_key.DisableMethod = true
+					case "hide":
+						config_key.Hide = true
+					case "headers":
+						config_key.Headers = h.RemainingArgs()
+					}
+				}
+				cfg.DefaultCache.Key = config_key
+			case "log_level":
+				args := h.RemainingArgs()
+				cfg.LogLevel = args[0]
+			case "nuts":
+				provider := configurationtypes.CacheProvider{}
+				for nesting := h.Nesting(); h.NextBlock(nesting); {
+					directive := h.Val()
+					switch directive {
+					case "url":
+						urlArgs := h.RemainingArgs()
+						provider.URL = urlArgs[0]
+					case "path":
+						urlArgs := h.RemainingArgs()
+						provider.Path = urlArgs[0]
+					case "configuration":
+						provider.Configuration = parseCaddyfileRecursively(h)
+					}
+				}
+				cfg.DefaultCache.Nuts = provider
+			case "olric":
+				cfg.DefaultCache.Distributed = true
+				provider := configurationtypes.CacheProvider{}
+				for nesting := h.Nesting(); h.NextBlock(nesting); {
+					directive := h.Val()
+					switch directive {
+					case "url":
+						urlArgs := h.RemainingArgs()
+						provider.URL = urlArgs[0]
+					case "path":
+						urlArgs := h.RemainingArgs()
+						provider.Path = urlArgs[0]
+					case "configuration":
+						provider.Configuration = parseCaddyfileRecursively(h)
+					}
+				}
+				cfg.DefaultCache.Olric = provider
+			case "redis":
+				cfg.DefaultCache.Distributed = true
+				provider := configurationtypes.CacheProvider{}
+				for nesting := h.Nesting(); h.NextBlock(nesting); {
+					directive := h.Val()
+					switch directive {
+					case "url":
+						urlArgs := h.RemainingArgs()
+						provider.URL = urlArgs[0]
+					case "path":
+						urlArgs := h.RemainingArgs()
+						provider.Path = urlArgs[0]
+					case "configuration":
+						provider.Configuration = parseCaddyfileRecursively(h)
+						provider.Configuration = parseRedisConfiguration(provider.Configuration.(map[string]interface{}))
+					}
+				}
+				cfg.DefaultCache.Redis = provider
+			case "regex":
+				for nesting := h.Nesting(); h.NextBlock(nesting); {
+					directive := h.Val()
+					switch directive {
+					case "exclude":
+						cfg.DefaultCache.Regex.Exclude = h.RemainingArgs()[0]
+					}
+				}
+			case "stale":
+				args := h.RemainingArgs()
+				stale, err := time.ParseDuration(args[0])
+				if err == nil {
+					cfg.DefaultCache.Stale.Duration = stale
+				}
+			case "timeout":
+				timeout := configurationtypes.Timeout{}
+				for nesting := h.Nesting(); h.NextBlock(nesting); {
+					directive := h.Val()
+					switch directive {
+					case "backend":
+						d := configurationtypes.Duration{}
+						ttl, err := time.ParseDuration(h.RemainingArgs()[0])
+						if err == nil {
+							d.Duration = ttl
+						}
+						timeout.Backend = d
+					case "cache":
+						d := configurationtypes.Duration{}
+						ttl, err := time.ParseDuration(h.RemainingArgs()[0])
+						if err == nil {
+							d.Duration = ttl
+						}
+						timeout.Cache = d
+					}
+				}
+				cfg.DefaultCache.Timeout = timeout
+			case "ttl":
+				args := h.RemainingArgs()
+				ttl, err := time.ParseDuration(args[0])
+				if err == nil {
+					cfg.DefaultCache.TTL.Duration = ttl
+				}
+			default:
+				if isBlocking {
+					return h.Errf("unsupported root directive: %s", rootOption)
+				}
+			}
+		}
+	}
+
+	return nil
+}

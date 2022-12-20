@@ -7,7 +7,6 @@ package zstd
 import (
 	"encoding/binary"
 	"errors"
-	"fmt"
 	"io"
 	"math/bits"
 )
@@ -51,16 +50,16 @@ func (b *bitReader) getBits(n uint8) int {
 	if n == 0 /*|| b.bitsRead >= 64 */ {
 		return 0
 	}
-	return int(b.get32BitsFast(n))
+	return b.getBitsFast(n)
 }
 
-// get32BitsFast requires that at least one bit is requested every time.
+// getBitsFast requires that at least one bit is requested every time.
 // There are no checks if the buffer is filled.
-func (b *bitReader) get32BitsFast(n uint8) uint32 {
+func (b *bitReader) getBitsFast(n uint8) int {
 	const regMask = 64 - 1
 	v := uint32((b.value << (b.bitsRead & regMask)) >> ((regMask + 1 - n) & regMask))
 	b.bitsRead += n
-	return v
+	return int(v)
 }
 
 // fillFast() will make sure at least 32 bits are available.
@@ -126,9 +125,6 @@ func (b *bitReader) remain() uint {
 func (b *bitReader) close() error {
 	// Release reference.
 	b.in = nil
-	if !b.finished() {
-		return fmt.Errorf("%d extra bits on block, should be 0", b.remain())
-	}
 	if b.bitsRead > 64 {
 		return io.ErrUnexpectedEOF
 	}

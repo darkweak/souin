@@ -69,15 +69,6 @@ type ioCore struct {
 	out WriteSyncer
 }
 
-var (
-	_ Core           = (*ioCore)(nil)
-	_ leveledEnabler = (*ioCore)(nil)
-)
-
-func (c *ioCore) Level() Level {
-	return LevelOf(c.LevelEnabler)
-}
-
 func (c *ioCore) With(fields []Field) Core {
 	clone := c.clone()
 	addFields(clone.enc, fields)

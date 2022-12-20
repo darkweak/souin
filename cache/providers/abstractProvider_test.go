@@ -2,6 +2,7 @@ package providers
 
 import (
 	"fmt"
+	"net/http"
 	"testing"
 	"time"
 
@@ -34,5 +35,47 @@ func TestInitializeProvider(t *testing.T) {
 	err := p.Init()
 	if nil != err {
 		errors.GenerateError(t, "Init shouldn't crash")
+	}
+}
+
+func TestVaryVoter(t *testing.T) {
+	if !varyVoter("myBaseKey", nil, "myBaseKey") {
+		errors.GenerateError(t, "The vary voter must return true when both keys are equal")
+	}
+
+	rq := http.Request{
+		Header: http.Header{
+			"X-Value-Test": []string{"something-valid"},
+		},
+	}
+
+	varyResponse1 := varyVoter("baseKey", &rq, fmt.Sprintf("baseKey%s%s", VarySeparator, "X-Value-Test:something-valid"))
+
+	rq.Header = http.Header{
+		"X-Value-Test":        []string{"something-valid"},
+		"X-Value-Test-Second": []string{"another-valid"},
+	}
+	varyResponse2 := varyVoter("baseKey", &rq, fmt.Sprintf("baseKey%s%s", VarySeparator, "X-Value-Test:something-valid;X-Value-Test-Second:another-valid"))
+
+	rq.Header = http.Header{
+		"X-Value-Test":        []string{"something-valid"},
+		"X-Value-Test-Second": []string{"another-valid"},
+	}
+	varyResponse3 := varyVoter("baseKey", &rq, fmt.Sprintf("baseKey%s%s", VarySeparator, "X-Value-Test:something-valid;X-Value-Test-Second:another-valid;X-Value-Test-Third:"))
+
+	rq.Header = http.Header{
+		"X-Value-Test":        []string{"something-invalid"},
+		"X-Value-Test-Second": []string{"another-valid"},
+	}
+	varyResponse4 := varyVoter("baseKey", &rq, fmt.Sprintf("baseKey%s%s", VarySeparator, "X-Value-Test:something-valid;X-Value-Test-Second:another-valid;X-Value-Test-Third:"))
+
+	rq.Header = http.Header{
+		"X-Value-Test": []string{"something-valid"},
+		"X-With-Comma": []string{"first; directive"},
+	}
+	varyResponse5 := varyVoter("baseKey", &rq, fmt.Sprintf("baseKey%s%s", VarySeparator, "X-Value-Test:something-valid;X-With-Comma:first%3B%20directive"))
+
+	if !(varyResponse1 && varyResponse2 && varyResponse3 && varyResponse5) || varyResponse4 {
+		errors.GenerateError(t, "The varyVoter must match the expected")
 	}
 }

@@ -2,6 +2,7 @@ package providers
 
 import (
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/darkweak/souin/cache/types"
@@ -10,6 +11,8 @@ import (
 
 // VarySeparator will separate vary headers from the plain URL
 const VarySeparator = "{-VARY-}"
+const DecodedHeaderSeparator = ";"
+const encodedHeaderSeparator = "%3B"
 const stalePrefix = "STALE_"
 
 // InitializeProvider allow to generate the providers array according to the configuration
@@ -52,7 +55,15 @@ func varyVoter(baseKey string, req *http.Request, currentKey string) bool {
 
 		for _, item := range strings.Split(list, ";") {
 			index := strings.LastIndex(item, ":")
-			if !(len(item) >= index+1 && req.Header.Get(item[:index]) == item[index+1:]) {
+			if len(item) < index+1 {
+				return false
+			}
+
+			hVal := item[index+1:]
+			if strings.Contains(hVal, encodedHeaderSeparator) {
+				hVal, _ = url.QueryUnescape(hVal)
+			}
+			if req.Header.Get(item[:index]) != hVal {
 				return false
 			}
 		}
