@@ -69,7 +69,7 @@ jobs:
         run: make build-and-run-beego
         env:
           GH_APP_TOKEN: ${{ secrets.GH_APP_TOKEN }}
-          CURRENT_SHA: ${{ env.GITHUB_SHA }}
+          CURRENT_SHA: ${{ github.event.pull_request.head.sha }}
       -
         name: Wait for Souin is really loaded inside Beego as middleware
         uses: jakejarvis/wait-action@master
@@ -117,12 +117,12 @@ jobs:
         run: make build-and-run-chi
         env:
           GH_APP_TOKEN: ${{ secrets.GH_APP_TOKEN }}
-          CURRENT_SHA: ${{ env.GITHUB_SHA }}
+          CURRENT_SHA: ${{ github.event.pull_request.head.sha }}
       -
         name: Wait for Souin is really loaded inside Chi as middleware
         uses: jakejarvis/wait-action@master
         with:
-          time: 40s
+          time: 50s
       -
         name: Set Chi logs configuration result as environment variable
         run: cd plugins/chi && echo "$(make load-checker)" >> $GITHUB_ENV
@@ -165,12 +165,12 @@ jobs:
         run: make build-and-run-dotweb
         env:
           GH_APP_TOKEN: ${{ secrets.GH_APP_TOKEN }}
-          CURRENT_SHA: ${{ env.GITHUB_SHA }}
+          CURRENT_SHA: ${{ github.event.pull_request.head.sha }}
       -
         name: Wait for Souin is really loaded inside Dotweb as middleware
         uses: jakejarvis/wait-action@master
         with:
-          time: 40s
+          time: 50s
       -
         name: Set Dotweb logs configuration result as environment variable
         run: cd plugins/dotweb && echo "$(make load-checker)" >> $GITHUB_ENV
@@ -213,12 +213,12 @@ jobs:
         run: make build-and-run-echo
         env:
           GH_APP_TOKEN: ${{ secrets.GH_APP_TOKEN }}
-          CURRENT_SHA: ${{ env.GITHUB_SHA }}
+          CURRENT_SHA: ${{ github.event.pull_request.head.sha }}
       -
         name: Wait for Souin is really loaded inside Echo as middleware
         uses: jakejarvis/wait-action@master
         with:
-          time: 45s
+          time: 50s
       -
         name: Set Echo logs configuration result as environment variable
         run: cd plugins/echo && echo "$(make load-checker)" >> $GITHUB_ENV
@@ -261,7 +261,7 @@ jobs:
         run: make build-and-run-fiber
         env:
           GH_APP_TOKEN: ${{ secrets.GH_APP_TOKEN }}
-          CURRENT_SHA: ${{ env.GITHUB_SHA }}
+          CURRENT_SHA: ${{ github.event.pull_request.head.sha }}
       -
         name: Wait for Souin is really loaded inside Fiber as middleware
         uses: jakejarvis/wait-action@master
@@ -309,7 +309,7 @@ jobs:
         run: make build-and-run-gin
         env:
           GH_APP_TOKEN: ${{ secrets.GH_APP_TOKEN }}
-          CURRENT_SHA: ${{ env.GITHUB_SHA }}
+          CURRENT_SHA: ${{ github.event.pull_request.head.sha }}
       -
         name: Wait for Souin is really loaded inside Gin as middleware
         uses: jakejarvis/wait-action@master
@@ -357,7 +357,7 @@ jobs:
         run: make build-and-run-go-zero
         env:
           GH_APP_TOKEN: ${{ secrets.GH_APP_TOKEN }}
-          CURRENT_SHA: ${{ env.GITHUB_SHA }}
+          CURRENT_SHA: ${{ github.event.pull_request.head.sha }}
       -
         name: Wait for Souin is really loaded inside Go-zero as middleware
         uses: jakejarvis/wait-action@master
@@ -405,7 +405,7 @@ jobs:
         run: make build-and-run-goyave
         env:
           GH_APP_TOKEN: ${{ secrets.GH_APP_TOKEN }}
-          CURRENT_SHA: ${{ env.GITHUB_SHA }}
+          CURRENT_SHA: ${{ github.event.pull_request.head.sha }}
       -
         name: Wait for Souin is really loaded inside Goyave as middleware
         uses: jakejarvis/wait-action@master
@@ -453,7 +453,7 @@ jobs:
         run: make build-and-run-kratos
         env:
           GH_APP_TOKEN: ${{ secrets.GH_APP_TOKEN }}
-          CURRENT_SHA: ${{ env.GITHUB_SHA }}
+          CURRENT_SHA: ${{ github.event.pull_request.head.sha }}
       -
         name: Wait for Souin is really loaded inside Kratos as middleware
         uses: jakejarvis/wait-action@master
@@ -501,12 +501,12 @@ jobs:
         run: make build-and-run-roadrunner
         env:
           GH_APP_TOKEN: ${{ secrets.GH_APP_TOKEN }}
-          CURRENT_SHA: ${{ env.GITHUB_SHA }}
+          CURRENT_SHA: ${{ github.event.pull_request.head.sha }}
       -
         name: Wait for Souin is really loaded inside Roadrunner as middleware
         uses: jakejarvis/wait-action@master
         with:
-          time: 10s
+          time: 50s
       -
         name: Set Roadrunner logs configuration result as environment variable
         run: cd plugins/roadrunner && echo "$(make load-checker)" >> $GITHUB_ENV
@@ -549,7 +549,7 @@ jobs:
         run: make build-and-run-skipper
         env:
           GH_APP_TOKEN: ${{ secrets.GH_APP_TOKEN }}
-          CURRENT_SHA: ${{ env.GITHUB_SHA }}
+          CURRENT_SHA: ${{ github.event.pull_request.head.sha }}
       -
         name: Wait for Souin is really loaded inside Skipper as middleware
         uses: jakejarvis/wait-action@master
@@ -597,7 +597,7 @@ jobs:
         run: make build-and-run-souin
         env:
           GH_APP_TOKEN: ${{ secrets.GH_APP_TOKEN }}
-          CURRENT_SHA: ${{ env.GITHUB_SHA }}
+          CURRENT_SHA: ${{ github.event.pull_request.head.sha }}
       -
         name: Wait for Souin is really loaded inside Souin as middleware
         uses: jakejarvis/wait-action@master
@@ -645,7 +645,7 @@ jobs:
         run: make build-and-run-traefik
         env:
           GH_APP_TOKEN: ${{ secrets.GH_APP_TOKEN }}
-          CURRENT_SHA: ${{ env.GITHUB_SHA }}
+          CURRENT_SHA: ${{ github.event.pull_request.head.sha }}
       -
         name: Wait for Souin is really loaded inside Traefik as middleware
         uses: jakejarvis/wait-action@master
@@ -693,7 +693,7 @@ jobs:
         run: make build-and-run-tyk
         env:
           GH_APP_TOKEN: ${{ secrets.GH_APP_TOKEN }}
-          CURRENT_SHA: ${{ env.GITHUB_SHA }}
+          CURRENT_SHA: ${{ github.event.pull_request.head.sha }}
       -
         name: Wait for Souin is really loaded inside Tyk as middleware
         uses: jakejarvis/wait-action@master
@@ -741,12 +741,12 @@ jobs:
         run: make build-and-run-webgo
         env:
           GH_APP_TOKEN: ${{ secrets.GH_APP_TOKEN }}
-          CURRENT_SHA: ${{ env.GITHUB_SHA }}
+          CURRENT_SHA: ${{ github.event.pull_request.head.sha }}
       -
         name: Wait for Souin is really loaded inside Webgo as middleware
         uses: jakejarvis/wait-action@master
         with:
-          time: 45s
+          time: 50s
       -
         name: Set Webgo logs configuration result as environment variable
         run: cd plugins/webgo && echo "$(make load-checker)" >> $GITHUB_ENV

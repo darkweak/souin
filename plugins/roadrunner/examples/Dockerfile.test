@@ -6,18 +6,20 @@ ENV CGO_ENABLED=0
 ENV VERSION=v2.10.7
 ENV TIME="$(date +%H:%M)"
 
+RUN apk add git
+
 COPY . /opt
 WORKDIR /opt/plugins/roadrunner
 RUN go get -u "github.com/darkweak/souin@${CURRENT_SHA}"
 WORKDIR /opt/plugins/roadrunner/examples
 RUN sed -i "s/GH_TOKEN/${GH_TOKEN}/" configuration.toml
 
-RUN apk add git
 RUN vx build -c configuration.toml -o /usr/bin/
 
 FROM composer:latest AS development-runner
 COPY --from=velox /usr/bin/rr /usr/bin/rr
 
+RUN apk add linux-headers
 RUN docker-php-ext-install sockets
 RUN composer require spiral/roadrunner nyholm/psr7
 

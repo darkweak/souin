@@ -20,6 +20,8 @@ func parseAPI(apiConfiguration map[string]interface{}) configurationtypes.API {
 
 	for apiK, apiV := range apiConfiguration {
 		switch apiK {
+		case "basepath":
+			a.BasePath = apiV.(string)
 		case "prometheus":
 			prometheusConfiguration, _ = apiV.(map[string]interface{})
 		case "souin":
@@ -59,8 +61,12 @@ func parseCacheKeys(ccConfiguration map[string]interface{}) map[configurationtyp
 			case "hide":
 				ck.Hide = true
 			case "headers":
-				for _, header := range cacheKeysConfigurationVMapV.([]interface{}) {
-					ck.Headers = append(ck.Headers, header.(string))
+				if headers, ok := cacheKeysConfigurationVMapV.([]string); ok {
+					ck.Headers = headers
+				} else {
+					for _, hv := range cacheKeysConfigurationVMapV.([]interface{}) {
+						ck.Headers = append(ck.Headers, hv.(string))
+					}
 				}
 			}
 		}
@@ -88,8 +94,12 @@ func parseDefaultCache(dcConfiguration map[string]interface{}) *configurationtyp
 		switch defaultCacheK {
 		case "allowed_http_verbs":
 			dc.AllowedHTTPVerbs = make([]string, 0)
-			for _, h := range defaultCacheV.([]interface{}) {
-				dc.AllowedHTTPVerbs = append(dc.AllowedHTTPVerbs, h.(string))
+			if verbs, ok := defaultCacheV.([]string); ok {
+				dc.AllowedHTTPVerbs = verbs
+			} else {
+				for _, verb := range defaultCacheV.([]interface{}) {
+					dc.AllowedHTTPVerbs = append(dc.AllowedHTTPVerbs, verb.(string))
+				}
 			}
 		case "badger":
 			provider := configurationtypes.CacheProvider{}
@@ -139,8 +149,16 @@ func parseDefaultCache(dcConfiguration map[string]interface{}) *configurationtyp
 			}
 			dc.Etcd = provider
 		case "headers":
-			for _, hv := range defaultCacheV.([]interface{}) {
-				dc.Headers = append(dc.Headers, hv.(string))
+			if headers, ok := defaultCacheV.([]string); ok {
+				dc.Headers = headers
+			} else {
+				if headers, ok := defaultCacheV.([]string); ok {
+					dc.Headers = headers
+				} else {
+					for _, hv := range defaultCacheV.([]interface{}) {
+						dc.Headers = append(dc.Headers, hv.(string))
+					}
+				}
 			}
 		case "nuts":
 			provider := configurationtypes.CacheProvider{}

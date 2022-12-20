@@ -1,7 +1,7 @@
 #!/bin/bash
 
 plugins=("beego"  "chi"  "dotweb"  "echo"  "fiber"  "gin"  "go-zero"  "goyave"  "kratos"  "roadrunner"  "skipper"  "souin"  "traefik"  "tyk"  "webgo")
-durations=("50"   "40"   "40"      "45"    "50"     "50"   "50"       "50"      "50"      "10"          "65"       "50"     "20"       "30"   "45")
+durations=("50"   "50"   "50"      "50"    "50"     "50"   "50"       "50"      "50"      "50"          "65"       "50"     "20"       "30"   "50")
 versions=("19"    "19"   "19"      "19"    "19"     "19"   "19"       "19"      "19"      "19"          "19"       "19"     "19"       "19"   "19")
 
 IFS= read -r -d '' tpl <<EOF
@@ -83,7 +83,7 @@ for i in ${!plugins[@]}; do
         run: make build-and-run-$lower
         env:
           GH_APP_TOKEN: \${{ secrets.GH_APP_TOKEN }}
-          CURRENT_SHA: \${{ env.GITHUB_SHA }}
+          CURRENT_SHA: \${{ github.event.pull_request.head.sha }}
       -
         name: Wait for Souin is really loaded inside $capitalized as middleware
         uses: jakejarvis/wait-action@master
