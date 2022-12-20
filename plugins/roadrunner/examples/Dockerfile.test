@@ -1,11 +1,14 @@
 FROM ghcr.io/roadrunner-server/velox:latest as velox
 
+ARG CURRENT_SHA
 ARG GH_TOKEN
 ENV CGO_ENABLED=0
 ENV VERSION=v2.10.7
 ENV TIME="$(date +%H:%M)"
 
 COPY . /opt
+WORKDIR /opt/plugins/roadrunner
+RUN go get -u "github.com/darkweak/souin@${CURRENT_SHA}"
 WORKDIR /opt/plugins/roadrunner/examples
 RUN sed -i "s/GH_TOKEN/${GH_TOKEN}/" configuration.toml
 

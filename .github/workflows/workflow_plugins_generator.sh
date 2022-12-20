@@ -83,6 +83,7 @@ for i in ${!plugins[@]}; do
         run: make build-and-run-$lower
         env:
           GH_APP_TOKEN: \${{ secrets.GH_APP_TOKEN }}
+          CURRENT_SHA: \${{ env.GITHUB_SHA }}
       -
         name: Wait for Souin is really loaded inside $capitalized as middleware
         uses: jakejarvis/wait-action@master
