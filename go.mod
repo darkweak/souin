@@ -5,7 +5,7 @@ go 1.16
 require (
 	github.com/buraksezer/olric v0.5.0
 	github.com/darkweak/go-esi v0.0.5
-	github.com/dgraph-io/badger/v3 v3.2103.4
+	github.com/dgraph-io/badger/v3 v3.2103.5
 	github.com/dgraph-io/ristretto v0.1.1
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/go-chi/stampede v0.5.1

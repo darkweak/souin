@@ -105,6 +105,7 @@ default_cache:
     headers: # Add headers to the key
       - Authorization # Add the header value in the key
       - Content-Type # Add the header value in the key
+    hide: true # Prevent the key from being exposed in the `Cache-Status` HTTP response header
   etcd: # If distributed is set to true, you'll have to define either the etcd or olric section
     configuration: # Configure directly the Etcd client
       endpoints: # Define multiple endpoints
@@ -165,6 +166,7 @@ surrogate_keys:
 | `cache_keys.{your regexp}.disable_host`           | Disable the host part in the key matching the regexp                                                                                        | `true`<br/><br/>`(default: false)`                                                                                        |
 | `cache_keys.{your regexp}.disable_method`         | Disable the method part in the key matching the regexp                                                                                      | `true`<br/><br/>`(default: false)`                                                                                        |
 | `cache_keys.{your regexp}.headers`                | Add headers to the key matching the regexp                                                                                                  | `- Authorization`<br/><br/>`- Content-Type`<br/><br/>`- X-Additional-Header`                                              |
+| `cache_keys.{your regexp}.hide`                   | Prevent the key from being exposed in the `Cache-Status` HTTP response header                                                               | `true`<br/><br/>`(default: false)`                                                                                        |
 | `cdn`                                             | The CDN management, if you use any cdn to proxy your requests Souin will handle that                                                        |                                                                                                                           |
 | `cdn.provider`                                    | The provider placed before Souin                                                                                                            | `akamai`<br/><br/>`fastly`<br/><br/>`souin`                                                                               |
 | `cdn.api_key`                                     | The api key used to access to the provider                                                                                                  | `XXXX`                                                                                                                    |
@@ -188,6 +190,7 @@ surrogate_keys:
 | `default_cache.key.disable_host`                  | Disable the host part in the key                                                                                                            | `true`<br/><br/>`(default: false)`                                                                                        |
 | `default_cache.key.disable_method`                | Disable the method part in the key                                                                                                          | `true`<br/><br/>`(default: false)`                                                                                        |
 | `default_cache.key.headers`                       | Add headers to the key matching the regexp                                                                                                  | `- Authorization`<br/><br/>`- Content-Type`<br/><br/>`- X-Additional-Header`                                              |
+| `default_cache.key.hide`                          | Prevent the key from being exposed in the `Cache-Status` HTTP response header                                                               | `true`<br/><br/>`(default: false)`                                                                                        |
 | `default_cache.nuts`                              | Configure the Nuts cache storage                                                                                                            |                                                                                                                           |
 | `default_cache.nuts.path`                         | Set the Nuts file path storage                                                                                                              | `/anywhere/nuts/storage`                                                                                                  |
 | `default_cache.nuts.configuration`                | Configure Nuts directly in the Caddyfile or your JSON caddy configuration                                                                   | [See the Nuts configuration for the options](https://github.com/nutsdb/nutsdb#default-options)                            |
@@ -455,6 +458,7 @@ There is the fully configuration below
                 disable_host
                 disable_method
                 headers X-Token Authorization
+                hide
             }
         }
         cdn {

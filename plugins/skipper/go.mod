@@ -31,7 +31,7 @@ require (
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
 	github.com/darkweak/go-esi v0.0.5 // indirect
 	github.com/dchest/siphash v1.2.2 // indirect
-	github.com/dgraph-io/badger/v3 v3.2103.4 // indirect
+	github.com/dgraph-io/badger/v3 v3.2103.5 // indirect
 	github.com/dgraph-io/ristretto v0.1.1 // indirect
 	github.com/dgryski/go-jump v0.0.0-20211018200510-ba001c3ffce0 // indirect
 	github.com/dgryski/go-mpchash v0.0.0-20200819201138-7382f34c4cd1 // indirect
