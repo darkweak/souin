@@ -59,7 +59,9 @@ func parseCacheKeys(ccConfiguration map[string]interface{}) map[configurationtyp
 			case "hide":
 				ck.Hide = true
 			case "headers":
-				ck.Headers = cacheKeysConfigurationVMapV.([]string)
+				for _, header := range cacheKeysConfigurationVMapV.([]interface{}) {
+					ck.Headers = append(ck.Headers, header.(string))
+				}
 			}
 		}
 		rg := regexp.MustCompile(cacheKeysConfigurationK)
@@ -137,7 +139,9 @@ func parseDefaultCache(dcConfiguration map[string]interface{}) *configurationtyp
 			}
 			dc.Etcd = provider
 		case "headers":
-			dc.Headers = defaultCacheV.([]string)
+			for _, hv := range defaultCacheV.([]interface{}) {
+				dc.Headers = append(dc.Headers, hv.(string))
+			}
 		case "nuts":
 			provider := configurationtypes.CacheProvider{}
 			for nutsConfigurationK, nutsConfigurationV := range defaultCacheV.(map[string]interface{}) {
@@ -270,7 +274,12 @@ func parseSurrogateKeys(surrogates map[string]interface{}) map[string]configurat
 		for key, value := range surrogateV.(map[string]interface{}) {
 			switch key {
 			case "headers":
-				surrogate.Headers = value.(map[string]string)
+				if surrogate.Headers == nil {
+					surrogate.Headers = make(map[string]string)
+				}
+				for hn, hv := range value.(map[string]interface{}) {
+					surrogate.Headers[hn] = hv.(string)
+				}
 			case "url":
 				surrogate.URL = value.(string)
 			}
