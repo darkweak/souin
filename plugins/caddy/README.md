@@ -52,6 +52,7 @@ Here are all the available options for the global options
                 disable_host
                 disable_method
                 headers X-Token Authorization
+                hide
             }
         }
         cache_name Another
@@ -361,6 +362,7 @@ What does these directives mean?
 | `cache_keys.{your regexp}.disable_host`   | Disable the host part in the key matching the regexp                                                                                         | `true`<br/><br/>`(default: false)`                                                                                      |
 | `cache_keys.{your regexp}.disable_method` | Disable the method part in the key matching the regexp                                                                                       | `true`<br/><br/>`(default: false)`                                                                                      |
 | `cache_keys.{your regexp}.headers`        | Add headers to the key matching the regexp                                                                                                   | `Authorization Content-Type X-Additional-Header`                                                                        |
+| `cache_keys.{your regexp}.hide`           | Prevent the key from being exposed in the `Cache-Status` HTTP response header                                                                | `true`<br/><br/>`(default: false)`                                                                                      |
 | `cdn`                                     | The CDN management, if you use any cdn to proxy your requests Souin will handle that                                                         |                                                                                                                         |
 | `cdn.provider`                            | The provider placed before Souin                                                                                                             | `akamai`<br/><br/>`fastly`<br/><br/>`souin`                                                                             |
 | `cdn.api_key`                             | The api key used to access to the provider                                                                                                   | `XXXX`                                                                                                                  |
@@ -377,6 +379,7 @@ What does these directives mean?
 | `key.disable_host`                        | Disable the host part in the key                                                                                                             | `true`<br/><br/>`(default: false)`                                                                                      |
 | `key.disable_method`                      | Disable the method part in the key                                                                                                           | `true`<br/><br/>`(default: false)`                                                                                      |
 | `key.headers`                             | Add headers to the key matching the regexp                                                                                                   | `Authorization Content-Type X-Additional-Header`                                                                        |
+| `key.hide`                                | Prevent the key from being exposed in the `Cache-Status` HTTP response header                                                                | `true`<br/><br/>`(default: false)`                                                                                      |
 | `nuts`                                    | Configure the Nuts cache storage                                                                                                             |                                                                                                                         |
 | `nuts.path`                               | Set the Nuts file path storage                                                                                                               | `/anywhere/nuts/storage`                                                                                                |
 | `nuts.configuration`                      | Configure Nuts directly in the Caddyfile or your JSON caddy configuration                                                                    | [See the Nuts configuration for the options](https://github.com/nutsdb/nutsdb#default-options)                          |

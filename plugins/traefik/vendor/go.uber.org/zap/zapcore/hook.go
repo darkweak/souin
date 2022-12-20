@@ -27,11 +27,6 @@ type hooked struct {
 	funcs []func(Entry) error
 }
 
-var (
-	_ Core           = (*hooked)(nil)
-	_ leveledEnabler = (*hooked)(nil)
-)
-
 // RegisterHooks wraps a Core and runs a collection of user-defined callback
 // hooks each time a message is logged. Execution of the callbacks is blocking.
 //
@@ -43,10 +38,6 @@ func RegisterHooks(core Core, hooks ...func(Entry) error) Core {
 		Core:  core,
 		funcs: funcs,
 	}
-}
-
-func (h *hooked) Level() Level {
-	return LevelOf(h.Core)
 }
 
 func (h *hooked) Check(ent Entry, ce *CheckedEntry) *CheckedEntry {

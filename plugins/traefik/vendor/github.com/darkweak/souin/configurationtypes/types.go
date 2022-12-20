@@ -52,6 +52,7 @@ type Cache struct {
 
 // Regex config
 type Regex struct {
+	// Prevent the from being cached matching the regex
 	Exclude string `json:"exclude" yaml:"exclude"`
 }
 

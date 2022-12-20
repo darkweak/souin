@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -19,9 +20,14 @@ import (
 // GetVariedCacheKey returns the varied cache key for req and resp.
 func GetVariedCacheKey(req *http.Request, headers []string) string {
 	for i, v := range headers {
-		headers[i] = fmt.Sprintf("%s:%s", v, req.Header.Get(v))
+		h := req.Header.Get(v)
+		if strings.Contains(h, ";") {
+			h = url.QueryEscape(h)
+		}
+		headers[i] = fmt.Sprintf("%s:%s", v, h)
 	}
-	return req.Context().Value(context.Key).(string) + providers.VarySeparator + strings.Join(headers, ";")
+
+	return req.Context().Value(context.Key).(string) + providers.VarySeparator + strings.Join(headers, providers.DecodedHeaderSeparator)
 }
 
 func validateMaxAgeCachedResponse(req *http.Request, res *http.Response, header string, maxAge int, addTime int) *http.Response {
