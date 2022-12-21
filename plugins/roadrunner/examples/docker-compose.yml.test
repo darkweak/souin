@@ -8,5 +8,6 @@ services:
       target: development-runner
       args:
         GH_TOKEN: ${GH_APP_TOKEN}
+        CURRENT_SHA: ${CURRENT_SHA}
     ports:
       - 80:80

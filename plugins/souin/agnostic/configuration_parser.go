@@ -20,6 +20,8 @@ func parseAPI(apiConfiguration map[string]interface{}) configurationtypes.API {
 
 	for apiK, apiV := range apiConfiguration {
 		switch apiK {
+		case "basepath":
+			a.BasePath = apiV.(string)
 		case "prometheus":
 			prometheusConfiguration, _ = apiV.(map[string]interface{})
 		case "souin":
@@ -59,7 +61,13 @@ func parseCacheKeys(ccConfiguration map[string]interface{}) map[configurationtyp
 			case "hide":
 				ck.Hide = true
 			case "headers":
-				ck.Headers = cacheKeysConfigurationVMapV.([]string)
+				if headers, ok := cacheKeysConfigurationVMapV.([]string); ok {
+					ck.Headers = headers
+				} else {
+					for _, hv := range cacheKeysConfigurationVMapV.([]interface{}) {
+						ck.Headers = append(ck.Headers, hv.(string))
+					}
+				}
 			}
 		}
 		rg := regexp.MustCompile(cacheKeysConfigurationK)
@@ -86,8 +94,12 @@ func parseDefaultCache(dcConfiguration map[string]interface{}) *configurationtyp
 		switch defaultCacheK {
 		case "allowed_http_verbs":
 			dc.AllowedHTTPVerbs = make([]string, 0)
-			for _, h := range defaultCacheV.([]interface{}) {
-				dc.AllowedHTTPVerbs = append(dc.AllowedHTTPVerbs, h.(string))
+			if verbs, ok := defaultCacheV.([]string); ok {
+				dc.AllowedHTTPVerbs = verbs
+			} else {
+				for _, verb := range defaultCacheV.([]interface{}) {
+					dc.AllowedHTTPVerbs = append(dc.AllowedHTTPVerbs, verb.(string))
+				}
 			}
 		case "badger":
 			provider := configurationtypes.CacheProvider{}
@@ -137,7 +149,17 @@ func parseDefaultCache(dcConfiguration map[string]interface{}) *configurationtyp
 			}
 			dc.Etcd = provider
 		case "headers":
-			dc.Headers = defaultCacheV.([]string)
+			if headers, ok := defaultCacheV.([]string); ok {
+				dc.Headers = headers
+			} else {
+				if headers, ok := defaultCacheV.([]string); ok {
+					dc.Headers = headers
+				} else {
+					for _, hv := range defaultCacheV.([]interface{}) {
+						dc.Headers = append(dc.Headers, hv.(string))
+					}
+				}
+			}
 		case "nuts":
 			provider := configurationtypes.CacheProvider{}
 			for nutsConfigurationK, nutsConfigurationV := range defaultCacheV.(map[string]interface{}) {
@@ -270,7 +292,12 @@ func parseSurrogateKeys(surrogates map[string]interface{}) map[string]configurat
 		for key, value := range surrogateV.(map[string]interface{}) {
 			switch key {
 			case "headers":
-				surrogate.Headers = value.(map[string]string)
+				if surrogate.Headers == nil {
+					surrogate.Headers = make(map[string]string)
+				}
+				for hn, hv := range value.(map[string]interface{}) {
+					surrogate.Headers[hn] = hv.(string)
+				}
 			case "url":
 				surrogate.URL = value.(string)
 			}
