@@ -20,8 +20,8 @@ func TestInitialize(t *testing.T) {
 
 	endpoints := Initialize(transport, config)
 
-	if len(endpoints) != 3 {
-		errors.GenerateError(t, fmt.Sprintf("Endpoints length should be 3, %d received", len(endpoints)))
+	if len(endpoints) != 4 {
+		errors.GenerateError(t, fmt.Sprintf("Endpoints length should be 4, %d received", len(endpoints)))
 	}
 	if !endpoints[0].IsEnabled() {
 		errors.GenerateError(t, "Endpoint should be enabled")

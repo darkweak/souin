@@ -16,16 +16,25 @@ const (
 
 func parseAPI(apiConfiguration map[string]interface{}) configurationtypes.API {
 	var a configurationtypes.API
-	var prometheusConfiguration, souinConfiguration map[string]interface{}
+	var debugConfiguration, prometheusConfiguration, souinConfiguration map[string]interface{}
 
 	for apiK, apiV := range apiConfiguration {
 		switch apiK {
 		case "basepath":
 			a.BasePath = apiV.(string)
+		case "debug":
+			debugConfiguration, _ = apiV.(map[string]interface{})
 		case "prometheus":
 			prometheusConfiguration, _ = apiV.(map[string]interface{})
 		case "souin":
 			souinConfiguration, _ = apiV.(map[string]interface{})
+		}
+	}
+	if debugConfiguration != nil {
+		a.Debug = configurationtypes.APIEndpoint{}
+		a.Debug.Enable = true
+		if debugConfiguration["basepath"] != nil {
+			a.Debug.BasePath, _ = debugConfiguration["basepath"].(string)
 		}
 	}
 	if prometheusConfiguration != nil {

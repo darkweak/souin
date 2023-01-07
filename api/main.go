@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/darkweak/souin/api/auth"
+	"github.com/darkweak/souin/api/debug"
 	"github.com/darkweak/souin/api/prometheus"
 	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/configurationtypes"
@@ -45,5 +46,5 @@ func GenerateHandlerMap(
 // Initialize contains all apis that should be enabled
 func Initialize(transport types.TransportInterface, c configurationtypes.AbstractConfigurationInterface) []EndpointInterface {
 	security := auth.InitializeSecurity(c)
-	return []EndpointInterface{security, initializeSouin(c, security, transport), prometheus.InitializePrometheus(c, security)}
+	return []EndpointInterface{security, initializeSouin(c, security, transport), debug.InitializeDebug(c), prometheus.InitializePrometheus(c, security)}
 }
