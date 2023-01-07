@@ -264,6 +264,16 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isBlocking b
 					switch directive {
 					case "basepath":
 						apiConfiguration.BasePath = h.RemainingArgs()[0]
+					case "debug":
+						apiConfiguration.Debug = configurationtypes.APIEndpoint{}
+						apiConfiguration.Debug.Enable = true
+						for nesting := h.Nesting(); h.NextBlock(nesting); {
+							directive := h.Val()
+							switch directive {
+							case "basepath":
+								apiConfiguration.Debug.BasePath = h.RemainingArgs()[0]
+							}
+						}
 					case "prometheus":
 						apiConfiguration.Prometheus = configurationtypes.APIEndpoint{}
 						apiConfiguration.Prometheus.Enable = true

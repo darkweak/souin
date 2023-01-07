@@ -142,40 +142,56 @@ func DefaultSouinPluginCallback(
 	defer cancel()
 	foundEntry := make(chan *http.Response)
 	errorCacheCh := make(chan error)
+	closerCh := make(chan bool)
 
 	go func(isCandidate bool, ret types.RetrieverResponsePropertiesInterface, ckey string) {
-		if isCandidate {
-			r, stale, err := rfc.CachedResponse(
-				ret.GetProvider(),
-				req,
-				ckey,
-				ret.GetTransport(),
-			)
-			if err != nil {
-				ret.GetConfiguration().GetLogger().Sugar().Debugf("An error ocurred while retrieving the (stale)? key %s: %v", ckey, err)
-				foundEntry <- nil
-				errorCacheCh <- err
+		execOnce := make(chan bool, 1)
+		execOnce <- true
+		for {
+			select {
+			case <-execOnce:
+				if isCandidate {
+					r, stale, err := rfc.CachedResponse(
+						ret.GetProvider(),
+						req,
+						ckey,
+						ret.GetTransport(),
+					)
+					if err != nil {
+						ret.GetConfiguration().GetLogger().Sugar().Debugf("An error ocurred while retrieving the (stale)? key %s: %v", ckey, err)
+						foundEntry <- nil
+						errorCacheCh <- err
 
-				return
-			}
+						return
+					}
 
-			if r != nil {
-				rh := r.Header
-				if stale {
-					rfc.HitStaleCache(&rh, ret.GetMatchedURL().TTL.Duration)
-					r.Header = rh
-				} else {
-					prometheus.Increment(prometheus.CachedResponseCounter)
+					if r != nil {
+						rh := r.Header
+						if stale {
+							rfc.HitStaleCache(&rh, ret.GetMatchedURL().TTL.Duration)
+							r.Header = rh
+						} else {
+							prometheus.Increment(prometheus.CachedResponseCounter)
+						}
+						foundEntry <- r
+						errorCacheCh <- nil
+
+						return
+					}
 				}
-				foundEntry <- r
+				foundEntry <- nil
 				errorCacheCh <- nil
-
+			case <-closerCh:
 				return
 			}
 		}
-		foundEntry <- nil
-		errorCacheCh <- nil
 	}(cacheCandidate, retriever, cacheKey)
+
+	defer func() {
+		close(errorCacheCh)
+		close(foundEntry)
+		close(closerCh)
+	}()
 
 	select {
 	case entry := <-foundEntry:
@@ -190,6 +206,7 @@ func DefaultSouinPluginCallback(
 			return
 		}
 	case <-time.After(timeoutCache):
+		closerCh <- true
 	}
 
 	// coalesceable := make(chan bool)

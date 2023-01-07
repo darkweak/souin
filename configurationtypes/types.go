@@ -264,6 +264,7 @@ type SecurityAPI struct {
 // API structure contains all additional endpoints
 type API struct {
 	BasePath   string      `json:"basepath" yaml:"basepath"`
+	Debug      APIEndpoint `json:"debug" yaml:"debug"`
 	Prometheus APIEndpoint `json:"prometheus" yaml:"prometheus"`
 	Souin      APIEndpoint `json:"souin" yaml:"souin"`
 	Security   SecurityAPI `json:"security" yaml:"security"`
