@@ -17,6 +17,7 @@ import (
 
 const (
 	getterContextCtxKey key = "getter_context"
+	pluginName string = "cache"
 )
 
 type (
@@ -29,6 +30,12 @@ type (
 		Get(name string) any
 		// Has checks if config section exists.
 		Has(name string) bool
+	}
+	
+	// Logger is the main RR's logger interface
+	// It's providing a named instance of the *zap.Logger
+	Logger interface {
+		NamedLogger(name string) *zap.Logger
 	}
 
 	Plugin struct {
@@ -45,20 +52,20 @@ type (
 
 // Name is the plugin name
 func (p *Plugin) Name() string {
-	return "cache"
+	return pluginName
 }
 
 // Init allows the user to set up an HTTP cache system,
 // RFC-7234 compliant and supports the tag based cache purge,
 // distributed and not-distributed storage, key generation tweaking.
-func (p *Plugin) Init(cfg Configurer, log *zap.Logger) error {
+func (p *Plugin) Init(cfg Configurer, log Logger) error {
 	const op = errors.Op("httpcache_middleware_init")
 	if !cfg.Has(configurationKey) {
 		return errors.E(op, errors.Disabled)
 	}
 
 	c := parseConfiguration(cfg)
-	c.SetLogger(log)
+	c.SetLogger(log.NamedLogger(pluginName))
 	p.Configuration = &c
 	p.bufPool = &sync.Pool{
 		New: func() interface{} {

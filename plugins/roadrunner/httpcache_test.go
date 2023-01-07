@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 )
 
@@ -17,7 +18,21 @@ type (
 	configWrapper struct {
 		*dummyConfiguration
 	}
+	testLogger struct {
+		log *zap.Logger
+	}
 )
+
+func newTestLogger() *testLogger {
+	log, _ := zap.NewDevelopment()
+	return &testLogger{
+		log: log,
+	}
+}
+
+func (tl *testLogger) NamedLogger(string) *zap.Logger {
+	return tl.log
+}
 
 func (*configWrapper) Get(_ string) interface{} {
 	var c map[string]interface{}
@@ -44,7 +59,7 @@ func prepare(endpoint string) (req *http.Request, res1 *httptest.ResponseRecorde
 func Test_Plugin_Init(t *testing.T) {
 	p := &Plugin{}
 
-	if p.Init(&configWrapper{}, nil) != nil {
+	if p.Init(&configWrapper{}, newTestLogger()) != nil {
 		t.Error("The Init method must not crash if a valid configuration is given.")
 	}
 
@@ -61,7 +76,7 @@ func Test_Plugin_Init(t *testing.T) {
 
 func Test_Plugin_Middleware(t *testing.T) {
 	p := &Plugin{}
-	_ = p.Init(&configWrapper{}, nil)
+	_ = p.Init(&configWrapper{}, newTestLogger())
 	handler := p.Middleware(nextFilter)
 	req, res, res2 := prepare("/handled")
 	handler.ServeHTTP(res, req)
@@ -89,7 +104,7 @@ func Test_Plugin_Middleware(t *testing.T) {
 
 func Test_Plugin_Middleware_Stale(t *testing.T) {
 	p := &Plugin{}
-	_ = p.Init(&configWrapper{}, nil)
+	_ = p.Init(&configWrapper{}, newTestLogger())
 	handler := p.Middleware(nextFilter)
 
 	var rs *http.Response
@@ -144,7 +159,7 @@ func Test_Plugin_Middleware_Stale(t *testing.T) {
 
 func Test_Plugin_Middleware_Excluded(t *testing.T) {
 	p := &Plugin{}
-	_ = p.Init(&configWrapper{}, nil)
+	_ = p.Init(&configWrapper{}, newTestLogger())
 	handler := p.Middleware(nextFilter)
 	req, res, res2 := prepare("/excluded")
 	handler.ServeHTTP(res, req)
@@ -172,7 +187,7 @@ func Test_Plugin_Middleware_Excluded(t *testing.T) {
 
 func Test_Plugin_Middleware_Mutation(t *testing.T) {
 	p := &Plugin{}
-	_ = p.Init(&configWrapper{}, nil)
+	_ = p.Init(&configWrapper{}, newTestLogger())
 	handler := p.Middleware(nextFilter)
 	req, res, res2 := prepare("/handled")
 	req.Body = io.NopCloser(bytes.NewBuffer([]byte(`{"query":"mutation":{something mutated}}`)))
@@ -202,7 +217,7 @@ func Test_Plugin_Middleware_Mutation(t *testing.T) {
 
 func Test_Plugin_Middleware_API(t *testing.T) {
 	p := &Plugin{}
-	_ = p.Init(&configWrapper{}, nil)
+	_ = p.Init(&configWrapper{}, newTestLogger())
 	handler := p.Middleware(nextFilter)
 	req, res, res2 := prepare("/httpcache_api/httpcache")
 	handler.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest("PURGE", "/httpcache_api/httpcache/.+", nil))
