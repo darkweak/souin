@@ -3,7 +3,6 @@ package beego
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"net/http"
 	"sync"
 	"time"
@@ -12,6 +11,7 @@ import (
 	"github.com/darkweak/souin/cache/coalescing"
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/plugins"
+	"github.com/darkweak/souin/plugins/souin/agnostic"
 	"github.com/darkweak/souin/rfc"
 
 	"github.com/beego/beego/v2/server/web"
@@ -86,155 +86,8 @@ func NewHTTPCache(c plugins.BaseConfiguration) *SouinBeegoMiddleware {
 }
 
 func configurationPropertyMapper(c map[string]interface{}) plugins.BaseConfiguration {
-	configuration := plugins.BaseConfiguration{}
-
-	for k, v := range c {
-		switch k {
-		case "allowed_http_verbs":
-			allowed := configuration.DefaultCache.AllowedHTTPVerbs
-			allowed = append(allowed, v.([]string)...)
-			configuration.DefaultCache.AllowedHTTPVerbs = allowed
-		case "api":
-			var a configurationtypes.API
-			var prometheusConfiguration, souinConfiguration, securityConfiguration map[string]interface{}
-			apiConfiguration := v.(map[string]interface{})
-			for apiK, apiV := range apiConfiguration {
-				switch apiK {
-				case "prometheus":
-					prometheusConfiguration = make(map[string]interface{})
-					if apiV != nil && len(apiV.(string)) != 0 {
-						prometheusConfiguration = apiV.(map[string]interface{})
-					}
-				case "souin":
-					souinConfiguration = apiV.(map[string]interface{})
-				case "security":
-					securityConfiguration = make(map[string]interface{})
-					if apiV != nil && len(apiV.(string)) != 0 {
-						securityConfiguration = apiV.(map[string]interface{})
-					}
-				}
-			}
-			if prometheusConfiguration != nil {
-				a.Prometheus = configurationtypes.APIEndpoint{}
-				a.Prometheus.Enable = true
-				if prometheusConfiguration["basepath"] != nil {
-					a.Prometheus.BasePath = prometheusConfiguration["basepath"].(string)
-				}
-				if prometheusConfiguration["security"] != nil {
-					a.Prometheus.Security = prometheusConfiguration["security"].(bool)
-				}
-			}
-			if souinConfiguration != nil {
-				a.Souin = configurationtypes.APIEndpoint{}
-				a.Souin.Enable = true
-				if souinConfiguration["basepath"] != nil {
-					a.Souin.BasePath = souinConfiguration["basepath"].(string)
-				}
-				if souinConfiguration["security"] != nil {
-					a.Souin.Security = souinConfiguration["security"].(bool)
-				}
-			}
-			if securityConfiguration != nil {
-				a.Security = configurationtypes.SecurityAPI{}
-				a.Security.Enable = true
-				if securityConfiguration["basepath"] != nil {
-					a.Security.BasePath = securityConfiguration["basepath"].(string)
-				}
-				if securityConfiguration["users"] != nil {
-					a.Security.Users = securityConfiguration["users"].([]configurationtypes.User)
-				}
-			}
-			configuration.API = a
-		case "default_cache":
-			dc := configurationtypes.DefaultCache{
-				Distributed: false,
-				Headers:     []string{},
-				Olric: configurationtypes.CacheProvider{
-					URL:           "",
-					Path:          "",
-					Configuration: nil,
-				},
-				Regex:               configurationtypes.Regex{},
-				TTL:                 configurationtypes.Duration{},
-				DefaultCacheControl: "",
-			}
-			defaultCache := v.(map[string]interface{})
-			for defaultCacheK, defaultCacheV := range defaultCache {
-				switch defaultCacheK {
-				case "headers":
-					dc.Headers = defaultCacheV.([]string)
-				case "regex":
-					exclude := defaultCacheV.(map[string]interface{})["exclude"].(string)
-					if exclude != "" {
-						dc.Regex = configurationtypes.Regex{Exclude: exclude}
-					}
-				case "timeout":
-					timeout := configurationtypes.Timeout{}
-					for timeoutK, timeoutV := range defaultCacheV.(map[string]interface{}) {
-						switch timeoutK {
-						case "backend":
-							d := configurationtypes.Duration{}
-							ttl, err := time.ParseDuration(timeoutV.(string))
-							if err == nil {
-								d.Duration = ttl
-							}
-							timeout.Backend = d
-						case "cache":
-							d := configurationtypes.Duration{}
-							ttl, err := time.ParseDuration(timeoutV.(string))
-							if err == nil {
-								d.Duration = ttl
-							}
-							timeout.Cache = d
-						}
-					}
-					dc.Timeout = timeout
-				case "ttl":
-					ttl, err := time.ParseDuration(defaultCacheV.(string))
-					if err == nil {
-						dc.TTL = configurationtypes.Duration{Duration: ttl}
-					}
-				case "stale":
-					stale, err := time.ParseDuration(defaultCacheV.(string))
-					if err == nil {
-						dc.Stale = configurationtypes.Duration{Duration: stale}
-					}
-				case "default_cache_control":
-					dc.DefaultCacheControl = defaultCacheV.(string)
-				}
-			}
-			configuration.DefaultCache = &dc
-		case "log_level":
-			configuration.LogLevel = v.(string)
-		case "urls":
-			u := make(map[string]configurationtypes.URL)
-			urls := v.(map[string]interface{})
-
-			for urlK, urlV := range urls {
-				currentURL := configurationtypes.URL{
-					TTL:     configurationtypes.Duration{},
-					Headers: nil,
-				}
-				currentValue := urlV.(map[string]interface{})
-				currentURL.Headers = currentValue["headers"].([]string)
-				d := currentValue["ttl"].(string)
-				ttl, err := time.ParseDuration(d)
-				if err == nil {
-					currentURL.TTL = configurationtypes.Duration{Duration: ttl}
-				}
-				if _, exists := currentValue["default_cache_control"]; exists {
-					currentURL.DefaultCacheControl = currentValue["default_cache_control"].(string)
-				}
-				u[urlK] = currentURL
-			}
-			configuration.URLs = u
-		case "ykeys":
-			ykeys := make(map[string]configurationtypes.SurrogateKeys)
-			d, _ := json.Marshal(v)
-			_ = json.Unmarshal(d, &ykeys)
-			configuration.Ykeys = ykeys
-		}
-	}
+	var configuration plugins.BaseConfiguration
+	agnostic.ParseConfiguration(&configuration, c)
 
 	return configuration
 }

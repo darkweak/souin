@@ -51,14 +51,23 @@ func parseRecursively(values map[string]config.Value) map[string]interface{} {
 
 func parseAPI(apiConfiguration map[string]config.Value) configurationtypes.API {
 	var a configurationtypes.API
-	var prometheusConfiguration, souinConfiguration map[string]config.Value
+	var debugConfiguration, prometheusConfiguration, souinConfiguration map[string]config.Value
 
 	for apiK, apiV := range apiConfiguration {
 		switch apiK {
+		case "debug":
+			debugConfiguration, _ = apiV.Map()
 		case "prometheus":
 			prometheusConfiguration, _ = apiV.Map()
 		case "souin":
 			souinConfiguration, _ = apiV.Map()
+		}
+	}
+	if debugConfiguration != nil {
+		a.Debug = configurationtypes.APIEndpoint{}
+		a.Debug.Enable = true
+		if debugConfiguration["basepath"] != nil {
+			a.Debug.BasePath, _ = debugConfiguration["basepath"].String()
 		}
 	}
 	if prometheusConfiguration != nil {
