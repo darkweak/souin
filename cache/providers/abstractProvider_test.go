@@ -75,7 +75,13 @@ func TestVaryVoter(t *testing.T) {
 	}
 	varyResponse5 := varyVoter("baseKey", &rq, fmt.Sprintf("baseKey%s%s", VarySeparator, "X-Value-Test:something-valid;X-With-Comma:first%3B%20directive"))
 
-	if !(varyResponse1 && varyResponse2 && varyResponse3 && varyResponse5) || varyResponse4 {
+	rq.Header = http.Header{
+		"X-Value-Test": []string{"something-valid"},
+		"X-With-Comma": []string{"first:directive"},
+	}
+	varyResponse6 := varyVoter("baseKey", &rq, fmt.Sprintf("baseKey%s%s", VarySeparator, "X-Value-Test:something-valid;X-With-Comma:first%3Adirective"))
+
+	if !(varyResponse1 && varyResponse2 && varyResponse3 && varyResponse5 && varyResponse6) || varyResponse4 {
 		errors.GenerateError(t, "The varyVoter must match the expected")
 	}
 }
