@@ -21,7 +21,7 @@ import (
 func GetVariedCacheKey(req *http.Request, headers []string) string {
 	for i, v := range headers {
 		h := req.Header.Get(v)
-		if strings.Contains(h, ";") {
+		if strings.Contains(h, ";") || strings.Contains(h, ":") {
 			h = url.QueryEscape(h)
 		}
 		headers[i] = fmt.Sprintf("%s:%s", v, h)
