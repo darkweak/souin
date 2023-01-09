@@ -12,7 +12,8 @@ import (
 // VarySeparator will separate vary headers from the plain URL
 const VarySeparator = "{-VARY-}"
 const DecodedHeaderSeparator = ";"
-const encodedHeaderSeparator = "%3B"
+const encodedHeaderSemiColonSeparator = "%3B"
+const encodedHeaderColonSeparator = "%3A"
 const stalePrefix = "STALE_"
 
 // InitializeProvider allow to generate the providers array according to the configuration
@@ -60,7 +61,7 @@ func varyVoter(baseKey string, req *http.Request, currentKey string) bool {
 			}
 
 			hVal := item[index+1:]
-			if strings.Contains(hVal, encodedHeaderSeparator) {
+			if strings.Contains(hVal, encodedHeaderSemiColonSeparator) || strings.Contains(hVal, encodedHeaderColonSeparator) {
 				hVal, _ = url.QueryUnescape(hVal)
 			}
 			if req.Header.Get(item[:index]) != hVal {

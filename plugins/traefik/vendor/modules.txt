@@ -66,6 +66,7 @@ github.com/coreos/go-systemd/v22/journal
 ## explicit; go 1.16
 github.com/darkweak/souin/api
 github.com/darkweak/souin/api/auth
+github.com/darkweak/souin/api/debug
 github.com/darkweak/souin/api/prometheus
 github.com/darkweak/souin/cache/coalescing
 github.com/darkweak/souin/cache/providers
