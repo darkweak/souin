@@ -240,9 +240,13 @@ func (s *SouinTraefikPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		return
 	}
 
-	if b, h := s.HandleInternally(req); b {
-		h(rw, req)
-		return
+	if s.MapHandler != nil && s.MapHandler.Handlers != nil {
+		for k, souinHandler := range *s.MapHandler.Handlers {
+			if strings.Contains(req.RequestURI, k) {
+				souinHandler(rw, req)
+				return
+			}
+		}
 	}
 
 	buf := bufPool.Get().(*bytes.Buffer)
