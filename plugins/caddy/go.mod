@@ -3,9 +3,9 @@ module github.com/darkweak/souin/plugins/caddy
 go 1.19
 
 require (
-	github.com/buraksezer/olric v0.5.0
+	github.com/buraksezer/olric v0.5.2
 	github.com/caddyserver/caddy/v2 v2.6.2
-	github.com/darkweak/souin v1.6.27
+	github.com/darkweak/souin v1.6.28
 	go.uber.org/zap v1.24.0
 )
 
@@ -131,7 +131,7 @@ require (
 	github.com/tailscale/tscert v0.0.0-20220316030059-54bbcb9f74e2 // indirect
 	github.com/tidwall/btree v1.6.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
-	github.com/tidwall/redcon v1.6.0 // indirect
+	github.com/tidwall/redcon v1.6.1 // indirect
 	github.com/urfave/cli v1.22.5 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.3.5 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
@@ -180,4 +180,4 @@ require (
 	howett.net/plist v1.0.0 // indirect
 )
 
-replace github.com/darkweak/souin v1.6.27 => ../..
+replace github.com/darkweak/souin v1.6.28 => ../..

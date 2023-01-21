@@ -15,7 +15,7 @@ github.com/bits-and-blooms/bitset
 # github.com/buraksezer/consistent v0.10.0
 ## explicit; go 1.9
 github.com/buraksezer/consistent
-# github.com/buraksezer/olric v0.5.0
+# github.com/buraksezer/olric v0.5.2
 ## explicit; go 1.13
 github.com/buraksezer/olric
 github.com/buraksezer/olric/config
@@ -62,7 +62,7 @@ github.com/coreos/go-semver/semver
 # github.com/coreos/go-systemd/v22 v22.3.2
 ## explicit; go 1.12
 github.com/coreos/go-systemd/v22/journal
-# github.com/darkweak/souin v1.6.27 => ../..
+# github.com/darkweak/souin v1.6.28 => ../..
 ## explicit; go 1.16
 github.com/darkweak/souin/api
 github.com/darkweak/souin/api/auth
@@ -239,7 +239,7 @@ github.com/tidwall/btree
 # github.com/tidwall/match v1.1.1
 ## explicit; go 1.15
 github.com/tidwall/match
-# github.com/tidwall/redcon v1.6.0
+# github.com/tidwall/redcon v1.6.1
 ## explicit; go 1.15
 github.com/tidwall/redcon
 # github.com/vmihailenco/msgpack/v5 v5.3.5

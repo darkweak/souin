@@ -3,7 +3,7 @@ module github.com/darkweak/souin/plugins/goyave
 go 1.19
 
 require (
-	github.com/darkweak/souin v1.6.27
+	github.com/darkweak/souin v1.6.28
 	github.com/pquerna/cachecontrol v0.1.0
 	goyave.dev/goyave/v4 v4.4.2
 )
@@ -15,7 +15,7 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bits-and-blooms/bitset v1.4.0 // indirect
 	github.com/buraksezer/consistent v0.10.0 // indirect
-	github.com/buraksezer/olric v0.5.0 // indirect
+	github.com/buraksezer/olric v0.5.2 // indirect
 	github.com/bwmarrin/snowflake v0.3.0 // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
@@ -64,7 +64,7 @@ require (
 	github.com/stretchr/testify v1.8.1 // indirect
 	github.com/tidwall/btree v1.6.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
-	github.com/tidwall/redcon v1.6.0 // indirect
+	github.com/tidwall/redcon v1.6.1 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.3.5 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/xujiajun/mmap-go v1.0.1 // indirect
@@ -91,4 +91,4 @@ require (
 	gorm.io/gorm v1.23.5 // indirect
 )
 
-replace github.com/darkweak/souin v1.6.27 => ../..
+replace github.com/darkweak/souin v1.6.28 => ../..
