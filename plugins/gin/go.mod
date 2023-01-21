@@ -3,7 +3,7 @@ module github.com/darkweak/souin/plugins/gin
 go 1.19
 
 require (
-	github.com/darkweak/souin v1.6.27
+	github.com/darkweak/souin v1.6.28
 	github.com/gin-gonic/gin v1.8.1
 )
 
@@ -97,4 +97,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/darkweak/souin v1.6.27 => ../..
+replace github.com/darkweak/souin v1.6.28 => ../..
