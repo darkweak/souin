@@ -76,6 +76,9 @@ func (r *CustomWriter) Write(b []byte) (int, error) {
 	_, _ = r.Buf.Write(b)
 	r.Response.Body = io.NopCloser(bytes.NewBuffer(r.Buf.Bytes()))
 	r.size += len(b)
+	if r.Response.Header == nil {
+		r.Response.Header = http.Header{}
+	}
 	r.Response.Header.Set("Content-Length", fmt.Sprint(r.size))
 	return len(b), nil
 }

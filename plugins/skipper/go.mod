@@ -3,7 +3,7 @@ module github.com/darkweak/souin/plugins/skipper
 go 1.19
 
 require (
-	github.com/darkweak/souin v1.6.27
+	github.com/darkweak/souin v1.6.28
 	github.com/zalando/skipper v0.13.225
 )
 
@@ -19,7 +19,7 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bits-and-blooms/bitset v1.4.0 // indirect
 	github.com/buraksezer/consistent v0.10.0 // indirect
-	github.com/buraksezer/olric v0.5.0 // indirect
+	github.com/buraksezer/olric v0.5.2 // indirect
 	github.com/bwmarrin/snowflake v0.3.0 // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
@@ -89,7 +89,7 @@ require (
 	github.com/tidwall/gjson v1.12.1 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect
-	github.com/tidwall/redcon v1.6.0 // indirect
+	github.com/tidwall/redcon v1.6.1 // indirect
 	github.com/tklauser/go-sysconf v0.3.9 // indirect
 	github.com/tklauser/numcpus v0.3.0 // indirect
 	github.com/uber/jaeger-client-go v2.30.0+incompatible // indirect
@@ -126,4 +126,4 @@ require (
 	layeh.com/gopher-json v0.0.0-20201124131017-552bb3c4c3bf // indirect
 )
 
-replace github.com/darkweak/souin v1.6.27 => ../..
+replace github.com/darkweak/souin v1.6.28 => ../..

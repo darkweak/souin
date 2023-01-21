@@ -64,10 +64,12 @@ build-dev: env-dev ## Build containers with dev env vars
 	$(MAKE) up
 
 bump-version:
+	test $(from)
+	test $(to)
 	sed -i '' 's/version: $(from)/version: $(to)/' README.md
 	for plugin in $(PLUGINS_LIST) ; do \
-        sed -i '' 's/github.com\/darkweak\/souin $(from)/github.com\/darkweak\/souin $(to)/' plugins/$$plugin/go.mod ; \
-    done
+	     sed -i '' 's/github.com\/darkweak\/souin $(from)/github.com\/darkweak\/souin $(to)/' plugins/$$plugin/go.mod ; \
+	 done
 
 coverage: ## Show code coverage
 	$(DC_EXEC) souin go test ./... -coverprofile cover.out
