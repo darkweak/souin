@@ -90,8 +90,11 @@ func (r *CustomWriter) Send() (int, error) {
 			r.Rw.Header().Set(h, strings.Join(v, ", "))
 		}
 	}
-	r.Rw.Header().Set("Content-Length", fmt.Sprintf("%d", len(b)))
-	r.Rw.WriteHeader(r.Response.StatusCode)
+
+	if !r.headersSent {
+		r.Rw.Header().Set("Content-Length", fmt.Sprintf("%d", len(b)))
+		r.Rw.WriteHeader(r.Response.StatusCode)
+	}
 	return r.Rw.Write(b)
 }
 
