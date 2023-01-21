@@ -219,16 +219,3 @@ type SouinBasePlugin struct {
 	RequestCoalescing coalescing.RequestCoalescingInterface
 	MapHandler        *api.MapHandler
 }
-
-// HandleInternally handles the Souin custom endpoints
-func (s *SouinBasePlugin) HandleInternally(r *http.Request) (bool, http.HandlerFunc) {
-	if s.MapHandler != nil {
-		for k, souinHandler := range *s.MapHandler.Handlers {
-			if strings.Contains(r.RequestURI, k) {
-				return true, souinHandler
-			}
-		}
-	}
-
-	return false, nil
-}
