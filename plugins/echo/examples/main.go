@@ -10,12 +10,19 @@ import (
 func main() {
 	e := echo.New()
 
+	// iterator := 0
+
 	// Use the Souin default configuration
-	s := souin_echo.New(souin_echo.DevDefaultConfiguration)
+	s := souin_echo.NewMiddleware(souin_echo.DevDefaultConfiguration)
 	e.Use(s.Process)
 
 	// Handler
 	e.GET("/*", func(c echo.Context) error {
+		// if iterator > 2 {
+		// 	c.String(http.StatusInternalServerError, "Internal Server Error")
+		// }
+		// iterator++
+		// c.Response().Header().Set("Cache-Control", "stale-if-error=200")
 		return c.String(http.StatusOK, "Hello, World!")
 	})
 

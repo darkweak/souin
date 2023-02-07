@@ -5,38 +5,48 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/darkweak/souin/plugins"
 	"github.com/gin-gonic/gin"
 )
 
+var _ (gin.ResponseWriter) = (*ginWriterDecorator)(nil)
+
 type ginWriterDecorator struct {
-	*plugins.CustomWriter
+	CustomWriter gin.ResponseWriter
 }
 
+func (g *ginWriterDecorator) Header() http.Header {
+	return g.CustomWriter.Header()
+}
+func (g *ginWriterDecorator) WriteHeader(code int) {
+	g.CustomWriter.WriteHeader(code)
+}
+func (g *ginWriterDecorator) Write(b []byte) (int, error) {
+	return g.CustomWriter.Write(b)
+}
 func (g *ginWriterDecorator) CloseNotify() <-chan bool {
-	return g.CustomWriter.Rw.(gin.ResponseWriter).CloseNotify()
+	return g.CustomWriter.CloseNotify()
 }
 func (g *ginWriterDecorator) Flush() {
-	g.CustomWriter.Rw.(gin.ResponseWriter).Flush()
+	g.CustomWriter.Flush()
 }
 func (g *ginWriterDecorator) Hijack() (net.Conn, *bufio.ReadWriter, error) {
-	return g.CustomWriter.Rw.(gin.ResponseWriter).Hijack()
+	return g.CustomWriter.Hijack()
 }
 func (g *ginWriterDecorator) Pusher() http.Pusher {
-	return g.CustomWriter.Rw.(gin.ResponseWriter).Pusher()
+	return g.CustomWriter.Pusher()
 }
 func (g *ginWriterDecorator) Size() int {
-	return g.CustomWriter.Rw.(gin.ResponseWriter).Size()
+	return g.CustomWriter.Size()
 }
 func (g *ginWriterDecorator) Status() int {
-	return g.CustomWriter.Rw.(gin.ResponseWriter).Status()
+	return g.CustomWriter.Status()
 }
 func (g *ginWriterDecorator) WriteHeaderNow() {
-	g.CustomWriter.Rw.(gin.ResponseWriter).WriteHeaderNow()
+	g.CustomWriter.WriteHeaderNow()
 }
 func (g *ginWriterDecorator) Written() bool {
-	return g.CustomWriter.Rw.(gin.ResponseWriter).Written()
+	return g.CustomWriter.Written()
 }
 func (g *ginWriterDecorator) WriteString(s string) (int, error) {
-	return g.CustomWriter.Rw.(gin.ResponseWriter).WriteString(s)
+	return g.CustomWriter.WriteString(s)
 }
