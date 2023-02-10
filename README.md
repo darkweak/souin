@@ -942,7 +942,10 @@ http:
             regex:
               exclude: '/test_exclude.*'
             ttl: 5s
-            allowed_http_verbs: GET,HEAD,POST
+            allowed_http_verbs:
+              - GET
+              - HEAD
+              - POST
             default_cache_control: no-store
           log_level: debug
           urls:
