@@ -942,6 +942,10 @@ http:
             regex:
               exclude: '/test_exclude.*'
             ttl: 5s
+            allowed_http_verbs:
+              - GET
+              - HEAD
+              - POST
             default_cache_control: no-store
           log_level: debug
           urls:
@@ -979,6 +983,7 @@ services:
       - traefik.http.routers.whoami.middlewares=http-cache
       - traefik.http.middlewares.http-cache.plugin.souin.api.souin
       - traefik.http.middlewares.http-cache.plugin.souin.default_cache.ttl=10s
+      - traefik.http.middlewares.http-cache.plugin.souin.default_cache.allowed_http_verbs=GET,HEAD,POST
       - traefik.http.middlewares.http-cache.plugin.souin.log_level=debug
 ```
 

@@ -160,6 +160,8 @@ func parseConfiguration(c map[string]interface{}) Configuration {
 					if err == nil {
 						dc.TTL = configurationtypes.Duration{Duration: ttl}
 					}
+				case "allowed_http_verbs":
+					dc.AllowedHTTPVerbs = parseStringSlice(defaultCacheV)
 				case "stale":
 					stale, err := time.ParseDuration(defaultCacheV.(string))
 					if err == nil {
