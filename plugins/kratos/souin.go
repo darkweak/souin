@@ -26,8 +26,10 @@ func NewHTTPCacheFilter(c plugins.BaseConfiguration) kratos_http.FilterFunc {
 
 func (s *httpcacheKratosMiddleware) handle(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		s.SouinBaseHandler.ServeHTTP(rw, req, func(w http.ResponseWriter, r *http.Request) {
+		s.SouinBaseHandler.ServeHTTP(rw, req, func(w http.ResponseWriter, r *http.Request) error {
 			next.ServeHTTP(w, r)
+
+			return nil
 		})
 	})
 }

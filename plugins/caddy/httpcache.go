@@ -21,9 +21,6 @@ import (
 	"go.uber.org/zap"
 )
 
-type key string
-
-const getterContextCtxKey key = "getter_context"
 const moduleName = "cache"
 
 var up = caddy.NewUsagePool()
@@ -84,19 +81,11 @@ func (SouinCaddyMiddleware) CaddyModule() caddy.ModuleInfo {
 	}
 }
 
-type getterContext struct {
-	rw   http.ResponseWriter
-	req  *http.Request
-	next caddyhttp.Handler
-}
-
 // ServeHTTP implements caddyhttp.MiddlewareHandler.
 func (s *SouinCaddyMiddleware) ServeHTTP(rw http.ResponseWriter, r *http.Request, next caddyhttp.Handler) error {
-	s.SouinBaseHandler.ServeHTTP(rw, r, func(w http.ResponseWriter, _ *http.Request) {
-		next.ServeHTTP(w, r)
+	return s.SouinBaseHandler.ServeHTTP(rw, r, func(w http.ResponseWriter, _ *http.Request) error {
+		return next.ServeHTTP(w, r)
 	})
-
-	return nil
 }
 
 func (s *SouinCaddyMiddleware) configurationPropertyMapper() error {

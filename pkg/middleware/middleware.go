@@ -18,6 +18,7 @@ import (
 	"github.com/darkweak/souin/context"
 	"github.com/darkweak/souin/helpers"
 	"github.com/darkweak/souin/pkg/api"
+	"github.com/darkweak/souin/pkg/api/prometheus"
 	"github.com/darkweak/souin/pkg/rfc"
 	"github.com/darkweak/souin/pkg/storage"
 	"github.com/pquerna/cachecontrol/cacheobject"
@@ -118,13 +119,17 @@ func (upsreamError) Error() string {
 func (s *SouinBaseHandler) Upstream(
 	customWriter *CustomWriter,
 	rq *http.Request,
-	next http.HandlerFunc,
+	next handlerFunc,
 	requestCc *cacheobject.RequestCacheDirectives,
 	cachedKey string,
 ) error {
 	now := time.Now().UTC()
 	rq.Header.Set("Date", now.Format(time.RFC1123))
-	next(customWriter, rq)
+	prometheus.Increment(prometheus.RequestCounter)
+	if err := next(customWriter, rq); err != nil {
+		customWriter.Header().Set("Cache-Status", fmt.Sprintf("%s; fwd=uri-miss; key=%s; detail=SERVE-HTTP-ERROR", rq.Context().Value(context.CacheName), rfc.GetCacheKeyFromCtx(rq.Context())))
+		return err
+	}
 
 	switch customWriter.statusCode {
 	case 500, 502, 503, 504:
@@ -169,6 +174,8 @@ func (s *SouinBaseHandler) Upstream(
 		res.Request = rq
 		response, err := httputil.DumpResponse(&res, true)
 		if err == nil {
+			variedHeaders := rfc.HeaderAllCommaSepValues(res.Header)
+			cachedKey += rfc.GetVariedCacheKey(rq, variedHeaders)
 			if s.Storer.Set(cachedKey, response, currentMatchedURL, ma) == nil {
 				status += "; stored"
 			} else {
@@ -195,35 +202,33 @@ func (s *SouinBaseHandler) HandleInternally(r *http.Request) (bool, http.Handler
 	return false, nil
 }
 
-func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, next http.HandlerFunc) {
+type handlerFunc = func(http.ResponseWriter, *http.Request) error
+
+func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, next handlerFunc) error {
 	if b, handler := s.HandleInternally(rq); b {
 		handler(rw, rq)
-		return
+		return nil
 	}
 
 	rq = s.context.SetBaseContext(rq)
 	cacheName := rq.Context().Value(context.CacheName).(string)
 	if rq.Header.Get("Upgrade") == "websocket" || (s.ExcludeRegex != nil && s.ExcludeRegex.MatchString(rq.RequestURI)) {
 		rw.Header().Set("Cache-Status", cacheName+"; fwd=uri-miss; detail=EXCLUDED-REQUEST-URI")
-		next(rw, rq)
-
-		return
+		return next(rw, rq)
 	}
 
 	if !rq.Context().Value(context.SupportedMethod).(bool) {
 		rw.Header().Set("Cache-Status", cacheName+"; fwd=uri-miss; detail=UNSUPPORTED-METHOD")
-		next(rw, rq)
 
-		return
+		return next(rw, rq)
 	}
 
 	requestCc, coErr := cacheobject.ParseRequestCacheControl(rq.Header.Get("Cache-Control"))
 
 	if coErr != nil || requestCc == nil {
 		rw.Header().Set("Cache-Status", cacheName+"; fwd=uri-miss; detail=CACHE-CONTROL-EXTRACTION-ERROR")
-		next(rw, rq)
 
-		return
+		return next(rw, rq)
 	}
 
 	rq = s.context.SetContext(rq)
@@ -245,7 +250,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 				io.Copy(customWriter.Buf, response.Body)
 				customWriter.Send()
 
-				return
+				return nil
 			}
 		} else if response == nil {
 			staleCachedVal := s.Storer.Prefix(storage.StalePrefix+cachedKey, rq)
@@ -267,7 +272,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 					buf.Reset()
 					defer s.bufPool.Put(buf)
 
-					return
+					return nil
 				}
 
 				if responseCc.StaleIfError > 0 && s.Upstream(customWriter, rq, next, requestCc, cachedKey) != nil {
@@ -277,7 +282,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 					io.Copy(customWriter.Buf, response.Body)
 					customWriter.Send()
 
-					return
+					return nil
 				}
 
 				if rfc.ValidateMaxAgeCachedStaleResponse(requestCc, response, int(addTime.Seconds())) != nil {
@@ -287,12 +292,16 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 					io.Copy(customWriter.Buf, response.Body)
 					customWriter.Send()
 
-					return
+					return nil
 				}
 			}
 		}
 	}
 
-	_ = s.Upstream(customWriter, rq, next, requestCc, cachedKey)
+	if err := s.Upstream(customWriter, rq, next, requestCc, cachedKey); err != nil {
+		return err
+	}
+
 	_, _ = customWriter.Send()
+	return nil
 }

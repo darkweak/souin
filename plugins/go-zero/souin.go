@@ -53,6 +53,10 @@ func NewHTTPCache(c plugins.BaseConfiguration) *SouinGozeroMiddleware {
 
 func (s *SouinGozeroMiddleware) Handle(next http.HandlerFunc) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
-		s.ServeHTTP(rw, r, next)
+		s.ServeHTTP(rw, r, func(w http.ResponseWriter, r *http.Request) error {
+			next(w, r)
+
+			return nil
+		})
 	}
 }
