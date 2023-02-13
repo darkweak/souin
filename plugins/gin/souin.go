@@ -55,7 +55,13 @@ func New(c plugins.BaseConfiguration) *SouinGinMiddleware {
 func (s *SouinGinMiddleware) Process() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		s.ServeHTTP(c.Writer, c.Request, func(cw http.ResponseWriter, _ *http.Request) {
-			c.Writer = cw.(gin.ResponseWriter)
+			if writer, ok := cw.(gin.ResponseWriter); ok {
+				c.Writer = writer
+			} else if writer, ok := cw.(*middleware.CustomWriter); ok {
+				c.Writer = &ginWriterDecorator{
+					CustomWriter: writer,
+				}
+			}
 			c.Next()
 		})
 	}

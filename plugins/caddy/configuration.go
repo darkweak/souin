@@ -136,9 +136,11 @@ type Configuration struct {
 	// Override the ttl depending the cases.
 	URLs map[string]configurationtypes.URL
 	// Logger level, fallback on caddy's one when not redefined.
-	LogLevel  string
-	cacheKeys map[configurationtypes.RegValue]configurationtypes.Key
-	logger    *zap.Logger
+	LogLevel string
+	// SurrogateKeys contains the surrogate keys to use with a predefined mapping
+	SurrogateKeys map[string]configurationtypes.SurrogateKeys
+	cacheKeys     map[configurationtypes.RegValue]configurationtypes.Key
+	logger        *zap.Logger
 }
 
 // GetUrls get the urls list in the configuration

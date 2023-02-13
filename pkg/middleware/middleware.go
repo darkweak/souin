@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/darkweak/souin/cache/surrogate"
+	"github.com/darkweak/souin/cache/surrogate/providers"
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/context"
 	"github.com/darkweak/souin/helpers"
@@ -89,6 +90,7 @@ func NewHTTPCacheHandler(c configurationtypes.AbstractConfigurationInterface) *S
 		ExcludeRegex:             excludedRegexp,
 		RegexpUrls:               regexpUrls,
 		DefaultMatchedUrl:        defaultMatchedUrl,
+		SurrogateKeyStorer:       surrogateStorage,
 		context:                  ctx,
 		bufPool:                  bufPool,
 	}
@@ -100,6 +102,8 @@ type SouinBaseHandler struct {
 	InternalEndpointHandlers *api.MapHandler
 	ExcludeRegex             *regexp.Regexp
 	RegexpUrls               regexp.Regexp
+	SurrogateKeys            configurationtypes.SurrogateKeys
+	SurrogateKeyStorer       providers.SurrogateInterface
 	DefaultMatchedUrl        configurationtypes.URL
 	context                  *context.Context
 	bufPool                  *sync.Pool
