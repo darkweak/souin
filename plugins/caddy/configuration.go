@@ -344,6 +344,7 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isBlocking b
 				cfg.DefaultCache.CacheName = args[0]
 			case "cdn":
 				cdn := configurationtypes.CDN{}
+				cdn.Dynamic = true
 				for nesting := h.Nesting(); h.NextBlock(nesting); {
 					directive := h.Val()
 					switch directive {
