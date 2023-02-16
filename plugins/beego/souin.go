@@ -2,25 +2,16 @@ package beego
 
 import (
 	"bytes"
-	"context"
 	"net/http"
-	"sync"
 	"time"
 
-	"github.com/darkweak/souin/api"
-	"github.com/darkweak/souin/cache/coalescing"
 	"github.com/darkweak/souin/configurationtypes"
+	"github.com/darkweak/souin/pkg/middleware"
 	"github.com/darkweak/souin/plugins"
 	"github.com/darkweak/souin/plugins/souin/agnostic"
-	"github.com/darkweak/souin/rfc"
 
 	"github.com/beego/beego/v2/server/web"
 	beegoCtx "github.com/beego/beego/v2/server/web/context"
-)
-
-const (
-	getterContextCtxKey key    = "getter_context"
-	name                string = "httpcache"
 )
 
 var (
@@ -56,33 +47,15 @@ var (
 
 // SouinBeegoMiddleware declaration.
 type (
-	key                  string
 	SouinBeegoMiddleware struct {
-		plugins.SouinBasePlugin
-		Configuration *plugins.BaseConfiguration
-		bufPool       *sync.Pool
-	}
-	getterContext struct {
-		next web.FilterFunc
-		rw   http.ResponseWriter
-		req  *http.Request
+		*middleware.SouinBaseHandler
 	}
 )
 
 func NewHTTPCache(c plugins.BaseConfiguration) *SouinBeegoMiddleware {
-	s := SouinBeegoMiddleware{}
-	s.Configuration = &c
-	s.bufPool = &sync.Pool{
-		New: func() interface{} {
-			return new(bytes.Buffer)
-		},
+	return &SouinBeegoMiddleware{
+		SouinBaseHandler: middleware.NewHTTPCacheHandler(&c),
 	}
-
-	s.Retriever = plugins.DefaultSouinPluginInitializerFromConfiguration(&c)
-	s.RequestCoalescing = coalescing.Initialize()
-	s.MapHandler = api.GenerateHandlerMap(s.Configuration, s.Retriever.GetTransport())
-
-	return &s
 }
 
 func configurationPropertyMapper(c map[string]interface{}) plugins.BaseConfiguration {
@@ -104,6 +77,35 @@ func NewHTTPCacheFilter() web.FilterChain {
 }
 
 func (s *SouinBeegoMiddleware) chainHandleFilter(next web.HandleFunc) web.HandleFunc {
+	return func(c *beegoCtx.Context) {
+		rw := c.ResponseWriter.ResponseWriter
+		r := c.Request
+
+		customCtx := &beegoCtx.Context{
+			Input:   c.Input,
+			Output:  c.Output,
+			Request: c.Request,
+			ResponseWriter: &beegoCtx.Response{
+				ResponseWriter: nil,
+			},
+		}
+
+		s.ServeHTTP(rw, r, func(w http.ResponseWriter, r *http.Request) error {
+			customWriter := &CustomWriter{
+				ctx: customCtx,
+				Buf: bytes.NewBuffer([]byte{}),
+				Rw:  w,
+			}
+			customCtx.ResponseWriter.ResponseWriter = customWriter
+			next(customCtx)
+
+			return nil
+		})
+	}
+}
+
+/*
+func (s *SouinBeegoMiddleware) chainHandleFilter2(next web.HandleFunc) web.HandleFunc {
 	return func(c *beegoCtx.Context) {
 		rw := c.ResponseWriter
 		r := c.Request
@@ -169,3 +171,4 @@ func (s *SouinBeegoMiddleware) chainHandleFilter(next web.HandleFunc) web.Handle
 		})
 	}
 }
+*/
