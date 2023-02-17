@@ -136,7 +136,6 @@ func (s *SouinBaseHandler) Upstream(
 		return new(upsreamError)
 	}
 
-	customWriter.Header().Set("Date", now.Format(http.TimeFormat))
 	responseCc, _ := cacheobject.ParseResponseCacheControl(customWriter.Header().Get("Cache-Control"))
 
 	currentMatchedURL := s.DefaultMatchedUrl
@@ -171,6 +170,7 @@ func (s *SouinBaseHandler) Upstream(
 			Header:     customWriter.Headers,
 		}
 
+		res.Header.Set("Date", time.Now().UTC().Format(http.TimeFormat))
 		res.Request = rq
 		response, err := httputil.DumpResponse(&res, true)
 		if err == nil {

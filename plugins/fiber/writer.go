@@ -3,54 +3,30 @@ package fiber
 import (
 	"net/http"
 
-	"github.com/darkweak/souin/plugins"
 	"github.com/gofiber/fiber/v2"
 )
 
-type (
-	fiberWriterDecorator struct {
-		*plugins.CustomWriter
-	}
-	nopWriter struct {
-		h http.Header
-		*fiber.Ctx
-	}
-	fiberWriter struct {
-		h http.Header
-		*fiber.Ctx
-	}
-)
-
-func (f *nopWriter) Header() http.Header {
-	if f.h == nil {
-		f.h = http.Header{}
-	}
-	return f.h
+type writerOverride struct {
+	h http.Header
+	*fiber.Response
 }
 
-func (f *fiberWriter) Header() http.Header {
-	if f.h == nil {
-		f.h = http.Header{}
+func newWriter(r *fiber.Response) *writerOverride {
+	return &writerOverride{
+		Response: r,
+		h:        http.Header{},
 	}
-	return f.h
 }
 
-func (f *fiberWriter) WriteHeader(code int) {
-	f.Ctx.Response().Header.SetStatusCode(code)
+func (w *writerOverride) Header() http.Header {
+	return w.h
 }
 
-func (f *nopWriter) WriteHeader(code int) {
-	f.Ctx.Response().Header.SetStatusCode(code)
-}
-
-func (f *nopWriter) Write(b []byte) (int, error) {
+func (w *writerOverride) Write(b []byte) (int, error) {
+	w.Response.AppendBody(b)
 	return len(b), nil
 }
 
-func (f *fiberWriter) Write(b []byte) (int, error) {
-	return f.Ctx.Write(b)
-}
-
-func (f *fiberWriterDecorator) Send() (int, error) {
-	return f.CustomWriter.Send()
+func (w *writerOverride) WriteHeader(code int) {
+	w.Response.Header.SetStatusCode(code)
 }

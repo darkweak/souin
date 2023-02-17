@@ -2,24 +2,16 @@ package fiber
 
 import (
 	"bytes"
-	"context"
 	"io"
 	"net/http"
-	"sync"
 	"time"
 
-	"github.com/darkweak/souin/api"
-	"github.com/darkweak/souin/cache/coalescing"
 	"github.com/darkweak/souin/configurationtypes"
+	"github.com/darkweak/souin/pkg/middleware"
 	"github.com/darkweak/souin/plugins"
-	"github.com/darkweak/souin/rfc"
 	"github.com/gofiber/fiber/v2"
 	"github.com/valyala/fasthttp"
 	"github.com/valyala/fasthttp/fasthttpadaptor"
-)
-
-const (
-	getterContextCtxKey key = "getter_context"
 )
 
 var (
@@ -54,19 +46,9 @@ var (
 )
 
 // SouinFiberMiddleware declaration.
-type (
-	key                  string
-	SouinFiberMiddleware struct {
-		plugins.SouinBasePlugin
-		Configuration *plugins.BaseConfiguration
-		bufPool       *sync.Pool
-	}
-	getterContext struct {
-		next func() error
-		rw   http.ResponseWriter
-		req  *http.Request
-	}
-)
+type SouinFiberMiddleware struct {
+	*middleware.SouinBaseHandler
+}
 
 func convertResponse(stdreq *http.Request, fastresp *fasthttp.Response) *http.Response {
 	status := fastresp.Header.StatusCode()
@@ -101,89 +83,32 @@ func convertResponse(stdreq *http.Request, fastresp *fasthttp.Response) *http.Re
 }
 
 func NewHTTPCache(c plugins.BaseConfiguration) *SouinFiberMiddleware {
-	s := SouinFiberMiddleware{}
-	s.Configuration = &c
-	s.bufPool = &sync.Pool{
-		New: func() interface{} {
-			return new(bytes.Buffer)
-		},
+	return &SouinFiberMiddleware{
+		SouinBaseHandler: middleware.NewHTTPCacheHandler(&c),
 	}
-
-	s.Retriever = plugins.DefaultSouinPluginInitializerFromConfiguration(&c)
-	s.RequestCoalescing = coalescing.Initialize()
-	s.MapHandler = api.GenerateHandlerMap(s.Configuration, s.Retriever.GetTransport())
-
-	return &s
 }
 
 func (s *SouinFiberMiddleware) Handle(c *fiber.Ctx) error {
 	var rq http.Request
 	fasthttpadaptor.ConvertRequest(c.Context(), &rq, true)
-	req := s.Retriever.GetContext().SetBaseContext(&rq)
-
-	rw := &fiberWriterDecorator{
-		CustomWriter: &plugins.CustomWriter{
-			Response: &http.Response{},
-			Buf:      s.bufPool.Get().(*bytes.Buffer),
-			Rw: &fiberWriter{
-				Ctx: c,
-			},
-			Req: req,
-		},
-	}
-
-	if b, handler := s.HandleInternally(req); b {
-		handler(rw.Rw, req)
-
-		return nil
-	}
-
-	if !plugins.CanHandle(req, s.Retriever) {
-		rfc.MissCache(c.Response().Header.Set, req, "CANNOT-HANDLE")
-		return c.Next()
-	}
-
-	req = s.Retriever.GetContext().SetContext(req)
-	getterCtx := getterContext{c.Next, rw, req}
-	ctx := context.WithValue(req.Context(), getterContextCtxKey, getterCtx)
-	req = req.WithContext(ctx)
-	if plugins.HasMutation(req, rw) {
-		return c.Next()
-	}
-
-	req.Header.Set("Date", time.Now().UTC().Format(time.RFC1123))
-	combo := ctx.Value(getterContextCtxKey).(getterContext)
-
-	e := plugins.DefaultSouinPluginCallback(rw, req, s.Retriever, nil, func(_ http.ResponseWriter, _ *http.Request) error {
-		var e error
-		c.Next()
-
-		rw.CustomWriter.Rw = &nopWriter{
-			Ctx: c,
-		}
-		combo.req.Response = convertResponse(req, &c.Context().Response)
-		if combo.req.Response.StatusCode == 0 {
-			combo.req.Response.StatusCode = 200
-		}
-		if combo.req.Response, e = s.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(combo.req); e != nil {
-			return e
+	customWriter := newWriter(c.Response())
+	err := s.ServeHTTP(customWriter, &rq, func(w http.ResponseWriter, r *http.Request) error {
+		var err error
+		if err = c.Next(); err != nil {
+			return err
 		}
 
-		rw.Response = combo.req.Response
-		return e
+		body := c.Response().Body()
+		c.Response().Reset()
+		_, err = w.Write(body)
+
+		return err
 	})
 
-	rw.Response.Header.Del("X-Souin-Stored-TTL")
-	var rCtx *fiber.Ctx
-	switch rw.Rw.(type) {
-	case *nopWriter:
-		rCtx = rw.Rw.(*nopWriter).Ctx
-	case *fiberWriter:
-		rCtx = rw.Rw.(*fiberWriter).Ctx
-	}
-	for hk, hv := range rw.Response.Header {
-		rCtx.Response().Header.Set(hk, hv[0])
+	// Synchronize the custom writer headers with the Fiber ones
+	for hk, hv := range customWriter.h {
+		c.Response().Header.Set(hk, hv[0])
 	}
 
-	return e
+	return err
 }
