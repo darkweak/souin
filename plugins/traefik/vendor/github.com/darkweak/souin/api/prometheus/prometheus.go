@@ -5,6 +5,9 @@ import (
 
 	"github.com/darkweak/souin/api/auth"
 	"github.com/darkweak/souin/configurationtypes"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 const (
@@ -35,6 +38,10 @@ func InitializePrometheus(configuration configurationtypes.AbstractConfiguration
 	if basePath == "" {
 		basePath = "/metrics"
 	}
+
+	if registered == nil {
+		run()
+	}
 	return &PrometheusAPI{
 		basePath,
 		enabled,
@@ -54,12 +61,52 @@ func (p *PrometheusAPI) IsEnabled() bool {
 
 // HandleRequest will handle the request
 func (p *PrometheusAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Not enabled for Træfik due to unsafe usage inside the prometheus/client_golang dependency. They don't want to support it inside plugins."))
+	promhttp.Handler().ServeHTTP(w, r)
 }
 
+var registered map[string]interface{}
+
 // Increment will increment the counter.
-func Increment(name string) {}
+func Increment(name string) {
+	if _, ok := registered[name]; ok {
+		registered[name].(prometheus.Counter).Inc()
+	}
+}
 
 // Increment will add the referred value the counter.
-func Add(name string, value float64) {}
+func Add(name string, value float64) {
+	if c, ok := registered[name].(prometheus.Counter); ok {
+		c.Add(value)
+	}
+	if g, ok := registered[name].(prometheus.Histogram); ok {
+		g.Observe(value)
+	}
+}
+
+func push(promType, name, help string) {
+	switch promType {
+	case counter:
+		registered[name] = promauto.NewCounter(prometheus.CounterOpts{
+			Name: name,
+			Help: help,
+		})
+
+		return
+	case average:
+		avg := prometheus.NewHistogram(prometheus.HistogramOpts{
+			Name: name,
+			Help: help,
+		})
+		prometheus.MustRegister(avg)
+		registered[name] = avg
+	}
+}
+
+// Run populate and prepare the map with the default values.
+func run() {
+	registered = make(map[string]interface{})
+	push(counter, RequestCounter, "Total request counter")
+	push(counter, NoCachedResponseCounter, "No cached response counter")
+	push(counter, CachedResponseCounter, "Cached response counter")
+	push(average, AvgResponseTime, "Average response time")
+}

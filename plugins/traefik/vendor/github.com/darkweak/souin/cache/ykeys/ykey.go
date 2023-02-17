@@ -2,13 +2,12 @@ package ykeys
 
 import (
 	"fmt"
-	"github.com/patrickmn/go-cache"
 	"net/http"
 	"regexp"
 	"strings"
-	"time"
 
 	"github.com/darkweak/souin/configurationtypes"
+	"github.com/dgraph-io/ristretto"
 )
 
 // The YKey system is like the Varnish one. You can invalidate cache from ykey based instead of the regexp or the plain
@@ -37,7 +36,7 @@ import (
 
 // YKeyStorage is the layer for YKey support storage
 type YKeyStorage struct {
-	*cache.Cache
+	*ristretto.Cache
 	Keys map[string]configurationtypes.SurrogateKeys
 }
 
@@ -47,13 +46,17 @@ func InitializeYKeys(keys map[string]configurationtypes.SurrogateKeys) *YKeyStor
 		return nil
 	}
 
-	c := cache.New(1*time.Second, 2*time.Second)
+	storage, _ := ristretto.NewCache(&ristretto.Config{
+		NumCounters: 1e7,
+		MaxCost:     1 << 30,
+		BufferItems: 64,
+	})
 
 	for key := range keys {
-		c.Set(key, "", 1)
+		storage.Set(key, "", 1)
 	}
 
-	return &YKeyStorage{Cache: c, Keys: keys}
+	return &YKeyStorage{Cache: storage, Keys: keys}
 }
 
 // GetValidatedTags returns the validated tags based on the key x headers
@@ -100,7 +103,6 @@ func (y *YKeyStorage) InvalidateTagURLs(urls string) []string {
 	for _, url := range u {
 		y.invalidateURL(url)
 	}
-
 	return u
 }
 

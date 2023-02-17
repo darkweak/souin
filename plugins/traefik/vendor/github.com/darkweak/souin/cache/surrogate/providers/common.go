@@ -1,7 +1,6 @@
 package providers
 
 import (
-	"fmt"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -9,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/darkweak/souin/configurationtypes"
+	"go.uber.org/zap"
 )
 
 const (
@@ -29,6 +29,16 @@ const (
 
 func (s *baseStorage) ParseHeaders(value string) []string {
 	return regexp.MustCompile(s.parent.getHeaderSeparator()+" *").Split(value, -1)
+}
+
+func getCandidateHeader(header http.Header, getCandidates func() []string) string {
+	for _, candidate := range getCandidates() {
+		if h := header.Get(candidate); h != "" {
+			return h
+		}
+	}
+
+	return ""
 }
 
 func uniqueTag(values []string) []string {
@@ -56,17 +66,17 @@ type keysRegexpInner struct {
 
 type baseStorage struct {
 	parent     SurrogateInterface
-	Storage    map[string]string
+	Storage    *sync.Map
 	Keys       map[string]configurationtypes.SurrogateKeys
 	keysRegexp map[string]keysRegexpInner
 	dynamic    bool
 	keepStale  bool
+	logger     *zap.Logger
 	mu         *sync.Mutex
 }
 
 func (s *baseStorage) init(config configurationtypes.AbstractConfigurationInterface) {
-	storage := make(map[string]string)
-	s.Storage = storage
+	s.Storage = &sync.Map{}
 	s.Keys = config.GetSurrogateKeys()
 	s.keepStale = config.GetDefaultCache().GetCDN().Strategy != "hard"
 	keysRegexp := make(map[string]keysRegexpInner, len(s.Keys))
@@ -91,17 +101,23 @@ func (s *baseStorage) init(config configurationtypes.AbstractConfigurationInterf
 	}
 
 	s.dynamic = config.GetDefaultCache().GetCDN().Dynamic
+	s.logger = config.GetLogger()
 	s.keysRegexp = keysRegexp
 	s.mu = &sync.Mutex{}
 }
 
 func (s *baseStorage) storeTag(tag string, cacheKey string, re *regexp.Regexp) {
-	if currentValue, b := s.Storage[tag]; s.dynamic || b {
-		if !re.MatchString(currentValue) {
-			s.mu.Lock()
-			fmt.Printf("Store the tag %s", tag)
-			s.Storage[tag] = currentValue + souinStorageSeparator + cacheKey
-			s.mu.Unlock()
+	defer s.mu.Unlock()
+	s.mu.Lock()
+	currentValue, b := s.Storage.Load(tag)
+	if currentValue == nil {
+		currentValue = ""
+		b = s.dynamic
+	}
+	if s.dynamic || b {
+		if !re.MatchString(currentValue.(string)) {
+			s.logger.Sugar().Debugf("Store the tag %s", tag)
+			s.Storage.Store(tag, currentValue.(string)+souinStorageSeparator+cacheKey)
 		}
 	}
 }
@@ -128,39 +144,30 @@ func (*baseStorage) getOrderedSurrogateControlHeadersCandidate() []string {
 }
 
 func (s *baseStorage) getSurrogateControl(header http.Header) string {
-	for _, candidate := range s.parent.getOrderedSurrogateControlHeadersCandidate() {
-		if h := header.Get(candidate); h != "" {
-			return h
-		}
-	}
-
-	return ""
+	return getCandidateHeader(header, s.parent.getOrderedSurrogateControlHeadersCandidate)
 }
 
 func (s *baseStorage) getSurrogateKey(header http.Header) string {
-	for _, candidate := range s.parent.getOrderedSurrogateKeyHeadersCandidate() {
-		if h := header.Get(candidate); h != "" {
-			return h
-		}
-	}
-
-	return ""
+	return getCandidateHeader(header, s.parent.getOrderedSurrogateKeyHeadersCandidate)
 }
 
 func (s *baseStorage) purgeTag(tag string) []string {
-	toInvalidate := s.Storage[tag]
-	fmt.Printf("Purge the tag %s", tag)
-	s.mu.Lock()
-	delete(s.Storage, tag)
-	s.mu.Unlock()
-	if !s.keepStale {
-		toInvalidate = toInvalidate + "," + s.Storage[stalePrefix+tag]
-		s.mu.Lock()
-		fmt.Printf("Purge the tag %s", stalePrefix+tag)
-		delete(s.Storage, stalePrefix+tag)
-		s.mu.Unlock()
+	toInvalidate, _ := s.Storage.Load(tag)
+	if toInvalidate == nil {
+		toInvalidate = ""
 	}
-	return strings.Split(toInvalidate, souinStorageSeparator)
+	s.logger.Sugar().Debugf("Purge the tag %s", tag)
+	s.Storage.Delete(tag)
+	if !s.keepStale {
+		stale, _ := s.Storage.Load(stalePrefix + tag)
+		if stale == nil {
+			stale = ""
+		}
+		toInvalidate = toInvalidate.(string) + "," + stale.(string)
+		s.logger.Sugar().Debugf("Purge the tag %s", stalePrefix+tag)
+		s.Storage.Delete(stalePrefix + tag)
+	}
+	return strings.Split(toInvalidate.(string), souinStorageSeparator)
 }
 
 // Store will take the lead to store the cache key for each provided Surrogate-key
@@ -177,6 +184,12 @@ func (s *baseStorage) Store(response *http.Response, cacheKey string) error {
 
 	for _, key := range keys {
 		if controls := s.ParseHeaders(s.parent.getSurrogateControl(h)); len(controls) != 0 {
+			if len(controls) == 1 && controls[0] == "" {
+				s.storeTag(key, cacheKey, urlRegexp)
+				s.storeTag(stalePrefix+key, staleKey, staleUrlRegexp)
+
+				continue
+			}
 			for _, control := range controls {
 				if s.parent.candidateStore(control) {
 					s.storeTag(key, cacheKey, urlRegexp)
@@ -206,12 +219,20 @@ func (s *baseStorage) Purge(header http.Header) (cacheKeys []string, surrogateKe
 
 // List returns the stored keys associated to resources
 func (s *baseStorage) List() map[string]string {
-	return s.Storage
+	m := make(map[string]string)
+	s.Storage.Range(func(key, value interface{}) bool {
+		m[key.(string)] = value.(string)
+		return true
+	})
+	return m
 }
 
 // Destruct method will shutdown properly the provider
 func (s *baseStorage) Destruct() error {
-	s.Storage = make(map[string]string)
+	s.Storage.Range(func(key, value interface{}) bool {
+		s.Storage.Delete(key)
+		return true
+	})
 
 	return nil
 }

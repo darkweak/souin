@@ -1,6 +1,7 @@
 package context
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"fmt"
@@ -23,6 +24,7 @@ type graphQLContext struct {
 func (g *graphQLContext) SetupContext(c configurationtypes.AbstractConfigurationInterface) {
 	if len(c.GetDefaultCache().GetAllowedHTTPVerbs()) != 0 {
 		g.custom = true
+		c.GetLogger().Debug("Enable GraphQL logic due to your custom HTTP verbs setup.")
 	}
 }
 
@@ -31,22 +33,26 @@ func isMutation(b []byte) bool {
 }
 
 func (g *graphQLContext) SetContext(req *http.Request) *http.Request {
-	rq := req.WithContext(context.WithValue(req.Context(), GraphQL, g.custom))
-	rq = rq.WithContext(context.WithValue(rq.Context(), HashBody, ""))
-	rq = rq.WithContext(context.WithValue(rq.Context(), IsMutationRequest, false))
+	ctx := req.Context()
+	ctx = context.WithValue(ctx, GraphQL, g.custom)
+	ctx = context.WithValue(ctx, HashBody, "")
+	ctx = context.WithValue(ctx, IsMutationRequest, false)
 
 	if g.custom && req.Body != nil {
 		b, _ := io.ReadAll(req.Body)
-		if isMutation(b) {
-			rq = rq.WithContext(context.WithValue(rq.Context(), IsMutationRequest, true))
-		} else {
-			h := sha256.New()
-			h.Write(b)
-			rq = rq.WithContext(context.WithValue(rq.Context(), HashBody, fmt.Sprintf("-%x", h.Sum(nil))))
+		req.Body = io.NopCloser(bytes.NewReader(b))
+		if len(b) > 0 {
+			if isMutation(b) {
+				ctx = context.WithValue(ctx, IsMutationRequest, true)
+			} else {
+				h := sha256.New()
+				h.Write(b)
+				ctx = context.WithValue(ctx, HashBody, fmt.Sprintf("-%x", h.Sum(nil)))
+			}
 		}
 	}
 
-	return rq
+	return req.WithContext(ctx)
 }
 
 var _ ctx = (*graphQLContext)(nil)
