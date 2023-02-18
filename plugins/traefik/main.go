@@ -9,17 +9,22 @@ import (
 	"sync"
 	"time"
 
-	"github.com/darkweak/souin/api"
 	"github.com/darkweak/souin/configurationtypes"
-	souin_ctx "github.com/darkweak/souin/context"
-	"github.com/darkweak/souin/rfc"
+	"github.com/darkweak/souin/pkg/middleware"
 )
 
 // SouinTraefikPlugin declaration.
-type SouinTraefikPlugin struct {
+// type SouinTraefikPlugin struct {
+// 	next http.Handler
+// 	name string
+// 	// SouinBasePlugin
+// }
+
+// SouinTraefikMiddleware declaration.
+type SouinTraefikMiddleware struct {
 	next http.Handler
 	name string
-	SouinBasePlugin
+	*middleware.SouinBaseHandler
 }
 
 // TestConfiguration is the temporary configuration for Træfik
@@ -223,90 +228,19 @@ func parseStringSlice(i interface{}) []string {
 
 // New create Souin instance.
 func New(_ context.Context, next http.Handler, config *TestConfiguration, name string) (http.Handler, error) {
-	s := &SouinTraefikPlugin{
-		name: name,
-		next: next,
-	}
 	c := parseConfiguration(*config)
 
-	s.Retriever = DefaultSouinPluginInitializerFromConfiguration(&c)
-	s.MapHandler = api.GenerateHandlerMap(&c, s.Retriever.GetTransport())
-	return s, nil
+	return &SouinTraefikMiddleware{
+		name:             name,
+		next:             next,
+		SouinBaseHandler: middleware.NewHTTPCacheHandler(&c),
+	}, nil
 }
 
-func (s *SouinTraefikPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	req = s.Retriever.GetContext().SetBaseContext(req)
-	if !(canHandle(req, s.Retriever)) {
-		rfc.MissCache(rw.Header().Set, req, "CANNOT-HANDLE")
-		s.next.ServeHTTP(rw, req)
-		return
-	}
+func (s *SouinTraefikMiddleware) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	s.SouinBaseHandler.ServeHTTP(rw, req, func(w http.ResponseWriter, r *http.Request) error {
+		s.next.ServeHTTP(w, r)
 
-	if s.MapHandler != nil && s.MapHandler.Handlers != nil {
-		for k, souinHandler := range *s.MapHandler.Handlers {
-			if strings.Contains(req.RequestURI, k) {
-				souinHandler(rw, req)
-				return
-			}
-		}
-	}
-
-	buf := bufPool.Get().(*bytes.Buffer)
-	buf.Reset()
-	defer bufPool.Put(buf)
-	req = s.Retriever.GetContext().SetContext(req)
-	isMutation := req.Context().Value(souin_ctx.IsMutationRequest).(bool)
-	if isMutation {
-		rfc.MissCache(rw.Header().Set, req, "IS-MUTATION-REQUEST")
-		s.next.ServeHTTP(rw, req)
-		return
-	}
-
-	getterCtx := getterContext{rw, req, s.next}
-	ctx := context.WithValue(req.Context(), getterContextCtxKey, getterCtx)
-	req = req.WithContext(ctx)
-	req.Header.Set("Date", time.Now().UTC().Format(time.RFC1123))
-	customRW := &CustomWriter{
-		Buf:      buf,
-		Rw:       rw,
-		Response: &http.Response{},
-	}
-
-	customRW.Buf = buf
-	regexpURL := s.Retriever.GetRegexpUrls().FindString(req.Host + req.URL.Path)
-	url := configurationtypes.URL{
-		TTL:     configurationtypes.Duration{Duration: s.Retriever.GetConfiguration().GetDefaultCache().GetTTL()},
-		Headers: s.Retriever.GetConfiguration().GetDefaultCache().GetHeaders(),
-	}
-	if "" != regexpURL {
-		u := s.Retriever.GetConfiguration().GetUrls()[regexpURL]
-		if u.TTL.Duration != 0 {
-			url.TTL = u.TTL
-		}
-		if len(u.Headers) != 0 {
-			url.Headers = u.Headers
-		}
-	}
-	s.Retriever.GetTransport().SetURL(url)
-	s.Retriever.SetMatchedURL(url)
-
-	headers := ""
-	if s.Retriever.GetMatchedURL().Headers != nil && len(s.Retriever.GetMatchedURL().Headers) > 0 {
-		for _, h := range s.Retriever.GetMatchedURL().Headers {
-			headers += strings.ReplaceAll(req.Header.Get(h), " ", "")
-		}
-	}
-
-	DefaultSouinPluginCallback(customRW, req, s.Retriever, s.RequestCoalescing, func(_ http.ResponseWriter, _ *http.Request) error {
-		var e error
-		s.next.ServeHTTP(customRW, req)
-		req.Response = customRW.Response
-
-		if req.Response, e = s.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(req); e != nil {
-			return e
-		}
-
-		_, e = customRW.Send()
-		return e
+		return nil
 	})
 }

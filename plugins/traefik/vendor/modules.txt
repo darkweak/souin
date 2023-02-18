@@ -64,11 +64,6 @@ github.com/coreos/go-semver/semver
 github.com/coreos/go-systemd/v22/journal
 # github.com/darkweak/souin v1.6.28 => ../..
 ## explicit; go 1.16
-github.com/darkweak/souin/api
-github.com/darkweak/souin/api/auth
-github.com/darkweak/souin/api/debug
-github.com/darkweak/souin/api/prometheus
-github.com/darkweak/souin/cache/coalescing
 github.com/darkweak/souin/cache/providers
 github.com/darkweak/souin/cache/surrogate
 github.com/darkweak/souin/cache/surrogate/providers
@@ -78,6 +73,12 @@ github.com/darkweak/souin/configurationtypes
 github.com/darkweak/souin/context
 github.com/darkweak/souin/errors
 github.com/darkweak/souin/helpers
+github.com/darkweak/souin/pkg/api
+github.com/darkweak/souin/pkg/api/debug
+github.com/darkweak/souin/pkg/api/prometheus
+github.com/darkweak/souin/pkg/middleware
+github.com/darkweak/souin/pkg/rfc
+github.com/darkweak/souin/pkg/storage
 github.com/darkweak/souin/plugins/souin/configuration
 github.com/darkweak/souin/rfc
 github.com/darkweak/souin/tests
@@ -102,10 +103,6 @@ github.com/dgryski/go-rendezvous
 # github.com/dustin/go-humanize v1.0.0
 ## explicit
 github.com/dustin/go-humanize
-# github.com/go-chi/stampede v0.5.1
-## explicit; go 1.16
-github.com/go-chi/stampede
-github.com/go-chi/stampede/singleflight
 # github.com/go-redis/redis/v8 v8.11.5
 ## explicit; go 1.17
 github.com/go-redis/redis/v8
@@ -131,9 +128,6 @@ github.com/go-redis/redis/v9/internal/util
 github.com/gogo/protobuf/gogoproto
 github.com/gogo/protobuf/proto
 github.com/gogo/protobuf/protoc-gen-gogo/descriptor
-# github.com/golang-jwt/jwt v3.2.2+incompatible
-## explicit
-github.com/golang-jwt/jwt
 # github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 ## explicit
 github.com/golang/glog
@@ -176,7 +170,6 @@ github.com/hashicorp/go-multierror
 github.com/hashicorp/go-sockaddr
 # github.com/hashicorp/golang-lru v0.5.5-0.20200511160909-eb529947af53
 ## explicit; go 1.12
-github.com/hashicorp/golang-lru
 github.com/hashicorp/golang-lru/simplelru
 # github.com/hashicorp/logutils v1.0.0
 ## explicit
