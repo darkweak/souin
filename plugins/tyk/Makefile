@@ -14,10 +14,16 @@ prepare: vendor ## Prepare tyk plugin
 replace: ## Replace sources in the vendor folder deeper than the go mod replace
 	rm -rf vendor/github.com/darkweak/souin/cache/providers
 	scp -r override/providers vendor/github.com/darkweak/souin/cache
-	scp override/api/prometheus/prometheus.go vendor/github.com/darkweak/souin/api/prometheus/prometheus.go
+	rm -rf vendor/github.com/darkweak/souin/pkg/storage && scp -r override/storage vendor/github.com/darkweak/souin/pkg
+	rm -rf vendor/github.com/darkweak/souin/pkg/api && scp -r override/api vendor/github.com/darkweak/souin/pkg
+	rm -rf vendor/github.com/darkweak/souin/context && scp -r override/context vendor/github.com/darkweak/souin
+	rm -rf vendor/github.com/darkweak/souin/api
+	rm -rf vendor/github.com/darkweak/go-esi
+	rm -rf vendor/github.com/darkweak/souin/plugins/base.go
+	rm -rf vendor/github.com/darkweak/souin/plugins/main.go
+	scp override/middleware/middleware.go vendor/github.com/darkweak/souin/pkg/middleware/middleware.go
 	scp override/cache/surrogate/providers/cloudflare.go vendor/github.com/darkweak/souin/cache/surrogate/providers/cloudflare.go
 	scp override/context/graphql.go vendor/github.com/darkweak/souin/context/graphql.go
-	scp override/plugins/base.go vendor/github.com/darkweak/souin/plugins/base.go
 	scp override/rfc/vary.go vendor/github.com/darkweak/souin/rfc/vary.go
 
 vendor: ## Generate vendors for the plugin

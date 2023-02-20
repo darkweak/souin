@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"sync"
 
-	"github.com/darkweak/souin/api"
-	"github.com/darkweak/souin/cache/coalescing"
+	"github.com/darkweak/souin/context"
+	"github.com/darkweak/souin/pkg/middleware"
 	"github.com/darkweak/souin/plugins"
 	"github.com/darkweak/souin/plugins/souin/agnostic"
 )
@@ -29,17 +29,16 @@ func parseConfiguration(id string, c map[string]interface{}) *souinInstance {
 }
 
 func newInstanceFromConfiguration(c plugins.BaseConfiguration) *souinInstance {
-	s := &souinInstance{
-		Configuration: &c,
-		Retriever:     plugins.DefaultSouinPluginInitializerFromConfiguration(&c),
-		bufPool: &sync.Pool{
-			New: func() interface{} {
-				return new(bytes.Buffer)
-			},
+	bufPool := &sync.Pool{
+		New: func() interface{} {
+			return new(bytes.Buffer)
 		},
-		RequestCoalescing: coalescing.Initialize(),
 	}
-	s.MapHandler = api.GenerateHandlerMap(s.Configuration, s.Retriever.GetTransport())
-
-	return s
+	ctx := context.GetContext()
+	ctx.Init(&c)
+	return &souinInstance{
+		SouinBaseHandler: middleware.NewHTTPCacheHandler(&c),
+		bufPool:          bufPool,
+		context:          ctx,
+	}
 }

@@ -1,27 +1,24 @@
 package main
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"net/http"
+	"net/http/httputil"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/TykTechnologies/tyk/ctx"
-	"github.com/darkweak/souin/api"
-	"github.com/darkweak/souin/cache/coalescing"
-	"github.com/darkweak/souin/cache/types"
-	"github.com/darkweak/souin/plugins"
-	"github.com/darkweak/souin/rfc"
+	"github.com/darkweak/souin/context"
+	"github.com/darkweak/souin/pkg/middleware"
+	"github.com/darkweak/souin/pkg/rfc"
+	"github.com/darkweak/souin/pkg/storage"
+	"github.com/pquerna/cachecontrol/cacheobject"
 )
-
-type customWriter struct {
-	http.ResponseWriter
-}
-
-func (c *customWriter) Send() (int, error) {
-	return 0, nil
-}
 
 var definitions map[string]*souinInstance = make(map[string]*souinInstance)
 
@@ -36,70 +33,171 @@ func getInstanceFromRequest(r *http.Request) (s *souinInstance) {
 }
 
 // SouinResponseHandler stores the response before sent to the client if possible, only returns otherwise
-func SouinResponseHandler(rw http.ResponseWriter, res *http.Response, rq *http.Request) {
-	res.Request.URL.Host = rq.Host
-	res.Request.Host = rq.Host
-	res.Request.URL.Path = rq.RequestURI
-	res.Request.RequestURI = rq.RequestURI
-	req := res.Request
-	req.Response = res
-	if rw.Header().Get("Cache-Status") != "" {
+func SouinResponseHandler(rw http.ResponseWriter, rs *http.Response, rq *http.Request) {
+	if rs.Header.Get("Cache-Status") != "" {
 		return
 	}
-	s := getInstanceFromRequest(req)
-	req = s.Retriever.GetContext().SetContext(s.Retriever.GetContext().SetBaseContext(req))
-	res, _ = s.Retriever.GetTransport().UpdateCacheEventually(req)
-}
+	customWriter := NewCustomWriter(rq, rw, bytes.NewBuffer([]byte{}))
+	s := getInstanceFromRequest(rq)
+	rq = s.context.SetContext(s.context.SetBaseContext(rq))
 
-// SouinRequestHandler handle the Tyk request
-func SouinRequestHandler(rw http.ResponseWriter, r *http.Request) {
-	s := getInstanceFromRequest(r)
-	req := s.Retriever.GetContext().SetBaseContext(r)
-	if b, handler := s.HandleInternally(req); b {
-		handler(rw, req)
-
+	switch customWriter.statusCode {
+	case 500, 502, 503, 504:
 		return
 	}
 
-	if !plugins.CanHandle(req, s.Retriever) {
-		rfc.MissCache(rw.Header().Set, req, "CANNOT-HANDLE")
+	responseCc, _ := cacheobject.ParseResponseCacheControl(customWriter.Header().Get("Cache-Control"))
 
-		return
-	}
-
-	req = s.Retriever.GetContext().SetContext(req)
-	if plugins.HasMutation(req, rw) {
-		return
-	}
-	req.Header.Set("Date", time.Now().UTC().Format(time.RFC1123))
-
-	cw := &customWriter{
-		ResponseWriter: rw,
-	}
-
-	_ = plugins.DefaultSouinPluginCallback(cw, req, s.Retriever, nil, func(_ http.ResponseWriter, _ *http.Request) error {
-		return nil
-	})
-}
-
-type souinInstance struct {
-	RequestCoalescing coalescing.RequestCoalescingInterface
-	Retriever         types.RetrieverResponsePropertiesInterface
-	Configuration     *plugins.BaseConfiguration
-	bufPool           *sync.Pool
-	MapHandler        *api.MapHandler
-}
-
-func (s *souinInstance) HandleInternally(r *http.Request) (bool, func(http.ResponseWriter, *http.Request)) {
-	if s.MapHandler != nil {
-		for k, souinHandler := range *s.MapHandler.Handlers {
-			if strings.Contains(r.RequestURI, k) {
-				return true, souinHandler
-			}
+	currentMatchedURL := s.DefaultMatchedUrl
+	if regexpURL := s.RegexpUrls.FindString(rq.Host + rq.URL.Path); regexpURL != "" {
+		u := s.Configuration.GetUrls()[regexpURL]
+		if u.TTL.Duration != 0 {
+			currentMatchedURL.TTL = u.TTL
+		}
+		if len(u.Headers) != 0 {
+			currentMatchedURL.Headers = u.Headers
 		}
 	}
 
-	return false, nil
+	ma := currentMatchedURL.TTL.Duration
+	if responseCc.MaxAge > 0 {
+		ma = time.Duration(responseCc.MaxAge) * time.Second
+	} else if responseCc.SMaxAge > 0 {
+		ma = time.Duration(responseCc.SMaxAge) * time.Second
+	}
+	if ma > currentMatchedURL.TTL.Duration {
+		ma = currentMatchedURL.TTL.Duration
+	}
+	date, _ := http.ParseTime(time.Now().UTC().Format(http.TimeFormat))
+	customWriter.Headers.Set(rfc.StoredTTLHeader, ma.String())
+	ma = ma - time.Since(date)
+
+	requestCc, coErr := cacheobject.ParseRequestCacheControl(rq.Header.Get("Cache-Control"))
+
+	if coErr != nil || requestCc == nil {
+		rs.Header.Set("Cache-Status", "Souin; fwd=uri-miss; detail=CACHE-CONTROL-EXTRACTION-ERROR")
+
+		return
+	}
+
+	status := fmt.Sprintf("%s; fwd=uri-miss", rq.Context().Value(context.CacheName))
+	if !requestCc.NoStore && !responseCc.NoStore {
+		io.Copy(customWriter, rs.Body)
+		rs.Body = ioutil.NopCloser(bytes.NewBuffer(customWriter.Buf.Bytes()))
+		res := http.Response{
+			StatusCode: customWriter.statusCode,
+			Body:       ioutil.NopCloser(bytes.NewBuffer(customWriter.Buf.Bytes())),
+			Header:     customWriter.Headers,
+		}
+
+		res.Header.Set("Date", time.Now().UTC().Format(http.TimeFormat))
+		res.Request = rq
+		response, err := httputil.DumpResponse(&res, true)
+		cachedKey := rq.Context().Value(context.Key).(string)
+		if err == nil {
+			variedHeaders := rfc.HeaderAllCommaSepValues(res.Header)
+			cachedKey += rfc.GetVariedCacheKey(rq, variedHeaders)
+			if s.Storer.Set(cachedKey, response, currentMatchedURL, ma) == nil {
+				status += "; stored"
+			} else {
+				status += "; detail=STORAGE-INSERTION-ERROR"
+			}
+		}
+	} else {
+		status += "; detail=NO-STORE-DIRECTIVE"
+	}
+	rs.Header.Set("Cache-Status", status+"; key="+rfc.GetCacheKeyFromCtx(rq.Context()))
+}
+
+// SouinRequestHandler handle the Tyk request
+func SouinRequestHandler(rw http.ResponseWriter, rq *http.Request) {
+	s := getInstanceFromRequest(rq)
+
+	if b, handler := s.HandleInternally(rq); b {
+		handler(rw, rq)
+		return
+	}
+
+	rq = s.context.SetBaseContext(rq)
+	cacheName := rq.Context().Value(context.CacheName).(string)
+	if rq.Header.Get("Upgrade") == "websocket" || (s.ExcludeRegex != nil && s.ExcludeRegex.MatchString(rq.RequestURI)) {
+		rw.Header().Set("Cache-Status", cacheName+"; fwd=uri-miss; detail=EXCLUDED-REQUEST-URI")
+		return
+	}
+
+	if !rq.Context().Value(context.SupportedMethod).(bool) {
+		rw.Header().Set("Cache-Status", cacheName+"; fwd=uri-miss; detail=UNSUPPORTED-METHOD")
+
+		return
+	}
+
+	requestCc, coErr := cacheobject.ParseRequestCacheControl(rq.Header.Get("Cache-Control"))
+
+	if coErr != nil || requestCc == nil {
+		rw.Header().Set("Cache-Status", cacheName+"; fwd=uri-miss; detail=CACHE-CONTROL-EXTRACTION-ERROR")
+
+		return
+	}
+
+	rq = s.context.SetContext(rq)
+	cachedKey := rq.Context().Value(context.Key).(string)
+
+	bufPool := s.bufPool.Get().(*bytes.Buffer)
+	bufPool.Reset()
+	defer s.bufPool.Put(bufPool)
+	if !requestCc.NoCache {
+		cachedVal := s.Storer.Prefix(cachedKey, rq)
+		response, _ := http.ReadResponse(bufio.NewReader(bytes.NewBuffer(cachedVal)), rq)
+
+		if response != nil && rfc.ValidateCacheControl(response) {
+			rfc.SetCacheStatusHeader(response)
+			if rfc.ValidateMaxAgeCachedResponse(requestCc, response) != nil {
+				for hn, hv := range response.Header {
+					rw.Header().Set(hn, strings.Join(hv, ", "))
+				}
+				io.Copy(rw, response.Body)
+
+				return
+			}
+		} else if response == nil {
+			staleCachedVal := s.Storer.Prefix(storage.StalePrefix+cachedKey, rq)
+			response, _ = http.ReadResponse(bufio.NewReader(bytes.NewBuffer(staleCachedVal)), rq)
+			if nil != response && rfc.ValidateCacheControl(response) {
+				addTime, _ := time.ParseDuration(response.Header.Get(rfc.StoredTTLHeader))
+				rfc.SetCacheStatusHeader(response)
+
+				responseCc, _ := cacheobject.ParseResponseCacheControl(response.Header.Get("Cache-Control"))
+				if responseCc.StaleIfError > 0 {
+					h := response.Header
+					rfc.HitStaleCache(&h)
+					for hn, hv := range h {
+						h.Set(hn, strings.Join(hv, ", "))
+					}
+					io.Copy(rw, response.Body)
+
+					return
+				}
+
+				if rfc.ValidateMaxAgeCachedStaleResponse(requestCc, response, int(addTime.Seconds())) != nil {
+					h := response.Header
+					rfc.HitStaleCache(&h)
+					for hn, hv := range h {
+						h.Set(hn, strings.Join(hv, ", "))
+					}
+					io.Copy(rw, response.Body)
+
+					return
+				}
+			}
+		}
+	}
+}
+
+type souinInstance struct {
+	*middleware.SouinBaseHandler
+
+	context *context.Context
+	bufPool *sync.Pool
 }
 
 func init() {
