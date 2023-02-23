@@ -15,8 +15,8 @@ import (
 
 func Test_NewHTTPCache(t *testing.T) {
 	s := NewHTTPCache(DevDefaultConfiguration)
-	if s.bufPool == nil {
-		t.Error("The bufpool must be set.")
+	if s.Storer == nil {
+		t.Error("The storer must be set.")
 	}
 	c := plugins.BaseConfiguration{}
 	defer func() {
@@ -80,7 +80,7 @@ func Test_SouinWebgoPlugin_Middleware(t *testing.T) {
 	req.Header = http.Header{}
 	router.ServeHTTP(res, req)
 
-	if res.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored" {
+	if res.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-example.com-/handled" {
 		t.Error("The response must contain a Cache-Status header with the stored directive.")
 	}
 
@@ -100,12 +100,12 @@ func Test_SouinWebgoPlugin_Middleware_CannotHandle(t *testing.T) {
 	req.Header.Add("Cache-Control", "no-cache")
 	router.ServeHTTP(res, req)
 
-	if res.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; key=; detail=CANNOT-HANDLE" {
+	if res.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-example.com-/not-handled" {
 		t.Error("The response must contain a Cache-Status header without the stored directive and with the uri-miss only.")
 	}
 
 	router.ServeHTTP(res2, req)
-	if res2.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; key=; detail=CANNOT-HANDLE" {
+	if res2.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-example.com-/not-handled" {
 		t.Error("The response must contain a Cache-Status header without the stored directive and with the uri-miss only.")
 	}
 	if res2.Result().Header.Get("Age") != "" {

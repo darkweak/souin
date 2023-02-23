@@ -65,7 +65,7 @@ func Test_HttpcacheKratosPlugin_NewHTTPCacheFilter(t *testing.T) {
 	handler.ServeHTTP(res, req)
 	rs := res.Result()
 	rs.Body.Close()
-	if rs.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored" {
+	if rs.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-example.com-/handled" {
 		t.Error("The response must contain a Cache-Status header with the stored directive.")
 	}
 	handler.ServeHTTP(res2, req)
@@ -86,13 +86,13 @@ func Test_HttpcacheKratosPlugin_NewHTTPCacheFilter_Excluded(t *testing.T) {
 	handler.ServeHTTP(res, req)
 	rs := res.Result()
 	rs.Body.Close()
-	if rs.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; key=; detail=CANNOT-HANDLE" {
+	if rs.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; detail=EXCLUDED-REQUEST-URI" {
 		t.Error("The response must contain a Cache-Status header without the stored directive and with the uri-miss only.")
 	}
 	handler.ServeHTTP(res2, req)
 	rs = res2.Result()
 	rs.Body.Close()
-	if rs.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; key=; detail=CANNOT-HANDLE" {
+	if rs.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; detail=EXCLUDED-REQUEST-URI" {
 		t.Error("The response must contain a Cache-Status header without the stored directive and with the uri-miss only.")
 	}
 	if rs.Header.Get("Age") != "" {
@@ -110,14 +110,14 @@ func Test_HttpcacheKratosPlugin_NewHTTPCacheFilter_Mutation(t *testing.T) {
 	handler.ServeHTTP(res, req)
 	rs := res.Result()
 	rs.Body.Close()
-	if rs.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; key=GET-example.com-/handled; detail=IS-MUTATION-REQUEST" {
+	if rs.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; detail=IS-MUTATION-REQUEST" {
 		t.Error("The response must contain a Cache-Status header without the stored directive and with the uri-miss only.")
 	}
 	req.Body = io.NopCloser(bytes.NewBuffer([]byte(`{"query":"mutation":{something mutated}}`)))
 	handler.ServeHTTP(res2, req)
 	rs = res2.Result()
 	rs.Body.Close()
-	if rs.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; key=GET-example.com-/handled; detail=IS-MUTATION-REQUEST" {
+	if rs.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; detail=IS-MUTATION-REQUEST" {
 		t.Error("The response must contain a Cache-Status header without the stored directive and with the uri-miss only.")
 	}
 	if rs.Header.Get("Age") != "" {
@@ -144,7 +144,7 @@ func Test_HttpcacheKratosPlugin_NewHTTPCacheFilter_API(t *testing.T) {
 	handler.ServeHTTP(res2, req2)
 	rs = res2.Result()
 	rs.Body.Close()
-	if rs.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored" {
+	if rs.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-example.com-/handled" {
 		t.Error("The response must contain a Cache-Status header with the stored directive.")
 	}
 	res3 := httptest.NewRecorder()

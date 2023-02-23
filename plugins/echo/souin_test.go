@@ -14,9 +14,9 @@ import (
 )
 
 func Test_New(t *testing.T) {
-	s := New(DevDefaultConfiguration)
-	if s.bufPool == nil {
-		t.Error("The bufpool must be set.")
+	s := NewMiddleware(DevDefaultConfiguration)
+	if s.Storer == nil {
+		t.Error("The storer must be set.")
 	}
 	c := plugins.BaseConfiguration{}
 	defer func() {
@@ -24,7 +24,7 @@ func Test_New(t *testing.T) {
 			t.Error("The New method must crash if an incomplete configuration is provided.")
 		}
 	}()
-	New(c)
+	NewMiddleware(c)
 }
 
 func Test_SouinEchoPlugin_Process(t *testing.T) {
@@ -32,7 +32,7 @@ func Test_SouinEchoPlugin_Process(t *testing.T) {
 	req.Header = http.Header{}
 	res := httptest.NewRecorder()
 	res2 := httptest.NewRecorder()
-	s := New(DevDefaultConfiguration)
+	s := NewMiddleware(DevDefaultConfiguration)
 
 	e := echo.New()
 	c := e.NewContext(req, res)
@@ -44,7 +44,7 @@ func Test_SouinEchoPlugin_Process(t *testing.T) {
 	if err := s.Process(handler)(c); err != nil {
 		t.Error("No error must be thrown if everything is good.")
 	}
-	if res.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored" {
+	if res.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-example.com-/handled" {
 		t.Error("The response must contain a Cache-Status header with the stored directive.")
 	}
 	if err := s.Process(handler)(c2); err != nil {
@@ -64,7 +64,7 @@ func Test_SouinEchoPlugin_Process_CannotHandle(t *testing.T) {
 	req.Header.Add("Cache-Control", "no-cache")
 	res := httptest.NewRecorder()
 	res2 := httptest.NewRecorder()
-	s := New(DevDefaultConfiguration)
+	s := NewMiddleware(DevDefaultConfiguration)
 
 	e := echo.New()
 	c := e.NewContext(req, res)
@@ -76,13 +76,13 @@ func Test_SouinEchoPlugin_Process_CannotHandle(t *testing.T) {
 	if err := s.Process(handler)(c); err != nil {
 		t.Error("No error must be thrown if everything is good.")
 	}
-	if res.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; key=; detail=CANNOT-HANDLE" {
+	if res.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-example.com-/not-handled" {
 		t.Error("The response must contain a Cache-Status header without the stored directive and with the uri-miss only.")
 	}
 	if err := s.Process(handler)(c2); err != nil {
 		t.Error("No error must be thrown on the second request if everything is good.")
 	}
-	if res2.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; key=; detail=CANNOT-HANDLE" {
+	if res2.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-example.com-/not-handled" {
 		t.Error("The response must contain a Cache-Status header without the stored directive and with the uri-miss only.")
 	}
 	if res2.Result().Header.Get("Age") != "" {
@@ -98,7 +98,7 @@ func Test_SouinEchoPlugin_Process_APIHandle(t *testing.T) {
 	dc.DefaultCache.Nuts = configurationtypes.CacheProvider{
 		Path: "/tmp/souin" + time.Now().UTC().String(),
 	}
-	s := New(dc)
+	s := NewMiddleware(dc)
 
 	e := echo.New()
 	c := e.NewContext(req, res)

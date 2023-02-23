@@ -150,10 +150,10 @@ func (s *SouinBaseHandler) Upstream(
 	}
 
 	ma := currentMatchedURL.TTL.Duration
-	if responseCc.MaxAge > 0 {
-		ma = time.Duration(responseCc.MaxAge) * time.Second
-	} else if responseCc.SMaxAge > 0 {
+	if responseCc.SMaxAge > 0 {
 		ma = time.Duration(responseCc.SMaxAge) * time.Second
+	} else if responseCc.MaxAge > 0 {
+		ma = time.Duration(responseCc.MaxAge) * time.Second
 	}
 	if ma > currentMatchedURL.TTL.Duration {
 		ma = currentMatchedURL.TTL.Duration
@@ -232,6 +232,11 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 	}
 
 	rq = s.context.SetContext(rq)
+	if rq.Context().Value(context.IsMutationRequest).(bool) {
+		rw.Header().Set("Cache-Status", cacheName+"; fwd=uri-miss; detail=IS-MUTATION-REQUEST")
+
+		return nil
+	}
 	cachedKey := rq.Context().Value(context.Key).(string)
 
 	bufPool := s.bufPool.Get().(*bytes.Buffer)

@@ -27,7 +27,7 @@ func TestMinimal(t *testing.T) {
 	}`, "caddyfile")
 
 	resp1, _ := tester.AssertGetResponse(`http://localhost:9080/cache-default`, 200, "Hello, default!")
-	if resp1.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored" {
+	if resp1.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-localhost:9080-/cache-default" {
 		t.Errorf("unexpected Cache-Status header %v", resp1.Header)
 	}
 
@@ -62,7 +62,7 @@ func TestMaxAge(t *testing.T) {
 	}`, "caddyfile")
 
 	resp1, _ := tester.AssertGetResponse(`http://localhost:9080/cache-max-age`, 200, "Hello, max-age!")
-	if resp1.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored" {
+	if resp1.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-localhost:9080-/cache-max-age" {
 		t.Errorf("unexpected Cache-Status header %v", resp1.Header)
 	}
 
@@ -101,7 +101,7 @@ func TestMaxStale(t *testing.T) {
 	maxStaleURL := "http://localhost:9080/cache-max-stale"
 
 	resp1, _ := tester.AssertGetResponse(maxStaleURL, 200, "Hello, max-stale!")
-	if resp1.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored" {
+	if resp1.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-localhost:9080-/cache-max-stale" {
 		t.Errorf("unexpected Cache-Status header %v", resp1.Header)
 	}
 
@@ -120,7 +120,7 @@ func TestMaxStale(t *testing.T) {
 
 	time.Sleep(3 * time.Second)
 	resp4, _ := tester.AssertResponse(reqMaxStale, 200, "Hello, max-stale!")
-	if resp4.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored" {
+	if resp4.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-localhost:9080-/cache-max-stale" {
 		t.Errorf("unexpected Cache-Status header %v", resp4.Header.Get("Cache-Status"))
 	}
 }
@@ -145,7 +145,7 @@ func TestSMaxAge(t *testing.T) {
 	}`, "caddyfile")
 
 	resp1, _ := tester.AssertGetResponse(`http://localhost:9080/cache-s-maxage`, 200, "Hello, s-maxage!")
-	if resp1.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored" {
+	if resp1.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-localhost:9080-/cache-s-maxage" {
 		t.Errorf("unexpected Cache-Status header %v", resp1.Header.Get("Cache-Status"))
 	}
 
@@ -219,7 +219,7 @@ func TestNotHandledRoute(t *testing.T) {
 
 	resp1, v := tester.AssertGetResponse(`http://localhost:9080/not-handled`, 200, "Hello, Age header!")
 	fmt.Printf("%+v\n\n\n\n", v)
-	if resp1.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; key=; detail=CANNOT-HANDLE" {
+	if resp1.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; detail=EXCLUDED-REQUEST-URI" {
 		t.Errorf("unexpected Cache-Status header value %v", resp1.Header.Get("Cache-Status"))
 	}
 }

@@ -3,23 +3,15 @@ package souin
 import (
 	"encoding/json"
 	"net/http"
-	"sync"
 
 	"github.com/darkweak/souin/pkg/middleware"
 	"github.com/darkweak/souin/plugins"
 	"github.com/zalando/skipper/filters"
 )
 
-type (
-	httpcacheMiddleware struct {
-		*middleware.SouinBaseHandler
-	}
-	httpcache struct {
-		plugins.SouinBasePlugin
-		Configuration *plugins.BaseConfiguration
-		bufPool       *sync.Pool
-	}
-)
+type httpcacheMiddleware struct {
+	*middleware.SouinBaseHandler
+}
 
 func NewHTTPCacheFilter() filters.Spec {
 	return &httpcacheMiddleware{}

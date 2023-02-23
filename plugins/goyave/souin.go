@@ -37,7 +37,7 @@ var (
 				Duration: 5 * time.Second,
 			},
 		},
-		LogLevel: "debug",
+		LogLevel: "info",
 	}
 )
 
@@ -56,13 +56,12 @@ func (s *SouinGoyaveMiddleware) Handle(next goyave.Handler) goyave.Handler {
 	return func(res *goyave.Response, rq *goyave.Request) {
 		baseWriter := res.Writer()
 		defer res.SetWriter(baseWriter)
-		s.ServeHTTP(newBaseResponseWriter(res), rq.Request(), func(w http.ResponseWriter, r *http.Request) error {
+		s.ServeHTTP(res, rq.Request(), func(w http.ResponseWriter, r *http.Request) error {
 			if writer, ok := w.(*middleware.CustomWriter); ok {
-				writer.Rw = newBaseWriter(baseWriter, w.Header())
+				writer.Rw = newBaseWriter(baseWriter, writer)
 				res.SetWriter(writer)
 			}
 			next(res, rq)
-			res.Header().Set("this", "tht")
 
 			return nil
 		})

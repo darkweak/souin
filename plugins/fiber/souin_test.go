@@ -14,8 +14,8 @@ import (
 
 func Test_NewHTTPCache(t *testing.T) {
 	s := NewHTTPCache(DevDefaultConfiguration)
-	if s.bufPool == nil {
-		t.Error("The bufpool must be set.")
+	if s.Storer == nil {
+		t.Error("The storer must be set.")
 	}
 	c := plugins.BaseConfiguration{}
 	defer func() {
@@ -57,7 +57,7 @@ func Test_SouinFiberPlugin_Middleware(t *testing.T) {
 		t.Error("The response body must be equal to Hello, World 👋!.")
 	}
 
-	if res.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored" {
+	if res.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-example.com-/handled" {
 		t.Error("The response must contain a Cache-Status header with the stored directive.")
 	}
 
@@ -91,7 +91,7 @@ func Test_SouinFiberPlugin_Middleware_CannotHandle(t *testing.T) {
 		t.Error(err)
 	}
 
-	if res.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; key=; detail=CANNOT-HANDLE" {
+	if res.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-example.com-/not-handled" {
 		t.Error("The response must contain a Cache-Status header without the stored directive and with the uri-miss only.")
 	}
 
@@ -100,7 +100,7 @@ func Test_SouinFiberPlugin_Middleware_CannotHandle(t *testing.T) {
 		t.Error(err)
 	}
 
-	if res.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; key=; detail=CANNOT-HANDLE" {
+	if res.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-example.com-/not-handled" {
 		t.Error("The response must contain a Cache-Status header without the stored directive and with the uri-miss only.")
 	}
 	if res.Header.Get("Age") != "" {

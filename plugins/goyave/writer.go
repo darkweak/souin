@@ -5,71 +5,35 @@ import (
 	"net/http"
 	"strings"
 
-	"goyave.dev/goyave/v4"
+	"github.com/darkweak/souin/pkg/middleware"
 )
 
-type baseResponseWriter struct {
-	Response    *goyave.Response
-	writer      io.Writer
-	h           http.Header
+type baseWriter struct {
+	http.ResponseWriter
+	subWriter   *middleware.CustomWriter
 	headersSent bool
 }
 
-var _ http.ResponseWriter = (*baseResponseWriter)(nil)
-
-func newBaseResponseWriter(r *goyave.Response) *baseResponseWriter {
-	return &baseResponseWriter{
-		Response: r,
-		writer:   r.Writer(),
-		h:        http.Header{},
-	}
-}
-
-func (b *baseResponseWriter) synchronizeHeaders() {
-	if !b.headersSent {
-		for h, v := range b.h {
-			if len(v) > 0 {
-				b.Response.Header().Set(h, strings.Join(v, ", "))
-			}
-		}
-		b.headersSent = true
-	}
-}
-
-func (b *baseResponseWriter) Write(data []byte) (int, error) {
-	b.synchronizeHeaders()
-	return b.Response.Write(data)
-}
-
-func (b *baseResponseWriter) Header() http.Header {
-	b.synchronizeHeaders()
-	return b.Response.Header()
-}
-
-func (b *baseResponseWriter) WriteHeader(code int) {
-	b.synchronizeHeaders()
-}
-
-type baseWriter struct {
-	writer io.Writer
-	h      http.Header
-}
-
-func newBaseWriter(w io.Writer, h http.Header) *baseWriter {
+func newBaseWriter(w io.Writer, subWriter *middleware.CustomWriter) *baseWriter {
 	return &baseWriter{
-		writer: w,
-		h:      h,
+		ResponseWriter: w.(http.ResponseWriter),
+		subWriter:      subWriter,
 	}
 }
 
 var _ http.ResponseWriter = (*baseWriter)(nil)
 
-func (b *baseWriter) Write(data []byte) (int, error) {
-	return b.writer.Write(data)
+func (b *baseWriter) WriteHeader(code int) {
+	b.synchronizeHeaders()
 }
 
-func (b *baseWriter) Header() http.Header {
-	return b.h
+func (b *baseWriter) synchronizeHeaders() {
+	if !b.headersSent {
+		for h, v := range b.subWriter.Headers {
+			if len(v) > 0 {
+				b.ResponseWriter.Header().Set(h, strings.Join(v, ", "))
+			}
+		}
+		b.headersSent = true
+	}
 }
-
-func (b *baseWriter) WriteHeader(code int) {}

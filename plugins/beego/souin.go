@@ -46,11 +46,9 @@ var (
 )
 
 // SouinBeegoMiddleware declaration.
-type (
-	SouinBeegoMiddleware struct {
-		*middleware.SouinBaseHandler
-	}
-)
+type SouinBeegoMiddleware struct {
+	*middleware.SouinBaseHandler
+}
 
 func NewHTTPCache(c plugins.BaseConfiguration) *SouinBeegoMiddleware {
 	return &SouinBeegoMiddleware{
@@ -103,72 +101,3 @@ func (s *SouinBeegoMiddleware) chainHandleFilter(next web.HandleFunc) web.Handle
 		})
 	}
 }
-
-/*
-func (s *SouinBeegoMiddleware) chainHandleFilter2(next web.HandleFunc) web.HandleFunc {
-	return func(c *beegoCtx.Context) {
-		rw := c.ResponseWriter
-		r := c.Request
-		req := s.Retriever.GetContext().SetBaseContext(r)
-		if !plugins.CanHandle(req, s.Retriever) {
-			rfc.MissCache(c.Output.Header, req, "CANNOT-HANDLE")
-			next(c)
-
-			return
-		}
-
-		if b, handler := s.HandleInternally(req); b {
-			handler(rw, req)
-
-			return
-		}
-
-		customCtx := &beegoCtx.Context{
-			Input:   c.Input,
-			Output:  c.Output,
-			Request: c.Request,
-			ResponseWriter: &beegoCtx.Response{
-				ResponseWriter: nil,
-			},
-		}
-
-		customWriter := &beegoWriterDecorator{
-			ctx:      customCtx,
-			buf:      s.bufPool.Get().(*bytes.Buffer),
-			Response: &http.Response{},
-			CustomWriter: &plugins.CustomWriter{
-				Response: &http.Response{},
-				Buf:      s.bufPool.Get().(*bytes.Buffer),
-				Rw:       rw,
-				Req:      req,
-			},
-		}
-
-		customCtx.ResponseWriter.ResponseWriter = customWriter
-		req = s.Retriever.GetContext().SetContext(req)
-		getterCtx := getterContext{next, customWriter, req}
-		ctx := context.WithValue(req.Context(), getterContextCtxKey, getterCtx)
-		req = req.WithContext(ctx)
-		if plugins.HasMutation(req, rw) {
-			next(c)
-
-			return
-		}
-		req.Header.Set("Date", time.Now().UTC().Format(time.RFC1123))
-		combo := ctx.Value(getterContextCtxKey).(getterContext)
-
-		_ = plugins.DefaultSouinPluginCallback(customWriter, req, s.Retriever, nil, func(_ http.ResponseWriter, _ *http.Request) error {
-			var e error
-			combo.next(customCtx)
-
-			combo.req.Response = customWriter.Response
-			if combo.req.Response.StatusCode == 0 {
-				combo.req.Response.StatusCode = 200
-			}
-			combo.req.Response, e = s.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(combo.req)
-
-			return e
-		})
-	}
-}
-*/

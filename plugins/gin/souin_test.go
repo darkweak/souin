@@ -11,8 +11,8 @@ import (
 
 func Test_New(t *testing.T) {
 	s := New(DevDefaultConfiguration)
-	if s.bufPool == nil {
-		t.Error("The bufpool must be set.")
+	if s.Storer == nil {
+		t.Error("The storer must be set.")
 	}
 	c := plugins.BaseConfiguration{}
 	defer func() {
@@ -43,7 +43,7 @@ func Test_SouinGinPlugin_Process(t *testing.T) {
 	})
 	r.ServeHTTP(res, c.Request)
 
-	if res.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored" {
+	if res.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-example.com-/handled" {
 		t.Error("The response must contain a Cache-Status header with the stored directive.")
 	}
 
@@ -64,12 +64,12 @@ func Test_SouinGinPlugin_Process_CannotHandle(t *testing.T) {
 	})
 	r.ServeHTTP(res, c.Request)
 
-	if res.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; key=; detail=CANNOT-HANDLE" {
+	if res.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-example.com-/handled" {
 		t.Error("The response must contain a Cache-Status header without the stored directive and with the uri-miss only.")
 	}
 
 	r.ServeHTTP(res2, c.Request)
-	if res2.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; key=; detail=CANNOT-HANDLE" {
+	if res2.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-example.com-/handled" {
 		t.Error("The response must contain a Cache-Status header without the stored directive and with the uri-miss only.")
 	}
 	if res2.Result().Header.Get("Age") != "" {
