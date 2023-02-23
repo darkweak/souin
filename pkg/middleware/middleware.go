@@ -252,10 +252,10 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 			if rfc.ValidateMaxAgeCachedResponse(requestCc, response) != nil {
 				customWriter.Headers = response.Header
 				customWriter.statusCode = response.StatusCode
-				io.Copy(customWriter.Buf, response.Body)
-				customWriter.Send()
+				_, _ = io.Copy(customWriter.Buf, response.Body)
+				_, err := customWriter.Send()
 
-				return nil
+				return err
 			}
 		} else if response == nil {
 			staleCachedVal := s.Storer.Prefix(storage.StalePrefix+cachedKey, rq)
@@ -269,35 +269,37 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 					customWriter.Headers = response.Header
 					customWriter.statusCode = response.StatusCode
 					rfc.HitStaleCache(&response.Header)
-					io.Copy(customWriter.Buf, response.Body)
-					customWriter.Send()
+					_, _ = io.Copy(customWriter.Buf, response.Body)
+					_, err := customWriter.Send()
 					customWriter = NewCustomWriter(rq, rw, bufPool)
-					go s.Upstream(customWriter, rq, next, requestCc, cachedKey)
+					go func(goCw *CustomWriter, goRq *http.Request, goNext func(http.ResponseWriter, *http.Request) error, goCc *cacheobject.RequestCacheDirectives, goCk string) {
+						_ = s.Upstream(goCw, goRq, goNext, goCc, goCk)
+					}(customWriter, rq, next, requestCc, cachedKey)
 					buf := s.bufPool.Get().(*bytes.Buffer)
 					buf.Reset()
 					defer s.bufPool.Put(buf)
 
-					return nil
+					return err
 				}
 
 				if responseCc.StaleIfError > 0 && s.Upstream(customWriter, rq, next, requestCc, cachedKey) != nil {
 					customWriter.Headers = response.Header
 					customWriter.statusCode = response.StatusCode
 					rfc.HitStaleCache(&response.Header)
-					io.Copy(customWriter.Buf, response.Body)
-					customWriter.Send()
+					_, _ = io.Copy(customWriter.Buf, response.Body)
+					_, err := customWriter.Send()
 
-					return nil
+					return err
 				}
 
 				if rfc.ValidateMaxAgeCachedStaleResponse(requestCc, response, int(addTime.Seconds())) != nil {
 					customWriter.Headers = response.Header
 					customWriter.statusCode = response.StatusCode
 					rfc.HitStaleCache(&response.Header)
-					io.Copy(customWriter.Buf, response.Body)
-					customWriter.Send()
+					_, _ = io.Copy(customWriter.Buf, response.Body)
+					_, err := customWriter.Send()
 
-					return nil
+					return err
 				}
 			}
 		}

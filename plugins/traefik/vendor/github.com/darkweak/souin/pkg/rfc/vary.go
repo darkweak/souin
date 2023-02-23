@@ -43,15 +43,3 @@ func HeaderAllCommaSepValues(headers http.Header) []string {
 	}
 	return vals
 }
-
-// varyMatches will return false unless all of the cached values for the headers listed in Vary
-// match the new request
-func varyMatches(cachedResp *http.Response, req *http.Request) bool {
-	for _, header := range HeaderAllCommaSepValues(cachedResp.Header) {
-		header = http.CanonicalHeaderKey(header)
-		if header == "" || req.Header.Get(header) == "" {
-			return false
-		}
-	}
-	return true
-}

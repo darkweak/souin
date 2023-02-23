@@ -2,7 +2,6 @@ package rfc
 
 import (
 	ctx "context"
-	"fmt"
 	"math"
 	"net/http"
 	"strconv"
@@ -64,9 +63,9 @@ func GetCacheKeyFromCtx(currentCtx ctx.Context) string {
 }
 
 // MissCache set miss fwd
-func MissCache(set func(key, value string), req *http.Request, reason string) {
-	set("Cache-Status", fmt.Sprintf("%s; fwd=uri-miss; key=%s; detail=%s", req.Context().Value(context.CacheName), GetCacheKeyFromCtx(req.Context()), reason))
-}
+// func MissCache(set func(key, value string), req *http.Request, reason string) {
+// 	set("Cache-Status", fmt.Sprintf("%s; fwd=uri-miss; key=%s; detail=%s", req.Context().Value(context.CacheName), GetCacheKeyFromCtx(req.Context()), reason))
+// }
 
 // HitStaleCache set hit and stale in the Cache-Status header
 func HitStaleCache(h *http.Header) {

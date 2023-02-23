@@ -48,6 +48,9 @@ func BadgerConnectionFactory(c t.AbstractConfigurationInterface) (Storer, error)
 		if err := mergo.Merge(&badgerOptions, parsedBadger, mergo.WithOverride); err != nil {
 			c.GetLogger().Sugar().Error("An error occurred during the badgerOptions merge from the default options with your configuration.")
 		}
+		if badgerOptions.Dir == "" {
+			badgerOptions.Dir = "souin_dir"
+		}
 	} else if badgerConfiguration.Path == "" {
 		badgerOptions = badgerOptions.WithInMemory(true)
 	}

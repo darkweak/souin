@@ -3,7 +3,7 @@ module github.com/darkweak/souin
 go 1.16
 
 require (
-	github.com/buraksezer/olric v0.5.2
+	github.com/buraksezer/olric v0.5.4
 	github.com/darkweak/go-esi v0.0.5
 	github.com/dgraph-io/badger/v3 v3.2103.5
 	github.com/dgraph-io/ristretto v0.1.1

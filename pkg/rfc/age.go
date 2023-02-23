@@ -7,7 +7,7 @@ import (
 	"github.com/pquerna/cachecontrol/cacheobject"
 )
 
-func validateMaxAgeCachedResponse(res *http.Response, header string, maxAge int, addTime int) *http.Response {
+func validateMaxAgeCachedResponse(res *http.Response, maxAge int, addTime int) *http.Response {
 	a, _ := strconv.Atoi(res.Header.Get("Age"))
 
 	if maxAge >= 0 && (maxAge+addTime) < a {
@@ -18,7 +18,7 @@ func validateMaxAgeCachedResponse(res *http.Response, header string, maxAge int,
 }
 
 func ValidateMaxAgeCachedResponse(co *cacheobject.RequestCacheDirectives, res *http.Response) *http.Response {
-	return validateMaxAgeCachedResponse(res, "max-age", int(co.MaxAge), 0)
+	return validateMaxAgeCachedResponse(res, int(co.MaxAge), 0)
 }
 
 func ValidateMaxAgeCachedStaleResponse(co *cacheobject.RequestCacheDirectives, res *http.Response, addTime int) *http.Response {
@@ -26,5 +26,5 @@ func ValidateMaxAgeCachedStaleResponse(co *cacheobject.RequestCacheDirectives, r
 		return nil
 	}
 
-	return validateMaxAgeCachedResponse(res, "max-stale", int(co.MaxStale), addTime)
+	return validateMaxAgeCachedResponse(res, int(co.MaxStale), addTime)
 }
