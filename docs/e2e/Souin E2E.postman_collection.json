@@ -2588,7 +2588,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.basicRequest(pm, `${utils.getVar(pm, 'app_url')}/default`)"
+									"utils.basicRequest(pm, `${utils.getVar(pm, 'app_url')}/`)"
 								],
 								"type": "text/javascript"
 							}
@@ -2598,12 +2598,12 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{app_url}}/default",
+							"raw": "{{app_url}}/",
 							"host": [
 								"{{app_url}}"
 							],
 							"path": [
-								"default"
+								""
 							]
 						}
 					},
@@ -2616,7 +2616,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.noCacheRequest(pm, `${utils.getVar(pm, 'app_url')}/default`)"
+									"utils.noCacheRequest(pm, `${utils.getVar(pm, 'app_url')}/`)"
 								],
 								"type": "text/javascript"
 							}
@@ -2632,12 +2632,12 @@
 							}
 						],
 						"url": {
-							"raw": "{{app_url}}/default",
+							"raw": "{{app_url}}/",
 							"host": [
 								"{{app_url}}"
 							],
 							"path": [
-								"default"
+								""
 							]
 						}
 					},
@@ -2650,7 +2650,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.noStoreRequest(pm, `${utils.getVar(pm, 'app_url')}/default`)"
+									"utils.noStoreRequest(pm, `${utils.getVar(pm, 'app_url')}/`)"
 								],
 								"type": "text/javascript"
 							}
@@ -2666,12 +2666,12 @@
 							}
 						],
 						"url": {
-							"raw": "{{app_url}}/default",
+							"raw": "{{app_url}}/",
 							"host": [
 								"{{app_url}}"
 							],
 							"path": [
-								"default"
+								""
 							]
 						}
 					},
@@ -2993,7 +2993,7 @@
 					"        pm.test(\"The first basic request must contain the Cache-Status HTTP response header without Age\", function () {",
 					"            pm.response.to.have.status(200);",
 					"            pm.response.to.have.header(\"Cache-Status\");",
-					"            pm.expect(pm.response.headers.get(\"Cache-Status\")).to.eql(`Souin; fwd=uri-miss; stored; key=GET-${pm.collectionVariables.get('current_host')}-/default`);",
+					"            pm.expect(pm.response.headers.get(\"Cache-Status\")).to.eql(`Souin; fwd=uri-miss; stored; key=GET-${pm.collectionVariables.get('current_host')}-/${pm.request.url.path.join(\"/\")}`);",
 					"            pm.response.to.not.have.header(\"Age\");",
 					"        });",
 					"        pm.sendRequest(utils.request(baseUrl), function (_, response) {",
