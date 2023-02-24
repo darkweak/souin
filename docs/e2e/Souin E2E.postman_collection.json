@@ -1,8 +1,9 @@
 {
 	"info": {
-		"_postman_id": "9caa3280-1e4b-4398-a30e-71cb9dbb039d",
+		"_postman_id": "90909e3a-0c86-4971-8be2-7f4c97352220",
 		"name": "Souin E2E",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "17806531"
 	},
 	"item": [
 		{
@@ -2684,7 +2685,19 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.excludedRequest(pm, `${utils.getVar(pm, 'app_url')}/excluded`)"
+									"pm.test(\"The first excluded request must contain the Cache-Status HTTP response header without Age\", function () {",
+									"    pm.response.to.have.header(\"Cache-Status\");",
+									"    pm.expect(pm.response.headers.get(\"Cache-Status\")).to.eql(\"Souin; fwd=uri-miss; detail=EXCLUDED-REQUEST-URI\");",
+									"    pm.response.to.not.have.header(\"Age\");",
+									"});",
+									"pm.sendRequest(utils.request(`${utils.getVar(pm, 'app_url')}/excluded`), function (_, response) {",
+									"    pm.test(\"The second excluded request must contain the Cache-Status HTTP response header without Age\", function () {",
+									"        const expected = pm.expect(response);",
+									"        expected.to.have.header(\"Cache-Status\");",
+									"        pm.expect(response.headers.get(\"Cache-Status\")).to.eql(\"Souin; fwd=uri-miss; detail=EXCLUDED-REQUEST-URI\");",
+									"        expected.to.not.have.header(\"Age\");",
+									"    });",
+									"});"
 								],
 								"type": "text/javascript"
 							}

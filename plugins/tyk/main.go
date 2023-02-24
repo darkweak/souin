@@ -40,6 +40,17 @@ func SouinResponseHandler(rw http.ResponseWriter, rs *http.Response, rq *http.Re
 	customWriter := NewCustomWriter(rq, rw, bytes.NewBuffer([]byte{}))
 	s := getInstanceFromRequest(rq)
 	rq = s.context.SetContext(s.context.SetBaseContext(rq))
+	cacheName := rq.Context().Value(context.CacheName).(string)
+	if rq.Header.Get("Upgrade") == "websocket" || (s.ExcludeRegex != nil && s.ExcludeRegex.MatchString(rq.RequestURI)) {
+		rw.Header().Set("Cache-Status", cacheName+"; fwd=uri-miss; detail=EXCLUDED-REQUEST-URI")
+		return
+	}
+
+	if !rq.Context().Value(context.SupportedMethod).(bool) {
+		rw.Header().Set("Cache-Status", cacheName+"; fwd=uri-miss; detail=UNSUPPORTED-METHOD")
+
+		return
+	}
 
 	switch customWriter.statusCode {
 	case 500, 502, 503, 504:
