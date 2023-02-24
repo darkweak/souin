@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/darkweak/souin/configurationtypes"
-	"github.com/darkweak/souin/plugins"
+	"github.com/darkweak/souin/pkg/middleware"
 )
 
 const (
@@ -317,7 +317,7 @@ func parseSurrogateKeys(surrogates map[string]interface{}) map[string]configurat
 	return u
 }
 
-func ParseConfiguration(baseConfiguration *plugins.BaseConfiguration, unparsedConfiguration map[string]interface{}) {
+func ParseConfiguration(baseConfiguration *middleware.BaseConfiguration, unparsedConfiguration map[string]interface{}) {
 	for key, v := range unparsedConfiguration {
 		switch key {
 		case "api":

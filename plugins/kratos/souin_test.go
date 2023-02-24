@@ -10,10 +10,10 @@ import (
 	"time"
 
 	"github.com/darkweak/souin/configurationtypes"
-	"github.com/darkweak/souin/plugins"
+	"github.com/darkweak/souin/pkg/middleware"
 )
 
-var devDefaultConfiguration = plugins.BaseConfiguration{
+var devDefaultConfiguration = middleware.BaseConfiguration{
 	API: configurationtypes.API{
 		BasePath: "/httpcache_api",
 		Prometheus: configurationtypes.APIEndpoint{

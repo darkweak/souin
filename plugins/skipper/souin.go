@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/darkweak/souin/pkg/middleware"
-	"github.com/darkweak/souin/plugins"
 	"github.com/zalando/skipper/filters"
 )
 
@@ -27,7 +26,7 @@ func (s *httpcacheMiddleware) CreateFilter(config []interface{}) (filters.Filter
 	if !ok {
 		return nil, filters.ErrInvalidFilterParameters
 	}
-	var c plugins.BaseConfiguration
+	var c middleware.BaseConfiguration
 	if e := json.Unmarshal([]byte(configuration), &c); e != nil {
 		return nil, filters.ErrInvalidFilterParameters
 	}

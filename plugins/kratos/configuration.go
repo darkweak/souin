@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/darkweak/souin/configurationtypes"
-	"github.com/darkweak/souin/plugins"
+	"github.com/darkweak/souin/pkg/middleware"
 	"github.com/go-kratos/kratos/v2/config"
 )
 
@@ -367,8 +367,8 @@ func parseSurrogateKeys(surrogates map[string]config.Value) map[string]configura
 
 // ParseConfiguration parse the Kratos configuration into a valid HTTP
 // cache configuration object.
-func ParseConfiguration(c config.Config) plugins.BaseConfiguration {
-	var configuration plugins.BaseConfiguration
+func ParseConfiguration(c config.Config) middleware.BaseConfiguration {
+	var configuration middleware.BaseConfiguration
 
 	values, _ := c.Value(configurationKey).Map()
 	for key, v := range values {

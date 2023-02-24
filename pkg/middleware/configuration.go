@@ -1,4 +1,4 @@
-package plugins
+package middleware
 
 import (
 	"github.com/darkweak/souin/configurationtypes"

@@ -13,13 +13,6 @@ import (
 	"github.com/darkweak/souin/pkg/middleware"
 )
 
-// SouinTraefikPlugin declaration.
-// type SouinTraefikPlugin struct {
-// 	next http.Handler
-// 	name string
-// 	// SouinBasePlugin
-// }
-
 // SouinTraefikMiddleware declaration.
 type SouinTraefikMiddleware struct {
 	next http.Handler

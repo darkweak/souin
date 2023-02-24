@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/darkweak/souin/pkg/middleware"
-	"github.com/darkweak/souin/plugins"
 	kratos_http "github.com/go-kratos/kratos/v2/transport/http"
 )
 
@@ -17,7 +16,7 @@ type httpcacheKratosMiddleware struct {
 // distributed and not-distributed storage, key generation tweaking.
 // Use it with
 // httpcache.NewHTTPCacheFilter(httpcache.ParseConfiguration(config))
-func NewHTTPCacheFilter(c plugins.BaseConfiguration) kratos_http.FilterFunc {
+func NewHTTPCacheFilter(c middleware.BaseConfiguration) kratos_http.FilterFunc {
 	s := &httpcacheKratosMiddleware{
 		SouinBaseHandler: middleware.NewHTTPCacheHandler(&c),
 	}

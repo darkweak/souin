@@ -6,7 +6,6 @@ import (
 
 	"github.com/darkweak/souin/context"
 	"github.com/darkweak/souin/pkg/middleware"
-	"github.com/darkweak/souin/plugins"
 	"github.com/darkweak/souin/plugins/souin/agnostic"
 )
 
@@ -19,7 +18,7 @@ const (
 
 func parseConfiguration(id string, c map[string]interface{}) *souinInstance {
 	c = c[configKey].(map[string]interface{})
-	var configuration plugins.BaseConfiguration
+	var configuration middleware.BaseConfiguration
 	agnostic.ParseConfiguration(&configuration, c)
 
 	s := newInstanceFromConfiguration(configuration)
@@ -28,7 +27,7 @@ func parseConfiguration(id string, c map[string]interface{}) *souinInstance {
 	return s
 }
 
-func newInstanceFromConfiguration(c plugins.BaseConfiguration) *souinInstance {
+func newInstanceFromConfiguration(c middleware.BaseConfiguration) *souinInstance {
 	bufPool := &sync.Pool{
 		New: func() interface{} {
 			return new(bytes.Buffer)
