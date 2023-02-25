@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
-	"sync"
 	"time"
 
 	"github.com/buraksezer/olric/config"
@@ -41,7 +40,6 @@ type SouinCaddyMiddleware struct {
 	cacheKeys     map[configurationtypes.RegValue]configurationtypes.Key
 	// Logger level, fallback on caddy's one when not redefined.
 	LogLevel string `json:"log_level,omitempty"`
-	bufPool  *sync.Pool
 	// Allowed HTTP verbs to be cached by the system.
 	AllowedHTTPVerbs []string `json:"allowed_http_verbs,omitempty"`
 	// Headers to add to the cache key if they are present.
@@ -308,7 +306,7 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 		URLs: make(map[string]configurationtypes.URL),
 	}
 
-	parseConfiguration(cfg, h, true)
+	err := parseConfiguration(cfg, h, true)
 
 	souinApp.DefaultCache = cfg.DefaultCache
 	souinApp.API = cfg.API
@@ -318,7 +316,7 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 	return httpcaddyfile.App{
 		Name:  moduleName,
 		Value: caddyconfig.JSON(souinApp, nil),
-	}, nil
+	}, err
 }
 func parseCaddyfileHandlerDirective(h httpcaddyfile.Helper) (caddyhttp.MiddlewareHandler, error) {
 	var s SouinCaddyMiddleware
@@ -332,9 +330,7 @@ func (s *SouinCaddyMiddleware) UnmarshalCaddyfile(h *caddyfile.Dispenser) error 
 		DefaultCache: &dc,
 	}
 
-	parseConfiguration(s.Configuration, h, false)
-
-	return nil
+	return parseConfiguration(s.Configuration, h, false)
 }
 
 // Interface guards

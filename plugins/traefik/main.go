@@ -1,12 +1,10 @@
 package traefik
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"net/http"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/darkweak/souin/configurationtypes"
@@ -22,12 +20,6 @@ type SouinTraefikMiddleware struct {
 
 // TestConfiguration is the temporary configuration for Træfik
 type TestConfiguration map[string]interface{}
-
-var bufPool = sync.Pool{
-	New: func() interface{} {
-		return new(bytes.Buffer)
-	},
-}
 
 // CreateConfig creates the default plugin configuration.
 func CreateConfig() *TestConfiguration {

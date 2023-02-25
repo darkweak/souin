@@ -1,15 +1,12 @@
 package fiber
 
 import (
-	"bytes"
-	"io"
 	"net/http"
 	"time"
 
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/middleware"
 	"github.com/gofiber/fiber/v2"
-	"github.com/valyala/fasthttp"
 	"github.com/valyala/fasthttp/fasthttpadaptor"
 )
 
@@ -49,38 +46,6 @@ type SouinFiberMiddleware struct {
 	*middleware.SouinBaseHandler
 }
 
-func convertResponse(stdreq *http.Request, fastresp *fasthttp.Response) *http.Response {
-	status := fastresp.Header.StatusCode()
-	body := fastresp.Body()
-
-	stdresp := &http.Response{
-		Request:    stdreq,
-		StatusCode: status,
-		Status:     http.StatusText(status),
-	}
-
-	fastresp.Header.VisitAll(func(k, v []byte) {
-		sk := string(k)
-		sv := string(v)
-		if stdresp.Header == nil {
-			stdresp.Header = make(http.Header)
-		}
-		stdresp.Header.Add(sk, sv)
-	})
-
-	if fastresp.Header.ContentLength() == -1 {
-		stdresp.TransferEncoding = []string{"chunked"}
-	}
-
-	if body != nil {
-		stdresp.Body = io.NopCloser(bytes.NewReader(body))
-	} else {
-		stdresp.Body = io.NopCloser(bytes.NewReader(nil))
-	}
-
-	return stdresp
-}
-
 func NewHTTPCache(c middleware.BaseConfiguration) *SouinFiberMiddleware {
 	return &SouinFiberMiddleware{
 		SouinBaseHandler: middleware.NewHTTPCacheHandler(&c),
@@ -89,7 +54,7 @@ func NewHTTPCache(c middleware.BaseConfiguration) *SouinFiberMiddleware {
 
 func (s *SouinFiberMiddleware) Handle(c *fiber.Ctx) error {
 	var rq http.Request
-	fasthttpadaptor.ConvertRequest(c.Context(), &rq, true)
+	_ = fasthttpadaptor.ConvertRequest(c.Context(), &rq, true)
 	customWriter := newWriter(c.Response())
 	err := s.SouinBaseHandler.ServeHTTP(customWriter, &rq, func(w http.ResponseWriter, r *http.Request) error {
 		var err error

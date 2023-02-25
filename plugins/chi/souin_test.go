@@ -28,12 +28,12 @@ func Test_NewHTTPCache(t *testing.T) {
 
 func defaultHandler(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Hello, World!"))
+	_, _ = w.Write([]byte("Hello, World!"))
 }
 
 func excludedHandler(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Hello, Excluded!"))
+	_, _ = w.Write([]byte("Hello, Excluded!"))
 }
 
 func prepare() (res *httptest.ResponseRecorder, res2 *httptest.ResponseRecorder, router chi.Router) {

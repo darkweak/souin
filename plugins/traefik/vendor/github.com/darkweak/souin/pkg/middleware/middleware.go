@@ -12,8 +12,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/darkweak/souin/cache/surrogate"
-	"github.com/darkweak/souin/cache/surrogate/providers"
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/context"
 	"github.com/darkweak/souin/helpers"
@@ -21,18 +19,51 @@ import (
 	"github.com/darkweak/souin/pkg/api/prometheus"
 	"github.com/darkweak/souin/pkg/rfc"
 	"github.com/darkweak/souin/pkg/storage"
+	"github.com/darkweak/souin/pkg/surrogate"
+	"github.com/darkweak/souin/pkg/surrogate/providers"
 	"github.com/pquerna/cachecontrol/cacheobject"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 func NewHTTPCacheHandler(c configurationtypes.AbstractConfigurationInterface) *SouinBaseHandler {
+	if c.GetLogger() == nil {
+		var logLevel zapcore.Level
+		if c.GetLogLevel() == "" {
+			logLevel = zapcore.FatalLevel
+		} else if err := logLevel.UnmarshalText([]byte(c.GetLogLevel())); err != nil {
+			logLevel = zapcore.FatalLevel
+		}
+		cfg := zap.Config{
+			Encoding:         "json",
+			Level:            zap.NewAtomicLevelAt(logLevel),
+			OutputPaths:      []string{"stderr"},
+			ErrorOutputPaths: []string{"stderr"},
+			EncoderConfig: zapcore.EncoderConfig{
+				MessageKey: "message",
+
+				LevelKey:    "level",
+				EncodeLevel: zapcore.CapitalLevelEncoder,
+
+				TimeKey:    "time",
+				EncodeTime: zapcore.ISO8601TimeEncoder,
+
+				CallerKey:    "caller",
+				EncodeCaller: zapcore.ShortCallerEncoder,
+			},
+		}
+		logger, _ := cfg.Build()
+		c.SetLogger(logger)
+	}
+
 	storer, err := storage.NewStorage(c)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("Storer initialized.")
+	c.GetLogger().Debug("Storer initialized.")
 	regexpUrls := helpers.InitializeRegexp(c)
 	surrogateStorage := surrogate.InitializeSurrogate(c)
-	fmt.Println("Surrogate storage initialized.")
+	c.GetLogger().Debug("Surrogate storage initialized.")
 	var excludedRegexp *regexp.Regexp = nil
 	if c.GetDefaultCache().GetRegex().Exclude != "" {
 		excludedRegexp = regexp.MustCompile(c.GetDefaultCache().GetRegex().Exclude)
@@ -51,7 +82,7 @@ func NewHTTPCacheHandler(c configurationtypes.AbstractConfigurationInterface) *S
 		Headers:             c.GetDefaultCache().GetHeaders(),
 		DefaultCacheControl: c.GetDefaultCache().GetDefaultCacheControl(),
 	}
-	fmt.Println("Souin configuration is now loaded.")
+	c.GetLogger().Info("Souin configuration is now loaded.")
 
 	return &SouinBaseHandler{
 		Configuration:            c,
@@ -119,10 +150,10 @@ func (s *SouinBaseHandler) Upstream(
 	}
 
 	ma := currentMatchedURL.TTL.Duration
-	if responseCc.MaxAge > 0 {
-		ma = time.Duration(responseCc.MaxAge) * time.Second
-	} else if responseCc.SMaxAge > 0 {
+	if responseCc.SMaxAge > 0 {
 		ma = time.Duration(responseCc.SMaxAge) * time.Second
+	} else if responseCc.MaxAge > 0 {
+		ma = time.Duration(responseCc.MaxAge) * time.Second
 	}
 	if ma > currentMatchedURL.TTL.Duration {
 		ma = currentMatchedURL.TTL.Duration
@@ -201,6 +232,11 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 	}
 
 	rq = s.context.SetContext(rq)
+	if rq.Context().Value(context.IsMutationRequest).(bool) {
+		rw.Header().Set("Cache-Status", cacheName+"; fwd=uri-miss; detail=IS-MUTATION-REQUEST")
+
+		return nil
+	}
 	cachedKey := rq.Context().Value(context.Key).(string)
 
 	bufPool := s.bufPool.Get().(*bytes.Buffer)
@@ -216,10 +252,10 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 			if rfc.ValidateMaxAgeCachedResponse(requestCc, response) != nil {
 				customWriter.Headers = response.Header
 				customWriter.statusCode = response.StatusCode
-				io.Copy(customWriter.Buf, response.Body)
-				customWriter.Send()
+				_, _ = io.Copy(customWriter.Buf, response.Body)
+				_, err := customWriter.Send()
 
-				return nil
+				return err
 			}
 		} else if response == nil {
 			staleCachedVal := s.Storer.Prefix(storage.StalePrefix+cachedKey, rq)
@@ -233,35 +269,37 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 					customWriter.Headers = response.Header
 					customWriter.statusCode = response.StatusCode
 					rfc.HitStaleCache(&response.Header)
-					io.Copy(customWriter.Buf, response.Body)
-					customWriter.Send()
+					_, _ = io.Copy(customWriter.Buf, response.Body)
+					_, err := customWriter.Send()
 					customWriter = NewCustomWriter(rq, rw, bufPool)
-					go s.Upstream(customWriter, rq, next, requestCc, cachedKey)
+					go func(goCw *CustomWriter, goRq *http.Request, goNext func(http.ResponseWriter, *http.Request) error, goCc *cacheobject.RequestCacheDirectives, goCk string) {
+						_ = s.Upstream(goCw, goRq, goNext, goCc, goCk)
+					}(customWriter, rq, next, requestCc, cachedKey)
 					buf := s.bufPool.Get().(*bytes.Buffer)
 					buf.Reset()
 					defer s.bufPool.Put(buf)
 
-					return nil
+					return err
 				}
 
 				if responseCc.StaleIfError > 0 && s.Upstream(customWriter, rq, next, requestCc, cachedKey) != nil {
 					customWriter.Headers = response.Header
 					customWriter.statusCode = response.StatusCode
 					rfc.HitStaleCache(&response.Header)
-					io.Copy(customWriter.Buf, response.Body)
-					customWriter.Send()
+					_, _ = io.Copy(customWriter.Buf, response.Body)
+					_, err := customWriter.Send()
 
-					return nil
+					return err
 				}
 
 				if rfc.ValidateMaxAgeCachedStaleResponse(requestCc, response, int(addTime.Seconds())) != nil {
 					customWriter.Headers = response.Header
 					customWriter.statusCode = response.StatusCode
 					rfc.HitStaleCache(&response.Header)
-					io.Copy(customWriter.Buf, response.Body)
-					customWriter.Send()
+					_, _ = io.Copy(customWriter.Buf, response.Body)
+					_, err := customWriter.Send()
 
-					return nil
+					return err
 				}
 			}
 		}

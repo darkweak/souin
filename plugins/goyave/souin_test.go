@@ -45,7 +45,7 @@ func (suite *HttpCacheMiddlewareTestSuite) Test_SouinFiberPlugin_Middleware() {
 	req.Header = http.Header{}
 	httpcache, request := prepare(suite, req)
 	res := suite.Middleware(httpcache.Handle, request, func(response *goyave.Response, r *goyave.Request) {
-		response.String(http.StatusOK, "Hello, World 👋!")
+		_ = response.String(http.StatusOK, "Hello, World 👋!")
 	})
 
 	b, err := io.ReadAll(res.Body)
@@ -86,7 +86,7 @@ func (suite *HttpCacheMiddlewareTestSuite) Test_SouinFiberPlugin_Middleware_Cann
 	req.Header.Add("Cache-Control", "no-cache")
 	httpcache, request := prepare(suite, req)
 	res := suite.Middleware(httpcache.Handle, request, func(response *goyave.Response, r *goyave.Request) {
-		response.String(http.StatusOK, "Hello, World 👋!")
+		_ = response.String(http.StatusOK, "Hello, World 👋!")
 	})
 
 	b, err := io.ReadAll(res.Body)
@@ -125,7 +125,7 @@ func (suite *HttpCacheMiddlewareTestSuite) Test_SouinFiberPlugin_Middleware_APIH
 		suite.T().Error("The response body must be an empty array because no request has been stored")
 	}
 	_ = suite.Middleware(httpcache.Handle, suite.CreateTestRequest(httptest.NewRequest(http.MethodGet, "/handled", nil)), func(response *goyave.Response, r *goyave.Request) {
-		response.String(http.StatusOK, "Hello, World 👋!")
+		_ = response.String(http.StatusOK, "Hello, World 👋!")
 	})
 	res = suite.Middleware(httpcache.Handle, SouinAPIRequest, func(response *goyave.Response, r *goyave.Request) {})
 	b, _ = io.ReadAll(res.Body)

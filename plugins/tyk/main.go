@@ -93,7 +93,7 @@ func SouinResponseHandler(rw http.ResponseWriter, rs *http.Response, rq *http.Re
 
 	status := fmt.Sprintf("%s; fwd=uri-miss", rq.Context().Value(context.CacheName))
 	if !requestCc.NoStore && !responseCc.NoStore {
-		io.Copy(customWriter, rs.Body)
+		_, _ = io.Copy(customWriter, rs.Body)
 		rs.Body = ioutil.NopCloser(bytes.NewBuffer(customWriter.Buf.Bytes()))
 		res := http.Response{
 			StatusCode: customWriter.statusCode,
@@ -166,7 +166,7 @@ func SouinRequestHandler(rw http.ResponseWriter, rq *http.Request) {
 				for hn, hv := range response.Header {
 					rw.Header().Set(hn, strings.Join(hv, ", "))
 				}
-				io.Copy(rw, response.Body)
+				_, _ = io.Copy(rw, response.Body)
 
 				return
 			}
@@ -184,7 +184,7 @@ func SouinRequestHandler(rw http.ResponseWriter, rq *http.Request) {
 					for hn, hv := range h {
 						h.Set(hn, strings.Join(hv, ", "))
 					}
-					io.Copy(rw, response.Body)
+					_, _ = io.Copy(rw, response.Body)
 
 					return
 				}
@@ -195,7 +195,7 @@ func SouinRequestHandler(rw http.ResponseWriter, rq *http.Request) {
 					for hn, hv := range h {
 						h.Set(hn, strings.Join(hv, ", "))
 					}
-					io.Copy(rw, response.Body)
+					_, _ = io.Copy(rw, response.Body)
 
 					return
 				}

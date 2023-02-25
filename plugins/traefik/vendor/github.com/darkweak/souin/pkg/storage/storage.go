@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"errors"
 	"net/http"
 	"net/url"
 	"strings"
@@ -30,8 +31,41 @@ type Storer interface {
 
 type StorerInstanciator func(configurationtypes.AbstractConfigurationInterface) (Storer, error)
 
+var storageMap = map[string]StorerInstanciator{
+	"etcd":           EtcdConnectionFactory,
+	"redis":          RedisConnectionFactory,
+	"olric":          OlricConnectionFactory,
+	"embedded_olric": EmbeddedOlricConnectionFactory,
+	"nuts":           NutsConnectionFactory,
+	"badger":         BadgerConnectionFactory,
+}
+
+func getStorageNameFromConfiguration(configuration configurationtypes.AbstractConfigurationInterface) string {
+	if configuration.GetDefaultCache().GetDistributed() {
+		if configuration.GetDefaultCache().GetEtcd().Configuration != nil {
+			return "etcd"
+		} else if configuration.GetDefaultCache().GetRedis().Configuration != nil || configuration.GetDefaultCache().GetRedis().URL != "" {
+			return "redis"
+		} else {
+			if configuration.GetDefaultCache().GetOlric().URL != "" {
+				return "olric"
+			} else {
+				return "embedded_olric"
+			}
+		}
+	} else if configuration.GetDefaultCache().GetNuts().Configuration != nil || configuration.GetDefaultCache().GetNuts().Path != "" {
+		return "nuts"
+	}
+
+	return "badger"
+}
+
 func NewStorage(configuration configurationtypes.AbstractConfigurationInterface) (Storer, error) {
-	return CacheConnectionFactory(configuration)
+	storerName := getStorageNameFromConfiguration(configuration)
+	if newStorage, found := storageMap[storerName]; found {
+		return newStorage(configuration)
+	}
+	return nil, errors.New("Storer with name" + storerName + " not found")
 }
 
 func varyVoter(baseKey string, req *http.Request, currentKey string) bool {

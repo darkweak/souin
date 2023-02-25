@@ -73,8 +73,8 @@ package surrogate
 // |---------------|------------------------------|
 
 import (
-	"github.com/darkweak/souin/cache/surrogate/providers"
 	"github.com/darkweak/souin/configurationtypes"
+	"github.com/darkweak/souin/pkg/surrogate/providers"
 )
 
 // InitializeSurrogate will initialize the Surrogate-Key storage system

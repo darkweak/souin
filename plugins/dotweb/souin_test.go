@@ -37,7 +37,9 @@ func prepare() (res *httptest.ResponseRecorder, res2 *httptest.ResponseRecorder,
 	app.HttpServer.Router().GET("/:p", defaultHandler).Use(httpcache)
 	res = httptest.NewRecorder()
 	res2 = httptest.NewRecorder()
-	go app.StartServer(8081)
+	go func(server *dotweb.DotWeb) {
+		_ = app.StartServer(8081)
+	}(app)
 	time.Sleep(200 * time.Millisecond)
 
 	return

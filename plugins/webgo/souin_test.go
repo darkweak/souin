@@ -29,7 +29,7 @@ func Test_NewHTTPCache(t *testing.T) {
 
 func defaultHandler(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Hello, World!"))
+	_, _ = w.Write([]byte("Hello, World!"))
 }
 
 func getRoutes() []*webgo.Route {
@@ -64,7 +64,7 @@ func Benchmark_SouinWebgoPlugin_Middleware(b *testing.B) {
 		httpcache := NewHTTPCache(DevDefaultConfiguration)
 		httpcache.Middleware(res, httptest.NewRequest(http.MethodGet, "/handled"+strconv.Itoa(i), nil), func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("Returns something"))
+			_, _ = w.Write([]byte("Returns something"))
 		})
 	}
 }

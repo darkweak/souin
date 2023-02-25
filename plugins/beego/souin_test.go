@@ -33,7 +33,7 @@ func prepare() (res, res2 *httptest.ResponseRecorder) {
 	res = httptest.NewRecorder()
 	res2 = httptest.NewRecorder()
 
-	web.LoadAppConfig("json", "beego.json")
+	_ = web.LoadAppConfig("json", "beego.json")
 	httpcache := NewHTTPCache(DevDefaultConfiguration)
 
 	web.InsertFilterChain("/*", httpcache.chainHandleFilter)

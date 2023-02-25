@@ -27,7 +27,7 @@ replace: ## Replace sources in the vendor folder deeper than the go mod replace
 	$(MAKE) copy-to base=$(CACHE) target=coalescing
 	$(MAKE) copy-to base=$(CACHE) target=providers
 	$(MAKE) copy-to base=$(SOUIN) target=context
-	$(MAKE) copy-file-to base=$(CACHE) target=surrogate/providers/common.go
+	$(MAKE) copy-file-to base=$(PKG) target=surrogate/providers/common.go
 	$(MAKE) copy-file-to base=$(CACHE) target=types/layerStorage.go
 	$(MAKE) copy-to base=$(CACHE) target=ykeys
 	$(MAKE) copy-to base=$(API) target=api
