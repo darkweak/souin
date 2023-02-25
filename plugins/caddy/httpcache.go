@@ -13,11 +13,10 @@ import (
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
 	"github.com/caddyserver/caddy/v2/caddyconfig/httpcaddyfile"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
-	surrogates_providers "github.com/darkweak/souin/cache/surrogate/providers"
-	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/middleware"
 	"github.com/darkweak/souin/pkg/storage"
+	surrogates_providers "github.com/darkweak/souin/pkg/surrogate/providers"
 	"go.uber.org/zap"
 )
 
@@ -237,7 +236,7 @@ func (s *SouinCaddyMiddleware) Provision(ctx caddy.Context) error {
 	s.SouinBaseHandler = bh
 	dc := s.SouinBaseHandler.Configuration.GetDefaultCache()
 	if dc.GetDistributed() {
-		if eo, ok := s.Storer.(*storage.EmbeddedOlric); ok {
+		if eo, ok := s.SouinBaseHandler.Storer.(*storage.EmbeddedOlric); ok {
 			name := fmt.Sprintf("0.0.0.0:%d", config.DefaultPort)
 			if dc.GetOlric().Configuration != nil {
 				oc := dc.GetOlric().Configuration.(*config.Config)
@@ -261,11 +260,11 @@ func (s *SouinCaddyMiddleware) Provision(ctx caddy.Context) error {
 				})
 
 				if l && e == nil {
-					s.Storer = v.(types.AbstractProviderInterface)
+					s.SouinBaseHandler.Storer = v.(storage.Storer)
 				}
 			} else {
 				s.logger.Sugar().Debug("Store the olric instance.")
-				_, _ = up.LoadOrStore(key, s.SurrogateKeyStorer)
+				_, _ = up.LoadOrStore(key, s.SouinBaseHandler.SurrogateKeyStorer)
 			}
 		}
 	}
@@ -278,14 +277,14 @@ func (s *SouinCaddyMiddleware) Provision(ctx caddy.Context) error {
 	// 	s.Retriever.GetTransport().(*rfc.VaryTransport).CoalescingLayerStorage = v.(*types.CoalescingLayerStorage)
 	// }
 
-	if app.Storer == nil {
-		app.Storer = s.Storer
+	if app.Storer == (storage.Storer)(nil) {
+		app.Storer = s.SouinBaseHandler.Storer
 	}
 
-	if app.SurrogateStorage == nil {
-		app.SurrogateStorage = s.SurrogateKeyStorer
+	if app.SurrogateStorage == (surrogates_providers.SurrogateInterface)(nil) {
+		app.SurrogateStorage = s.SouinBaseHandler.SurrogateKeyStorer
 	} else {
-		s.SurrogateKeyStorer = app.SurrogateStorage
+		s.SouinBaseHandler.SurrogateKeyStorer = app.SurrogateStorage
 	}
 
 	// s.RequestCoalescing = coalescing.Initialize()

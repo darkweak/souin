@@ -11,7 +11,7 @@ import (
 
 func Test_New(t *testing.T) {
 	s := New(DevDefaultConfiguration)
-	if s.Storer == nil {
+	if s.SouinBaseHandler.Storer == nil {
 		t.Error("The storer must be set.")
 	}
 	c := middleware.BaseConfiguration{}

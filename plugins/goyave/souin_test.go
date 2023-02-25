@@ -15,7 +15,7 @@ import (
 
 func Test_NewHTTPCache(t *testing.T) {
 	s := NewHTTPCache(DevDefaultConfiguration)
-	if s.Storer == nil {
+	if s.SouinBaseHandler.Storer == nil {
 		t.Error("The storer must be set.")
 	}
 	c := middleware.BaseConfiguration{}

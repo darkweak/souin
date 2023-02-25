@@ -27,6 +27,12 @@ jobs:
       -
         name: Checkout code
         uses: actions/checkout@v2
+      - 
+        name: golangci-lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          working-directory: plugins/${{ inputs.LOWER_NAME }}
+          args: --skip-dirs=override --timeout=240s
       -
         name: Run ${{ inputs.CAPITALIZED_NAME }} tests
         run: cd plugins/${{ inputs.LOWER_NAME }} && go test -v .

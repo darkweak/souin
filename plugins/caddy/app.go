@@ -4,9 +4,9 @@ import (
 	"errors"
 
 	"github.com/caddyserver/caddy/v2"
-	"github.com/darkweak/souin/cache/surrogate/providers"
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/storage"
+	"github.com/darkweak/souin/pkg/surrogate/providers"
 )
 
 // SouinApp contains the whole Souin necessary items

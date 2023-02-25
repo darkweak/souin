@@ -55,7 +55,7 @@ func (s *SouinGoyaveMiddleware) Handle(next goyave.Handler) goyave.Handler {
 	return func(res *goyave.Response, rq *goyave.Request) {
 		baseWriter := res.Writer()
 		defer res.SetWriter(baseWriter)
-		s.ServeHTTP(res, rq.Request(), func(w http.ResponseWriter, r *http.Request) error {
+		_ = s.SouinBaseHandler.ServeHTTP(res, rq.Request(), func(w http.ResponseWriter, r *http.Request) error {
 			if writer, ok := w.(*middleware.CustomWriter); ok {
 				writer.Rw = newBaseWriter(baseWriter, writer)
 				res.SetWriter(writer)

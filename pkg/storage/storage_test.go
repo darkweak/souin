@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/errors"
 	"github.com/darkweak/souin/tests"
@@ -17,7 +16,7 @@ const BYTEKEY = "MyByteKey"
 const NONEXISTENTKEY = "NonexistentKey"
 const BASE_VALUE = "My first data"
 
-func verifyNewValueAfterSet(client types.AbstractProviderInterface, key string, value []byte, t *testing.T) {
+func verifyNewValueAfterSet(client Storer, key string, value []byte, t *testing.T) {
 	newValue := client.Get(key)
 
 	if len(newValue) != len(value) {
@@ -25,7 +24,7 @@ func verifyNewValueAfterSet(client types.AbstractProviderInterface, key string, 
 	}
 }
 
-func setValueThenVerify(client types.AbstractProviderInterface, key string, value []byte, matchedURL configurationtypes.URL, ttl time.Duration, t *testing.T) {
+func setValueThenVerify(client Storer, key string, value []byte, matchedURL configurationtypes.URL, ttl time.Duration, t *testing.T) {
 	_ = client.Set(key, value, matchedURL, ttl)
 	time.Sleep(1 * time.Second)
 	verifyNewValueAfterSet(client, key, value, t)

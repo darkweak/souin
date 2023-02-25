@@ -6,7 +6,6 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/darkweak/souin/cache/providers"
 	"github.com/darkweak/souin/pkg/storage"
 )
 
@@ -23,7 +22,7 @@ func GetVariedCacheKey(rq *http.Request, headers []string) string {
 		headers[i] = fmt.Sprintf("%s:%s", v, h)
 	}
 
-	return storage.VarySeparator + strings.Join(headers, providers.DecodedHeaderSeparator)
+	return storage.VarySeparator + strings.Join(headers, storage.DecodedHeaderSeparator)
 }
 
 // headerAllCommaSepValues returns all comma-separated values (each

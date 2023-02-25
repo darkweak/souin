@@ -40,7 +40,7 @@ func (s *httpcacheMiddleware) Request(ctx filters.FilterContext) {
 	rw := ctx.ResponseWriter()
 	rq := ctx.Request()
 
-	s.ServeHTTP(rw, rq, func(w http.ResponseWriter, r *http.Request) error {
+	_ = s.SouinBaseHandler.ServeHTTP(rw, rq, func(w http.ResponseWriter, r *http.Request) error {
 		return nil
 	})
 }

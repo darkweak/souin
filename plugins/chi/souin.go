@@ -58,7 +58,7 @@ func NewHTTPCache(c middleware.BaseConfiguration) *SouinChiMiddleware {
 
 func (s *SouinChiMiddleware) Handle(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, rq *http.Request) {
-		_ = s.ServeHTTP(rw, rq, func(w http.ResponseWriter, r *http.Request) error {
+		_ = s.SouinBaseHandler.ServeHTTP(rw, rq, func(w http.ResponseWriter, r *http.Request) error {
 			next.ServeHTTP(w, r)
 
 			return nil

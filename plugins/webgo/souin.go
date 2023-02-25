@@ -51,7 +51,7 @@ func NewHTTPCache(c middleware.BaseConfiguration) *SouinWebgoMiddleware {
 }
 
 func (s *SouinWebgoMiddleware) Middleware(rw http.ResponseWriter, rq *http.Request, next http.HandlerFunc) {
-	s.ServeHTTP(rw, rq, func(w http.ResponseWriter, r *http.Request) error {
+	_ = s.SouinBaseHandler.ServeHTTP(rw, rq, func(w http.ResponseWriter, r *http.Request) error {
 		next(w, r)
 
 		return nil

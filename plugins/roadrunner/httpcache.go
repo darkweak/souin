@@ -58,7 +58,7 @@ func (m *Plugin) Init(cfg Configurer, log *zap.Logger) error {
 // the cache system.
 func (m *Plugin) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, rq *http.Request) {
-		m.SouinBaseHandler.ServeHTTP(rw, rq, func(w http.ResponseWriter, r *http.Request) error {
+		_ = m.SouinBaseHandler.ServeHTTP(rw, rq, func(w http.ResponseWriter, r *http.Request) error {
 			next.ServeHTTP(w, r)
 
 			return nil

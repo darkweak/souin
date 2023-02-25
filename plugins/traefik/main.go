@@ -231,7 +231,7 @@ func New(_ context.Context, next http.Handler, config *TestConfiguration, name s
 }
 
 func (s *SouinTraefikMiddleware) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	s.SouinBaseHandler.ServeHTTP(rw, req, func(w http.ResponseWriter, r *http.Request) error {
+	_ = s.SouinBaseHandler.ServeHTTP(rw, req, func(w http.ResponseWriter, r *http.Request) error {
 		s.next.ServeHTTP(w, r)
 
 		return nil

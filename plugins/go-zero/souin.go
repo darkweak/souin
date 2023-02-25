@@ -52,7 +52,7 @@ func NewHTTPCache(c middleware.BaseConfiguration) *SouinGozeroMiddleware {
 
 func (s *SouinGozeroMiddleware) Handle(next http.HandlerFunc) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
-		s.ServeHTTP(rw, r, func(w http.ResponseWriter, r *http.Request) error {
+		_ = s.SouinBaseHandler.ServeHTTP(rw, r, func(w http.ResponseWriter, r *http.Request) error {
 			next(w, r)
 
 			return nil

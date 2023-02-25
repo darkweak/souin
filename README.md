@@ -240,7 +240,7 @@ The base path for the prometheus API is `/metrics`.
 ### Souin API
 Souin API allow users to manage the cache.  
 The base path for the souin API is `/souin`.  
-The Souin API supports the invalidation by surrogate keys such as Fastly which will replace the Varnish system. You can read the doc [about this system](https://github.com/darkweak/souin/blob/master/cache/surrogate/README.md).
+The Souin API supports the invalidation by surrogate keys such as Fastly which will replace the Varnish system. You can read the doc [about this system](https://github.com/darkweak/souin/blob/master/pkg/surrogate/README.md).
 This system is able to invalidate by tags your cloud provider cache. Actually it supports Akamai and Fastly but in a near future some other providers would be implemented like Cloudflare or Varnish.
 
 | Method  | Endpoint          | Headers                                                    | Description                                                                                                                                                                         |

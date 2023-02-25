@@ -56,7 +56,7 @@ func (s *SouinDotwebMiddleware) Handle(c dotweb.Context) error {
 	rq := c.Request().Request
 	rw := c.Response().Writer()
 
-	return s.ServeHTTP(rw, rq, func(w http.ResponseWriter, r *http.Request) error {
+	return s.SouinBaseHandler.ServeHTTP(rw, rq, func(w http.ResponseWriter, r *http.Request) error {
 		c.Request().Request = r
 		c.Response().SetWriter(w)
 		s.Next(c)

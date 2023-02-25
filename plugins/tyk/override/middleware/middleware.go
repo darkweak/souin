@@ -13,15 +13,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/darkweak/souin/cache/surrogate"
-	"github.com/darkweak/souin/cache/surrogate/providers"
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/context"
 	"github.com/darkweak/souin/helpers"
 	"github.com/darkweak/souin/pkg/api"
-	"github.com/darkweak/souin/pkg/api/prometheus"
 	"github.com/darkweak/souin/pkg/rfc"
 	"github.com/darkweak/souin/pkg/storage"
+	"github.com/darkweak/souin/pkg/surrogate"
+	"github.com/darkweak/souin/pkg/surrogate/providers"
 	"github.com/pquerna/cachecontrol/cacheobject"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -126,7 +125,6 @@ func (s *SouinBaseHandler) Upstream(
 ) error {
 	now := time.Now().UTC()
 	rq.Header.Set("Date", now.Format(time.RFC1123))
-	prometheus.Increment(prometheus.RequestCounter)
 	if err := next(customWriter, rq); err != nil {
 		customWriter.Header().Set("Cache-Status", fmt.Sprintf("%s; fwd=uri-miss; key=%s; detail=SERVE-HTTP-ERROR", rq.Context().Value(context.CacheName), rfc.GetCacheKeyFromCtx(rq.Context())))
 		return err

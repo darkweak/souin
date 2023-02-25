@@ -41,7 +41,7 @@ func SouinResponseHandler(rw http.ResponseWriter, rs *http.Response, rq *http.Re
 	s := getInstanceFromRequest(rq)
 	rq = s.context.SetContext(s.context.SetBaseContext(rq))
 	cacheName := rq.Context().Value(context.CacheName).(string)
-	if rq.Header.Get("Upgrade") == "websocket" || (s.ExcludeRegex != nil && s.ExcludeRegex.MatchString(rq.RequestURI)) {
+	if rq.Header.Get("Upgrade") == "websocket" || (s.SouinBaseHandler.ExcludeRegex != nil && s.SouinBaseHandler.ExcludeRegex.MatchString(rq.RequestURI)) {
 		rw.Header().Set("Cache-Status", cacheName+"; fwd=uri-miss; detail=EXCLUDED-REQUEST-URI")
 		return
 	}
@@ -59,9 +59,9 @@ func SouinResponseHandler(rw http.ResponseWriter, rs *http.Response, rq *http.Re
 
 	responseCc, _ := cacheobject.ParseResponseCacheControl(customWriter.Header().Get("Cache-Control"))
 
-	currentMatchedURL := s.DefaultMatchedUrl
-	if regexpURL := s.RegexpUrls.FindString(rq.Host + rq.URL.Path); regexpURL != "" {
-		u := s.Configuration.GetUrls()[regexpURL]
+	currentMatchedURL := s.SouinBaseHandler.DefaultMatchedUrl
+	if regexpURL := s.SouinBaseHandler.RegexpUrls.FindString(rq.Host + rq.URL.Path); regexpURL != "" {
+		u := s.SouinBaseHandler.Configuration.GetUrls()[regexpURL]
 		if u.TTL.Duration != 0 {
 			currentMatchedURL.TTL = u.TTL
 		}
@@ -108,7 +108,7 @@ func SouinResponseHandler(rw http.ResponseWriter, rs *http.Response, rq *http.Re
 		if err == nil {
 			variedHeaders := rfc.HeaderAllCommaSepValues(res.Header)
 			cachedKey += rfc.GetVariedCacheKey(rq, variedHeaders)
-			if s.Storer.Set(cachedKey, response, currentMatchedURL, ma) == nil {
+			if s.SouinBaseHandler.Storer.Set(cachedKey, response, currentMatchedURL, ma) == nil {
 				status += "; stored"
 			} else {
 				status += "; detail=STORAGE-INSERTION-ERROR"
@@ -124,14 +124,14 @@ func SouinResponseHandler(rw http.ResponseWriter, rs *http.Response, rq *http.Re
 func SouinRequestHandler(rw http.ResponseWriter, rq *http.Request) {
 	s := getInstanceFromRequest(rq)
 
-	if b, handler := s.HandleInternally(rq); b {
+	if b, handler := s.SouinBaseHandler.HandleInternally(rq); b {
 		handler(rw, rq)
 		return
 	}
 
 	rq = s.context.SetBaseContext(rq)
 	cacheName := rq.Context().Value(context.CacheName).(string)
-	if rq.Header.Get("Upgrade") == "websocket" || (s.ExcludeRegex != nil && s.ExcludeRegex.MatchString(rq.RequestURI)) {
+	if rq.Header.Get("Upgrade") == "websocket" || (s.SouinBaseHandler.ExcludeRegex != nil && s.SouinBaseHandler.ExcludeRegex.MatchString(rq.RequestURI)) {
 		rw.Header().Set("Cache-Status", cacheName+"; fwd=uri-miss; detail=EXCLUDED-REQUEST-URI")
 		return
 	}
@@ -157,7 +157,7 @@ func SouinRequestHandler(rw http.ResponseWriter, rq *http.Request) {
 	bufPool.Reset()
 	defer s.bufPool.Put(bufPool)
 	if !requestCc.NoCache {
-		cachedVal := s.Storer.Prefix(cachedKey, rq)
+		cachedVal := s.SouinBaseHandler.Storer.Prefix(cachedKey, rq)
 		response, _ := http.ReadResponse(bufio.NewReader(bytes.NewBuffer(cachedVal)), rq)
 
 		if response != nil && rfc.ValidateCacheControl(response) {
@@ -171,7 +171,7 @@ func SouinRequestHandler(rw http.ResponseWriter, rq *http.Request) {
 				return
 			}
 		} else if response == nil {
-			staleCachedVal := s.Storer.Prefix(storage.StalePrefix+cachedKey, rq)
+			staleCachedVal := s.SouinBaseHandler.Storer.Prefix(storage.StalePrefix+cachedKey, rq)
 			response, _ = http.ReadResponse(bufio.NewReader(bytes.NewBuffer(staleCachedVal)), rq)
 			if nil != response && rfc.ValidateCacheControl(response) {
 				addTime, _ := time.ParseDuration(response.Header.Get(rfc.StoredTTLHeader))

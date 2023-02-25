@@ -91,7 +91,7 @@ func (s *SouinFiberMiddleware) Handle(c *fiber.Ctx) error {
 	var rq http.Request
 	fasthttpadaptor.ConvertRequest(c.Context(), &rq, true)
 	customWriter := newWriter(c.Response())
-	err := s.ServeHTTP(customWriter, &rq, func(w http.ResponseWriter, r *http.Request) error {
+	err := s.SouinBaseHandler.ServeHTTP(customWriter, &rq, func(w http.ResponseWriter, r *http.Request) error {
 		var err error
 		if err = c.Next(); err != nil {
 			return err

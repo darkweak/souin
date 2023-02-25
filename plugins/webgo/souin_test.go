@@ -15,7 +15,7 @@ import (
 
 func Test_NewHTTPCache(t *testing.T) {
 	s := NewHTTPCache(DevDefaultConfiguration)
-	if s.Storer == nil {
+	if s.SouinBaseHandler.Storer == nil {
 		t.Error("The storer must be set.")
 	}
 	c := middleware.BaseConfiguration{}
@@ -30,11 +30,6 @@ func Test_NewHTTPCache(t *testing.T) {
 func defaultHandler(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Hello, World!"))
-}
-
-func excludedHandler(w http.ResponseWriter, _ *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Hello, Excluded!"))
 }
 
 func getRoutes() []*webgo.Route {

@@ -87,7 +87,7 @@ func (s *SouinBeegoMiddleware) chainHandleFilter(next web.HandleFunc) web.Handle
 			},
 		}
 
-		s.ServeHTTP(rw, r, func(w http.ResponseWriter, r *http.Request) error {
+		_ = s.SouinBaseHandler.ServeHTTP(rw, r, func(w http.ResponseWriter, r *http.Request) error {
 			customWriter := &CustomWriter{
 				ctx: customCtx,
 				Buf: bytes.NewBuffer([]byte{}),

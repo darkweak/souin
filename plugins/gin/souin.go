@@ -53,7 +53,7 @@ func New(c middleware.BaseConfiguration) *SouinGinMiddleware {
 
 func (s *SouinGinMiddleware) Process() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		s.ServeHTTP(c.Writer, c.Request, func(cw http.ResponseWriter, _ *http.Request) error {
+		_ = s.SouinBaseHandler.ServeHTTP(c.Writer, c.Request, func(cw http.ResponseWriter, _ *http.Request) error {
 			if writer, ok := cw.(gin.ResponseWriter); ok {
 				c.Writer = writer
 			} else if writer, ok := cw.(*middleware.CustomWriter); ok {

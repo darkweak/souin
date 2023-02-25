@@ -9,7 +9,6 @@ require (
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/go-chi/stampede v0.5.1
 	github.com/go-redis/redis/v9 v9.0.0-rc.2
-	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/google/uuid v1.3.0
 	github.com/imdario/mergo v0.3.13
 	github.com/pquerna/cachecontrol v0.1.0

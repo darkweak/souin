@@ -12,8 +12,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/darkweak/souin/cache/surrogate"
-	"github.com/darkweak/souin/cache/surrogate/providers"
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/context"
 	"github.com/darkweak/souin/helpers"
@@ -21,6 +19,8 @@ import (
 	"github.com/darkweak/souin/pkg/api/prometheus"
 	"github.com/darkweak/souin/pkg/rfc"
 	"github.com/darkweak/souin/pkg/storage"
+	"github.com/darkweak/souin/pkg/surrogate"
+	"github.com/darkweak/souin/pkg/surrogate/providers"
 	"github.com/pquerna/cachecontrol/cacheobject"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
