@@ -5,7 +5,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/darkweak/souin/plugins"
 	"github.com/gin-gonic/gin"
 )
 
@@ -14,7 +13,7 @@ func Test_New(t *testing.T) {
 	if s.Storer == nil {
 		t.Error("The storer must be set.")
 	}
-	c := plugins.BaseConfiguration{}
+	c := middleware.BaseConfiguration{}
 	defer func() {
 		if recover() == nil {
 			t.Error("The New method must crash if an incomplete configuration is provided.")

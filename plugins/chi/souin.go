@@ -6,11 +6,10 @@ import (
 
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/middleware"
-	"github.com/darkweak/souin/plugins"
 )
 
 var (
-	DefaultConfiguration = plugins.BaseConfiguration{
+	DefaultConfiguration = middleware.BaseConfiguration{
 		DefaultCache: &configurationtypes.DefaultCache{
 			TTL: configurationtypes.Duration{
 				Duration: 10 * time.Second,
@@ -21,7 +20,7 @@ var (
 		},
 		LogLevel: "info",
 	}
-	DevDefaultConfiguration = plugins.BaseConfiguration{
+	DevDefaultConfiguration = middleware.BaseConfiguration{
 		API: configurationtypes.API{
 			BasePath: "/souin-api",
 			Prometheus: configurationtypes.APIEndpoint{
@@ -51,7 +50,7 @@ type SouinChiMiddleware struct {
 	*middleware.SouinBaseHandler
 }
 
-func NewHTTPCache(c plugins.BaseConfiguration) *SouinChiMiddleware {
+func NewHTTPCache(c middleware.BaseConfiguration) *SouinChiMiddleware {
 	return &SouinChiMiddleware{
 		SouinBaseHandler: middleware.NewHTTPCacheHandler(&c),
 	}

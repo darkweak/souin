@@ -7,7 +7,6 @@ import (
 
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/middleware"
-	"github.com/darkweak/souin/plugins"
 	"github.com/darkweak/souin/plugins/souin/agnostic"
 
 	"github.com/beego/beego/v2/server/web"
@@ -15,7 +14,7 @@ import (
 )
 
 var (
-	DefaultConfiguration = plugins.BaseConfiguration{
+	DefaultConfiguration = middleware.BaseConfiguration{
 		DefaultCache: &configurationtypes.DefaultCache{
 			TTL: configurationtypes.Duration{
 				Duration: 10 * time.Second,
@@ -23,7 +22,7 @@ var (
 		},
 		LogLevel: "info",
 	}
-	DevDefaultConfiguration = plugins.BaseConfiguration{
+	DevDefaultConfiguration = middleware.BaseConfiguration{
 		API: configurationtypes.API{
 			BasePath: "/souin-api",
 			Prometheus: configurationtypes.APIEndpoint{
@@ -50,14 +49,14 @@ type SouinBeegoMiddleware struct {
 	*middleware.SouinBaseHandler
 }
 
-func NewHTTPCache(c plugins.BaseConfiguration) *SouinBeegoMiddleware {
+func NewHTTPCache(c middleware.BaseConfiguration) *SouinBeegoMiddleware {
 	return &SouinBeegoMiddleware{
 		SouinBaseHandler: middleware.NewHTTPCacheHandler(&c),
 	}
 }
 
-func configurationPropertyMapper(c map[string]interface{}) plugins.BaseConfiguration {
-	var configuration plugins.BaseConfiguration
+func configurationPropertyMapper(c map[string]interface{}) middleware.BaseConfiguration {
+	var configuration middleware.BaseConfiguration
 	agnostic.ParseConfiguration(&configuration, c)
 
 	return configuration

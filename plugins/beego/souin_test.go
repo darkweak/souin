@@ -12,7 +12,7 @@ import (
 	_ "github.com/beego/beego/v2/core/config/json"
 	"github.com/beego/beego/v2/server/web"
 	beegoCtx "github.com/beego/beego/v2/server/web/context"
-	"github.com/darkweak/souin/plugins"
+	"github.com/darkweak/souin/pkg/middleware"
 )
 
 func Test_NewHTTPCache(t *testing.T) {
@@ -20,7 +20,7 @@ func Test_NewHTTPCache(t *testing.T) {
 	if s.SouinBaseHandler.Storer == nil {
 		t.Error("The storer must be set.")
 	}
-	c := plugins.BaseConfiguration{}
+	c := middleware.BaseConfiguration{}
 	defer func() {
 		if recover() == nil {
 			t.Error("The New method must crash if an incomplete configuration is provided.")

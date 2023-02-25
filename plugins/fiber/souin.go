@@ -8,14 +8,13 @@ import (
 
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/middleware"
-	"github.com/darkweak/souin/plugins"
 	"github.com/gofiber/fiber/v2"
 	"github.com/valyala/fasthttp"
 	"github.com/valyala/fasthttp/fasthttpadaptor"
 )
 
 var (
-	DefaultConfiguration = plugins.BaseConfiguration{
+	DefaultConfiguration = middleware.BaseConfiguration{
 		DefaultCache: &configurationtypes.DefaultCache{
 			TTL: configurationtypes.Duration{
 				Duration: 10 * time.Second,
@@ -23,7 +22,7 @@ var (
 		},
 		LogLevel: "info",
 	}
-	DevDefaultConfiguration = plugins.BaseConfiguration{
+	DevDefaultConfiguration = middleware.BaseConfiguration{
 		API: configurationtypes.API{
 			BasePath: "/souin-api",
 			Prometheus: configurationtypes.APIEndpoint{
@@ -82,7 +81,7 @@ func convertResponse(stdreq *http.Request, fastresp *fasthttp.Response) *http.Re
 	return stdresp
 }
 
-func NewHTTPCache(c plugins.BaseConfiguration) *SouinFiberMiddleware {
+func NewHTTPCache(c middleware.BaseConfiguration) *SouinFiberMiddleware {
 	return &SouinFiberMiddleware{
 		SouinBaseHandler: middleware.NewHTTPCacheHandler(&c),
 	}
