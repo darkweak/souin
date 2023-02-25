@@ -24,7 +24,6 @@ replace: ## Replace sources in the vendor folder deeper than the go mod replace
 	scp override/middleware/middleware.go vendor/github.com/darkweak/souin/pkg/middleware/middleware.go
 	scp override/cache/surrogate/providers/cloudflare.go vendor/github.com/darkweak/souin/cache/surrogate/providers/cloudflare.go
 	scp override/context/graphql.go vendor/github.com/darkweak/souin/context/graphql.go
-	scp override/rfc/vary.go vendor/github.com/darkweak/souin/rfc/vary.go
 
 vendor: ## Generate vendors for the plugin
 	go mod tidy

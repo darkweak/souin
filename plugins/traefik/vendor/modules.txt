@@ -80,7 +80,6 @@ github.com/darkweak/souin/pkg/middleware
 github.com/darkweak/souin/pkg/rfc
 github.com/darkweak/souin/pkg/storage
 github.com/darkweak/souin/plugins/souin/configuration
-github.com/darkweak/souin/rfc
 github.com/darkweak/souin/tests
 # github.com/dgraph-io/badger/v3 v3.2103.5
 ## explicit; go 1.12

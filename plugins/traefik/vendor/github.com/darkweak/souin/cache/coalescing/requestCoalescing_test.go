@@ -11,7 +11,7 @@ import (
 	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/cache/ykeys"
 	"github.com/darkweak/souin/helpers"
-	"github.com/darkweak/souin/rfc"
+	"github.com/darkweak/souin/pkg/rfc"
 	"github.com/darkweak/souin/tests"
 )
 
