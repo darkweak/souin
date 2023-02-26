@@ -160,14 +160,16 @@ func parseDefaultCache(dcConfiguration map[string]config.Value) *configurationty
 		case "cache_name":
 			dc.CacheName, _ = defaultCacheV.String()
 		case "cdn":
-			cdn := configurationtypes.CDN{}
+			cdn := configurationtypes.CDN{
+				Dynamic: true,
+			}
 			cdnConfiguration, _ := defaultCacheV.Map()
 			for cdnConfigurationK, cdnConfigurationV := range cdnConfiguration {
 				switch cdnConfigurationK {
 				case "api_key":
 					cdn.APIKey, _ = cdnConfigurationV.String()
 				case "dynamic":
-					cdn.Dynamic = true
+					cdn.Dynamic, _ = cdnConfigurationV.Bool()
 				case "hostname":
 					cdn.Hostname, _ = cdnConfigurationV.String()
 				case "network":

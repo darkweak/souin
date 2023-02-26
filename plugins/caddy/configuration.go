@@ -345,15 +345,18 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isBlocking b
 				args := h.RemainingArgs()
 				cfg.DefaultCache.CacheName = args[0]
 			case "cdn":
-				cdn := configurationtypes.CDN{}
-				cdn.Dynamic = true
+				cdn := configurationtypes.CDN{
+					Dynamic: true,
+				}
 				for nesting := h.Nesting(); h.NextBlock(nesting); {
 					directive := h.Val()
 					switch directive {
 					case "api_key":
 						cdn.APIKey = h.RemainingArgs()[0]
 					case "dynamic":
-						cdn.Dynamic = true
+						if len(h.RemainingArgs()) > 0 {
+							cdn.Dynamic, _ = strconv.ParseBool(h.RemainingArgs()[0])
+						}
 					case "hostname":
 						cdn.Hostname = h.RemainingArgs()[0]
 					case "network":

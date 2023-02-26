@@ -3,7 +3,7 @@ module github.com/darkweak/souin/plugins/echo
 go 1.19
 
 require (
-	github.com/darkweak/souin v1.6.28
+	github.com/darkweak/souin v1.6.29
 	github.com/labstack/echo/v4 v4.9.0
 )
 
@@ -87,4 +87,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/darkweak/souin v1.6.28 => ../..
+replace github.com/darkweak/souin v1.6.29 => ../..
