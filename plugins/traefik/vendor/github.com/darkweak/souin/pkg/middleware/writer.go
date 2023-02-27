@@ -2,9 +2,11 @@ package middleware
 
 import (
 	"bytes"
+	"fmt"
 	"net/http"
 	"strings"
 
+	"github.com/darkweak/go-esi/esi"
 	"github.com/darkweak/souin/pkg/rfc"
 )
 
@@ -59,7 +61,7 @@ func (r *CustomWriter) WriteHeader(code int) {
 func (r *CustomWriter) Write(b []byte) (int, error) {
 	r.Buf.Grow(len(b))
 	_, _ = r.Buf.Write(b)
-	// r.Response.Header.Set("Content-Length", fmt.Sprint(r.size))
+	//
 	return len(b), nil
 }
 
@@ -67,8 +69,7 @@ func (r *CustomWriter) Write(b []byte) (int, error) {
 func (r *CustomWriter) Send() (int, error) {
 	r.Headers.Del(rfc.StoredTTLHeader)
 	defer r.Buf.Reset()
-	// TODO re-enable esi parsing
-	// b := esi.Parse(r.Buf.Bytes(), r.Req)
+	b := esi.Parse(r.Buf.Bytes(), r.Req)
 	for h, v := range r.Headers {
 		if len(v) > 0 {
 			r.Rw.Header().Set(h, strings.Join(v, ", "))
@@ -76,9 +77,9 @@ func (r *CustomWriter) Send() (int, error) {
 	}
 
 	if !r.headersSent {
-		// r.Rw.Header().Set("Content-Length", fmt.Sprintf("%d", len(b)))
+		r.Rw.Header().Set("Content-Length", fmt.Sprintf("%d", len(b)))
 		r.Rw.WriteHeader(r.statusCode)
 		r.headersSent = true
 	}
-	return r.Rw.Write(r.Buf.Bytes())
+	return r.Rw.Write(b)
 }
