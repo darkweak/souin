@@ -56,7 +56,6 @@ func TestBadgerConnectionFactory(t *testing.T) {
 
 func TestIShouldBeAbleToReadAndWriteDataInBadger(t *testing.T) {
 	client, matchedURL := getBadgerClientAndMatchedURL("Test")
-	fmt.Printf("%+v\n\n", client)
 
 	_ = client.Set("Test", []byte(BASE_VALUE), matchedURL, time.Duration(20)*time.Second)
 	time.Sleep(1 * time.Second)

@@ -2,7 +2,6 @@ package beego
 
 import (
 	"bytes"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -51,7 +50,6 @@ func (r *CustomWriter) Send() (int, error) {
 		}
 	}
 
-	fmt.Printf("%+v\n\n", r)
 	if !r.headersSent {
 		r.Rw.WriteHeader(r.statusCode)
 		r.headersSent = true

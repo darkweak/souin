@@ -2,7 +2,6 @@ package beego
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -55,13 +54,11 @@ func Test_SouinBeegoPlugin_Middleware(t *testing.T) {
 	req.Header = http.Header{}
 	web.BeeApp.Handlers.ServeHTTP(res, req)
 
-	fmt.Println(res.Result().Header.Get("Cache-Status"))
 	if res.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-example.com-/handled" {
 		t.Error("The response must contain a Cache-Status header with the stored directive.")
 	}
 
 	web.BeeApp.Handlers.ServeHTTP(res2, req)
-	fmt.Println(res2.Result().Header.Get("Cache-Status"))
 	if res2.Result().Header.Get("Cache-Status") != "Souin; hit; ttl=4; key=GET-example.com-/handled" {
 		t.Error("The response must contain a Cache-Status header with the hit and ttl directives.")
 	}
@@ -77,13 +74,11 @@ func Test_SouinBeegoPlugin_Middleware_CannotHandle(t *testing.T) {
 	req.Header.Add("Cache-Control", "no-cache")
 	web.BeeApp.Handlers.ServeHTTP(res, req)
 
-	fmt.Println(res.Result().Header.Get("Cache-Status"))
 	if res.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-example.com-/not-handled" {
 		t.Error("The response must contain a Cache-Status header without the stored directive and with the uri-miss only.")
 	}
 
 	web.BeeApp.Handlers.ServeHTTP(res2, req)
-	fmt.Println(res2.Result().Header.Get("Cache-Status"))
 	if res2.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-example.com-/not-handled" {
 		t.Error("The response must contain a Cache-Status header without the stored directive and with the uri-miss only.")
 	}
