@@ -48,6 +48,7 @@ func (g *keyContext) SetContext(req *http.Request) *http.Request {
 	key := req.URL.RequestURI()
 	var headers []string
 
+	scheme := req.URL.Scheme + "-"
 	body := ""
 	host := ""
 	method := ""
@@ -102,7 +103,7 @@ func (g *keyContext) SetContext(req *http.Request) *http.Request {
 				context.WithValue(
 					req.Context(),
 					Key,
-					method+host+key+body+headerValues,
+					method+scheme+host+key+body+headerValues,
 				),
 				IgnoredHeaders,
 				headers,

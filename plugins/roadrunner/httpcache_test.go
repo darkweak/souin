@@ -83,7 +83,7 @@ func Test_Plugin_Middleware(t *testing.T) {
 	if err != nil {
 		t.Error("body close error")
 	}
-	if rs.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-example.com-/handled" {
+	if rs.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET--example.com-/handled" {
 		t.Error("The response must contain a Cache-Status header with the stored directive.")
 	}
 	handler.ServeHTTP(res2, req)
@@ -92,7 +92,7 @@ func Test_Plugin_Middleware(t *testing.T) {
 	if err != nil {
 		t.Error("body close error")
 	}
-	if rs.Header.Get("Cache-Status") != "Souin; hit; ttl=4; key=GET-example.com-/handled" {
+	if rs.Header.Get("Cache-Status") != "Souin; hit; ttl=4; key=GET--example.com-/handled" {
 		t.Error("The response must contain a Cache-Status header with the hit and ttl directives.")
 	}
 	if rs.Header.Get("Age") != "1" {
@@ -114,7 +114,7 @@ func Test_Plugin_Middleware_Stale(t *testing.T) {
 		if err != nil {
 			t.Error("body close error")
 		}
-		if rs.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-example.com-/stale-test" {
+		if rs.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET--example.com-/stale-test" {
 			t.Error("The response must contain a Cache-Status header with the stored directive.")
 		}
 		handler.ServeHTTP(res2, req)
@@ -123,7 +123,7 @@ func Test_Plugin_Middleware_Stale(t *testing.T) {
 		if err != nil {
 			t.Error("body close error")
 		}
-		if rs.Header.Get("Cache-Status") != "Souin; hit; ttl=4; key=GET-example.com-/stale-test" {
+		if rs.Header.Get("Cache-Status") != "Souin; hit; ttl=4; key=GET--example.com-/stale-test" {
 			t.Error("The response must contain a Cache-Status header with the hit directive.")
 		}
 		if rs.Header.Get("Age") != "1" {
@@ -145,7 +145,7 @@ func Test_Plugin_Middleware_Stale(t *testing.T) {
 	if err != nil {
 		t.Error("body close error")
 	}
-	if rs.Header.Get("Cache-Status") != "Souin; hit; ttl=-1; key=GET-example.com-/stale-test; fwd=stale" {
+	if rs.Header.Get("Cache-Status") != "Souin; hit; ttl=-1; key=GET--example.com-/stale-test; fwd=stale" {
 		t.Error("The response must contain a Cache-Status header without the stored directive and with ttl=-1; fwd=stale.")
 	}
 	if rs.Header.Get("Age") != "6" {
@@ -245,7 +245,7 @@ func Test_Plugin_Middleware_API(t *testing.T) {
 	if err != nil {
 		t.Error("body close error")
 	}
-	if rs.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-example.com-/handled" {
+	if rs.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET--example.com-/handled" {
 		t.Error("The response must contain a Cache-Status header with the stored directive.")
 	}
 	res3 := httptest.NewRecorder()
@@ -268,7 +268,7 @@ func Test_Plugin_Middleware_API(t *testing.T) {
 	if len(payload) != 2 {
 		t.Error("The system must store 2 items, the fresh and the stale one")
 	}
-	if payload[0] != "GET-example.com-/handled" || payload[1] != "STALE_GET-example.com-/handled" {
+	if payload[0] != "GET--example.com-/handled" || payload[1] != "STALE_GET--example.com-/handled" {
 		t.Error("The payload items mismatch from the expectations.")
 	}
 }

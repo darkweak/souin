@@ -65,13 +65,13 @@ func Test_HttpcacheKratosPlugin_NewHTTPCacheFilter(t *testing.T) {
 	handler.ServeHTTP(res, req)
 	rs := res.Result()
 	rs.Body.Close()
-	if rs.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-example.com-/handled" {
+	if rs.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET--example.com-/handled" {
 		t.Error("The response must contain a Cache-Status header with the stored directive.")
 	}
 	handler.ServeHTTP(res2, req)
 	rs = res2.Result()
 	rs.Body.Close()
-	if rs.Header.Get("Cache-Status") != "Souin; hit; ttl=4; key=GET-example.com-/handled" {
+	if rs.Header.Get("Cache-Status") != "Souin; hit; ttl=4; key=GET--example.com-/handled" {
 		t.Error("The response must contain a Cache-Status header with the hit and ttl directives.")
 	}
 	if rs.Header.Get("Age") != "1" {
@@ -144,7 +144,7 @@ func Test_HttpcacheKratosPlugin_NewHTTPCacheFilter_API(t *testing.T) {
 	handler.ServeHTTP(res2, req2)
 	rs = res2.Result()
 	rs.Body.Close()
-	if rs.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-example.com-/handled" {
+	if rs.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET--example.com-/handled" {
 		t.Error("The response must contain a Cache-Status header with the stored directive.")
 	}
 	res3 := httptest.NewRecorder()
@@ -161,7 +161,7 @@ func Test_HttpcacheKratosPlugin_NewHTTPCacheFilter_API(t *testing.T) {
 	if len(payload) != 2 {
 		t.Error("The system must store 2 items, the fresh and the stale one")
 	}
-	if payload[0] != "GET-example.com-/handled" || payload[1] != "STALE_GET-example.com-/handled" {
+	if payload[0] != "GET--example.com-/handled" || payload[1] != "STALE_GET--example.com-/handled" {
 		t.Error("The payload items mismatch from the expectations.")
 	}
 }

@@ -44,13 +44,13 @@ func Test_SouinEchoPlugin_Process(t *testing.T) {
 	if err := s.Process(handler)(c); err != nil {
 		t.Error("No error must be thrown if everything is good.")
 	}
-	if res.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-example.com-/handled" {
+	if res.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET--example.com-/handled" {
 		t.Error("The response must contain a Cache-Status header with the stored directive.")
 	}
 	if err := s.Process(handler)(c2); err != nil {
 		t.Error("No error must be thrown on the second request if everything is good.")
 	}
-	if res2.Result().Header.Get("Cache-Status") != "Souin; hit; ttl=4; key=GET-example.com-/handled" {
+	if res2.Result().Header.Get("Cache-Status") != "Souin; hit; ttl=4; key=GET--example.com-/handled" {
 		t.Error("The response must contain a Cache-Status header with the hit and ttl directives.")
 	}
 	if res2.Result().Header.Get("Age") != "1" {
@@ -76,13 +76,13 @@ func Test_SouinEchoPlugin_Process_CannotHandle(t *testing.T) {
 	if err := s.Process(handler)(c); err != nil {
 		t.Error("No error must be thrown if everything is good.")
 	}
-	if res.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-example.com-/not-handled" {
+	if res.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET--example.com-/not-handled" {
 		t.Error("The response must contain a Cache-Status header without the stored directive and with the uri-miss only.")
 	}
 	if err := s.Process(handler)(c2); err != nil {
 		t.Error("No error must be thrown on the second request if everything is good.")
 	}
-	if res2.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-example.com-/not-handled" {
+	if res2.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET--example.com-/not-handled" {
 		t.Error("The response must contain a Cache-Status header without the stored directive and with the uri-miss only.")
 	}
 	if res2.Result().Header.Get("Age") != "" {
@@ -133,7 +133,7 @@ func Test_SouinEchoPlugin_Process_APIHandle(t *testing.T) {
 	if len(payload) != 2 {
 		t.Error("The system must store 2 items, the fresh and the stale one")
 	}
-	if payload[0] != "GET-example.com-/handled" || payload[1] != "STALE_GET-example.com-/handled" {
+	if payload[0] != "GET--example.com-/handled" || payload[1] != "STALE_GET--example.com-/handled" {
 		t.Error("The payload items mismatch from the expectations.")
 	}
 }
