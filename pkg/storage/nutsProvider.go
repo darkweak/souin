@@ -8,7 +8,7 @@ import (
 
 	t "github.com/darkweak/souin/configurationtypes"
 	"github.com/imdario/mergo"
-	"github.com/xujiajun/nutsdb"
+	"github.com/nutsdb/nutsdb"
 	"go.uber.org/zap"
 )
 
