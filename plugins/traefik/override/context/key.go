@@ -48,7 +48,10 @@ func (g *keyContext) SetContext(req *http.Request) *http.Request {
 	key := req.URL.RequestURI()
 	var headers []string
 
-	scheme := req.URL.Scheme + "-"
+	scheme := "http-"
+	if req.TLS != nil {
+		scheme = "https-"
+	}
 	body := ""
 	host := ""
 	method := ""

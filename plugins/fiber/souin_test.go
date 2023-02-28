@@ -57,7 +57,7 @@ func Test_SouinFiberPlugin_Middleware(t *testing.T) {
 		t.Error("The response body must be equal to Hello, World 👋!.")
 	}
 
-	if res.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET--example.com-/handled" {
+	if res.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-http-example.com-/handled" {
 		t.Error("The response must contain a Cache-Status header with the stored directive.")
 	}
 
@@ -66,7 +66,7 @@ func Test_SouinFiberPlugin_Middleware(t *testing.T) {
 		t.Error(err)
 	}
 
-	if res.Header.Get("Cache-Status") != "Souin; hit; ttl=4; key=GET--example.com-/handled" {
+	if res.Header.Get("Cache-Status") != "Souin; hit; ttl=4; key=GET-http-example.com-/handled" {
 		t.Error("The response must contain a Cache-Status header with the hit and ttl directives.")
 	}
 	if res.Header.Get("Age") != "1" {
@@ -91,7 +91,7 @@ func Test_SouinFiberPlugin_Middleware_CannotHandle(t *testing.T) {
 		t.Error(err)
 	}
 
-	if res.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET--example.com-/not-handled" {
+	if res.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-http-example.com-/not-handled" {
 		t.Error("The response must contain a Cache-Status header without the stored directive and with the uri-miss only.")
 	}
 
@@ -100,7 +100,7 @@ func Test_SouinFiberPlugin_Middleware_CannotHandle(t *testing.T) {
 		t.Error(err)
 	}
 
-	if res.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET--example.com-/not-handled" {
+	if res.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-http-example.com-/not-handled" {
 		t.Error("The response must contain a Cache-Status header without the stored directive and with the uri-miss only.")
 	}
 	if res.Header.Get("Age") != "" {
@@ -139,7 +139,7 @@ func Test_SouinFiberPlugin_Middleware_APIHandle(t *testing.T) {
 	if len(payload) != 2 {
 		t.Error("The system must store 2 items, the fresh and the stale one")
 	}
-	if payload[0] != "GET--example.com-/handled" || payload[1] != "STALE_GET--example.com-/handled" {
+	if payload[0] != "GET-http-example.com-/handled" || payload[1] != "STALE_GET-http-example.com-/handled" {
 		t.Error("The payload items mismatch from the expectations.")
 	}
 }

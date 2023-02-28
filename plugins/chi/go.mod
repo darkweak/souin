@@ -3,7 +3,7 @@ module github.com/darkweak/souin/plugins/chi
 go 1.19
 
 require (
-	github.com/darkweak/souin v1.6.29
+	github.com/darkweak/souin v1.6.28
 	github.com/go-chi/chi/v5 v5.0.7
 )
 
@@ -86,4 +86,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/darkweak/souin v1.6.29 => ../..
+replace github.com/darkweak/souin v1.6.28 => ../..
