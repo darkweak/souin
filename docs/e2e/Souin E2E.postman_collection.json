@@ -249,7 +249,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.souinAPI.listGraphQLKeys(pm, 'POST-localhost:4443-/test1-4d08c8e90fed197693d96603c73fa6036e7ce42b8de0149cdd33b34e980631e2', utils.getVar(pm, 'app_url'), '/test1');"
+									"utils.souinAPI.listGraphQLKeys(pm, 'POST-http-localhost:4443-/test1-4d08c8e90fed197693d96603c73fa6036e7ce42b8de0149cdd33b34e980631e2', utils.getVar(pm, 'app_url'), '/test1');"
 								],
 								"type": "text/javascript"
 							}

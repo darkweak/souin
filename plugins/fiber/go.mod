@@ -3,7 +3,7 @@ module github.com/darkweak/souin/plugins/fiber
 go 1.19
 
 require (
-	github.com/darkweak/souin v1.6.28
+	github.com/darkweak/souin v1.6.29
 	github.com/gofiber/fiber/v2 v2.34.1
 	github.com/valyala/fasthttp v1.38.0
 )
@@ -90,4 +90,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/darkweak/souin v1.6.28 => ../..
+replace github.com/darkweak/souin v1.6.29 => ../..
