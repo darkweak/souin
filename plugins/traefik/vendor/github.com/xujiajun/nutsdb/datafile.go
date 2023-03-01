@@ -64,21 +64,19 @@ func (df *DataFile) ReadAt(off int) (e *Entry, err error) {
 		return nil, err
 	}
 
+	meta := readMetaData(buf)
+
 	e = &Entry{
-		crc: binary.LittleEndian.Uint32(buf[0:4]),
-	}
-	err = e.ParseMeta(buf)
-	if err != nil {
-		return nil, err
+		crc:  binary.LittleEndian.Uint32(buf[0:4]),
+		Meta: meta,
 	}
 
 	if e.IsZero() {
 		return nil, nil
 	}
 
-	meta := e.Meta
 	off += DataEntryHeaderSize
-	dataSize := meta.PayloadSize()
+	dataSize := meta.BucketSize + meta.KeySize + meta.ValueSize
 
 	dataBuf := make([]byte, dataSize)
 	_, err = df.rwManager.ReadAt(dataBuf, int64(off))
@@ -92,44 +90,6 @@ func (df *DataFile) ReadAt(off int) (e *Entry, err error) {
 	}
 
 	crc := e.GetCrc(buf)
-	if crc != e.crc {
-		return nil, ErrCrc
-	}
-
-	return
-}
-
-// ReadRecord returns entry at the given off(offset).
-// payloadSize = bucketSize + keySize + valueSize
-func (df *DataFile) ReadRecord(off int, payloadSize int64) (e *Entry, err error) {
-	buf := make([]byte, DataEntryHeaderSize+payloadSize)
-
-	if _, err := df.rwManager.ReadAt(buf, int64(off)); err != nil {
-		return nil, err
-	}
-
-	e = &Entry{
-		crc: binary.LittleEndian.Uint32(buf[0:4]),
-	}
-	err = e.ParseMeta(buf)
-	if err != nil {
-		return nil, err
-	}
-
-	if e.IsZero() {
-		return nil, nil
-	}
-
-	if err := e.checkPayloadSize(payloadSize); err != nil {
-		return nil, err
-	}
-
-	err = e.ParsePayload(buf[DataEntryHeaderSize:])
-	if err != nil {
-		return nil, err
-	}
-
-	crc := e.GetCrc(buf[:DataEntryHeaderSize])
 	if crc != e.crc {
 		return nil, ErrCrc
 	}
@@ -161,4 +121,19 @@ func (df *DataFile) Close() (err error) {
 
 func (df *DataFile) Release() (err error) {
 	return df.rwManager.Release()
+}
+
+// readMetaData returns MetaData at given buf slice.
+func readMetaData(buf []byte) *MetaData {
+	return &MetaData{
+		Timestamp:  binary.LittleEndian.Uint64(buf[4:12]),
+		KeySize:    binary.LittleEndian.Uint32(buf[12:16]),
+		ValueSize:  binary.LittleEndian.Uint32(buf[16:20]),
+		Flag:       binary.LittleEndian.Uint16(buf[20:22]),
+		TTL:        binary.LittleEndian.Uint32(buf[22:26]),
+		BucketSize: binary.LittleEndian.Uint32(buf[26:30]),
+		Status:     binary.LittleEndian.Uint16(buf[30:32]),
+		Ds:         binary.LittleEndian.Uint16(buf[32:34]),
+		TxID:       binary.LittleEndian.Uint64(buf[34:42]),
+	}
 }

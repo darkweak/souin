@@ -17,22 +17,21 @@ package nutsdb
 import (
 	"bytes"
 	"errors"
-	"math"
 	"os"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/bwmarrin/snowflake"
-	"github.com/nutsdb/nutsdb/ds/list"
-	"github.com/nutsdb/nutsdb/ds/set"
-	"github.com/nutsdb/nutsdb/ds/zset"
+	"github.com/xujiajun/nutsdb/ds/list"
+	"github.com/xujiajun/nutsdb/ds/set"
+	"github.com/xujiajun/nutsdb/ds/zset"
 	"github.com/xujiajun/utils/strconv2"
 )
 
 var (
-	// ErrDataSizeExceed is returned when given key and value size is too big.
-	ErrDataSizeExceed = errors.New("data size too big")
+	// ErrKeyAndValSize is returned when given key and value size is too big.
+	ErrKeyAndValSize = errors.New("key and value size too big")
 
 	// ErrTxClosed is returned when committing or rolling back a transaction
 	// that has already been committed or rolled back.
@@ -176,11 +175,7 @@ func (tx *Tx) Commit() error {
 		entry := tx.pendingWrites[i]
 		entrySize := entry.Size()
 		if entrySize > tx.db.opt.SegmentSize {
-			return ErrDataSizeExceed
-		}
-
-		if len(entry.Meta.Bucket) > math.MaxUint32 || len(entry.Key) > math.MaxUint32 || len(entry.Value) > math.MaxUint32 {
-			return ErrDataSizeExceed
+			return ErrKeyAndValSize
 		}
 
 		bucket := string(entry.Meta.Bucket)
@@ -462,16 +457,10 @@ func (tx *Tx) buildListIdx(bucket string, entry *Entry) {
 	if _, ok := tx.db.ListIdx[bucket]; !ok {
 		tx.db.ListIdx[bucket] = list.New()
 	}
+
 	key, value := entry.Key, entry.Value
-	if IsExpired(entry.Meta.TTL, entry.Meta.Timestamp) {
-		return
-	}
+
 	switch entry.Meta.Flag {
-	case DataExpireListFlag:
-		t, _ := strconv2.StrToInt64(string(value))
-		ttl := uint32(t)
-		tx.db.ListIdx[bucket].TTL[string(key)] = ttl
-		tx.db.ListIdx[bucket].TimeStamp[string(key)] = entry.Meta.Timestamp
 	case DataLPushFlag:
 		_, _ = tx.db.ListIdx[bucket].LPush(string(key), value)
 	case DataRPushFlag:
