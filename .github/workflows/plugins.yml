@@ -7,11 +7,6 @@ jobs:
   build-caddy-validator:
     name: Check that Souin build as caddy module
     runs-on: ubuntu-latest
-    services:
-      redis:
-        image: redis
-        ports:
-          - 6379:6379
     steps:
       -
         name: Add domain.com host to /etc/hosts
@@ -46,722 +41,100 @@ jobs:
           reporters: cli
           delayRequest: 5000
   build-beego-validator:
-    name: Check that Souin build as Beego middleware
-    runs-on: ubuntu-latest
-    steps:
-      -
-        name: Add domain.com host to /etc/hosts
-        run: |
-          sudo echo "127.0.0.1 domain.com" | sudo tee -a /etc/hosts
-      -
-        name: Install Go
-        uses: actions/setup-go@v2
-        with:
-          go-version: 1.19
-      -
-        name: Checkout code
-        uses: actions/checkout@v2
-      -
-        name: Run Beego tests
-        run: cd plugins/beego && go test -v .
-      -
-        name: Build Souin as Beego plugin
-        run: make build-and-run-beego
-        env:
-          GH_APP_TOKEN: ${{ secrets.GH_APP_TOKEN }}
-          CURRENT_SHA: ${{ github.event.pull_request.head.sha }}
-      -
-        name: Wait for Souin is really loaded inside Beego as middleware
-        uses: jakejarvis/wait-action@master
-        with:
-          time: 50s
-      -
-        name: Set Beego logs configuration result as environment variable
-        run: cd plugins/beego && echo "$(make load-checker)" >> $GITHUB_ENV
-      -
-        name: Check if the configuration is loaded to define if Souin is loaded too
-        uses: nick-invision/assert-action@v1
-        with:
-          expected: 'Souin configuration is now loaded.'
-          actual: ${{ env.MIDDLEWARE_RESULT }}
-          comparison: contains
-      -
-        name: Run Beego E2E tests
-        uses: anthonyvscode/newman-action@v1
-        with:
-          collection: "docs/e2e/Souin E2E.postman_collection.json"
-          folder: Beego
-          reporters: cli
-          delayRequest: 5000
+    name: Check that Souin build as middleware
+    uses: ./.github/workflows/plugin_template.yml
+    secrets: inherit
+    with:
+      CAPITALIZED_NAME: Beego
+      LOWER_NAME: beego
   build-chi-validator:
-    name: Check that Souin build as Chi middleware
-    runs-on: ubuntu-latest
-    steps:
-      -
-        name: Add domain.com host to /etc/hosts
-        run: |
-          sudo echo "127.0.0.1 domain.com" | sudo tee -a /etc/hosts
-      -
-        name: Install Go
-        uses: actions/setup-go@v2
-        with:
-          go-version: 1.19
-      -
-        name: Checkout code
-        uses: actions/checkout@v2
-      -
-        name: Run Chi tests
-        run: cd plugins/chi && go test -v .
-      -
-        name: Build Souin as Chi plugin
-        run: make build-and-run-chi
-        env:
-          GH_APP_TOKEN: ${{ secrets.GH_APP_TOKEN }}
-          CURRENT_SHA: ${{ github.event.pull_request.head.sha }}
-      -
-        name: Wait for Souin is really loaded inside Chi as middleware
-        uses: jakejarvis/wait-action@master
-        with:
-          time: 50s
-      -
-        name: Set Chi logs configuration result as environment variable
-        run: cd plugins/chi && echo "$(make load-checker)" >> $GITHUB_ENV
-      -
-        name: Check if the configuration is loaded to define if Souin is loaded too
-        uses: nick-invision/assert-action@v1
-        with:
-          expected: 'Souin configuration is now loaded.'
-          actual: ${{ env.MIDDLEWARE_RESULT }}
-          comparison: contains
-      -
-        name: Run Chi E2E tests
-        uses: anthonyvscode/newman-action@v1
-        with:
-          collection: "docs/e2e/Souin E2E.postman_collection.json"
-          folder: Chi
-          reporters: cli
-          delayRequest: 5000
+    name: Check that Souin build as middleware
+    uses: ./.github/workflows/plugin_template.yml
+    secrets: inherit
+    with:
+      CAPITALIZED_NAME: Chi
+      LOWER_NAME: chi
   build-dotweb-validator:
-    name: Check that Souin build as Dotweb middleware
-    runs-on: ubuntu-latest
-    steps:
-      -
-        name: Add domain.com host to /etc/hosts
-        run: |
-          sudo echo "127.0.0.1 domain.com" | sudo tee -a /etc/hosts
-      -
-        name: Install Go
-        uses: actions/setup-go@v2
-        with:
-          go-version: 1.19
-      -
-        name: Checkout code
-        uses: actions/checkout@v2
-      -
-        name: Run Dotweb tests
-        run: cd plugins/dotweb && go test -v .
-      -
-        name: Build Souin as Dotweb plugin
-        run: make build-and-run-dotweb
-        env:
-          GH_APP_TOKEN: ${{ secrets.GH_APP_TOKEN }}
-          CURRENT_SHA: ${{ github.event.pull_request.head.sha }}
-      -
-        name: Wait for Souin is really loaded inside Dotweb as middleware
-        uses: jakejarvis/wait-action@master
-        with:
-          time: 50s
-      -
-        name: Set Dotweb logs configuration result as environment variable
-        run: cd plugins/dotweb && echo "$(make load-checker)" >> $GITHUB_ENV
-      -
-        name: Check if the configuration is loaded to define if Souin is loaded too
-        uses: nick-invision/assert-action@v1
-        with:
-          expected: 'Souin configuration is now loaded.'
-          actual: ${{ env.MIDDLEWARE_RESULT }}
-          comparison: contains
-      -
-        name: Run Dotweb E2E tests
-        uses: anthonyvscode/newman-action@v1
-        with:
-          collection: "docs/e2e/Souin E2E.postman_collection.json"
-          folder: Dotweb
-          reporters: cli
-          delayRequest: 5000
+    name: Check that Souin build as middleware
+    uses: ./.github/workflows/plugin_template.yml
+    secrets: inherit
+    with:
+      CAPITALIZED_NAME: Dotweb
+      LOWER_NAME: dotweb
   build-echo-validator:
-    name: Check that Souin build as Echo middleware
-    runs-on: ubuntu-latest
-    steps:
-      -
-        name: Add domain.com host to /etc/hosts
-        run: |
-          sudo echo "127.0.0.1 domain.com" | sudo tee -a /etc/hosts
-      -
-        name: Install Go
-        uses: actions/setup-go@v2
-        with:
-          go-version: 1.19
-      -
-        name: Checkout code
-        uses: actions/checkout@v2
-      -
-        name: Run Echo tests
-        run: cd plugins/echo && go test -v .
-      -
-        name: Build Souin as Echo plugin
-        run: make build-and-run-echo
-        env:
-          GH_APP_TOKEN: ${{ secrets.GH_APP_TOKEN }}
-          CURRENT_SHA: ${{ github.event.pull_request.head.sha }}
-      -
-        name: Wait for Souin is really loaded inside Echo as middleware
-        uses: jakejarvis/wait-action@master
-        with:
-          time: 50s
-      -
-        name: Set Echo logs configuration result as environment variable
-        run: cd plugins/echo && echo "$(make load-checker)" >> $GITHUB_ENV
-      -
-        name: Check if the configuration is loaded to define if Souin is loaded too
-        uses: nick-invision/assert-action@v1
-        with:
-          expected: 'Souin configuration is now loaded.'
-          actual: ${{ env.MIDDLEWARE_RESULT }}
-          comparison: contains
-      -
-        name: Run Echo E2E tests
-        uses: anthonyvscode/newman-action@v1
-        with:
-          collection: "docs/e2e/Souin E2E.postman_collection.json"
-          folder: Echo
-          reporters: cli
-          delayRequest: 5000
+    name: Check that Souin build as middleware
+    uses: ./.github/workflows/plugin_template.yml
+    secrets: inherit
+    with:
+      CAPITALIZED_NAME: Echo
+      LOWER_NAME: echo
   build-fiber-validator:
-    name: Check that Souin build as Fiber middleware
-    runs-on: ubuntu-latest
-    steps:
-      -
-        name: Add domain.com host to /etc/hosts
-        run: |
-          sudo echo "127.0.0.1 domain.com" | sudo tee -a /etc/hosts
-      -
-        name: Install Go
-        uses: actions/setup-go@v2
-        with:
-          go-version: 1.19
-      -
-        name: Checkout code
-        uses: actions/checkout@v2
-      -
-        name: Run Fiber tests
-        run: cd plugins/fiber && go test -v .
-      -
-        name: Build Souin as Fiber plugin
-        run: make build-and-run-fiber
-        env:
-          GH_APP_TOKEN: ${{ secrets.GH_APP_TOKEN }}
-          CURRENT_SHA: ${{ github.event.pull_request.head.sha }}
-      -
-        name: Wait for Souin is really loaded inside Fiber as middleware
-        uses: jakejarvis/wait-action@master
-        with:
-          time: 50s
-      -
-        name: Set Fiber logs configuration result as environment variable
-        run: cd plugins/fiber && echo "$(make load-checker)" >> $GITHUB_ENV
-      -
-        name: Check if the configuration is loaded to define if Souin is loaded too
-        uses: nick-invision/assert-action@v1
-        with:
-          expected: 'Souin configuration is now loaded.'
-          actual: ${{ env.MIDDLEWARE_RESULT }}
-          comparison: contains
-      -
-        name: Run Fiber E2E tests
-        uses: anthonyvscode/newman-action@v1
-        with:
-          collection: "docs/e2e/Souin E2E.postman_collection.json"
-          folder: Fiber
-          reporters: cli
-          delayRequest: 5000
+    name: Check that Souin build as middleware
+    uses: ./.github/workflows/plugin_template.yml
+    secrets: inherit
+    with:
+      CAPITALIZED_NAME: Fiber
+      LOWER_NAME: fiber
   build-gin-validator:
-    name: Check that Souin build as Gin middleware
-    runs-on: ubuntu-latest
-    steps:
-      -
-        name: Add domain.com host to /etc/hosts
-        run: |
-          sudo echo "127.0.0.1 domain.com" | sudo tee -a /etc/hosts
-      -
-        name: Install Go
-        uses: actions/setup-go@v2
-        with:
-          go-version: 1.19
-      -
-        name: Checkout code
-        uses: actions/checkout@v2
-      -
-        name: Run Gin tests
-        run: cd plugins/gin && go test -v .
-      -
-        name: Build Souin as Gin plugin
-        run: make build-and-run-gin
-        env:
-          GH_APP_TOKEN: ${{ secrets.GH_APP_TOKEN }}
-          CURRENT_SHA: ${{ github.event.pull_request.head.sha }}
-      -
-        name: Wait for Souin is really loaded inside Gin as middleware
-        uses: jakejarvis/wait-action@master
-        with:
-          time: 50s
-      -
-        name: Set Gin logs configuration result as environment variable
-        run: cd plugins/gin && echo "$(make load-checker)" >> $GITHUB_ENV
-      -
-        name: Check if the configuration is loaded to define if Souin is loaded too
-        uses: nick-invision/assert-action@v1
-        with:
-          expected: 'Souin configuration is now loaded.'
-          actual: ${{ env.MIDDLEWARE_RESULT }}
-          comparison: contains
-      -
-        name: Run Gin E2E tests
-        uses: anthonyvscode/newman-action@v1
-        with:
-          collection: "docs/e2e/Souin E2E.postman_collection.json"
-          folder: Gin
-          reporters: cli
-          delayRequest: 5000
+    name: Check that Souin build as middleware
+    uses: ./.github/workflows/plugin_template.yml
+    secrets: inherit
+    with:
+      CAPITALIZED_NAME: Gin
+      LOWER_NAME: gin
   build-go-zero-validator:
-    name: Check that Souin build as Go-zero middleware
-    runs-on: ubuntu-latest
-    steps:
-      -
-        name: Add domain.com host to /etc/hosts
-        run: |
-          sudo echo "127.0.0.1 domain.com" | sudo tee -a /etc/hosts
-      -
-        name: Install Go
-        uses: actions/setup-go@v2
-        with:
-          go-version: 1.19
-      -
-        name: Checkout code
-        uses: actions/checkout@v2
-      -
-        name: Run Go-zero tests
-        run: cd plugins/go-zero && go test -v .
-      -
-        name: Build Souin as Go-zero plugin
-        run: make build-and-run-go-zero
-        env:
-          GH_APP_TOKEN: ${{ secrets.GH_APP_TOKEN }}
-          CURRENT_SHA: ${{ github.event.pull_request.head.sha }}
-      -
-        name: Wait for Souin is really loaded inside Go-zero as middleware
-        uses: jakejarvis/wait-action@master
-        with:
-          time: 50s
-      -
-        name: Set Go-zero logs configuration result as environment variable
-        run: cd plugins/go-zero && echo "$(make load-checker)" >> $GITHUB_ENV
-      -
-        name: Check if the configuration is loaded to define if Souin is loaded too
-        uses: nick-invision/assert-action@v1
-        with:
-          expected: 'Souin configuration is now loaded.'
-          actual: ${{ env.MIDDLEWARE_RESULT }}
-          comparison: contains
-      -
-        name: Run Go-zero E2E tests
-        uses: anthonyvscode/newman-action@v1
-        with:
-          collection: "docs/e2e/Souin E2E.postman_collection.json"
-          folder: Go-zero
-          reporters: cli
-          delayRequest: 5000
-  build-goyave-validator:
-    name: Check that Souin build as Goyave middleware
-    runs-on: ubuntu-latest
-    steps:
-      -
-        name: Add domain.com host to /etc/hosts
-        run: |
-          sudo echo "127.0.0.1 domain.com" | sudo tee -a /etc/hosts
-      -
-        name: Install Go
-        uses: actions/setup-go@v2
-        with:
-          go-version: 1.19
-      -
-        name: Checkout code
-        uses: actions/checkout@v2
-      -
-        name: Run Goyave tests
-        run: cd plugins/goyave && go test -v .
-      -
-        name: Build Souin as Goyave plugin
-        run: make build-and-run-goyave
-        env:
-          GH_APP_TOKEN: ${{ secrets.GH_APP_TOKEN }}
-          CURRENT_SHA: ${{ github.event.pull_request.head.sha }}
-      -
-        name: Wait for Souin is really loaded inside Goyave as middleware
-        uses: jakejarvis/wait-action@master
-        with:
-          time: 50s
-      -
-        name: Set Goyave logs configuration result as environment variable
-        run: cd plugins/goyave && echo "$(make load-checker)" >> $GITHUB_ENV
-      -
-        name: Check if the configuration is loaded to define if Souin is loaded too
-        uses: nick-invision/assert-action@v1
-        with:
-          expected: 'Souin configuration is now loaded.'
-          actual: ${{ env.MIDDLEWARE_RESULT }}
-          comparison: contains
-      -
-        name: Run Goyave E2E tests
-        uses: anthonyvscode/newman-action@v1
-        with:
-          collection: "docs/e2e/Souin E2E.postman_collection.json"
-          folder: Goyave
-          reporters: cli
-          delayRequest: 5000
+    name: Check that Souin build as middleware
+    uses: ./.github/workflows/plugin_template.yml
+    secrets: inherit
+    with:
+      CAPITALIZED_NAME: Go-zero
+      LOWER_NAME: go-zero
   build-kratos-validator:
-    name: Check that Souin build as Kratos middleware
-    runs-on: ubuntu-latest
-    steps:
-      -
-        name: Add domain.com host to /etc/hosts
-        run: |
-          sudo echo "127.0.0.1 domain.com" | sudo tee -a /etc/hosts
-      -
-        name: Install Go
-        uses: actions/setup-go@v2
-        with:
-          go-version: 1.19
-      -
-        name: Checkout code
-        uses: actions/checkout@v2
-      -
-        name: Run Kratos tests
-        run: cd plugins/kratos && go test -v .
-      -
-        name: Build Souin as Kratos plugin
-        run: make build-and-run-kratos
-        env:
-          GH_APP_TOKEN: ${{ secrets.GH_APP_TOKEN }}
-          CURRENT_SHA: ${{ github.event.pull_request.head.sha }}
-      -
-        name: Wait for Souin is really loaded inside Kratos as middleware
-        uses: jakejarvis/wait-action@master
-        with:
-          time: 50s
-      -
-        name: Set Kratos logs configuration result as environment variable
-        run: cd plugins/kratos && echo "$(make load-checker)" >> $GITHUB_ENV
-      -
-        name: Check if the configuration is loaded to define if Souin is loaded too
-        uses: nick-invision/assert-action@v1
-        with:
-          expected: 'Souin configuration is now loaded.'
-          actual: ${{ env.MIDDLEWARE_RESULT }}
-          comparison: contains
-      -
-        name: Run Kratos E2E tests
-        uses: anthonyvscode/newman-action@v1
-        with:
-          collection: "docs/e2e/Souin E2E.postman_collection.json"
-          folder: Kratos
-          reporters: cli
-          delayRequest: 5000
+    name: Check that Souin build as middleware
+    uses: ./.github/workflows/plugin_template.yml
+    secrets: inherit
+    with:
+      CAPITALIZED_NAME: Kratos
+      LOWER_NAME: kratos
   build-roadrunner-validator:
-    name: Check that Souin build as Roadrunner middleware
-    runs-on: ubuntu-latest
-    steps:
-      -
-        name: Add domain.com host to /etc/hosts
-        run: |
-          sudo echo "127.0.0.1 domain.com" | sudo tee -a /etc/hosts
-      -
-        name: Install Go
-        uses: actions/setup-go@v2
-        with:
-          go-version: 1.19
-      -
-        name: Checkout code
-        uses: actions/checkout@v2
-      -
-        name: Run Roadrunner tests
-        run: cd plugins/roadrunner && go test -v .
-      -
-        name: Build Souin as Roadrunner plugin
-        run: make build-and-run-roadrunner
-        env:
-          GH_APP_TOKEN: ${{ secrets.GH_APP_TOKEN }}
-          CURRENT_SHA: ${{ github.event.pull_request.head.sha }}
-      -
-        name: Wait for Souin is really loaded inside Roadrunner as middleware
-        uses: jakejarvis/wait-action@master
-        with:
-          time: 50s
-      -
-        name: Set Roadrunner logs configuration result as environment variable
-        run: cd plugins/roadrunner && echo "$(make load-checker)" >> $GITHUB_ENV
-      -
-        name: Check if the configuration is loaded to define if Souin is loaded too
-        uses: nick-invision/assert-action@v1
-        with:
-          expected: 'Souin configuration is now loaded.'
-          actual: ${{ env.MIDDLEWARE_RESULT }}
-          comparison: contains
-      -
-        name: Run Roadrunner E2E tests
-        uses: anthonyvscode/newman-action@v1
-        with:
-          collection: "docs/e2e/Souin E2E.postman_collection.json"
-          folder: Roadrunner
-          reporters: cli
-          delayRequest: 5000
+    name: Check that Souin build as middleware
+    uses: ./.github/workflows/plugin_template.yml
+    secrets: inherit
+    with:
+      CAPITALIZED_NAME: Roadrunner
+      LOWER_NAME: roadrunner
   build-skipper-validator:
-    name: Check that Souin build as Skipper middleware
-    runs-on: ubuntu-latest
-    steps:
-      -
-        name: Add domain.com host to /etc/hosts
-        run: |
-          sudo echo "127.0.0.1 domain.com" | sudo tee -a /etc/hosts
-      -
-        name: Install Go
-        uses: actions/setup-go@v2
-        with:
-          go-version: 1.19
-      -
-        name: Checkout code
-        uses: actions/checkout@v2
-      -
-        name: Run Skipper tests
-        run: cd plugins/skipper && go test -v .
-      -
-        name: Build Souin as Skipper plugin
-        run: make build-and-run-skipper
-        env:
-          GH_APP_TOKEN: ${{ secrets.GH_APP_TOKEN }}
-          CURRENT_SHA: ${{ github.event.pull_request.head.sha }}
-      -
-        name: Wait for Souin is really loaded inside Skipper as middleware
-        uses: jakejarvis/wait-action@master
-        with:
-          time: 65s
-      -
-        name: Set Skipper logs configuration result as environment variable
-        run: cd plugins/skipper && echo "$(make load-checker)" >> $GITHUB_ENV
-      -
-        name: Check if the configuration is loaded to define if Souin is loaded too
-        uses: nick-invision/assert-action@v1
-        with:
-          expected: 'Souin configuration is now loaded.'
-          actual: ${{ env.MIDDLEWARE_RESULT }}
-          comparison: contains
-      -
-        name: Run Skipper E2E tests
-        uses: anthonyvscode/newman-action@v1
-        with:
-          collection: "docs/e2e/Souin E2E.postman_collection.json"
-          folder: Skipper
-          reporters: cli
-          delayRequest: 5000
+    name: Check that Souin build as middleware
+    uses: ./.github/workflows/plugin_template.yml
+    secrets: inherit
+    with:
+      CAPITALIZED_NAME: Skipper
+      LOWER_NAME: skipper
   build-souin-validator:
-    name: Check that Souin build as Souin middleware
-    runs-on: ubuntu-latest
-    steps:
-      -
-        name: Add domain.com host to /etc/hosts
-        run: |
-          sudo echo "127.0.0.1 domain.com" | sudo tee -a /etc/hosts
-      -
-        name: Install Go
-        uses: actions/setup-go@v2
-        with:
-          go-version: 1.19
-      -
-        name: Checkout code
-        uses: actions/checkout@v2
-      -
-        name: Run Souin tests
-        run: cd plugins/souin && go test -v .
-      -
-        name: Build Souin as Souin plugin
-        run: make build-and-run-souin
-        env:
-          GH_APP_TOKEN: ${{ secrets.GH_APP_TOKEN }}
-          CURRENT_SHA: ${{ github.event.pull_request.head.sha }}
-      -
-        name: Wait for Souin is really loaded inside Souin as middleware
-        uses: jakejarvis/wait-action@master
-        with:
-          time: 50s
-      -
-        name: Set Souin logs configuration result as environment variable
-        run: cd plugins/souin && echo "$(make load-checker)" >> $GITHUB_ENV
-      -
-        name: Check if the configuration is loaded to define if Souin is loaded too
-        uses: nick-invision/assert-action@v1
-        with:
-          expected: 'Souin configuration is now loaded.'
-          actual: ${{ env.MIDDLEWARE_RESULT }}
-          comparison: contains
-      -
-        name: Run Souin E2E tests
-        uses: anthonyvscode/newman-action@v1
-        with:
-          collection: "docs/e2e/Souin E2E.postman_collection.json"
-          folder: Souin
-          reporters: cli
-          delayRequest: 5000
+    name: Check that Souin build as middleware
+    uses: ./.github/workflows/plugin_template.yml
+    secrets: inherit
+    with:
+      CAPITALIZED_NAME: Souin
+      LOWER_NAME: souin
   build-traefik-validator:
-    name: Check that Souin build as Traefik middleware
-    runs-on: ubuntu-latest
-    steps:
-      -
-        name: Add domain.com host to /etc/hosts
-        run: |
-          sudo echo "127.0.0.1 domain.com" | sudo tee -a /etc/hosts
-      -
-        name: Install Go
-        uses: actions/setup-go@v2
-        with:
-          go-version: 1.19
-      -
-        name: Checkout code
-        uses: actions/checkout@v2
-      -
-        name: Run Traefik tests
-        run: cd plugins/traefik && go test -v .
-      -
-        name: Build Souin as Traefik plugin
-        run: make build-and-run-traefik
-        env:
-          GH_APP_TOKEN: ${{ secrets.GH_APP_TOKEN }}
-          CURRENT_SHA: ${{ github.event.pull_request.head.sha }}
-      -
-        name: Wait for Souin is really loaded inside Traefik as middleware
-        uses: jakejarvis/wait-action@master
-        with:
-          time: 20s
-      -
-        name: Set Traefik logs configuration result as environment variable
-        run: cd plugins/traefik && echo "$(make load-checker)" >> $GITHUB_ENV
-      -
-        name: Check if the configuration is loaded to define if Souin is loaded too
-        uses: nick-invision/assert-action@v1
-        with:
-          expected: 'Souin configuration is now loaded.'
-          actual: ${{ env.MIDDLEWARE_RESULT }}
-          comparison: contains
-      -
-        name: Run Traefik E2E tests
-        uses: anthonyvscode/newman-action@v1
-        with:
-          collection: "docs/e2e/Souin E2E.postman_collection.json"
-          folder: Traefik
-          reporters: cli
-          delayRequest: 5000
+    name: Check that Souin build as middleware
+    uses: ./.github/workflows/plugin_template.yml
+    secrets: inherit
+    with:
+      CAPITALIZED_NAME: Traefik
+      LOWER_NAME: traefik
   build-tyk-validator:
-    name: Check that Souin build as Tyk middleware
-    runs-on: ubuntu-latest
-    steps:
-      -
-        name: Add domain.com host to /etc/hosts
-        run: |
-          sudo echo "127.0.0.1 domain.com" | sudo tee -a /etc/hosts
-      -
-        name: Install Go
-        uses: actions/setup-go@v2
-        with:
-          go-version: 1.19
-      -
-        name: Checkout code
-        uses: actions/checkout@v2
-      -
-        name: Run Tyk tests
-        run: cd plugins/tyk && go test -v .
-      -
-        name: Build Souin as Tyk plugin
-        run: make build-and-run-tyk
-        env:
-          GH_APP_TOKEN: ${{ secrets.GH_APP_TOKEN }}
-          CURRENT_SHA: ${{ github.event.pull_request.head.sha }}
-      -
-        name: Wait for Souin is really loaded inside Tyk as middleware
-        uses: jakejarvis/wait-action@master
-        with:
-          time: 30s
-      -
-        name: Set Tyk logs configuration result as environment variable
-        run: cd plugins/tyk && echo "$(make load-checker)" >> $GITHUB_ENV
-      -
-        name: Check if the configuration is loaded to define if Souin is loaded too
-        uses: nick-invision/assert-action@v1
-        with:
-          expected: 'Souin configuration is now loaded.'
-          actual: ${{ env.MIDDLEWARE_RESULT }}
-          comparison: contains
-      -
-        name: Run Tyk E2E tests
-        uses: anthonyvscode/newman-action@v1
-        with:
-          collection: "docs/e2e/Souin E2E.postman_collection.json"
-          folder: Tyk
-          reporters: cli
-          delayRequest: 5000
+    name: Check that Souin build as middleware
+    uses: ./.github/workflows/plugin_template.yml
+    secrets: inherit
+    with:
+      CAPITALIZED_NAME: Tyk
+      LOWER_NAME: tyk
   build-webgo-validator:
-    name: Check that Souin build as Webgo middleware
-    runs-on: ubuntu-latest
-    steps:
-      -
-        name: Add domain.com host to /etc/hosts
-        run: |
-          sudo echo "127.0.0.1 domain.com" | sudo tee -a /etc/hosts
-      -
-        name: Install Go
-        uses: actions/setup-go@v2
-        with:
-          go-version: 1.19
-      -
-        name: Checkout code
-        uses: actions/checkout@v2
-      -
-        name: Run Webgo tests
-        run: cd plugins/webgo && go test -v .
-      -
-        name: Build Souin as Webgo plugin
-        run: make build-and-run-webgo
-        env:
-          GH_APP_TOKEN: ${{ secrets.GH_APP_TOKEN }}
-          CURRENT_SHA: ${{ github.event.pull_request.head.sha }}
-      -
-        name: Wait for Souin is really loaded inside Webgo as middleware
-        uses: jakejarvis/wait-action@master
-        with:
-          time: 50s
-      -
-        name: Set Webgo logs configuration result as environment variable
-        run: cd plugins/webgo && echo "$(make load-checker)" >> $GITHUB_ENV
-      -
-        name: Check if the configuration is loaded to define if Souin is loaded too
-        uses: nick-invision/assert-action@v1
-        with:
-          expected: 'Souin configuration is now loaded.'
-          actual: ${{ env.MIDDLEWARE_RESULT }}
-          comparison: contains
-      -
-        name: Run Webgo E2E tests
-        uses: anthonyvscode/newman-action@v1
-        with:
-          collection: "docs/e2e/Souin E2E.postman_collection.json"
-          folder: Webgo
-          reporters: cli
-          delayRequest: 5000
+    name: Check that Souin build as middleware
+    uses: ./.github/workflows/plugin_template.yml
+    secrets: inherit
+    with:
+      CAPITALIZED_NAME: Webgo
+      LOWER_NAME: webgo

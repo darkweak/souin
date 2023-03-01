@@ -29,7 +29,7 @@ jobs:
         with:
           go-version: 1.19
       - name: Run unit static tests
-        run: go test -v -race $(go list ./... | grep -v cache/providers)
+        run: go test -v -race $(go list ./... | grep -v cache/providers | grep -v pkg/storage)
   unit-test-golang-with-services:
     needs: lint-validation
     name: Unit tests with external services
@@ -45,9 +45,10 @@ jobs:
         run: |
           docker network create your_network || true
           docker-compose -f docker-compose.yml.test up -d --build --force-recreate --remove-orphans
-      - name: Run tests
-        # disabled race to pass the EmbeddedOlric test
-        run: docker-compose -f docker-compose.yml.test exec -T souin go test -v ./cache/providers
+      - name: Run cache providers tests
+        run: docker-compose -f docker-compose.yml.test exec -T souin go test -v -race ./cache/providers
+      - name: Run pkg storage tests
+        run: docker-compose -f docker-compose.yml.test exec -T souin go test -v -race ./pkg/storage
   validate-prod-container-building:
     needs: unit-test-golang-with-services
     name: Validate that the container build for prod

@@ -1,8 +1,6 @@
 #!/bin/bash
 
-plugins=("beego"  "chi"  "dotweb"  "echo"  "fiber"  "gin"  "go-zero"  "goyave"  "kratos"  "roadrunner"  "skipper"  "souin"  "traefik"  "tyk"  "webgo")
-durations=("50"   "50"   "50"      "50"    "50"     "50"   "50"       "50"      "50"      "50"          "65"       "50"     "20"       "30"   "50")
-versions=("19"    "19"   "19"      "19"    "19"     "19"   "19"       "19"      "19"      "19"          "19"       "19"     "19"       "19"   "19")
+plugins=("beego"  "chi"  "dotweb"  "echo"  "fiber"  "gin"  "go-zero"  "kratos"  "roadrunner"  "skipper"  "souin"  "traefik"  "tyk"  "webgo")
 
 IFS= read -r -d '' tpl <<EOF
 name: Build and validate Souin as plugins
@@ -14,11 +12,6 @@ jobs:
   build-caddy-validator:
     name: Check that Souin build as caddy module
     runs-on: ubuntu-latest
-    services:
-      redis:
-        image: redis
-        ports:
-          - 6379:6379
     steps:
       -
         name: Add domain.com host to /etc/hosts
@@ -60,53 +53,12 @@ for i in ${!plugins[@]}; do
   capitalized="$(tr '[:lower:]' '[:upper:]' <<< ${lower:0:1})${lower:1}"
   IFS= read -d '' tpl <<EOF
   build-$lower-validator:
-    name: Check that Souin build as $capitalized middleware
-    runs-on: ubuntu-latest
-    steps:
-      -
-        name: Add domain.com host to /etc/hosts
-        run: |
-          sudo echo "127.0.0.1 domain.com" | sudo tee -a /etc/hosts
-      -
-        name: Install Go
-        uses: actions/setup-go@v2
-        with:
-          go-version: 1.${versions[$i]}
-      -
-        name: Checkout code
-        uses: actions/checkout@v2
-      -
-        name: Run $capitalized tests
-        run: cd plugins/$lower && go test -v .
-      -
-        name: Build Souin as $capitalized plugin
-        run: make build-and-run-$lower
-        env:
-          GH_APP_TOKEN: \${{ secrets.GH_APP_TOKEN }}
-          CURRENT_SHA: \${{ github.event.pull_request.head.sha }}
-      -
-        name: Wait for Souin is really loaded inside $capitalized as middleware
-        uses: jakejarvis/wait-action@master
-        with:
-          time: ${durations[$i]}s
-      -
-        name: Set $capitalized logs configuration result as environment variable
-        run: cd plugins/$lower && echo "\$(make load-checker)" >> \$GITHUB_ENV
-      -
-        name: Check if the configuration is loaded to define if Souin is loaded too
-        uses: nick-invision/assert-action@v1
-        with:
-          expected: 'Souin configuration is now loaded.'
-          actual: \${{ env.MIDDLEWARE_RESULT }}
-          comparison: contains
-      -
-        name: Run $capitalized E2E tests
-        uses: anthonyvscode/newman-action@v1
-        with:
-          collection: "docs/e2e/Souin E2E.postman_collection.json"
-          folder: $capitalized
-          reporters: cli
-          delayRequest: 5000
+    name: Check that Souin build as middleware
+    uses: ./.github/workflows/plugin_template.yml
+    secrets: inherit
+    with:
+      CAPITALIZED_NAME: $capitalized
+      LOWER_NAME: $lower
 EOF
   workflow+="$tpl"
 done

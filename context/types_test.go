@@ -38,8 +38,8 @@ func Test_Context_SetContext(t *testing.T) {
 	co.Init(&c)
 	req := httptest.NewRequest(http.MethodGet, "http://domain.com", nil)
 	req = co.SetContext(req)
-	if req.Context().Value(Key) != "GET-domain.com-/" {
-		t.Errorf("The Key context must be equal to GET-domain.com-/, %s given.", req.Context().Value(Key))
+	if req.Context().Value(Key) != "GET-http-domain.com-/" {
+		t.Errorf("The Key context must be equal to GET-http-domain.com-/, %s given.", req.Context().Value(Key))
 	}
 	if req.Context().Value(GraphQL) != false {
 		t.Error("The GraphQL context must be false.")

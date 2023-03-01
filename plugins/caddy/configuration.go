@@ -136,9 +136,11 @@ type Configuration struct {
 	// Override the ttl depending the cases.
 	URLs map[string]configurationtypes.URL
 	// Logger level, fallback on caddy's one when not redefined.
-	LogLevel  string
-	cacheKeys map[configurationtypes.RegValue]configurationtypes.Key
-	logger    *zap.Logger
+	LogLevel string
+	// SurrogateKeys contains the surrogate keys to use with a predefined mapping
+	SurrogateKeys map[string]configurationtypes.SurrogateKeys
+	cacheKeys     map[configurationtypes.RegValue]configurationtypes.Key
+	logger        *zap.Logger
 }
 
 // GetUrls get the urls list in the configuration
@@ -343,15 +345,18 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isBlocking b
 				args := h.RemainingArgs()
 				cfg.DefaultCache.CacheName = args[0]
 			case "cdn":
-				cdn := configurationtypes.CDN{}
-				cdn.Dynamic = true
+				cdn := configurationtypes.CDN{
+					Dynamic: true,
+				}
 				for nesting := h.Nesting(); h.NextBlock(nesting); {
 					directive := h.Val()
 					switch directive {
 					case "api_key":
 						cdn.APIKey = h.RemainingArgs()[0]
 					case "dynamic":
-						cdn.Dynamic = true
+						if len(h.RemainingArgs()) > 0 {
+							cdn.Dynamic, _ = strconv.ParseBool(h.RemainingArgs()[0])
+						}
 					case "hostname":
 						cdn.Hostname = h.RemainingArgs()[0]
 					case "network":

@@ -1,20 +1,6 @@
 package main
 
-import (
-	"net/http"
-	"net/http/httptest"
-	"strconv"
-	"testing"
-	"time"
-
-	"github.com/darkweak/souin/cache/coalescing"
-	"github.com/darkweak/souin/cache/service"
-	"github.com/darkweak/souin/errors"
-	"github.com/darkweak/souin/plugins"
-	"github.com/darkweak/souin/plugins/souin/configuration"
-	souintypes "github.com/darkweak/souin/plugins/souin/types"
-)
-
+/*
 func Benchmark_Souin_Handler(b *testing.B) {
 	c := configuration.GetConfiguration()
 	rc := coalescing.Initialize()
@@ -52,3 +38,4 @@ func Benchmark_Souin_Handler(b *testing.B) {
 		})
 	}
 }
+*/

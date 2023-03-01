@@ -61,8 +61,8 @@ func Test_KeyContext_SetContext(t *testing.T) {
 	ctx := keyContext{}
 	req := httptest.NewRequest(http.MethodGet, "http://domain.com", nil)
 	req = ctx.SetContext(req.WithContext(context.WithValue(req.Context(), HashBody, "-with_the_hash")))
-	if req.Context().Value(Key).(string) != "GET-domain.com-/-with_the_hash" {
-		t.Errorf("The Key context must be equal to GET-domain.com-/-with_the_hash, %s given.", req.Context().Value(Key).(string))
+	if req.Context().Value(Key).(string) != "GET-http-domain.com-/-with_the_hash" {
+		t.Errorf("The Key context must be equal to GET-http-domain.com-/-with_the_hash, %s given.", req.Context().Value(Key).(string))
 	}
 
 	m := make(map[*regexp.Regexp]keyContext)
@@ -77,8 +77,8 @@ func Test_KeyContext_SetContext(t *testing.T) {
 	}
 	req2 := httptest.NewRequest(http.MethodGet, "http://domain.com/matched", nil)
 	req2 = ctx2.SetContext(req2.WithContext(context.WithValue(req2.Context(), HashBody, "")))
-	if req2.Context().Value(Key).(string) != "domain.com-/matched" {
-		t.Errorf("The Key context must be equal to domain.com-/matched, %s given.", req2.Context().Value(Key).(string))
+	if req2.Context().Value(Key).(string) != "http-domain.com-/matched" {
+		t.Errorf("The Key context must be equal to http-domain.com-/matched, %s given.", req2.Context().Value(Key).(string))
 	}
 
 	m = make(map[*regexp.Regexp]keyContext)
@@ -92,13 +92,13 @@ func Test_KeyContext_SetContext(t *testing.T) {
 	}
 	req3 := httptest.NewRequest(http.MethodGet, "http://domain.com/matched", nil)
 	req3 = ctx3.SetContext(req3.WithContext(context.WithValue(req3.Context(), HashBody, "")))
-	if req3.Context().Value(Key).(string) != "GET-/matched" {
-		t.Errorf("The Key context must be equal to GET-/matched, %s given.", req3.Context().Value(Key).(string))
+	if req3.Context().Value(Key).(string) != "GET-http-/matched" {
+		t.Errorf("The Key context must be equal to GET-http-/matched, %s given.", req3.Context().Value(Key).(string))
 	}
 
 	req4 := httptest.NewRequest(http.MethodGet, "http://domain.com/something", nil)
 	req4 = ctx3.SetContext(req4.WithContext(context.WithValue(req4.Context(), HashBody, "")))
-	if req4.Context().Value(Key).(string) != "domain.com-/something" {
-		t.Errorf("The Key context must be equal to domain.com-/something, %s given.", req4.Context().Value(Key).(string))
+	if req4.Context().Value(Key).(string) != "http-domain.com-/something" {
+		t.Errorf("The Key context must be equal to http-domain.com-/something, %s given.", req4.Context().Value(Key).(string))
 	}
 }

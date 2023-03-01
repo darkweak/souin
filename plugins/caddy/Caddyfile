@@ -255,3 +255,22 @@ route /cache-authorization {
 
 cache @souin-api {
 }
+
+# ESI part
+route /esi-include {
+    cache
+    header Content-Type text/html
+    respond "<h1>ESI INCLUDE</h1>"
+}
+
+route /alt-esi-include {
+    cache
+    header Content-Type text/html
+    respond "<h1>ALTERNATE ESI INCLUDE</h1>"
+}
+
+route /esi {
+    cache
+    header Content-Type text/html
+    respond `Bonjour <esi:include src="http://localhost:4443/esi-include" alt=http://localhost:4443/alt-esi-include />`
+}

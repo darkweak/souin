@@ -10,7 +10,7 @@ import (
 
 	"github.com/darkweak/souin/cache/types"
 	t "github.com/darkweak/souin/configurationtypes"
-	"github.com/go-redis/redis/v9"
+	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )
 

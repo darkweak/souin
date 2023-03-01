@@ -1,28 +1,16 @@
 package roadrunner
 
 import (
-	"bytes"
-	"context"
 	"net/http"
-	"sync"
-	"time"
 
-	"github.com/darkweak/souin/api"
-	"github.com/darkweak/souin/cache/coalescing"
-	"github.com/darkweak/souin/plugins"
-	"github.com/darkweak/souin/rfc"
+	"github.com/darkweak/souin/pkg/middleware"
 	"github.com/roadrunner-server/errors"
 	"go.uber.org/zap"
 )
 
-const (
-	getterContextCtxKey key = "getter_context"
-	pluginName string = "cache"
-)
+const pluginName string = "cache"
 
 type (
-	key string
-
 	// Configurer interface used to parse yaml configuration.
 	// Implementation will be provided by the RoadRunner automatically via Init method.
 	Configurer interface {
@@ -31,7 +19,7 @@ type (
 		// Has checks if config section exists.
 		Has(name string) bool
 	}
-	
+
 	// Logger is the main RR's logger interface
 	// It's providing a named instance of the *zap.Logger
 	Logger interface {
@@ -39,17 +27,47 @@ type (
 	}
 
 	Plugin struct {
-		plugins.SouinBasePlugin
-		Configuration *plugins.BaseConfiguration
-		bufPool       *sync.Pool
-	}
-	getterContext struct {
-		next http.HandlerFunc
-		rw   http.ResponseWriter
-		req  *http.Request
+		*middleware.SouinBaseHandler
 	}
 )
 
+// Name is the plugin name
+func (*Plugin) Name() string {
+	return pluginName
+}
+
+// Init allows the user to set up an HTTP cache system,
+// RFC-7234 compliant and supports the tag based cache purge,
+// distributed and not-distributed storage, key generation tweaking.
+func (m *Plugin) Init(cfg Configurer, log *zap.Logger) error {
+	const op = errors.Op("httpcache_middleware_init")
+	if !cfg.Has(configurationKey) {
+		return errors.E(op, errors.Disabled)
+	}
+
+	c := parseConfiguration(cfg)
+	c.SetLogger(log)
+
+	m.SouinBaseHandler = middleware.NewHTTPCacheHandler(&c)
+
+	return nil
+}
+
+// Middleware is the request entrypoint to determine if either a cached
+// response can be reused or if the roundtrip response can be stored in
+// the cache system.
+func (m *Plugin) Middleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(rw http.ResponseWriter, rq *http.Request) {
+		_ = m.SouinBaseHandler.ServeHTTP(rw, rq, func(w http.ResponseWriter, r *http.Request) error {
+			next.ServeHTTP(w, r)
+
+			return nil
+		})
+	})
+}
+
+/*
+// TODO implement the part given from rustatian once they release the next major verison
 // Name is the plugin name
 func (p *Plugin) Name() string {
 	return pluginName
@@ -130,3 +148,4 @@ func (p *Plugin) Middleware(next http.Handler) http.Handler {
 		})
 	})
 }
+*/

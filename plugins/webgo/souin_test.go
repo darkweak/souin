@@ -10,15 +10,15 @@ import (
 	"time"
 
 	"github.com/bnkamalesh/webgo/v6"
-	"github.com/darkweak/souin/plugins"
+	"github.com/darkweak/souin/pkg/middleware"
 )
 
 func Test_NewHTTPCache(t *testing.T) {
 	s := NewHTTPCache(DevDefaultConfiguration)
-	if s.bufPool == nil {
-		t.Error("The bufpool must be set.")
+	if s.SouinBaseHandler.Storer == nil {
+		t.Error("The storer must be set.")
 	}
-	c := plugins.BaseConfiguration{}
+	c := middleware.BaseConfiguration{}
 	defer func() {
 		if recover() == nil {
 			t.Error("The New method must crash if an incomplete configuration is provided.")
@@ -29,12 +29,7 @@ func Test_NewHTTPCache(t *testing.T) {
 
 func defaultHandler(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Hello, World!"))
-}
-
-func excludedHandler(w http.ResponseWriter, _ *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Hello, Excluded!"))
+	_, _ = w.Write([]byte("Hello, World!"))
 }
 
 func getRoutes() []*webgo.Route {
@@ -69,7 +64,7 @@ func Benchmark_SouinWebgoPlugin_Middleware(b *testing.B) {
 		httpcache := NewHTTPCache(DevDefaultConfiguration)
 		httpcache.Middleware(res, httptest.NewRequest(http.MethodGet, "/handled"+strconv.Itoa(i), nil), func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("Returns something"))
+			_, _ = w.Write([]byte("Returns something"))
 		})
 	}
 }
@@ -80,12 +75,12 @@ func Test_SouinWebgoPlugin_Middleware(t *testing.T) {
 	req.Header = http.Header{}
 	router.ServeHTTP(res, req)
 
-	if res.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored" {
+	if res.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-http-example.com-/handled" {
 		t.Error("The response must contain a Cache-Status header with the stored directive.")
 	}
 
 	router.ServeHTTP(res2, req)
-	if res2.Result().Header.Get("Cache-Status") != "Souin; hit; ttl=4; key=GET-example.com-/handled" {
+	if res2.Result().Header.Get("Cache-Status") != "Souin; hit; ttl=4; key=GET-http-example.com-/handled" {
 		t.Error("The response must contain a Cache-Status header with the hit and ttl directives.")
 	}
 	if res2.Result().Header.Get("Age") != "1" {
@@ -100,12 +95,12 @@ func Test_SouinWebgoPlugin_Middleware_CannotHandle(t *testing.T) {
 	req.Header.Add("Cache-Control", "no-cache")
 	router.ServeHTTP(res, req)
 
-	if res.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; key=; detail=CANNOT-HANDLE" {
+	if res.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-http-example.com-/not-handled" {
 		t.Error("The response must contain a Cache-Status header without the stored directive and with the uri-miss only.")
 	}
 
 	router.ServeHTTP(res2, req)
-	if res2.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; key=; detail=CANNOT-HANDLE" {
+	if res2.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-http-example.com-/not-handled" {
 		t.Error("The response must contain a Cache-Status header without the stored directive and with the uri-miss only.")
 	}
 	if res2.Result().Header.Get("Age") != "" {
@@ -140,7 +135,7 @@ func Test_SouinWebgoPlugin_Middleware_APIHandle(t *testing.T) {
 	if len(payload) != 2 {
 		t.Error("The system must store 2 items, the fresh and the stale one")
 	}
-	if payload[0] != "GET-example.com-/handled" || payload[1] != "STALE_GET-example.com-/handled" {
+	if payload[0] != "GET-http-example.com-/handled" || payload[1] != "STALE_GET-http-example.com-/handled" {
 		t.Error("The payload items mismatch from the expectations.")
 	}
 }

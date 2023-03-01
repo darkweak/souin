@@ -10,6 +10,6 @@ func main() {
 	skipper.Run(skipper.Options{
 		Address:       ":80",
 		RoutesFile:    "examples/example.yaml",
-		CustomFilters: []filters.Spec{souin_skipper.NewSouinFilter()}},
+		CustomFilters: []filters.Spec{souin_skipper.NewHTTPCacheFilter()}},
 	)
 }

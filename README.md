@@ -170,7 +170,7 @@ surrogate_keys:
 | `cdn`                                             | The CDN management, if you use any cdn to proxy your requests Souin will handle that                                                        |                                                                                                                           |
 | `cdn.provider`                                    | The provider placed before Souin                                                                                                            | `akamai`<br/><br/>`fastly`<br/><br/>`souin`                                                                               |
 | `cdn.api_key`                                     | The api key used to access to the provider                                                                                                  | `XXXX`                                                                                                                    |
-| `cdn.dynamic`                                     | Enable the dynamic keys returned by your backend application                                                                                | `true`<br/><br/>`(default: false)`<br/><br/>`(default: true)` in the Caddy plugin if `cdn` is provided                    |
+| `cdn.dynamic`                                     | Enable the dynamic keys returned by your backend application                                                                                | `false`<br/><br/>`(default: true)`                                                                                        |
 | `cdn.email`                                       | The api key used to access to the provider if required, depending the provider                                                              | `XXXX`                                                                                                                    |
 | `cdn.hostname`                                    | The hostname if required, depending the provider                                                                                            | `domain.com`                                                                                                              |
 | `cdn.network`                                     | The network if required, depending the provider                                                                                             | `your_network`                                                                                                            |
@@ -240,7 +240,7 @@ The base path for the prometheus API is `/metrics`.
 ### Souin API
 Souin API allow users to manage the cache.  
 The base path for the souin API is `/souin`.  
-The Souin API supports the invalidation by surrogate keys such as Fastly which will replace the Varnish system. You can read the doc [about this system](https://github.com/darkweak/souin/blob/master/cache/surrogate/README.md).
+The Souin API supports the invalidation by surrogate keys such as Fastly which will replace the Varnish system. You can read the doc [about this system](https://github.com/darkweak/souin/blob/master/pkg/surrogate/README.md).
 This system is able to invalidate by tags your cloud provider cache. Actually it supports Akamai and Fastly but in a near future some other providers would be implemented like Cloudflare or Varnish.
 
 | Method  | Endpoint          | Headers                                                    | Description                                                                                                                                                                         |
@@ -919,7 +919,7 @@ experimental:
   plugins:
     souin:
       moduleName: github.com/darkweak/souin
-      version: v1.6.28
+      version: v1.6.29
 ```
 After that you can declare either the whole configuration at once in the middleware block or by service. See the examples below.
 ```yaml

@@ -13,6 +13,7 @@ WORKDIR /opt/plugins/roadrunner
 RUN go get -u "github.com/darkweak/souin@${CURRENT_SHA}"
 WORKDIR /opt/plugins/roadrunner/examples
 RUN sed -i "s/GH_TOKEN/${GH_TOKEN}/" configuration.toml
+RUN sed -i "s/CURRENT_SHA/${CURRENT_SHA}/" configuration.toml
 
 RUN vx build -c configuration.toml -o /usr/bin/
 

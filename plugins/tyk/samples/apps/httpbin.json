@@ -58,6 +58,9 @@
         "strategy": "soft"
       },
       "default_cache": {
+        "regex": {
+          "exclude": ".+excluded"
+        },
         "ttl": "5s"
       }
     }

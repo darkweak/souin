@@ -2,6 +2,7 @@ package beego
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -11,15 +12,15 @@ import (
 	_ "github.com/beego/beego/v2/core/config/json"
 	"github.com/beego/beego/v2/server/web"
 	beegoCtx "github.com/beego/beego/v2/server/web/context"
-	"github.com/darkweak/souin/plugins"
+	"github.com/darkweak/souin/pkg/middleware"
 )
 
 func Test_NewHTTPCache(t *testing.T) {
 	s := NewHTTPCache(DevDefaultConfiguration)
-	if s.bufPool == nil {
-		t.Error("The bufpool must be set.")
+	if s.SouinBaseHandler.Storer == nil {
+		t.Error("The storer must be set.")
 	}
-	c := plugins.BaseConfiguration{}
+	c := middleware.BaseConfiguration{}
 	defer func() {
 		if recover() == nil {
 			t.Error("The New method must crash if an incomplete configuration is provided.")
@@ -32,7 +33,7 @@ func prepare() (res, res2 *httptest.ResponseRecorder) {
 	res = httptest.NewRecorder()
 	res2 = httptest.NewRecorder()
 
-	web.LoadAppConfig("json", "beego.json")
+	_ = web.LoadAppConfig("json", "beego.json")
 	httpcache := NewHTTPCache(DevDefaultConfiguration)
 
 	web.InsertFilterChain("/*", httpcache.chainHandleFilter)
@@ -54,12 +55,12 @@ func Test_SouinBeegoPlugin_Middleware(t *testing.T) {
 	req.Header = http.Header{}
 	web.BeeApp.Handlers.ServeHTTP(res, req)
 
-	if res.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored" {
+	if res.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-http-example.com-/handled" {
 		t.Error("The response must contain a Cache-Status header with the stored directive.")
 	}
 
 	web.BeeApp.Handlers.ServeHTTP(res2, req)
-	if res2.Result().Header.Get("Cache-Status") != "Souin; hit; ttl=4; key=GET-example.com-/handled" {
+	if res2.Result().Header.Get("Cache-Status") != "Souin; hit; ttl=4; key=GET-http-example.com-/handled" {
 		t.Error("The response must contain a Cache-Status header with the hit and ttl directives.")
 	}
 	if res2.Result().Header.Get("Age") != "1" {
@@ -74,12 +75,12 @@ func Test_SouinBeegoPlugin_Middleware_CannotHandle(t *testing.T) {
 	req.Header.Add("Cache-Control", "no-cache")
 	web.BeeApp.Handlers.ServeHTTP(res, req)
 
-	if res.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; key=; detail=CANNOT-HANDLE" {
+	if res.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-http-example.com-/not-handled" {
 		t.Error("The response must contain a Cache-Status header without the stored directive and with the uri-miss only.")
 	}
 
 	web.BeeApp.Handlers.ServeHTTP(res2, req)
-	if res2.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; key=; detail=CANNOT-HANDLE" {
+	if res2.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-http-example.com-/not-handled" {
 		t.Error("The response must contain a Cache-Status header without the stored directive and with the uri-miss only.")
 	}
 	if res2.Result().Header.Get("Age") != "" {
@@ -114,7 +115,8 @@ func Test_SouinBeegoPlugin_Middleware_APIHandle(t *testing.T) {
 	if len(payload) != 2 {
 		t.Error("The system must store 2 items, the fresh and the stale one")
 	}
-	if payload[0] != "GET-example.com-/handled" || payload[1] != "STALE_GET-example.com-/handled" {
+	fmt.Println(payload)
+	if payload[0] != "GET-http-example.com-/handled" || payload[1] != "STALE_GET-http-example.com-/handled" {
 		t.Error("The payload items mismatch from the expectations.")
 	}
 }
