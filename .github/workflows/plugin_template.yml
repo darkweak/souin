@@ -46,7 +46,7 @@ jobs:
         name: Wait for Souin is really loaded inside ${{ inputs.CAPITALIZED_NAME }} as middleware
         uses: jakejarvis/wait-action@master
         with:
-          time: 60s
+          time: 75s
       -
         name: Set ${{ inputs.CAPITALIZED_NAME }} logs configuration result as environment variable
         run: cd plugins/${{ inputs.LOWER_NAME }} && echo "$(make load-checker)" >> $GITHUB_ENV
