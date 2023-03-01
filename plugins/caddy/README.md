@@ -309,7 +309,7 @@ The redis provider must have either the URL or the configuration directive.
 redis-url.com {
     cache {
         redis {
-            url 127.0.0.1:6789
+            url 127.0.0.1:6379
         }
     }
 }
@@ -320,7 +320,7 @@ redis-configuration.com {
         redis {
             configuration {
                 Network my-network
-                Addr 127.0.0.1:6789
+                Addr 127.0.0.1:6379
                 Username user
                 Password password
                 DB 1
