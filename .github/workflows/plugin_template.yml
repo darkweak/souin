@@ -1,0 +1,67 @@
+name: Atomic plugin
+
+on:
+  workflow_call:
+    inputs:
+      LOWER_NAME:
+        required: true
+        type: string
+      CAPITALIZED_NAME:
+        required: true
+        type: string
+
+jobs:
+  plugin-test:
+    name: Check that Souin build as ${{ inputs.CAPITALIZED_NAME }} middleware
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Add domain.com host to /etc/hosts
+        run: |
+          sudo echo "127.0.0.1 domain.com" | sudo tee -a /etc/hosts
+      -
+        name: Install Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.19
+      -
+        name: Checkout code
+        uses: actions/checkout@v2
+      - 
+        name: golangci-lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          working-directory: plugins/${{ inputs.LOWER_NAME }}
+          args: --skip-dirs=override --timeout=240s
+      -
+        name: Run ${{ inputs.CAPITALIZED_NAME }} tests
+        run: cd plugins/${{ inputs.LOWER_NAME }} && go test -v .
+      -
+        name: Build Souin as ${{ inputs.CAPITALIZED_NAME }} plugin
+        run: make build-and-run-${{ inputs.LOWER_NAME }}
+        env:
+          GH_APP_TOKEN: ${{ secrets.GH_APP_TOKEN }}
+          CURRENT_SHA: ${{ github.event.pull_request.head.sha }}
+      -
+        name: Wait for Souin is really loaded inside ${{ inputs.CAPITALIZED_NAME }} as middleware
+        uses: jakejarvis/wait-action@master
+        with:
+          time: 75s
+      -
+        name: Set ${{ inputs.CAPITALIZED_NAME }} logs configuration result as environment variable
+        run: cd plugins/${{ inputs.LOWER_NAME }} && echo "$(make load-checker)" >> $GITHUB_ENV
+      -
+        name: Check if the configuration is loaded to define if Souin is loaded too
+        uses: nick-invision/assert-action@v1
+        with:
+          expected: 'Souin configuration is now loaded.'
+          actual: ${{ env.MIDDLEWARE_RESULT }}
+          comparison: contains
+      -
+        name: Run ${{ inputs.CAPITALIZED_NAME }} E2E tests
+        uses: anthonyvscode/newman-action@v1
+        with:
+          collection: "docs/e2e/Souin E2E.postman_collection.json"
+          folder: ${{ inputs.CAPITALIZED_NAME }}
+          reporters: cli
+          delayRequest: 5000

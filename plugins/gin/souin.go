@@ -2,25 +2,16 @@ package gin
 
 import (
 	"bytes"
-	"context"
 	"net/http"
-	"sync"
 	"time"
 
-	"github.com/darkweak/souin/api"
-	"github.com/darkweak/souin/cache/coalescing"
 	"github.com/darkweak/souin/configurationtypes"
-	"github.com/darkweak/souin/plugins"
-	"github.com/darkweak/souin/rfc"
+	"github.com/darkweak/souin/pkg/middleware"
 	"github.com/gin-gonic/gin"
 )
 
-const (
-	getterContextCtxKey key = "getter_context"
-)
-
 var (
-	DefaultConfiguration = plugins.BaseConfiguration{
+	DefaultConfiguration = middleware.BaseConfiguration{
 		DefaultCache: &configurationtypes.DefaultCache{
 			TTL: configurationtypes.Duration{
 				Duration: 10 * time.Second,
@@ -28,7 +19,7 @@ var (
 		},
 		LogLevel: "info",
 	}
-	DevDefaultConfiguration = plugins.BaseConfiguration{
+	DevDefaultConfiguration = middleware.BaseConfiguration{
 		API: configurationtypes.API{
 			BasePath: "/souin-api",
 			Prometheus: configurationtypes.APIEndpoint{
@@ -50,88 +41,30 @@ var (
 	}
 )
 
-// SouinGinPlugin declaration.
-type (
-	key            string
-	SouinGinPlugin struct {
-		plugins.SouinBasePlugin
-		Configuration *plugins.BaseConfiguration
-		bufPool       *sync.Pool
-	}
-	getterContext struct {
-		c   *gin.Context
-		rw  http.ResponseWriter
-		req *http.Request
-	}
-)
-
-func New(c plugins.BaseConfiguration) *SouinGinPlugin {
-	s := SouinGinPlugin{}
-	s.Configuration = &c
-	s.bufPool = &sync.Pool{
-		New: func() interface{} {
-			return new(bytes.Buffer)
-		},
-	}
-
-	s.Retriever = plugins.DefaultSouinPluginInitializerFromConfiguration(&c)
-	s.RequestCoalescing = coalescing.Initialize()
-	s.MapHandler = api.GenerateHandlerMap(s.Configuration, s.Retriever.GetTransport())
-
-	return &s
+// SouinGinMiddleware declaration.
+type SouinGinMiddleware struct {
+	*middleware.SouinBaseHandler
 }
 
-func (s *SouinGinPlugin) Process() gin.HandlerFunc {
+func New(c middleware.BaseConfiguration) *SouinGinMiddleware {
+	return &SouinGinMiddleware{
+		SouinBaseHandler: middleware.NewHTTPCacheHandler(&c),
+	}
+}
+
+func (s *SouinGinMiddleware) Process() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		req := s.Retriever.GetContext().SetBaseContext(c.Request)
-		if !plugins.CanHandle(req, s.Retriever) {
-			rfc.MissCache(c.Writer.Header().Set, req, "CANNOT-HANDLE")
-			c.Next()
-			return
-		}
-
-		if b, handler := s.HandleInternally(req); b {
-			handler(c.Writer, req)
-			return
-		}
-
-		if c.Writer.Status() == http.StatusNotFound {
-			rfc.MissCache(c.Writer.Header().Set, req, "STATUS-NOT-FOUND")
-			c.Next()
-			return
-		}
-
-		customWriter := &ginWriterDecorator{
-			CustomWriter: &plugins.CustomWriter{
-				Response: &http.Response{},
-				Buf:      s.bufPool.Get().(*bytes.Buffer),
-				Rw:       c.Writer,
-				Req:      req,
-			},
-		}
-		c.Writer = customWriter
-		req = s.Retriever.GetContext().SetContext(req)
-		getterCtx := getterContext{c, customWriter, req}
-		ctx := context.WithValue(req.Context(), getterContextCtxKey, getterCtx)
-		req = req.WithContext(ctx)
-		if plugins.HasMutation(req, c.Writer) {
-			c.Next()
-			return
-		}
-		req.Header.Set("Date", time.Now().UTC().Format(time.RFC1123))
-		combo := ctx.Value(getterContextCtxKey).(getterContext)
-
-		_ = plugins.DefaultSouinPluginCallback(customWriter.CustomWriter, req, s.Retriever, nil, func(_ http.ResponseWriter, _ *http.Request) error {
-			var e error
-			combo.c.Next()
-
-			combo.req.Response = customWriter.Response
-			if combo.req.Response.StatusCode == 0 {
-				combo.req.Response.StatusCode = 200
+		_ = s.SouinBaseHandler.ServeHTTP(middleware.NewCustomWriter(c.Request, c.Writer, bytes.NewBuffer([]byte{})), c.Request, func(cw http.ResponseWriter, _ *http.Request) error {
+			if writer, ok := cw.(gin.ResponseWriter); ok {
+				c.Writer = writer
+			} else if writer, ok := cw.(*middleware.CustomWriter); ok {
+				c.Writer = &ginWriterDecorator{
+					CustomWriter: writer,
+				}
 			}
-			combo.req.Response, e = s.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(combo.req)
+			c.Next()
 
-			return e
+			return nil
 		})
 	}
 }

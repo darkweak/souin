@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/darkweak/souin/configurationtypes"
-	"github.com/darkweak/souin/plugins"
+	"github.com/darkweak/souin/pkg/middleware"
 	"github.com/go-kratos/kratos/v2/config"
 )
 
@@ -160,14 +160,16 @@ func parseDefaultCache(dcConfiguration map[string]config.Value) *configurationty
 		case "cache_name":
 			dc.CacheName, _ = defaultCacheV.String()
 		case "cdn":
-			cdn := configurationtypes.CDN{}
+			cdn := configurationtypes.CDN{
+				Dynamic: true,
+			}
 			cdnConfiguration, _ := defaultCacheV.Map()
 			for cdnConfigurationK, cdnConfigurationV := range cdnConfiguration {
 				switch cdnConfigurationK {
 				case "api_key":
 					cdn.APIKey, _ = cdnConfigurationV.String()
 				case "dynamic":
-					cdn.Dynamic = true
+					cdn.Dynamic, _ = cdnConfigurationV.Bool()
 				case "hostname":
 					cdn.Hostname, _ = cdnConfigurationV.String()
 				case "network":
@@ -367,8 +369,8 @@ func parseSurrogateKeys(surrogates map[string]config.Value) map[string]configura
 
 // ParseConfiguration parse the Kratos configuration into a valid HTTP
 // cache configuration object.
-func ParseConfiguration(c config.Config) plugins.BaseConfiguration {
-	var configuration plugins.BaseConfiguration
+func ParseConfiguration(c config.Config) middleware.BaseConfiguration {
+	var configuration middleware.BaseConfiguration
 
 	values, _ := c.Value(configurationKey).Map()
 	for key, v := range values {

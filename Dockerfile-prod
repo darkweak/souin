@@ -8,11 +8,10 @@ RUN mkdir -p /app/src/github.com/darkweak/cmd
 RUN mkdir -p /app/src/github.com/darkweak/souin
 ADD ./go.* /app/src/github.com/darkweak/souin/
 RUN mkdir -p /ssl
-ADD ./api /app/src/github.com/darkweak/souin/api
 ADD ./cache /app/src/github.com/darkweak/souin/cache
 ADD ./context /app/src/github.com/darkweak/souin/context
+ADD ./pkg /app/src/github.com/darkweak/souin/pkg
 ADD ./tests /app/src/github.com/darkweak/souin/tests
-ADD ./rfc /app/src/github.com/darkweak/souin/rfc
 ADD ./configuration /app/src/github.com/darkweak/souin/configuration
 ADD ./configurationtypes /app/src/github.com/darkweak/souin/configurationtypes
 ADD ./default /app/src/github.com/darkweak/souin/default

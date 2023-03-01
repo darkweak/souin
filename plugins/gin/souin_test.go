@@ -5,16 +5,16 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/darkweak/souin/plugins"
+	"github.com/darkweak/souin/pkg/middleware"
 	"github.com/gin-gonic/gin"
 )
 
 func Test_New(t *testing.T) {
 	s := New(DevDefaultConfiguration)
-	if s.bufPool == nil {
-		t.Error("The bufpool must be set.")
+	if s.SouinBaseHandler.Storer == nil {
+		t.Error("The storer must be set.")
 	}
-	c := plugins.BaseConfiguration{}
+	c := middleware.BaseConfiguration{}
 	defer func() {
 		if recover() == nil {
 			t.Error("The New method must crash if an incomplete configuration is provided.")
@@ -43,12 +43,12 @@ func Test_SouinGinPlugin_Process(t *testing.T) {
 	})
 	r.ServeHTTP(res, c.Request)
 
-	if res.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored" {
+	if res.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-http-example.com-/handled" {
 		t.Error("The response must contain a Cache-Status header with the stored directive.")
 	}
 
 	r.ServeHTTP(res2, c.Request)
-	if res2.Result().Header.Get("Cache-Status") != "Souin; hit; ttl=4; key=GET-example.com-/handled" {
+	if res2.Result().Header.Get("Cache-Status") != "Souin; hit; ttl=4; key=GET-http-example.com-/handled" {
 		t.Error("The response must contain a Cache-Status header with the hit and ttl directives.")
 	}
 	if res2.Result().Header.Get("Age") != "1" {
@@ -64,12 +64,12 @@ func Test_SouinGinPlugin_Process_CannotHandle(t *testing.T) {
 	})
 	r.ServeHTTP(res, c.Request)
 
-	if res.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; key=; detail=CANNOT-HANDLE" {
+	if res.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-http-example.com-/handled" {
 		t.Error("The response must contain a Cache-Status header without the stored directive and with the uri-miss only.")
 	}
 
 	r.ServeHTTP(res2, c.Request)
-	if res2.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; key=; detail=CANNOT-HANDLE" {
+	if res2.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-http-example.com-/handled" {
 		t.Error("The response must contain a Cache-Status header without the stored directive and with the uri-miss only.")
 	}
 	if res2.Result().Header.Get("Age") != "" {

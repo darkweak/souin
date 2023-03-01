@@ -100,6 +100,10 @@ generate-workflow: ## Generate plugin workflow
 
 golangci-lint: ## Run golangci-lint to ensure the code quality
 	docker run --rm -v $(PWD):/app -w /app golangci/golangci-lint:v1.50.1 golangci-lint run -v --timeout 180s ./...
+	for plugin in $(PLUGINS_LIST) ; do \
+		echo "Starting lint $$plugin \n" && docker run --rm -v $(PWD)/plugins/$$plugin:/app -w /app golangci/golangci-lint:v1.50.1 golangci-lint run -v --skip-dirs=override --timeout 240s ./...; \
+	done
+	cd plugins/caddy && go mod tidy && go mod download
 
 health-check-prod: build-app ## Production container health check
 	$(DC_EXEC) souin ls
@@ -124,6 +128,6 @@ validate: lint tests down health-check-prod ## Run lint, tests and ensure prod c
 vendor-plugins: ## Generate and prepare vendors for each plugin
 	go mod tidy && go mod download
 	for plugin in $(PLUGINS_LIST) ; do \
-        cd plugins/$$plugin && ($(MAKE) vendor || true) && cd -; \
-    done
+		cd plugins/$$plugin && ($(MAKE) vendor || true) && cd -; \
+	done
 	cd plugins/caddy && go mod tidy && go mod download

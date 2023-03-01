@@ -1,12 +1,9 @@
 package httpcache
 
 import (
-	"bytes"
-	"context"
 	"fmt"
 	"net/http"
 	"regexp"
-	"sync"
 	"time"
 
 	"github.com/buraksezer/olric/config"
@@ -15,42 +12,34 @@ import (
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
 	"github.com/caddyserver/caddy/v2/caddyconfig/httpcaddyfile"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
-	"github.com/darkweak/souin/api"
-	"github.com/darkweak/souin/cache/coalescing"
-	"github.com/darkweak/souin/cache/providers"
-	surrogates_providers "github.com/darkweak/souin/cache/surrogate/providers"
-	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/configurationtypes"
-	"github.com/darkweak/souin/plugins"
-	"github.com/darkweak/souin/rfc"
+	"github.com/darkweak/souin/pkg/middleware"
+	"github.com/darkweak/souin/pkg/storage"
+	surrogates_providers "github.com/darkweak/souin/pkg/surrogate/providers"
 	"go.uber.org/zap"
 )
 
-type key string
-
-const getterContextCtxKey key = "getter_context"
 const moduleName = "cache"
 
 var up = caddy.NewUsagePool()
 
 func init() {
-	caddy.RegisterModule(SouinCaddyPlugin{})
+	caddy.RegisterModule(SouinCaddyMiddleware{})
 	httpcaddyfile.RegisterGlobalOption(moduleName, parseCaddyfileGlobalOption)
 	httpcaddyfile.RegisterHandlerDirective(moduleName, parseCaddyfileHandlerDirective)
 }
 
-// SouinCaddyPlugin development repository of the cache handler, allows
+// SouinCaddyMiddleware development repository of the cache handler, allows
 // the user to set up an HTTP cache system, RFC-7234 compliant and
 // supports the tag based cache purge, distributed and not-distributed
 // storage, key generation tweaking.
-type SouinCaddyPlugin struct {
-	plugins.SouinBasePlugin
-	Configuration *Configuration
+type SouinCaddyMiddleware struct {
+	*middleware.SouinBaseHandler
 	logger        *zap.Logger
+	Configuration *Configuration
 	cacheKeys     map[configurationtypes.RegValue]configurationtypes.Key
 	// Logger level, fallback on caddy's one when not redefined.
 	LogLevel string `json:"log_level,omitempty"`
-	bufPool  *sync.Pool
 	// Allowed HTTP verbs to be cached by the system.
 	AllowedHTTPVerbs []string `json:"allowed_http_verbs,omitempty"`
 	// Headers to add to the cache key if they are present.
@@ -82,67 +71,21 @@ type SouinCaddyPlugin struct {
 }
 
 // CaddyModule returns the Caddy module information.
-func (SouinCaddyPlugin) CaddyModule() caddy.ModuleInfo {
+func (SouinCaddyMiddleware) CaddyModule() caddy.ModuleInfo {
 	return caddy.ModuleInfo{
 		ID:  "http.handlers.cache",
-		New: func() caddy.Module { return new(SouinCaddyPlugin) },
+		New: func() caddy.Module { return new(SouinCaddyMiddleware) },
 	}
-}
-
-type getterContext struct {
-	rw   http.ResponseWriter
-	req  *http.Request
-	next caddyhttp.Handler
 }
 
 // ServeHTTP implements caddyhttp.MiddlewareHandler.
-func (s *SouinCaddyPlugin) ServeHTTP(rw http.ResponseWriter, r *http.Request, next caddyhttp.Handler) error {
-	req := s.Retriever.GetContext().SetBaseContext(r)
-	if b, handler := s.HandleInternally(req); b {
-		handler(rw, req)
-		return nil
-	}
-
-	if !plugins.CanHandle(req, s.Retriever) {
-		rfc.MissCache(rw.Header().Set, req, "CANNOT-HANDLE")
-		return next.ServeHTTP(rw, r)
-	}
-
-	req = s.Retriever.GetContext().SetContext(req)
-	customWriter := &plugins.CustomWriter{
-		Response: &http.Response{},
-		Buf:      s.bufPool.Get().(*bytes.Buffer),
-		Rw:       rw,
-		Req:      req,
-	}
-	getterCtx := getterContext{customWriter, req, next}
-	ctx := context.WithValue(req.Context(), getterContextCtxKey, getterCtx)
-	req = req.WithContext(ctx)
-	r.Body = req.Body
-	if plugins.HasMutation(req, rw) {
-		return next.ServeHTTP(rw, r)
-	}
-	req.Header.Set("Date", time.Now().UTC().Format(time.RFC1123))
-	combo := ctx.Value(getterContextCtxKey).(getterContext)
-
-	return plugins.DefaultSouinPluginCallback(customWriter, req, s.Retriever, nil, func(_ http.ResponseWriter, _ *http.Request) error {
-		var e error
-		if e = combo.next.ServeHTTP(customWriter, r); e != nil {
-			rfc.MissCache(customWriter.Header().Set, req, "SERVE-HTTP-ERROR")
-			return e
-		}
-
-		combo.req.Response = customWriter.Response
-		if combo.req.Response.StatusCode == 0 {
-			combo.req.Response.StatusCode = 200
-		}
-		combo.req.Response, e = s.Retriever.GetTransport().(*rfc.VaryTransport).UpdateCacheEventually(combo.req)
-
-		return e
+func (s *SouinCaddyMiddleware) ServeHTTP(rw http.ResponseWriter, r *http.Request, next caddyhttp.Handler) error {
+	return s.SouinBaseHandler.ServeHTTP(rw, r, func(w http.ResponseWriter, _ *http.Request) error {
+		return next.ServeHTTP(w, r)
 	})
 }
 
-func (s *SouinCaddyPlugin) configurationPropertyMapper() error {
+func (s *SouinCaddyMiddleware) configurationPropertyMapper() error {
 	if s.Configuration != nil {
 		return nil
 	}
@@ -173,7 +116,7 @@ func (s *SouinCaddyPlugin) configurationPropertyMapper() error {
 }
 
 // FromApp to initialize configuration from App structure.
-func (s *SouinCaddyPlugin) FromApp(app *SouinApp) error {
+func (s *SouinCaddyMiddleware) FromApp(app *SouinApp) error {
 	if s.Configuration == nil {
 		s.Configuration = &Configuration{
 			URLs: make(map[string]configurationtypes.URL),
@@ -267,7 +210,7 @@ func (s *SouinCaddyPlugin) FromApp(app *SouinApp) error {
 }
 
 // Provision to do the provisioning part.
-func (s *SouinCaddyPlugin) Provision(ctx caddy.Context) error {
+func (s *SouinCaddyMiddleware) Provision(ctx caddy.Context) error {
 	s.logger = ctx.Logger(s)
 
 	if err := s.configurationPropertyMapper(); err != nil {
@@ -282,20 +225,16 @@ func (s *SouinCaddyPlugin) Provision(ctx caddy.Context) error {
 		return err
 	}
 
-	s.bufPool = &sync.Pool{
-		New: func() interface{} {
-			return new(bytes.Buffer)
-		},
-	}
-	s.Retriever = plugins.DefaultSouinPluginInitializerFromConfiguration(s.Configuration)
-	surrogates, ok := up.LoadOrStore(surrogate_key, s.Retriever.GetTransport().GetSurrogateKeys())
+	bh := middleware.NewHTTPCacheHandler(s.Configuration)
+	surrogates, ok := up.LoadOrStore(surrogate_key, bh.SurrogateKeyStorer)
 	if ok {
-		s.Retriever.GetTransport().SetSurrogateKeys(surrogates.(surrogates_providers.SurrogateInterface))
+		bh.SurrogateKeyStorer = surrogates.(surrogates_providers.SurrogateInterface)
 	}
 
-	dc := s.Retriever.GetConfiguration().GetDefaultCache()
+	s.SouinBaseHandler = bh
+	dc := s.SouinBaseHandler.Configuration.GetDefaultCache()
 	if dc.GetDistributed() {
-		if eo, ok := s.Retriever.GetProvider().(*providers.EmbeddedOlric); ok {
+		if eo, ok := s.SouinBaseHandler.Storer.(*storage.EmbeddedOlric); ok {
 			name := fmt.Sprintf("0.0.0.0:%d", config.DefaultPort)
 			if dc.GetOlric().Configuration != nil {
 				oc := dc.GetOlric().Configuration.(*config.Config)
@@ -311,40 +250,43 @@ func (s *SouinCaddyPlugin) Provision(ctx caddy.Context) error {
 			if eo.GetDM() == nil {
 				v, l, e := up.LoadOrNew(key, func() (caddy.Destructor, error) {
 					s.logger.Sugar().Debug("Create a new olric instance.")
-					return providers.EmbeddedOlricConnectionFactory(s.Configuration)
+					eo, err := storage.EmbeddedOlricConnectionFactory(s.Configuration)
+					if eo != nil {
+						return eo.(*storage.EmbeddedOlric), err
+					}
+					return nil, err
 				})
 
 				if l && e == nil {
-					s.Retriever.(*types.RetrieverResponseProperties).Provider = v.(types.AbstractProviderInterface)
-					s.Retriever.GetTransport().(*rfc.VaryTransport).Provider = v.(types.AbstractProviderInterface)
+					s.SouinBaseHandler.Storer = v.(storage.Storer)
 				}
 			} else {
 				s.logger.Sugar().Debug("Store the olric instance.")
-				_, _ = up.LoadOrStore(key, s.Retriever.GetProvider())
+				_, _ = up.LoadOrStore(key, s.SouinBaseHandler.SurrogateKeyStorer)
 			}
 		}
 	}
 
-	v, l := up.LoadOrStore(coalescing_key, s.Retriever.GetTransport().GetCoalescingLayerStorage())
+	// v, l := up.LoadOrStore(coalescing_key, s.Retriever.GetTransport().GetCoalescingLayerStorage())
+	//
+	// if l {
+	// 	s.logger.Sugar().Debug("Loaded coalescing layer from cache.")
+	// 	_ = s.Retriever.GetTransport().GetCoalescingLayerStorage().Destruct()
+	// 	s.Retriever.GetTransport().(*rfc.VaryTransport).CoalescingLayerStorage = v.(*types.CoalescingLayerStorage)
+	// }
 
-	if l {
-		s.logger.Sugar().Debug("Loaded coalescing layer from cache.")
-		_ = s.Retriever.GetTransport().GetCoalescingLayerStorage().Destruct()
-		s.Retriever.GetTransport().(*rfc.VaryTransport).CoalescingLayerStorage = v.(*types.CoalescingLayerStorage)
+	if app.Storer == (storage.Storer)(nil) {
+		app.Storer = s.SouinBaseHandler.Storer
 	}
 
-	if app.Provider == nil {
-		app.Provider = s.Retriever.GetProvider()
-	}
-
-	if app.SurrogateStorage == nil {
-		app.SurrogateStorage = s.Retriever.GetTransport().GetSurrogateKeys()
+	if app.SurrogateStorage == (surrogates_providers.SurrogateInterface)(nil) {
+		app.SurrogateStorage = s.SouinBaseHandler.SurrogateKeyStorer
 	} else {
-		s.Retriever.GetTransport().SetSurrogateKeys(app.SurrogateStorage)
+		s.SouinBaseHandler.SurrogateKeyStorer = app.SurrogateStorage
 	}
 
-	s.RequestCoalescing = coalescing.Initialize()
-	s.MapHandler = api.GenerateHandlerMap(s.Configuration, s.Retriever.GetTransport())
+	// s.RequestCoalescing = coalescing.Initialize()
+	// s.MapHandler = api.GenerateHandlerMap(s.Configuration, s.Retriever.GetTransport())
 	return nil
 }
 
@@ -364,7 +306,7 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 		URLs: make(map[string]configurationtypes.URL),
 	}
 
-	parseConfiguration(cfg, h, true)
+	err := parseConfiguration(cfg, h, true)
 
 	souinApp.DefaultCache = cfg.DefaultCache
 	souinApp.API = cfg.API
@@ -374,13 +316,13 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 	return httpcaddyfile.App{
 		Name:  moduleName,
 		Value: caddyconfig.JSON(souinApp, nil),
-	}, nil
+	}, err
 }
 func parseCaddyfileHandlerDirective(h httpcaddyfile.Helper) (caddyhttp.MiddlewareHandler, error) {
-	var s SouinCaddyPlugin
+	var s SouinCaddyMiddleware
 	return &s, s.UnmarshalCaddyfile(h.Dispenser)
 }
-func (s *SouinCaddyPlugin) UnmarshalCaddyfile(h *caddyfile.Dispenser) error {
+func (s *SouinCaddyMiddleware) UnmarshalCaddyfile(h *caddyfile.Dispenser) error {
 	dc := DefaultCache{
 		AllowedHTTPVerbs: make([]string, 0),
 	}
@@ -388,15 +330,13 @@ func (s *SouinCaddyPlugin) UnmarshalCaddyfile(h *caddyfile.Dispenser) error {
 		DefaultCache: &dc,
 	}
 
-	parseConfiguration(s.Configuration, h, false)
-
-	return nil
+	return parseConfiguration(s.Configuration, h, false)
 }
 
 // Interface guards
 var (
-	_ caddy.CleanerUpper          = (*SouinCaddyPlugin)(nil)
-	_ caddy.Provisioner           = (*SouinCaddyPlugin)(nil)
-	_ caddyhttp.MiddlewareHandler = (*SouinCaddyPlugin)(nil)
-	_ caddyfile.Unmarshaler       = (*SouinCaddyPlugin)(nil)
+	_ caddy.CleanerUpper          = (*SouinCaddyMiddleware)(nil)
+	_ caddy.Provisioner           = (*SouinCaddyMiddleware)(nil)
+	_ caddyhttp.MiddlewareHandler = (*SouinCaddyMiddleware)(nil)
+	_ caddyfile.Unmarshaler       = (*SouinCaddyMiddleware)(nil)
 )

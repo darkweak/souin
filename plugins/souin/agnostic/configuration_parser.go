@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/darkweak/souin/configurationtypes"
-	"github.com/darkweak/souin/plugins"
+	"github.com/darkweak/souin/pkg/middleware"
 )
 
 const (
@@ -126,13 +126,15 @@ func parseDefaultCache(dcConfiguration map[string]interface{}) *configurationtyp
 		case "cache_name":
 			dc.CacheName, _ = defaultCacheV.(string)
 		case "cdn":
-			cdn := configurationtypes.CDN{}
+			cdn := configurationtypes.CDN{
+				Dynamic: true,
+			}
 			for cdnConfigurationK, cdnConfigurationV := range defaultCacheV.(map[string]interface{}) {
 				switch cdnConfigurationK {
 				case "api_key":
 					cdn.APIKey, _ = cdnConfigurationV.(string)
 				case "dynamic":
-					cdn.Dynamic = true
+					cdn.Dynamic = cdnConfigurationV.(bool)
 				case "hostname":
 					cdn.Hostname, _ = cdnConfigurationV.(string)
 				case "network":
@@ -317,7 +319,7 @@ func parseSurrogateKeys(surrogates map[string]interface{}) map[string]configurat
 	return u
 }
 
-func ParseConfiguration(baseConfiguration *plugins.BaseConfiguration, unparsedConfiguration map[string]interface{}) {
+func ParseConfiguration(baseConfiguration *middleware.BaseConfiguration, unparsedConfiguration map[string]interface{}) {
 	for key, v := range unparsedConfiguration {
 		switch key {
 		case "api":

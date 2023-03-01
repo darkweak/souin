@@ -5,14 +5,25 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/darkweak/souin/plugins"
+	"github.com/darkweak/souin/pkg/middleware"
 	"github.com/gin-gonic/gin"
 )
 
+var _ (gin.ResponseWriter) = (*ginWriterDecorator)(nil)
+
 type ginWriterDecorator struct {
-	*plugins.CustomWriter
+	CustomWriter *middleware.CustomWriter
 }
 
+func (g *ginWriterDecorator) Header() http.Header {
+	return g.CustomWriter.Header()
+}
+func (g *ginWriterDecorator) WriteHeader(code int) {
+	g.CustomWriter.WriteHeader(code)
+}
+func (g *ginWriterDecorator) Write(b []byte) (int, error) {
+	return g.CustomWriter.Write(b)
+}
 func (g *ginWriterDecorator) CloseNotify() <-chan bool {
 	return g.CustomWriter.Rw.(gin.ResponseWriter).CloseNotify()
 }

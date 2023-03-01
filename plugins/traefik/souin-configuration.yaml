@@ -27,7 +27,7 @@ http:
               - Authorization
               - Content-Type
             regex:
-              exclude: '/test_exclude.*'
+              exclude: '/excluded'
             ttl: 5s
             default_cache_control: public
           log_level: debug

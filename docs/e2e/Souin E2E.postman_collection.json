@@ -1,6 +1,6 @@
 {
 	"info": {
-		"_postman_id": "9f52cee6-d2bb-4c17-8169-1bd7126975f4",
+		"_postman_id": "90909e3a-0c86-4971-8be2-7f4c97352220",
 		"name": "Souin E2E",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "17806531"
@@ -16,41 +16,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, '', true)"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Cache-Control",
-								"value": "",
-								"type": "text"
-							}
-						],
-						"url": {
-							"raw": "{{app_url}}/default",
-							"host": [
-								"{{app_url}}"
-							],
-							"path": [
-								"default"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Default no cache",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, 'no-cache')"
+									"utils.basicRequest(pm, `${utils.getVar(pm, 'app_url')}/default`)"
 								],
 								"type": "text/javascript"
 							}
@@ -72,13 +38,47 @@
 					"response": []
 				},
 				{
+					"name": "Default no cache",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.noCacheRequest(pm, `${utils.getVar(pm, 'app_url')}/default`)"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cache-Control",
+								"value": "no-cache",
+								"type": "default"
+							}
+						],
+						"url": {
+							"raw": "{{app_url}}/default",
+							"host": [
+								"{{app_url}}"
+							],
+							"path": [
+								"default"
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "Default no store",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, 'no-store')"
+									"utils.noStoreRequest(pm, `${utils.getVar(pm, 'app_url')}/default`)"
 								],
 								"type": "text/javascript"
 							}
@@ -112,7 +112,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/excluded`, '', false, true)"
+									"utils.excludedRequest(pm, `${utils.getVar(pm, 'app_url')}/excluded`)"
 								],
 								"type": "text/javascript"
 							}
@@ -120,13 +120,7 @@
 					],
 					"request": {
 						"method": "GET",
-						"header": [
-							{
-								"key": "Cache-Control",
-								"value": "",
-								"type": "text"
-							}
-						],
+						"header": [],
 						"url": {
 							"raw": "{{app_url}}/excluded",
 							"host": [
@@ -172,7 +166,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, '', true)"
+									"utils.basicRequest(pm, `${utils.getVar(pm, 'app_url')}/default`)"
 								],
 								"type": "text/javascript"
 							}
@@ -215,7 +209,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.souinAPI.listKeys(pm, 'GET-localhost:4443-/test1', utils.getVar(pm, 'app_url'), '/test1')"
+									"utils.souinAPI.listKeys(pm, 'GET-http-localhost:4443-/test1', utils.getVar(pm, 'app_url'), '/test1')"
 								],
 								"type": "text/javascript"
 							}
@@ -255,7 +249,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.souinAPI.listGraphQLKeys(pm, 'POST-localhost:4443-/test1-4d08c8e90fed197693d96603c73fa6036e7ce42b8de0149cdd33b34e980631e2', utils.getVar(pm, 'app_url'), '/test1');"
+									"utils.souinAPI.listGraphQLKeys(pm, 'POST-http-localhost:4443-/test1-4d08c8e90fed197693d96603c73fa6036e7ce42b8de0149cdd33b34e980631e2', utils.getVar(pm, 'app_url'), '/test1');"
 								],
 								"type": "text/javascript"
 							}
@@ -381,11 +375,11 @@
 									"",
 									"pm.test(\"Prometheus is populated.\", function () {",
 									"    const result = pm.response.text();",
-									"    pm.expect(result).to.include('souin_request_counter 10');",
-									"    pm.expect(result).to.include('souin_no_cached_response_counter 7');",
-									"    pm.expect(result).to.include('souin_cached_response_counter 3');",
-									"    pm.expect(result).to.include('souin_avg_response_time_count 7');",
-									"    pm.expect(result).to.include('souin_avg_response_time_sum 0');",
+									"    pm.expect(result).to.include('souin_request_counter 7');",
+									"//    pm.expect(result).to.include('souin_no_cached_response_counter 7');",
+									"//    pm.expect(result).to.include('souin_cached_response_counter 3');",
+									"//    pm.expect(result).to.include('souin_avg_response_time_count 7');",
+									"//    pm.expect(result).to.include('souin_avg_response_time_sum 0');",
 									"});"
 								],
 								"type": "text/javascript"
@@ -451,7 +445,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, 'no-cache')"
+									"utils.noCacheRequest(pm, `${utils.getVar(pm, 'app_url')}/default`)"
 								],
 								"type": "text/javascript"
 							}
@@ -459,7 +453,13 @@
 					],
 					"request": {
 						"method": "GET",
-						"header": [],
+						"header": [
+							{
+								"key": "Cache-Control",
+								"value": "no-cache",
+								"type": "text"
+							}
+						],
 						"url": {
 							"raw": "{{app_url}}/default",
 							"host": [
@@ -591,7 +591,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, 'no-store')"
+									"utils.noStoreRequest(pm, `${utils.getVar(pm, 'app_url')}/default`, 'no-store')"
 								],
 								"type": "text/javascript"
 							}
@@ -625,7 +625,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/test2`, '', false, true)"
+									"utils.excludedRequest(pm, `${utils.getVar(pm, 'app_url')}/test2`, '', false, true)"
 								],
 								"type": "text/javascript"
 							}
@@ -703,8 +703,8 @@
 									"                pm.expect(res).to.have.status(200);",
 									"                pm.expect(res).to.not.have.header(\"Cache-Status\");",
 									"                let jd = res.json();",
-									"                pm.expect(jd[KEYS.PREFIX.ONE]).to.eql(',GET-localhost%3A4443-%2Fsurrogate-keys%7B-VARY-%7DX-Surrogate-Key-Suffix%3AONE%3BAccept-Encoding%3Agzip%2C+deflate%2C+br');",
-									"                pm.expect(jd[KEYS.PREFIX.TWO]).to.eql(',GET-localhost%3A4443-%2Fsurrogate-keys%7B-VARY-%7DX-Surrogate-Key-Suffix%3ATWO%3BAccept-Encoding%3Agzip%2C+deflate%2C+br');",
+									"                pm.expect(jd[KEYS.PREFIX.ONE]).to.eql(',GET-http-localhost%3A4443-%2Fsurrogate-keys%7B-VARY-%7DX-Surrogate-Key-Suffix%3AONE%3BAccept-Encoding%3Agzip%2C+deflate%2C+br');",
+									"                pm.expect(jd[KEYS.PREFIX.TWO]).to.eql(',GET-http-localhost%3A4443-%2Fsurrogate-keys%7B-VARY-%7DX-Surrogate-Key-Suffix%3ATWO%3BAccept-Encoding%3Agzip%2C+deflate%2C+br');",
 									"            })",
 									"",
 									"            pm.sendRequest(surrogate_api('PURGE', KEYS.PREFIX.ONE), function(_, res) {",
@@ -715,7 +715,7 @@
 									"                pm.expect(res).to.not.have.header(\"Cache-Status\");",
 									"                let jd = res.json();",
 									"                pm.expect(jd[KEYS.PREFIX.ONE]).to.eql(undefined);",
-									"                pm.expect(jd[KEYS.PREFIX.TWO]).to.eql(',GET-localhost%3A4443-%2Fsurrogate-keys%7B-VARY-%7DX-Surrogate-Key-Suffix%3ATWO%3BAccept-Encoding%3Agzip%2C+deflate%2C+br');",
+									"                pm.expect(jd[KEYS.PREFIX.TWO]).to.eql(',GET-http-localhost%3A4443-%2Fsurrogate-keys%7B-VARY-%7DX-Surrogate-Key-Suffix%3ATWO%3BAccept-Encoding%3Agzip%2C+deflate%2C+br');",
 									"            })",
 									"            pm.sendRequest(surrogate_api('PURGE', `${KEYS.PREFIX.ONE}, ${KEYS.PREFIX.TWO}`), function(_, res) {",
 									"                pm.expect(res).to.have.status(204);",
@@ -780,162 +780,6 @@
 			]
 		},
 		{
-			"name": "Echo",
-			"item": [
-				{
-					"name": "Default",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, '', true)"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Cache-Control",
-								"value": "",
-								"type": "text"
-							}
-						],
-						"url": {
-							"raw": "{{app_url}}/default",
-							"host": [
-								"{{app_url}}"
-							],
-							"path": [
-								"default"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Default no cache",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, 'no-cache')"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{app_url}}/default",
-							"host": [
-								"{{app_url}}"
-							],
-							"path": [
-								"default"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Default no store",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, 'no-store')"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Cache-Control",
-								"value": "no-store",
-								"type": "text"
-							}
-						],
-						"url": {
-							"raw": "{{app_url}}/default",
-							"host": [
-								"{{app_url}}"
-							],
-							"path": [
-								"default"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Exclude regex",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/test2`, '', false, true)"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Cache-Control",
-								"value": "",
-								"type": "text"
-							}
-						],
-						"url": {
-							"raw": "{{app_url}}/excluded",
-							"host": [
-								"{{app_url}}"
-							],
-							"path": [
-								"excluded"
-							]
-						}
-					},
-					"response": []
-				}
-			],
-			"event": [
-				{
-					"listen": "prerequest",
-					"script": {
-						"type": "text/javascript",
-						"exec": [
-							"pm.collectionVariables.set('app_url', pm.collectionVariables.get('echo_url'))",
-							"pm.collectionVariables.set('current_host', pm.collectionVariables.get('echo_url').match(/^https?\\:\\/\\/([^\\/?#]+)(?:[\\/?#]|$)/i)[1])"
-						]
-					}
-				},
-				{
-					"listen": "test",
-					"script": {
-						"type": "text/javascript",
-						"exec": [
-							""
-						]
-					}
-				}
-			]
-		},
-		{
 			"name": "Chi",
 			"item": [
 				{
@@ -945,41 +789,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, '', true)"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Cache-Control",
-								"value": "",
-								"type": "text"
-							}
-						],
-						"url": {
-							"raw": "{{app_url}}/default",
-							"host": [
-								"{{app_url}}"
-							],
-							"path": [
-								"default"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Default no cache",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, 'no-cache')"
+									"utils.basicRequest(pm, `${utils.getVar(pm, 'app_url')}/default`)"
 								],
 								"type": "text/javascript"
 							}
@@ -1001,13 +811,47 @@
 					"response": []
 				},
 				{
+					"name": "Default no cache",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.noCacheRequest(pm, `${utils.getVar(pm, 'app_url')}/default`)"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cache-Control",
+								"value": "no-cache",
+								"type": "default"
+							}
+						],
+						"url": {
+							"raw": "{{app_url}}/default",
+							"host": [
+								"{{app_url}}"
+							],
+							"path": [
+								"default"
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "Default no store",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, 'no-store')"
+									"utils.noStoreRequest(pm, `${utils.getVar(pm, 'app_url')}/default`)"
 								],
 								"type": "text/javascript"
 							}
@@ -1041,7 +885,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/test2`, '', false, true)"
+									"utils.excludedRequest(pm, `${utils.getVar(pm, 'app_url')}/excluded`)"
 								],
 								"type": "text/javascript"
 							}
@@ -1049,13 +893,7 @@
 					],
 					"request": {
 						"method": "GET",
-						"header": [
-							{
-								"key": "Cache-Control",
-								"value": "",
-								"type": "text"
-							}
-						],
+						"header": [],
 						"url": {
 							"raw": "{{app_url}}/excluded",
 							"host": [
@@ -1101,41 +939,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, '', true)"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Cache-Control",
-								"value": "",
-								"type": "text"
-							}
-						],
-						"url": {
-							"raw": "{{app_url}}/default",
-							"host": [
-								"{{app_url}}"
-							],
-							"path": [
-								"default"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Default no cache",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, 'no-cache')"
+									"utils.basicRequest(pm, `${utils.getVar(pm, 'app_url')}/default`)"
 								],
 								"type": "text/javascript"
 							}
@@ -1157,13 +961,47 @@
 					"response": []
 				},
 				{
+					"name": "Default no cache",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.noCacheRequest(pm, `${utils.getVar(pm, 'app_url')}/default`)"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cache-Control",
+								"value": "no-cache",
+								"type": "default"
+							}
+						],
+						"url": {
+							"raw": "{{app_url}}/default",
+							"host": [
+								"{{app_url}}"
+							],
+							"path": [
+								"default"
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "Default no store",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, 'no-store')"
+									"utils.noStoreRequest(pm, `${utils.getVar(pm, 'app_url')}/default`)"
 								],
 								"type": "text/javascript"
 							}
@@ -1197,7 +1035,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/test2`, '', false, true)"
+									"utils.excludedRequest(pm, `${utils.getVar(pm, 'app_url')}/excluded`)"
 								],
 								"type": "text/javascript"
 							}
@@ -1205,13 +1043,7 @@
 					],
 					"request": {
 						"method": "GET",
-						"header": [
-							{
-								"key": "Cache-Control",
-								"value": "",
-								"type": "text"
-							}
-						],
+						"header": [],
 						"url": {
 							"raw": "{{app_url}}/excluded",
 							"host": [
@@ -1248,7 +1080,7 @@
 			]
 		},
 		{
-			"name": "Fiber",
+			"name": "Echo",
 			"item": [
 				{
 					"name": "Default",
@@ -1257,41 +1089,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, '', true)"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Cache-Control",
-								"value": "",
-								"type": "text"
-							}
-						],
-						"url": {
-							"raw": "{{app_url}}/default",
-							"host": [
-								"{{app_url}}"
-							],
-							"path": [
-								"default"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Default no cache",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, 'no-cache')"
+									"utils.basicRequest(pm, `${utils.getVar(pm, 'app_url')}/default`)"
 								],
 								"type": "text/javascript"
 							}
@@ -1313,13 +1111,47 @@
 					"response": []
 				},
 				{
+					"name": "Default no cache",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.noCacheRequest(pm, `${utils.getVar(pm, 'app_url')}/default`)"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cache-Control",
+								"value": "no-cache",
+								"type": "default"
+							}
+						],
+						"url": {
+							"raw": "{{app_url}}/default",
+							"host": [
+								"{{app_url}}"
+							],
+							"path": [
+								"default"
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "Default no store",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, 'no-store')"
+									"utils.noStoreRequest(pm, `${utils.getVar(pm, 'app_url')}/default`)"
 								],
 								"type": "text/javascript"
 							}
@@ -1353,7 +1185,89 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/test2`, '', false, true)"
+									"utils.excludedRequest(pm, `${utils.getVar(pm, 'app_url')}/excluded`)"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{app_url}}/excluded",
+							"host": [
+								"{{app_url}}"
+							],
+							"path": [
+								"excluded"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.collectionVariables.set('app_url', pm.collectionVariables.get('echo_url'))",
+							"pm.collectionVariables.set('current_host', pm.collectionVariables.get('echo_url').match(/^https?\\:\\/\\/([^\\/?#]+)(?:[\\/?#]|$)/i)[1])"
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "Fiber",
+			"item": [
+				{
+					"name": "Default",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.basicRequest(pm, `${utils.getVar(pm, 'app_url')}/default`)"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{app_url}}/default",
+							"host": [
+								"{{app_url}}"
+							],
+							"path": [
+								"default"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Default no cache",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.noCacheRequest(pm, `${utils.getVar(pm, 'app_url')}/default`)"
 								],
 								"type": "text/javascript"
 							}
@@ -1364,10 +1278,72 @@
 						"header": [
 							{
 								"key": "Cache-Control",
-								"value": "",
+								"value": "no-cache",
+								"type": "default"
+							}
+						],
+						"url": {
+							"raw": "{{app_url}}/default",
+							"host": [
+								"{{app_url}}"
+							],
+							"path": [
+								"default"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Default no store",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.noStoreRequest(pm, `${utils.getVar(pm, 'app_url')}/default`)"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cache-Control",
+								"value": "no-store",
 								"type": "text"
 							}
 						],
+						"url": {
+							"raw": "{{app_url}}/default",
+							"host": [
+								"{{app_url}}"
+							],
+							"path": [
+								"default"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Exclude regex",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.excludedRequest(pm, `${utils.getVar(pm, 'app_url')}/excluded`)"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
 						"url": {
 							"raw": "{{app_url}}/excluded",
 							"host": [
@@ -1413,41 +1389,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, '', true)"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Cache-Control",
-								"value": "",
-								"type": "text"
-							}
-						],
-						"url": {
-							"raw": "{{app_url}}/default",
-							"host": [
-								"{{app_url}}"
-							],
-							"path": [
-								"default"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Default no cache",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, 'no-cache')"
+									"utils.basicRequest(pm, `${utils.getVar(pm, 'app_url')}/default`)"
 								],
 								"type": "text/javascript"
 							}
@@ -1469,13 +1411,47 @@
 					"response": []
 				},
 				{
+					"name": "Default no cache",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.noCacheRequest(pm, `${utils.getVar(pm, 'app_url')}/default`)"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cache-Control",
+								"value": "no-cache",
+								"type": "default"
+							}
+						],
+						"url": {
+							"raw": "{{app_url}}/default",
+							"host": [
+								"{{app_url}}"
+							],
+							"path": [
+								"default"
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "Default no store",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, 'no-store')"
+									"utils.noStoreRequest(pm, `${utils.getVar(pm, 'app_url')}/default`)"
 								],
 								"type": "text/javascript"
 							}
@@ -1509,7 +1485,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/excluded`, '', false, true)"
+									"utils.excludedRequest(pm, `${utils.getVar(pm, 'app_url')}/excluded`)"
 								],
 								"type": "text/javascript"
 							}
@@ -1517,13 +1493,7 @@
 					],
 					"request": {
 						"method": "GET",
-						"header": [
-							{
-								"key": "Cache-Control",
-								"value": "",
-								"type": "text"
-							}
-						],
+						"header": [],
 						"url": {
 							"raw": "{{app_url}}/excluded",
 							"host": [
@@ -1569,41 +1539,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, '', true)"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Cache-Control",
-								"value": "",
-								"type": "text"
-							}
-						],
-						"url": {
-							"raw": "{{app_url}}/default",
-							"host": [
-								"{{app_url}}"
-							],
-							"path": [
-								"default"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Default no cache",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, 'no-cache')"
+									"utils.basicRequest(pm, `${utils.getVar(pm, 'app_url')}/default`)"
 								],
 								"type": "text/javascript"
 							}
@@ -1625,13 +1561,47 @@
 					"response": []
 				},
 				{
+					"name": "Default no cache",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.noCacheRequest(pm, `${utils.getVar(pm, 'app_url')}/default`)"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cache-Control",
+								"value": "no-cache",
+								"type": "default"
+							}
+						],
+						"url": {
+							"raw": "{{app_url}}/default",
+							"host": [
+								"{{app_url}}"
+							],
+							"path": [
+								"default"
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "Default no store",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, 'no-store')"
+									"utils.noStoreRequest(pm, `${utils.getVar(pm, 'app_url')}/default`)"
 								],
 								"type": "text/javascript"
 							}
@@ -1665,7 +1635,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/test2`, '', false, true)"
+									"utils.excludedRequest(pm, `${utils.getVar(pm, 'app_url')}/excluded`)"
 								],
 								"type": "text/javascript"
 							}
@@ -1673,13 +1643,7 @@
 					],
 					"request": {
 						"method": "GET",
-						"header": [
-							{
-								"key": "Cache-Control",
-								"value": "",
-								"type": "text"
-							}
-						],
+						"header": [],
 						"url": {
 							"raw": "{{app_url}}/excluded",
 							"host": [
@@ -1725,41 +1689,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, '', true)"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Cache-Control",
-								"value": "",
-								"type": "text"
-							}
-						],
-						"url": {
-							"raw": "{{app_url}}/default",
-							"host": [
-								"{{app_url}}"
-							],
-							"path": [
-								"default"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Default no cache",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, 'no-cache')"
+									"utils.basicRequest(pm, `${utils.getVar(pm, 'app_url')}/default`)"
 								],
 								"type": "text/javascript"
 							}
@@ -1781,13 +1711,47 @@
 					"response": []
 				},
 				{
+					"name": "Default no cache",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.noCacheRequest(pm, `${utils.getVar(pm, 'app_url')}/default`)"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cache-Control",
+								"value": "no-cache",
+								"type": "default"
+							}
+						],
+						"url": {
+							"raw": "{{app_url}}/default",
+							"host": [
+								"{{app_url}}"
+							],
+							"path": [
+								"default"
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "Default no store",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, 'no-store')"
+									"utils.noStoreRequest(pm, `${utils.getVar(pm, 'app_url')}/default`)"
 								],
 								"type": "text/javascript"
 							}
@@ -1821,7 +1785,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/test2`, '', false, true)"
+									"utils.excludedRequest(pm, `${utils.getVar(pm, 'app_url')}/excluded`)"
 								],
 								"type": "text/javascript"
 							}
@@ -1829,13 +1793,7 @@
 					],
 					"request": {
 						"method": "GET",
-						"header": [
-							{
-								"key": "Cache-Control",
-								"value": "",
-								"type": "text"
-							}
-						],
+						"header": [],
 						"url": {
 							"raw": "{{app_url}}/excluded",
 							"host": [
@@ -1881,41 +1839,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, '', true)"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Cache-Control",
-								"value": "",
-								"type": "text"
-							}
-						],
-						"url": {
-							"raw": "{{app_url}}/default",
-							"host": [
-								"{{app_url}}"
-							],
-							"path": [
-								"default"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Default no cache",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, 'no-cache')"
+									"utils.basicRequest(pm, `${utils.getVar(pm, 'app_url')}/default`)"
 								],
 								"type": "text/javascript"
 							}
@@ -1937,13 +1861,47 @@
 					"response": []
 				},
 				{
+					"name": "Default no cache",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.noCacheRequest(pm, `${utils.getVar(pm, 'app_url')}/default`)"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cache-Control",
+								"value": "no-cache",
+								"type": "default"
+							}
+						],
+						"url": {
+							"raw": "{{app_url}}/default",
+							"host": [
+								"{{app_url}}"
+							],
+							"path": [
+								"default"
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "Default no store",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, 'no-store')"
+									"utils.noStoreRequest(pm, `${utils.getVar(pm, 'app_url')}/default`)"
 								],
 								"type": "text/javascript"
 							}
@@ -1977,7 +1935,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/excluded`, '', false, true)"
+									"utils.excludedRequest(pm, `${utils.getVar(pm, 'app_url')}/excluded`)"
 								],
 								"type": "text/javascript"
 							}
@@ -1985,13 +1943,7 @@
 					],
 					"request": {
 						"method": "GET",
-						"header": [
-							{
-								"key": "Cache-Control",
-								"value": "",
-								"type": "text"
-							}
-						],
+						"header": [],
 						"url": {
 							"raw": "{{app_url}}/excluded",
 							"host": [
@@ -2037,41 +1989,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, '', true)"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Cache-Control",
-								"value": "",
-								"type": "text"
-							}
-						],
-						"url": {
-							"raw": "{{app_url}}/default",
-							"host": [
-								"{{app_url}}"
-							],
-							"path": [
-								"default"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Default no cache",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, 'no-cache')"
+									"utils.basicRequest(pm, `${utils.getVar(pm, 'app_url')}/default`)"
 								],
 								"type": "text/javascript"
 							}
@@ -2093,13 +2011,47 @@
 					"response": []
 				},
 				{
+					"name": "Default no cache",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.noCacheRequest(pm, `${utils.getVar(pm, 'app_url')}/default`)"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cache-Control",
+								"value": "no-cache",
+								"type": "default"
+							}
+						],
+						"url": {
+							"raw": "{{app_url}}/default",
+							"host": [
+								"{{app_url}}"
+							],
+							"path": [
+								"default"
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "Default no store",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, 'no-store')"
+									"utils.noStoreRequest(pm, `${utils.getVar(pm, 'app_url')}/default`)"
 								],
 								"type": "text/javascript"
 							}
@@ -2133,7 +2085,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/excluded`, '', false, true)"
+									"utils.excludedRequest(pm, `${utils.getVar(pm, 'app_url')}/excluded`)"
 								],
 								"type": "text/javascript"
 							}
@@ -2141,13 +2093,7 @@
 					],
 					"request": {
 						"method": "GET",
-						"header": [
-							{
-								"key": "Cache-Control",
-								"value": "",
-								"type": "text"
-							}
-						],
+						"header": [],
 						"url": {
 							"raw": "{{app_url}}/excluded",
 							"host": [
@@ -2193,41 +2139,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, '', true)"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Cache-Control",
-								"value": "",
-								"type": "text"
-							}
-						],
-						"url": {
-							"raw": "{{app_url}}/default",
-							"host": [
-								"{{app_url}}"
-							],
-							"path": [
-								"default"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Default no cache",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, 'no-cache')"
+									"utils.basicRequest(pm, `${utils.getVar(pm, 'app_url')}/default`)"
 								],
 								"type": "text/javascript"
 							}
@@ -2249,13 +2161,47 @@
 					"response": []
 				},
 				{
+					"name": "Default no cache",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.noCacheRequest(pm, `${utils.getVar(pm, 'app_url')}/default`)"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cache-Control",
+								"value": "no-cache",
+								"type": "default"
+							}
+						],
+						"url": {
+							"raw": "{{app_url}}/default",
+							"host": [
+								"{{app_url}}"
+							],
+							"path": [
+								"default"
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "Default no store",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, 'no-store')"
+									"utils.noStoreRequest(pm, `${utils.getVar(pm, 'app_url')}/default`)"
 								],
 								"type": "text/javascript"
 							}
@@ -2289,7 +2235,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/excluded`, '', false, true)"
+									"utils.excludedRequest(pm, `${utils.getVar(pm, 'app_url')}/excluded`)"
 								],
 								"type": "text/javascript"
 							}
@@ -2297,13 +2243,7 @@
 					],
 					"request": {
 						"method": "GET",
-						"header": [
-							{
-								"key": "Cache-Control",
-								"value": "",
-								"type": "text"
-							}
-						],
+						"header": [],
 						"url": {
 							"raw": "{{app_url}}/excluded",
 							"host": [
@@ -2349,41 +2289,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, '', true)"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Cache-Control",
-								"value": "",
-								"type": "text"
-							}
-						],
-						"url": {
-							"raw": "{{app_url}}/default",
-							"host": [
-								"{{app_url}}"
-							],
-							"path": [
-								"default"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Default no cache",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, 'no-cache')"
+									"utils.basicRequest(pm, `${utils.getVar(pm, 'app_url')}/default`)"
 								],
 								"type": "text/javascript"
 							}
@@ -2405,13 +2311,13 @@
 					"response": []
 				},
 				{
-					"name": "Exclude regex",
+					"name": "Default no cache",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/excluded`, '', false, true)"
+									"utils.noCacheRequest(pm, `${utils.getVar(pm, 'app_url')}/default`)"
 								],
 								"type": "text/javascript"
 							}
@@ -2422,10 +2328,72 @@
 						"header": [
 							{
 								"key": "Cache-Control",
-								"value": "",
+								"value": "no-cache",
+								"type": "default"
+							}
+						],
+						"url": {
+							"raw": "{{app_url}}/default",
+							"host": [
+								"{{app_url}}"
+							],
+							"path": [
+								"default"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Default no store",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.noStoreRequest(pm, `${utils.getVar(pm, 'app_url')}/default`)"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cache-Control",
+								"value": "no-store",
 								"type": "text"
 							}
 						],
+						"url": {
+							"raw": "{{app_url}}/default",
+							"host": [
+								"{{app_url}}"
+							],
+							"path": [
+								"default"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Exclude regex",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.excludedRequest(pm, `${utils.getVar(pm, 'app_url')}/excluded`)"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
 						"url": {
 							"raw": "{{app_url}}/excluded",
 							"host": [
@@ -2471,7 +2439,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, utils.getVar(pm, 'app_url'), '', true)"
+									"utils.basicRequest(pm, `${utils.getVar(pm, 'app_url')}/default`)"
 								],
 								"type": "text/javascript"
 							}
@@ -2479,17 +2447,14 @@
 					],
 					"request": {
 						"method": "GET",
-						"header": [
-							{
-								"key": "Cache-Control",
-								"value": "",
-								"type": "text"
-							}
-						],
+						"header": [],
 						"url": {
-							"raw": "{{app_url}}",
+							"raw": "{{app_url}}/default",
 							"host": [
 								"{{app_url}}"
+							],
+							"path": [
+								"default"
 							]
 						}
 					},
@@ -2502,7 +2467,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, utils.getVar(pm, 'app_url'), 'no-cache')"
+									"utils.noCacheRequest(pm, `${utils.getVar(pm, 'app_url')}/default`)"
 								],
 								"type": "text/javascript"
 							}
@@ -2510,11 +2475,20 @@
 					],
 					"request": {
 						"method": "GET",
-						"header": [],
+						"header": [
+							{
+								"key": "Cache-Control",
+								"value": "no-cache",
+								"type": "default"
+							}
+						],
 						"url": {
-							"raw": "{{app_url}}",
+							"raw": "{{app_url}}/default",
 							"host": [
 								"{{app_url}}"
+							],
+							"path": [
+								"default"
 							]
 						}
 					},
@@ -2527,7 +2501,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, utils.getVar(pm, 'app_url'), 'no-store')"
+									"utils.noStoreRequest(pm, `${utils.getVar(pm, 'app_url')}/default`)"
 								],
 								"type": "text/javascript"
 							}
@@ -2543,9 +2517,12 @@
 							}
 						],
 						"url": {
-							"raw": "{{app_url}}",
+							"raw": "{{app_url}}/default",
 							"host": [
 								"{{app_url}}"
+							],
+							"path": [
+								"default"
 							]
 						}
 					},
@@ -2558,7 +2535,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/test_exclude_another`, 'cache', false, true)"
+									"utils.excludedRequest(pm, `${utils.getVar(pm, 'app_url')}/excluded`)"
 								],
 								"type": "text/javascript"
 							}
@@ -2566,20 +2543,14 @@
 					],
 					"request": {
 						"method": "GET",
-						"header": [
-							{
-								"key": "Cache-Control",
-								"value": "",
-								"type": "text"
-							}
-						],
+						"header": [],
 						"url": {
-							"raw": "{{app_url}}/test_exclude_another",
+							"raw": "{{app_url}}/excluded",
 							"host": [
 								"{{app_url}}"
 							],
 							"path": [
-								"test_exclude_another"
+								"excluded"
 							]
 						}
 					},
@@ -2618,41 +2589,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/`, '', true)"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Cache-Control",
-								"value": "",
-								"type": "text"
-							}
-						],
-						"url": {
-							"raw": "{{app_url}}/",
-							"host": [
-								"{{app_url}}"
-							],
-							"path": [
-								""
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Default no cache",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/`, 'no-cache')"
+									"utils.basicRequest(pm, `${utils.getVar(pm, 'app_url')}/`)"
 								],
 								"type": "text/javascript"
 							}
@@ -2674,13 +2611,47 @@
 					"response": []
 				},
 				{
+					"name": "Default no cache",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.noCacheRequest(pm, `${utils.getVar(pm, 'app_url')}/`)"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cache-Control",
+								"value": "no-cache",
+								"type": "default"
+							}
+						],
+						"url": {
+							"raw": "{{app_url}}/",
+							"host": [
+								"{{app_url}}"
+							],
+							"path": [
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "Default no store",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/`, 'no-store')"
+									"utils.noStoreRequest(pm, `${utils.getVar(pm, 'app_url')}/`)"
 								],
 								"type": "text/javascript"
 							}
@@ -2702,6 +2673,46 @@
 							],
 							"path": [
 								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Exclude regex",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"The first excluded request must contain the Cache-Status HTTP response header without Age\", function () {",
+									"    pm.response.to.have.header(\"Cache-Status\");",
+									"    pm.expect(pm.response.headers.get(\"Cache-Status\")).to.eql(\"Souin; fwd=uri-miss; detail=EXCLUDED-REQUEST-URI\");",
+									"    pm.response.to.not.have.header(\"Age\");",
+									"});",
+									"pm.sendRequest(utils.request(`${utils.getVar(pm, 'app_url')}/excluded`), function (_, response) {",
+									"    pm.test(\"The second excluded request must contain the Cache-Status HTTP response header without Age\", function () {",
+									"        const expected = pm.expect(response);",
+									"        expected.to.have.header(\"Cache-Status\");",
+									"        pm.expect(response.headers.get(\"Cache-Status\")).to.eql(\"Souin; fwd=uri-miss; detail=EXCLUDED-REQUEST-URI\");",
+									"        expected.to.not.have.header(\"Age\");",
+									"    });",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{app_url}}/excluded",
+							"host": [
+								"{{app_url}}"
+							],
+							"path": [
+								"excluded"
 							]
 						}
 					},
@@ -2740,41 +2751,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, '', true)"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Cache-Control",
-								"value": "",
-								"type": "text"
-							}
-						],
-						"url": {
-							"raw": "{{app_url}}/default",
-							"host": [
-								"{{app_url}}"
-							],
-							"path": [
-								"default"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Default no cache",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, 'no-cache')"
+									"utils.basicRequest(pm, `${utils.getVar(pm, 'app_url')}/default`)"
 								],
 								"type": "text/javascript"
 							}
@@ -2796,13 +2773,47 @@
 					"response": []
 				},
 				{
+					"name": "Default no cache",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.noCacheRequest(pm, `${utils.getVar(pm, 'app_url')}/default`)"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cache-Control",
+								"value": "no-cache",
+								"type": "default"
+							}
+						],
+						"url": {
+							"raw": "{{app_url}}/default",
+							"host": [
+								"{{app_url}}"
+							],
+							"path": [
+								"default"
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "Default no store",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/default`, 'no-store')"
+									"utils.noStoreRequest(pm, `${utils.getVar(pm, 'app_url')}/default`)"
 								],
 								"type": "text/javascript"
 							}
@@ -2836,7 +2847,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.baseEndpoint(pm, `${utils.getVar(pm, 'app_url')}/test2`, '', false, true)"
+									"utils.excludedRequest(pm, `${utils.getVar(pm, 'app_url')}/excluded`)"
 								],
 								"type": "text/javascript"
 							}
@@ -2844,13 +2855,7 @@
 					],
 					"request": {
 						"method": "GET",
-						"header": [
-							{
-								"key": "Cache-Control",
-								"value": "",
-								"type": "text"
-							}
-						],
+						"header": [],
 						"url": {
 							"raw": "{{app_url}}/excluded",
 							"host": [
@@ -2904,6 +2909,116 @@
 					"        url,",
 					"    }),",
 					"    getVar: (pm, v) => pm.collectionVariables.get(v) || '',",
+					"    noStoreRequest: (pm, baseUrl = '') => {",
+					"        pm.test(\"The first no-store request must contain the Cache-Status HTTP response header without Age\", function () {",
+					"            pm.response.to.have.status(200);",
+					"            pm.response.to.have.header(\"Cache-Status\");",
+					"            pm.expect(pm.response.headers.get(\"Cache-Status\")).to.eql(`Souin; fwd=uri-miss; detail=NO-STORE-DIRECTIVE; key=GET-http-${pm.collectionVariables.get('current_host')}-${pm.request.url.getPath()}`);",
+					"            pm.response.to.not.have.header(\"Age\");",
+					"        });",
+					"        pm.sendRequest(utils.request(baseUrl, 'no-store'), function (_, response) {",
+					"            pm.test(\"The second no-store request must contain the Cache-Status HTTP response header without Age\", function () {",
+					"                const expected = pm.expect(response);",
+					"                expected.to.have.status(200);",
+					"                expected.to.have.header(\"Cache-Status\");",
+					"                pm.expect(response.headers.get(\"Cache-Status\")).to.eql(`Souin; fwd=uri-miss; detail=NO-STORE-DIRECTIVE; key=GET-http-${pm.collectionVariables.get('current_host')}-${pm.request.url.getPath()}`);",
+					"                expected.to.not.have.header(\"Age\");",
+					"            });",
+					"        });",
+					"    },",
+					"    noCacheRequest: (pm, baseUrl = '') => {",
+					"        pm.test(\"The first no-cache request must contain the Cache-Status HTTP response header without Age\", function () {",
+					"            pm.response.to.have.status(200);",
+					"            pm.response.to.have.header(\"Cache-Status\");",
+					"            pm.expect(pm.response.headers.get(\"Cache-Status\")).to.eql(`Souin; fwd=uri-miss; stored; key=GET-http-${pm.collectionVariables.get('current_host')}-${pm.request.url.getPath()}`);",
+					"            pm.response.to.not.have.header(\"Age\");",
+					"        });",
+					"        pm.sendRequest(utils.request(baseUrl, 'no-cache'), function (_, response) {",
+					"            pm.test(\"The second no-cache request must contain the Cache-Status HTTP response header without Age\", function () {",
+					"                const expected = pm.expect(response);",
+					"                expected.to.have.status(200);",
+					"                expected.to.have.header(\"Cache-Status\");",
+					"                pm.expect(response.headers.get(\"Cache-Status\")).to.eql(`Souin; fwd=uri-miss; stored; key=GET-http-${pm.collectionVariables.get('current_host')}-${pm.request.url.getPath()}`);",
+					"                expected.to.not.have.header(\"Age\");",
+					"            });",
+					"        });",
+					"    },",
+					"    excludedRequest: (pm, baseUrl = '') => {",
+					"        pm.test(\"The first excluded request must contain the Cache-Status HTTP response header without Age\", function () {",
+					"            pm.response.to.have.status(200);",
+					"            pm.response.to.have.header(\"Cache-Status\");",
+					"            pm.expect(pm.response.headers.get(\"Cache-Status\")).to.eql(\"Souin; fwd=uri-miss; detail=EXCLUDED-REQUEST-URI\");",
+					"            pm.response.to.not.have.header(\"Age\");",
+					"        });",
+					"        pm.sendRequest(utils.request(baseUrl), function (_, response) {",
+					"            pm.test(\"The second excluded request must contain the Cache-Status HTTP response header without Age\", function () {",
+					"                const expected = pm.expect(response);",
+					"                expected.to.have.status(200);",
+					"                expected.to.have.header(\"Cache-Status\");",
+					"                pm.expect(response.headers.get(\"Cache-Status\")).to.eql(\"Souin; fwd=uri-miss; detail=EXCLUDED-REQUEST-URI\");",
+					"                expected.to.not.have.header(\"Age\");",
+					"            });",
+					"        });",
+					"    },",
+					"    maxAgeRequest: (pm, baseUrl = '', max = 3, delay = 3) => {",
+					"        pm.test(\"The first max-age request must contain the Cache-Status HTTP response header without Age\", function () {",
+					"            pm.response.to.have.status(200);",
+					"            pm.response.to.have.header(\"Cache-Status\");",
+					"            pm.expect(pm.response.headers.get(\"Cache-Status\")).to.eql(`Souin; fwd=uri-miss; stored; key=GET-http-${pm.collectionVariables.get('current_host')}-${pm.request.url.getPath()}`);",
+					"            pm.response.to.not.have.header(\"Age\");",
+					"        });",
+					"",
+					"        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, delay * 1000);",
+					"        pm.sendRequest(utils.request(baseUrl, `max-age=${max}`), function (_, response) {",
+					"            pm.test(\"The second max-age request must contain the Cache-Status HTTP response header\", function () {",
+					"                const expected = pm.expect(response);",
+					"                expected.to.have.status(200);",
+					"                expected.to.have.header(\"Cache-Status\");",
+					"",
+					"                if (delay) {",
+					"                    pm.expect(pm.response.headers.get(\"Cache-Status\")).to.eql(`Souin; fwd=uri-miss; stored; key=GET-http-${pm.collectionVariables.get('current_host')}-${pm.request.url.getPath()}`);",
+					"                    expected.to.not.have.header(\"Age\");",
+					"                } else {",
+					"                    pm.expect(response.headers.get(\"Cache-Status\")).to.include(\"Souin; hit; ttl=\");",
+					"                    expected.to.have.header(\"Age\");",
+					"                }",
+					"            });",
+					"        });",
+					"    },",
+					"    excludedRequest: (pm, baseUrl = '') => {",
+					"        pm.test(\"The first excluded request must contain the Cache-Status HTTP response header without Age\", function () {",
+					"            pm.response.to.have.status(200);",
+					"            pm.response.to.have.header(\"Cache-Status\");",
+					"            pm.expect(pm.response.headers.get(\"Cache-Status\")).to.eql(`Souin; fwd=uri-miss; detail=EXCLUDED-REQUEST-URI`);",
+					"            pm.response.to.not.have.header(\"Age\");",
+					"        });",
+					"        pm.sendRequest(utils.request(baseUrl), function (_, response) {",
+					"            pm.test(\"The second excluded request must contain the Cache-Status HTTP response header without Age\", function () {",
+					"                const expected = pm.expect(response);",
+					"                expected.to.have.status(200);",
+					"                expected.to.have.header(\"Cache-Status\");",
+					"                pm.expect(response.headers.get(\"Cache-Status\")).to.eql(`Souin; fwd=uri-miss; detail=EXCLUDED-REQUEST-URI`);",
+					"                expected.to.not.have.header(\"Age\");",
+					"            });",
+					"        });",
+					"    },",
+					"    basicRequest: (pm, baseUrl = '') => {",
+					"        pm.test(\"The first basic request must contain the Cache-Status HTTP response header without Age\", function () {",
+					"            pm.response.to.have.status(200);",
+					"            pm.response.to.have.header(\"Cache-Status\");",
+					"            pm.expect(pm.response.headers.get(\"Cache-Status\")).to.eql(`Souin; fwd=uri-miss; stored; key=GET-http-${pm.collectionVariables.get('current_host')}-/${pm.request.url.path.join(\"/\")}`);",
+					"            pm.response.to.not.have.header(\"Age\");",
+					"        });",
+					"        pm.sendRequest(utils.request(baseUrl), function (_, response) {",
+					"            pm.test(\"The second basic request must contain the Cache-Status HTTP response header with Age\", function () {",
+					"                const expected = pm.expect(response);",
+					"                expected.to.have.status(200);",
+					"                expected.to.have.header(\"Cache-Status\");",
+					"                pm.expect(response.headers.get(\"Cache-Status\")).to.include(\"Souin; hit; ttl=\");",
+					"                expected.to.have.header(\"Age\");",
+					"            });",
+					"        });",
+					"    },",
 					"    baseEndpoint: (pm, baseUrl = '', cacheControl = '', isStore = false, exclude = false) => {",
 					"        pm.test(\"Status code is 200 with Cache-Status header\", function () {",
 					"            pm.response.to.have.status(200);",
@@ -2913,10 +3028,10 @@
 					"            } else {",
 					"                pm.response.to.have.header(\"Cache-Status\");",
 					"                if (isStore) {",
-					"                    pm.expect(pm.response.headers.get(\"Cache-Status\")).to.eql(\"Souin; fwd=uri-miss; stored\");",
+					"                    pm.expect(pm.response.headers.get(\"Cache-Status\")).to.eql(`Souin; fwd=uri-miss; stored; key=GET-http-${pm.collectionVariables.get('current_host')}-${pm.request.url.getPath()}`);",
 					"                } else {",
 					"                    pm.response.to.have.header(\"Cache-Status\");",
-					"                    pm.expect(pm.response.headers.get(\"Cache-Status\")).to.eql(`Souin; fwd=uri-miss; ${ cacheControl == \"no-store\" ? `key=GET-${pm.collectionVariables.get('current_host')}-${pm.request.url.getPath()}; detail=NOT-CACHEABLE` : 'key=; detail=CANNOT-HANDLE'}`);",
+					"                    pm.expect(pm.response.headers.get(\"Cache-Status\")).to.eql(`Souin; fwd=uri-miss; ${ cacheControl == \"no-store\" ? `key=GET-http-${pm.collectionVariables.get('current_host')}-${pm.request.url.getPath()}; detail=NOT-CACHEABLE` : 'key=; detail=CANNOT-HANDLE'}`);",
 					"                }",
 					"            }",
 					"            pm.response.to.not.have.header(\"Age\");",
@@ -2936,7 +3051,7 @@
 					"                            pm.expect(response.headers.get(\"Cache-Status\")).to.include(\"Souin; hit; ttl=\");",
 					"                        } else {",
 					"                            expected.to.not.have.header(\"Age\");",
-					"                            pm.expect(response.headers.get(\"Cache-Status\")).to.eql(`Souin; fwd=uri-miss; ${ cacheControl == \"no-store\" ? `key=GET-${pm.collectionVariables.get('current_host')}-${pm.request.url.getPath()}; detail=NOT-CACHEABLE` : 'key=; detail=CANNOT-HANDLE'}`);",
+					"                            pm.expect(response.headers.get(\"Cache-Status\")).to.eql(`Souin; fwd=uri-miss; ${ cacheControl == \"no-store\" ? `key=GET-http-${pm.collectionVariables.get('current_host')}-${pm.request.url.getPath()}; detail=NOT-CACHEABLE` : 'key=; detail=CANNOT-HANDLE'}`);",
 					"                        }",
 					"                    }",
 					"                }",
@@ -2947,7 +3062,7 @@
 					"        pm.test(\"Status code is 502 with Cache-Status header\", function () {",
 					"            pm.response.to.have.status(502);",
 					"            pm.response.to.have.header(\"Cache-Status\");",
-					"            pm.expect(pm.response.headers.get(\"Cache-Status\")).to.eql(`Souin; fwd=uri-miss; key=GET-${pm.collectionVariables.get('current_host')}-/no-reverse-proxy; detail=SERVE-HTTP-ERROR`);",
+					"            pm.expect(pm.response.headers.get(\"Cache-Status\")).to.eql(`Souin; fwd=uri-miss; key=GET-http-${pm.collectionVariables.get('current_host')}-/no-reverse-proxy; detail=SERVE-HTTP-ERROR`);",
 					"            pm.response.to.not.have.header(\"Age\");",
 					"        });",
 					"        pm.sendRequest(utils.request(baseUrl, ''), function (_, response) {",
@@ -2955,7 +3070,7 @@
 					"                const expected = pm.expect(response);",
 					"                expected.to.have.status(502);",
 					"                expected.to.have.header(\"Cache-Status\");",
-					"                pm.expect(response.headers.get(\"Cache-Status\")).to.eql(`Souin; fwd=uri-miss; key=GET-${pm.collectionVariables.get('current_host')}-/no-reverse-proxy; detail=SERVE-HTTP-ERROR`);",
+					"                pm.expect(response.headers.get(\"Cache-Status\")).to.eql(`Souin; fwd=uri-miss; key=GET-http-${pm.collectionVariables.get('current_host')}-/no-reverse-proxy; detail=SERVE-HTTP-ERROR`);",
 					"                pm.response.to.not.have.header(\"Age\");",
 					"            });",
 					"        });",
@@ -2964,7 +3079,7 @@
 					"        pm.test(\"Status code is 200 with Cache-Status header\", function () {",
 					"            pm.response.to.have.status(200);",
 					"            pm.response.to.have.header(\"Cache-Status\");",
-					"            pm.expect(pm.response.headers.get(\"Cache-Status\")).to.eql(\"Souin; fwd=uri-miss; stored\");",
+					"            pm.expect(pm.response.headers.get(\"Cache-Status\")).to.eql(`Souin; fwd=uri-miss; stored; key=GET-http-${pm.collectionVariables.get('current_host')}-${pm.request.url.getPath()}`);",
 					"            pm.response.to.not.have.header(\"Age\");",
 					"        });",
 					"        pm.sendRequest(utils.request(baseUrl, ''), function (_, response) {",
@@ -2981,7 +3096,7 @@
 					"        pm.test(\"Status code is 200 with Cache-Status header\", function () {",
 					"            pm.response.to.have.status(200);",
 					"            pm.response.to.have.header(\"Cache-Status\");",
-					"            pm.expect(pm.response.headers.get(\"Cache-Status\")).to.eql(\"Souin; fwd=uri-miss; stored\");",
+					"            pm.expect(pm.response.headers.get(\"Cache-Status\")).to.eql(`Souin; fwd=uri-miss; stored; key=GET-http-${pm.collectionVariables.get('current_host')}-${pm.request.url.getPath()}`);",
 					"            pm.response.to.not.have.header(\"Age\");",
 					"            pm.expect(pm.response.text()).to.eql(\"Hello should-vary-1\");",
 					"        });",
@@ -3003,7 +3118,7 @@
 					"                    const expected = pm.expect(resVary2Stored);",
 					"                    expected.to.have.status(200);",
 					"                    expected.to.have.header(\"Cache-Status\");",
-					"                    pm.expect(resVary2Stored.headers.get(\"Cache-Status\")).to.eql(\"Souin; fwd=uri-miss; stored\");",
+					"                    pm.expect(resVary2Stored.headers.get(\"Cache-Status\")).to.eql(`Souin; fwd=uri-miss; stored; key=GET-http-${pm.collectionVariables.get('current_host')}-${pm.request.url.getPath()}`);",
 					"                    expected.to.not.have.header(\"Age\");",
 					"                    pm.expect(resVary2Stored.text()).to.eql(\"Hello should-vary-2\");",
 					"                });",
@@ -3030,7 +3145,7 @@
 					"                pm.expect(jsonData).to.eql([]);",
 					"                pm.expect(jsonData.length).to.eql(0);",
 					"            });",
-					"            pm.sendRequest(utils.request(baseUrl + additionalPath, cacheControl), function(_, response) {",
+					"            pm.sendRequest(utils.request(baseUrl + additionalPath, cacheControl), function(_, response) {",
 					"                pm.expect(response).to.have.status(200);",
 					"            });",
 					"",

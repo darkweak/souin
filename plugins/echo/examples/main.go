@@ -10,8 +10,7 @@ import (
 func main() {
 	e := echo.New()
 
-	// Use the Souin default configuration
-	s := souin_echo.New(souin_echo.DevDefaultConfiguration)
+	s := souin_echo.NewMiddleware(souin_echo.DevDefaultConfiguration)
 	e.Use(s.Process)
 
 	// Handler

@@ -4,10 +4,10 @@ import (
 	"net/http"
 	"regexp"
 
-	"github.com/darkweak/souin/cache/surrogate/providers"
 	"github.com/darkweak/souin/cache/ykeys"
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/context"
+	"github.com/darkweak/souin/pkg/surrogate/providers"
 )
 
 // TransportInterface interface

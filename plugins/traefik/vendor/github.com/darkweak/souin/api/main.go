@@ -3,10 +3,9 @@ package api
 import (
 	"net/http"
 
-	"github.com/darkweak/souin/api/auth"
-	"github.com/darkweak/souin/api/prometheus"
-	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/configurationtypes"
+	"github.com/darkweak/souin/pkg/storage"
+	"github.com/darkweak/souin/pkg/surrogate/providers"
 )
 
 // MapHandler is a map to store the available http Handlers
@@ -17,7 +16,8 @@ type MapHandler struct {
 // GenerateHandlerMap generate the MapHandler
 func GenerateHandlerMap(
 	configuration configurationtypes.AbstractConfigurationInterface,
-	transport types.TransportInterface,
+	storer storage.Storer,
+	surrogateStorage providers.SurrogateInterface,
 ) *MapHandler {
 	hm := make(map[string]http.HandlerFunc)
 	shouldEnable := false
@@ -28,16 +28,10 @@ func GenerateHandlerMap(
 		basePathAPIS = "/souin-api"
 	}
 
-	for _, endpoint := range Initialize(transport, configuration) {
+	for _, endpoint := range Initialize(configuration, storer, surrogateStorage) {
 		if endpoint.IsEnabled() {
 			shouldEnable = true
 			if e, ok := endpoint.(*SouinAPI); ok {
-				hm[basePathAPIS+endpoint.GetBasePath()] = e.HandleRequest
-			}
-			if e, ok := endpoint.(*prometheus.PrometheusAPI); ok {
-				hm[basePathAPIS+endpoint.GetBasePath()] = e.HandleRequest
-			}
-			if e, ok := endpoint.(*auth.SecurityAPI); ok {
 				hm[basePathAPIS+endpoint.GetBasePath()] = e.HandleRequest
 			}
 		}
@@ -51,7 +45,6 @@ func GenerateHandlerMap(
 }
 
 // Initialize contains all apis that should be enabled
-func Initialize(transport types.TransportInterface, c configurationtypes.AbstractConfigurationInterface) []EndpointInterface {
-	security := auth.InitializeSecurity(c)
-	return []EndpointInterface{security, initializeSouin(c, security, transport), prometheus.InitializePrometheus(c, security)}
+func Initialize(c configurationtypes.AbstractConfigurationInterface, storer storage.Storer, surrogateStorage providers.SurrogateInterface) []EndpointInterface {
+	return []EndpointInterface{initializeSouin(c, storer, surrogateStorage)}
 }

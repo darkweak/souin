@@ -4,16 +4,16 @@ import (
 	"errors"
 
 	"github.com/caddyserver/caddy/v2"
-	"github.com/darkweak/souin/cache/surrogate/providers"
-	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/configurationtypes"
+	"github.com/darkweak/souin/pkg/storage"
+	"github.com/darkweak/souin/pkg/surrogate/providers"
 )
 
 // SouinApp contains the whole Souin necessary items
 type SouinApp struct {
 	*DefaultCache
 	// The provider to use.
-	Provider types.AbstractProviderInterface
+	Storer storage.Storer
 	// Surrogate storage to support th econfiguration reload without surrogate-key data loss.
 	SurrogateStorage providers.SurrogateInterface
 	// Cache-key tweaking.
