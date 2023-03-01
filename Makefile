@@ -117,6 +117,11 @@ lint: ## Run lint
 log: ## Show souin logs
 	$(DC) logs -f souin
 
+sync-goreleaser-plugins: ## Synchronize plugins goreleaser
+	for plugin in $(PLUGINS_LIST) ; do \
+		cp .goreleaser.yml plugins/$$plugin; \
+	done
+
 tests: ## Run tests
 	$(DC_EXEC) souin go test -v ./...
 
