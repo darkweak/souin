@@ -9,7 +9,7 @@ import (
 	"github.com/darkweak/souin/cache/types"
 	t "github.com/darkweak/souin/configurationtypes"
 	"github.com/imdario/mergo"
-	"github.com/nutsdb/nutsdb"
+	"github.com/xujiajun/nutsdb"
 	"go.uber.org/zap"
 )
 

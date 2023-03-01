@@ -26,9 +26,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/nutsdb/nutsdb/ds/list"
-	"github.com/nutsdb/nutsdb/ds/set"
-	"github.com/nutsdb/nutsdb/ds/zset"
+	"github.com/xujiajun/nutsdb/ds/list"
+	"github.com/xujiajun/nutsdb/ds/set"
+	"github.com/xujiajun/nutsdb/ds/zset"
 	"github.com/xujiajun/utils/filesystem"
 	"github.com/xujiajun/utils/strconv2"
 )
@@ -110,9 +110,6 @@ const (
 
 	// LRemByIndex represents the data LRemByIndex flag
 	DataLRemByIndex
-
-	// DataListBucketDeleteFlag represents that set ttl for the list
-	DataExpireListFlag
 )
 
 const (
@@ -344,8 +341,7 @@ func (db *DB) Merge() error {
 
 	for _, pendingMergeFId := range pendingMergeFIds {
 		off = 0
-		path := db.getDataPath(int64(pendingMergeFId))
-		fr, err := newFileRecovery(path, db.opt.BufferSizeOfRecovery)
+		f, err := db.fm.getDataFile(db.getDataPath(int64(pendingMergeFId)), db.opt.SegmentSize)
 		if err != nil {
 			db.isMerging = false
 			return err
@@ -354,7 +350,7 @@ func (db *DB) Merge() error {
 		pendingMergeEntries = []*Entry{}
 
 		for {
-			if entry, err := fr.readEntry(); err == nil {
+			if entry, err := f.ReadAt(int(off)); err == nil {
 				if entry == nil {
 					break
 				}
@@ -396,19 +392,19 @@ func (db *DB) Merge() error {
 				if err == ErrIndexOutOfBound {
 					break
 				}
-				if err == io.ErrUnexpectedEOF {
-					break
-				}
+				_ = f.rwManager.Release()
 				return fmt.Errorf("when merge operation build hintIndex readAt err: %s", err)
 			}
 		}
 
 		if err := db.reWriteData(pendingMergeEntries); err != nil {
-			_ = fr.release()
+			_ = f.rwManager.Release()
 			return err
 		}
 
-		err = fr.release()
+		path := db.getDataPath(int64(pendingMergeFId))
+		_ = f.rwManager.Release()
+		err = f.rwManager.Close()
 		if err != nil {
 			return err
 		}
@@ -595,15 +591,10 @@ func (db *DB) parseDataFiles(dataFileIds []int) (unconfirmedRecords []*Record, c
 				off += entry.Size()
 
 			} else {
-				// whatever which logic branch it will choose, we will release the fd.
-				_ = f.release()
 				if err == io.EOF {
 					break
 				}
 				if err == ErrIndexOutOfBound {
-					break
-				}
-				if err == io.ErrUnexpectedEOF {
 					break
 				}
 				if off >= db.opt.SegmentSize {
@@ -892,18 +883,8 @@ func (db *DB) buildListIdx(bucket string, r *Record) error {
 	if r.E == nil {
 		return ErrEntryIdxModeOpt
 	}
-	if IsExpired(r.E.Meta.TTL, r.E.Meta.Timestamp) {
-		return nil
-	}
+
 	switch r.H.Meta.Flag {
-	case DataExpireListFlag:
-		t, err := strconv2.StrToInt64(string(r.E.Value))
-		if err != nil {
-			return err
-		}
-		ttl := uint32(t)
-		db.ListIdx[bucket].TTL[string(r.E.Key)] = ttl
-		db.ListIdx[bucket].TimeStamp[string(r.E.Key)] = r.E.Meta.Timestamp
 	case DataLPushFlag:
 		_, _ = db.ListIdx[bucket].LPush(string(r.E.Key), r.E.Value)
 	case DataRPushFlag:
@@ -1100,10 +1081,6 @@ func (db *DB) getPendingMergeEntries(entry *Entry, pendingMergeEntries []*Entry)
 	}
 
 	if entry.Meta.Ds == DataStructureList {
-		//check the key of list is expired or not
-		//if expired, it will clear the items of index
-		//so that nutsdb can clear entry of expiring list in the function getPendingMergeEntries
-		db.checkListExpired()
 		listIdx, exist := db.ListIdx[string(entry.Meta.Bucket)]
 		if exist {
 			items, _ := listIdx.LRange(string(entry.Key), 0, -1)
@@ -1180,13 +1157,4 @@ func (db *DB) getRecordFromKey(bucket, key []byte) (record *Record, err error) {
 		return nil, ErrBucketNotFound
 	}
 	return idx.Find(key)
-}
-
-func (db *DB) checkListExpired() {
-	listIdx := db.ListIdx
-	for bucket := range listIdx {
-		for key := range listIdx[bucket].TTL {
-			listIdx[bucket].IsExpire(key)
-		}
-	}
 }

@@ -135,9 +135,3 @@ func WithCleanFdsCacheThreshold(threshold float64) Option {
 		opt.CleanFdsCacheThreshold = threshold
 	}
 }
-
-func WithBufferSizeOfRecovery(size int) Option {
-	return func(opt *Options) {
-		opt.BufferSizeOfRecovery = size
-	}
-}

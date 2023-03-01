@@ -372,7 +372,7 @@ func ReadNode(filePath string, address int64) (bn *BinaryNode, err error) {
 	}
 	defer f.Close()
 
-	size := getBinaryNodeSize()
+	size := int64(unsafe.Sizeof(BinaryNode{}))
 
 	data := make([]byte, size)
 	_, err = f.Seek(address, 0)
@@ -793,17 +793,10 @@ func (t *BPTree) splitLeaf(leaf *Node, key []byte, pointer *Record) error {
 		newLeaf.pointers[order-1] = leaf.pointers[order-1]
 	}
 
-	// link newLeaf and next
-	if next := leaf.pointers[order-1]; next != nil {
-		next := next.(*Node)
-		newLeaf.pointers[order-1] = next
-		next.pointers[order] = newLeaf
-	}
-
-	// link leaf and newLeaf
+	// Reset the next to last one pointer of the leaf node.
 	leaf.pointers[order-1] = newLeaf
+	// Set the last pointer of newLeaf to leaf node (used in reverse iteration)
 	newLeaf.pointers[order] = leaf
-
 	// Set the parent.
 	newLeaf.parent = leaf.parent
 
