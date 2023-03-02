@@ -20,7 +20,7 @@ services:
 
   olric:
     build:
-      context: ./docker/olric
+      context: ./docker
       dockerfile: Dockerfile-olric
       target: olric
     restart: on-failure

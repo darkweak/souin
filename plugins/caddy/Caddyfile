@@ -318,5 +318,5 @@ route /alt-esi-include {
 route /esi {
     cache
     header Content-Type text/html
-    respond `Bonjour <esi:include src="http://localhost:4443/esi-include" alt=http://localhost:4443/alt-esi-include />`
+    respond `<esi:include src="http://localhost:4443/esi-include" alt=http://localhost:4443/alt-esi-include />`
 }
