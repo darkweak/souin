@@ -62,27 +62,47 @@ route /badger-configuration {
     respond "Hello badger"
 }
 
-# route /etcd-configuration {
-#     cache {
-#         ttl 15s
-#         etcd {
-#             configuration {
-#                 Endpoints etcd1:2379 etcd2:2379 etcd3:2379
-#                 AutoSyncInterval 1s
-#                 DialTimeout 1s
-#                 DialKeepAliveTime 1s
-#                 DialKeepAliveTimeout 1s
-#                 MaxCallSendMsgSize 10000000
-#                 MaxCallRecvMsgSize 10000000
-#                 Username john
-#                 Password doe
-#                 RejectOldCluster false
-#                 PermitWithoutStream false
-#             }
-#         }
-#     }
-#     respond "Hello etcd"
-# }
+route /etcd {
+    cache {
+        ttl 5s
+        etcd {
+            configuration {
+                Endpoints etcd1:2379 etcd2:2379 etcd3:2379
+                AutoSyncInterval 1s
+                DialTimeout 1s
+                DialKeepAliveTime 1s
+                DialKeepAliveTimeout 1s
+                MaxCallSendMsgSize 10000000
+                MaxCallRecvMsgSize 10000000
+                Username john
+                Password doe
+                RejectOldCluster false
+                PermitWithoutStream false
+            }
+        }
+    }
+    respond "Hello etcd"
+}
+
+route /etcd-configuration {
+    cache {
+        ttl 5s
+        etcd {
+            configuration {
+                Endpoints etcd:2379 etcd:2379
+                AutoSyncInterval 1s
+                DialTimeout 1s
+                DialKeepAliveTime 1s
+                DialKeepAliveTimeout 1s
+                MaxCallSendMsgSize 10000000
+                MaxCallRecvMsgSize 10000000
+                RejectOldCluster false
+                PermitWithoutStream false
+            }
+        }
+    }
+    respond "Hello etcd"
+}
 
 route /nuts-configuration {
     cache {
@@ -102,9 +122,9 @@ route /nuts-configuration {
     respond "Hello nuts"
 }
 
-route /redis-configuration {
+route /redis {
     cache {
-        ttl 15s
+        ttl 5s
         redis {
             configuration {
                 Network my-network
@@ -131,9 +151,35 @@ route /redis-configuration {
     respond "Hello redis"
 }
 
+route /redis-configuration {
+    cache {
+        ttl 5s
+        redis {
+            configuration {
+                Addr 127.0.0.1:6379
+                DB 0
+                MaxRetries 1
+                MinRetryBackoff 5s
+                MaxRetryBackoff 5s
+                DialTimeout 5s
+                ReadTimeout 5s
+                WriteTimeout 5s
+                PoolFIFO true
+                PoolSize 99999
+                PoolTimeout 10s
+                MinIdleConns 100
+                MaxIdleConns 100
+                ConnMaxIdleTime 5s
+                ConnMaxLifetime 5s
+            }
+        }
+    }
+    respond "Hello redis"
+}
+
 route /redis-url {
     cache {
-        ttl 15s
+        ttl 5s
         redis {
             url 127.0.0.1:6379
         }

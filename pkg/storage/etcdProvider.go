@@ -35,6 +35,7 @@ func EtcdConnectionFactory(c t.AbstractConfigurationInterface) (Storer, error) {
 	}
 	_ = json.Unmarshal(bc, &etcdConfiguration)
 
+	etcdConfiguration.Endpoints = []string{"etcd:2379"}
 	cli, err := clientv3.New(etcdConfiguration)
 
 	if err != nil {

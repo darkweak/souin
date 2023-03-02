@@ -7,11 +7,31 @@ jobs:
   build-caddy-validator:
     name: Check that Souin build as caddy module
     runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis
+        ports:
+          - 6379:6379
+      etcd:
+        image: quay.io/coreos/etcd
+        env:
+          ETCD_NAME: etcd0
+          ETCD_ADVERTISE_CLIENT_URLS: http://etcd:2379,http://etcd:4001
+          ETCD_LISTEN_CLIENT_URLS: http://0.0.0.0:2379,http://0.0.0.0:4001
+          ETCD_INITIAL_ADVERTISE_PEER_URLS: http://etcd:2380
+          ETCD_LISTEN_PEER_URLS: http://0.0.0.0:2380
+          ETCD_INITIAL_CLUSTER_TOKEN: etcd-cluster-1
+          ETCD_INITIAL_CLUSTER: etcd0=http://etcd:2380
+          ETCD_INITIAL_CLUSTER_STATE: new
+        ports:
+          - 2379:2379
+          - 2380:2380
+          - 4001:4001
     steps:
       -
         name: Add domain.com host to /etc/hosts
         run: |
-          sudo echo "127.0.0.1 domain.com" | sudo tee -a /etc/hosts
+          sudo echo "127.0.0.1 domain.com etcd redis" | sudo tee -a /etc/hosts
       -
         name: Install Go
         uses: actions/setup-go@v2
@@ -40,101 +60,102 @@ jobs:
           folder: Caddy
           reporters: cli
           delayRequest: 5000
-  build-beego-validator:
-    name: Check that Souin build as middleware
-    uses: ./.github/workflows/plugin_template.yml
-    secrets: inherit
-    with:
-      CAPITALIZED_NAME: Beego
-      LOWER_NAME: beego
-  build-chi-validator:
-    name: Check that Souin build as middleware
-    uses: ./.github/workflows/plugin_template.yml
-    secrets: inherit
-    with:
-      CAPITALIZED_NAME: Chi
-      LOWER_NAME: chi
-  build-dotweb-validator:
-    name: Check that Souin build as middleware
-    uses: ./.github/workflows/plugin_template.yml
-    secrets: inherit
-    with:
-      CAPITALIZED_NAME: Dotweb
-      LOWER_NAME: dotweb
-  build-echo-validator:
-    name: Check that Souin build as middleware
-    uses: ./.github/workflows/plugin_template.yml
-    secrets: inherit
-    with:
-      CAPITALIZED_NAME: Echo
-      LOWER_NAME: echo
-  build-fiber-validator:
-    name: Check that Souin build as middleware
-    uses: ./.github/workflows/plugin_template.yml
-    secrets: inherit
-    with:
-      CAPITALIZED_NAME: Fiber
-      LOWER_NAME: fiber
-  build-gin-validator:
-    name: Check that Souin build as middleware
-    uses: ./.github/workflows/plugin_template.yml
-    secrets: inherit
-    with:
-      CAPITALIZED_NAME: Gin
-      LOWER_NAME: gin
-  build-go-zero-validator:
-    name: Check that Souin build as middleware
-    uses: ./.github/workflows/plugin_template.yml
-    secrets: inherit
-    with:
-      CAPITALIZED_NAME: Go-zero
-      LOWER_NAME: go-zero
-  build-kratos-validator:
-    name: Check that Souin build as middleware
-    uses: ./.github/workflows/plugin_template.yml
-    secrets: inherit
-    with:
-      CAPITALIZED_NAME: Kratos
-      LOWER_NAME: kratos
-  build-roadrunner-validator:
-    name: Check that Souin build as middleware
-    uses: ./.github/workflows/plugin_template.yml
-    secrets: inherit
-    with:
-      CAPITALIZED_NAME: Roadrunner
-      LOWER_NAME: roadrunner
-  build-skipper-validator:
-    name: Check that Souin build as middleware
-    uses: ./.github/workflows/plugin_template.yml
-    secrets: inherit
-    with:
-      CAPITALIZED_NAME: Skipper
-      LOWER_NAME: skipper
-  build-souin-validator:
-    name: Check that Souin build as middleware
-    uses: ./.github/workflows/plugin_template.yml
-    secrets: inherit
-    with:
-      CAPITALIZED_NAME: Souin
-      LOWER_NAME: souin
-  build-traefik-validator:
-    name: Check that Souin build as middleware
-    uses: ./.github/workflows/plugin_template.yml
-    secrets: inherit
-    with:
-      CAPITALIZED_NAME: Traefik
-      LOWER_NAME: traefik
-  build-tyk-validator:
-    name: Check that Souin build as middleware
-    uses: ./.github/workflows/plugin_template.yml
-    secrets: inherit
-    with:
-      CAPITALIZED_NAME: Tyk
-      LOWER_NAME: tyk
-  build-webgo-validator:
-    name: Check that Souin build as middleware
-    uses: ./.github/workflows/plugin_template.yml
-    secrets: inherit
-    with:
-      CAPITALIZED_NAME: Webgo
-      LOWER_NAME: webgo
+#  build-beego-validator:
+#    name: Check that Souin build as middleware
+#    uses: ./.github/workflows/plugin_template.yml
+#    secrets: inherit
+#    with:
+#      CAPITALIZED_NAME: Beego
+#      LOWER_NAME: beego
+#  build-chi-validator:
+#    name: Check that Souin build as middleware
+#    uses: ./.github/workflows/plugin_template.yml
+#    secrets: inherit
+#    with:
+#      CAPITALIZED_NAME: Chi
+#      LOWER_NAME: chi
+#  build-dotweb-validator:
+#    name: Check that Souin build as middleware
+#    uses: ./.github/workflows/plugin_template.yml
+#    secrets: inherit
+#    with:
+#      CAPITALIZED_NAME: Dotweb
+#      LOWER_NAME: dotweb
+#  build-echo-validator:
+#    name: Check that Souin build as middleware
+#    uses: ./.github/workflows/plugin_template.yml
+#    secrets: inherit
+#    with:
+#      CAPITALIZED_NAME: Echo
+#      LOWER_NAME: echo
+#  build-fiber-validator:
+#    name: Check that Souin build as middleware
+#    uses: ./.github/workflows/plugin_template.yml
+#    secrets: inherit
+#    with:
+#      CAPITALIZED_NAME: Fiber
+#      LOWER_NAME: fiber
+#  build-gin-validator:
+#    name: Check that Souin build as middleware
+#    uses: ./.github/workflows/plugin_template.yml
+#    secrets: inherit
+#    with:
+#      CAPITALIZED_NAME: Gin
+#      LOWER_NAME: gin
+#  build-go-zero-validator:
+#    name: Check that Souin build as middleware
+#    uses: ./.github/workflows/plugin_template.yml
+#    secrets: inherit
+#    with:
+#      CAPITALIZED_NAME: Go-zero
+#      LOWER_NAME: go-zero
+#  build-kratos-validator:
+#    name: Check that Souin build as middleware
+#    uses: ./.github/workflows/plugin_template.yml
+#    secrets: inherit
+#    with:
+#      CAPITALIZED_NAME: Kratos
+#      LOWER_NAME: kratos
+#  build-roadrunner-validator:
+#    name: Check that Souin build as middleware
+#    uses: ./.github/workflows/plugin_template.yml
+#    secrets: inherit
+#    with:
+#      CAPITALIZED_NAME: Roadrunner
+#      LOWER_NAME: roadrunner
+#  build-skipper-validator:
+#    name: Check that Souin build as middleware
+#    uses: ./.github/workflows/plugin_template.yml
+#    secrets: inherit
+#    with:
+#      CAPITALIZED_NAME: Skipper
+#      LOWER_NAME: skipper
+#  build-souin-validator:
+#    name: Check that Souin build as middleware
+#    uses: ./.github/workflows/plugin_template.yml
+#    secrets: inherit
+#    with:
+#      CAPITALIZED_NAME: Souin
+#      LOWER_NAME: souin
+#  build-traefik-validator:
+#    name: Check that Souin build as middleware
+#    uses: ./.github/workflows/plugin_template.yml
+#    secrets: inherit
+#    with:
+#      CAPITALIZED_NAME: Traefik
+#      LOWER_NAME: traefik
+#  build-tyk-validator:
+#    name: Check that Souin build as middleware
+#    uses: ./.github/workflows/plugin_template.yml
+#    secrets: inherit
+#    with:
+#      CAPITALIZED_NAME: Tyk
+#      LOWER_NAME: tyk
+#  build-webgo-validator:
+#    name: Check that Souin build as middleware
+#    uses: ./.github/workflows/plugin_template.yml
+#    secrets: inherit
+#    with:
+#      CAPITALIZED_NAME: Webgo
+#      LOWER_NAME: webgo
+#

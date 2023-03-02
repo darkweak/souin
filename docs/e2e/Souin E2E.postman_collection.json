@@ -755,6 +755,108 @@
 						}
 					},
 					"response": []
+				},
+				{
+					"name": "Redis configuration",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.basicRequest(pm, `${utils.getVar(pm, 'app_url')}/redis-configuration`)"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cache-Control",
+								"value": "",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{app_url}}/redis-configuration",
+							"host": [
+								"{{app_url}}"
+							],
+							"path": [
+								"redis-configuration"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Redis url",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.basicRequest(pm, `${utils.getVar(pm, 'app_url')}/redis-url`)"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cache-Control",
+								"value": "",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{app_url}}/redis-url",
+							"host": [
+								"{{app_url}}"
+							],
+							"path": [
+								"redis-url"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Etcd",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.basicRequest(pm, `${utils.getVar(pm, 'app_url')}/etcd-configuration`)"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cache-Control",
+								"value": "",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{app_url}}/etcd-configuration",
+							"host": [
+								"{{app_url}}"
+							],
+							"path": [
+								"etcd-configuration"
+							]
+						}
+					},
+					"response": []
 				}
 			],
 			"event": [
