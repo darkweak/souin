@@ -37,6 +37,8 @@ func BadgerConnectionFactory(c t.AbstractConfigurationInterface) (Storer, error)
 	dc := c.GetDefaultCache()
 	badgerConfiguration := dc.GetBadger()
 	badgerOptions := badger.DefaultOptions(badgerConfiguration.Path)
+	badgerOptions.SyncWrites = true
+	badgerOptions.MemTableSize = 64 << 22
 	if badgerConfiguration.Configuration != nil {
 		var parsedBadger badger.Options
 		if b, e := json.Marshal(badgerConfiguration.Configuration); e == nil {

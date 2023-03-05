@@ -22,7 +22,11 @@ func ValidateMaxAgeCachedResponse(co *cacheobject.RequestCacheDirectives, res *h
 }
 
 func ValidateMaxAgeCachedStaleResponse(co *cacheobject.RequestCacheDirectives, res *http.Response, addTime int) *http.Response {
-	if !co.MaxStaleSet && co.MaxStale < 0 {
+	if co.MaxStaleSet {
+		return res
+	}
+
+	if co.MaxStale < 0 {
 		return nil
 	}
 

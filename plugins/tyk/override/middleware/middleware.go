@@ -241,7 +241,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 		cachedVal := s.Storer.Prefix(cachedKey, rq)
 		response, _ := http.ReadResponse(bufio.NewReader(bytes.NewBuffer(cachedVal)), rq)
 
-		if response != nil && rfc.ValidateCacheControl(response) {
+		if response != nil && rfc.ValidateCacheControl(response, requestCc) {
 			rfc.SetCacheStatusHeader(response)
 			if rfc.ValidateMaxAgeCachedResponse(requestCc, response) != nil {
 				customWriter.Headers = response.Header
@@ -254,7 +254,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 		} else if response == nil {
 			staleCachedVal := s.Storer.Prefix(storage.StalePrefix+cachedKey, rq)
 			response, _ = http.ReadResponse(bufio.NewReader(bytes.NewBuffer(staleCachedVal)), rq)
-			if nil != response && rfc.ValidateCacheControl(response) {
+			if nil != response && rfc.ValidateCacheControl(response, requestCc) {
 				addTime, _ := time.ParseDuration(response.Header.Get(rfc.StoredTTLHeader))
 				rfc.SetCacheStatusHeader(response)
 

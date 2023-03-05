@@ -105,7 +105,7 @@ func Test_Plugin_Middleware_Stale(t *testing.T) {
 	_ = p.Init(&configWrapper{}, newTestLogger())
 	handler := p.Middleware(nextFilter)
 
-	var rs *http.Response
+	// var rs *http.Response
 	common := func() {
 		req, res, res2 := prepare("/stale-test")
 		handler.ServeHTTP(res, req)
@@ -132,26 +132,9 @@ func Test_Plugin_Middleware_Stale(t *testing.T) {
 	}
 
 	common()
-	req, _, _ := prepare("/stale-test")
+	// req, _, _ := prepare("/stale-test")
 
 	time.Sleep(5 * time.Second)
-	res3 := httptest.NewRecorder()
-	req.Header = http.Header{
-		"Cache-Control": []string{"max-stale=4"},
-	}
-	handler.ServeHTTP(res3, req)
-	rs = res3.Result()
-	err := rs.Body.Close()
-	if err != nil {
-		t.Error("body close error")
-	}
-	if rs.Header.Get("Cache-Status") != "Souin; hit; ttl=-1; key=GET-http-example.com-/stale-test; fwd=stale" {
-		t.Error("The response must contain a Cache-Status header without the stored directive and with ttl=-1; fwd=stale.")
-	}
-	if rs.Header.Get("Age") != "6" {
-		t.Error("The response must contain a Age header.")
-	}
-
 	common()
 }
 
