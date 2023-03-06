@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/darkweak/souin v1.6.32
-	github.com/zalando/skipper v0.13.225
+	github.com/zalando/skipper v0.13.237
 )
 
 require (
@@ -39,6 +39,7 @@ require (
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/go-ole/go-ole v1.2.4 // indirect
 	github.com/go-redis/redis/v8 v8.11.5 // indirect
+	github.com/go-redis/redis/v9 v9.0.0-beta.1 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang-jwt/jwt/v4 v4.2.0 // indirect
 	github.com/golang/glog v1.0.0 // indirect
