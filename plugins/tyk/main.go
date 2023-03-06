@@ -160,7 +160,7 @@ func SouinRequestHandler(rw http.ResponseWriter, rq *http.Request) {
 		cachedVal := s.SouinBaseHandler.Storer.Prefix(cachedKey, rq)
 		response, _ := http.ReadResponse(bufio.NewReader(bytes.NewBuffer(cachedVal)), rq)
 
-		if response != nil && rfc.ValidateCacheControl(response) {
+		if response != nil && rfc.ValidateCacheControl(response, requestCc) {
 			rfc.SetCacheStatusHeader(response)
 			if rfc.ValidateMaxAgeCachedResponse(requestCc, response) != nil {
 				for hn, hv := range response.Header {
@@ -173,7 +173,7 @@ func SouinRequestHandler(rw http.ResponseWriter, rq *http.Request) {
 		} else if response == nil {
 			staleCachedVal := s.SouinBaseHandler.Storer.Prefix(storage.StalePrefix+cachedKey, rq)
 			response, _ = http.ReadResponse(bufio.NewReader(bytes.NewBuffer(staleCachedVal)), rq)
-			if nil != response && rfc.ValidateCacheControl(response) {
+			if nil != response && rfc.ValidateCacheControl(response, requestCc) {
 				addTime, _ := time.ParseDuration(response.Header.Get(rfc.StoredTTLHeader))
 				rfc.SetCacheStatusHeader(response)
 

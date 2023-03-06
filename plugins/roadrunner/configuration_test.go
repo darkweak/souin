@@ -32,7 +32,7 @@ default_cache:
     exclude: '/excluded'
   ttl: 5s
   stale: 10s
-log_level: debug
+log_level: info
 urls:
   'https:\/\/domain.com\/first-.+':
     ttl: 1000s
@@ -112,7 +112,7 @@ default_cache:
   ttl: 10s
   stale: 10s
   default_cache_control: no-store
-log_level: debug
+log_level: info
 urls:
   'https:\/\/domain.com\/first-.+':
     ttl: 1000s

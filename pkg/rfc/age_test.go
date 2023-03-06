@@ -46,7 +46,9 @@ func Test_ValidateMaxStaleCachedResponse(t *testing.T) {
 		MaxStale: -1,
 	}
 	coWithMaxStale := cacheobject.RequestCacheDirectives{
-		MaxStale:    10,
+		MaxStale: 10,
+	}
+	coWithMaxStaleSet := cacheobject.RequestCacheDirectives{
 		MaxStaleSet: true,
 	}
 
@@ -70,6 +72,9 @@ func Test_ValidateMaxStaleCachedResponse(t *testing.T) {
 
 	if ValidateMaxAgeCachedStaleResponse(&coWithMaxStale, &expiredMaxAge, 0) != nil {
 		t.Errorf("The max-stale validation should return nil instead of the response with the given parameters:\nRequestCacheDirectives: %+v\nResponse: %+v\n", coWithMaxStale, expiredMaxAge)
+	}
+	if ValidateMaxAgeCachedStaleResponse(&coWithMaxStaleSet, &expiredMaxAge, 0) == nil {
+		t.Errorf("The max-stale validation should return the response instead of nil with the given parameters:\nRequestCacheDirectives: %+v\nResponse: %+v\n", coWithMaxStaleSet, expiredMaxAge)
 	}
 	if ValidateMaxAgeCachedStaleResponse(&coWithMaxStale, &validMaxAge, 5) == nil {
 		t.Errorf("The max-stale validation should return the response instead of nil with the given parameters:\nRequestCacheDirectives: %+v\nResponse: %+v\n", coWithMaxStale, expiredMaxAge)
