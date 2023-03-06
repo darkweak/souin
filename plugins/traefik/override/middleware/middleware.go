@@ -168,13 +168,17 @@ func (s *SouinBaseHandler) HandleInternally(r *http.Request) (bool, http.Handler
 		}
 	}
 
-	return false, nil
+	// Because Yægi interpretation sucks, we have to return the empty function instead of nil.
+	return false, func(w http.ResponseWriter, r *http.Request) {}
 }
 
 type handlerFunc = func(http.ResponseWriter, *http.Request) error
 
 func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, next handlerFunc) error {
-	if b, handler := s.HandleInternally(rq); b {
+	b, handler := s.HandleInternally(rq)
+	fmt.Println("AFTER")
+	fmt.Println("AFTER b", b)
+	if b {
 		handler(rw, rq)
 		return nil
 	}
@@ -186,11 +190,13 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 		return next(rw, rq)
 	}
 
+	fmt.Println("RESPONSE 1")
 	if !rq.Context().Value(context.SupportedMethod).(bool) {
 		rw.Header().Set("Cache-Status", cacheName+"; fwd=uri-miss; detail=UNSUPPORTED-METHOD")
 
 		return next(rw, rq)
 	}
+	fmt.Println("RESPONSE 2")
 
 	requestCc, coErr := cacheobject.ParseRequestCacheControl(rq.Header.Get("Cache-Control"))
 
@@ -211,7 +217,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 		cachedVal := s.Storer.Prefix(cachedKey, rq)
 		response, _ := http.ReadResponse(bufio.NewReader(bytes.NewBuffer(cachedVal)), rq)
 
-		if response != nil && rfc.ValidateCacheControl(response) {
+		if response != nil && rfc.ValidateCacheControl(response, requestCc) {
 			rfc.SetCacheStatusHeader(response)
 			if rfc.ValidateMaxAgeCachedResponse(requestCc, response) != nil {
 				customWriter.Headers = response.Header
@@ -224,7 +230,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 		} else if response == nil {
 			staleCachedVal := s.Storer.Prefix(storage.StalePrefix+cachedKey, rq)
 			response, _ = http.ReadResponse(bufio.NewReader(bytes.NewBuffer(staleCachedVal)), rq)
-			if nil != response && rfc.ValidateCacheControl(response) {
+			if nil != response && rfc.ValidateCacheControl(response, requestCc) {
 				addTime, _ := time.ParseDuration(response.Header.Get(rfc.StoredTTLHeader))
 				rfc.SetCacheStatusHeader(response)
 

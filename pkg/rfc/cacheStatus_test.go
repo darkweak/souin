@@ -9,6 +9,7 @@ import (
 
 	souinCtx "github.com/darkweak/souin/context"
 	"github.com/darkweak/souin/errors"
+	"github.com/pquerna/cachecontrol/cacheobject"
 )
 
 func TestSetRequestCacheStatus(t *testing.T) {
@@ -36,7 +37,8 @@ func TestValidateCacheControl(t *testing.T) {
 	}
 	r.Header = http.Header{}
 
-	valid := ValidateCacheControl(&r)
+	reqCc, _ := cacheobject.ParseRequestCacheControl("")
+	valid := ValidateCacheControl(&r, reqCc)
 	if !valid {
 		errors.GenerateError(t, "The Cache-Control should be valid while an empty string is provided")
 	}
@@ -44,7 +46,7 @@ func TestValidateCacheControl(t *testing.T) {
 		"Cache-Control": []string{"stale-if-error;malformed"},
 	}
 	r.Header = h
-	valid = ValidateCacheControl(&r)
+	valid = ValidateCacheControl(&r, &cacheobject.RequestCacheDirectives{})
 	if valid {
 		errors.GenerateError(t, "The Cache-Control shouldn't be valid with max-age")
 	}

@@ -40,13 +40,18 @@ func SetRequestCacheStatus(h *http.Header, header, cacheName string) {
 }
 
 // ValidateCacheControl check the Cache-Control header
-func ValidateCacheControl(r *http.Response) bool {
+func ValidateCacheControl(r *http.Response, requestCc *cacheobject.RequestCacheDirectives) bool {
 	if _, err := cacheobject.ParseResponseCacheControl(r.Header.Get("Cache-Control")); err != nil {
 		h := r.Header
 		setMalformedHeader(&h, "CACHE-CONTROL", r.Request.Context().Value(context.CacheName).(string))
 		r.Header = h
 
 		return false
+	}
+
+	if requestCc.MinFresh >= 0 {
+		t, e := http.ParseTime(r.Header.Get("Date"))
+		return e == nil && int(time.Since(t).Seconds()) > int(requestCc.MinFresh)
 	}
 
 	return true

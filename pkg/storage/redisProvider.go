@@ -124,6 +124,7 @@ func (provider *Redis) Prefix(key string, req *http.Request) []byte {
 				}
 			}
 		}
+		in <- []byte{}
 	}(iter)
 
 	select {
