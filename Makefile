@@ -7,6 +7,7 @@ DC=docker-compose
 DC_BUILD=$(DC) build
 DC_EXEC=$(DC) exec
 PLUGINS_LIST=beego caddy chi dotweb echo fiber gin go-zero goyave kratos roadrunner skipper traefik tyk webgo souin
+MOD_PLUGINS_LIST=beego caddy chi dotweb echo fiber gin go-zero goyave kratos roadrunner skipper webgo
 
 base-build-and-run-%:
 	cd plugins/$* && $(MAKE) prepare
@@ -68,8 +69,13 @@ bump-version:
 	test $(to)
 	sed -i '' 's/version: $(from)/version: $(to)/' README.md
 	for plugin in $(PLUGINS_LIST) ; do \
-	     sed -i '' 's/github.com\/darkweak\/souin $(from)/github.com\/darkweak\/souin $(to)/' plugins/$$plugin/go.mod ; \
-	 done
+		sed -i '' 's/github.com\/darkweak\/souin $(from)/github.com\/darkweak\/souin $(to)/' plugins/$$plugin/go.mod ; \
+	done
+
+bump-plugins-deps: ## Bump plugins dependencies
+	for plugin in $(MOD_PLUGINS_LIST) ; do \
+		echo "Update $$plugin..." && cd plugins/$$plugin && go get -u ./... && cd - ; \
+	done
 
 coverage: ## Show code coverage
 	$(DC_EXEC) souin go test ./... -coverprofile cover.out

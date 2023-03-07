@@ -225,6 +225,10 @@ func (s *SouinBaseHandler) Upstream(
 			cachedKey += rfc.GetVariedCacheKey(rq, variedHeaders)
 			s.Configuration.GetLogger().Sugar().Debugf("Store the response %+v with duration %v", res, ma)
 			if s.Storer.Set(cachedKey, response, currentMatchedURL, ma) == nil {
+				s.Configuration.GetLogger().Sugar().Debugf("Store the cache key %s into the surrogate keys from the following headers %v", cachedKey, res)
+				go func(rs http.Response, key string) {
+					_ = s.SurrogateKeyStorer.Store(&rs, key)
+				}(res, cachedKey)
 				status += "; stored"
 			} else {
 				status += "; detail=STORAGE-INSERTION-ERROR"
