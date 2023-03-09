@@ -331,6 +331,8 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isBlocking b
 							ck.DisableHost = true
 						case "disable_method":
 							ck.DisableMethod = true
+						case "disable_query":
+							ck.DisableQuery = true
 						case "hide":
 							ck.Hide = true
 						case "headers":
@@ -395,6 +397,8 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isBlocking b
 						config_key.DisableHost = true
 					case "disable_method":
 						config_key.DisableMethod = true
+					case "disable_query":
+						config_key.DisableQuery = true
 					case "hide":
 						config_key.Hide = true
 					case "headers":
