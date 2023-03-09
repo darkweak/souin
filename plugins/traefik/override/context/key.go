@@ -18,6 +18,7 @@ type keyContext struct {
 	disable_body   bool
 	disable_host   bool
 	disable_method bool
+	disable_query  bool
 	displayable    bool
 	headers        []string
 	overrides      map[*regexp.Regexp]keyContext
@@ -38,6 +39,7 @@ func (g *keyContext) SetupContext(c configurationtypes.AbstractConfigurationInte
 			disable_body:   v.DisableBody,
 			disable_host:   v.DisableHost,
 			disable_method: v.DisableMethod,
+			disable_query:  v.DisableQuery,
 			displayable:    v.Hide,
 			headers:        v.Headers,
 		}
@@ -45,7 +47,7 @@ func (g *keyContext) SetupContext(c configurationtypes.AbstractConfigurationInte
 }
 
 func (g *keyContext) SetContext(req *http.Request) *http.Request {
-	key := req.URL.RequestURI()
+	key := req.URL.Path
 	var headers []string
 
 	scheme := "http-"
@@ -57,6 +59,10 @@ func (g *keyContext) SetContext(req *http.Request) *http.Request {
 	method := ""
 	headerValues := ""
 	displayable := g.displayable
+
+	if !g.disable_query && len(req.URL.RawQuery) > 0 {
+		key += "?" + req.URL.RawQuery
+	}
 
 	if !g.disable_body {
 		body = req.Context().Value(HashBody).(string)
