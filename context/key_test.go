@@ -61,8 +61,8 @@ func Test_KeyContext_SetContext(t *testing.T) {
 	ctx := keyContext{}
 	req := httptest.NewRequest(http.MethodGet, "http://domain.com", nil)
 	req = ctx.SetContext(req.WithContext(context.WithValue(req.Context(), HashBody, "-with_the_hash")))
-	if req.Context().Value(Key).(string) != "GET-http-domain.com-/-with_the_hash" {
-		t.Errorf("The Key context must be equal to GET-http-domain.com-/-with_the_hash, %s given.", req.Context().Value(Key).(string))
+	if req.Context().Value(Key).(string) != "GET-http-domain.com--with_the_hash" {
+		t.Errorf("The Key context must be equal to GET-http-domain.com--with_the_hash, %s given.", req.Context().Value(Key).(string))
 	}
 
 	m := make(map[*regexp.Regexp]keyContext)
@@ -101,4 +101,28 @@ func Test_KeyContext_SetContext(t *testing.T) {
 	if req4.Context().Value(Key).(string) != "http-domain.com-/something" {
 		t.Errorf("The Key context must be equal to http-domain.com-/something, %s given.", req4.Context().Value(Key).(string))
 	}
+
+	// Added tests for disable_query
+	ctx4 := keyContext{
+		disable_query:  true,
+		disable_method: false,
+		disable_host:   false,
+	}
+	req5 := httptest.NewRequest(http.MethodGet, "http://domain.com/matched?query=string", nil)
+	req5 = ctx4.SetContext(req5.WithContext(context.WithValue(req5.Context(), HashBody, "")))
+	if req5.Context().Value(Key).(string) != "GET-http-domain.com-/matched" {
+		t.Errorf("The Key context must be equal to GET-http-domain.com-/matched, %s given.", req5.Context().Value(Key).(string))
+	}
+
+	ctx5 := keyContext{
+		disable_query:  false,
+		disable_method: false,
+		disable_host:   false,
+	}
+	req6 := httptest.NewRequest(http.MethodGet, "http://domain.com/matched?query=string", nil)
+	req6 = ctx5.SetContext(req6.WithContext(context.WithValue(req6.Context(), HashBody, "")))
+	if req6.Context().Value(Key).(string) != "GET-http-domain.com-/matched?query=string" {
+		t.Errorf("The Key context must be equal to GET-http-domain.com-/matched?query=string, %s given.", req6.Context().Value(Key).(string))
+	}
+
 }
