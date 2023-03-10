@@ -1,6 +1,7 @@
 package context
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"fmt"
@@ -37,6 +38,7 @@ func (g *graphQLContext) SetContext(req *http.Request) *http.Request {
 
 	if g.custom && req.Body != nil {
 		b, _ := io.ReadAll(req.Body)
+		rq.Body = io.NopCloser(bytes.NewBuffer(b))
 		if isMutation(b) {
 			rq = rq.WithContext(context.WithValue(rq.Context(), IsMutationRequest, true))
 		} else {
