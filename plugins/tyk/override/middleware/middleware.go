@@ -176,6 +176,9 @@ func (s *SouinBaseHandler) Upstream(
 			variedHeaders := rfc.HeaderAllCommaSepValues(res.Header)
 			cachedKey += rfc.GetVariedCacheKey(rq, variedHeaders)
 			if s.Storer.Set(cachedKey, response, currentMatchedURL, ma) == nil {
+				go func(rs http.Response, key string) {
+					_ = s.SurrogateKeyStorer.Store(&rs, key)
+				}(res, cachedKey)
 				status += "; stored"
 			} else {
 				status += "; detail=STORAGE-INSERTION-ERROR"
