@@ -925,7 +925,7 @@ experimental:
   plugins:
     souin:
       moduleName: github.com/darkweak/souin
-      version: v1.6.32
+      version: v1.6.33
 ```
 After that you can declare either the whole configuration at once in the middleware block or by service. See the examples below.
 ```yaml
@@ -1112,3 +1112,10 @@ Thanks to these users for contributing or helping this project in any way
 * [Kiss Karoly](https://github.com/kresike)
 * [Matthias von Bargen](https://github.com/mattvb91)
 * [Fred Liang](https://github.com/fredliang44)
+* [Kiril Vladimirov](https://github.com/vladimiroff)
+* [Viktor Szépe](https://github.com/szepeviktor)
+* [Omar Ramadan](https://github.com/kkroo)
+* [Jonasengelmann](https://github.com/jonasengelmann)
+* [JacquesDurand](https://github.com/jacquesdurand)
+* [Frederic Houle](https://github.com/frederichoule)
+* [Valery Piashchynski](https://github.com/rustatian)
