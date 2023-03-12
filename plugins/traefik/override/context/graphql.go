@@ -39,6 +39,7 @@ func (g *graphQLContext) SetContext(req *http.Request) *http.Request {
 	if g.custom && req.Body != nil {
 		b := bytes.NewBuffer([]byte{})
 		_, _ = io.Copy(b, req.Body)
+		req.Body = io.NopCloser(b)
 		if b.Len() > 0 {
 			if isMutation(b.Bytes()) {
 				rq = rq.WithContext(context.WithValue(rq.Context(), IsMutationRequest, true))
