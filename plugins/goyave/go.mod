@@ -3,7 +3,7 @@ module github.com/darkweak/souin/plugins/goyave
 go 1.19
 
 require (
-	github.com/darkweak/souin v1.6.34
+	github.com/darkweak/souin v1.6.35
 	goyave.dev/goyave/v4 v4.4.8
 )
 
@@ -90,4 +90,4 @@ require (
 	gorm.io/gorm v1.24.6 // indirect
 )
 
-replace github.com/darkweak/souin v1.6.34 => ../..
+replace github.com/darkweak/souin v1.6.35 => ../..

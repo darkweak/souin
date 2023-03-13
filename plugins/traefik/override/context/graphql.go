@@ -32,9 +32,10 @@ func isMutation(b []byte) bool {
 }
 
 func (g *graphQLContext) SetContext(req *http.Request) *http.Request {
-	rq := req.WithContext(context.WithValue(req.Context(), GraphQL, g.custom))
-	rq = rq.WithContext(context.WithValue(rq.Context(), HashBody, ""))
-	rq = rq.WithContext(context.WithValue(rq.Context(), IsMutationRequest, false))
+	ctx := req.Context()
+	ctx = context.WithValue(ctx, GraphQL, g.custom)
+	ctx = context.WithValue(ctx, HashBody, "")
+	ctx = context.WithValue(ctx, IsMutationRequest, false)
 
 	if g.custom && req.Body != nil {
 		b := bytes.NewBuffer([]byte{})
@@ -42,16 +43,16 @@ func (g *graphQLContext) SetContext(req *http.Request) *http.Request {
 		req.Body = io.NopCloser(b)
 		if b.Len() > 0 {
 			if isMutation(b.Bytes()) {
-				rq = rq.WithContext(context.WithValue(rq.Context(), IsMutationRequest, true))
+				ctx = context.WithValue(ctx, IsMutationRequest, true)
 			} else {
 				h := sha256.New()
 				h.Write(b.Bytes())
-				rq = rq.WithContext(context.WithValue(rq.Context(), HashBody, fmt.Sprintf("-%x", h.Sum(nil))))
+				ctx = context.WithValue(ctx, HashBody, fmt.Sprintf("-%x", h.Sum(nil)))
 			}
 		}
 	}
 
-	return rq
+	return req.WithContext(ctx)
 }
 
 var _ ctx = (*graphQLContext)(nil)

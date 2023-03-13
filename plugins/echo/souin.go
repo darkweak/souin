@@ -33,6 +33,9 @@ var (
 			Regex: configurationtypes.Regex{
 				Exclude: "/excluded",
 			},
+			Nuts: configurationtypes.CacheProvider{
+				Path: "./tmp",
+			},
 			TTL: configurationtypes.Duration{
 				Duration: 5 * time.Second,
 			},
