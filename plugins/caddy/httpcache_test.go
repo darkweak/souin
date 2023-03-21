@@ -67,7 +67,7 @@ func TestQueryString(t *testing.T) {
 		}
 	}`, "caddyfile")
 
-	resp1, _ := tester.AssertGetResponse(`http://localhost:9080/query-string?query=string`, 200, "Hello, default!")
+	resp1, _ := tester.AssertGetResponse(`http://localhost:9080/query-string?query=string`, 200, "Hello, query string!")
 	if resp1.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-http-localhost:9080-/query-string" {
 		t.Errorf("unexpected Cache-Status header %v", resp1.Header)
 	}
