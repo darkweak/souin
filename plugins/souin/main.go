@@ -76,7 +76,6 @@ func main() {
 				return &errors.CanceledRequestContextError{}
 			default:
 				res, err := proxy.Transport.RoundTrip(req)
-				fmt.Printf("%+v\n%+v\n%+v\n\n", res, err, req)
 				if err != nil {
 					return err
 				}

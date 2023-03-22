@@ -15,7 +15,7 @@ func GetVariedCacheKey(rq *http.Request, headers []string) string {
 		return ""
 	}
 	for i, v := range headers {
-		h := strings.ToLower(strings.TrimSpace(rq.Header.Get(v)))
+		h := strings.TrimSpace(rq.Header.Get(v))
 		if strings.Contains(h, ";") || strings.Contains(h, ":") {
 			h = url.QueryEscape(h)
 		}

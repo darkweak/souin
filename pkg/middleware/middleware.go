@@ -125,6 +125,16 @@ func isCacheableCode(code int) bool {
 	return false
 }
 
+func canBypassAuthorizationRestriction(headers http.Header, bypassed []string) bool {
+	for _, header := range bypassed {
+		if strings.ToLower(header) == "authorization" {
+			return true
+		}
+	}
+
+	return strings.Contains(strings.ToLower(headers.Get("Vary")), "authorization")
+}
+
 func (s *SouinBaseHandler) Upstream(
 	customWriter *CustomWriter,
 	rq *http.Request,
@@ -164,8 +174,8 @@ func (s *SouinBaseHandler) Upstream(
 		customWriter.Headers.Set("Cache-Status", fmt.Sprintf("%s; fwd=uri-miss; key=%s; detail=INVALID-RESPONSE-CACHE-CONTROL", rq.Context().Value(context.CacheName), rfc.GetCacheKeyFromCtx(rq.Context())))
 		return nil
 	}
-	if responseCc.PrivatePresent {
-		customWriter.Headers.Set("Cache-Status", fmt.Sprintf("%s; fwd=uri-miss; key=%s; detail=PRIVATE-RESPONSE", rq.Context().Value(context.CacheName), rfc.GetCacheKeyFromCtx(rq.Context())))
+	if (responseCc.PrivatePresent || rq.Header.Get("Authorization") != "") && !canBypassAuthorizationRestriction(customWriter.Header(), rq.Context().Value(context.IgnoredHeaders).([]string)) {
+		customWriter.Headers.Set("Cache-Status", fmt.Sprintf("%s; fwd=uri-miss; key=%s; detail=PRIVATE-OR-AUTHENTICATED-RESPONSE", rq.Context().Value(context.CacheName), rfc.GetCacheKeyFromCtx(rq.Context())))
 		return nil
 	}
 
