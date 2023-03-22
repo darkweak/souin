@@ -29,6 +29,7 @@ func (g *keyContext) SetupContext(c configurationtypes.AbstractConfigurationInte
 	g.disable_body = k.DisableBody
 	g.disable_host = k.DisableHost
 	g.disable_method = k.DisableMethod
+	g.disable_query = k.DisableQuery
 	g.displayable = !k.Hide
 	g.headers = k.Headers
 
@@ -54,6 +55,7 @@ func (g *keyContext) SetContext(req *http.Request) *http.Request {
 	if req.TLS != nil {
 		scheme = "https-"
 	}
+	query := ""
 	body := ""
 	host := ""
 	method := ""
@@ -61,7 +63,7 @@ func (g *keyContext) SetContext(req *http.Request) *http.Request {
 	displayable := g.displayable
 
 	if !g.disable_query && len(req.URL.RawQuery) > 0 {
-		key += "?" + req.URL.RawQuery
+		query += "?" + req.URL.RawQuery
 	}
 
 	if !g.disable_body {
@@ -86,6 +88,9 @@ func (g *keyContext) SetContext(req *http.Request) *http.Request {
 			displayable = v.displayable
 			host = ""
 			method = ""
+			if !v.disable_query && len(req.URL.RawQuery) > 0 {
+				query = "?" + req.URL.RawQuery
+			}
 			if !v.disable_body {
 				body = req.Context().Value(HashBody).(string)
 			}
@@ -112,7 +117,7 @@ func (g *keyContext) SetContext(req *http.Request) *http.Request {
 				context.WithValue(
 					req.Context(),
 					Key,
-					method+scheme+host+key+body+headerValues,
+					method+scheme+host+key+query+body+headerValues,
 				),
 				IgnoredHeaders,
 				headers,
