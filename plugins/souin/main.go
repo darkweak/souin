@@ -11,6 +11,7 @@ import (
 	_ "net/http/pprof"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/darkweak/souin/errors"
 	"github.com/darkweak/souin/pkg/middleware"
@@ -58,20 +59,27 @@ func main() {
 
 	http.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
 		_ = httpCache.ServeHTTP(writer, request, func(w http.ResponseWriter, req *http.Request) error {
-			url := reverseProxyURL
 			req.URL.Host = req.Host
-			req.URL.Scheme = url.Scheme
+			req.URL.Scheme = reverseProxyURL.Scheme
 			req.Header.Set("X-Forwarded-Host", req.Header.Get("Host"))
 
-			proxy := httputil.NewSingleHostReverseProxy(url)
-			proxy.Transport = &http.Transport{Proxy: http.ProxyURL(url)}
+			proxy := httputil.NewSingleHostReverseProxy(reverseProxyURL)
+			proxy.Transport = &http.Transport{
+				Proxy:               http.ProxyURL(reverseProxyURL),
+				TLSClientConfig:     &tls.Config{InsecureSkipVerify: true},
+				TLSHandshakeTimeout: 10 * time.Second,
+			}
 
 			select {
 			case <-req.Context().Done():
 				c.GetLogger().Debug("The request was canceled by the user.")
 				return &errors.CanceledRequestContextError{}
 			default:
-				res, _ := proxy.Transport.RoundTrip(req)
+				res, err := proxy.Transport.RoundTrip(req)
+				fmt.Printf("%+v\n%+v\n%+v\n\n", res, err, req)
+				if err != nil {
+					return err
+				}
 				for h, hv := range res.Header {
 					w.Header().Set(h, strings.Join(hv, ", "))
 				}
@@ -80,10 +88,10 @@ func main() {
 				body, _ := io.ReadAll(res.Body)
 				defer res.Body.Close()
 				res.Body = io.NopCloser(bytes.NewBuffer(body))
-				_, _ = w.Write(body)
-			}
+				_, err = w.Write(body)
 
-			return nil
+				return err
+			}
 		})
 	})
 	go func() {
