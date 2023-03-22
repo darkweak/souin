@@ -17,6 +17,8 @@ jobs:
           go-version: 1.19
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v3
+        with:
+          args: --timeout=240s
   unit-test-golang:
     needs: lint-validation
     name: Unit tests
