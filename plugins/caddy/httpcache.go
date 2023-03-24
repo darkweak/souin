@@ -37,7 +37,7 @@ type SouinCaddyMiddleware struct {
 	*middleware.SouinBaseHandler
 	logger        *zap.Logger
 	Configuration *Configuration
-	cacheKeys     map[configurationtypes.RegValue]configurationtypes.Key
+	cacheKeys     []map[configurationtypes.RegValue]configurationtypes.Key
 	// Logger level, fallback on caddy's one when not redefined.
 	LogLevel string `json:"log_level,omitempty"`
 	// Allowed HTTP verbs to be cached by the system.
@@ -49,7 +49,7 @@ type SouinCaddyMiddleware struct {
 	// Configure the global key generation.
 	Key configurationtypes.Key `json:"key,omitempty"`
 	// Override the cache key generation matching the pattern.
-	CacheKeys map[string]configurationtypes.Key `json:"cache_keys,omitempty"`
+	CacheKeys []map[string]configurationtypes.Key `json:"cache_keys,omitempty"`
 	// Configure the Badger cache storage.
 	Nuts configurationtypes.CacheProvider `json:"nuts,omitempty"`
 	// Enable the Etcd distributed cache storage.
@@ -142,14 +142,19 @@ func (s *SouinCaddyMiddleware) FromApp(app *SouinApp) error {
 		}
 		return nil
 	}
-	if s.Configuration.cacheKeys == nil {
-		s.Configuration.cacheKeys = make(map[configurationtypes.RegValue]configurationtypes.Key)
+	if s.Configuration.cacheKeys == nil || len(s.Configuration.cacheKeys) == 0 {
+		s.Configuration.cacheKeys = []map[configurationtypes.RegValue]configurationtypes.Key{}
 	}
 	if s.CacheKeys == nil {
 		s.CacheKeys = app.CacheKeys
 	}
-	for k, v := range s.CacheKeys {
-		s.Configuration.cacheKeys[configurationtypes.RegValue{Regexp: regexp.MustCompile(k)}] = v
+	for _, cacheKey := range s.Configuration.CfgCacheKeys {
+		for k, v := range cacheKey {
+			s.Configuration.cacheKeys = append(
+				s.Configuration.cacheKeys,
+				map[configurationtypes.RegValue]configurationtypes.Key{{Regexp: regexp.MustCompile(k)}: v},
+			)
+		}
 	}
 
 	dc := s.Configuration.DefaultCache
@@ -225,6 +230,12 @@ func (s *SouinCaddyMiddleware) Provision(ctx caddy.Context) error {
 		return err
 	}
 
+	s.cacheKeys = s.Configuration.cacheKeys
+	for _, cacheKey := range s.Configuration.CfgCacheKeys {
+		for k, v := range cacheKey {
+			s.cacheKeys = append(s.cacheKeys, map[configurationtypes.RegValue]configurationtypes.Key{{Regexp: regexp.MustCompile(k)}: v})
+		}
+	}
 	bh := middleware.NewHTTPCacheHandler(s.Configuration)
 	surrogates, ok := up.LoadOrStore(surrogate_key, bh.SurrogateKeyStorer)
 	if ok {
@@ -329,8 +340,9 @@ func (s *SouinCaddyMiddleware) UnmarshalCaddyfile(h *caddyfile.Dispenser) error 
 	s.Configuration = &Configuration{
 		DefaultCache: &dc,
 	}
+	err := parseConfiguration(s.Configuration, h, false)
 
-	return parseConfiguration(s.Configuration, h, false)
+	return err
 }
 
 // Interface guards

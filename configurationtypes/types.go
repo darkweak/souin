@@ -287,5 +287,5 @@ type AbstractConfigurationInterface interface {
 	SetLogger(*zap.Logger)
 	GetYkeys() map[string]SurrogateKeys
 	GetSurrogateKeys() map[string]SurrogateKeys
-	GetCacheKeys() map[RegValue]Key
+	GetCacheKeys() []map[RegValue]Key
 }

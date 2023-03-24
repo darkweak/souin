@@ -132,14 +132,14 @@ type Configuration struct {
 	// API endpoints enablers.
 	API configurationtypes.API
 	// Cache keys configuration.
-	CfgCacheKeys map[string]configurationtypes.Key
+	CfgCacheKeys []map[string]configurationtypes.Key
 	// Override the ttl depending the cases.
 	URLs map[string]configurationtypes.URL
 	// Logger level, fallback on caddy's one when not redefined.
 	LogLevel string
 	// SurrogateKeys contains the surrogate keys to use with a predefined mapping
 	SurrogateKeys map[string]configurationtypes.SurrogateKeys
-	cacheKeys     map[configurationtypes.RegValue]configurationtypes.Key
+	cacheKeys     []map[configurationtypes.RegValue]configurationtypes.Key
 	logger        *zap.Logger
 }
 
@@ -184,7 +184,7 @@ func (c *Configuration) GetSurrogateKeys() map[string]configurationtypes.Surroga
 }
 
 // GetCacheKeys get the cache keys rules to override
-func (c *Configuration) GetCacheKeys() map[configurationtypes.RegValue]configurationtypes.Key {
+func (c *Configuration) GetCacheKeys() []map[configurationtypes.RegValue]configurationtypes.Key {
 	return c.cacheKeys
 }
 
@@ -316,7 +316,7 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isBlocking b
 			case "cache_keys":
 				cacheKeys := cfg.CfgCacheKeys
 				if cacheKeys == nil {
-					cacheKeys = make(map[string]configurationtypes.Key)
+					cacheKeys = make([]map[string]configurationtypes.Key, 0)
 				}
 				for nesting := h.Nesting(); h.NextBlock(nesting); {
 					rg := h.Val()
@@ -340,7 +340,7 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isBlocking b
 						}
 					}
 
-					cacheKeys[rg] = ck
+					cacheKeys = append(cacheKeys, map[string]configurationtypes.Key{rg: ck})
 				}
 				cfg.CfgCacheKeys = cacheKeys
 			case "cache_name":

@@ -5,13 +5,13 @@ import (
 	"go.uber.org/zap"
 )
 
-//Configuration holder
+// Configuration holder
 type Configuration struct {
-	DefaultCache  *configurationtypes.DefaultCache                       `json:"default_cache" yaml:"default_cache"`
-	API           configurationtypes.API                                 `json:"api" yaml:"api"`
-	CacheKeys     map[configurationtypes.RegValue]configurationtypes.Key `yaml:"cache_keys"`
-	URLs          map[string]configurationtypes.URL                      `json:"urls" yaml:"urls"`
-	LogLevel      string                                                 `json:"log_level" yaml:"log_level"`
+	DefaultCache  *configurationtypes.DefaultCache                         `json:"default_cache" yaml:"default_cache"`
+	API           configurationtypes.API                                   `json:"api" yaml:"api"`
+	CacheKeys     []map[configurationtypes.RegValue]configurationtypes.Key `yaml:"cache_keys"`
+	URLs          map[string]configurationtypes.URL                        `json:"urls" yaml:"urls"`
+	LogLevel      string                                                   `json:"log_level" yaml:"log_level"`
 	Logger        *zap.Logger
 	Ykeys         map[string]configurationtypes.SurrogateKeys `json:"ykeys" yaml:"ykeys"`
 	SurrogateKeys map[string]configurationtypes.SurrogateKeys `json:"surrogate_keys" yaml:"surrogate_keys"`
@@ -58,7 +58,7 @@ func (c *Configuration) GetSurrogateKeys() map[string]configurationtypes.Surroga
 }
 
 // GetCacheKeys get the cache keys rules to override
-func (c *Configuration) GetCacheKeys() map[configurationtypes.RegValue]configurationtypes.Key {
+func (c *Configuration) GetCacheKeys() []map[configurationtypes.RegValue]configurationtypes.Key {
 	return c.CacheKeys
 }
 
