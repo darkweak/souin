@@ -18,7 +18,13 @@ func validateMaxAgeCachedResponse(res *http.Response, maxAge int, addTime int) *
 }
 
 func ValidateMaxAgeCachedResponse(co *cacheobject.RequestCacheDirectives, res *http.Response) *http.Response {
-	return validateMaxAgeCachedResponse(res, int(co.MaxAge), 0)
+	responseCc, _ := cacheobject.ParseResponseCacheControl(res.Header.Get("Cache-Control"))
+	ma := co.MaxAge
+	if responseCc.SMaxAge > -1 {
+		ma = responseCc.SMaxAge
+	}
+
+	return validateMaxAgeCachedResponse(res, int(ma), 0)
 }
 
 func ValidateMaxAgeCachedStaleResponse(co *cacheobject.RequestCacheDirectives, res *http.Response, addTime int) *http.Response {

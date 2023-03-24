@@ -37,7 +37,7 @@ type SouinCaddyMiddleware struct {
 	*middleware.SouinBaseHandler
 	logger        *zap.Logger
 	Configuration *Configuration
-	cacheKeys     []map[configurationtypes.RegValue]configurationtypes.Key
+	cacheKeys     configurationtypes.CacheKeys
 	// Logger level, fallback on caddy's one when not redefined.
 	LogLevel string `json:"log_level,omitempty"`
 	// Allowed HTTP verbs to be cached by the system.
@@ -143,7 +143,7 @@ func (s *SouinCaddyMiddleware) FromApp(app *SouinApp) error {
 		return nil
 	}
 	if s.Configuration.cacheKeys == nil || len(s.Configuration.cacheKeys) == 0 {
-		s.Configuration.cacheKeys = []map[configurationtypes.RegValue]configurationtypes.Key{}
+		s.Configuration.cacheKeys = configurationtypes.CacheKeys{}
 	}
 	if s.CacheKeys == nil {
 		s.CacheKeys = app.CacheKeys

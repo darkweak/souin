@@ -139,7 +139,7 @@ type Configuration struct {
 	LogLevel string
 	// SurrogateKeys contains the surrogate keys to use with a predefined mapping
 	SurrogateKeys map[string]configurationtypes.SurrogateKeys
-	cacheKeys     []map[configurationtypes.RegValue]configurationtypes.Key
+	cacheKeys     configurationtypes.CacheKeys
 	logger        *zap.Logger
 }
 
@@ -184,7 +184,7 @@ func (c *Configuration) GetSurrogateKeys() map[string]configurationtypes.Surroga
 }
 
 // GetCacheKeys get the cache keys rules to override
-func (c *Configuration) GetCacheKeys() []map[configurationtypes.RegValue]configurationtypes.Key {
+func (c *Configuration) GetCacheKeys() configurationtypes.CacheKeys {
 	return c.cacheKeys
 }
 

@@ -9,6 +9,35 @@ import (
 	yaml "gopkg.in/yaml.v3"
 )
 
+type CacheKey map[RegValue]Key
+type CacheKeys []CacheKey
+
+func (c *CacheKeys) UnmarshalYAML(value *yaml.Node) error {
+	for i := 0; i < len(value.Content)/2; i++ {
+		var cacheKey CacheKey
+		err := value.Decode(&cacheKey)
+		if err != nil {
+			return err
+		}
+		*c = append(*c, cacheKey)
+	}
+
+	return nil
+}
+
+func (c *CacheKeys) UnmarshalJSON(value *yaml.Node) error {
+	for i := 0; i < len(value.Content)/2; i++ {
+		var cacheKey CacheKey
+		err := value.Decode(&cacheKey)
+		if err != nil {
+			return err
+		}
+		*c = append(*c, cacheKey)
+	}
+
+	return nil
+}
+
 // Duration is the super object to wrap the duration and be able to parse it from the configuration
 type Duration struct {
 	time.Duration
@@ -287,5 +316,5 @@ type AbstractConfigurationInterface interface {
 	SetLogger(*zap.Logger)
 	GetYkeys() map[string]SurrogateKeys
 	GetSurrogateKeys() map[string]SurrogateKeys
-	GetCacheKeys() []map[RegValue]Key
+	GetCacheKeys() CacheKeys
 }

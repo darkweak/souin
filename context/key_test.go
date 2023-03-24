@@ -25,13 +25,16 @@ func Test_KeyContext_SetupContext(t *testing.T) {
 		t.Errorf("The method must be disabled.")
 	}
 
-	m := make(map[configurationtypes.RegValue]configurationtypes.Key)
 	rg := configurationtypes.RegValue{
 		Regexp: regexp.MustCompile(".*"),
 	}
-	m[rg] = configurationtypes.Key{
-		DisableHost:   true,
-		DisableMethod: true,
+	m := configurationtypes.CacheKeys{
+		{
+			rg: configurationtypes.Key{
+				DisableHost:   true,
+				DisableMethod: true,
+			},
+		},
 	}
 	ctx.SetupContext(&configuration.Configuration{
 		DefaultCache: &configurationtypes.DefaultCache{
@@ -49,10 +52,10 @@ func Test_KeyContext_SetupContext(t *testing.T) {
 	if !ctx.disable_method {
 		t.Errorf("The method must be enabled.")
 	}
-	if !ctx.overrides[rg.Regexp].disable_host {
+	if !ctx.overrides[0][rg.Regexp].disable_host {
 		t.Errorf("The host must be enabled.")
 	}
-	if !ctx.overrides[rg.Regexp].disable_method {
+	if !ctx.overrides[0][rg.Regexp].disable_method {
 		t.Errorf("The method must be enabled.")
 	}
 }
@@ -65,15 +68,16 @@ func Test_KeyContext_SetContext(t *testing.T) {
 		t.Errorf("The Key context must be equal to GET-http-domain.com--with_the_hash, %s given.", req.Context().Value(Key).(string))
 	}
 
-	m := make(map[*regexp.Regexp]keyContext)
-	m[regexp.MustCompile("/matched")] = keyContext{
-		disable_host:   false,
-		disable_method: true,
+	m := map[*regexp.Regexp]keyContext{
+		regexp.MustCompile("/matched"): {
+			disable_host:   true,
+			disable_method: false,
+		},
 	}
 	ctx2 := keyContext{
 		disable_host:   true,
 		disable_method: true,
-		overrides:      m,
+		overrides:      []map[*regexp.Regexp]keyContext{m},
 	}
 	req2 := httptest.NewRequest(http.MethodGet, "http://domain.com/matched", nil)
 	req2 = ctx2.SetContext(req2.WithContext(context.WithValue(req2.Context(), HashBody, "")))
@@ -81,14 +85,15 @@ func Test_KeyContext_SetContext(t *testing.T) {
 		t.Errorf("The Key context must be equal to http-domain.com-/matched, %s given.", req2.Context().Value(Key).(string))
 	}
 
-	m = make(map[*regexp.Regexp]keyContext)
-	m[regexp.MustCompile("/matched")] = keyContext{
-		disable_host:   true,
-		disable_method: false,
+	m = map[*regexp.Regexp]keyContext{
+		regexp.MustCompile("/matched"): {
+			disable_host:   true,
+			disable_method: false,
+		},
 	}
 	ctx3 := keyContext{
 		disable_method: true,
-		overrides:      m,
+		overrides:      []map[*regexp.Regexp]keyContext{m},
 	}
 	req3 := httptest.NewRequest(http.MethodGet, "http://domain.com/matched", nil)
 	req3 = ctx3.SetContext(req3.WithContext(context.WithValue(req3.Context(), HashBody, "")))

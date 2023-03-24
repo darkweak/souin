@@ -55,8 +55,8 @@ func parseAPI(apiConfiguration map[string]interface{}) configurationtypes.API {
 	return a
 }
 
-func parseCacheKeys(ccConfiguration map[string]interface{}) map[configurationtypes.RegValue]configurationtypes.Key {
-	cacheKeys := make(map[configurationtypes.RegValue]configurationtypes.Key)
+func parseCacheKeys(ccConfiguration map[string]interface{}) configurationtypes.CacheKeys {
+	cacheKeys := make(configurationtypes.CacheKeys, 0)
 	for cacheKeysConfigurationK, cacheKeysConfigurationV := range ccConfiguration {
 		ck := configurationtypes.Key{}
 		for cacheKeysConfigurationVMapK, cacheKeysConfigurationVMapV := range cacheKeysConfigurationV.(map[string]interface{}) {
@@ -82,7 +82,7 @@ func parseCacheKeys(ccConfiguration map[string]interface{}) map[configurationtyp
 			}
 		}
 		rg := regexp.MustCompile(cacheKeysConfigurationK)
-		cacheKeys[configurationtypes.RegValue{Regexp: rg}] = ck
+		cacheKeys = append(cacheKeys, configurationtypes.CacheKey{{Regexp: rg}: ck})
 	}
 
 	return cacheKeys
