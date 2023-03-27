@@ -1,6 +1,7 @@
 package httpcache
 
 import (
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -132,7 +133,7 @@ type Configuration struct {
 	// API endpoints enablers.
 	API configurationtypes.API
 	// Cache keys configuration.
-	CfgCacheKeys []map[string]configurationtypes.Key
+	CfgCacheKeys configurationtypes.CacheKeys
 	// Override the ttl depending the cases.
 	URLs map[string]configurationtypes.URL
 	// Logger level, fallback on caddy's one when not redefined.
@@ -314,9 +315,9 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isBlocking b
 				}
 				cfg.DefaultCache.Badger = provider
 			case "cache_keys":
-				cacheKeys := cfg.CfgCacheKeys
+				cacheKeys := cfg.cacheKeys
 				if cacheKeys == nil {
-					cacheKeys = make([]map[string]configurationtypes.Key, 0)
+					cacheKeys = make(configurationtypes.CacheKeys, 0)
 				}
 				for nesting := h.Nesting(); h.NextBlock(nesting); {
 					rg := h.Val()
@@ -340,9 +341,9 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isBlocking b
 						}
 					}
 
-					cacheKeys = append(cacheKeys, map[string]configurationtypes.Key{rg: ck})
+					cacheKeys = append(cacheKeys, configurationtypes.CacheKey{configurationtypes.RegValue{Regexp: regexp.MustCompile(rg)}: ck})
 				}
-				cfg.CfgCacheKeys = cacheKeys
+				cfg.cacheKeys = cacheKeys
 			case "cache_name":
 				args := h.RemainingArgs()
 				cfg.DefaultCache.CacheName = args[0]

@@ -1,8 +1,11 @@
 package configurationtypes
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
 	"regexp"
+	"strconv"
 	"time"
 
 	"go.uber.org/zap"
@@ -11,6 +14,60 @@ import (
 
 type CacheKey map[RegValue]Key
 type CacheKeys []CacheKey
+
+func (c *CacheKeys) parseJSON(rootDecoder *json.Decoder) {
+	var token json.Token
+	var err error
+
+	_, _ = rootDecoder.Token()
+	_, _ = rootDecoder.Token()
+	_, _ = rootDecoder.Token()
+
+	for err == nil {
+		token, err = rootDecoder.Token()
+		key := Key{}
+		rg := fmt.Sprint(token)
+
+		value := fmt.Sprint(token)
+		if value == "}" || token == nil {
+			continue
+		}
+		for value != "}" && token != nil {
+			token, _ = rootDecoder.Token()
+			value = fmt.Sprint(token)
+			switch value {
+			case "disable_body":
+				val, _ := rootDecoder.Token()
+				key.DisableBody, _ = strconv.ParseBool(fmt.Sprint(val))
+			case "disable_host":
+				val, _ := rootDecoder.Token()
+				key.DisableHost, _ = strconv.ParseBool(fmt.Sprint(val))
+			case "disable_method":
+				val, _ := rootDecoder.Token()
+				key.DisableMethod, _ = strconv.ParseBool(fmt.Sprint(val))
+			case "disable_query":
+				val, _ := rootDecoder.Token()
+				key.DisableQuery, _ = strconv.ParseBool(fmt.Sprint(val))
+			case "hide":
+				val, _ := rootDecoder.Token()
+				key.Hide, _ = strconv.ParseBool(fmt.Sprint(val))
+			case "headers":
+				val, _ := rootDecoder.Token()
+				key.Headers = []string{}
+				for fmt.Sprint(val) != "]" {
+					val, _ = rootDecoder.Token()
+					header := fmt.Sprint(val)
+					if header != "]" {
+						key.Headers = append(key.Headers, header)
+					}
+				}
+			}
+		}
+		*c = append(*c, CacheKey{
+			{Regexp: regexp.MustCompile(rg)}: key,
+		})
+	}
+}
 
 func (c *CacheKeys) UnmarshalYAML(value *yaml.Node) error {
 	for i := 0; i < len(value.Content)/2; i++ {
@@ -25,15 +82,8 @@ func (c *CacheKeys) UnmarshalYAML(value *yaml.Node) error {
 	return nil
 }
 
-func (c *CacheKeys) UnmarshalJSON(value *yaml.Node) error {
-	for i := 0; i < len(value.Content)/2; i++ {
-		var cacheKey CacheKey
-		err := value.Decode(&cacheKey)
-		if err != nil {
-			return err
-		}
-		*c = append(*c, cacheKey)
-	}
+func (c *CacheKeys) UnmarshalJSON(value []byte) error {
+	c.parseJSON(json.NewDecoder(bytes.NewBuffer(value)))
 
 	return nil
 }

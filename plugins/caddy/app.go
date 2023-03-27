@@ -17,7 +17,7 @@ type SouinApp struct {
 	// Surrogate storage to support th econfiguration reload without surrogate-key data loss.
 	SurrogateStorage providers.SurrogateInterface
 	// Cache-key tweaking.
-	CacheKeys []map[string]configurationtypes.Key `json:"cache_keys,omitempty"`
+	CacheKeys configurationtypes.CacheKeys `json:"cache_keys,omitempty"`
 	// API endpoints enablers.
 	API configurationtypes.API `json:"api,omitempty"`
 	// Logger level, fallback on caddy's one when not redefined.

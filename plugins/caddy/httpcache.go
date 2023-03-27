@@ -3,7 +3,6 @@ package httpcache
 import (
 	"fmt"
 	"net/http"
-	"regexp"
 	"time"
 
 	"github.com/buraksezer/olric/config"
@@ -49,7 +48,7 @@ type SouinCaddyMiddleware struct {
 	// Configure the global key generation.
 	Key configurationtypes.Key `json:"key,omitempty"`
 	// Override the cache key generation matching the pattern.
-	CacheKeys []map[string]configurationtypes.Key `json:"cache_keys,omitempty"`
+	CacheKeys configurationtypes.CacheKeys `json:"cache_keys,omitempty"`
 	// Configure the Badger cache storage.
 	Nuts configurationtypes.CacheProvider `json:"nuts,omitempty"`
 	// Enable the Etcd distributed cache storage.
@@ -152,7 +151,7 @@ func (s *SouinCaddyMiddleware) FromApp(app *SouinApp) error {
 		for k, v := range cacheKey {
 			s.Configuration.cacheKeys = append(
 				s.Configuration.cacheKeys,
-				map[configurationtypes.RegValue]configurationtypes.Key{{Regexp: regexp.MustCompile(k)}: v},
+				map[configurationtypes.RegValue]configurationtypes.Key{k: v},
 			)
 		}
 	}
@@ -233,7 +232,7 @@ func (s *SouinCaddyMiddleware) Provision(ctx caddy.Context) error {
 	s.cacheKeys = s.Configuration.cacheKeys
 	for _, cacheKey := range s.Configuration.CfgCacheKeys {
 		for k, v := range cacheKey {
-			s.cacheKeys = append(s.cacheKeys, map[configurationtypes.RegValue]configurationtypes.Key{{Regexp: regexp.MustCompile(k)}: v})
+			s.cacheKeys = append(s.cacheKeys, map[configurationtypes.RegValue]configurationtypes.Key{k: v})
 		}
 	}
 	bh := middleware.NewHTTPCacheHandler(s.Configuration)
