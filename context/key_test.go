@@ -81,8 +81,8 @@ func Test_KeyContext_SetContext(t *testing.T) {
 	}
 	req2 := httptest.NewRequest(http.MethodGet, "http://domain.com/matched", nil)
 	req2 = ctx2.SetContext(req2.WithContext(context.WithValue(req2.Context(), HashBody, "")))
-	if req2.Context().Value(Key).(string) != "http-domain.com-/matched" {
-		t.Errorf("The Key context must be equal to http-domain.com-/matched, %s given.", req2.Context().Value(Key).(string))
+	if req2.Context().Value(Key).(string) != "GET-http-/matched" {
+		t.Errorf("The Key context must be equal to GET-http-/matched, %s given.", req2.Context().Value(Key).(string))
 	}
 
 	m = map[*regexp.Regexp]keyContext{
