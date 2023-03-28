@@ -865,6 +865,483 @@
                                                             "cache_name": "",
                                                             "cdn": {},
                                                             "default_cache_control": "",
+                                                            "distributed": true,
+                                                            "etcd": {
+                                                                "configuration": {
+                                                                    "AutoSyncInterval": "1s",
+                                                                    "DialKeepAliveTime": "1s",
+                                                                    "DialKeepAliveTimeout": "1s",
+                                                                    "DialTimeout": "1s",
+                                                                    "Endpoints": [
+                                                                        "etcd1:2379",
+                                                                        "etcd2:2379",
+                                                                        "etcd3:2379"
+                                                                    ],
+                                                                    "MaxCallRecvMsgSize": "10000000",
+                                                                    "MaxCallSendMsgSize": "10000000",
+                                                                    "Password": "doe",
+                                                                    "PermitWithoutStream": "false",
+                                                                    "RejectOldCluster": "false",
+                                                                    "Username": "john"
+                                                                },
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "headers": null,
+                                                            "key": {
+                                                                "disable_body": false,
+                                                                "disable_host": false,
+                                                                "disable_method": false,
+                                                                "disable_query": false,
+                                                                "headers": null,
+                                                                "hide": false
+                                                            },
+                                                            "nuts": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "olric": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "redis": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "regex": {
+                                                                "exclude": ""
+                                                            },
+                                                            "stale": "0s",
+                                                            "timeout": {
+                                                                "backend": "0s",
+                                                                "cache": "0s"
+                                                            },
+                                                            "ttl": "5s"
+                                                        },
+                                                        "LogLevel": "",
+                                                        "SurrogateKeys": null,
+                                                        "URLs": null
+                                                    },
+                                                    "badger": {
+                                                        "configuration": null,
+                                                        "path": "",
+                                                        "url": ""
+                                                    },
+                                                    "etcd": {
+                                                        "configuration": null,
+                                                        "path": "",
+                                                        "url": ""
+                                                    },
+                                                    "handler": "cache",
+                                                    "key": {
+                                                        "disable_body": false,
+                                                        "disable_host": false,
+                                                        "disable_method": false,
+                                                        "disable_query": false,
+                                                        "headers": null,
+                                                        "hide": false
+                                                    },
+                                                    "nuts": {
+                                                        "configuration": null,
+                                                        "path": "",
+                                                        "url": ""
+                                                    },
+                                                    "olric": {
+                                                        "configuration": null,
+                                                        "path": "",
+                                                        "url": ""
+                                                    },
+                                                    "redis": {
+                                                        "configuration": null,
+                                                        "path": "",
+                                                        "url": ""
+                                                    },
+                                                    "stale": "0s",
+                                                    "timeout": {
+                                                        "backend": "0s",
+                                                        "cache": "0s"
+                                                    },
+                                                    "ttl": "0s"
+                                                },
+                                                {
+                                                    "body": "Hello etcd",
+                                                    "handler": "static_response"
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ],
+                            "match": [
+                                {
+                                    "path": [
+                                        "/etcd"
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "handle": [
+                                {
+                                    "handler": "subroute",
+                                    "routes": [
+                                        {
+                                            "handle": [
+                                                {
+                                                    "Configuration": {
+                                                        "API": {
+                                                            "basepath": "",
+                                                            "debug": {
+                                                                "basepath": "",
+                                                                "enable": false,
+                                                                "security": false
+                                                            },
+                                                            "prometheus": {
+                                                                "basepath": "",
+                                                                "enable": false,
+                                                                "security": false
+                                                            },
+                                                            "security": {
+                                                                "basepath": "",
+                                                                "enable": false,
+                                                                "secret": "",
+                                                                "users": null
+                                                            },
+                                                            "souin": {
+                                                                "basepath": "",
+                                                                "enable": false,
+                                                                "security": false
+                                                            }
+                                                        },
+                                                        "DefaultCache": {
+                                                            "allowed_http_verbs": [],
+                                                            "badger": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "cache_name": "",
+                                                            "cdn": {},
+                                                            "default_cache_control": "",
+                                                            "distributed": true,
+                                                            "etcd": {
+                                                                "configuration": {
+                                                                    "AutoSyncInterval": "1s",
+                                                                    "DialKeepAliveTime": "1s",
+                                                                    "DialKeepAliveTimeout": "1s",
+                                                                    "DialTimeout": "1s",
+                                                                    "Endpoints": [
+                                                                        "etcd:2379",
+                                                                        "etcd:2379"
+                                                                    ],
+                                                                    "MaxCallRecvMsgSize": "10000000",
+                                                                    "MaxCallSendMsgSize": "10000000",
+                                                                    "PermitWithoutStream": "false",
+                                                                    "RejectOldCluster": "false"
+                                                                },
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "headers": null,
+                                                            "key": {
+                                                                "disable_body": false,
+                                                                "disable_host": false,
+                                                                "disable_method": false,
+                                                                "disable_query": false,
+                                                                "headers": null,
+                                                                "hide": false
+                                                            },
+                                                            "nuts": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "olric": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "redis": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "regex": {
+                                                                "exclude": ""
+                                                            },
+                                                            "stale": "0s",
+                                                            "timeout": {
+                                                                "backend": "0s",
+                                                                "cache": "0s"
+                                                            },
+                                                            "ttl": "5s"
+                                                        },
+                                                        "LogLevel": "",
+                                                        "SurrogateKeys": null,
+                                                        "URLs": null
+                                                    },
+                                                    "badger": {
+                                                        "configuration": null,
+                                                        "path": "",
+                                                        "url": ""
+                                                    },
+                                                    "etcd": {
+                                                        "configuration": null,
+                                                        "path": "",
+                                                        "url": ""
+                                                    },
+                                                    "handler": "cache",
+                                                    "key": {
+                                                        "disable_body": false,
+                                                        "disable_host": false,
+                                                        "disable_method": false,
+                                                        "disable_query": false,
+                                                        "headers": null,
+                                                        "hide": false
+                                                    },
+                                                    "nuts": {
+                                                        "configuration": null,
+                                                        "path": "",
+                                                        "url": ""
+                                                    },
+                                                    "olric": {
+                                                        "configuration": null,
+                                                        "path": "",
+                                                        "url": ""
+                                                    },
+                                                    "redis": {
+                                                        "configuration": null,
+                                                        "path": "",
+                                                        "url": ""
+                                                    },
+                                                    "stale": "0s",
+                                                    "timeout": {
+                                                        "backend": "0s",
+                                                        "cache": "0s"
+                                                    },
+                                                    "ttl": "0s"
+                                                },
+                                                {
+                                                    "body": "Hello etcd",
+                                                    "handler": "static_response"
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ],
+                            "match": [
+                                {
+                                    "path": [
+                                        "/etcd-configuration"
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "handle": [
+                                {
+                                    "handler": "subroute",
+                                    "routes": [
+                                        {
+                                            "handle": [
+                                                {
+                                                    "Configuration": {
+                                                        "API": {
+                                                            "basepath": "",
+                                                            "debug": {
+                                                                "basepath": "",
+                                                                "enable": false,
+                                                                "security": false
+                                                            },
+                                                            "prometheus": {
+                                                                "basepath": "",
+                                                                "enable": false,
+                                                                "security": false
+                                                            },
+                                                            "security": {
+                                                                "basepath": "",
+                                                                "enable": false,
+                                                                "secret": "",
+                                                                "users": null
+                                                            },
+                                                            "souin": {
+                                                                "basepath": "",
+                                                                "enable": false,
+                                                                "security": false
+                                                            }
+                                                        },
+                                                        "DefaultCache": {
+                                                            "allowed_http_verbs": [],
+                                                            "badger": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "cache_name": "",
+                                                            "cdn": {},
+                                                            "default_cache_control": "",
+                                                            "distributed": true,
+                                                            "etcd": {
+                                                                "configuration": {
+                                                                    "AutoSyncInterval": "1s",
+                                                                    "DialKeepAliveTime": "1s",
+                                                                    "DialKeepAliveTimeout": "1s",
+                                                                    "DialTimeout": "1s",
+                                                                    "Endpoints": [
+                                                                        "etcd:2379",
+                                                                        "etcd:2379"
+                                                                    ],
+                                                                    "MaxCallRecvMsgSize": "10000000",
+                                                                    "MaxCallSendMsgSize": "10000000",
+                                                                    "PermitWithoutStream": "false",
+                                                                    "RejectOldCluster": "false"
+                                                                },
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "headers": null,
+                                                            "key": {
+                                                                "disable_body": false,
+                                                                "disable_host": false,
+                                                                "disable_method": false,
+                                                                "disable_query": false,
+                                                                "headers": null,
+                                                                "hide": false
+                                                            },
+                                                            "nuts": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "olric": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "redis": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "regex": {
+                                                                "exclude": ""
+                                                            },
+                                                            "stale": "0s",
+                                                            "timeout": {
+                                                                "backend": "0s",
+                                                                "cache": "0s"
+                                                            },
+                                                            "ttl": "5s"
+                                                        },
+                                                        "LogLevel": "",
+                                                        "SurrogateKeys": null,
+                                                        "URLs": null
+                                                    },
+                                                    "badger": {
+                                                        "configuration": null,
+                                                        "path": "",
+                                                        "url": ""
+                                                    },
+                                                    "etcd": {
+                                                        "configuration": null,
+                                                        "path": "",
+                                                        "url": ""
+                                                    },
+                                                    "handler": "cache",
+                                                    "key": {
+                                                        "disable_body": false,
+                                                        "disable_host": false,
+                                                        "disable_method": false,
+                                                        "disable_query": false,
+                                                        "headers": null,
+                                                        "hide": false
+                                                    },
+                                                    "nuts": {
+                                                        "configuration": null,
+                                                        "path": "",
+                                                        "url": ""
+                                                    },
+                                                    "olric": {
+                                                        "configuration": null,
+                                                        "path": "",
+                                                        "url": ""
+                                                    },
+                                                    "redis": {
+                                                        "configuration": null,
+                                                        "path": "",
+                                                        "url": ""
+                                                    },
+                                                    "stale": "0s",
+                                                    "timeout": {
+                                                        "backend": "0s",
+                                                        "cache": "0s"
+                                                    },
+                                                    "ttl": "0s"
+                                                },
+                                                {
+                                                    "body": "Hello etcd",
+                                                    "handler": "static_response"
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ],
+                            "match": [
+                                {
+                                    "path": [
+                                        "/etcd-configuration"
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "handle": [
+                                {
+                                    "handler": "subroute",
+                                    "routes": [
+                                        {
+                                            "handle": [
+                                                {
+                                                    "Configuration": {
+                                                        "API": {
+                                                            "basepath": "",
+                                                            "debug": {
+                                                                "basepath": "",
+                                                                "enable": false,
+                                                                "security": false
+                                                            },
+                                                            "prometheus": {
+                                                                "basepath": "",
+                                                                "enable": false,
+                                                                "security": false
+                                                            },
+                                                            "security": {
+                                                                "basepath": "",
+                                                                "enable": false,
+                                                                "secret": "",
+                                                                "users": null
+                                                            },
+                                                            "souin": {
+                                                                "basepath": "",
+                                                                "enable": false,
+                                                                "security": false
+                                                            }
+                                                        },
+                                                        "DefaultCache": {
+                                                            "allowed_http_verbs": [],
+                                                            "badger": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "cache_name": "",
+                                                            "cdn": {},
+                                                            "default_cache_control": "",
                                                             "distributed": false,
                                                             "etcd": {
                                                                 "configuration": null,
