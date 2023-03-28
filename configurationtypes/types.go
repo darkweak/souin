@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"go.uber.org/zap"
@@ -86,6 +87,18 @@ func (c *CacheKeys) UnmarshalJSON(value []byte) error {
 	c.parseJSON(json.NewDecoder(bytes.NewBuffer(value)))
 
 	return nil
+}
+
+func (c *CacheKeys) MarshalJSON() ([]byte, error) {
+	var strKeys []string
+	for _, cacheKey := range *c {
+		for rg, key := range cacheKey {
+			keyBytes, _ := json.Marshal(key)
+			strKeys = append(strKeys, fmt.Sprintf(`"%s": %v`, rg.Regexp.String(), string(keyBytes)))
+		}
+	}
+
+	return []byte(fmt.Sprintf(`{%s}`, strings.Join(strKeys, ","))), nil
 }
 
 // Duration is the super object to wrap the duration and be able to parse it from the configuration
@@ -191,12 +204,12 @@ type CDN struct {
 }
 
 type Key struct {
-	DisableBody   bool     `json:"disable_body" yaml:"disable_body"`
-	DisableHost   bool     `json:"disable_host" yaml:"disable_host"`
-	DisableMethod bool     `json:"disable_method" yaml:"disable_method"`
-	DisableQuery  bool     `json:"disable_query" yaml:"disable_query"`
-	Hide          bool     `json:"hide" yaml:"hide"`
-	Headers       []string `json:"headers" yaml:"headers"`
+	DisableBody   bool     `json:"disable_body,omitempty" yaml:"disable_body,omitempty"`
+	DisableHost   bool     `json:"disable_host,omitempty" yaml:"disable_host,omitempty"`
+	DisableMethod bool     `json:"disable_method,omitempty" yaml:"disable_method,omitempty"`
+	DisableQuery  bool     `json:"disable_query,omitempty" yaml:"disable_query,omitempty"`
+	Hide          bool     `json:"hide,omitempty" yaml:"hide,omitempty"`
+	Headers       []string `json:"headers,omitempty" yaml:"headers,omitempty"`
 }
 
 // DefaultCache configuration

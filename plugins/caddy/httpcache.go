@@ -105,7 +105,7 @@ func (s *SouinCaddyMiddleware) configurationPropertyMapper() error {
 	}
 	if s.Configuration == nil {
 		s.Configuration = &Configuration{
-			cacheKeys:    s.cacheKeys,
+			CacheKeys:    s.cacheKeys,
 			DefaultCache: defaultCache,
 			LogLevel:     s.LogLevel,
 		}
@@ -141,16 +141,16 @@ func (s *SouinCaddyMiddleware) FromApp(app *SouinApp) error {
 		}
 		return nil
 	}
-	if s.Configuration.cacheKeys == nil || len(s.Configuration.cacheKeys) == 0 {
-		s.Configuration.cacheKeys = configurationtypes.CacheKeys{}
+	if s.Configuration.CacheKeys == nil || len(s.Configuration.CacheKeys) == 0 {
+		s.Configuration.CacheKeys = configurationtypes.CacheKeys{}
 	}
 	if s.CacheKeys == nil {
 		s.CacheKeys = app.CacheKeys
 	}
-	for _, cacheKey := range s.Configuration.CfgCacheKeys {
+	for _, cacheKey := range s.Configuration.CacheKeys {
 		for k, v := range cacheKey {
-			s.Configuration.cacheKeys = append(
-				s.Configuration.cacheKeys,
+			s.Configuration.CacheKeys = append(
+				s.Configuration.CacheKeys,
 				map[configurationtypes.RegValue]configurationtypes.Key{k: v},
 			)
 		}
@@ -229,12 +229,14 @@ func (s *SouinCaddyMiddleware) Provision(ctx caddy.Context) error {
 		return err
 	}
 
-	s.cacheKeys = s.Configuration.cacheKeys
-	for _, cacheKey := range s.Configuration.CfgCacheKeys {
-		for k, v := range cacheKey {
-			s.cacheKeys = append(s.cacheKeys, map[configurationtypes.RegValue]configurationtypes.Key{k: v})
+	/*
+		s.cacheKeys = s.Configuration.cacheKeys
+		for _, cacheKey := range s.Configuration.CacheKeys {
+			for k, v := range cacheKey {
+				s.cacheKeys = append(s.cacheKeys, map[configurationtypes.RegValue]configurationtypes.Key{k: v})
+			}
 		}
-	}
+	*/
 	bh := middleware.NewHTTPCacheHandler(s.Configuration)
 	surrogates, ok := up.LoadOrStore(surrogate_key, bh.SurrogateKeyStorer)
 	if ok {
@@ -320,7 +322,7 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 
 	souinApp.DefaultCache = cfg.DefaultCache
 	souinApp.API = cfg.API
-	souinApp.CacheKeys = cfg.CfgCacheKeys
+	souinApp.CacheKeys = cfg.CacheKeys
 	souinApp.LogLevel = cfg.LogLevel
 
 	return httpcaddyfile.App{

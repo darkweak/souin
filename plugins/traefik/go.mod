@@ -3,6 +3,7 @@ module github.com/darkweak/souin/plugins/traefik
 go 1.19
 
 require (
+	github.com/akyoto/cache v1.0.6
 	github.com/darkweak/souin v1.6.35
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pquerna/cachecontrol v0.1.0
