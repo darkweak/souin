@@ -40,6 +40,7 @@ func startServer(config *tls.Config, port string) (net.Listener, *http.Server) {
 
 func main() {
 	c := configuration.GetConfiguration()
+	fmt.Printf("%+v\n\n", c)
 	configChannel := make(chan int)
 	tlsConfig := &tls.Config{
 		Certificates: make([]tls.Certificate, 0),

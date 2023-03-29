@@ -1,6 +1,7 @@
 package httpcache
 
 import (
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -132,14 +133,13 @@ type Configuration struct {
 	// API endpoints enablers.
 	API configurationtypes.API
 	// Cache keys configuration.
-	CfgCacheKeys map[string]configurationtypes.Key
+	CacheKeys configurationtypes.CacheKeys `json:"cache_keys"`
 	// Override the ttl depending the cases.
 	URLs map[string]configurationtypes.URL
 	// Logger level, fallback on caddy's one when not redefined.
 	LogLevel string
 	// SurrogateKeys contains the surrogate keys to use with a predefined mapping
 	SurrogateKeys map[string]configurationtypes.SurrogateKeys
-	cacheKeys     map[configurationtypes.RegValue]configurationtypes.Key
 	logger        *zap.Logger
 }
 
@@ -184,8 +184,8 @@ func (c *Configuration) GetSurrogateKeys() map[string]configurationtypes.Surroga
 }
 
 // GetCacheKeys get the cache keys rules to override
-func (c *Configuration) GetCacheKeys() map[configurationtypes.RegValue]configurationtypes.Key {
-	return c.cacheKeys
+func (c *Configuration) GetCacheKeys() configurationtypes.CacheKeys {
+	return c.CacheKeys
 }
 
 var _ configurationtypes.AbstractConfigurationInterface = (*Configuration)(nil)
@@ -314,9 +314,9 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isBlocking b
 				}
 				cfg.DefaultCache.Badger = provider
 			case "cache_keys":
-				cacheKeys := cfg.CfgCacheKeys
-				if cacheKeys == nil {
-					cacheKeys = make(map[string]configurationtypes.Key)
+				CacheKeys := cfg.CacheKeys
+				if CacheKeys == nil {
+					CacheKeys = make(configurationtypes.CacheKeys, 0)
 				}
 				for nesting := h.Nesting(); h.NextBlock(nesting); {
 					rg := h.Val()
@@ -340,9 +340,9 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isBlocking b
 						}
 					}
 
-					cacheKeys[rg] = ck
+					CacheKeys = append(CacheKeys, configurationtypes.CacheKey{configurationtypes.RegValue{Regexp: regexp.MustCompile(rg)}: ck})
 				}
-				cfg.CfgCacheKeys = cacheKeys
+				cfg.CacheKeys = CacheKeys
 			case "cache_name":
 				args := h.RemainingArgs()
 				cfg.DefaultCache.CacheName = args[0]

@@ -1,13 +1,105 @@
 package configurationtypes
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
 	"regexp"
+	"strconv"
+	"strings"
 	"time"
 
 	"go.uber.org/zap"
 	yaml "gopkg.in/yaml.v3"
 )
+
+type CacheKey map[RegValue]Key
+type CacheKeys []CacheKey
+
+func (c *CacheKeys) parseJSON(rootDecoder *json.Decoder) {
+	var token json.Token
+	var err error
+
+	_, _ = rootDecoder.Token()
+	_, _ = rootDecoder.Token()
+	_, _ = rootDecoder.Token()
+
+	for err == nil {
+		token, err = rootDecoder.Token()
+		key := Key{}
+		rg := fmt.Sprint(token)
+
+		value := fmt.Sprint(token)
+		if value == "}" || token == nil {
+			continue
+		}
+		for value != "}" && token != nil {
+			token, _ = rootDecoder.Token()
+			value = fmt.Sprint(token)
+			switch value {
+			case "disable_body":
+				val, _ := rootDecoder.Token()
+				key.DisableBody, _ = strconv.ParseBool(fmt.Sprint(val))
+			case "disable_host":
+				val, _ := rootDecoder.Token()
+				key.DisableHost, _ = strconv.ParseBool(fmt.Sprint(val))
+			case "disable_method":
+				val, _ := rootDecoder.Token()
+				key.DisableMethod, _ = strconv.ParseBool(fmt.Sprint(val))
+			case "disable_query":
+				val, _ := rootDecoder.Token()
+				key.DisableQuery, _ = strconv.ParseBool(fmt.Sprint(val))
+			case "hide":
+				val, _ := rootDecoder.Token()
+				key.Hide, _ = strconv.ParseBool(fmt.Sprint(val))
+			case "headers":
+				val, _ := rootDecoder.Token()
+				key.Headers = []string{}
+				for fmt.Sprint(val) != "]" {
+					val, _ = rootDecoder.Token()
+					header := fmt.Sprint(val)
+					if header != "]" {
+						key.Headers = append(key.Headers, header)
+					}
+				}
+			}
+		}
+		*c = append(*c, CacheKey{
+			{Regexp: regexp.MustCompile(rg)}: key,
+		})
+	}
+}
+
+func (c *CacheKeys) UnmarshalYAML(value *yaml.Node) error {
+	for i := 0; i < len(value.Content)/2; i++ {
+		var cacheKey CacheKey
+		err := value.Decode(&cacheKey)
+		if err != nil {
+			return err
+		}
+		*c = append(*c, cacheKey)
+	}
+
+	return nil
+}
+
+func (c *CacheKeys) UnmarshalJSON(value []byte) error {
+	c.parseJSON(json.NewDecoder(bytes.NewBuffer(value)))
+
+	return nil
+}
+
+func (c *CacheKeys) MarshalJSON() ([]byte, error) {
+	var strKeys []string
+	for _, cacheKey := range *c {
+		for rg, key := range cacheKey {
+			keyBytes, _ := json.Marshal(key)
+			strKeys = append(strKeys, fmt.Sprintf(`"%s": %v`, rg.Regexp.String(), string(keyBytes)))
+		}
+	}
+
+	return []byte(fmt.Sprintf(`{%s}`, strings.Join(strKeys, ","))), nil
+}
 
 // Duration is the super object to wrap the duration and be able to parse it from the configuration
 type Duration struct {
@@ -112,12 +204,12 @@ type CDN struct {
 }
 
 type Key struct {
-	DisableBody   bool     `json:"disable_body" yaml:"disable_body"`
-	DisableHost   bool     `json:"disable_host" yaml:"disable_host"`
-	DisableMethod bool     `json:"disable_method" yaml:"disable_method"`
-	DisableQuery  bool     `json:"disable_query" yaml:"disable_query"`
-	Hide          bool     `json:"hide" yaml:"hide"`
-	Headers       []string `json:"headers" yaml:"headers"`
+	DisableBody   bool     `json:"disable_body,omitempty" yaml:"disable_body,omitempty"`
+	DisableHost   bool     `json:"disable_host,omitempty" yaml:"disable_host,omitempty"`
+	DisableMethod bool     `json:"disable_method,omitempty" yaml:"disable_method,omitempty"`
+	DisableQuery  bool     `json:"disable_query,omitempty" yaml:"disable_query,omitempty"`
+	Hide          bool     `json:"hide,omitempty" yaml:"hide,omitempty"`
+	Headers       []string `json:"headers,omitempty" yaml:"headers,omitempty"`
 }
 
 // DefaultCache configuration
@@ -287,5 +379,5 @@ type AbstractConfigurationInterface interface {
 	SetLogger(*zap.Logger)
 	GetYkeys() map[string]SurrogateKeys
 	GetSurrogateKeys() map[string]SurrogateKeys
-	GetCacheKeys() map[RegValue]Key
+	GetCacheKeys() CacheKeys
 }
