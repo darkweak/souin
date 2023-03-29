@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/akyoto/cache"
 	t "github.com/darkweak/souin/configurationtypes"
-	"github.com/patrickmn/go-cache"
 )
 
 // Cache provider type
@@ -18,17 +18,17 @@ type Cache struct {
 
 // CacheConnectionFactory function create new Cache instance
 func CacheConnectionFactory(c t.AbstractConfigurationInterface) (Storer, error) {
-	provider := cache.New(1*time.Second, 1*time.Second)
+	provider := cache.New(1 * time.Second)
 	return &Cache{Cache: provider, stale: c.GetDefaultCache().GetStale()}, nil
 }
 
 // ListKeys method returns the list of existing keys
 func (provider *Cache) ListKeys() []string {
-	items := provider.Items()
-	keys := make([]string, 0, len(items))
-	for k := range items {
-		keys = append(keys, k)
-	}
+	var keys []string
+	provider.Cache.Range(func(key, _ interface{}) bool {
+		keys = append(keys, key.(string))
+		return true
+	})
 
 	return keys
 }
@@ -47,20 +47,23 @@ func (provider *Cache) Get(key string) []byte {
 // Prefix method returns the populated response if exists, empty response then
 func (provider *Cache) Prefix(key string, req *http.Request) []byte {
 	var result []byte
-
-	for k, v := range provider.Items() {
+	provider.Cache.Range(func(k, v interface{}) bool {
 		if k == key {
-			return v.Object.([]byte)
+			result = v.([]byte)
+			return false
 		}
 
-		if !strings.HasPrefix(k, key) {
-			continue
+		if !strings.HasPrefix(k.(string), key) {
+			return true
 		}
 
-		if varyVoter(key, req, k) {
-			result = v.Object.([]byte)
+		if varyVoter(key, req, k.(string)) {
+			result = v.([]byte)
+			return false
 		}
-	}
+
+		return true
+	})
 
 	return result
 }
@@ -90,11 +93,12 @@ func (provider *Cache) DeleteMany(key string) {
 		return
 	}
 
-	for k := range provider.Items() {
-		if re.MatchString(k) {
-			provider.Delete(k)
+	provider.Cache.Range(func(k, _ interface{}) bool {
+		if re.MatchString(k.(string)) {
+			provider.Delete(k.(string))
 		}
-	}
+		return true
+	})
 }
 
 // Init method will
@@ -104,7 +108,7 @@ func (provider *Cache) Init() error {
 
 // Reset method will reset or close provider
 func (provider *Cache) Reset() error {
-	provider.Cache.Flush()
+	provider.DeleteMany("*")
 
 	return nil
 }

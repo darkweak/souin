@@ -9,15 +9,15 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-//Configuration holder
+// Configuration holder
 type Configuration struct {
-	DefaultCache    *configurationtypes.DefaultCache                       `yaml:"default_cache"`
-	CacheKeys       map[configurationtypes.RegValue]configurationtypes.Key `yaml:"cache_keys"`
-	API             configurationtypes.API                                 `yaml:"api"`
-	ReverseProxyURL string                                                 `yaml:"reverse_proxy_url"`
-	SSLProviders    []string                                               `yaml:"ssl_providers"`
-	URLs            map[string]configurationtypes.URL                      `yaml:"urls"`
-	LogLevel        string                                                 `yaml:"log_level"`
+	DefaultCache    *configurationtypes.DefaultCache  `yaml:"default_cache"`
+	CacheKeys       configurationtypes.CacheKeys      `yaml:"cache_keys"`
+	API             configurationtypes.API            `yaml:"api"`
+	ReverseProxyURL string                            `yaml:"reverse_proxy_url"`
+	SSLProviders    []string                          `yaml:"ssl_providers"`
+	URLs            map[string]configurationtypes.URL `yaml:"urls"`
+	LogLevel        string                            `yaml:"log_level"`
 	logger          *zap.Logger
 	Ykeys           map[string]configurationtypes.SurrogateKeys `yaml:"ykeys"`
 	SurrogateKeys   map[string]configurationtypes.SurrogateKeys `yaml:"surrogate_keys"`
@@ -90,7 +90,7 @@ func (c *Configuration) GetSurrogateKeys() map[string]configurationtypes.Surroga
 }
 
 // GetCacheKeys get the cache keys rules to override
-func (c *Configuration) GetCacheKeys() map[configurationtypes.RegValue]configurationtypes.Key {
+func (c *Configuration) GetCacheKeys() configurationtypes.CacheKeys {
 	return c.CacheKeys
 }
 

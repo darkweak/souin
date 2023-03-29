@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/bnkamalesh/webgo/v6 v6.7.0
-	github.com/darkweak/souin v1.6.35
+	github.com/darkweak/souin v1.6.36
 )
 
 require (
@@ -83,4 +83,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/darkweak/souin v1.6.35 => ../..
+replace github.com/darkweak/souin v1.6.36 => ../..
