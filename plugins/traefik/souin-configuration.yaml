@@ -29,6 +29,7 @@ http:
             regex:
               exclude: '/excluded'
             ttl: 5s
+            allowed_http_verbs: [GET, HEAD, POST]
             default_cache_control: public
           log_level: debug
           urls:
