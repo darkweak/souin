@@ -47,6 +47,7 @@ func (provider *Cache) Get(key string) []byte {
 // Prefix method returns the populated response if exists, empty response then
 func (provider *Cache) Prefix(key string, req *http.Request) []byte {
 	var result []byte
+
 	provider.Cache.Range(func(k, v interface{}) bool {
 		if k == key {
 			result = v.([]byte)

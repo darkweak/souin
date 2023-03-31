@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/configurationtypes"
 )
 
@@ -13,11 +14,28 @@ const VarySeparator = "{-VARY-}"
 const DecodedHeaderSeparator = ";"
 const encodedHeaderSemiColonSeparator = "%3B"
 const encodedHeaderColonSeparator = "%3A"
-const StalePrefix = "STALE_"
+const stalePrefix = "STALE_"
 
 // InitializeProvider allow to generate the providers array according to the configuration
-func InitializeProvider(configuration configurationtypes.AbstractConfigurationInterface) *Cache {
-	r, _ := CacheConnectionFactory(configuration)
+func InitializeProvider(configuration configurationtypes.AbstractConfigurationInterface) types.AbstractProviderInterface {
+	var r types.AbstractProviderInterface
+	if configuration.GetDefaultCache().GetDistributed() {
+		if configuration.GetDefaultCache().GetEtcd().Configuration != nil {
+			r, _ = EtcdConnectionFactory(configuration)
+		} else if configuration.GetDefaultCache().GetRedis().Configuration != nil || configuration.GetDefaultCache().GetRedis().URL != "" {
+			r, _ = RedisConnectionFactory(configuration)
+		} else {
+			if configuration.GetDefaultCache().GetOlric().URL != "" {
+				r, _ = OlricConnectionFactory(configuration)
+			} else {
+				r, _ = EmbeddedOlricConnectionFactory(configuration)
+			}
+		}
+	} else if configuration.GetDefaultCache().GetNuts().Configuration != nil || configuration.GetDefaultCache().GetNuts().Path != "" {
+		r, _ = NutsConnectionFactory(configuration)
+	} else {
+		r, _ = BadgerConnectionFactory(configuration)
+	}
 	e := r.Init()
 	if e != nil {
 		panic(e)
