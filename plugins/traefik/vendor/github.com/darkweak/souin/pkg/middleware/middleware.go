@@ -179,8 +179,6 @@ type handlerFunc = func(http.ResponseWriter, *http.Request) error
 
 func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, next handlerFunc) error {
 	b, handler := s.HandleInternally(rq)
-	fmt.Println("AFTER")
-	fmt.Println("AFTER b", b)
 	if b {
 		handler(rw, rq)
 		return nil
@@ -193,13 +191,11 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 		return next(rw, rq)
 	}
 
-	fmt.Println("RESPONSE 1")
 	if !rq.Context().Value(context.SupportedMethod).(bool) {
 		rw.Header().Set("Cache-Status", cacheName+"; fwd=uri-miss; detail=UNSUPPORTED-METHOD")
 
 		return next(rw, rq)
 	}
-	fmt.Println("RESPONSE 2")
 
 	requestCc, coErr := cacheobject.ParseRequestCacheControl(rq.Header.Get("Cache-Control"))
 

@@ -2,11 +2,12 @@ package ykeys
 
 import (
 	"fmt"
-	"github.com/patrickmn/go-cache"
 	"net/http"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/akyoto/cache"
 
 	"github.com/darkweak/souin/configurationtypes"
 )
@@ -47,7 +48,7 @@ func InitializeYKeys(keys map[string]configurationtypes.SurrogateKeys) *YKeyStor
 		return nil
 	}
 
-	c := cache.New(1*time.Second, 2*time.Second)
+	c := cache.New(1 * time.Second)
 
 	for key := range keys {
 		c.Set(key, "", 1)

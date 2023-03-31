@@ -201,7 +201,21 @@ func parseConfiguration(c map[string]interface{}) Configuration {
 // parseStringSlice returns the string slice corresponding to the given interface.
 // The interface can be of type string which contains a comma separated list of values (e.g. foo,bar) or of type []string.
 func parseStringSlice(i interface{}) []string {
+	if value, ok := i.([]string); ok {
+		return value
+	}
+	if value, ok := i.([]interface{}); ok {
+		var arr []string
+		for _, v := range value {
+			arr = append(arr, v.(string))
+		}
+		return arr
+	}
+
 	if value, ok := i.(string); ok {
+		if strings.HasPrefix(value, "║24║") {
+			return strings.Split(strings.TrimPrefix(value, "║24║"), "║")
+		}
 		return strings.Split(value, ",")
 	}
 
