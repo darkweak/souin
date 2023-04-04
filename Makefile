@@ -30,6 +30,8 @@ build-and-run-echo: base-build-and-run-echo  ## Run Echo with Souin as plugin
 
 build-and-run-fiber: base-build-and-run-fiber  ## Run Fiber with Souin as plugin
 
+build-and-run-hertz: base-build-and-run-hertz  ## Run Hertz with Souin as plugin
+
 build-and-run-kratos: base-build-and-run-kratos  ## Run Kratos with Souin as plugin
 
 build-and-run-roadrunner: base-build-and-run-roadrunner  ## Run Roadrunner with Souin as plugin

@@ -27,14 +27,15 @@
   8.7. [Gin middleware](#gin-middleware)  
   8.8. [Go-zero middleware](#go-zero-middleware)  
   8.9. [Goyave middleware](#goyave-middleware)  
-  8.10. [Kratos filter](#kratos-filter)  
-  8.11. [Roadrunner middleware](#roadrunner-middleware)  
-  8.12. [Skipper filter](#skipper-filter)  
-  8.13. [Træfik plugin](#træfik-plugin)  
-  8.14. [Tyk plugin](#tyk-plugin)  
-  8.15. [Webgo middleware](#webgo-middleware)  
-  8.16. [Prestashop plugin](#prestashop-plugin)  
-  8.17. [Wordpress plugin](#wordpress-plugin)  
+  8.10. [Hertz middleware](#hertz-middleware)  
+  8.11. [Kratos filter](#kratos-filter)  
+  8.12. [Roadrunner middleware](#roadrunner-middleware)  
+  8.13. [Skipper filter](#skipper-filter)  
+  8.14. [Træfik plugin](#træfik-plugin)  
+  8.15. [Tyk plugin](#tyk-plugin)  
+  8.16. [Webgo middleware](#webgo-middleware)  
+  8.17. [Prestashop plugin](#prestashop-plugin)  
+  8.18. [Wordpress plugin](#wordpress-plugin)  
 9. [Credits](#credits)
 
 # Souin HTTP cache
@@ -753,6 +754,25 @@ func main() {
 		r.GlobalMiddleware(cache.NewHTTPCache(cache.DevDefaultConfiguration).Handle)
 		// ...
 	})
+}
+```
+
+### Hertz middleware
+To use Souin as hertz middleware, you can refer to the [Hertz middleware integration folder](https://github.com/darkweak/souin/tree/master/plugins/hertz) to discover how to configure it.  
+You just have to use the `NewHTTPCache` method like below:
+```go
+import (
+	"context"
+	"net/http"
+
+	// ...
+	httpcache "github.com/darkweak/souin/plugins/hertz"
+)
+
+func main() {
+	// ...
+	h.Use(httpcache.NewHTTPCache(httpcache.DevDefaultConfiguration))
+	// ...
 }
 ```
 

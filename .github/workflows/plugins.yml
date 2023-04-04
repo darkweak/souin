@@ -123,6 +123,13 @@ jobs:
     with:
       CAPITALIZED_NAME: Go-zero
       LOWER_NAME: go-zero
+  build-hertz-validator:
+    name: Check that Souin build as middleware
+    uses: ./.github/workflows/plugin_template.yml
+    secrets: inherit
+    with:
+      CAPITALIZED_NAME: Hertz
+      LOWER_NAME: hertz
   build-kratos-validator:
     name: Check that Souin build as middleware
     uses: ./.github/workflows/plugin_template.yml
