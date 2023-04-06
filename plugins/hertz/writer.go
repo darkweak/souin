@@ -1,4 +1,4 @@
-package beego
+package httpcache
 
 import (
 	"net/http"
@@ -25,8 +25,10 @@ func newWriter(response *protocol.Response) *hertzWriter {
 	}
 }
 
-var _ http.ResponseWriter = (*hertzWriter)(nil)
-var _ network.ExtWriter = (*hertzWriter)(nil)
+var (
+	_ http.ResponseWriter = (*hertzWriter)(nil)
+	_ network.ExtWriter   = (*hertzWriter)(nil)
+)
 
 func (h *hertzWriter) Header() http.Header {
 	return h.headers
@@ -74,6 +76,7 @@ func newHijackWriter(w http.ResponseWriter) network.ExtWriter {
 func (*hijackerWriter) Finalize() error {
 	return nil
 }
+
 func (*hijackerWriter) Flush() error {
 	return nil
 }
