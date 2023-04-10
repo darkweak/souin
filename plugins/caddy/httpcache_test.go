@@ -248,7 +248,7 @@ func TestNotHandledRoute(t *testing.T) {
 	}`, "caddyfile")
 
 	resp1, _ := tester.AssertGetResponse(`http://localhost:9080/not-handled`, 200, "Hello, Age header!")
-	if resp1.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; detail=EXCLUDED-REQUEST-URI" {
+	if resp1.Header.Get("Cache-Status") != "Souin; fwd=bypass; detail=EXCLUDED-REQUEST-URI" {
 		t.Errorf("unexpected Cache-Status header value %v", resp1.Header.Get("Cache-Status"))
 	}
 }

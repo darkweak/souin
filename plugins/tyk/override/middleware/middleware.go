@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
 	"io"
@@ -215,12 +214,12 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 	rq = s.context.SetBaseContext(rq)
 	cacheName := rq.Context().Value(context.CacheName).(string)
 	if rq.Header.Get("Upgrade") == "websocket" || (s.ExcludeRegex != nil && s.ExcludeRegex.MatchString(rq.RequestURI)) {
-		rw.Header().Set("Cache-Status", cacheName+"; fwd=uri-miss; detail=EXCLUDED-REQUEST-URI")
+		rw.Header().Set("Cache-Status", cacheName+"; fwd=bypass; detail=EXCLUDED-REQUEST-URI")
 		return next(rw, rq)
 	}
 
 	if !rq.Context().Value(context.SupportedMethod).(bool) {
-		rw.Header().Set("Cache-Status", cacheName+"; fwd=uri-miss; detail=UNSUPPORTED-METHOD")
+		rw.Header().Set("Cache-Status", cacheName+"; fwd=bypass; detail=UNSUPPORTED-METHOD")
 
 		return next(rw, rq)
 	}
@@ -228,7 +227,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 	requestCc, coErr := cacheobject.ParseRequestCacheControl(rq.Header.Get("Cache-Control"))
 
 	if coErr != nil || requestCc == nil {
-		rw.Header().Set("Cache-Status", cacheName+"; fwd=uri-miss; detail=CACHE-CONTROL-EXTRACTION-ERROR")
+		rw.Header().Set("Cache-Status", cacheName+"; fwd=bypass; detail=CACHE-CONTROL-EXTRACTION-ERROR")
 
 		return next(rw, rq)
 	}
@@ -241,8 +240,8 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 	defer s.bufPool.Put(bufPool)
 	customWriter := NewCustomWriter(rq, rw, bufPool)
 	if !requestCc.NoCache {
-		cachedVal := s.Storer.Prefix(cachedKey, rq)
-		response, _ := http.ReadResponse(bufio.NewReader(bytes.NewBuffer(cachedVal)), rq)
+		validator := rfc.ParseRequest(rq)
+		response := s.Storer.Prefix(cachedKey, rq, validator)
 
 		if response != nil && rfc.ValidateCacheControl(response, requestCc) {
 			rfc.SetCacheStatusHeader(response)
@@ -255,8 +254,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 				return nil
 			}
 		} else if response == nil {
-			staleCachedVal := s.Storer.Prefix(storage.StalePrefix+cachedKey, rq)
-			response, _ = http.ReadResponse(bufio.NewReader(bytes.NewBuffer(staleCachedVal)), rq)
+			response := s.Storer.Prefix(storage.StalePrefix+cachedKey, rq, validator)
 			if nil != response && rfc.ValidateCacheControl(response, requestCc) {
 				addTime, _ := time.ParseDuration(response.Header.Get(rfc.StoredTTLHeader))
 				rfc.SetCacheStatusHeader(response)

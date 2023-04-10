@@ -1,6 +1,8 @@
 package storage
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -9,6 +11,7 @@ import (
 	"time"
 
 	t "github.com/darkweak/souin/configurationtypes"
+	"github.com/darkweak/souin/pkg/rfc"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )
@@ -97,12 +100,12 @@ func (provider *Redis) Get(key string) (item []byte) {
 }
 
 // Prefix method returns the populated response if exists, empty response then
-func (provider *Redis) Prefix(key string, req *http.Request) []byte {
+func (provider *Redis) Prefix(key string, req *http.Request, validator *rfc.Revalidator) *http.Response {
 	if provider.reconnecting {
 		provider.logger.Sugar().Error("Impossible to get the redis keys by prefix while reconnecting.")
-		return []byte{}
+		return nil
 	}
-	in := make(chan []byte)
+	in := make(chan *http.Response)
 	out := make(chan bool)
 
 	iter := provider.Client.Scan(provider.ctx, 0, key+"*", 0).Iterator()
@@ -116,21 +119,26 @@ func (provider *Redis) Prefix(key string, req *http.Request) []byte {
 					v, e := provider.Client.Get(provider.ctx, iter.Val()).Result()
 					if e != nil && e != redis.Nil && !provider.reconnecting {
 						go provider.Reconnect()
-						in <- []byte{}
+						in <- nil
 						return
 					}
-					in <- []byte(v)
-					return
+					if res, err := http.ReadResponse(bufio.NewReader(bytes.NewBuffer([]byte(v))), req); err == nil {
+						rfc.ValidateETag(res, validator)
+						if validator.Matched {
+							in <- res
+							return
+						}
+					}
 				}
 			}
 		}
-		in <- []byte{}
+		in <- nil
 	}(iter)
 
 	select {
 	case <-time.After(provider.Client.Options().PoolTimeout):
 		out <- true
-		return []byte{}
+		return nil
 	case v := <-in:
 		return v
 	}
