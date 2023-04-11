@@ -226,7 +226,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 
 				return nil
 			}
-		} else if response == nil {
+		} else if response == nil && (requestCc.MaxStaleSet || requestCc.MaxStale > -1) {
 			staleCachedVal := s.Storer.Prefix(storage.StalePrefix+cachedKey, rq)
 			response, _ = http.ReadResponse(bufio.NewReader(bytes.NewBuffer(staleCachedVal)), rq)
 			if nil != response && rfc.ValidateCacheControl(response, requestCc) {

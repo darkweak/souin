@@ -393,7 +393,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 
 				return err
 			}
-		} else if response == nil {
+		} else if response == nil && (requestCc.MaxStaleSet || requestCc.MaxStale > -1) {
 			response = s.Storer.Prefix(storage.StalePrefix+cachedKey, rq, validator)
 			if nil != response && rfc.ValidateCacheControl(response, requestCc) {
 				addTime, _ := time.ParseDuration(response.Header.Get(rfc.StoredTTLHeader))

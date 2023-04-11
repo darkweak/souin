@@ -169,7 +169,7 @@ func SouinRequestHandler(rw http.ResponseWriter, rq *http.Request) {
 
 				return
 			}
-		} else if response == nil {
+		} else if response == nil && (requestCc.MaxStaleSet || requestCc.MaxStale > -1) {
 			response := s.SouinBaseHandler.Storer.Prefix(storage.StalePrefix+cachedKey, rq, validator)
 			if nil != response && rfc.ValidateCacheControl(response, requestCc) {
 				addTime, _ := time.ParseDuration(response.Header.Get(rfc.StoredTTLHeader))
