@@ -51,7 +51,7 @@ func TestQueryString(t *testing.T) {
 		http_port     9080
 		https_port    9443
 		cache {
-			key { 
+			key {
 				disable_query
 			}
 		}
@@ -59,7 +59,7 @@ func TestQueryString(t *testing.T) {
 	localhost:9080 {
 		route /query-string {
 			cache {
-				key { 
+				key {
 					disable_query
 				}
 			}
@@ -327,5 +327,103 @@ func TestAuthenticatedRoute(t *testing.T) {
 	respAuthVaryBypassAlice2, _ := tester.AssertResponse(getRequestFor("/auth-bypass-vary", "Alice"), 200, "Hello, auth vary bypass Bearer Alice!")
 	if respAuthVaryBypassAlice2.Header.Get("Cache-Status") != "Souin; hit; ttl=4; key=GET-http-localhost:9080-/auth-bypass-vary-Bearer Alice-text/plain" {
 		t.Errorf("unexpected Cache-Status header %v", respAuthVaryBypassAlice2.Header.Get("Cache-Status"))
+	}
+}
+
+type testErrorHandler struct {
+	iterator int
+}
+
+func (t *testErrorHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	t.iterator++
+	if t.iterator%2 == 0 {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Cache-Control", "must-revalidate")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Hello must-revalidate!"))
+}
+
+func TestMustRevalidate(t *testing.T) {
+	tester := caddytest.NewTester(t)
+	tester.InitServer(`
+	{
+		admin localhost:2999
+		order cache before rewrite
+		http_port     9080
+		cache {
+			ttl 5s
+			stale 5s
+		}
+	}
+	localhost:9080 {
+		route /cache-default {
+			cache
+			reverse_proxy 127.0.0.1:9081
+		}
+	}`, "caddyfile")
+
+	errorHandler := testErrorHandler{}
+	go http.ListenAndServe(":9081", &errorHandler)
+	resp1, _ := tester.AssertGetResponse(`http://localhost:9080/cache-default`, http.StatusOK, "Hello must-revalidate!")
+	resp2, _ := tester.AssertGetResponse(`http://localhost:9080/cache-default`, http.StatusOK, "Hello must-revalidate!")
+	time.Sleep(6 * time.Second)
+	staleReq, _ := http.NewRequest(http.MethodGet, "http://localhost:9080/cache-default", nil)
+	staleReq.Header = http.Header{"Cache-Control": []string{"max-stale=3, stale-if-error=84600"}}
+	resp3, _ := tester.AssertResponse(staleReq, http.StatusOK, "Hello must-revalidate!")
+
+	if resp1.Header.Get("Cache-Control") != "must-revalidate" {
+		t.Errorf("unexpected resp1 Cache-Control header %v", resp1.Header.Get("Cache-Control"))
+	}
+	if resp1.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-http-localhost:9080-/cache-default" {
+		t.Errorf("unexpected resp1 Cache-Status header %v", resp1.Header.Get("Cache-Status"))
+	}
+	if resp1.Header.Get("Age") != "" {
+		t.Errorf("unexpected resp1 Age header %v", resp1.Header.Get("Age"))
+	}
+
+	if resp2.Header.Get("Cache-Control") != "must-revalidate" {
+		t.Errorf("unexpected resp2 Cache-Control header %v", resp2.Header.Get("Cache-Control"))
+	}
+	if resp2.Header.Get("Cache-Status") != "Souin; hit; ttl=4; key=GET-http-localhost:9080-/cache-default" {
+		t.Errorf("unexpected resp2 Cache-Status header %v", resp2.Header.Get("Cache-Status"))
+	}
+	if resp2.Header.Get("Age") != "1" {
+		t.Errorf("unexpected resp2 Age header %v", resp2.Header.Get("Age"))
+	}
+
+	if resp3.Header.Get("Cache-Control") != "must-revalidate" {
+		t.Errorf("unexpected resp3 Cache-Control header %v", resp3.Header.Get("Cache-Control"))
+	}
+	if resp3.Header.Get("Cache-Status") != "Souin; hit; ttl=-2; key=GET-http-localhost:9080-/cache-default; fwd=stale; fwd-status=500" {
+		t.Errorf("unexpected resp3 Cache-Status header %v", resp3.Header.Get("Cache-Status"))
+	}
+	if resp3.Header.Get("Age") != "7" {
+		t.Errorf("unexpected resp3 Age header %v", resp3.Header.Get("Age"))
+	}
+
+	resp4, _ := tester.AssertGetResponse(`http://localhost:9080/cache-default`, http.StatusOK, "Hello must-revalidate!")
+	if resp4.Header.Get("Cache-Control") != "must-revalidate" {
+		t.Errorf("unexpected resp4 Cache-Control header %v", resp4.Header.Get("Cache-Control"))
+	}
+	if resp4.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-http-localhost:9080-/cache-default" {
+		t.Errorf("unexpected resp4 Cache-Status header %v", resp4.Header.Get("Cache-Status"))
+	}
+	if resp4.Header.Get("Age") != "" {
+		t.Errorf("unexpected resp4 Age header %v", resp4.Header.Get("Age"))
+	}
+
+	time.Sleep(6 * time.Second)
+	staleReq, _ = http.NewRequest(http.MethodGet, "http://localhost:9080/cache-default", nil)
+	staleReq.Header = http.Header{"Cache-Control": []string{"max-stale=3"}}
+	resp5, _ := tester.AssertResponse(staleReq, http.StatusGatewayTimeout, "")
+
+	if resp5.Header.Get("Cache-Status") != "Souin; fwd=request; fwd-status=500; key=GET-http-localhost:9080-/cache-default; detail=REQUEST-REVALIDATION" {
+		t.Errorf("unexpected resp5 Cache-Status header %v", resp4.Header.Get("Cache-Status"))
+	}
+	if resp5.Header.Get("Age") != "" {
+		t.Errorf("unexpected resp5 Age header %v", resp4.Header.Get("Age"))
 	}
 }

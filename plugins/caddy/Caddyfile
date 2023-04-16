@@ -287,6 +287,15 @@ route /custom-key/without-* {
     respond "Hello to the authenticated user."
 }
 
+route /must-revalidate {
+    cache {
+        ttl 5s
+        stale 5s
+    }
+    header Cache-Control "must-revalidate"
+    reverse_proxy 127.0.0.1:81
+}
+
 route /cache-authorization {
     cache {
         cache_keys {

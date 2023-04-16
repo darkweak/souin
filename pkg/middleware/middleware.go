@@ -393,7 +393,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 
 				return err
 			}
-		} else if response == nil && (requestCc.MaxStaleSet || requestCc.MaxStale > -1) {
+		} else if response == nil && !requestCc.OnlyIfCached && (requestCc.MaxStaleSet || requestCc.MaxStale > -1) {
 			response = s.Storer.Prefix(storage.StalePrefix+cachedKey, rq, validator)
 			if nil != response && rfc.ValidateCacheControl(response, requestCc) {
 				addTime, _ := time.ParseDuration(response.Header.Get(rfc.StoredTTLHeader))
@@ -418,30 +418,40 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 				}
 
 				if responseCc.MustRevalidate || responseCc.NoCachePresent || validator.NeedRevalidation {
-					err := next(customWriter, rq)
-					if err == nil {
-						err := s.Revalidate(validator, next, customWriter, rq, requestCc, cachedKey)
-						_, _ = io.Copy(customWriter.Buf, response.Body)
-						_, _ = customWriter.Send()
+					err := s.Revalidate(validator, next, customWriter, rq, requestCc, cachedKey)
+					if err != nil {
+						if responseCc.StaleIfError > -1 || requestCc.StaleIfError > 0 {
+							code := fmt.Sprintf("; fwd-status=%d", customWriter.statusCode)
+							customWriter.Headers = response.Header
+							customWriter.statusCode = response.StatusCode
+							rfc.HitStaleCache(&response.Header)
+							response.Header.Set("Cache-Status", response.Header.Get("Cache-Status")+code)
+							_, _ = io.Copy(customWriter.Buf, response.Body)
+							_, err := customWriter.Send()
+
+							return err
+						}
+						rw.WriteHeader(http.StatusGatewayTimeout)
+						customWriter.Buf.Reset()
+						_, err := customWriter.Send()
 
 						return err
 					}
-
-					rw.Header().Del("Cache-Status")
-					rw.WriteHeader(http.StatusGatewayTimeout)
-
-					return err
-				}
-
-				if responseCc.StaleIfError > 0 && s.Upstream(customWriter, rq, next, requestCc, cachedKey) != nil {
-					customWriter.Headers = response.Header
-					customWriter.statusCode = response.StatusCode
-					rfc.HitStaleCache(&response.Header)
 					_, _ = io.Copy(customWriter.Buf, response.Body)
-					_, err := customWriter.Send()
+					_, _ = customWriter.Send()
 
 					return err
 				}
+
+				// if responseCc.StaleIfError > 0 && s.Upstream(customWriter, rq, next, requestCc, cachedKey) != nil {
+				// 	customWriter.Headers = response.Header
+				// 	customWriter.statusCode = response.StatusCode
+				// 	rfc.HitStaleCache(&response.Header)
+				// 	_, _ = io.Copy(customWriter.Buf, response.Body)
+				// 	_, err := customWriter.Send()
+				//
+				// 	return err
+				// }
 
 				if rfc.ValidateMaxAgeCachedStaleResponse(requestCc, response, int(addTime.Seconds())) != nil {
 					customWriter.Headers = response.Header
