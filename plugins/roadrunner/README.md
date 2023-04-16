@@ -93,8 +93,6 @@ http:
       ttl: 1000s # Default TTL
       default_cache_control: no-store # Set default value for Cache-Control response header if not set by upstream
     log_level: INFO # Logs verbosity [ DEBUG, INFO, WARN, ERROR, DPANIC, PANIC, FATAL ], case do not matter
-    ssl_providers: # The {providers}.json to use
-      - traefik
     urls:
       'https:\/\/domain.com\/first-.+': # First regex route configuration
         ttl: 1000s # Override default TTL

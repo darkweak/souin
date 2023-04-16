@@ -18,19 +18,21 @@ type (
 	configWrapper struct {
 		*dummyConfiguration
 	}
-	// testLogger struct {
-	// 	log *zap.Logger
-	// }
+	testLogger struct {
+		log *zap.Logger
+	}
 )
 
-func newTestLogger() *zap.Logger {
+func newTestLogger() *testLogger {
 	log, _ := zap.NewDevelopment()
-	return log
+	return &testLogger{
+		log: log,
+	}
 }
 
-// func (tl *testLogger) NamedLogger(string) *zap.Logger {
-// 	return tl.log
-// }
+func (tl *testLogger) NamedLogger(string) *zap.Logger {
+	return tl.log
+}
 
 func (*configWrapper) Get(_ string) interface{} {
 	var c map[string]interface{}

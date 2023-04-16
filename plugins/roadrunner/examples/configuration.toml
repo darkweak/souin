@@ -1,19 +1,19 @@
 [velox]
-build_args = ['-trimpath', '-ldflags', '-s -X github.com/roadrunner-server/roadrunner/v2/internal/meta.version=v2.12.0 -X github.com/roadrunner-server/roadrunner/v2/internal/meta.buildTime=10:00:00']
+build_args = ['-trimpath', '-ldflags', '-s -X github.com/roadrunner-server/roadrunner/v2023/internal/meta.version=${VERSION} -X github.com/roadrunner-server/roadrunner/v2023/internal/meta.buildTime=10:00:00']
 
 [roadrunner]
-ref = "v2.12.3"
+ref = "v2023.1.0"
 
 [github]
     [github.token]
     token = "GH_TOKEN"
 
     [github.plugins]
-    logger = { ref = "v3.0.3", owner = "roadrunner-server", repository = "logger" }
+    logger = { ref = "v4.1.5", owner = "roadrunner-server", repository = "logger" }
     cache = { ref = "CURRENT_SHA", owner = "darkweak", repository = "souin", folder = "/plugins/roadrunner", replace = "/opt/plugins/roadrunner" }
-    server = { ref = "v3.0.3", owner = "roadrunner-server", repository = "server" }
-    gzip = { ref = "v3.0.3", owner = "roadrunner-server", repository = "gzip" }
-    http = { ref = "v3.0.3", owner = "roadrunner-server", repository = "http" }
+    server = { ref = "v4.1.4", owner = "roadrunner-server", repository = "server" }
+    gzip = { ref = "v4.0.7", owner = "roadrunner-server", repository = "gzip" }
+    http = { ref = "v4.1.7", owner = "roadrunner-server", repository = "http" }
 
 [log]
 level = "debug"

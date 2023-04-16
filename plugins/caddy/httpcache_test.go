@@ -361,12 +361,13 @@ func TestMustRevalidate(t *testing.T) {
 	localhost:9080 {
 		route /cache-default {
 			cache
-			reverse_proxy 127.0.0.1:9081
+			reverse_proxy localhost:9081
 		}
 	}`, "caddyfile")
 
 	errorHandler := testErrorHandler{}
 	go http.ListenAndServe(":9081", &errorHandler)
+	time.Sleep(time.Second)
 	resp1, _ := tester.AssertGetResponse(`http://localhost:9080/cache-default`, http.StatusOK, "Hello must-revalidate!")
 	resp2, _ := tester.AssertGetResponse(`http://localhost:9080/cache-default`, http.StatusOK, "Hello must-revalidate!")
 	time.Sleep(6 * time.Second)
