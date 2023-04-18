@@ -31,7 +31,7 @@ jobs:
         with:
           go-version: 1.19
       - name: Run unit static tests
-        run: go test -v -race $(go list ./... | grep -v cache/providers | grep -v pkg/storage)
+        run: go test -v -race $(go list ./... | grep -v pkg/storage)
   unit-test-golang-with-services:
     needs: lint-validation
     name: Unit tests with external services
