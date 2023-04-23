@@ -6,8 +6,8 @@
 DC=docker-compose
 DC_BUILD=$(DC) build
 DC_EXEC=$(DC) exec
-PLUGINS_LIST=beego caddy chi dotweb echo fiber gin go-zero goyave kratos roadrunner skipper traefik tyk webgo souin
-MOD_PLUGINS_LIST=beego caddy chi dotweb echo fiber gin go-zero goyave kratos roadrunner skipper webgo
+PLUGINS_LIST=beego caddy chi dotweb echo fiber gin goa go-zero goyave hertz kratos roadrunner skipper traefik tyk webgo souin
+MOD_PLUGINS_LIST=beego caddy chi dotweb echo fiber gin goa go-zero goyave hertz kratos roadrunner skipper webgo
 
 base-build-and-run-%:
 	cd plugins/$* && $(MAKE) prepare
@@ -41,6 +41,8 @@ build-and-run-skipper: base-build-and-run-skipper  ## Run Skipper with Souin as 
 build-and-run-souin: base-build-and-run-souin  ## Run Souin as plugin
 
 build-and-run-gin: base-build-and-run-gin  ## Run Gin with Souin as plugin
+
+build-and-run-goa: base-build-and-run-goa  ## Run Goa with Souin as plugin
 
 build-and-run-go-zero: base-build-and-run-go-zero  ## Run Go-zero with Souin as plugin
 

@@ -14,7 +14,7 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v3
         with:
-          go-version: 1.19
+          go-version: 1.20
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v3
         with:
@@ -29,7 +29,7 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v3
         with:
-          go-version: 1.19
+          go-version: 1.20
       - name: Run unit static tests
         run: go test -v -race $(go list ./... | grep -v pkg/storage)
   unit-test-golang-with-services:
@@ -42,7 +42,7 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v3
         with:
-          go-version: 1.19
+          go-version: 1.20
       - name: Build and run the docker stack
         run: |
           docker network create your_network || true

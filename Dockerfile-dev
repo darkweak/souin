@@ -1,4 +1,4 @@
-FROM golang:1.19-alpine AS souin
+FROM golang:1.20-alpine AS souin
 
 RUN apk update && apk upgrade && \
     apk add --no-cache bash git openssh gcc libc-dev

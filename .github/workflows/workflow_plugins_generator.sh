@@ -1,6 +1,6 @@
 #!/bin/bash
 
-plugins=("beego"  "chi"  "dotweb"  "echo"  "fiber"  "gin"  "go-zero"  "hertz"  "kratos"  "roadrunner"  "skipper"  "souin"  "traefik"  "tyk"  "webgo")
+plugins=("beego"  "chi"  "dotweb"  "echo"  "fiber"  "gin"  "goa"  "go-zero"  "hertz"  "kratos"  "roadrunner"  "skipper"  "souin"  "traefik"  "tyk"  "webgo")
 
 IFS= read -r -d '' tpl <<EOF
 name: Build and validate Souin as plugins
@@ -41,7 +41,7 @@ jobs:
         name: Install Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.19
+          go-version: 1.20
       -
         name: Checkout code
         uses: actions/checkout@v2

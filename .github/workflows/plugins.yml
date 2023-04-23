@@ -36,7 +36,7 @@ jobs:
         name: Install Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.19
+          go-version: 1.20
       -
         name: Checkout code
         uses: actions/checkout@v2
@@ -116,6 +116,13 @@ jobs:
     with:
       CAPITALIZED_NAME: Gin
       LOWER_NAME: gin
+  build-goa-validator:
+    name: Check that Souin build as middleware
+    uses: ./.github/workflows/plugin_template.yml
+    secrets: inherit
+    with:
+      CAPITALIZED_NAME: Goa
+      LOWER_NAME: goa
   build-go-zero-validator:
     name: Check that Souin build as middleware
     uses: ./.github/workflows/plugin_template.yml
