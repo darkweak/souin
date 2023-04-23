@@ -1,12 +1,15 @@
 package storage
 
 import (
+	"bufio"
+	"bytes"
 	"net/http"
 	"regexp"
 	"strings"
 	"time"
 
 	t "github.com/darkweak/souin/configurationtypes"
+	"github.com/darkweak/souin/pkg/rfc"
 	"github.com/patrickmn/go-cache"
 )
 
@@ -45,12 +48,19 @@ func (provider *Cache) Get(key string) []byte {
 }
 
 // Prefix method returns the populated response if exists, empty response then
-func (provider *Cache) Prefix(key string, req *http.Request) []byte {
-	var result []byte
+func (provider *Cache) Prefix(key string, req *http.Request, validator *rfc.Revalidator) *http.Response {
+	var result *http.Response
 
 	for k, v := range provider.Items() {
 		if k == key {
-			return v.Object.([]byte)
+			if res, err := http.ReadResponse(bufio.NewReader(bytes.NewBuffer(v.Object.([]byte))), req); err == nil {
+				rfc.ValidateETag(res, validator)
+				if validator.Matched {
+					result = res
+				}
+			}
+
+			return result
 		}
 
 		if !strings.HasPrefix(k, key) {
@@ -58,7 +68,14 @@ func (provider *Cache) Prefix(key string, req *http.Request) []byte {
 		}
 
 		if varyVoter(key, req, k) {
-			result = v.Object.([]byte)
+			if res, err := http.ReadResponse(bufio.NewReader(bytes.NewBuffer(v.Object.([]byte))), req); err == nil {
+				rfc.ValidateETag(res, validator)
+				if validator.Matched {
+					result = res
+				}
+			}
+
+			return result
 		}
 	}
 

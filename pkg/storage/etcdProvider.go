@@ -1,6 +1,8 @@
 package storage
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -9,6 +11,7 @@ import (
 	"time"
 
 	t "github.com/darkweak/souin/configurationtypes"
+	"github.com/darkweak/souin/pkg/rfc"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/connectivity"
@@ -102,27 +105,32 @@ func (provider *Etcd) Get(key string) (item []byte) {
 }
 
 // Prefix method returns the populated response if exists, empty response then
-func (provider *Etcd) Prefix(key string, req *http.Request) []byte {
+func (provider *Etcd) Prefix(key string, req *http.Request, validator *rfc.Revalidator) *http.Response {
 	if provider.reconnecting {
 		provider.logger.Sugar().Error("Impossible to get the etcd keys by prefix while reconnecting.")
-		return []byte{}
+		return nil
 	}
 	r, e := provider.Client.Get(provider.ctx, key, clientv3.WithPrefix())
 
 	if e != nil && !provider.reconnecting {
 		go provider.Reconnect()
-		return []byte{}
+		return nil
 	}
 
 	if e == nil && r != nil {
 		for _, v := range r.Kvs {
 			if varyVoter(key, req, string(v.Key)) {
-				return v.Value
+				if res, err := http.ReadResponse(bufio.NewReader(bytes.NewBuffer(v.Value)), req); err == nil {
+					rfc.ValidateETag(res, validator)
+					if validator.Matched {
+						return res
+					}
+				}
 			}
 		}
 	}
 
-	return []byte{}
+	return nil
 }
 
 // Set method will store the response in Etcd provider

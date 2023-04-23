@@ -1,12 +1,15 @@
 package storage
 
 import (
+	"bufio"
+	"bytes"
 	"encoding/json"
 	"net/http"
 	"strconv"
 	"time"
 
 	t "github.com/darkweak/souin/configurationtypes"
+	"github.com/darkweak/souin/pkg/rfc"
 	"github.com/imdario/mergo"
 	"github.com/xujiajun/nutsdb"
 	"go.uber.org/zap"
@@ -136,8 +139,8 @@ func (provider *Nuts) Get(key string) (item []byte) {
 }
 
 // Prefix method returns the populated response if exists, empty response then
-func (provider *Nuts) Prefix(key string, req *http.Request) []byte {
-	var result []byte
+func (provider *Nuts) Prefix(key string, req *http.Request, validator *rfc.Revalidator) *http.Response {
+	var result *http.Response
 
 	_ = provider.DB.View(func(tx *nutsdb.Tx) error {
 		prefix := []byte(key)
@@ -147,8 +150,13 @@ func (provider *Nuts) Prefix(key string, req *http.Request) []byte {
 		} else {
 			for _, entry := range entries {
 				if varyVoter(key, req, string(entry.Key)) {
-					result = entry.Value
-					return nil
+					if res, err := http.ReadResponse(bufio.NewReader(bytes.NewBuffer(entry.Value)), req); err == nil {
+						rfc.ValidateETag(res, validator)
+						if validator.Matched {
+							result = res
+							return nil
+						}
+					}
 				}
 			}
 		}

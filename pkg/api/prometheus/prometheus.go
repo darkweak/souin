@@ -13,10 +13,11 @@ const (
 	counter = "counter"
 	average = "average"
 
-	RequestCounter          = "souin_request_counter"
-	NoCachedResponseCounter = "souin_no_cached_response_counter"
-	CachedResponseCounter   = "souin_cached_response_counter"
-	AvgResponseTime         = "souin_avg_response_time"
+	RequestCounter             = "souin_request_counter"
+	RequestRevalidationCounter = "souin_request_revalidation_counter"
+	NoCachedResponseCounter    = "souin_no_cached_response_counter"
+	CachedResponseCounter      = "souin_cached_response_counter"
+	AvgResponseTime            = "souin_avg_response_time"
 )
 
 // PrometheusAPI object contains informations related to the endpoints
@@ -99,6 +100,7 @@ func push(promType, name, help string) {
 func run() {
 	registered = make(map[string]interface{})
 	push(counter, RequestCounter, "Total request counter")
+	push(counter, RequestRevalidationCounter, "Total request revalidation counter")
 	push(counter, NoCachedResponseCounter, "No cached response counter")
 	push(counter, CachedResponseCounter, "Cached response counter")
 	push(average, AvgResponseTime, "Average response time")

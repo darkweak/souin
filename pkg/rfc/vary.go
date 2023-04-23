@@ -5,8 +5,11 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+)
 
-	"github.com/darkweak/souin/pkg/storage"
+const (
+	VarySeparator          = "{-VARY-}"
+	DecodedHeaderSeparator = ";"
 )
 
 // GetVariedCacheKey returns the varied cache key for req and resp.
@@ -22,7 +25,7 @@ func GetVariedCacheKey(rq *http.Request, headers []string) string {
 		headers[i] = fmt.Sprintf("%s:%s", v, h)
 	}
 
-	return storage.VarySeparator + strings.Join(headers, storage.DecodedHeaderSeparator)
+	return VarySeparator + strings.Join(headers, DecodedHeaderSeparator)
 }
 
 // headerAllCommaSepValues returns all comma-separated values (each

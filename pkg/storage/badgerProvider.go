@@ -1,12 +1,15 @@
 package storage
 
 import (
+	"bufio"
+	"bytes"
 	"encoding/json"
 	"net/http"
 	"regexp"
 	"time"
 
 	t "github.com/darkweak/souin/configurationtypes"
+	"github.com/darkweak/souin/pkg/rfc"
 	badger "github.com/dgraph-io/badger/v3"
 	"github.com/imdario/mergo"
 	"go.uber.org/zap"
@@ -121,8 +124,8 @@ func (provider *Badger) Get(key string) []byte {
 }
 
 // Prefix method returns the populated response if exists, empty response then
-func (provider *Badger) Prefix(key string, req *http.Request) []byte {
-	var result []byte
+func (provider *Badger) Prefix(key string, req *http.Request, validator *rfc.Revalidator) *http.Response {
+	var result *http.Response
 
 	_ = provider.DB.View(func(txn *badger.Txn) error {
 		prefix := []byte(key)
@@ -131,7 +134,13 @@ func (provider *Badger) Prefix(key string, req *http.Request) []byte {
 		for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
 			if varyVoter(key, req, string(it.Item().Key())) {
 				_ = it.Item().Value(func(val []byte) error {
-					result = val
+					if res, err := http.ReadResponse(bufio.NewReader(bytes.NewBuffer(val)), req); err == nil {
+						rfc.ValidateETag(res, validator)
+						if validator.Matched {
+							result = res
+						}
+					}
+
 					return nil
 				})
 			}

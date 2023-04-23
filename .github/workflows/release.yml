@@ -92,3 +92,23 @@ jobs:
           workdir: ./plugins/souin
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  generate-tyk-versions:
+    name: Generate Tyk plugin binaries
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.19
+      -
+        name: Checkout code
+        uses: actions/checkout@v3
+      -
+        name: Generate Tyk amd64 artifacts
+        run: cd plugins/tyk && make vendor && LATEST_VERSION=v5.0 PREVIOUS_VERSION=v4.3 SECOND_TO_LAST_VERSION=v4.2 docker compose -f docker-compose.yml.artifacts up
+      - 
+        name: Upload Tyk amd64 artifacts
+        uses: actions/upload-artifact@v3
+        with: 
+          path: plugins/tyk/*.so

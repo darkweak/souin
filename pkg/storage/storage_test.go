@@ -9,6 +9,7 @@ import (
 
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/errors"
+	"github.com/darkweak/souin/pkg/rfc"
 	"github.com/darkweak/souin/tests"
 )
 
@@ -52,37 +53,37 @@ func TestVaryVoter(t *testing.T) {
 		},
 	}
 
-	varyResponse1 := varyVoter("baseKey", &rq, fmt.Sprintf("baseKey%s%s", VarySeparator, "X-Value-Test:something-valid"))
+	varyResponse1 := varyVoter("baseKey", &rq, fmt.Sprintf("baseKey%s%s", rfc.VarySeparator, "X-Value-Test:something-valid"))
 
 	rq.Header = http.Header{
 		"X-Value-Test":        []string{"something-valid"},
 		"X-Value-Test-Second": []string{"another-valid"},
 	}
-	varyResponse2 := varyVoter("baseKey", &rq, fmt.Sprintf("baseKey%s%s", VarySeparator, "X-Value-Test:something-valid;X-Value-Test-Second:another-valid"))
+	varyResponse2 := varyVoter("baseKey", &rq, fmt.Sprintf("baseKey%s%s", rfc.VarySeparator, "X-Value-Test:something-valid;X-Value-Test-Second:another-valid"))
 
 	rq.Header = http.Header{
 		"X-Value-Test":        []string{"something-valid"},
 		"X-Value-Test-Second": []string{"another-valid"},
 	}
-	varyResponse3 := varyVoter("baseKey", &rq, fmt.Sprintf("baseKey%s%s", VarySeparator, "X-Value-Test:something-valid;X-Value-Test-Second:another-valid;X-Value-Test-Third:"))
+	varyResponse3 := varyVoter("baseKey", &rq, fmt.Sprintf("baseKey%s%s", rfc.VarySeparator, "X-Value-Test:something-valid;X-Value-Test-Second:another-valid;X-Value-Test-Third:"))
 
 	rq.Header = http.Header{
 		"X-Value-Test":        []string{"something-invalid"},
 		"X-Value-Test-Second": []string{"another-valid"},
 	}
-	varyResponse4 := varyVoter("baseKey", &rq, fmt.Sprintf("baseKey%s%s", VarySeparator, "X-Value-Test:something-valid;X-Value-Test-Second:another-valid;X-Value-Test-Third:"))
+	varyResponse4 := varyVoter("baseKey", &rq, fmt.Sprintf("baseKey%s%s", rfc.VarySeparator, "X-Value-Test:something-valid;X-Value-Test-Second:another-valid;X-Value-Test-Third:"))
 
 	rq.Header = http.Header{
 		"X-Value-Test": []string{"something-valid"},
 		"X-With-Comma": []string{"first; directive"},
 	}
-	varyResponse5 := varyVoter("baseKey", &rq, fmt.Sprintf("baseKey%s%s", VarySeparator, "X-Value-Test:something-valid;X-With-Comma:first%3B%20directive"))
+	varyResponse5 := varyVoter("baseKey", &rq, fmt.Sprintf("baseKey%s%s", rfc.VarySeparator, "X-Value-Test:something-valid;X-With-Comma:first%3B%20directive"))
 
 	rq.Header = http.Header{
 		"X-Value-Test": []string{"something-valid"},
 		"X-With-Comma": []string{"first:directive"},
 	}
-	varyResponse6 := varyVoter("baseKey", &rq, fmt.Sprintf("baseKey%s%s", VarySeparator, "X-Value-Test:something-valid;X-With-Comma:first%3Adirective"))
+	varyResponse6 := varyVoter("baseKey", &rq, fmt.Sprintf("baseKey%s%s", rfc.VarySeparator, "X-Value-Test:something-valid;X-With-Comma:first%3Adirective"))
 
 	if !(varyResponse1 && varyResponse2 && varyResponse3 && varyResponse5 && varyResponse6) || varyResponse4 {
 		errors.GenerateError(t, "The varyVoter must match the expected")

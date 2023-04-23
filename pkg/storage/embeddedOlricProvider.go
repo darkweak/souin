@@ -1,6 +1,8 @@
 package storage
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"net/http"
 	"os"
@@ -9,6 +11,7 @@ import (
 	"github.com/buraksezer/olric"
 	"github.com/buraksezer/olric/config"
 	t "github.com/darkweak/souin/configurationtypes"
+	"github.com/darkweak/souin/pkg/rfc"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
@@ -124,21 +127,28 @@ func (provider *EmbeddedOlric) ListKeys() []string {
 }
 
 // Prefix method returns the populated response if exists, empty response then
-func (provider *EmbeddedOlric) Prefix(key string, req *http.Request) []byte {
+func (provider *EmbeddedOlric) Prefix(key string, req *http.Request, validator *rfc.Revalidator) *http.Response {
 	records, err := provider.dm.Scan(provider.ct, olric.Match("^"+key+"({|$)"))
 	if err != nil {
 		provider.logger.Sugar().Errorf("An error occurred while trying to retrieve data in Olric: %s\n", err)
-		return []byte{}
+		return nil
 	}
 
 	for records.Next() {
 		if varyVoter(key, req, records.Key()) {
-			return provider.Get(records.Key())
+			if val := provider.Get(records.Key()); val != nil {
+				if res, err := http.ReadResponse(bufio.NewReader(bytes.NewBuffer(val)), req); err == nil {
+					rfc.ValidateETag(res, validator)
+					if validator.Matched {
+						return res
+					}
+				}
+			}
 		}
 	}
 	records.Close()
 
-	return []byte{}
+	return nil
 }
 
 // Get method returns the populated response if exists, empty response then

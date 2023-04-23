@@ -1,3 +1,5 @@
+version: '3'
+
 server:
   command: "php psr-worker.php"
 http:
