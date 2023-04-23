@@ -3,7 +3,7 @@ FROM ghcr.io/roadrunner-server/velox:latest as velox
 ARG CURRENT_SHA
 ARG GH_TOKEN
 ENV CGO_ENABLED=0
-ENV VERSION=v2.12.0
+ENV VERSION=v2023.1.0
 ENV TIME="$(date +%H:%M)"
 
 RUN apk add git
@@ -22,7 +22,7 @@ COPY --from=velox /usr/bin/rr /usr/bin/rr
 
 RUN apk add linux-headers
 RUN docker-php-ext-install sockets
-RUN composer require spiral/roadrunner nyholm/psr7
+RUN composer require spiral/roadrunner-http nyholm/psr7
 
 COPY plugins/roadrunner/examples .
 

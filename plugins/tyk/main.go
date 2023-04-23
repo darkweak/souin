@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
 	"io"
@@ -42,12 +41,12 @@ func SouinResponseHandler(rw http.ResponseWriter, rs *http.Response, rq *http.Re
 	rq = s.context.SetContext(s.context.SetBaseContext(rq))
 	cacheName := rq.Context().Value(context.CacheName).(string)
 	if rq.Header.Get("Upgrade") == "websocket" || (s.SouinBaseHandler.ExcludeRegex != nil && s.SouinBaseHandler.ExcludeRegex.MatchString(rq.RequestURI)) {
-		rw.Header().Set("Cache-Status", cacheName+"; fwd=uri-miss; detail=EXCLUDED-REQUEST-URI")
+		rw.Header().Set("Cache-Status", cacheName+"; fwd=bypass; detail=EXCLUDED-REQUEST-URI")
 		return
 	}
 
 	if !rq.Context().Value(context.SupportedMethod).(bool) {
-		rw.Header().Set("Cache-Status", cacheName+"; fwd=uri-miss; detail=UNSUPPORTED-METHOD")
+		rw.Header().Set("Cache-Status", cacheName+"; fwd=bypass; detail=UNSUPPORTED-METHOD")
 
 		return
 	}
@@ -86,7 +85,7 @@ func SouinResponseHandler(rw http.ResponseWriter, rs *http.Response, rq *http.Re
 	requestCc, coErr := cacheobject.ParseRequestCacheControl(rq.Header.Get("Cache-Control"))
 
 	if coErr != nil || requestCc == nil {
-		rs.Header.Set("Cache-Status", "Souin; fwd=uri-miss; detail=CACHE-CONTROL-EXTRACTION-ERROR")
+		rs.Header.Set("Cache-Status", "Souin; fwd=bypass; detail=CACHE-CONTROL-EXTRACTION-ERROR")
 
 		return
 	}
@@ -132,12 +131,12 @@ func SouinRequestHandler(rw http.ResponseWriter, rq *http.Request) {
 	rq = s.context.SetBaseContext(rq)
 	cacheName := rq.Context().Value(context.CacheName).(string)
 	if rq.Header.Get("Upgrade") == "websocket" || (s.SouinBaseHandler.ExcludeRegex != nil && s.SouinBaseHandler.ExcludeRegex.MatchString(rq.RequestURI)) {
-		rw.Header().Set("Cache-Status", cacheName+"; fwd=uri-miss; detail=EXCLUDED-REQUEST-URI")
+		rw.Header().Set("Cache-Status", cacheName+"; fwd=bypass; detail=EXCLUDED-REQUEST-URI")
 		return
 	}
 
 	if !rq.Context().Value(context.SupportedMethod).(bool) {
-		rw.Header().Set("Cache-Status", cacheName+"; fwd=uri-miss; detail=UNSUPPORTED-METHOD")
+		rw.Header().Set("Cache-Status", cacheName+"; fwd=bypass; detail=UNSUPPORTED-METHOD")
 
 		return
 	}
@@ -145,7 +144,7 @@ func SouinRequestHandler(rw http.ResponseWriter, rq *http.Request) {
 	requestCc, coErr := cacheobject.ParseRequestCacheControl(rq.Header.Get("Cache-Control"))
 
 	if coErr != nil || requestCc == nil {
-		rw.Header().Set("Cache-Status", cacheName+"; fwd=uri-miss; detail=CACHE-CONTROL-EXTRACTION-ERROR")
+		rw.Header().Set("Cache-Status", cacheName+"; fwd=bypass; detail=CACHE-CONTROL-EXTRACTION-ERROR")
 
 		return
 	}
@@ -157,8 +156,8 @@ func SouinRequestHandler(rw http.ResponseWriter, rq *http.Request) {
 	bufPool.Reset()
 	defer s.bufPool.Put(bufPool)
 	if !requestCc.NoCache {
-		cachedVal := s.SouinBaseHandler.Storer.Prefix(cachedKey, rq)
-		response, _ := http.ReadResponse(bufio.NewReader(bytes.NewBuffer(cachedVal)), rq)
+		validator := rfc.ParseRequest(rq)
+		response := s.SouinBaseHandler.Storer.Prefix(cachedKey, rq, validator)
 
 		if response != nil && rfc.ValidateCacheControl(response, requestCc) {
 			rfc.SetCacheStatusHeader(response)
@@ -170,9 +169,8 @@ func SouinRequestHandler(rw http.ResponseWriter, rq *http.Request) {
 
 				return
 			}
-		} else if response == nil {
-			staleCachedVal := s.SouinBaseHandler.Storer.Prefix(storage.StalePrefix+cachedKey, rq)
-			response, _ = http.ReadResponse(bufio.NewReader(bytes.NewBuffer(staleCachedVal)), rq)
+		} else if response == nil && (requestCc.MaxStaleSet || requestCc.MaxStale > -1) {
+			response := s.SouinBaseHandler.Storer.Prefix(storage.StalePrefix+cachedKey, rq, validator)
 			if nil != response && rfc.ValidateCacheControl(response, requestCc) {
 				addTime, _ := time.ParseDuration(response.Header.Get(rfc.StoredTTLHeader))
 				rfc.SetCacheStatusHeader(response)

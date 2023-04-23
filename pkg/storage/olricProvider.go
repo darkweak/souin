@@ -1,6 +1,8 @@
 package storage
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -11,6 +13,7 @@ import (
 	"github.com/buraksezer/olric"
 	"github.com/buraksezer/olric/config"
 	t "github.com/darkweak/souin/configurationtypes"
+	"github.com/darkweak/souin/pkg/rfc"
 	"go.uber.org/zap"
 )
 
@@ -70,10 +73,10 @@ func (provider *Olric) ListKeys() []string {
 }
 
 // Prefix method returns the populated response if exists, empty response then
-func (provider *Olric) Prefix(key string, req *http.Request) []byte {
+func (provider *Olric) Prefix(key string, req *http.Request, validator *rfc.Revalidator) *http.Response {
 	if provider.reconnecting {
 		provider.logger.Sugar().Error("Impossible to get the olric keys by prefix while reconnecting.")
-		return []byte{}
+		return nil
 	}
 	dm := provider.dm.Get().(olric.DMap)
 	defer provider.dm.Put(dm)
@@ -84,17 +87,24 @@ func (provider *Olric) Prefix(key string, req *http.Request) []byte {
 			go provider.Reconnect()
 		}
 		provider.logger.Sugar().Errorf("An error occurred while trying to retrieve data in Olric: %s\n", err)
-		return []byte{}
+		return nil
 	}
 
 	for records.Next() {
 		if varyVoter(key, req, records.Key()) {
-			return provider.Get(records.Key())
+			if val := provider.Get(records.Key()); val != nil {
+				if res, err := http.ReadResponse(bufio.NewReader(bytes.NewBuffer(val)), req); err == nil {
+					rfc.ValidateETag(res, validator)
+					if validator.Matched {
+						return res
+					}
+				}
+			}
 		}
 	}
 	records.Close()
 
-	return []byte{}
+	return nil
 }
 
 // Get method returns the populated response if exists, empty response then

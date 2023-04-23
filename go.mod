@@ -10,7 +10,7 @@ require (
 	github.com/go-chi/stampede v0.5.1
 	github.com/google/uuid v1.3.0
 	github.com/imdario/mergo v0.3.13
-	github.com/pquerna/cachecontrol v0.1.0
+	github.com/pquerna/cachecontrol v0.1.1-0.20230415224848-baaf0ee61529
 	github.com/prometheus/client_golang v1.14.0
 	github.com/prometheus/client_model v0.3.0
 	github.com/redis/go-redis/v9 v9.0.2

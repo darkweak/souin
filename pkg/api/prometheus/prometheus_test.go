@@ -13,8 +13,8 @@ func Test_Run(t *testing.T) {
 	}
 
 	run()
-	if len(registered) != 4 {
-		t.Error("The registered additional metrics array must have 4 items.")
+	if len(registered) != 5 {
+		t.Error("The registered additional metrics array must have 5 items.")
 	}
 
 	i, ok := registered[RequestCounter]
@@ -24,6 +24,15 @@ func Test_Run(t *testing.T) {
 	_, ok = i.(*prometheus.Counter)
 	if ok {
 		t.Errorf("The souin_request_counter element must be a *prometheus.Counter object, %T given.", i)
+	}
+
+	i, ok = registered[RequestRevalidationCounter]
+	if !ok {
+		t.Error("The registered array must have the souin_request_revalidation_counter key")
+	}
+	_, ok = i.(*prometheus.Counter)
+	if ok {
+		t.Errorf("The souin_request_revalidation_counter element must be a *prometheus.Counter object, %T given.", i)
 	}
 
 	i, ok = registered[NoCachedResponseCounter]

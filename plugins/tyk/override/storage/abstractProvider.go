@@ -7,11 +7,10 @@ import (
 	"time"
 
 	"github.com/darkweak/souin/configurationtypes"
+	"github.com/darkweak/souin/pkg/rfc"
 )
 
 const (
-	VarySeparator                   = "{-VARY-}"
-	DecodedHeaderSeparator          = ";"
 	encodedHeaderSemiColonSeparator = "%3B"
 	encodedHeaderColonSeparator     = "%3A"
 	StalePrefix                     = "STALE_"
@@ -19,7 +18,7 @@ const (
 
 type Storer interface {
 	ListKeys() []string
-	Prefix(key string, req *http.Request) []byte
+	Prefix(key string, req *http.Request, validator *rfc.Revalidator) *http.Response
 	Get(key string) []byte
 	Set(key string, value []byte, url configurationtypes.URL, duration time.Duration) error
 	Delete(key string)
@@ -39,8 +38,8 @@ func varyVoter(baseKey string, req *http.Request, currentKey string) bool {
 		return true
 	}
 
-	if strings.Contains(currentKey, VarySeparator) && strings.HasPrefix(currentKey, baseKey+VarySeparator) {
-		list := currentKey[(strings.LastIndex(currentKey, VarySeparator) + len(VarySeparator)):]
+	if strings.Contains(currentKey, rfc.VarySeparator) && strings.HasPrefix(currentKey, baseKey+rfc.VarySeparator) {
+		list := currentKey[(strings.LastIndex(currentKey, rfc.VarySeparator) + len(rfc.VarySeparator)):]
 		if len(list) == 0 {
 			return false
 		}
