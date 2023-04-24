@@ -9,11 +9,16 @@ on:
       CAPITALIZED_NAME:
         required: true
         type: string
+      GO_VERSION:
+        required: true
+        type: string
 
 jobs:
   plugin-test:
     name: Check that Souin build as ${{ inputs.CAPITALIZED_NAME }} middleware
     runs-on: ubuntu-latest
+    env: 
+      GO_VERSION: ${{ inputs.GO_VERSION }}
     steps:
       -
         name: Add domain.com host to /etc/hosts
@@ -23,7 +28,7 @@ jobs:
         name: Install Go
         uses: actions/setup-go@v3
         with:
-          go-version: 1.20
+          go-version: ${{ inputs.GO_VERSION }}
       -
         name: Checkout code
         uses: actions/checkout@v3

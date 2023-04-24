@@ -4,6 +4,9 @@ on:
   create:
     tags: ["v*"]
 
+env:
+  GO_VERSION: '1.20'
+
 jobs:
   generate-souin-traefik-docker:
     name: Generate embedded Souin as traefik middleware
@@ -39,6 +42,8 @@ jobs:
   generate-souin-docker:
     name: Generate souin docker
     runs-on: ubuntu-latest
+    env: 
+      GO_VERSION: ${{ inputs.GO_VERSION }}
     steps:
       -
         name: Get tag name
@@ -75,9 +80,9 @@ jobs:
     steps:
       -
         name: Set up Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
-          go-version: 1.20
+          go-version: ${{ env.GO_VERSION }}
       -
         name: Checkout
         uses: actions/checkout@v2
@@ -95,18 +100,23 @@ jobs:
   generate-tyk-versions:
     name: Generate Tyk plugin binaries
     runs-on: ubuntu-latest
+    env: 
+      GO_VERSION: ${{ inputs.GO_VERSION }}
+      LATEST_VERSION: v5.0
+      PREVIOUS_VERSION: v4.3
+      SECOND_TO_LAST_VERSION: v4.2
     steps:
       -
         name: Set up Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
-          go-version: 1.20
+          go-version: ${{ env.GO_VERSION }}
       -
         name: Checkout code
         uses: actions/checkout@v3
       -
         name: Generate Tyk amd64 artifacts
-        run: cd plugins/tyk && make vendor && LATEST_VERSION=v5.0 PREVIOUS_VERSION=v4.3 SECOND_TO_LAST_VERSION=v4.2 docker compose -f docker-compose.yml.artifacts up
+        run: cd plugins/tyk && make vendor && docker compose -f docker-compose.yml.artifacts up
       - 
         name: Upload Tyk amd64 artifacts
         uses: actions/upload-artifact@v3

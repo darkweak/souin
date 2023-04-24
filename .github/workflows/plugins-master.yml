@@ -5,6 +5,9 @@ on:
     branches:
       - master
 
+env:
+  GO_VERSION: '1.20'
+
 jobs:
   build-caddy-validator:
     name: Check that Souin build as caddy module and can be tagged on master
@@ -18,7 +21,7 @@ jobs:
         name: Install Go
         uses: actions/setup-go@v3
         with:
-          go-version: 1.20
+          go-version: ${{ env.GO_VERSION }}
       -
         name: Checkout code
         uses: actions/checkout@v3
