@@ -1,6 +1,6 @@
 module github.com/darkweak/souin/plugins/caddy
 
-go 1.19
+go 1.20
 
 require (
 	github.com/buraksezer/olric v0.5.4

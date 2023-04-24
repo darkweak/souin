@@ -42,8 +42,6 @@ jobs:
   generate-souin-docker:
     name: Generate souin docker
     runs-on: ubuntu-latest
-    env: 
-      GO_VERSION: ${{ inputs.GO_VERSION }}
     steps:
       -
         name: Get tag name
@@ -100,8 +98,7 @@ jobs:
   generate-tyk-versions:
     name: Generate Tyk plugin binaries
     runs-on: ubuntu-latest
-    env: 
-      GO_VERSION: ${{ inputs.GO_VERSION }}
+    env:
       LATEST_VERSION: v5.0
       PREVIOUS_VERSION: v4.3
       SECOND_TO_LAST_VERSION: v4.2

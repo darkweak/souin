@@ -115,7 +115,7 @@ func TestGetExcludedRequest(t *testing.T) {
 	engine := setupEngine("/excluded", "Hello excluded!")
 
 	rr1 := ut.PerformRequest(engine, http.MethodGet, "http://domain.com/excluded", nil)
-	if rr1.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; detail=EXCLUDED-REQUEST-URI" {
+	if rr1.Result().Header.Get("Cache-Status") != "Souin; fwd=bypass; detail=EXCLUDED-REQUEST-URI" {
 		t.Errorf("The Cache-Status header response mismatched the expectations, %s given.", rr1.Result().Header.Get("Cache-Status"))
 	}
 	if rr1.Result().Header.Get("Age") != "" {
@@ -126,7 +126,7 @@ func TestGetExcludedRequest(t *testing.T) {
 	}
 
 	rr2 := ut.PerformRequest(engine, http.MethodGet, "http://domain.com/excluded", nil)
-	if rr2.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; detail=EXCLUDED-REQUEST-URI" {
+	if rr2.Result().Header.Get("Cache-Status") != "Souin; fwd=bypass; detail=EXCLUDED-REQUEST-URI" {
 		t.Errorf("The Cache-Status header response mismatched the expectations, %s given.", rr2.Result().Header.Get("Cache-Status"))
 	}
 	if rr2.Result().Header.Get("Age") != "" {
@@ -175,7 +175,7 @@ func TestAllowedMethodsRequest(t *testing.T) {
 	validateStoreAllowedMethods(t, engine, http.MethodPost)
 
 	rr1 := ut.PerformRequest(engine, http.MethodPut, "http://domain.com/allowed_methods", nil)
-	if rr1.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; detail=UNSUPPORTED-METHOD" {
+	if rr1.Result().Header.Get("Cache-Status") != "Souin; fwd=bypass; detail=UNSUPPORTED-METHOD" {
 		t.Errorf("The Cache-Status header response mismatched the expectations, %s given.", rr1.Result().Header.Get("Cache-Status"))
 	}
 	if rr1.Result().Header.Get("Age") != "" {
@@ -186,7 +186,7 @@ func TestAllowedMethodsRequest(t *testing.T) {
 	}
 
 	rr2 := ut.PerformRequest(engine, http.MethodPut, "http://domain.com/allowed_methods", nil)
-	if rr2.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; detail=UNSUPPORTED-METHOD" {
+	if rr2.Result().Header.Get("Cache-Status") != "Souin; fwd=bypass; detail=UNSUPPORTED-METHOD" {
 		t.Errorf("The Cache-Status header response mismatched the expectations, %s given.", rr2.Result().Header.Get("Cache-Status"))
 	}
 	if rr2.Result().Header.Get("Age") != "" {

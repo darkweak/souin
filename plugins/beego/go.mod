@@ -1,6 +1,6 @@
 module github.com/darkweak/souin/plugins/beego
 
-go 1.19
+go 1.20
 
 require (
 	github.com/beego/beego/v2 v2.0.7
