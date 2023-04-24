@@ -81,8 +81,7 @@ func parseCacheKeys(ccConfiguration map[string]interface{}) configurationtypes.C
 				}
 			}
 		}
-		rg := regexp.MustCompile(cacheKeysConfigurationK)
-		cacheKeys = append(cacheKeys, configurationtypes.CacheKey{{Regexp: rg}: ck})
+		cacheKeys = append(cacheKeys, configurationtypes.CacheKey{{Regexp: regexp.MustCompile(cacheKeysConfigurationK)}: ck})
 	}
 
 	return cacheKeys

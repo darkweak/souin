@@ -1,6 +1,6 @@
 module github.com/darkweak/souin/plugins/go-zero
 
-go 1.19
+go 1.20
 
 require (
 	github.com/darkweak/souin v1.6.36

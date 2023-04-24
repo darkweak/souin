@@ -111,7 +111,7 @@ func (y *YKeyStorage) invalidateURL(url string) {
 	for key := range y.Keys {
 		v, found := y.Cache.Get(key)
 		if found && urlRegexp.MatchString(v.(string)) {
-			y.Set(key, urlRegexp.ReplaceAllString(v.(string), ""), 1)
+			y.Cache.Set(key, urlRegexp.ReplaceAllString(v.(string), ""), 1)
 		}
 	}
 }

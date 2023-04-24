@@ -25,17 +25,18 @@
   8.5. [Echo middleware](#echo-middleware)  
   8.6. [Fiber middleware](#fiber-middleware)  
   8.7. [Gin middleware](#gin-middleware)  
-  8.8. [Go-zero middleware](#go-zero-middleware)  
-  8.9. [Goyave middleware](#goyave-middleware)  
-  8.10. [Hertz middleware](#hertz-middleware)  
-  8.11. [Kratos filter](#kratos-filter)  
-  8.12. [Roadrunner middleware](#roadrunner-middleware)  
-  8.13. [Skipper filter](#skipper-filter)  
-  8.14. [Træfik plugin](#træfik-plugin)  
-  8.15. [Tyk plugin](#tyk-plugin)  
-  8.16. [Webgo middleware](#webgo-middleware)  
-  8.17. [Prestashop plugin](#prestashop-plugin)  
-  8.18. [Wordpress plugin](#wordpress-plugin)  
+  8.8. [Goa middleware](#goa-middleware)  
+  8.9. [Go-zero middleware](#go-zero-middleware)  
+  8.10. [Goyave middleware](#goyave-middleware)  
+  8.11. [Hertz middleware](#hertz-middleware)  
+  8.12. [Kratos filter](#kratos-filter)  
+  8.13. [Roadrunner middleware](#roadrunner-middleware)  
+  8.14. [Skipper filter](#skipper-filter)  
+  8.15. [Træfik plugin](#træfik-plugin)  
+  8.16. [Tyk plugin](#tyk-plugin)  
+  8.17. [Webgo middleware](#webgo-middleware)  
+  8.18. [Prestashop plugin](#prestashop-plugin)  
+  8.19. [Wordpress plugin](#wordpress-plugin)  
 9. [Credits](#credits)
 
 # Souin HTTP cache
@@ -732,6 +733,27 @@ func main(){
     // ...
 	httpcache := cache.NewHTTPCache(cache.DevDefaultConfiguration)
 	server.Use(httpcache.Handle)
+    // ...
+
+}
+```
+
+### Goa middleware
+To use Souin as goa middleware, you can refer to the [Goa plugin integration folder](https://github.com/darkweak/souin/tree/master/plugins/goa) to discover how to configure it.  
+You just have to start Goa, define a new goa router and tell to the router instance to use the Handle method as GlobalMiddleware like below:
+```go
+import (
+	"net/http"
+
+	httpcache "github.com/darkweak/souin/plugins/goa"
+	goahttp "goa.design/goa/v3/http"
+)
+
+func main(){
+
+    // ...
+	g := goahttp.NewMuxer()
+	g.Use(httpcache.NewHTTPCache(httpcache.DevDefaultConfiguration))
     // ...
 
 }

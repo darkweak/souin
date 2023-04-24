@@ -5,7 +5,7 @@ RUN apk update && \
     git clone https://github.com/darkweak/souin.git /plugins-local/src/github.com/darkweak/souin \
       --depth 1 --single-branch --branch master
 
-FROM traefik:v2.7
+FROM traefik:v3.0
 COPY --from=0 /plugins-local /plugins-local
 COPY --from=0 /plugins-local/src/github.com/darkweak/souin/plugins/traefik/traefik.yml /traefik.yml
 COPY --from=0 /plugins-local/src/github.com/darkweak/souin/plugins/traefik/souin-configuration.yaml /souin-configuration.yaml
