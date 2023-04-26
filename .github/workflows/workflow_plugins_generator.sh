@@ -1,6 +1,7 @@
 #!/bin/bash
 
-plugins=("beego"  "chi"  "dotweb"  "echo"  "fiber"  "gin"  "go-zero"  "kratos"  "roadrunner"  "skipper"  "souin"  "traefik"  "tyk"  "webgo")
+plugins=("beego"  "chi"  "dotweb"  "echo"  "fiber"  "gin"  "goa"  "go-zero"  "hertz"  "kratos"  "roadrunner"  "skipper"  "souin"  "traefik"  "tyk"  "webgo")
+go_version=1.20
 
 IFS= read -r -d '' tpl <<EOF
 name: Build and validate Souin as plugins
@@ -39,9 +40,9 @@ jobs:
           sudo echo "127.0.0.1 domain.com etcd redis" | sudo tee -a /etc/hosts
       -
         name: Install Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
-          go-version: 1.19
+          go-version: '$go_version'
       -
         name: Checkout code
         uses: actions/checkout@v2
@@ -93,6 +94,7 @@ for i in ${!plugins[@]}; do
     with:
       CAPITALIZED_NAME: $capitalized
       LOWER_NAME: $lower
+      GO_VERSION: '$go_version'
 EOF
   workflow+="$tpl"
 done

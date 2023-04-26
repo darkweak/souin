@@ -34,9 +34,9 @@ jobs:
           sudo echo "127.0.0.1 domain.com etcd redis" | sudo tee -a /etc/hosts
       -
         name: Install Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
-          go-version: 1.19
+          go-version: '1.20'
       -
         name: Checkout code
         uses: actions/checkout@v2
@@ -81,6 +81,7 @@ jobs:
     with:
       CAPITALIZED_NAME: Beego
       LOWER_NAME: beego
+      GO_VERSION: '1.20'
   build-chi-validator:
     name: Check that Souin build as middleware
     uses: ./.github/workflows/plugin_template.yml
@@ -88,6 +89,7 @@ jobs:
     with:
       CAPITALIZED_NAME: Chi
       LOWER_NAME: chi
+      GO_VERSION: '1.20'
   build-dotweb-validator:
     name: Check that Souin build as middleware
     uses: ./.github/workflows/plugin_template.yml
@@ -95,6 +97,7 @@ jobs:
     with:
       CAPITALIZED_NAME: Dotweb
       LOWER_NAME: dotweb
+      GO_VERSION: '1.20'
   build-echo-validator:
     name: Check that Souin build as middleware
     uses: ./.github/workflows/plugin_template.yml
@@ -102,6 +105,7 @@ jobs:
     with:
       CAPITALIZED_NAME: Echo
       LOWER_NAME: echo
+      GO_VERSION: '1.20'
   build-fiber-validator:
     name: Check that Souin build as middleware
     uses: ./.github/workflows/plugin_template.yml
@@ -109,6 +113,7 @@ jobs:
     with:
       CAPITALIZED_NAME: Fiber
       LOWER_NAME: fiber
+      GO_VERSION: '1.20'
   build-gin-validator:
     name: Check that Souin build as middleware
     uses: ./.github/workflows/plugin_template.yml
@@ -116,6 +121,15 @@ jobs:
     with:
       CAPITALIZED_NAME: Gin
       LOWER_NAME: gin
+      GO_VERSION: '1.20'
+  build-goa-validator:
+    name: Check that Souin build as middleware
+    uses: ./.github/workflows/plugin_template.yml
+    secrets: inherit
+    with:
+      CAPITALIZED_NAME: Goa
+      LOWER_NAME: goa
+      GO_VERSION: '1.20'
   build-go-zero-validator:
     name: Check that Souin build as middleware
     uses: ./.github/workflows/plugin_template.yml
@@ -123,6 +137,15 @@ jobs:
     with:
       CAPITALIZED_NAME: Go-zero
       LOWER_NAME: go-zero
+      GO_VERSION: '1.20'
+  build-hertz-validator:
+    name: Check that Souin build as middleware
+    uses: ./.github/workflows/plugin_template.yml
+    secrets: inherit
+    with:
+      CAPITALIZED_NAME: Hertz
+      LOWER_NAME: hertz
+      GO_VERSION: '1.20'
   build-kratos-validator:
     name: Check that Souin build as middleware
     uses: ./.github/workflows/plugin_template.yml
@@ -130,6 +153,7 @@ jobs:
     with:
       CAPITALIZED_NAME: Kratos
       LOWER_NAME: kratos
+      GO_VERSION: '1.20'
   build-roadrunner-validator:
     name: Check that Souin build as middleware
     uses: ./.github/workflows/plugin_template.yml
@@ -137,6 +161,7 @@ jobs:
     with:
       CAPITALIZED_NAME: Roadrunner
       LOWER_NAME: roadrunner
+      GO_VERSION: '1.20'
   build-skipper-validator:
     name: Check that Souin build as middleware
     uses: ./.github/workflows/plugin_template.yml
@@ -144,6 +169,7 @@ jobs:
     with:
       CAPITALIZED_NAME: Skipper
       LOWER_NAME: skipper
+      GO_VERSION: '1.20'
   build-souin-validator:
     name: Check that Souin build as middleware
     uses: ./.github/workflows/plugin_template.yml
@@ -151,6 +177,7 @@ jobs:
     with:
       CAPITALIZED_NAME: Souin
       LOWER_NAME: souin
+      GO_VERSION: '1.20'
   build-traefik-validator:
     name: Check that Souin build as middleware
     uses: ./.github/workflows/plugin_template.yml
@@ -158,6 +185,7 @@ jobs:
     with:
       CAPITALIZED_NAME: Traefik
       LOWER_NAME: traefik
+      GO_VERSION: '1.20'
   build-tyk-validator:
     name: Check that Souin build as middleware
     uses: ./.github/workflows/plugin_template.yml
@@ -165,6 +193,7 @@ jobs:
     with:
       CAPITALIZED_NAME: Tyk
       LOWER_NAME: tyk
+      GO_VERSION: '1.20'
   build-webgo-validator:
     name: Check that Souin build as middleware
     uses: ./.github/workflows/plugin_template.yml
@@ -172,3 +201,4 @@ jobs:
     with:
       CAPITALIZED_NAME: Webgo
       LOWER_NAME: webgo
+      GO_VERSION: '1.20'

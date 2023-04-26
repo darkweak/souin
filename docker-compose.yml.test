@@ -10,6 +10,8 @@ services:
       context: .
       target: souin
       dockerfile: Dockerfile-dev
+      args:
+        GO_VERSION: ${GO_VERSION}
     depends_on:
       - olric
     ports:

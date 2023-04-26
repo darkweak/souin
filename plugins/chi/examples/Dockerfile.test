@@ -1,4 +1,6 @@
-FROM golang:1.19-alpine AS development-runner
+ARG GO_VERSION
+
+FROM golang:${GO_VERSION}-alpine AS development-runner
 
 RUN apk update && apk upgrade && \
     apk add --no-cache bash git openssh gcc libc-dev
