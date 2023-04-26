@@ -29,7 +29,7 @@ func Test_KeyContext_SetupContext(t *testing.T) {
 		Regexp: regexp.MustCompile(".*"),
 	}
 	m := configurationtypes.CacheKeys{
-		{
+		configurationtypes.CacheKey{
 			rg: configurationtypes.Key{
 				DisableHost:   true,
 				DisableMethod: true,

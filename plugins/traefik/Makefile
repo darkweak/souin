@@ -5,6 +5,7 @@ PKG=$(SOUIN)/pkg
 API=$(SOUIN)/api
 PKG_API=$(PKG)/api
 CACHE=$(SOUIN)/cache
+DC=docker-compose -f docker-compose.yml.test 
 
 copy-to: ## Copy from to
 	rm -rf $(base)/$(target)
@@ -15,12 +16,11 @@ copy-file-to: ## Copy file from to
 	scp -r override/$(target) $(base)/$(target)
 
 load-checker: ## Ensure Souin is running
-	echo "MIDDLEWARE_RESULT=$$(docker-compose logs traefik | grep 'Souin configuration' | tail -n 1)"
+	echo "MIDDLEWARE_RESULT=$$($(DC) logs traefik | grep 'Souin configuration' | tail -n 1)"
 
 prepare: vendor ## Prepare traefik plugin
-	cp docker-compose.yml.test docker-compose.yml
-	docker-compose down --remove-orphans
-	docker-compose up -d
+	$(DC) down --remove-orphans
+	$(DC) up -d
 
 # TODO find another way to do that
 replace: ## Replace sources in the vendor folder deeper than the go mod replace

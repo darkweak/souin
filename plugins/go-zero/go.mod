@@ -1,9 +1,9 @@
 module github.com/darkweak/souin/plugins/go-zero
 
-go 1.19
+go 1.20
 
 require (
-	github.com/darkweak/souin v1.6.36
+	github.com/darkweak/souin v1.6.38
 	github.com/zeromicro/go-zero v1.5.0
 )
 
@@ -107,4 +107,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/darkweak/souin v1.6.36 => ../..
+replace github.com/darkweak/souin v1.6.38 => ../..

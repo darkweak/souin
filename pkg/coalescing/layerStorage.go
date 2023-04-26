@@ -37,13 +37,13 @@ func (provider *CoalescingLayerStorage) Set(key string) {
 // Delete method will delete the response in Ristretto provider if exists corresponding to key param
 func (provider *CoalescingLayerStorage) Delete(key string) {
 	go func() {
-		provider.Del(key)
+		provider.Cache.Del(key)
 	}()
 }
 
 // Destruct method will shutdown properly the provider
 func (provider *CoalescingLayerStorage) Destruct() error {
-	provider.Close()
+	provider.Cache.Close()
 
 	return nil
 }

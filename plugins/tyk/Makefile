@@ -1,14 +1,15 @@
 .PHONY: load-checker prepare replace vendor
 
+DC=docker-compose -f docker-compose.yml.test 
+
 load-checker: ## Ensure Souin is running
-	echo "MIDDLEWARE_RESULT=$$(docker compose logs tyk-gateway | grep 'Souin configuration' | tail -n 1)"
+	echo "MIDDLEWARE_RESULT=$$($(DC) logs tyk-gateway | grep 'Souin configuration' | tail -n 1)"
 
 prepare: vendor ## Prepare tyk plugin
-	cp docker-compose.yml.test docker-compose.yml
-	docker compose down --remove-orphans
-	docker compose up tyk-builder
+	$(DC) down --remove-orphans
+	$(DC) up tyk-builder
 	mv souin-plugin_v5.0.0_linux_amd64.so ./samples/middleware/
-	docker compose up -d --remove-orphans --build tyk-pump tyk-gateway
+	$(DC) up -d --remove-orphans --build tyk-pump tyk-gateway
 
 # TODO find another way to do that
 replace: ## Replace sources in the vendor folder deeper than the go mod replace

@@ -6,7 +6,7 @@ import (
 
 	"github.com/darkweak/souin/configurationtypes"
 	"go.uber.org/zap"
-	"gopkg.in/yaml.v3"
+	yaml "gopkg.in/yaml.v3"
 )
 
 // Configuration holder

@@ -10,6 +10,8 @@ services:
       context: .
       target: souin
       dockerfile: Dockerfile-prod
+      args:
+        GO_VERSION: ${GO_VERSION}
     ports:
       - 80:80
 #      - 443:443

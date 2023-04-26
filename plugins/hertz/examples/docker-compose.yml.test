@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  hertz:
+    build:
+      context: ../../..
+      dockerfile: plugins/hertz/examples/Dockerfile.test
+      target: development-runner
+      args:
+        GO_VERSION: ${GO_VERSION}
+    ports:
+      - 80:80

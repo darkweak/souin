@@ -14,7 +14,7 @@ import (
 	"github.com/darkweak/souin/pkg/rfc"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
-	"gopkg.in/yaml.v3"
+	yaml "gopkg.in/yaml.v3"
 )
 
 // EmbeddedOlric provider type

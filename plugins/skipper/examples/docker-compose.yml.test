@@ -6,5 +6,7 @@ services:
       context: ../../..
       dockerfile: plugins/skipper/examples/Dockerfile.test
       target: development-runner
+      args:
+        GO_VERSION: ${GO_VERSION}
     ports:
       - 80:80

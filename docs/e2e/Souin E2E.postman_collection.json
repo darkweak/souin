@@ -1682,6 +1682,156 @@
 			]
 		},
 		{
+			"name": "Goa",
+			"item": [
+				{
+					"name": "Default",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.basicRequest(pm, `${utils.getVar(pm, 'app_url')}/default`)"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{app_url}}/default",
+							"host": [
+								"{{app_url}}"
+							],
+							"path": [
+								"default"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Default no cache",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.noCacheRequest(pm, `${utils.getVar(pm, 'app_url')}/default`)"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cache-Control",
+								"value": "no-cache",
+								"type": "default"
+							}
+						],
+						"url": {
+							"raw": "{{app_url}}/default",
+							"host": [
+								"{{app_url}}"
+							],
+							"path": [
+								"default"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Default no store",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.noStoreRequest(pm, `${utils.getVar(pm, 'app_url')}/default`)"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cache-Control",
+								"value": "no-store",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{app_url}}/default",
+							"host": [
+								"{{app_url}}"
+							],
+							"path": [
+								"default"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Exclude regex",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"utils.excludedRequest(pm, `${utils.getVar(pm, 'app_url')}/excluded`)"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{app_url}}/excluded",
+							"host": [
+								"{{app_url}}"
+							],
+							"path": [
+								"excluded"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.collectionVariables.set('app_url', pm.collectionVariables.get('goa_url'))",
+							"pm.collectionVariables.set('current_host', pm.collectionVariables.get('goa_url').match(/^https?\\:\\/\\/([^\\/?#]+)(?:[\\/?#]|$)/i)[1])"
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			]
+		},
+		{
 			"name": "Go-zero",
 			"item": [
 				{
@@ -3427,6 +3577,10 @@
 		},
 		{
 			"key": "fiber_url",
+			"value": "http://domain.com"
+		},
+		{
+			"key": "goa_url",
 			"value": "http://domain.com"
 		},
 		{

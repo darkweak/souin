@@ -1,10 +1,10 @@
 module github.com/darkweak/souin/plugins/webgo
 
-go 1.19
+go 1.20
 
 require (
 	github.com/bnkamalesh/webgo/v6 v6.7.0
-	github.com/darkweak/souin v1.6.36
+	github.com/darkweak/souin v1.6.38
 )
 
 require (
@@ -83,4 +83,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/darkweak/souin v1.6.36 => ../..
+replace github.com/darkweak/souin v1.6.38 => ../..

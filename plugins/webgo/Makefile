@@ -1,10 +1,12 @@
 .PHONY: load-checker prepare vendor
 
+DC=docker-compose -f docker-compose.yml.test 
+
 load-checker: ## Ensure Souin is running
-	cd examples && echo "MIDDLEWARE_RESULT=$$(docker-compose logs webgo | grep 'Souin configuration' | tail -n 1)"
+	cd examples && echo "MIDDLEWARE_RESULT=$$($(DC) logs webgo | grep 'Souin configuration' | tail -n 1)"
 
 prepare: vendor ## Prepare webgo plugin
-	cd examples && cp docker-compose.yml.test docker-compose.yml && docker-compose up -d
+	cd examples && $(DC) up -d --build
 
 vendor: ## Update the go mods for the plugin
 	go mod tidy
