@@ -492,6 +492,9 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 			return nil
 		}
 	case v := <-errorCacheCh:
+		if v == nil {
+			_, _ = customWriter.Send()
+		}
 		return v
 	}
 }
