@@ -377,6 +377,14 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 	bufPool.Reset()
 	defer s.bufPool.Put(bufPool)
 	customWriter := NewCustomWriter(rq, rw, bufPool)
+	go func(req *http.Request, crw *CustomWriter) {
+		select {
+		case <-req.Context().Done():
+			crw.mutex.Lock()
+			crw.headersSent = true
+			crw.mutex.Unlock()
+		}
+	}(rq, customWriter)
 	s.Configuration.GetLogger().Sugar().Debugf("Request cache-control %+v", requestCc)
 	if !requestCc.NoCache {
 		validator := rfc.ParseRequest(rq)
