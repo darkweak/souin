@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 
 	"github.com/darkweak/go-esi/esi"
 	"github.com/darkweak/souin/pkg/rfc"
@@ -24,6 +25,7 @@ func NewCustomWriter(rq *http.Request, rw http.ResponseWriter, b *bytes.Buffer) 
 		Req:        rq,
 		Rw:         rw,
 		Headers:    http.Header{},
+		mutex:      &sync.Mutex{},
 	}
 }
 
@@ -34,12 +36,15 @@ type CustomWriter struct {
 	Req         *http.Request
 	Headers     http.Header
 	headersSent bool
+	mutex       *sync.Mutex
 	statusCode  int
 	// size        int
 }
 
 // Header will write the response headers
 func (r *CustomWriter) Header() http.Header {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
 	if r.headersSent {
 		return http.Header{}
 	}
@@ -48,6 +53,8 @@ func (r *CustomWriter) Header() http.Header {
 
 // WriteHeader will write the response headers
 func (r *CustomWriter) WriteHeader(code int) {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
 	if r.headersSent {
 		return
 	}
@@ -76,10 +83,12 @@ func (r *CustomWriter) Send() (int, error) {
 		}
 	}
 
+	r.mutex.Lock()
 	if !r.headersSent {
 		r.Rw.Header().Set("Content-Length", fmt.Sprintf("%d", len(b)))
 		r.Rw.WriteHeader(r.statusCode)
 		r.headersSent = true
 	}
+	r.mutex.Unlock()
 	return r.Rw.Write(b)
 }

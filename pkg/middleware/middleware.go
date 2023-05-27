@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"bytes"
+	baseCtx "context"
 	"errors"
 	"fmt"
 	"io"
@@ -279,7 +280,12 @@ func (s *SouinBaseHandler) Upstream(
 		customWriter.Header().Set("Cache-Control", s.DefaultMatchedUrl.DefaultCacheControl)
 	}
 
-	return s.Store(customWriter, rq, requestCc, cachedKey)
+	select {
+	case <-rq.Context().Done():
+		return baseCtx.Canceled
+	default:
+		return s.Store(customWriter, rq, requestCc, cachedKey)
+	}
 }
 
 func (s *SouinBaseHandler) Revalidate(validator *rfc.Revalidator, next handlerFunc, customWriter *CustomWriter, rq *http.Request, requestCc *cacheobject.RequestCacheDirectives, cachedKey string) error {
@@ -371,6 +377,12 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 	bufPool.Reset()
 	defer s.bufPool.Put(bufPool)
 	customWriter := NewCustomWriter(rq, rw, bufPool)
+	go func(req *http.Request, crw *CustomWriter) {
+		<-req.Context().Done()
+		crw.mutex.Lock()
+		crw.headersSent = true
+		crw.mutex.Unlock()
+	}(rq, customWriter)
 	s.Configuration.GetLogger().Sugar().Debugf("Request cache-control %+v", requestCc)
 	if !requestCc.NoCache {
 		validator := rfc.ParseRequest(rq)
@@ -388,6 +400,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 			if rfc.ValidateMaxAgeCachedResponse(requestCc, response) != nil {
 				customWriter.Headers = response.Header
 				customWriter.statusCode = response.StatusCode
+				s.Configuration.GetLogger().Sugar().Debugf("Serve from cache %+v", rq)
 				_, _ = io.Copy(customWriter.Buf, response.Body)
 				_, err := customWriter.Send()
 
@@ -466,10 +479,28 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 		}
 	}
 
-	if err := s.Upstream(customWriter, rq, next, requestCc, cachedKey); err != nil {
-		return err
-	}
+	errorCacheCh := make(chan error)
+	go func() {
+		errorCacheCh <- s.Upstream(customWriter, rq, next, requestCc, cachedKey)
+	}()
 
-	_, _ = customWriter.Send()
-	return nil
+	select {
+	case <-rq.Context().Done():
+		switch rq.Context().Err() {
+		case baseCtx.DeadlineExceeded:
+			customWriter.WriteHeader(http.StatusGatewayTimeout)
+			rw.Header().Set("Cache-Status", cacheName+"; fwd=bypass; detail=DEADLINE-EXCEEDED")
+			_, _ = customWriter.Rw.Write([]byte("Internal server error"))
+			return baseCtx.DeadlineExceeded
+		case baseCtx.Canceled:
+			return baseCtx.Canceled
+		default:
+			return nil
+		}
+	case v := <-errorCacheCh:
+		if v == nil {
+			_, _ = customWriter.Send()
+		}
+		return v
+	}
 }
