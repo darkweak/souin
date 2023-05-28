@@ -28,6 +28,8 @@ type DefaultCache struct {
 	Headers []string `json:"headers"`
 	// Configure the global key generation.
 	Key configurationtypes.Key `json:"key"`
+	// Mode defines if strict or bypass.
+	Mode string `json:"mode"`
 	// Olric provider configuration.
 	Olric configurationtypes.CacheProvider `json:"olric"`
 	// Redis provider configuration.
@@ -84,6 +86,11 @@ func (d *DefaultCache) GetKey() configurationtypes.Key {
 // GetEtcd returns etcd configuration
 func (d *DefaultCache) GetEtcd() configurationtypes.CacheProvider {
 	return d.Etcd
+}
+
+// GetMode returns mdoe configuration
+func (d *DefaultCache) GetMode() string {
+	return d.Mode
 }
 
 // GetNuts returns nuts configuration
@@ -409,6 +416,8 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isBlocking b
 			case "log_level":
 				args := h.RemainingArgs()
 				cfg.LogLevel = args[0]
+			case "mode":
+				cfg.DefaultCache.Mode = strings.Join(h.RemainingArgs(), "")
 			case "nuts":
 				provider := configurationtypes.CacheProvider{}
 				for nesting := h.Nesting(); h.NextBlock(nesting); {

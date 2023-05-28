@@ -791,6 +791,144 @@
 					"response": []
 				},
 				{
+					"name": "Mode",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const get_mode_request = (path, cc = 'no-cache') => ({",
+									"    header: {",
+									"        'Cache-Control': cc,",
+									"    },",
+									"    method: 'GET',",
+									"    url: `${utils.getVar(pm, 'app_url')}${path}`,",
+									"});",
+									"",
+									"const MODE = {",
+									"    strict_request: '/strict_request',",
+									"    strict_response: '/strict_response',",
+									"    bypass_request: '/bypass_request',",
+									"    bypass_response: '/bypass_response',",
+									"    bypass: '/bypass',",
+									"};",
+									"",
+									"function bypassMode(_, res) {",
+									"    pm.expect(res.headers.get(\"Cache-Status\")).to.eql(`Souin; fwd=uri-miss; stored; key=GET-http-${pm.collectionVariables.get('current_host')}-${MODE.bypass}`);",
+									"    pm.expect(res.headers.get(\"Cache-Control\")).to.eql(\"no-store\");",
+									"    pm.expect(res).to.not.have.header(\"Age\");",
+									"    pm.sendRequest(get_mode_request(MODE.bypass, 'no-cache, no-store'), function(_, res) {",
+									"        pm.expect(res.headers.get(\"Cache-Status\")).to.include(\"Souin; hit; ttl=\");",
+									"        pm.expect(res.headers.get(\"Cache-Status\")).to.include(`; key=GET-http-${pm.collectionVariables.get('current_host')}-${MODE.bypass}`);",
+									"        pm.expect(res.headers.get(\"Cache-Control\")).to.eql(\"no-store\");",
+									"        pm.expect(res).to.have.header(\"Age\");",
+									"    });",
+									"}",
+									"",
+									"function bypassResponseMode(_, res) {",
+									"    pm.expect(res.headers.get(\"Cache-Status\")).to.eql(`Souin; fwd=uri-miss; detail=NO-STORE-DIRECTIVE; key=GET-http-${pm.collectionVariables.get('current_host')}-${MODE.bypass_response}`);",
+									"    pm.expect(res.headers.get(\"Cache-Control\")).to.eql(\"no-cache, no-store\");",
+									"    pm.expect(res).to.not.have.header(\"Age\");",
+									"    pm.sendRequest(get_mode_request(MODE.bypass_response, 'no-cache, no-store'), function(_, res) {",
+									"        pm.expect(res.headers.get(\"Cache-Status\")).to.eql(`Souin; fwd=uri-miss; detail=NO-STORE-DIRECTIVE; key=GET-http-${pm.collectionVariables.get('current_host')}-${MODE.bypass_response}`);",
+									"        pm.expect(res.headers.get(\"Cache-Control\")).to.eql(\"no-cache, no-store\");",
+									"        pm.expect(res).to.not.have.header(\"Age\");",
+									"        pm.sendRequest(get_mode_request(MODE.bypass_response), function(_, res) {",
+									"            pm.expect(res.headers.get(\"Cache-Status\")).to.eql(`Souin; fwd=uri-miss; stored; key=GET-http-${pm.collectionVariables.get('current_host')}-${MODE.bypass_response}`);",
+									"            pm.expect(res.headers.get(\"Cache-Control\")).to.eql(\"no-cache, no-store\");",
+									"            pm.expect(res).to.not.have.header(\"Age\");",
+									"            pm.sendRequest(get_mode_request(MODE.bypass_response), function(_, res) {",
+									"                pm.expect(res.headers.get(\"Cache-Status\")).to.eql(`Souin; fwd=uri-miss; stored; key=GET-http-${pm.collectionVariables.get('current_host')}-${MODE.bypass_response}`);",
+									"                pm.expect(res.headers.get(\"Cache-Control\")).to.eql(\"no-cache, no-store\");",
+									"                pm.expect(res).to.not.have.header(\"Age\");",
+									"                pm.sendRequest(get_mode_request(MODE.bypass_response, ''), function(_, res) {",
+									"                    pm.expect(res.headers.get(\"Cache-Status\")).to.include(\"Souin; hit; ttl=\");",
+									"                    pm.expect(res.headers.get(\"Cache-Status\")).to.include(`; key=GET-http-${pm.collectionVariables.get('current_host')}-${MODE.bypass_response}`);",
+									"                    pm.expect(res.headers.get(\"Cache-Control\")).to.eql(\"no-cache, no-store\");",
+									"                    pm.expect(res).to.have.header(\"Age\");",
+									"                    pm.sendRequest(get_mode_request(MODE.bypass, 'no-store, no-cache'), bypassMode);",
+									"                });",
+									"            });",
+									"        });",
+									"    });",
+									"}",
+									"",
+									"function bypassRequestMode(_, res) {",
+									"    pm.expect(res.headers.get(\"Cache-Status\")).to.eql(`Souin; fwd=uri-miss; stored; key=GET-http-${pm.collectionVariables.get('current_host')}-${MODE.bypass_request}`);",
+									"    pm.expect(res).to.not.have.header(\"Age\");",
+									"    pm.sendRequest(get_mode_request(MODE.bypass_request, 'no-cache, no-store'), function(_, res) {",
+									"        pm.expect(res.headers.get(\"Cache-Status\")).to.include(\"Souin; hit; ttl=\");",
+									"        pm.expect(res.headers.get(\"Cache-Status\")).to.include(`; key=GET-http-${pm.collectionVariables.get('current_host')}-${MODE.bypass_request}`);",
+									"        pm.expect(res).to.have.header(\"Age\");",
+									"        pm.sendRequest(get_mode_request(MODE.bypass_request, 'no-cache, no-store'), function(_, res) {",
+									"            pm.expect(res.headers.get(\"Cache-Status\")).to.include(\"Souin; hit; ttl=\");",
+									"            pm.expect(res.headers.get(\"Cache-Status\")).to.include(`; key=GET-http-${pm.collectionVariables.get('current_host')}-${MODE.bypass_request}`);",
+									"            pm.expect(res).to.have.header(\"Age\");",
+									"            pm.sendRequest(get_mode_request(MODE.bypass_response, 'no-store'), bypassResponseMode);",
+									"        });",
+									"    });",
+									"}",
+									"",
+									"function strictRequestMode(_, res) {",
+									"    pm.expect(res.headers.get(\"Cache-Status\")).to.eql(`Souin; fwd=uri-miss; detail=NO-STORE-DIRECTIVE; key=GET-http-${pm.collectionVariables.get('current_host')}-${MODE.strict_request}`);",
+									"    pm.expect(res).to.not.have.header(\"Age\");",
+									"    pm.sendRequest(get_mode_request(MODE.strict_request), function(_, res) {",
+									"        pm.expect(res.headers.get(\"Cache-Status\")).to.eql(`Souin; fwd=uri-miss; stored; key=GET-http-${pm.collectionVariables.get('current_host')}-${MODE.strict_request}`);",
+									"        pm.expect(res).to.not.have.header(\"Age\");",
+									"        pm.sendRequest(get_mode_request(MODE.strict_request), function(_, res) {",
+									"            pm.expect(res.headers.get(\"Cache-Status\")).to.eql(`Souin; fwd=uri-miss; stored; key=GET-http-${pm.collectionVariables.get('current_host')}-${MODE.strict_request}`);",
+									"            pm.expect(res).to.not.have.header(\"Age\");",
+									"            pm.sendRequest(get_mode_request(MODE.bypass_request, 'no-cache, no-store'), bypassRequestMode);",
+									"        });",
+									"    });",
+									"}",
+									"",
+									"function strictResponseMode(_, res) {",
+									"    pm.expect(res.headers.get(\"Cache-Status\")).to.eql(`Souin; fwd=uri-miss; detail=NO-STORE-DIRECTIVE; key=GET-http-${pm.collectionVariables.get('current_host')}-${pm.request.url.getPath()}`);",
+									"    pm.sendRequest(get_mode_request(MODE.strict_request, 'no-cache, no-store'), strictRequestMode);",
+									"}",
+									"",
+									"pm.test(\"Strict response must not store the response and doesn't send a cached one\", function() {",
+									"    pm.response.to.have.status(200);",
+									"    pm.response.to.have.header(\"Cache-Status\");",
+									"    pm.response.to.not.have.header(\"Age\");",
+									"    pm.expect(pm.response.headers.get(\"Cache-Status\")).to.eql(`Souin; fwd=uri-miss; detail=NO-STORE-DIRECTIVE; key=GET-http-${pm.collectionVariables.get('current_host')}-${pm.request.url.getPath()}`);",
+									"    pm.sendRequest(get_mode_request(MODE.strict_response, ''), strictResponseMode);",
+									"});",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Surrogate-Key",
+								"value": "KEY-ONE",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "Cache-Control",
+								"value": "",
+								"type": "default"
+							}
+						],
+						"url": {
+							"raw": "{{app_url}}/strict_response",
+							"host": [
+								"{{app_url}}"
+							],
+							"path": [
+								"strict_response"
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "Redis url",
 					"event": [
 						{
@@ -3626,6 +3764,11 @@
 		{
 			"key": "current_domain",
 			"value": ""
+		},
+		{
+			"key": "hertz_url",
+			"value": "http://domain.com",
+			"type": "default"
 		}
 	]
 }
