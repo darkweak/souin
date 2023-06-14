@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
@@ -25,6 +26,29 @@ type TestConfiguration map[string]interface{}
 // CreateConfig creates the default plugin configuration.
 func CreateConfig() *TestConfiguration {
 	return &TestConfiguration{}
+}
+
+func configCacheKey(keyConfiguration map[string]interface{}) configurationtypes.Key {
+	key := configurationtypes.Key{}
+
+	for keyK, keyV := range keyConfiguration {
+		switch keyK {
+		case "disable_body":
+			key.DisableBody = keyV.(bool)
+		case "disable_host":
+			key.DisableHost = keyV.(bool)
+		case "disable_method":
+			key.DisableMethod = keyV.(bool)
+		case "disable_query":
+			key.DisableQuery = keyV.(bool)
+		case "headers":
+			key.Headers = parseStringSlice(keyV)
+		case "hide":
+			key.Hide = keyV.(bool)
+		}
+	}
+
+	return key
 }
 
 func parseConfiguration(c map[string]interface{}) Configuration {
@@ -71,6 +95,17 @@ func parseConfiguration(c map[string]interface{}) Configuration {
 				}
 			}
 			configuration.API = a
+		case "cache_keys":
+			cacheKeys := make(configurationtypes.CacheKeys, 0)
+			cacheKeyConfiguration := v.(map[string]interface{})
+			for cacheKeyConfigurationK, cacheKeyConfigurationV := range cacheKeyConfiguration {
+				cacheKeys = append(cacheKeys, configurationtypes.CacheKey{
+					configurationtypes.RegValue{
+						Regexp: regexp.MustCompile(cacheKeyConfigurationK),
+					}: configCacheKey(cacheKeyConfigurationV.(map[string]interface{})),
+				})
+			}
+			configuration.CacheKeys = cacheKeys
 		case "default_cache":
 			dc := configurationtypes.DefaultCache{
 				Distributed: false,
@@ -119,6 +154,8 @@ func parseConfiguration(c map[string]interface{}) Configuration {
 					dc.CDN = cdn
 				case "headers":
 					dc.Headers = parseStringSlice(defaultCacheV)
+				case "key":
+					dc.Key = configCacheKey(defaultCacheV.(map[string]interface{}))
 				case "regex":
 					exclude := defaultCacheV.(map[string]interface{})["exclude"].(string)
 					if exclude != "" {
