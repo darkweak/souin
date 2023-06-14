@@ -99,10 +99,12 @@ func parseConfiguration(c map[string]interface{}) Configuration {
 			cacheKeys := make(configurationtypes.CacheKeys, 0)
 			cacheKeyConfiguration := v.(map[string]interface{})
 			for cacheKeyConfigurationK, cacheKeyConfigurationV := range cacheKeyConfiguration {
+				cacheKeyK := configurationtypes.RegValue{
+					Regexp: regexp.MustCompile(cacheKeyConfigurationK),
+				}
+				cacheKeyV := configCacheKey(cacheKeyConfigurationV.(map[string]interface{}))
 				cacheKeys = append(cacheKeys, configurationtypes.CacheKey{
-					configurationtypes.RegValue{
-						Regexp: regexp.MustCompile(cacheKeyConfigurationK),
-					}: configCacheKey(cacheKeyConfigurationV.(map[string]interface{})),
+					cacheKeyK: cacheKeyV,
 				})
 			}
 			configuration.CacheKeys = cacheKeys
