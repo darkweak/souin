@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -34,21 +35,32 @@ func configCacheKey(keyConfiguration map[string]interface{}) configurationtypes.
 	for keyK, keyV := range keyConfiguration {
 		switch keyK {
 		case "disable_body":
-			key.DisableBody = keyV.(bool)
+			key.DisableBody = parseBool(keyV)
 		case "disable_host":
-			key.DisableHost = keyV.(bool)
+			key.DisableHost = parseBool(keyV)
 		case "disable_method":
-			key.DisableMethod = keyV.(bool)
+			key.DisableMethod = parseBool(keyV)
 		case "disable_query":
-			key.DisableQuery = keyV.(bool)
+			key.DisableQuery = parseBool(keyV)
 		case "headers":
 			key.Headers = parseStringSlice(keyV)
 		case "hide":
-			key.Hide = keyV.(bool)
+			key.Hide = parseBool(keyV)
 		}
 	}
 
 	return key
+}
+
+func parseBool(v interface{}) bool {
+	if v != nil {
+		boolValue, err := strconv.ParseBool(v.(string))
+		if err != nil && boolValue {
+			return true
+		}
+	}
+
+	return false
 }
 
 func parseConfiguration(c map[string]interface{}) Configuration {
