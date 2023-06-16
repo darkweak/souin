@@ -5,8 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
+
+	"github.com/spf13/cast"
 
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/middleware"
@@ -25,6 +28,28 @@ type TestConfiguration map[string]interface{}
 // CreateConfig creates the default plugin configuration.
 func CreateConfig() *TestConfiguration {
 	return &TestConfiguration{}
+}
+
+func configCacheKey(keyConfiguration map[string]interface{}) configurationtypes.Key {
+	key := configurationtypes.Key{}
+	for keyK, keyV := range keyConfiguration {
+		switch keyK {
+		case "disable_body":
+			key.DisableBody = cast.ToBool(keyV)
+		case "disable_host":
+			key.DisableHost = cast.ToBool(keyV)
+		case "disable_method":
+			key.DisableMethod = cast.ToBool(keyV)
+		case "disable_query":
+			key.DisableQuery = cast.ToBool(keyV)
+		case "headers":
+			key.Headers = parseStringSlice(keyV)
+		case "hide":
+			key.Hide = cast.ToBool(keyV)
+		}
+	}
+
+	return key
 }
 
 func parseConfiguration(c map[string]interface{}) Configuration {
@@ -71,6 +96,19 @@ func parseConfiguration(c map[string]interface{}) Configuration {
 				}
 			}
 			configuration.API = a
+		case "cache_keys":
+			cacheKeys := make(configurationtypes.CacheKeys, 0)
+			cacheKeyConfiguration := v.(map[string]interface{})
+			for cacheKeyConfigurationK, cacheKeyConfigurationV := range cacheKeyConfiguration {
+				cacheKeyK := configurationtypes.RegValue{
+					Regexp: regexp.MustCompile(cacheKeyConfigurationK),
+				}
+				cacheKeyV := configCacheKey(cacheKeyConfigurationV.(map[string]interface{}))
+				cacheKeys = append(cacheKeys, configurationtypes.CacheKey{
+					cacheKeyK: cacheKeyV,
+				})
+			}
+			configuration.CacheKeys = cacheKeys
 		case "default_cache":
 			dc := configurationtypes.DefaultCache{
 				Distributed: false,
@@ -99,7 +137,7 @@ func parseConfiguration(c map[string]interface{}) Configuration {
 						case "api_key":
 							cdn.APIKey = cdnV.(string)
 						case "dynamic":
-							cdn.Dynamic = cdnV.(bool)
+							cdn.Dynamic = cast.ToBool(cdnV)
 						case "email":
 							cdn.Email = cdnV.(string)
 						case "hostname":
@@ -119,6 +157,8 @@ func parseConfiguration(c map[string]interface{}) Configuration {
 					dc.CDN = cdn
 				case "headers":
 					dc.Headers = parseStringSlice(defaultCacheV)
+				case "key":
+					dc.Key = configCacheKey(defaultCacheV.(map[string]interface{}))
 				case "regex":
 					exclude := defaultCacheV.(map[string]interface{})["exclude"].(string)
 					if exclude != "" {
