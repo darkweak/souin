@@ -54,8 +54,8 @@ func configCacheKey(keyConfiguration map[string]interface{}) configurationtypes.
 func parseBool(v interface{}) bool {
 	if v != nil {
 		boolValue, err := strconv.ParseBool(v.(string))
-		if err == nil && boolValue {
-			return true
+		if err == nil {
+			return boolValue
 		}
 	}
 
