@@ -31,7 +31,6 @@ func CreateConfig() *TestConfiguration {
 
 func configCacheKey(keyConfiguration map[string]interface{}) configurationtypes.Key {
 	key := configurationtypes.Key{}
-
 	for keyK, keyV := range keyConfiguration {
 		switch keyK {
 		case "disable_body":
@@ -55,7 +54,7 @@ func configCacheKey(keyConfiguration map[string]interface{}) configurationtypes.
 func parseBool(v interface{}) bool {
 	if v != nil {
 		boolValue, err := strconv.ParseBool(v.(string))
-		if err != nil && boolValue {
+		if err == nil && boolValue {
 			return true
 		}
 	}
