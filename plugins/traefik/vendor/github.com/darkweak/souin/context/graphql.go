@@ -24,7 +24,6 @@ type graphQLContext struct {
 func (g *graphQLContext) SetupContext(c configurationtypes.AbstractConfigurationInterface) {
 	if len(c.GetDefaultCache().GetAllowedHTTPVerbs()) != 0 {
 		g.custom = true
-		c.GetLogger().Debug("Enable GraphQL logic due to your custom HTTP verbs setup.")
 	}
 }
 

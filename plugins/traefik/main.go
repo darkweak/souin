@@ -6,10 +6,9 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
-
-	"github.com/spf13/cast"
 
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/middleware"
@@ -35,21 +34,32 @@ func configCacheKey(keyConfiguration map[string]interface{}) configurationtypes.
 	for keyK, keyV := range keyConfiguration {
 		switch keyK {
 		case "disable_body":
-			key.DisableBody = cast.ToBool(keyV)
+			key.DisableBody = parseBool(keyV)
 		case "disable_host":
-			key.DisableHost = cast.ToBool(keyV)
+			key.DisableHost = parseBool(keyV)
 		case "disable_method":
-			key.DisableMethod = cast.ToBool(keyV)
+			key.DisableMethod = parseBool(keyV)
 		case "disable_query":
-			key.DisableQuery = cast.ToBool(keyV)
+			key.DisableQuery = parseBool(keyV)
 		case "headers":
 			key.Headers = parseStringSlice(keyV)
 		case "hide":
-			key.Hide = cast.ToBool(keyV)
+			key.Hide = parseBool(keyV)
 		}
 	}
 
 	return key
+}
+
+func parseBool(v interface{}) bool {
+	if v != nil {
+		boolValue, err := strconv.ParseBool(v.(string))
+		if err == nil {
+			return boolValue
+		}
+	}
+
+	return false
 }
 
 func parseConfiguration(c map[string]interface{}) Configuration {
