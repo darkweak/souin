@@ -31,6 +31,8 @@ func (t *timeoutContext) SetupContext(c configurationtypes.AbstractConfiguration
 	if c.GetDefaultCache().GetTimeout().Backend.Duration != 0 {
 		t.timeoutBackend = c.GetDefaultCache().GetTimeout().Backend.Duration
 	}
+	c.GetLogger().Sugar().Infof("Set backend timeout to %v", t.timeoutBackend)
+	c.GetLogger().Sugar().Infof("Set cache timeout to %v", t.timeoutBackend)
 }
 
 func (t *timeoutContext) SetContext(req *http.Request) *http.Request {
