@@ -5,7 +5,7 @@ PKG=$(SOUIN)/pkg
 API=$(SOUIN)/api
 PKG_API=$(PKG)/api
 CACHE=$(SOUIN)/cache
-DC=docker-compose -f docker-compose.yml.test 
+DC=docker-compose -f docker-compose.yml.test
 
 copy-to: ## Copy from to
 	rm -rf $(base)/$(target)

@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
+
+	"github.com/spf13/cast"
 
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/middleware"
@@ -34,32 +35,21 @@ func configCacheKey(keyConfiguration map[string]interface{}) configurationtypes.
 	for keyK, keyV := range keyConfiguration {
 		switch keyK {
 		case "disable_body":
-			key.DisableBody = parseBool(keyV)
+			key.DisableBody = cast.ToBool(keyV)
 		case "disable_host":
-			key.DisableHost = parseBool(keyV)
+			key.DisableHost = cast.ToBool(keyV)
 		case "disable_method":
-			key.DisableMethod = parseBool(keyV)
+			key.DisableMethod = cast.ToBool(keyV)
 		case "disable_query":
-			key.DisableQuery = parseBool(keyV)
+			key.DisableQuery = cast.ToBool(keyV)
 		case "headers":
 			key.Headers = parseStringSlice(keyV)
 		case "hide":
-			key.Hide = parseBool(keyV)
+			key.Hide = cast.ToBool(keyV)
 		}
 	}
 
 	return key
-}
-
-func parseBool(v interface{}) bool {
-	if v != nil {
-		boolValue, err := strconv.ParseBool(v.(string))
-		if err == nil {
-			return boolValue
-		}
-	}
-
-	return false
 }
 
 func parseConfiguration(c map[string]interface{}) Configuration {
@@ -147,7 +137,7 @@ func parseConfiguration(c map[string]interface{}) Configuration {
 						case "api_key":
 							cdn.APIKey = cdnV.(string)
 						case "dynamic":
-							cdn.Dynamic = cdnV.(bool)
+							cdn.Dynamic = cast.ToBool(cdnV)
 						case "email":
 							cdn.Email = cdnV.(string)
 						case "hostname":
