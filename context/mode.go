@@ -7,7 +7,7 @@ import (
 	"github.com/darkweak/souin/configurationtypes"
 )
 
-const Mode ctxKey = "MODE"
+const Mode ctxKey = "souin_ctx.MODE"
 
 type ModeContext struct {
 	Strict, Bypass_request, Bypass_response bool

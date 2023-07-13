@@ -25,7 +25,7 @@ type (
 	}
 )
 
-const CacheControlCtx ctxKey = "CACHE-CONTROL-CTX"
+const CacheControlCtx ctxKey = "souin_ctx.CACHE-CONTROL-CTX"
 
 func GetContext() *Context {
 	return &Context{
