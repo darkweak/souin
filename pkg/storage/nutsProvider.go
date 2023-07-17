@@ -153,9 +153,14 @@ func (provider *Nuts) Prefix(key string, req *http.Request, validator *rfc.Reval
 					if res, err := http.ReadResponse(bufio.NewReader(bytes.NewBuffer(entry.Value)), req); err == nil {
 						rfc.ValidateETag(res, validator)
 						if validator.Matched {
+							provider.logger.Sugar().Infof("The key %s matched the current iteration key ETag %s", key, string(entry.Key))
 							result = res
 							return nil
 						}
+
+						provider.logger.Sugar().Infof("The key %s didn't match the current iteration key ETag %s", key, string(entry.Key))
+					} else {
+						provider.logger.Sugar().Errorf("An error occured while reading response for the key %s: %v", string(entry.Key), err)
 					}
 				}
 			}

@@ -64,11 +64,13 @@ jobs:
       -
         name: Build & push Docker image containing only binary
         id: docker_build
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v4
         with:
           push: true
           file: ./Dockerfile-prod
           platforms: linux/arm64,linux/amd64,linux/ppc64le,linux/s390x,linux/arm/v7,linux/arm/v6
+          build-args: |
+            "GO_VERSION=${{ env.GO_VERSION }}"
           tags: |
             darkweak/souin:latest
             darkweak/souin:${{ env.RELEASE_VERSION }}
@@ -91,10 +93,11 @@ jobs:
         uses: goreleaser/goreleaser-action@v3
         with:
           version: latest
-          args: release --rm-dist
+          args: release --clean
           workdir: ./plugins/souin
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GO_VERSION: ${{ secrets.GITHUB_TOKEN }}
   generate-tyk-versions:
     name: Generate Tyk plugin binaries
     runs-on: ubuntu-latest
