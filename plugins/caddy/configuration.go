@@ -435,10 +435,11 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isBlocking b
 				args := h.RemainingArgs()
 				cfg.LogLevel = args[0]
 			case "mode":
-				if len(h.RemainingArgs()) > 1 {
-					return h.Errf("mode must contains only one arg: %s given", h.RemainingArgs())
+				args := h.RemainingArgs()
+				if len(args) > 1 {
+					return h.Errf("mode must contains only one arg: %s given", args)
 				}
-				cfg.DefaultCache.Mode = h.RemainingArgs()[0]
+				cfg.DefaultCache.Mode = args[0]
 			case "nuts":
 				provider := configurationtypes.CacheProvider{}
 				for nesting := h.Nesting(); h.NextBlock(nesting); {
