@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	CacheName           ctxKey = "CACHE_NAME"
-	RequestCacheControl ctxKey = "REQUEST_CACHE_CONTROL"
+	CacheName           ctxKey = "souin_ctx.CACHE_NAME"
+	RequestCacheControl ctxKey = "souin_ctx.REQUEST_CACHE_CONTROL"
 )
 
 var defaultCacheName string = "Souin"

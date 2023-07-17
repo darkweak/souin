@@ -13,9 +13,9 @@ import (
 )
 
 const (
-	GraphQL           ctxKey = "GRAPHQL"
-	HashBody          ctxKey = "HASH_BODY"
-	IsMutationRequest ctxKey = "IS_MUTATION_REQUEST"
+	GraphQL           ctxKey = "souin_ctx.GRAPHQL"
+	HashBody          ctxKey = "souin_ctx.HASH_BODY"
+	IsMutationRequest ctxKey = "souin_ctx.IS_MUTATION_REQUEST"
 )
 
 type graphQLContext struct {

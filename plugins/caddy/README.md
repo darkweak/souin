@@ -79,6 +79,7 @@ Here are all the available options for the global options
             headers Content-Type Authorization
         }
         log_level debug
+        mode bypass
         nuts {
             path /path/to/the/storage
         }
@@ -380,6 +381,7 @@ What does these directives mean?
 | `key.disable_method`                      | Disable the method part in the key                                                                                                           | `true`<br/><br/>`(default: false)`                                                                                      |
 | `key.headers`                             | Add headers to the key matching the regexp                                                                                                   | `Authorization Content-Type X-Additional-Header`                                                                        |
 | `key.hide`                                | Prevent the key from being exposed in the `Cache-Status` HTTP response header                                                                | `true`<br/><br/>`(default: false)`                                                                                      |
+| `mode`                                    | Bypass the RFC respect                                                                                                                       | One of `bypass` `bypass_request` `bypass_response` `strict` (default `strict`)                                          |
 | `nuts`                                    | Configure the Nuts cache storage                                                                                                             |                                                                                                                         |
 | `nuts.path`                               | Set the Nuts file path storage                                                                                                               | `/anywhere/nuts/storage`                                                                                                |
 | `nuts.configuration`                      | Configure Nuts directly in the Caddyfile or your JSON caddy configuration                                                                    | [See the Nuts configuration for the options](https://github.com/nutsdb/nutsdb#default-options)                          |

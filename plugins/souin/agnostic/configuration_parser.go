@@ -172,6 +172,8 @@ func parseDefaultCache(dcConfiguration map[string]interface{}) *configurationtyp
 					}
 				}
 			}
+		case "mode":
+			dc.Mode, _ = defaultCacheV.(string)
 		case "nuts":
 			provider := configurationtypes.CacheProvider{}
 			for nutsConfigurationK, nutsConfigurationV := range defaultCacheV.(map[string]interface{}) {
