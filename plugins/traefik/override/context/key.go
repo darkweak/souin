@@ -9,9 +9,9 @@ import (
 )
 
 const (
-	Key            ctxKey = "CACHE_KEY"
-	DisplayableKey ctxKey = "DISPLAYABLE_KEY"
-	IgnoredHeaders ctxKey = "IGNORE_HEADERS"
+	Key            ctxKey = "souin_ctx.CACHE_KEY"
+	DisplayableKey ctxKey = "souin_ctx.DISPLAYABLE_KEY"
+	IgnoredHeaders ctxKey = "souin_ctx.IGNORE_HEADERS"
 )
 
 type keyContext struct {

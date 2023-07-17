@@ -8,7 +8,7 @@ import (
 	"github.com/darkweak/souin/configurationtypes"
 )
 
-const Now ctxKey = "NOW"
+const Now ctxKey = "souin_ctx.NOW"
 
 type nowContext struct{}
 

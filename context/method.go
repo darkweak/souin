@@ -7,7 +7,7 @@ import (
 	"github.com/darkweak/souin/configurationtypes"
 )
 
-const SupportedMethod ctxKey = "SUPPORTED_METHOD"
+const SupportedMethod ctxKey = "souin_ctx.SUPPORTED_METHOD"
 
 var defaultVerbs []string = []string{http.MethodGet, http.MethodHead}
 

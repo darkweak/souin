@@ -116,6 +116,7 @@ default_cache:
         - etcd-1:2379 # First node
         - etcd-2:2379 # Second node
         - etcd-3:2379 # Third node
+  mode: bypass # Override the RFC respect.
   olric: # If distributed is set to true, you'll have to define either the etcd or olric section
     url: 'olric:3320' # Olric server
   regex:
@@ -197,6 +198,7 @@ surrogate_keys:
 | `default_cache.key.disable_query`                 | Disable the query string part in the key                                                                                                    | `true`<br/><br/>`(default: false)`                                                                                        |
 | `default_cache.key.headers`                       | Add headers to the key matching the regexp                                                                                                  | `- Authorization`<br/><br/>`- Content-Type`<br/><br/>`- X-Additional-Header`                                              |
 | `default_cache.key.hide`                          | Prevent the key from being exposed in the `Cache-Status` HTTP response header                                                               | `true`<br/><br/>`(default: false)`                                                                                        |
+| `default_cache.mode`                              | RFC respect tweaking                                                                                                                        | One of `bypass` `bypass_request` `bypass_response` `strict` (default `strict`)                                            |
 | `default_cache.nuts`                              | Configure the Nuts cache storage                                                                                                            |                                                                                                                           |
 | `default_cache.nuts.path`                         | Set the Nuts file path storage                                                                                                              | `/anywhere/nuts/storage`                                                                                                  |
 | `default_cache.nuts.configuration`                | Configure Nuts directly in the Caddyfile or your JSON caddy configuration                                                                   | [See the Nuts configuration for the options](https://github.com/nutsdb/nutsdb#default-options)                            |

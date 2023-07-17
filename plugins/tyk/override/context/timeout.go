@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	TimeoutCache  ctxKey = "TIMEOUT_CACHE"
-	TimeoutCancel ctxKey = "TIMEOUT_CANCEL"
+	TimeoutCache  ctxKey = "souin_ctx.TIMEOUT_CACHE"
+	TimeoutCancel ctxKey = "souin_ctx.TIMEOUT_CANCEL"
 )
 
 const (

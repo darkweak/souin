@@ -168,7 +168,9 @@ func (s *SouinBaseHandler) Store(
 		customWriter.Headers.Set("Cache-Status", fmt.Sprintf("%s; fwd=uri-miss; key=%s; detail=INVALID-RESPONSE-CACHE-CONTROL", rq.Context().Value(context.CacheName), rfc.GetCacheKeyFromCtx(rq.Context())))
 		return nil
 	}
-	if (responseCc.PrivatePresent || rq.Header.Get("Authorization") != "") && !canBypassAuthorizationRestriction(customWriter.Header(), rq.Context().Value(context.IgnoredHeaders).([]string)) {
+
+	modeContext := rq.Context().Value(context.Mode).(*context.ModeContext)
+	if !modeContext.Bypass_request && (responseCc.PrivatePresent || rq.Header.Get("Authorization") != "") && !canBypassAuthorizationRestriction(customWriter.Header(), rq.Context().Value(context.IgnoredHeaders).([]string)) {
 		customWriter.Headers.Set("Cache-Status", fmt.Sprintf("%s; fwd=uri-miss; key=%s; detail=PRIVATE-OR-AUTHENTICATED-RESPONSE", rq.Context().Value(context.CacheName), rfc.GetCacheKeyFromCtx(rq.Context())))
 		return nil
 	}
@@ -207,7 +209,8 @@ func (s *SouinBaseHandler) Store(
 	}
 
 	status := fmt.Sprintf("%s; fwd=uri-miss", rq.Context().Value(context.CacheName))
-	if !requestCc.NoStore && !responseCc.NoStore {
+	if (modeContext.Bypass_request || !requestCc.NoStore) &&
+		(modeContext.Bypass_response || !responseCc.NoStore) {
 		headers := customWriter.Headers.Clone()
 		for hname, shouldDelete := range responseCc.NoCache {
 			if shouldDelete {
@@ -359,7 +362,8 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 
 	requestCc, coErr := cacheobject.ParseRequestCacheControl(rq.Header.Get("Cache-Control"))
 
-	if coErr != nil || requestCc == nil {
+	modeContext := rq.Context().Value(context.Mode).(*context.ModeContext)
+	if !modeContext.Bypass_request && (coErr != nil || requestCc == nil) {
 		rw.Header().Set("Cache-Status", cacheName+"; fwd=bypass; detail=CACHE-CONTROL-EXTRACTION-ERROR")
 
 		return next(rw, rq)
@@ -384,11 +388,11 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 		crw.mutex.Unlock()
 	}(rq, customWriter)
 	s.Configuration.GetLogger().Sugar().Debugf("Request cache-control %+v", requestCc)
-	if !requestCc.NoCache {
+	if modeContext.Bypass_request || !requestCc.NoCache {
 		validator := rfc.ParseRequest(rq)
 		response := s.Storer.Prefix(cachedKey, rq, validator)
 
-		if response != nil && rfc.ValidateCacheControl(response, requestCc) {
+		if response != nil && (!modeContext.Strict || rfc.ValidateCacheControl(response, requestCc)) {
 			if validator.NeedRevalidation {
 				err := s.Revalidate(validator, next, customWriter, rq, requestCc, cachedKey)
 				_, _ = io.Copy(customWriter.Buf, response.Body)
@@ -397,7 +401,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 				return err
 			}
 			rfc.SetCacheStatusHeader(response)
-			if rfc.ValidateMaxAgeCachedResponse(requestCc, response) != nil {
+			if !modeContext.Strict || rfc.ValidateMaxAgeCachedResponse(requestCc, response) != nil {
 				customWriter.Headers = response.Header
 				customWriter.statusCode = response.StatusCode
 				s.Configuration.GetLogger().Sugar().Debugf("Serve from cache %+v", rq)
@@ -408,7 +412,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 			}
 		} else if response == nil && !requestCc.OnlyIfCached && (requestCc.MaxStaleSet || requestCc.MaxStale > -1) {
 			response = s.Storer.Prefix(storage.StalePrefix+cachedKey, rq, validator)
-			if nil != response && rfc.ValidateCacheControl(response, requestCc) {
+			if nil != response && (!modeContext.Strict || rfc.ValidateCacheControl(response, requestCc)) {
 				addTime, _ := time.ParseDuration(response.Header.Get(rfc.StoredTTLHeader))
 				rfc.SetCacheStatusHeader(response)
 

@@ -308,6 +308,49 @@ route /cache-authorization {
     respond "Hello to the authenticated user."
 }
 
+route /bypass {
+    cache {
+        mode bypass
+    }
+
+    header Cache-Control "no-store"
+    respond "Hello bypass"
+}
+
+route /bypass_request {
+    cache {
+        mode bypass_request
+    }
+
+    respond "Hello bypass_request"
+}
+
+route /bypass_response {
+    cache {
+        mode bypass_response
+    }
+
+    header Cache-Control "no-cache, no-store"
+    respond "Hello bypass_response"
+}
+
+route /strict_request {
+    cache {
+        mode strict
+    }
+
+    respond "Hello strict"
+}
+
+route /strict_response {
+    cache {
+        mode strict
+    }
+
+    header Cache-Control "no-cache, no-store"
+    respond "Hello strict"
+}
+
 cache @souin-api {
 }
 

@@ -28,6 +28,8 @@ type DefaultCache struct {
 	Headers []string `json:"headers"`
 	// Configure the global key generation.
 	Key configurationtypes.Key `json:"key"`
+	// Mode defines if strict or bypass.
+	Mode string `json:"mode"`
 	// Olric provider configuration.
 	Olric configurationtypes.CacheProvider `json:"olric"`
 	// Redis provider configuration.
@@ -84,6 +86,11 @@ func (d *DefaultCache) GetKey() configurationtypes.Key {
 // GetEtcd returns etcd configuration
 func (d *DefaultCache) GetEtcd() configurationtypes.CacheProvider {
 	return d.Etcd
+}
+
+// GetMode returns mdoe configuration
+func (d *DefaultCache) GetMode() string {
+	return d.Mode
 }
 
 // GetNuts returns nuts configuration
@@ -274,6 +281,8 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isBlocking b
 							switch directive {
 							case "basepath":
 								apiConfiguration.Debug.BasePath = h.RemainingArgs()[0]
+							default:
+								return h.Errf("unsupported debug directive: %s", directive)
 							}
 						}
 					case "prometheus":
@@ -284,6 +293,8 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isBlocking b
 							switch directive {
 							case "basepath":
 								apiConfiguration.Prometheus.BasePath = h.RemainingArgs()[0]
+							default:
+								return h.Errf("unsupported prometheus directive: %s", directive)
 							}
 						}
 					case "souin":
@@ -294,8 +305,12 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isBlocking b
 							switch directive {
 							case "basepath":
 								apiConfiguration.Souin.BasePath = h.RemainingArgs()[0]
+							default:
+								return h.Errf("unsupported souin directive: %s", directive)
 							}
 						}
+					default:
+						return h.Errf("unsupported api directive: %s", directive)
 					}
 				}
 				cfg.API = apiConfiguration
@@ -310,6 +325,8 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isBlocking b
 					case "configuration":
 						provider.Configuration = parseCaddyfileRecursively(h)
 						provider.Configuration = parseBadgerConfiguration(provider.Configuration.(map[string]interface{}))
+					default:
+						return h.Errf("unsupported badger directive: %s", directive)
 					}
 				}
 				cfg.DefaultCache.Badger = provider
@@ -337,6 +354,8 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isBlocking b
 							ck.Hide = true
 						case "headers":
 							ck.Headers = h.RemainingArgs()
+						default:
+							return h.Errf("unsupported cache_keys (%s) directive: %s", rg, directive)
 						}
 					}
 
@@ -367,6 +386,8 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isBlocking b
 						cdn.Provider = h.RemainingArgs()[0]
 					case "strategy":
 						cdn.Strategy = h.RemainingArgs()[0]
+					default:
+						return h.Errf("unsupported cdn directive: %s", directive)
 					}
 				}
 				cfg.DefaultCache.CDN = cdn
@@ -381,6 +402,8 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isBlocking b
 					switch directive {
 					case "configuration":
 						provider.Configuration = parseCaddyfileRecursively(h)
+					default:
+						return h.Errf("unsupported etcd directive: %s", directive)
 					}
 				}
 				cfg.DefaultCache.Etcd = provider
@@ -403,12 +426,20 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isBlocking b
 						config_key.Hide = true
 					case "headers":
 						config_key.Headers = h.RemainingArgs()
+					default:
+						return h.Errf("unsupported key directive: %s", directive)
 					}
 				}
 				cfg.DefaultCache.Key = config_key
 			case "log_level":
 				args := h.RemainingArgs()
 				cfg.LogLevel = args[0]
+			case "mode":
+				args := h.RemainingArgs()
+				if len(args) > 1 {
+					return h.Errf("mode must contains only one arg: %s given", args)
+				}
+				cfg.DefaultCache.Mode = args[0]
 			case "nuts":
 				provider := configurationtypes.CacheProvider{}
 				for nesting := h.Nesting(); h.NextBlock(nesting); {
@@ -422,6 +453,8 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isBlocking b
 						provider.Path = urlArgs[0]
 					case "configuration":
 						provider.Configuration = parseCaddyfileRecursively(h)
+					default:
+						return h.Errf("unsupported nuts directive: %s", directive)
 					}
 				}
 				cfg.DefaultCache.Nuts = provider
@@ -439,6 +472,8 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isBlocking b
 						provider.Path = urlArgs[0]
 					case "configuration":
 						provider.Configuration = parseCaddyfileRecursively(h)
+					default:
+						return h.Errf("unsupported olric directive: %s", directive)
 					}
 				}
 				cfg.DefaultCache.Olric = provider
@@ -457,6 +492,8 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isBlocking b
 					case "configuration":
 						provider.Configuration = parseCaddyfileRecursively(h)
 						provider.Configuration = parseRedisConfiguration(provider.Configuration.(map[string]interface{}))
+					default:
+						return h.Errf("unsupported redis directive: %s", directive)
 					}
 				}
 				cfg.DefaultCache.Redis = provider
@@ -466,6 +503,8 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isBlocking b
 					switch directive {
 					case "exclude":
 						cfg.DefaultCache.Regex.Exclude = h.RemainingArgs()[0]
+					default:
+						return h.Errf("unsupported regex directive: %s", directive)
 					}
 				}
 			case "stale":
@@ -493,6 +532,8 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isBlocking b
 							d.Duration = ttl
 						}
 						timeout.Cache = d
+					default:
+						return h.Errf("unsupported timeout directive: %s", directive)
 					}
 				}
 				cfg.DefaultCache.Timeout = timeout
@@ -503,9 +544,7 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isBlocking b
 					cfg.DefaultCache.TTL.Duration = ttl
 				}
 			default:
-				if isBlocking {
-					return h.Errf("unsupported root directive: %s", rootOption)
-				}
+				return h.Errf("unsupported root directive: %s", rootOption)
 			}
 		}
 	}
