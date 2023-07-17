@@ -145,8 +145,13 @@ func (provider *Badger) Prefix(key string, req *http.Request, validator *rfc.Rev
 					if res, err := http.ReadResponse(bufio.NewReader(bytes.NewBuffer(val)), req); err == nil {
 						rfc.ValidateETag(res, validator)
 						if validator.Matched {
+							provider.logger.Sugar().Infof("The key %s matched the current iteration key ETag %s", key, it.Item().Key())
 							result = res
+						} else {
+							provider.logger.Sugar().Infof("The key %s didn't match the current iteration key ETag %s", key, it.Item().Key())
 						}
+					} else {
+						provider.logger.Sugar().Errorf("An error occured while reading response for the key %s: %v", it.Item().Key(), err)
 					}
 
 					return nil

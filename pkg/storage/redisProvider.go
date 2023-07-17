@@ -125,9 +125,11 @@ func (provider *Redis) Prefix(key string, req *http.Request, validator *rfc.Reva
 					if res, err := http.ReadResponse(bufio.NewReader(bytes.NewBuffer([]byte(v))), req); err == nil {
 						rfc.ValidateETag(res, validator)
 						if validator.Matched {
+							provider.logger.Sugar().Infof("The key %s matched the current iteration key ETag %s", key, iter.Val())
 							in <- res
 							return
 						}
+						provider.logger.Sugar().Errorf("The key %s didn't match the current iteration key ETag %s", key, iter.Val())
 					}
 				}
 			}
