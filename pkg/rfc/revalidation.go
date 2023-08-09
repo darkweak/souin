@@ -17,10 +17,15 @@ type Revalidator struct {
 	IfUnmodifiedSince           time.Time
 	IfNoneMatch                 []string
 	IfMatch                     []string
+	RequestETag                 string
+	ResponseETag                string
 }
 
 func ParseRequest(req *http.Request) *Revalidator {
-	validator := Revalidator{}
+	etag := req.Header.Get("ETag")
+	validator := Revalidator{
+		RequestETag: etag,
+	}
 	// If-Modified-Since
 	if ifModifiedSince := req.Header.Get("If-Modified-Since"); ifModifiedSince != "" {
 		validator.IfModifiedSincePresent = true
@@ -45,8 +50,8 @@ func ParseRequest(req *http.Request) *Revalidator {
 }
 
 func ValidateETag(res *http.Response, validator *Revalidator) {
-	etag := res.Header.Get("ETag")
-	validator.Matched = etag == ""
+	validator.ResponseETag = res.Header.Get("ETag")
+	validator.Matched = validator.ResponseETag == validator.RequestETag
 
 	// If-None-Match
 	if validator.IfNoneMatchPresent {
@@ -56,7 +61,7 @@ func ValidateETag(res *http.Response, validator *Revalidator) {
 				validator.Matched = false
 				return
 			}
-			if ifNoneMatch == etag {
+			if ifNoneMatch == validator.ResponseETag {
 				validator.Matched = false
 				return
 			}
@@ -69,7 +74,7 @@ func ValidateETag(res *http.Response, validator *Revalidator) {
 	// If-Match
 	if validator.IfMatchPresent {
 		validator.Matched = false
-		if etag == "" {
+		if validator.ResponseETag == "" {
 			return
 		}
 
@@ -79,7 +84,7 @@ func ValidateETag(res *http.Response, validator *Revalidator) {
 				validator.Matched = true
 				return
 			}
-			if ifMatch == etag {
+			if ifMatch == validator.ResponseETag {
 				validator.Matched = true
 				return
 			}
