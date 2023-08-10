@@ -22,9 +22,8 @@ type Revalidator struct {
 }
 
 func ParseRequest(req *http.Request) *Revalidator {
-	etag := req.Header.Get("ETag")
 	validator := Revalidator{
-		RequestETag: etag,
+		RequestETag: req.Header.Get("ETag"),
 	}
 	// If-Modified-Since
 	if ifModifiedSince := req.Header.Get("If-Modified-Since"); ifModifiedSince != "" {
@@ -51,7 +50,8 @@ func ParseRequest(req *http.Request) *Revalidator {
 
 func ValidateETag(res *http.Response, validator *Revalidator) {
 	validator.ResponseETag = res.Header.Get("ETag")
-	validator.Matched = validator.ResponseETag == validator.RequestETag
+	validator.NeedRevalidation = validator.NeedRevalidation || validator.RequestETag != "" || validator.ResponseETag != ""
+	validator.Matched = validator.RequestETag == "" || validator.ResponseETag == validator.RequestETag
 
 	// If-None-Match
 	if validator.IfNoneMatchPresent {

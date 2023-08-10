@@ -309,9 +309,7 @@ func (s *SouinBaseHandler) Revalidate(validator *rfc.Revalidator, next handlerFu
 			return errors.New("")
 		}
 
-		customWriterEtag := customWriter.Header().Get("ETag")
-		if customWriter.statusCode != http.StatusNotModified &&
-			(customWriterEtag == "" || (customWriterEtag != validator.ResponseETag && customWriterEtag != validator.RequestETag)) {
+		if customWriter.statusCode != http.StatusNotModified {
 			err = s.Store(customWriter, rq, requestCc, cachedKey)
 		}
 	}
@@ -396,13 +394,28 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 
 		if response != nil && (!modeContext.Strict || rfc.ValidateCacheControl(response, requestCc)) {
 			if validator.NeedRevalidation {
+				rq.Header.Set("ETag", validator.ResponseETag)
 				err := s.Revalidate(validator, next, customWriter, rq, requestCc, cachedKey)
-				if validator.ResponseETag != "" &&
-					validator.ResponseETag == customWriter.Headers.Get("ETag") &&
-					validator.RequestETag != customWriter.Headers.Get("ETag") {
-					customWriter.statusCode = response.StatusCode
+				if customWriter.statusCode == http.StatusNotModified {
+					if validator.RequestETag == "" {
+						rfc.SetCacheStatusHeader(response)
+						customWriter.statusCode = response.StatusCode
+						customWriter.Headers = response.Header
+						_, _ = io.Copy(customWriter.Buf, response.Body)
+						_, _ = customWriter.Send()
+
+						return err
+					}
 				}
-				_, _ = io.Copy(customWriter.Buf, response.Body)
+
+				if customWriter.statusCode != http.StatusNotModified && validator.RequestETag == customWriter.Headers.Get("ETag") {
+					customWriter.statusCode = http.StatusNotModified
+					customWriter.Buf.Reset()
+					_, _ = customWriter.Send()
+
+					return err
+				}
+
 				_, _ = customWriter.Send()
 
 				return err
@@ -442,6 +455,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 				}
 
 				if responseCc.MustRevalidate || responseCc.NoCachePresent || validator.NeedRevalidation {
+					rq.Header.Set("ETag", validator.ResponseETag)
 					err := s.Revalidate(validator, next, customWriter, rq, requestCc, cachedKey)
 					if err != nil {
 						if responseCc.StaleIfError > -1 || requestCc.StaleIfError > 0 {
@@ -461,12 +475,27 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 
 						return err
 					}
-					if validator.ResponseETag != "" &&
-						validator.ResponseETag == customWriter.Headers.Get("ETag") &&
-						validator.RequestETag != customWriter.Headers.Get("ETag") {
-						customWriter.statusCode = response.StatusCode
+
+					if customWriter.statusCode == http.StatusNotModified {
+						if validator.RequestETag == "" {
+							rfc.SetCacheStatusHeader(response)
+							customWriter.statusCode = response.StatusCode
+							customWriter.Headers = response.Header
+							_, _ = io.Copy(customWriter.Buf, response.Body)
+							_, _ = customWriter.Send()
+
+							return err
+						}
 					}
-					_, _ = io.Copy(customWriter.Buf, response.Body)
+
+					if customWriter.statusCode != http.StatusNotModified && validator.RequestETag == customWriter.Headers.Get("ETag") {
+						customWriter.statusCode = http.StatusNotModified
+						customWriter.Buf.Reset()
+						_, _ = customWriter.Send()
+
+						return err
+					}
+
 					_, _ = customWriter.Send()
 
 					return err

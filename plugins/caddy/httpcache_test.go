@@ -1,6 +1,7 @@
 package httpcache
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 	"time"
@@ -427,4 +428,53 @@ func TestMustRevalidate(t *testing.T) {
 	if resp5.Header.Get("Age") != "" {
 		t.Errorf("unexpected resp5 Age header %v", resp4.Header.Get("Age"))
 	}
+}
+
+type testETagsHandler struct{}
+
+const etagValue = "AAA-BBB"
+
+func (t *testETagsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("SERVEHTTP", r.Header)
+	if r.Header.Get("ETag") == etagValue {
+		w.WriteHeader(http.StatusNotModified)
+
+		return
+	}
+	w.Header().Set("ETag", etagValue)
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Hello etag!"))
+}
+
+func Test_ETags(t *testing.T) {
+	tester := caddytest.NewTester(t)
+	tester.InitServer(`
+	{
+		admin localhost:2999
+		order cache before rewrite
+		http_port     9080
+		cache {
+			ttl 50s
+			stale 50s
+		}
+	}
+	localhost:9080 {
+		route /etags {
+			cache
+			reverse_proxy localhost:9082
+		}
+	}`, "caddyfile")
+
+	etagsHandler := testETagsHandler{}
+	go http.ListenAndServe(":9082", &etagsHandler)
+	_, _ = tester.AssertGetResponse(`http://localhost:9080/etags`, http.StatusOK, "Hello etag!")
+	staleReq, _ := http.NewRequest(http.MethodGet, "http://localhost:9080/etags", nil)
+	staleReq.Header = http.Header{"Cache-Control": []string{"max-stale=3, stale-if-error=84600"}, "ETag": []string{etagValue}}
+	_, _ = tester.AssertResponse(staleReq, http.StatusNotModified, "")
+	staleReq.Header = http.Header{"Cache-Control": []string{"max-stale=3, stale-if-error=84600"}}
+	_, _ = tester.AssertResponse(staleReq, http.StatusOK, "Hello etag!")
+	staleReq.Header = http.Header{"Cache-Control": []string{"max-stale=3, stale-if-error=84600"}, "ETag": []string{etagValue}}
+	_, _ = tester.AssertResponse(staleReq, http.StatusNotModified, "")
+	staleReq.Header = http.Header{"Cache-Control": []string{"max-stale=3, stale-if-error=84600"}, "ETag": []string{"other"}}
+	_, _ = tester.AssertResponse(staleReq, http.StatusOK, "Hello etag!")
 }
