@@ -140,11 +140,11 @@ func (provider *EmbeddedOlric) Prefix(key string, req *http.Request, validator *
 				if res, err := http.ReadResponse(bufio.NewReader(bytes.NewBuffer(val)), req); err == nil {
 					rfc.ValidateETag(res, validator)
 					if validator.Matched {
-						provider.logger.Sugar().Debugf("The key %s matched the current iteration key ETag %s", key, records.Key())
+						provider.logger.Sugar().Debugf("The stored key %s matched the current iteration key ETag %+v", records.Key(), validator)
 						return res
 					}
 
-					provider.logger.Sugar().Debugf("The key %s didn't match the current iteration key ETag %s", key, records.Key())
+					provider.logger.Sugar().Debugf("The stored key %s didn't match the current iteration key ETag %+v", records.Key(), validator)
 				} else {
 					provider.logger.Sugar().Errorf("An error occured while reading response for the key %s: %v", records.Key(), err)
 				}

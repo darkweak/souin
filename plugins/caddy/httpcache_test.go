@@ -1,7 +1,6 @@
 package httpcache
 
 import (
-	"fmt"
 	"net/http"
 	"testing"
 	"time"
@@ -435,7 +434,6 @@ type testETagsHandler struct{}
 const etagValue = "AAA-BBB"
 
 func (t *testETagsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("SERVEHTTP", r.Header)
 	if r.Header.Get("ETag") == etagValue {
 		w.WriteHeader(http.StatusNotModified)
 
