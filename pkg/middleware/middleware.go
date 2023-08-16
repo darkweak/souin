@@ -393,7 +393,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 		response := s.Storer.Prefix(cachedKey, rq, validator)
 
 		if response != nil && (!modeContext.Strict || rfc.ValidateCacheControl(response, requestCc)) {
-			if validator.Matched {
+			if validator.ResponseETag != "" && validator.Matched {
 				rfc.SetCacheStatusHeader(response)
 				customWriter.Headers = response.Header
 				if validator.NotModified {

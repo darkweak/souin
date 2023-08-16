@@ -32,7 +32,7 @@ func ParseRequest(req *http.Request) *Revalidator {
 		rqEtags[i] = strings.Trim(tag, " ")
 	}
 	validator := Revalidator{
-		NotModified:  len(rqEtags) >= 1,
+		NotModified:  len(rqEtags) > 0,
 		RequestETags: rqEtags,
 	}
 	// If-Modified-Since
@@ -61,7 +61,7 @@ func ParseRequest(req *http.Request) *Revalidator {
 func ValidateETag(res *http.Response, validator *Revalidator) {
 	validator.ResponseETag = res.Header.Get("ETag")
 	validator.NeedRevalidation = validator.NeedRevalidation || validator.ResponseETag != ""
-	validator.Matched = validator.ResponseETag != "" && len(validator.RequestETags) == 0
+	validator.Matched = validator.ResponseETag == "" || (validator.ResponseETag != "" && len(validator.RequestETags) == 0)
 
 	if len(validator.RequestETags) == 0 {
 		validator.NotModified = false
