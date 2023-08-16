@@ -393,38 +393,28 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 		response := s.Storer.Prefix(cachedKey, rq, validator)
 
 		if response != nil && (!modeContext.Strict || rfc.ValidateCacheControl(response, requestCc)) {
-			if validator.NeedRevalidation {
-				rq.Header.Set("ETag", validator.ResponseETag)
-				err := s.Revalidate(validator, next, customWriter, rq, requestCc, cachedKey)
-				if customWriter.statusCode == http.StatusNotModified {
-					if validator.RequestETag == "" {
-						rfc.SetCacheStatusHeader(response)
-						customWriter.statusCode = response.StatusCode
-						customWriter.Headers = response.Header
-						_, _ = io.Copy(customWriter.Buf, response.Body)
-						_, _ = customWriter.Send()
-
-						return err
-					}
-				}
-
-				if customWriter.statusCode != http.StatusNotModified && validator.RequestETag == customWriter.Headers.Get("ETag") {
+			if validator.Matched {
+				rfc.SetCacheStatusHeader(response)
+				customWriter.Headers = response.Header
+				if validator.NotModified {
 					customWriter.statusCode = http.StatusNotModified
 					customWriter.Buf.Reset()
 					_, _ = customWriter.Send()
 
-					return err
+					return nil
 				}
 
+				customWriter.statusCode = response.StatusCode
+				_, _ = io.Copy(customWriter.Buf, response.Body)
 				_, _ = customWriter.Send()
 
-				return err
+				return nil
 			}
 			rfc.SetCacheStatusHeader(response)
 			if !modeContext.Strict || rfc.ValidateMaxAgeCachedResponse(requestCc, response) != nil {
 				customWriter.Headers = response.Header
 				customWriter.statusCode = response.StatusCode
-				s.Configuration.GetLogger().Sugar().Debugf("Serve from cache %+v", rq)
+				s.Configuration.GetLogger().Sugar().Infof("Serve from cache %+v", rq)
 				_, _ = io.Copy(customWriter.Buf, response.Body)
 				_, err := customWriter.Send()
 
@@ -455,7 +445,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 				}
 
 				if responseCc.MustRevalidate || responseCc.NoCachePresent || validator.NeedRevalidation {
-					rq.Header.Set("ETag", validator.ResponseETag)
+					rq.Header["If-None-Match"] = append(rq.Header["If-None-Match"], validator.ResponseETag)
 					err := s.Revalidate(validator, next, customWriter, rq, requestCc, cachedKey)
 					if err != nil {
 						if responseCc.StaleIfError > -1 || requestCc.StaleIfError > 0 {
@@ -477,7 +467,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 					}
 
 					if customWriter.statusCode == http.StatusNotModified {
-						if validator.RequestETag == "" {
+						if !validator.Matched {
 							rfc.SetCacheStatusHeader(response)
 							customWriter.statusCode = response.StatusCode
 							customWriter.Headers = response.Header
@@ -488,7 +478,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 						}
 					}
 
-					if customWriter.statusCode != http.StatusNotModified && validator.RequestETag == customWriter.Headers.Get("ETag") {
+					if customWriter.statusCode != http.StatusNotModified && validator.Matched {
 						customWriter.statusCode = http.StatusNotModified
 						customWriter.Buf.Reset()
 						_, _ = customWriter.Send()

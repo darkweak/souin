@@ -2,6 +2,7 @@ package httpcache
 
 import (
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -434,7 +435,7 @@ type testETagsHandler struct{}
 const etagValue = "AAA-BBB"
 
 func (t *testETagsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.Header.Get("ETag") == etagValue {
+	if strings.Contains(r.Header.Get("If-None-Match"), etagValue) {
 		w.WriteHeader(http.StatusNotModified)
 
 		return
@@ -467,12 +468,12 @@ func Test_ETags(t *testing.T) {
 	go http.ListenAndServe(":9082", &etagsHandler)
 	_, _ = tester.AssertGetResponse(`http://localhost:9080/etags`, http.StatusOK, "Hello etag!")
 	staleReq, _ := http.NewRequest(http.MethodGet, "http://localhost:9080/etags", nil)
-	staleReq.Header = http.Header{"Cache-Control": []string{"max-stale=3, stale-if-error=84600"}, "ETag": []string{etagValue}}
+	staleReq.Header = http.Header{"If-None-Match": []string{etagValue}}
 	_, _ = tester.AssertResponse(staleReq, http.StatusNotModified, "")
-	staleReq.Header = http.Header{"Cache-Control": []string{"max-stale=3, stale-if-error=84600"}}
+	staleReq.Header = http.Header{}
 	_, _ = tester.AssertResponse(staleReq, http.StatusOK, "Hello etag!")
-	staleReq.Header = http.Header{"Cache-Control": []string{"max-stale=3, stale-if-error=84600"}, "ETag": []string{etagValue}}
+	staleReq.Header = http.Header{"If-None-Match": []string{etagValue}}
 	_, _ = tester.AssertResponse(staleReq, http.StatusNotModified, "")
-	staleReq.Header = http.Header{"Cache-Control": []string{"max-stale=3, stale-if-error=84600"}, "ETag": []string{"other"}}
+	staleReq.Header = http.Header{"If-None-Match": []string{"other"}}
 	_, _ = tester.AssertResponse(staleReq, http.StatusOK, "Hello etag!")
 }
