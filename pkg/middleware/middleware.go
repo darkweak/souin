@@ -226,6 +226,9 @@ func (s *SouinBaseHandler) Store(
 		if res.Header.Get("Date") == "" {
 			res.Header.Set("Date", now.Format(http.TimeFormat))
 		}
+		if res.Header.Get("Content-Length") == "" {
+			res.Header.Set("Content-Length", fmt.Sprint(customWriter.Buf.Len()))
+		}
 		res.Header.Set(rfc.StoredLengthHeader, res.Header.Get("Content-Length"))
 		response, err := httputil.DumpResponse(&res, true)
 		if err == nil {

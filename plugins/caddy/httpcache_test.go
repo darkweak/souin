@@ -56,7 +56,6 @@ func TestHead(t *testing.T) {
 	localhost:9080 {
 		route /cache-head {
 			cache
-			header Content-Length 12
 			respond "Hello, HEAD!"
 		}
 	}`, "caddyfile")
