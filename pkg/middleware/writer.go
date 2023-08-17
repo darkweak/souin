@@ -76,6 +76,7 @@ func (r *CustomWriter) Send() (int, error) {
 	r.Headers.Del(rfc.StoredTTLHeader)
 	contentLength := r.Headers.Get(rfc.StoredLengthHeader)
 	if contentLength != "" {
+		r.Headers.Del("Content-Length")
 		r.Header().Set("Content-Length", contentLength)
 	}
 	r.Headers.Del(rfc.StoredLengthHeader)
