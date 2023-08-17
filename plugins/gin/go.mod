@@ -3,7 +3,7 @@ module github.com/darkweak/souin/plugins/gin
 go 1.20
 
 require (
-	github.com/darkweak/souin v1.6.39
+	github.com/darkweak/souin v1.6.40
 	github.com/gin-gonic/gin v1.9.1
 )
 
@@ -85,7 +85,6 @@ require (
 	go.etcd.io/etcd/client/pkg/v3 v3.5.9 // indirect
 	go.etcd.io/etcd/client/v3 v3.5.9 // indirect
 	go.opencensus.io v0.24.0 // indirect
-	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.25.0 // indirect
 	golang.org/x/arch v0.4.0 // indirect
@@ -105,4 +104,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/darkweak/souin v1.6.39 => ../..
+replace github.com/darkweak/souin v1.6.40 => ../..
