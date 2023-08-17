@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"bytes"
-	"fmt"
 	"net/http"
 	"strings"
 	"sync"
@@ -68,13 +67,18 @@ func (r *CustomWriter) WriteHeader(code int) {
 func (r *CustomWriter) Write(b []byte) (int, error) {
 	r.Buf.Grow(len(b))
 	_, _ = r.Buf.Write(b)
-	//
+
 	return len(b), nil
 }
 
 // Send delays the response to handle Cache-Status
 func (r *CustomWriter) Send() (int, error) {
 	r.Headers.Del(rfc.StoredTTLHeader)
+	contentLength := r.Headers.Get(rfc.StoredLengthHeader)
+	if contentLength != "" {
+		r.Header().Set("Content-Length", contentLength)
+	}
+	r.Headers.Del(rfc.StoredLengthHeader)
 	defer r.Buf.Reset()
 	b := esi.Parse(r.Buf.Bytes(), r.Req)
 	for h, v := range r.Headers {
@@ -85,7 +89,7 @@ func (r *CustomWriter) Send() (int, error) {
 
 	r.mutex.Lock()
 	if !r.headersSent {
-		r.Rw.Header().Set("Content-Length", fmt.Sprintf("%d", len(b)))
+		// r.Rw.Header().Set("Content-Length", fmt.Sprintf("%d", len(b)))
 		r.Rw.WriteHeader(r.statusCode)
 		r.headersSent = true
 	}

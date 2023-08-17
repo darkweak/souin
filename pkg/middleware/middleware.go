@@ -226,11 +226,12 @@ func (s *SouinBaseHandler) Store(
 		if res.Header.Get("Date") == "" {
 			res.Header.Set("Date", now.Format(http.TimeFormat))
 		}
+		res.Header.Set(rfc.StoredLengthHeader, res.Header.Get("Content-Length"))
 		response, err := httputil.DumpResponse(&res, true)
 		if err == nil {
 			variedHeaders := rfc.HeaderAllCommaSepValues(res.Header)
 			cachedKey += rfc.GetVariedCacheKey(rq, variedHeaders)
-			s.Configuration.GetLogger().Sugar().Debugf("Store the response %+v with duration %v", res, ma)
+			s.Configuration.GetLogger().Sugar().Infof("Store the response %+v with duration %v", res, ma)
 			if s.Storer.Set(cachedKey, response, currentMatchedURL, ma) == nil {
 				s.Configuration.GetLogger().Sugar().Debugf("Store the cache key %s into the surrogate keys from the following headers %v", cachedKey, res)
 				go func(rs http.Response, key string) {

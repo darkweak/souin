@@ -43,6 +43,42 @@ func TestMinimal(t *testing.T) {
 	}
 }
 
+func TestHead(t *testing.T) {
+	tester := caddytest.NewTester(t)
+	tester.InitServer(`
+	{
+		admin localhost:2999
+		order cache before rewrite
+		http_port     9080
+		https_port    9443
+		cache
+	}
+	localhost:9080 {
+		route /cache-head {
+			cache
+			header Content-Length 12
+			respond "Hello, HEAD!"
+		}
+	}`, "caddyfile")
+
+	headReq, _ := http.NewRequest(http.MethodHead, "http://localhost:9080/cache-head", nil)
+	resp1, _ := tester.AssertResponse(headReq, 200, "")
+	if resp1.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=HEAD-http-localhost:9080-/cache-head" {
+		t.Errorf("unexpected Cache-Status header %v", resp1.Header)
+	}
+	if resp1.Header.Get("Content-Length") != "12" {
+		t.Errorf("unexpected Content-Length header %v", resp1.Header)
+	}
+
+	resp2, _ := tester.AssertResponse(headReq, 200, "")
+	if resp2.Header.Get("Cache-Status") != "Souin; hit; ttl=119; key=HEAD-http-localhost:9080-/cache-head" {
+		t.Errorf("unexpected Cache-Status header %v", resp2.Header)
+	}
+	if resp2.Header.Get("Content-Length") != "12" {
+		t.Errorf("unexpected Content-Length header %v", resp2.Header)
+	}
+}
+
 func TestQueryString(t *testing.T) {
 	tester := caddytest.NewTester(t)
 	tester.InitServer(`
