@@ -2,6 +2,7 @@ package httpcache
 
 import (
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -39,6 +40,41 @@ func TestMinimal(t *testing.T) {
 	resp3, _ := tester.AssertGetResponse(`http://localhost:9080/cache-default`, 200, "Hello, default!")
 	if resp3.Header.Get("Cache-Status") != "Souin; hit; ttl=117; key=GET-http-localhost:9080-/cache-default" {
 		t.Errorf("unexpected Cache-Status header %v", resp3.Header.Get("Cache-Status"))
+	}
+}
+
+func TestHead(t *testing.T) {
+	tester := caddytest.NewTester(t)
+	tester.InitServer(`
+	{
+		admin localhost:2999
+		order cache before rewrite
+		http_port     9080
+		https_port    9443
+		cache
+	}
+	localhost:9080 {
+		route /cache-head {
+			cache
+			respond "Hello, HEAD!"
+		}
+	}`, "caddyfile")
+
+	headReq, _ := http.NewRequest(http.MethodHead, "http://localhost:9080/cache-head", nil)
+	resp1, _ := tester.AssertResponse(headReq, 200, "")
+	if resp1.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=HEAD-http-localhost:9080-/cache-head" {
+		t.Errorf("unexpected Cache-Status header %v", resp1.Header)
+	}
+	if resp1.Header.Get("Content-Length") != "12" {
+		t.Errorf("unexpected Content-Length header %v", resp1.Header)
+	}
+
+	resp2, _ := tester.AssertResponse(headReq, 200, "")
+	if resp2.Header.Get("Cache-Status") != "Souin; hit; ttl=119; key=HEAD-http-localhost:9080-/cache-head" {
+		t.Errorf("unexpected Cache-Status header %v", resp2.Header)
+	}
+	if resp2.Header.Get("Content-Length") != "12" {
+		t.Errorf("unexpected Content-Length header %v", resp2.Header)
 	}
 }
 
@@ -427,4 +463,52 @@ func TestMustRevalidate(t *testing.T) {
 	if resp5.Header.Get("Age") != "" {
 		t.Errorf("unexpected resp5 Age header %v", resp4.Header.Get("Age"))
 	}
+}
+
+type testETagsHandler struct{}
+
+const etagValue = "AAA-BBB"
+
+func (t *testETagsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if strings.Contains(r.Header.Get("If-None-Match"), etagValue) {
+		w.WriteHeader(http.StatusNotModified)
+
+		return
+	}
+	w.Header().Set("ETag", etagValue)
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Hello etag!"))
+}
+
+func Test_ETags(t *testing.T) {
+	tester := caddytest.NewTester(t)
+	tester.InitServer(`
+	{
+		admin localhost:2999
+		order cache before rewrite
+		http_port     9080
+		cache {
+			ttl 50s
+			stale 50s
+		}
+	}
+	localhost:9080 {
+		route /etags {
+			cache
+			reverse_proxy localhost:9082
+		}
+	}`, "caddyfile")
+
+	etagsHandler := testETagsHandler{}
+	go http.ListenAndServe(":9082", &etagsHandler)
+	_, _ = tester.AssertGetResponse(`http://localhost:9080/etags`, http.StatusOK, "Hello etag!")
+	staleReq, _ := http.NewRequest(http.MethodGet, "http://localhost:9080/etags", nil)
+	staleReq.Header = http.Header{"If-None-Match": []string{etagValue}}
+	_, _ = tester.AssertResponse(staleReq, http.StatusNotModified, "")
+	staleReq.Header = http.Header{}
+	_, _ = tester.AssertResponse(staleReq, http.StatusOK, "Hello etag!")
+	staleReq.Header = http.Header{"If-None-Match": []string{etagValue}}
+	_, _ = tester.AssertResponse(staleReq, http.StatusNotModified, "")
+	staleReq.Header = http.Header{"If-None-Match": []string{"other"}}
+	_, _ = tester.AssertResponse(staleReq, http.StatusOK, "Hello etag!")
 }

@@ -226,11 +226,15 @@ func (s *SouinBaseHandler) Store(
 		if res.Header.Get("Date") == "" {
 			res.Header.Set("Date", now.Format(http.TimeFormat))
 		}
+		if res.Header.Get("Content-Length") == "" {
+			res.Header.Set("Content-Length", fmt.Sprint(customWriter.Buf.Len()))
+		}
+		res.Header.Set(rfc.StoredLengthHeader, res.Header.Get("Content-Length"))
 		response, err := httputil.DumpResponse(&res, true)
 		if err == nil {
 			variedHeaders := rfc.HeaderAllCommaSepValues(res.Header)
 			cachedKey += rfc.GetVariedCacheKey(rq, variedHeaders)
-			s.Configuration.GetLogger().Sugar().Debugf("Store the response %+v with duration %v", res, ma)
+			s.Configuration.GetLogger().Sugar().Infof("Store the response %+v with duration %v", res, ma)
 			if s.Storer.Set(cachedKey, response, currentMatchedURL, ma) == nil {
 				s.Configuration.GetLogger().Sugar().Debugf("Store the cache key %s into the surrogate keys from the following headers %v", cachedKey, res)
 				go func(rs http.Response, key string) {
@@ -393,18 +397,28 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 		response := s.Storer.Prefix(cachedKey, rq, validator)
 
 		if response != nil && (!modeContext.Strict || rfc.ValidateCacheControl(response, requestCc)) {
-			if validator.NeedRevalidation {
-				err := s.Revalidate(validator, next, customWriter, rq, requestCc, cachedKey)
+			if validator.ResponseETag != "" && validator.Matched {
+				rfc.SetCacheStatusHeader(response)
+				customWriter.Headers = response.Header
+				if validator.NotModified {
+					customWriter.statusCode = http.StatusNotModified
+					customWriter.Buf.Reset()
+					_, _ = customWriter.Send()
+
+					return nil
+				}
+
+				customWriter.statusCode = response.StatusCode
 				_, _ = io.Copy(customWriter.Buf, response.Body)
 				_, _ = customWriter.Send()
 
-				return err
+				return nil
 			}
 			rfc.SetCacheStatusHeader(response)
 			if !modeContext.Strict || rfc.ValidateMaxAgeCachedResponse(requestCc, response) != nil {
 				customWriter.Headers = response.Header
 				customWriter.statusCode = response.StatusCode
-				s.Configuration.GetLogger().Sugar().Debugf("Serve from cache %+v", rq)
+				s.Configuration.GetLogger().Sugar().Infof("Serve from cache %+v", rq)
 				_, _ = io.Copy(customWriter.Buf, response.Body)
 				_, err := customWriter.Send()
 
@@ -435,6 +449,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 				}
 
 				if responseCc.MustRevalidate || responseCc.NoCachePresent || validator.NeedRevalidation {
+					rq.Header["If-None-Match"] = append(rq.Header["If-None-Match"], validator.ResponseETag)
 					err := s.Revalidate(validator, next, customWriter, rq, requestCc, cachedKey)
 					if err != nil {
 						if responseCc.StaleIfError > -1 || requestCc.StaleIfError > 0 {
@@ -454,21 +469,31 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 
 						return err
 					}
-					_, _ = io.Copy(customWriter.Buf, response.Body)
+
+					if customWriter.statusCode == http.StatusNotModified {
+						if !validator.Matched {
+							rfc.SetCacheStatusHeader(response)
+							customWriter.statusCode = response.StatusCode
+							customWriter.Headers = response.Header
+							_, _ = io.Copy(customWriter.Buf, response.Body)
+							_, _ = customWriter.Send()
+
+							return err
+						}
+					}
+
+					if customWriter.statusCode != http.StatusNotModified && validator.Matched {
+						customWriter.statusCode = http.StatusNotModified
+						customWriter.Buf.Reset()
+						_, _ = customWriter.Send()
+
+						return err
+					}
+
 					_, _ = customWriter.Send()
 
 					return err
 				}
-
-				// if responseCc.StaleIfError > 0 && s.Upstream(customWriter, rq, next, requestCc, cachedKey) != nil {
-				// 	customWriter.Headers = response.Header
-				// 	customWriter.statusCode = response.StatusCode
-				// 	rfc.HitStaleCache(&response.Header)
-				// 	_, _ = io.Copy(customWriter.Buf, response.Body)
-				// 	_, err := customWriter.Send()
-				//
-				// 	return err
-				// }
 
 				if rfc.ValidateMaxAgeCachedStaleResponse(requestCc, response, int(addTime.Seconds())) != nil {
 					customWriter.Headers = response.Header
