@@ -2,6 +2,7 @@ package rfc
 
 import (
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -13,14 +14,27 @@ type Revalidator struct {
 	IfUnmodifiedSincePresent    bool
 	IfUnmotModifiedSincePresent bool
 	NeedRevalidation            bool
+	NotModified                 bool
 	IfModifiedSince             time.Time
 	IfUnmodifiedSince           time.Time
 	IfNoneMatch                 []string
 	IfMatch                     []string
+	RequestETags                []string
+	ResponseETag                string
 }
 
 func ParseRequest(req *http.Request) *Revalidator {
-	validator := Revalidator{}
+	var rqEtags []string
+	if len(req.Header.Get("If-None-Match")) > 0 {
+		rqEtags = strings.Split(req.Header.Get("If-None-Match"), ",")
+	}
+	for i, tag := range rqEtags {
+		rqEtags[i] = strings.Trim(tag, " ")
+	}
+	validator := Revalidator{
+		NotModified:  len(rqEtags) > 0,
+		RequestETags: rqEtags,
+	}
 	// If-Modified-Since
 	if ifModifiedSince := req.Header.Get("If-Modified-Since"); ifModifiedSince != "" {
 		validator.IfModifiedSincePresent = true
@@ -45,31 +59,37 @@ func ParseRequest(req *http.Request) *Revalidator {
 }
 
 func ValidateETag(res *http.Response, validator *Revalidator) {
-	etag := res.Header.Get("ETag")
-	validator.Matched = etag == ""
+	validator.ResponseETag = res.Header.Get("ETag")
+	validator.NeedRevalidation = validator.NeedRevalidation || validator.ResponseETag != ""
+	validator.Matched = validator.ResponseETag == "" || (validator.ResponseETag != "" && len(validator.RequestETags) == 0)
+
+	if len(validator.RequestETags) == 0 {
+		validator.NotModified = false
+		return
+	}
 
 	// If-None-Match
 	if validator.IfNoneMatchPresent {
 		for _, ifNoneMatch := range validator.IfNoneMatch {
 			// Asrterisk special char to match any of ETag
 			if ifNoneMatch == "*" {
-				validator.Matched = false
+				validator.Matched = true
 				return
 			}
-			if ifNoneMatch == etag {
-				validator.Matched = false
+			if ifNoneMatch == validator.ResponseETag {
+				validator.Matched = true
 				return
 			}
 		}
 
-		validator.Matched = true
+		validator.Matched = false
 		return
 	}
 
 	// If-Match
 	if validator.IfMatchPresent {
 		validator.Matched = false
-		if etag == "" {
+		if validator.ResponseETag == "" {
 			return
 		}
 
@@ -79,7 +99,7 @@ func ValidateETag(res *http.Response, validator *Revalidator) {
 				validator.Matched = true
 				return
 			}
-			if ifMatch == etag {
+			if ifMatch == validator.ResponseETag {
 				validator.Matched = true
 				return
 			}
