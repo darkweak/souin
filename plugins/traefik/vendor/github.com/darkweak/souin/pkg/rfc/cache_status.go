@@ -12,7 +12,10 @@ import (
 	"github.com/pquerna/cachecontrol/cacheobject"
 )
 
-const StoredTTLHeader = "X-Souin-Stored-TTL"
+const (
+	StoredTTLHeader    = "X-Souin-Stored-TTL"
+	StoredLengthHeader = "X-Souin-Stored-Length"
+)
 
 var emptyHeaders = []string{"Expires", "Last-Modified"}
 

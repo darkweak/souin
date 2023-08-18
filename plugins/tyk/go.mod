@@ -6,7 +6,7 @@ require (
 	github.com/Shopify/sarama v1.38.1 // indirect
 	github.com/TykTechnologies/gojsonschema v0.0.0-20221026223418-8ec6134c8a60 // indirect
 	github.com/TykTechnologies/tyk v1.9.2-0.20230330071232-370295d796b5
-	github.com/darkweak/souin v1.6.39
+	github.com/darkweak/souin v1.6.40
 	github.com/eclipse/paho.mqtt.golang v1.4.2 // indirect
 	github.com/evanphx/json-patch/v5 v5.5.0 // indirect
 	github.com/go-test/deep v1.0.8 // indirect
@@ -40,6 +40,6 @@ require (
 )
 
 replace (
-	github.com/darkweak/souin v1.6.39 => ../..
+	github.com/darkweak/souin v1.6.40 => ../..
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6 => github.com/alecthomas/kingpin/v2 v2.3.2
 )

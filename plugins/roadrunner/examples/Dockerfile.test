@@ -3,7 +3,7 @@ FROM ghcr.io/roadrunner-server/velox:latest as velox
 ARG CURRENT_SHA
 ARG GH_TOKEN
 ENV CGO_ENABLED=0
-ENV VERSION=v2023.1.0
+ENV VERSION=v2023.2.2
 ENV TIME="$(date +%H:%M)"
 
 RUN apk add git
