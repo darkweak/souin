@@ -45,7 +45,7 @@ jobs:
           go-version: '$go_version'
       -
         name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       -
         name: Install xcaddy
         run: go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest

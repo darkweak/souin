@@ -3,7 +3,7 @@ ARG GO_VERSION
 FROM golang:${GO_VERSION}-alpine AS development-runner
 
 RUN apk update && apk upgrade && \
-    apk add --no-cache bash git openssh gcc libc-dev
+    apk add --no-cache bash git openssh gcc libc-dev binutils-gold
 ENV GOPATH /app
 RUN mkdir -p /app/src/github.com/darkweak/souin
 WORKDIR /app/src/github.com/darkweak/souin
