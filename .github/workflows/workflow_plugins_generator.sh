@@ -1,7 +1,7 @@
 #!/bin/bash
 
 plugins=("beego"  "chi"  "dotweb"  "echo"  "fiber"  "gin"  "goa"  "go-zero"  "hertz"  "kratos"  "roadrunner"  "skipper"  "souin"  "traefik"  "tyk"  "webgo")
-go_version=1.20
+go_version=1.21
 
 IFS= read -r -d '' tpl <<EOF
 name: Build and validate Souin as plugins

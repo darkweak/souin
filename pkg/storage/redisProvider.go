@@ -57,6 +57,11 @@ func RedisConnectionFactory(c t.AbstractConfigurationInterface) (Storer, error) 
 	}, nil
 }
 
+// Name returns the storer name
+func (provider *Redis) Name() string {
+	return "REDIS"
+}
+
 // ListKeys method returns the list of existing keys
 func (provider *Redis) ListKeys() []string {
 	if provider.reconnecting {

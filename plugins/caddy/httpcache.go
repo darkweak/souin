@@ -63,6 +63,8 @@ type SouinCaddyMiddleware struct {
 	TTL configurationtypes.Duration `json:"ttl,omitempty"`
 	// Time to live for a stale key, using time.duration.
 	Stale configurationtypes.Duration `json:"stale,omitempty"`
+	// Storage providers chaining and order.
+	Storers []string `json:"storers,omitempty"`
 	// The default Cache-Control header value if none set by the upstream server.
 	DefaultCacheControl string `json:"default_cache_control,omitempty"`
 	// The cache name to use in the Cache-Status response header.
@@ -102,6 +104,7 @@ func (s *SouinCaddyMiddleware) configurationPropertyMapper() error {
 		Timeout:             s.Timeout,
 		TTL:                 s.TTL,
 		Stale:               s.Stale,
+		Storers:             s.Storers,
 	}
 	if s.Configuration == nil {
 		s.Configuration = &Configuration{
@@ -172,6 +175,9 @@ func (s *SouinCaddyMiddleware) FromApp(app *SouinApp) error {
 	}
 	if dc.Stale.Duration == 0 {
 		s.Configuration.DefaultCache.Stale = appDc.Stale
+	}
+	if len(dc.Storers) == 0 {
+		s.Configuration.DefaultCache.Storers = appDc.Storers
 	}
 	if dc.Timeout.Backend.Duration == 0 {
 		s.Configuration.DefaultCache.Timeout.Backend = appDc.Timeout.Backend

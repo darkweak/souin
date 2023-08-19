@@ -16,7 +16,7 @@ func Test_NewHTTPCache(t *testing.T) {
 	s := &SouinGoaMiddleware{
 		SouinBaseHandler: middleware.NewHTTPCacheHandler(&DevDefaultConfiguration),
 	}
-	if s.SouinBaseHandler.Storer == nil {
+	if s.SouinBaseHandler.Storers == nil || len(s.SouinBaseHandler.Storers) != 1 {
 		t.Error("The storer must be set.")
 	}
 	defer func() {
