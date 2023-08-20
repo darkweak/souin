@@ -244,35 +244,37 @@ func (s *SouinCaddyMiddleware) Provision(ctx caddy.Context) error {
 	s.SouinBaseHandler = bh
 	dc := s.SouinBaseHandler.Configuration.GetDefaultCache()
 	if dc.GetDistributed() {
-		if eo, ok := s.SouinBaseHandler.Storer.(*storage.EmbeddedOlric); ok {
-			name := fmt.Sprintf("0.0.0.0:%d", config.DefaultPort)
-			if dc.GetOlric().Configuration != nil {
-				oc := dc.GetOlric().Configuration.(*config.Config)
-				name = fmt.Sprintf("%s:%d", oc.BindAddr, oc.BindPort)
-			} else if dc.GetOlric().Path != "" {
-				name = dc.GetOlric().Path
-			}
-
-			key := "Embedded-" + name
-			v, _ := up.LoadOrStore(stored_providers_key, newStorageProvider())
-			v.(*storage_providers).Add(key)
-
-			if eo.GetDM() == nil {
-				v, l, e := up.LoadOrNew(key, func() (caddy.Destructor, error) {
-					s.logger.Sugar().Debug("Create a new olric instance.")
-					eo, err := storage.EmbeddedOlricConnectionFactory(s.Configuration)
-					if eo != nil {
-						return eo.(*storage.EmbeddedOlric), err
-					}
-					return nil, err
-				})
-
-				if l && e == nil {
-					s.SouinBaseHandler.Storer = v.(storage.Storer)
+		for _, currentStorer := range s.SouinBaseHandler.Storers {
+			if eo, ok := currentStorer.(*storage.EmbeddedOlric); ok {
+				name := fmt.Sprintf("0.0.0.0:%d", config.DefaultPort)
+				if dc.GetOlric().Configuration != nil {
+					oc := dc.GetOlric().Configuration.(*config.Config)
+					name = fmt.Sprintf("%s:%d", oc.BindAddr, oc.BindPort)
+				} else if dc.GetOlric().Path != "" {
+					name = dc.GetOlric().Path
 				}
-			} else {
-				s.logger.Sugar().Debug("Store the olric instance.")
-				_, _ = up.LoadOrStore(key, s.SouinBaseHandler.SurrogateKeyStorer)
+
+				key := "Embedded-" + name
+				v, _ := up.LoadOrStore(stored_providers_key, newStorageProvider())
+				v.(*storage_providers).Add(key)
+
+				if eo.GetDM() == nil {
+					v, l, e := up.LoadOrNew(key, func() (caddy.Destructor, error) {
+						s.logger.Sugar().Debug("Create a new olric instance.")
+						eo, err := storage.EmbeddedOlricConnectionFactory(s.Configuration)
+						if eo != nil {
+							return eo.(*storage.EmbeddedOlric), err
+						}
+						return nil, err
+					})
+
+					if l && e == nil {
+						s.SouinBaseHandler.Storer = v.(storage.Storer)
+					}
+				} else {
+					s.logger.Sugar().Debug("Store the olric instance.")
+					_, _ = up.LoadOrStore(key, s.SouinBaseHandler.SurrogateKeyStorer)
+				}
 			}
 		}
 	}

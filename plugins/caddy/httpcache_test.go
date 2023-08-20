@@ -1,8 +1,12 @@
 package httpcache
 
 import (
+	"fmt"
 	"net/http"
+	"os"
+	"path"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -287,6 +291,84 @@ func TestNotHandledRoute(t *testing.T) {
 	if resp1.Header.Get("Cache-Status") != "Souin; fwd=bypass; detail=EXCLUDED-REQUEST-URI" {
 		t.Errorf("unexpected Cache-Status header value %v", resp1.Header.Get("Cache-Status"))
 	}
+}
+
+func TestMultiProvider(t *testing.T) {
+	var wg sync.WaitGroup
+	var responses []*http.Response
+
+	for i := 0; i < 4; i++ {
+		wg.Add(1)
+
+		go func(tt *testing.T) {
+			tester := caddytest.NewTester(t)
+			tester.InitServer(`
+	{
+		admin localhost:2999
+		http_port 9080
+		https_port 9443
+		cache {
+			nuts {
+				path ./souin-nuts
+			}
+			ttl 1000s
+			storers badger nuts
+		}
+	}
+	localhost:9080 {
+		route /multi-storage {
+			cache
+			respond "Hello, multi-storage!"
+		}
+	}`, "caddyfile")
+
+			resp, _ := tester.AssertGetResponse(`http://localhost:9080/multi-storage`, 200, "Hello, multi-storage!")
+			responses = append(responses, resp)
+			resp, _ = tester.AssertGetResponse(`http://localhost:9080/multi-storage`, 200, "Hello, multi-storage!")
+			responses = append(responses, resp)
+			wg.Done()
+		}(t)
+
+		wg.Wait()
+		time.Sleep(time.Second)
+	}
+
+	resp1 := responses[0]
+	if resp1.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-http-localhost:9080-/multi-storage" {
+		t.Errorf("unexpected resp1 Cache-Status header %v", resp1.Header.Get("Cache-Status"))
+	}
+	if resp1.Header.Get("Age") != "" {
+		t.Errorf("unexpected resp1 Age header %v", resp1.Header.Get("Age"))
+	}
+	resp1 = responses[1]
+	if resp1.Header.Get("Cache-Status") != "Souin; hit; ttl=999; key=GET-http-localhost:9080-/multi-storage" {
+		t.Errorf("unexpected resp3 Cache-Status header %v", resp1.Header.Get("Cache-Status"))
+	}
+	if resp1.Header.Get("Age") != "1" {
+		t.Errorf("unexpected resp1 Age header %v", resp1.Header.Get("Age"))
+	}
+
+	for i := 0; i < (len(responses)/2)-1; i++ {
+		currentIteration := 2 + (i * 2)
+		resp := responses[currentIteration]
+		if resp.Header.Get("Cache-Status") != "Souin; hit; ttl="+fmt.Sprint(998-i)+"; key=GET-http-localhost:9080-/multi-storage" {
+			t.Errorf("unexpected resp%d Cache-Status header %v", currentIteration, resp.Header.Get("Cache-Status"))
+		}
+		if resp.Header.Get("Age") != fmt.Sprint(2+i) {
+			t.Errorf("unexpected resp%d Age header %v", currentIteration, resp.Header.Get("Age"))
+		}
+		currentIteration++
+		resp = responses[currentIteration]
+		if resp.Header.Get("Cache-Status") != "Souin; hit; ttl="+fmt.Sprint(998-i)+"; key=GET-http-localhost:9080-/multi-storage" {
+			t.Errorf("unexpected resp%d Cache-Status header %v", currentIteration, resp.Header.Get("Cache-Status"))
+		}
+		if resp.Header.Get("Age") != fmt.Sprint(2+i) {
+			t.Errorf("unexpected resp%d Age header %v", currentIteration, resp.Header.Get("Age"))
+		}
+	}
+
+	os.RemoveAll(path.Join(".", "souin-nuts"))
+	TestMinimal(t)
 }
 
 func TestAuthenticatedRoute(t *testing.T) {
