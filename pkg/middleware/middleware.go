@@ -234,7 +234,7 @@ func (s *SouinBaseHandler) Store(
 		if err == nil {
 			variedHeaders := rfc.HeaderAllCommaSepValues(res.Header)
 			cachedKey += rfc.GetVariedCacheKey(rq, variedHeaders)
-			s.Configuration.GetLogger().Sugar().Infof("Store the response %+v with duration %v", res, ma)
+			s.Configuration.GetLogger().Sugar().Debugf("Store the response %+v with duration %v", res, ma)
 			if s.Storer.Set(cachedKey, response, currentMatchedURL, ma) == nil {
 				s.Configuration.GetLogger().Sugar().Debugf("Store the cache key %s into the surrogate keys from the following headers %v", cachedKey, res)
 				go func(rs http.Response, key string) {
@@ -418,7 +418,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 			if !modeContext.Strict || rfc.ValidateMaxAgeCachedResponse(requestCc, response) != nil {
 				customWriter.Headers = response.Header
 				customWriter.statusCode = response.StatusCode
-				s.Configuration.GetLogger().Sugar().Infof("Serve from cache %+v", rq)
+				s.Configuration.GetLogger().Sugar().Debugf("Serve from cache %+v", rq)
 				_, _ = io.Copy(customWriter.Buf, response.Body)
 				_, err := customWriter.Send()
 
