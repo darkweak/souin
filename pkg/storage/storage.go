@@ -25,6 +25,7 @@ type Storer interface {
 	Delete(key string)
 	DeleteMany(key string)
 	Init() error
+	Name() string
 	Reset() error
 }
 
@@ -65,6 +66,55 @@ func NewStorage(configuration configurationtypes.AbstractConfigurationInterface)
 		return newStorage(configuration)
 	}
 	return nil, errors.New("Storer with name" + storerName + " not found")
+}
+
+func uniqueStorers(storers []string) []string {
+	storerPresent := make(map[string]bool)
+	s := []string{}
+
+	for _, current := range storers {
+		if _, found := storerPresent[current]; !found {
+			storerPresent[current] = true
+			s = append(s, current)
+		}
+	}
+
+	return s
+}
+
+func NewStorages(configuration configurationtypes.AbstractConfigurationInterface) ([]Storer, error) {
+	storers := []Storer{}
+	for _, storerName := range uniqueStorers(configuration.GetDefaultCache().GetStorers()) {
+		if newStorage, found := storageMap[storerName]; found {
+			instance, err := newStorage(configuration)
+			if err != nil {
+				configuration.GetLogger().Sugar().Debugf("Cannot load configuration for the chianed provider %s: %+v", storerName, err)
+				continue
+			}
+
+			configuration.GetLogger().Sugar().Debugf("Append storer %s to the chain", storerName)
+			storers = append(storers, instance)
+		} else {
+			configuration.GetLogger().Sugar().Debugf("Storer with name %s not found", storerName)
+		}
+	}
+
+	if len(storers) == 0 {
+		configuration.GetLogger().Debug("Not able to create storers chain from the storers slice, fallback to the default storer creation")
+		instance, err := NewStorage(configuration)
+		if err != nil || instance == nil {
+			return nil, err
+		}
+
+		storers = append(storers, instance)
+	}
+
+	names := []string{}
+	for _, s := range storers {
+		names = append(names, s.Name())
+	}
+	configuration.GetLogger().Sugar().Debugf("Run with %d chained providers with the given order %s", len(storers), strings.Join(names, ", "))
+	return storers, nil
 }
 
 func varyVoter(baseKey string, req *http.Request, currentKey string) bool {

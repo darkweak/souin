@@ -302,6 +302,13 @@ func parseDefaultCache(dcConfiguration map[string]config.Value) *configurationty
 			if err == nil {
 				dc.Stale = configurationtypes.Duration{Duration: stale}
 			}
+		case "storers":
+			storers, _ := defaultCacheV.Slice()
+			dc.Storers = make([]string, 0)
+			for _, storer := range storers {
+				h, _ := storer.String()
+				dc.Storers = append(dc.Storers, h)
+			}
 		case "default_cache_control":
 			dc.DefaultCacheControl, _ = defaultCacheV.String()
 		}

@@ -40,6 +40,8 @@ type DefaultCache struct {
 	Nuts configurationtypes.CacheProvider `json:"nuts"`
 	// Regex to exclude cache.
 	Regex configurationtypes.Regex `json:"regex"`
+	// Storage providers chaining and order.
+	Storers []string `json:"storers"`
 	// Time before cache or backend access timeout.
 	Timeout configurationtypes.Timeout `json:"timeout"`
 	// Time to live.
@@ -111,6 +113,11 @@ func (d *DefaultCache) GetRedis() configurationtypes.CacheProvider {
 // GetRegex returns the regex that shouldn't be cached
 func (d *DefaultCache) GetRegex() configurationtypes.Regex {
 	return d.Regex
+}
+
+// GetStorers returns the chianed storers
+func (d *DefaultCache) GetStorers() []string {
+	return d.Storers
 }
 
 // GetTimeout returns the backend and cache timeouts
@@ -513,6 +520,9 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isBlocking b
 				if err == nil {
 					cfg.DefaultCache.Stale.Duration = stale
 				}
+			case "storers":
+				args := h.RemainingArgs()
+				cfg.DefaultCache.Storers = args
 			case "timeout":
 				timeout := configurationtypes.Timeout{}
 				for nesting := h.Nesting(); h.NextBlock(nesting); {

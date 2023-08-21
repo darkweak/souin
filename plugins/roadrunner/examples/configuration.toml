@@ -13,7 +13,7 @@ ref = "v2023.2.2"
 token = "GH_TOKEN"
 
 [github.plugins]
-logger = { ref = "v4.1.5", owner = "roadrunner-server", repository = "logger" }
+logger = { ref = "v4.2.1", owner = "roadrunner-server", repository = "logger" }
 cache = { ref = "CURRENT_SHA", owner = "darkweak", repository = "souin", folder = "/plugins/roadrunner", replace = "/opt/plugins/roadrunner" }
 server = { ref = "v4.1.4", owner = "roadrunner-server", repository = "server" }
 gzip = { ref = "v4.0.7", owner = "roadrunner-server", repository = "gzip" }

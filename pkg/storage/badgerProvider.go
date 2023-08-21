@@ -86,6 +86,11 @@ func BadgerConnectionFactory(c t.AbstractConfigurationInterface) (Storer, error)
 	return i, nil
 }
 
+// Name returns the storer name
+func (provider *Badger) Name() string {
+	return "BADGER"
+}
+
 // ListKeys method returns the list of existing keys
 func (provider *Badger) ListKeys() []string {
 	keys := []string{}

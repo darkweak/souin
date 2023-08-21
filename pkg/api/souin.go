@@ -15,13 +15,13 @@ import (
 type SouinAPI struct {
 	basePath         string
 	enabled          bool
-	storer           storage.Storer
+	storers          []storage.Storer
 	surrogateStorage providers.SurrogateInterface
 }
 
 func initializeSouin(
 	configuration configurationtypes.AbstractConfigurationInterface,
-	storer storage.Storer,
+	storers []storage.Storer,
 	surrogateStorage providers.SurrogateInterface,
 ) *SouinAPI {
 	basePath := configuration.GetAPI().Souin.BasePath
@@ -31,24 +31,33 @@ func initializeSouin(
 	return &SouinAPI{
 		basePath,
 		configuration.GetAPI().Souin.Enable,
-		storer,
+		storers,
 		surrogateStorage,
 	}
 }
 
 // BulkDelete allow user to delete multiple items with regexp
 func (s *SouinAPI) BulkDelete(key string) {
-	s.storer.DeleteMany(key)
+	for _, current := range s.storers {
+		current.DeleteMany(key)
+	}
 }
 
 // Delete will delete a record into the provider cache system and will update the Souin API if enabled
 func (s *SouinAPI) Delete(key string) {
-	s.storer.Delete(key)
+	for _, current := range s.storers {
+		current.Delete(key)
+	}
 }
 
 // GetAll will retrieve all stored keys in the provider
 func (s *SouinAPI) GetAll() []string {
-	return s.storer.ListKeys()
+	keys := []string{}
+	for _, current := range s.storers {
+		keys = append(keys, current.ListKeys()...)
+	}
+
+	return keys
 }
 
 // GetBasePath will return the basepath for this resource
@@ -100,7 +109,9 @@ func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 			flushRg := regexp.MustCompile(s.GetBasePath() + "/flush$")
 
 			if flushRg.FindString(r.RequestURI) != "" {
-				s.storer.DeleteMany(".+")
+				for _, current := range s.storers {
+					current.DeleteMany(".+")
+				}
 				e := s.surrogateStorage.Destruct()
 				if e != nil {
 					fmt.Printf("Error while purging the surrogate keys: %+v.", e)
@@ -113,7 +124,9 @@ func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 		} else {
 			ck, _ := s.surrogateStorage.Purge(r.Header)
 			for _, k := range ck {
-				s.storer.Delete(k)
+				for _, current := range s.storers {
+					current.Delete(k)
+				}
 			}
 		}
 		w.WriteHeader(http.StatusNoContent)
