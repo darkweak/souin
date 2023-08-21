@@ -198,6 +198,8 @@ func parseConfiguration(c map[string]interface{}) Configuration {
 					if err == nil {
 						dc.Stale = configurationtypes.Duration{Duration: stale}
 					}
+				case "storers":
+					dc.Storers = parseStringSlice(defaultCacheV)
 				case "default_cache_control":
 					dc.DefaultCacheControl = defaultCacheV.(string)
 				}

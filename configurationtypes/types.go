@@ -229,6 +229,7 @@ type DefaultCache struct {
 	Port                Port          `json:"port" yaml:"port"`
 	Regex               Regex         `json:"regex" yaml:"regex"`
 	Stale               Duration      `json:"stale" yaml:"stale"`
+	Storers             []string      `json:"storers" yaml:"storers"`
 	Timeout             Timeout       `json:"timeout" yaml:"timeout"`
 	TTL                 Duration      `json:"ttl" yaml:"ttl"`
 	DefaultCacheControl string        `json:"default_cache_control" yaml:"default_cache_control"`
@@ -314,6 +315,11 @@ func (d *DefaultCache) GetStale() time.Duration {
 	return d.Stale.Duration
 }
 
+// GetStale returns the stale duration
+func (d *DefaultCache) GetStorers() []string {
+	return d.Storers
+}
+
 // GetDefaultCacheControl returns the default Cache-Control response header value when empty
 func (d *DefaultCache) GetDefaultCacheControl() string {
 	return d.DefaultCacheControl
@@ -335,6 +341,7 @@ type DefaultCacheInterface interface {
 	GetKey() Key
 	GetRegex() Regex
 	GetStale() time.Duration
+	GetStorers() []string
 	GetTimeout() Timeout
 	GetTTL() time.Duration
 	GetDefaultCacheControl() string

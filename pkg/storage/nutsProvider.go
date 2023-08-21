@@ -106,6 +106,11 @@ func NutsConnectionFactory(c t.AbstractConfigurationInterface) (Storer, error) {
 	}, nil
 }
 
+// Name returns the storer name
+func (provider *Nuts) Name() string {
+	return "NUTS"
+}
+
 // ListKeys method returns the list of existing keys
 func (provider *Nuts) ListKeys() []string {
 	keys := []string{}

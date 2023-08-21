@@ -61,6 +61,11 @@ func EtcdConnectionFactory(c t.AbstractConfigurationInterface) (Storer, error) {
 	}, nil
 }
 
+// Name returns the storer name
+func (provider *Etcd) Name() string {
+	return "ETCD"
+}
+
 // ListKeys method returns the list of existing keys
 func (provider *Etcd) ListKeys() []string {
 	if provider.reconnecting {

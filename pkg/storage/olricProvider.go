@@ -45,6 +45,11 @@ func OlricConnectionFactory(configuration t.AbstractConfigurationInterface) (Sto
 	}, nil
 }
 
+// Name returns the storer name
+func (provider *Olric) Name() string {
+	return "OLRIC"
+}
+
 // ListKeys method returns the list of existing keys
 func (provider *Olric) ListKeys() []string {
 	if provider.reconnecting {

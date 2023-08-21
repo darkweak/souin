@@ -63,6 +63,8 @@ type SouinCaddyMiddleware struct {
 	TTL configurationtypes.Duration `json:"ttl,omitempty"`
 	// Time to live for a stale key, using time.duration.
 	Stale configurationtypes.Duration `json:"stale,omitempty"`
+	// Storage providers chaining and order.
+	Storers []string `json:"storers,omitempty"`
 	// The default Cache-Control header value if none set by the upstream server.
 	DefaultCacheControl string `json:"default_cache_control,omitempty"`
 	// The cache name to use in the Cache-Status response header.
@@ -102,6 +104,7 @@ func (s *SouinCaddyMiddleware) configurationPropertyMapper() error {
 		Timeout:             s.Timeout,
 		TTL:                 s.TTL,
 		Stale:               s.Stale,
+		Storers:             s.Storers,
 	}
 	if s.Configuration == nil {
 		s.Configuration = &Configuration{
@@ -173,6 +176,9 @@ func (s *SouinCaddyMiddleware) FromApp(app *SouinApp) error {
 	if dc.Stale.Duration == 0 {
 		s.Configuration.DefaultCache.Stale = appDc.Stale
 	}
+	if len(dc.Storers) == 0 {
+		s.Configuration.DefaultCache.Storers = appDc.Storers
+	}
 	if dc.Timeout.Backend.Duration == 0 {
 		s.Configuration.DefaultCache.Timeout.Backend = appDc.Timeout.Backend
 	}
@@ -238,35 +244,37 @@ func (s *SouinCaddyMiddleware) Provision(ctx caddy.Context) error {
 	s.SouinBaseHandler = bh
 	dc := s.SouinBaseHandler.Configuration.GetDefaultCache()
 	if dc.GetDistributed() {
-		if eo, ok := s.SouinBaseHandler.Storer.(*storage.EmbeddedOlric); ok {
-			name := fmt.Sprintf("0.0.0.0:%d", config.DefaultPort)
-			if dc.GetOlric().Configuration != nil {
-				oc := dc.GetOlric().Configuration.(*config.Config)
-				name = fmt.Sprintf("%s:%d", oc.BindAddr, oc.BindPort)
-			} else if dc.GetOlric().Path != "" {
-				name = dc.GetOlric().Path
-			}
-
-			key := "Embedded-" + name
-			v, _ := up.LoadOrStore(stored_providers_key, newStorageProvider())
-			v.(*storage_providers).Add(key)
-
-			if eo.GetDM() == nil {
-				v, l, e := up.LoadOrNew(key, func() (caddy.Destructor, error) {
-					s.logger.Sugar().Debug("Create a new olric instance.")
-					eo, err := storage.EmbeddedOlricConnectionFactory(s.Configuration)
-					if eo != nil {
-						return eo.(*storage.EmbeddedOlric), err
-					}
-					return nil, err
-				})
-
-				if l && e == nil {
-					s.SouinBaseHandler.Storer = v.(storage.Storer)
+		for _, currentStorer := range s.SouinBaseHandler.Storers {
+			if eo, ok := currentStorer.(*storage.EmbeddedOlric); ok {
+				name := fmt.Sprintf("0.0.0.0:%d", config.DefaultPort)
+				if dc.GetOlric().Configuration != nil {
+					oc := dc.GetOlric().Configuration.(*config.Config)
+					name = fmt.Sprintf("%s:%d", oc.BindAddr, oc.BindPort)
+				} else if dc.GetOlric().Path != "" {
+					name = dc.GetOlric().Path
 				}
-			} else {
-				s.logger.Sugar().Debug("Store the olric instance.")
-				_, _ = up.LoadOrStore(key, s.SouinBaseHandler.SurrogateKeyStorer)
+
+				key := "Embedded-" + name
+				v, _ := up.LoadOrStore(stored_providers_key, newStorageProvider())
+				v.(*storage_providers).Add(key)
+
+				if eo.GetDM() == nil {
+					v, l, e := up.LoadOrNew(key, func() (caddy.Destructor, error) {
+						s.logger.Sugar().Debug("Create a new olric instance.")
+						eo, err := storage.EmbeddedOlricConnectionFactory(s.Configuration)
+						if eo != nil {
+							return eo.(*storage.EmbeddedOlric), err
+						}
+						return nil, err
+					})
+
+					if l && e == nil {
+						s.SouinBaseHandler.Storer = v.(storage.Storer)
+					}
+				} else {
+					s.logger.Sugar().Debug("Store the olric instance.")
+					_, _ = up.LoadOrStore(key, s.SouinBaseHandler.SurrogateKeyStorer)
+				}
 			}
 		}
 	}

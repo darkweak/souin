@@ -108,6 +108,11 @@ func EmbeddedOlricConnectionFactory(configuration t.AbstractConfigurationInterfa
 	}, e
 }
 
+// Name returns the storer name
+func (provider *EmbeddedOlric) Name() string {
+	return "EMBEDDED_OLRIC"
+}
+
 // ListKeys method returns the list of existing keys
 func (provider *EmbeddedOlric) ListKeys() []string {
 
