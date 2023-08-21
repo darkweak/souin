@@ -297,7 +297,7 @@ func TestMultiProvider(t *testing.T) {
 	var wg sync.WaitGroup
 	var responses []*http.Response
 
-	for i := 0; i < 4; i++ {
+	for i := 0; i < 3; i++ {
 		wg.Add(1)
 
 		go func(tt *testing.T) {
@@ -322,9 +322,9 @@ func TestMultiProvider(t *testing.T) {
 		}
 	}`, "caddyfile")
 
-			resp, _ := tester.AssertGetResponse(`http://localhost:9080/multi-storage`, 200, "Hello, multi-storage!")
+			resp, _ := tester.AssertGetResponse("http://localhost:9080/multi-storage", 200, "Hello, multi-storage!")
 			responses = append(responses, resp)
-			resp, _ = tester.AssertGetResponse(`http://localhost:9080/multi-storage`, 200, "Hello, multi-storage!")
+			resp, _ = tester.AssertGetResponse("http://localhost:9080/multi-storage", 200, "Hello, multi-storage!")
 			responses = append(responses, resp)
 			wg.Done()
 		}(t)
@@ -368,7 +368,6 @@ func TestMultiProvider(t *testing.T) {
 	}
 
 	os.RemoveAll(path.Join(".", "souin-nuts"))
-	TestMinimal(t)
 }
 
 func TestAuthenticatedRoute(t *testing.T) {

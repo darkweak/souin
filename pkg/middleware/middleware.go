@@ -247,7 +247,7 @@ func (s *SouinBaseHandler) Store(
 				go func(currentStorer storage.Storer) {
 					defer wg.Done()
 					if currentStorer.Set(cachedKey, response, currentMatchedURL, ma) == nil {
-						s.Configuration.GetLogger().Sugar().Infof("Stored the key %s in the %s provider", cachedKey, currentStorer.Name())
+						s.Configuration.GetLogger().Sugar().Debugf("Stored the key %s in the %s provider", cachedKey, currentStorer.Name())
 					} else {
 						mu.Lock()
 						fails = append(fails, fmt.Sprintf("; detail=%s-INSERTION-ERROR", currentStorer.Name()))
@@ -458,7 +458,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 			if !modeContext.Strict || rfc.ValidateMaxAgeCachedResponse(requestCc, response) != nil {
 				customWriter.Headers = response.Header
 				customWriter.statusCode = response.StatusCode
-				s.Configuration.GetLogger().Sugar().Infof("Serve from cache %+v", rq)
+				s.Configuration.GetLogger().Sugar().Debugf("Serve from cache %+v", rq)
 				_, _ = io.Copy(customWriter.Buf, response.Body)
 				_, err := customWriter.Send()
 
