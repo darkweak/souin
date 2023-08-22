@@ -454,6 +454,19 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 
 				return nil
 			}
+
+			if validator.NeedRevalidation {
+				err := s.Revalidate(validator, next, customWriter, rq, requestCc, cachedKey)
+				_, _ = customWriter.Send()
+
+				return err
+			}
+			if resCc, _ := cacheobject.ParseResponseCacheControl(response.Header.Get("Cache-Control")); resCc.NoCachePresent {
+				err := s.Revalidate(validator, next, customWriter, rq, requestCc, cachedKey)
+				_, _ = customWriter.Send()
+
+				return err
+			}
 			rfc.SetCacheStatusHeader(response)
 			if !modeContext.Strict || rfc.ValidateMaxAgeCachedResponse(requestCc, response) != nil {
 				customWriter.Headers = response.Header
