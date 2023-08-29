@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"strings"
 
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/storage"
@@ -15,40 +16,73 @@ import (
 type SouinAPI struct {
 	basePath         string
 	enabled          bool
-	storer           storage.Storer
+	storers          []storage.Storer
 	surrogateStorage providers.SurrogateInterface
+	allowedMethods   []string
+}
+
+type invalidationType string
+
+const (
+	uriInvalidationType       invalidationType = "uri"
+	uriPrefixInvalidationType invalidationType = "uri-prefix"
+	originInvalidationType    invalidationType = "origin"
+	groupInvalidationType     invalidationType = "group"
+)
+
+type invalidation struct {
+	Type      invalidationType `json:"type"`
+	Selectors []string         `json:"selectors"`
+	Groups    []string         `json:"groups"`
+	Purge     bool             `json:"purge"`
 }
 
 func initializeSouin(
 	configuration configurationtypes.AbstractConfigurationInterface,
-	storer storage.Storer,
+	storers []storage.Storer,
 	surrogateStorage providers.SurrogateInterface,
 ) *SouinAPI {
 	basePath := configuration.GetAPI().Souin.BasePath
 	if basePath == "" {
 		basePath = "/souin"
 	}
+
+	allowedMethods := configuration.GetDefaultCache().GetAllowedHTTPVerbs()
+	if len(allowedMethods) == 0 {
+		allowedMethods = []string{http.MethodGet, http.MethodHead}
+	}
+
 	return &SouinAPI{
 		basePath,
 		configuration.GetAPI().Souin.Enable,
-		storer,
+		storers,
 		surrogateStorage,
+		allowedMethods,
 	}
 }
 
 // BulkDelete allow user to delete multiple items with regexp
 func (s *SouinAPI) BulkDelete(key string) {
-	s.storer.DeleteMany(key)
+	for _, current := range s.storers {
+		current.DeleteMany(key)
+	}
 }
 
 // Delete will delete a record into the provider cache system and will update the Souin API if enabled
 func (s *SouinAPI) Delete(key string) {
-	s.storer.Delete(key)
+	for _, current := range s.storers {
+		current.Delete(key)
+	}
 }
 
 // GetAll will retrieve all stored keys in the provider
 func (s *SouinAPI) GetAll() []string {
-	return s.storer.ListKeys()
+	keys := []string{}
+	for _, current := range s.storers {
+		keys = append(keys, current.ListKeys()...)
+	}
+
+	return keys
 }
 
 // GetBasePath will return the basepath for this resource
@@ -94,13 +128,87 @@ func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 			res, _ = json.Marshal(s.GetAll())
 		}
 		w.Header().Set("Content-Type", "application/json")
+	case http.MethodPost:
+		var invalidator invalidation
+		err := json.NewDecoder(r.Body).Decode(&invalidator)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		keysToInvalidate := []string{}
+		switch invalidator.Type {
+		case groupInvalidationType:
+			keysToInvalidate, _ = s.surrogateStorage.Purge(http.Header{"Surrogate-Key": invalidator.Groups})
+		case uriPrefixInvalidationType, uriInvalidationType:
+			bodyKeys := []string{}
+			listedKeys := s.GetAll()
+			for _, k := range invalidator.Selectors {
+				if !strings.Contains(k, "//") {
+					rq, err := http.NewRequest(http.MethodGet, "//"+k, nil)
+					if err != nil {
+						continue
+					}
+
+					bodyKeys = append(bodyKeys, rq.Host+"-"+rq.URL.Path)
+				}
+			}
+
+			for _, allKey := range listedKeys {
+				for _, bk := range bodyKeys {
+					if invalidator.Type == uriInvalidationType {
+						if strings.Contains(allKey, bk) && strings.Contains(allKey, bk+"-") && strings.HasSuffix(allKey, bk) {
+							keysToInvalidate = append(keysToInvalidate, allKey)
+							break
+						}
+					} else {
+						if strings.Contains(allKey, bk) &&
+							(strings.Contains(allKey, bk+"-") || strings.Contains(allKey, bk+"?") || strings.Contains(allKey, bk+"/") || strings.HasSuffix(allKey, bk)) {
+							keysToInvalidate = append(keysToInvalidate, allKey)
+							break
+						}
+					}
+				}
+			}
+		case originInvalidationType:
+			bodyKeys := []string{}
+			listedKeys := s.GetAll()
+			for _, k := range invalidator.Selectors {
+				if !strings.Contains(k, "//") {
+					rq, err := http.NewRequest(http.MethodGet, "//"+k, nil)
+					if err != nil {
+						continue
+					}
+
+					bodyKeys = append(bodyKeys, rq.Host)
+				}
+			}
+
+			for _, allKey := range listedKeys {
+				for _, bk := range bodyKeys {
+					if strings.Contains(allKey, bk) {
+						keysToInvalidate = append(keysToInvalidate, allKey)
+						break
+					}
+				}
+			}
+		}
+
+		for _, k := range keysToInvalidate {
+			for _, current := range s.storers {
+				current.Delete(k)
+			}
+		}
+		w.WriteHeader(http.StatusOK)
 	case "PURGE":
 		if compile {
 			keysRg := regexp.MustCompile(s.GetBasePath() + "/(.+)")
 			flushRg := regexp.MustCompile(s.GetBasePath() + "/flush$")
 
 			if flushRg.FindString(r.RequestURI) != "" {
-				s.storer.DeleteMany(".+")
+				for _, current := range s.storers {
+					current.DeleteMany(".+")
+				}
 				e := s.surrogateStorage.Destruct()
 				if e != nil {
 					fmt.Printf("Error while purging the surrogate keys: %+v.", e)
@@ -113,7 +221,9 @@ func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 		} else {
 			ck, _ := s.surrogateStorage.Purge(r.Header)
 			for _, k := range ck {
-				s.storer.Delete(k)
+				for _, current := range s.storers {
+					current.Delete(k)
+				}
 			}
 		}
 		w.WriteHeader(http.StatusNoContent)

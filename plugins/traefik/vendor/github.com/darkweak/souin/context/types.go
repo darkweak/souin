@@ -19,6 +19,8 @@ type (
 		GraphQL   ctx
 		Key       ctx
 		Method    ctx
+		Mode      ctx
+		Now       ctx
 		Timeout   ctx
 	}
 )
@@ -31,6 +33,8 @@ func GetContext() *Context {
 		GraphQL:   &graphQLContext{},
 		Key:       &keyContext{},
 		Method:    &methodContext{},
+		Mode:      &ModeContext{},
+		Now:       &nowContext{},
 		Timeout:   &timeoutContext{},
 	}
 }
@@ -40,11 +44,13 @@ func (c *Context) Init(co configurationtypes.AbstractConfigurationInterface) {
 	c.GraphQL.SetupContext(co)
 	c.Key.SetupContext(co)
 	c.Method.SetupContext(co)
+	c.Mode.SetupContext(co)
+	c.Now.SetupContext(co)
 	c.Timeout.SetupContext(co)
 }
 
 func (c *Context) SetBaseContext(req *http.Request) *http.Request {
-	return c.Timeout.SetContext(c.Method.SetContext(c.CacheName.SetContext(req)))
+	return c.Mode.SetContext(c.Timeout.SetContext(c.Method.SetContext(c.CacheName.SetContext(c.Now.SetContext(req)))))
 }
 
 func (c *Context) SetContext(req *http.Request) *http.Request {

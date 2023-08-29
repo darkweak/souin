@@ -101,7 +101,6 @@ func NewHTTPCacheHandler(c configurationtypes.AbstractConfigurationInterface) *S
 
 type SouinBaseHandler struct {
 	Configuration            configurationtypes.AbstractConfigurationInterface
-	Storer                   storage.Storer
 	Storers                  []storage.Storer
 	InternalEndpointHandlers *api.MapHandler
 	ExcludeRegex             *regexp.Regexp
@@ -267,16 +266,6 @@ func (s *SouinBaseHandler) Store(
 			if len(fails) > 0 {
 				status += strings.Join(fails, "")
 			}
-
-			// if s.Storer.Set(cachedKey, response, currentMatchedURL, ma) == nil {
-			// 	s.Configuration.GetLogger().Sugar().Debugf("Store the cache key %s into the surrogate keys from the following headers %v", cachedKey, res)
-			// 	go func(rs http.Response, key string) {
-			// 		_ = s.SurrogateKeyStorer.Store(&rs, key)
-			// 	}(res, cachedKey)
-			// 	status += "; stored"
-			// } else {
-			// 	status += "; detail=STORAGE-INSERTION-ERROR"
-			// }
 		}
 	} else {
 		status += "; detail=NO-STORE-DIRECTIVE"
