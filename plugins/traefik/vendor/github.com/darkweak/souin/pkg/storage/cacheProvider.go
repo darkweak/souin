@@ -1,6 +1,8 @@
 package storage
 
 import (
+	"bufio"
+	"bytes"
 	"net/http"
 	"regexp"
 	"strings"
@@ -8,6 +10,7 @@ import (
 
 	"github.com/akyoto/cache"
 	t "github.com/darkweak/souin/configurationtypes"
+	"github.com/darkweak/souin/pkg/rfc"
 )
 
 // Cache provider type
@@ -20,6 +23,11 @@ type Cache struct {
 func CacheConnectionFactory(c t.AbstractConfigurationInterface) (Storer, error) {
 	provider := cache.New(1 * time.Second)
 	return &Cache{Cache: provider, stale: c.GetDefaultCache().GetStale()}, nil
+}
+
+// Name returns the storer name
+func (provider *Cache) Name() string {
+	return "CACHE"
 }
 
 // ListKeys method returns the list of existing keys
@@ -45,22 +53,23 @@ func (provider *Cache) Get(key string) []byte {
 }
 
 // Prefix method returns the populated response if exists, empty response then
-func (provider *Cache) Prefix(key string, req *http.Request) []byte {
-	var result []byte
+func (provider *Cache) Prefix(key string, req *http.Request, validator *rfc.Revalidator) *http.Response {
+	var result *http.Response
 
 	provider.Cache.Range(func(k, v interface{}) bool {
-		if k == key {
-			result = v.([]byte)
-			return false
-		}
-
 		if !strings.HasPrefix(k.(string), key) {
 			return true
 		}
 
-		if varyVoter(key, req, k.(string)) {
-			result = v.([]byte)
-			return false
+		if k == key || varyVoter(key, req, k.(string)) {
+			if res, err := http.ReadResponse(bufio.NewReader(bytes.NewBuffer(v.([]byte))), req); err == nil {
+				rfc.ValidateETag(res, validator)
+				if validator.Matched {
+					result = res
+					return false
+				}
+			}
+			return true
 		}
 
 		return true

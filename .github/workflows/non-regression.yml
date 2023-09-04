@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Install Go
         uses: actions/setup-go@v3
         with:
@@ -28,7 +28,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Install Go
         uses: actions/setup-go@v3
         with:
@@ -41,7 +41,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Install Go
         uses: actions/setup-go@v3
         with:
@@ -59,7 +59,7 @@ jobs:
     steps:
       -
         name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       -
         name: Build the stack
         run: docker network create your_network || true

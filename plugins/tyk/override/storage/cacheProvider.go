@@ -25,6 +25,11 @@ func CacheConnectionFactory(c t.AbstractConfigurationInterface) (Storer, error) 
 	return &Cache{Cache: provider, stale: c.GetDefaultCache().GetStale()}, nil
 }
 
+// Name returns the storer name
+func (provider *Cache) Name() string {
+	return "CACHE"
+}
+
 // ListKeys method returns the list of existing keys
 func (provider *Cache) ListKeys() []string {
 	items := provider.Items()

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/darkweak/souin/configurationtypes"
+	"github.com/darkweak/souin/pkg/rfc"
 )
 
 const (
@@ -19,19 +20,21 @@ const (
 
 type Storer interface {
 	ListKeys() []string
-	Prefix(key string, req *http.Request) []byte
+	Prefix(key string, req *http.Request, validator *rfc.Revalidator) *http.Response
 	Get(key string) []byte
 	Set(key string, value []byte, url configurationtypes.URL, duration time.Duration) error
 	Delete(key string)
 	DeleteMany(key string)
 	Init() error
+	Name() string
 	Reset() error
 }
 
 type StorerInstanciator func(configurationtypes.AbstractConfigurationInterface) (Storer, error)
 
-func NewStorage(configuration configurationtypes.AbstractConfigurationInterface) (Storer, error) {
-	return CacheConnectionFactory(configuration)
+func NewStorages(configuration configurationtypes.AbstractConfigurationInterface) ([]Storer, error) {
+	s, err := CacheConnectionFactory(configuration)
+	return []Storer{s}, err
 }
 
 func varyVoter(baseKey string, req *http.Request, currentKey string) bool {
