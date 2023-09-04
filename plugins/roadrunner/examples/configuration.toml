@@ -6,7 +6,7 @@ build_args = [
 ]
 
 [roadrunner]
-ref = "v2023.2.2"
+ref = "v2023.3.0-beta.2"
 
 [github]
 [github.token]
@@ -15,9 +15,9 @@ token = "GH_TOKEN"
 [github.plugins]
 logger = { ref = "v4.2.1", owner = "roadrunner-server", repository = "logger" }
 cache = { ref = "CURRENT_SHA", owner = "darkweak", repository = "souin", folder = "/plugins/roadrunner", replace = "/opt/plugins/roadrunner" }
-server = { ref = "v4.1.4", owner = "roadrunner-server", repository = "server" }
-gzip = { ref = "v4.0.7", owner = "roadrunner-server", repository = "gzip" }
-http = { ref = "v4.1.7", owner = "roadrunner-server", repository = "http" }
+server = { ref = "v4.3.1", owner = "roadrunner-server", repository = "server" }
+gzip = { ref = "v4.1.2", owner = "roadrunner-server", repository = "gzip" }
+http = { ref = "v4.3.1", owner = "roadrunner-server", repository = "http" }
 
 [log]
 level = "debug"

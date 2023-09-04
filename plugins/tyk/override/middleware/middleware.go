@@ -55,7 +55,7 @@ func NewHTTPCacheHandler(c configurationtypes.AbstractConfigurationInterface) *S
 		c.SetLogger(logger)
 	}
 
-	storer, err := storage.NewStorage(c)
+	storers, err := storage.NewStorages(c)
 	if err != nil {
 		panic(err)
 	}
@@ -85,20 +85,21 @@ func NewHTTPCacheHandler(c configurationtypes.AbstractConfigurationInterface) *S
 
 	return &SouinBaseHandler{
 		Configuration:            c,
-		Storer:                   storer,
-		InternalEndpointHandlers: api.GenerateHandlerMap(c, storer, surrogateStorage),
+		Storers:                  storers,
+		InternalEndpointHandlers: api.GenerateHandlerMap(c, storers, surrogateStorage),
 		ExcludeRegex:             excludedRegexp,
 		RegexpUrls:               regexpUrls,
 		DefaultMatchedUrl:        defaultMatchedUrl,
 		SurrogateKeyStorer:       surrogateStorage,
 		context:                  ctx,
 		bufPool:                  bufPool,
+		storersLen:               len(storers),
 	}
 }
 
 type SouinBaseHandler struct {
 	Configuration            configurationtypes.AbstractConfigurationInterface
-	Storer                   storage.Storer
+	Storers                  []storage.Storer
 	InternalEndpointHandlers *api.MapHandler
 	ExcludeRegex             *regexp.Regexp
 	RegexpUrls               regexp.Regexp
@@ -107,6 +108,7 @@ type SouinBaseHandler struct {
 	DefaultMatchedUrl        configurationtypes.URL
 	context                  *context.Context
 	bufPool                  *sync.Pool
+	storersLen               int
 }
 
 type upsreamError struct{}
@@ -174,13 +176,35 @@ func (s *SouinBaseHandler) Upstream(
 		if err == nil {
 			variedHeaders := rfc.HeaderAllCommaSepValues(res.Header)
 			cachedKey += rfc.GetVariedCacheKey(rq, variedHeaders)
-			if s.Storer.Set(cachedKey, response, currentMatchedURL, ma) == nil {
+			s.Configuration.GetLogger().Sugar().Debugf("Store the response %+v with duration %v", res, ma)
+
+			var wg sync.WaitGroup
+			mu := sync.Mutex{}
+			fails := []string{}
+			for _, storer := range s.Storers {
+				wg.Add(1)
+				go func(currentStorer storage.Storer) {
+					defer wg.Done()
+					if currentStorer.Set(cachedKey, response, currentMatchedURL, ma) == nil {
+						s.Configuration.GetLogger().Sugar().Debugf("Stored the key %s in the %s provider", cachedKey, currentStorer.Name())
+					} else {
+						mu.Lock()
+						fails = append(fails, fmt.Sprintf("; detail=%s-INSERTION-ERROR", currentStorer.Name()))
+						mu.Unlock()
+					}
+				}(storer)
+			}
+
+			wg.Wait()
+			if len(fails) < s.storersLen {
 				go func(rs http.Response, key string) {
 					_ = s.SurrogateKeyStorer.Store(&rs, key)
 				}(res, cachedKey)
 				status += "; stored"
-			} else {
-				status += "; detail=STORAGE-INSERTION-ERROR"
+			}
+
+			if len(fails) > 0 {
+				status += strings.Join(fails, "")
 			}
 		}
 	} else {
@@ -241,7 +265,14 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 	customWriter := NewCustomWriter(rq, rw, bufPool)
 	if !requestCc.NoCache {
 		validator := rfc.ParseRequest(rq)
-		response := s.Storer.Prefix(cachedKey, rq, validator)
+		var response *http.Response
+		for _, currentStorer := range s.Storers {
+			response = currentStorer.Prefix(cachedKey, rq, validator)
+			if response != nil {
+				s.Configuration.GetLogger().Sugar().Debugf("Found response in the %s storage", currentStorer.Name())
+				break
+			}
+		}
 
 		if response != nil && rfc.ValidateCacheControl(response, requestCc) {
 			rfc.SetCacheStatusHeader(response)
@@ -254,7 +285,12 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 				return nil
 			}
 		} else if response == nil && (requestCc.MaxStaleSet || requestCc.MaxStale > -1) {
-			response := s.Storer.Prefix(storage.StalePrefix+cachedKey, rq, validator)
+			for _, currentStorer := range s.Storers {
+				response = currentStorer.Prefix(storage.StalePrefix+cachedKey, rq, validator)
+				if response != nil {
+					break
+				}
+			}
 			if nil != response && rfc.ValidateCacheControl(response, requestCc) {
 				addTime, _ := time.ParseDuration(response.Header.Get(rfc.StoredTTLHeader))
 				rfc.SetCacheStatusHeader(response)

@@ -24,13 +24,15 @@ type Storer interface {
 	Delete(key string)
 	DeleteMany(key string)
 	Init() error
+	Name() string
 	Reset() error
 }
 
 type StorerInstanciator func(configurationtypes.AbstractConfigurationInterface) (Storer, error)
 
-func NewStorage(configuration configurationtypes.AbstractConfigurationInterface) (Storer, error) {
-	return CacheConnectionFactory(configuration)
+func NewStorages(configuration configurationtypes.AbstractConfigurationInterface) ([]Storer, error) {
+	s, err := CacheConnectionFactory(configuration)
+	return []Storer{s}, err
 }
 
 func varyVoter(baseKey string, req *http.Request, currentKey string) bool {

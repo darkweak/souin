@@ -29,8 +29,10 @@ func NewHTTPCacheHandler(c configurationtypes.AbstractConfigurationInterface) *S
 	if err != nil {
 		panic(err)
 	}
+	fmt.Println("Storers initialized.")
 	regexpUrls := helpers.InitializeRegexp(c)
 	surrogateStorage := surrogate.InitializeSurrogate(c)
+	fmt.Println("Surrogate storage initialized.")
 	var excludedRegexp *regexp.Regexp = nil
 	if c.GetDefaultCache().GetRegex().Exclude != "" {
 		excludedRegexp = regexp.MustCompile(c.GetDefaultCache().GetRegex().Exclude)
@@ -49,6 +51,7 @@ func NewHTTPCacheHandler(c configurationtypes.AbstractConfigurationInterface) *S
 		Headers:             c.GetDefaultCache().GetHeaders(),
 		DefaultCacheControl: c.GetDefaultCache().GetDefaultCacheControl(),
 	}
+	fmt.Println("Souin configuration is now loaded.")
 
 	return &SouinBaseHandler{
 		Configuration:            c,
@@ -66,7 +69,6 @@ func NewHTTPCacheHandler(c configurationtypes.AbstractConfigurationInterface) *S
 
 type SouinBaseHandler struct {
 	Configuration            configurationtypes.AbstractConfigurationInterface
-	Storer                   storage.Storer
 	Storers                  []storage.Storer
 	InternalEndpointHandlers *api.MapHandler
 	ExcludeRegex             *regexp.Regexp
