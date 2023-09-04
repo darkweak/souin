@@ -17,7 +17,7 @@ jobs:
         run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
       -
         name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       -
         name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -48,7 +48,7 @@ jobs:
         run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
       -
         name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       -
         name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -85,7 +85,7 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
       -
         name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
       -
@@ -113,7 +113,7 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
       -
         name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       -
         name: Generate Tyk amd64 artifacts
         run: cd plugins/tyk && make vendor && docker compose -f docker-compose.yml.artifacts up

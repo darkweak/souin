@@ -31,6 +31,15 @@ func (s *baseStorage) ParseHeaders(value string) []string {
 	return regexp.MustCompile(s.parent.getHeaderSeparator()+" *").Split(value, -1)
 }
 
+func isSafeHTTPMethod(method string) bool {
+	switch method {
+	case http.MethodGet, http.MethodHead, http.MethodOptions, http.MethodTrace:
+		return true
+	}
+
+	return false
+}
+
 func uniqueTag(values []string) []string {
 	tmp := make(map[string]bool)
 	list := []string{}
@@ -202,6 +211,15 @@ func (s *baseStorage) Purge(header http.Header) (cacheKeys []string, surrogateKe
 	}
 
 	return uniqueTag(toInvalidate), surrogates
+}
+
+// Invalidate the grouped responses from the Cache-Group-Invalidation HTTP response header
+func (s *baseStorage) Invalidate(method string, headers http.Header) {
+	if !isSafeHTTPMethod(method) {
+		for _, group := range headers["Cache-Group-Invalidation"] {
+			s.purgeTag(group)
+		}
+	}
 }
 
 // List returns the stored keys associated to resources

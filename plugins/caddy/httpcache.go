@@ -269,7 +269,7 @@ func (s *SouinCaddyMiddleware) Provision(ctx caddy.Context) error {
 					})
 
 					if l && e == nil {
-						s.SouinBaseHandler.Storer = v.(storage.Storer)
+						s.SouinBaseHandler.Storers = append(s.SouinBaseHandler.Storers, v.(storage.Storer))
 					}
 				} else {
 					s.logger.Sugar().Debug("Store the olric instance.")
@@ -279,8 +279,8 @@ func (s *SouinCaddyMiddleware) Provision(ctx caddy.Context) error {
 		}
 	}
 
-	if app.Storer == (storage.Storer)(nil) {
-		app.Storer = s.SouinBaseHandler.Storer
+	if len(app.Storers) == 0 {
+		app.Storers = s.SouinBaseHandler.Storers
 	}
 
 	if app.SurrogateStorage == (surrogates_providers.SurrogateInterface)(nil) {

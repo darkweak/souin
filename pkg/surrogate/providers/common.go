@@ -13,6 +13,7 @@ import (
 
 const (
 	cdnCacheControl       = "CDN-Cache-Control"
+	cacheGroupKey         = "Cache-Groups"
 	surrogateKey          = "Surrogate-Key"
 	surrogateControl      = "Surrogate-Control"
 	cacheControl          = "Cache-Control"
@@ -39,6 +40,15 @@ func getCandidateHeader(header http.Header, getCandidates func() []string) strin
 	}
 
 	return ""
+}
+
+func isSafeHTTPMethod(method string) bool {
+	switch method {
+	case http.MethodGet, http.MethodHead, http.MethodOptions, http.MethodTrace:
+		return true
+	}
+
+	return false
 }
 
 func uniqueTag(values []string) []string {
@@ -129,6 +139,7 @@ func (*baseStorage) candidateStore(tag string) bool {
 func (*baseStorage) getOrderedSurrogateKeyHeadersCandidate() []string {
 	return []string{
 		surrogateKey,
+		surrogateKey,
 		edgeCacheTag,
 		cacheTags,
 	}
@@ -215,6 +226,14 @@ func (s *baseStorage) Purge(header http.Header) (cacheKeys []string, surrogateKe
 	}
 
 	return uniqueTag(toInvalidate), surrogates
+}
+
+func (s *baseStorage) Invalidate(method string, headers http.Header) {
+	if !isSafeHTTPMethod(method) {
+		for _, group := range headers["Cache-Group-Invalidation"] {
+			s.purgeTag(group)
+		}
+	}
 }
 
 // List returns the stored keys associated to resources

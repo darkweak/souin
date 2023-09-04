@@ -31,7 +31,7 @@ jobs:
           go-version: ${{ inputs.GO_VERSION }}
       -
         name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - 
         name: golangci-lint
         uses: golangci/golangci-lint-action@v3

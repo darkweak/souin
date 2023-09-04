@@ -31,7 +31,7 @@ services:
   etcd:
     image: quay.io/coreos/etcd
     ports:
-      - 2379:2379
+      - 2379
       - 2380
       - 4001
     environment:
@@ -50,6 +50,18 @@ services:
     ports:
       - 6379:6379
     command: redis-server
+    <<: *networks
+
+  caddy:
+    build:
+      context: .
+      dockerfile: ./docker/caddy.Dockerfile
+    depends_on:
+      - etcd
+      - redis
+    ports:
+      - 4443:4443
+      - 2019:2019
     <<: *networks
 
   traefik:

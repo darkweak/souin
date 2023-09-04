@@ -13,7 +13,7 @@ import (
 type SouinApp struct {
 	*DefaultCache
 	// The provider to use.
-	Storer storage.Storer
+	Storers []storage.Storer
 	// Surrogate storage to support th econfiguration reload without surrogate-key data loss.
 	SurrogateStorage providers.SurrogateInterface
 	// Cache-key tweaking.

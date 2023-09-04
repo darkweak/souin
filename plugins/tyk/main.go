@@ -107,10 +107,32 @@ func SouinResponseHandler(rw http.ResponseWriter, rs *http.Response, rq *http.Re
 		if err == nil {
 			variedHeaders := rfc.HeaderAllCommaSepValues(res.Header)
 			cachedKey += rfc.GetVariedCacheKey(rq, variedHeaders)
-			if s.SouinBaseHandler.Storer.Set(cachedKey, response, currentMatchedURL, ma) == nil {
+			var wg sync.WaitGroup
+			mu := sync.Mutex{}
+			fails := []string{}
+			for _, storer := range s.SouinBaseHandler.Storers {
+				wg.Add(1)
+				go func(currentStorer storage.Storer) {
+					defer wg.Done()
+					if currentStorer.Set(cachedKey, response, currentMatchedURL, ma) == nil {
+					} else {
+						mu.Lock()
+						fails = append(fails, fmt.Sprintf("; detail=%s-INSERTION-ERROR", currentStorer.Name()))
+						mu.Unlock()
+					}
+				}(storer)
+			}
+
+			wg.Wait()
+			if len(fails) < len(s.SouinBaseHandler.Storers) {
+				go func(rs http.Response, key string) {
+					_ = s.SurrogateKeyStorer.Store(&rs, key)
+				}(res, cachedKey)
 				status += "; stored"
-			} else {
-				status += "; detail=STORAGE-INSERTION-ERROR"
+			}
+
+			if len(fails) > 0 {
+				status += strings.Join(fails, "")
 			}
 		}
 	} else {
@@ -157,7 +179,13 @@ func SouinRequestHandler(rw http.ResponseWriter, rq *http.Request) {
 	defer s.bufPool.Put(bufPool)
 	if !requestCc.NoCache {
 		validator := rfc.ParseRequest(rq)
-		response := s.SouinBaseHandler.Storer.Prefix(cachedKey, rq, validator)
+		var response *http.Response
+		for _, currentStorer := range s.SouinBaseHandler.Storers {
+			response = currentStorer.Prefix(cachedKey, rq, validator)
+			if response != nil {
+				break
+			}
+		}
 
 		if response != nil && rfc.ValidateCacheControl(response, requestCc) {
 			rfc.SetCacheStatusHeader(response)
@@ -170,7 +198,12 @@ func SouinRequestHandler(rw http.ResponseWriter, rq *http.Request) {
 				return
 			}
 		} else if response == nil && (requestCc.MaxStaleSet || requestCc.MaxStale > -1) {
-			response := s.SouinBaseHandler.Storer.Prefix(storage.StalePrefix+cachedKey, rq, validator)
+			for _, currentStorer := range s.SouinBaseHandler.Storers {
+				response = currentStorer.Prefix(storage.StalePrefix+cachedKey, rq, validator)
+				if response != nil {
+					break
+				}
+			}
 			if nil != response && rfc.ValidateCacheControl(response, requestCc) {
 				addTime, _ := time.ParseDuration(response.Header.Get(rfc.StoredTTLHeader))
 				rfc.SetCacheStatusHeader(response)

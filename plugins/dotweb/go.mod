@@ -3,7 +3,7 @@ module github.com/darkweak/souin/plugins/dotweb
 go 1.20
 
 require (
-	github.com/darkweak/souin v1.6.40
+	github.com/darkweak/souin v1.6.41
 	github.com/devfeel/dotweb v1.7.21
 )
 
@@ -85,4 +85,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/darkweak/souin v1.6.40 => ../..
+replace github.com/darkweak/souin v1.6.41 => ../..
