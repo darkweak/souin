@@ -1,4 +1,4 @@
-package providers
+package storage
 
 import (
 	"testing"

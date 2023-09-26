@@ -8,6 +8,7 @@ load-checker: ## Ensure Souin is running
 prepare: vendor ## Prepare tyk plugin
 	$(DC) down --remove-orphans
 	$(DC) up tyk-builder
+	cp souin-plugin_v5.0.0_linux_amd64.so ./samples/middleware/souin-plugin.so
 	mv souin-plugin_v5.0.0_linux_amd64.so ./samples/middleware/
 	$(DC) up -d --remove-orphans --build tyk-pump tyk-gateway
 

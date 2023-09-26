@@ -1,12 +1,15 @@
-package providers
+package storage
 
 import (
+	"bufio"
+	"bytes"
 	"net/http"
 	"regexp"
 	"strings"
 	"time"
 
 	t "github.com/darkweak/souin/configurationtypes"
+	"github.com/darkweak/souin/pkg/rfc"
 	"github.com/patrickmn/go-cache"
 )
 
@@ -17,9 +20,14 @@ type Cache struct {
 }
 
 // CacheConnectionFactory function create new Cache instance
-func CacheConnectionFactory(c t.AbstractConfigurationInterface) (*Cache, error) {
-	provider := cache.New(time.Second, 2*time.Second)
+func CacheConnectionFactory(c t.AbstractConfigurationInterface) (Storer, error) {
+	provider := cache.New(1*time.Second, 1*time.Second)
 	return &Cache{Cache: provider, stale: c.GetDefaultCache().GetStale()}, nil
+}
+
+// Name returns the storer name
+func (provider *Cache) Name() string {
+	return "CACHE"
 }
 
 // ListKeys method returns the list of existing keys
@@ -45,20 +53,34 @@ func (provider *Cache) Get(key string) []byte {
 }
 
 // Prefix method returns the populated response if exists, empty response then
-func (provider *Cache) Prefix(key string, req *http.Request) []byte {
-	var result []byte
+func (provider *Cache) Prefix(key string, req *http.Request, validator *rfc.Revalidator) *http.Response {
+	var result *http.Response
 
 	for k, v := range provider.Items() {
 		if k == key {
-			return v.Object.([]byte)
+			if res, err := http.ReadResponse(bufio.NewReader(bytes.NewBuffer(v.Object.([]byte))), req); err == nil {
+				rfc.ValidateETag(res, validator)
+				if validator.Matched {
+					result = res
+				}
+			}
+
+			return result
 		}
 
-		if !strings.HasPrefix(key, k) {
+		if !strings.HasPrefix(k, key) {
 			continue
 		}
 
 		if varyVoter(key, req, k) {
-			return v.Object.([]byte)
+			if res, err := http.ReadResponse(bufio.NewReader(bytes.NewBuffer(v.Object.([]byte))), req); err == nil {
+				rfc.ValidateETag(res, validator)
+				if validator.Matched {
+					result = res
+				}
+			}
+
+			return result
 		}
 	}
 
