@@ -2,7 +2,7 @@ module github.com/darkweak/souin/plugins/hertz
 
 go 1.20
 
-require github.com/darkweak/souin v1.6.41
+require github.com/darkweak/souin v1.6.42
 
 require (
 	github.com/antlabs/stl v0.0.1 // indirect
@@ -102,4 +102,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/darkweak/souin v1.6.41 => ../..
+replace github.com/darkweak/souin v1.6.42 => ../..

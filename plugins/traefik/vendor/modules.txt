@@ -74,7 +74,7 @@ github.com/coreos/go-systemd/v22/journal
 # github.com/darkweak/go-esi v0.0.5
 ## explicit; go 1.18
 github.com/darkweak/go-esi/esi
-# github.com/darkweak/souin v1.6.41 => ../..
+# github.com/darkweak/souin v1.6.42 => ../..
 ## explicit; go 1.19
 github.com/darkweak/souin/cache/types
 github.com/darkweak/souin/cache/ykeys

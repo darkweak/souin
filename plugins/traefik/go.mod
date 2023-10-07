@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/akyoto/cache v1.0.6
-	github.com/darkweak/souin v1.6.41
+	github.com/darkweak/souin v1.6.42
 	github.com/pquerna/cachecontrol v0.2.0
 	go.uber.org/zap v1.26.0
 )
@@ -89,4 +89,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/darkweak/souin v1.6.41 => ../..
+replace github.com/darkweak/souin v1.6.42 => ../..
