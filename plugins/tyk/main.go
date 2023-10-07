@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
 	"strings"
@@ -36,6 +35,7 @@ func SouinResponseHandler(rw http.ResponseWriter, rs *http.Response, rq *http.Re
 	if rs.Header.Get("Cache-Status") != "" {
 		return
 	}
+	rq.URL.Path = rq.RequestURI
 	customWriter := NewCustomWriter(rq, rw, bytes.NewBuffer([]byte{}))
 	s := getInstanceFromRequest(rq)
 	rq = s.context.SetContext(s.context.SetBaseContext(rq))
@@ -93,10 +93,10 @@ func SouinResponseHandler(rw http.ResponseWriter, rs *http.Response, rq *http.Re
 	status := fmt.Sprintf("%s; fwd=uri-miss", rq.Context().Value(context.CacheName))
 	if !requestCc.NoStore && !responseCc.NoStore {
 		_, _ = io.Copy(customWriter, rs.Body)
-		rs.Body = ioutil.NopCloser(bytes.NewBuffer(customWriter.Buf.Bytes()))
+		rs.Body = io.NopCloser(bytes.NewBuffer(customWriter.Buf.Bytes()))
 		res := http.Response{
 			StatusCode: customWriter.statusCode,
-			Body:       ioutil.NopCloser(bytes.NewBuffer(customWriter.Buf.Bytes())),
+			Body:       io.NopCloser(bytes.NewBuffer(customWriter.Buf.Bytes())),
 			Header:     customWriter.Headers,
 		}
 

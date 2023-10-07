@@ -11,7 +11,7 @@ import (
 	t "github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/rfc"
 	"github.com/imdario/mergo"
-	"github.com/xujiajun/nutsdb"
+	"github.com/nutsdb/nutsdb"
 	"go.uber.org/zap"
 )
 
@@ -150,7 +150,7 @@ func (provider *Nuts) Prefix(key string, req *http.Request, validator *rfc.Reval
 	_ = provider.DB.View(func(tx *nutsdb.Tx) error {
 		prefix := []byte(key)
 
-		if entries, _, err := tx.PrefixSearchScan(bucket, prefix, "^({|$)", 0, 50); err != nil {
+		if entries, err := tx.PrefixSearchScan(bucket, prefix, "^({|$)", 0, 50); err != nil {
 			return err
 		} else {
 			for _, entry := range entries {
@@ -212,7 +212,7 @@ func (provider *Nuts) Delete(key string) {
 // DeleteMany method will delete the responses in Nuts provider if exists corresponding to the regex key param
 func (provider *Nuts) DeleteMany(key string) {
 	_ = provider.DB.Update(func(tx *nutsdb.Tx) error {
-		if entries, _, err := tx.PrefixSearchScan(bucket, []byte(""), key, 0, nutsLimit); err != nil {
+		if entries, err := tx.PrefixSearchScan(bucket, []byte(""), key, 0, nutsLimit); err != nil {
 			return err
 		} else {
 			for _, entry := range entries {

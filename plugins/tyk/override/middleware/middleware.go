@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
 	"regexp"
@@ -166,7 +165,7 @@ func (s *SouinBaseHandler) Upstream(
 	if !requestCc.NoStore && !responseCc.NoStore {
 		res := http.Response{
 			StatusCode: customWriter.statusCode,
-			Body:       ioutil.NopCloser(bytes.NewBuffer(customWriter.Buf.Bytes())),
+			Body:       io.NopCloser(bytes.NewBuffer(customWriter.Buf.Bytes())),
 			Header:     customWriter.Headers,
 		}
 

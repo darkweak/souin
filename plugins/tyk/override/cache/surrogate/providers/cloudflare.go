@@ -3,7 +3,7 @@ package providers
 import (
 	"bytes"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 
@@ -65,7 +65,7 @@ func processBatches(arr []string, req *http.Request) {
 		}
 
 		body, _ := json.Marshal(map[string]interface{}{"tags": arr[i:j]})
-		req.Body = ioutil.NopCloser(bytes.NewBuffer(body))
+		req.Body = io.NopCloser(bytes.NewBuffer(body))
 		_, _ = new(http.Client).Do(req)
 	}
 }
