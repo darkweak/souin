@@ -15,6 +15,7 @@ require (
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/gofrs/flock v0.8.1 // indirect
 	github.com/nutsdb/nutsdb v0.14.0 // indirect
+	go.uber.org/atomic v1.7.0 // indirect
 )
 
 require (
@@ -89,4 +90,7 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/darkweak/souin v1.6.42 => ../..
+replace (
+	github.com/darkweak/souin v1.6.42 => ../..
+	go.uber.org/zap v1.26.0 => go.uber.org/zap v1.21.0
+)

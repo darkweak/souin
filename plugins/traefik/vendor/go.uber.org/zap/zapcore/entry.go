@@ -24,23 +24,26 @@ import (
 	"fmt"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 
-	"go.uber.org/multierr"
 	"go.uber.org/zap/internal/bufferpool"
 	"go.uber.org/zap/internal/exit"
-	"go.uber.org/zap/internal/pool"
+
+	"go.uber.org/multierr"
 )
 
-var _cePool = pool.New(func() *CheckedEntry {
-	// Pre-allocate some space for cores.
-	return &CheckedEntry{
-		cores: make([]Core, 4),
-	}
-})
+var (
+	_cePool = sync.Pool{New: func() interface{} {
+		// Pre-allocate some space for cores.
+		return &CheckedEntry{
+			cores: make([]Core, 4),
+		}
+	}}
+)
 
 func getCheckedEntry() *CheckedEntry {
-	ce := _cePool.Get()
+	ce := _cePool.Get().(*CheckedEntry)
 	ce.reset()
 	return ce
 }
@@ -149,27 +152,6 @@ type Entry struct {
 	Stack      string
 }
 
-// CheckWriteHook is a custom action that may be executed after an entry is
-// written.
-//
-// Register one on a CheckedEntry with the After method.
-//
-//	if ce := logger.Check(...); ce != nil {
-//	  ce = ce.After(hook)
-//	  ce.Write(...)
-//	}
-//
-// You can configure the hook for Fatal log statements at the logger level with
-// the zap.WithFatalHook option.
-type CheckWriteHook interface {
-	// OnWrite is invoked with the CheckedEntry that was written and a list
-	// of fields added with that entry.
-	//
-	// The list of fields DOES NOT include fields that were already added
-	// to the logger with the With method.
-	OnWrite(*CheckedEntry, []Field)
-}
-
 // CheckWriteAction indicates what action to take after a log entry is
 // processed. Actions are ordered in increasing severity.
 type CheckWriteAction uint8
@@ -182,36 +164,21 @@ const (
 	WriteThenGoexit
 	// WriteThenPanic causes a panic after Write.
 	WriteThenPanic
-	// WriteThenFatal causes an os.Exit(1) after Write.
+	// WriteThenFatal causes a fatal os.Exit after Write.
 	WriteThenFatal
 )
-
-// OnWrite implements the OnWrite method to keep CheckWriteAction compatible
-// with the new CheckWriteHook interface which deprecates CheckWriteAction.
-func (a CheckWriteAction) OnWrite(ce *CheckedEntry, _ []Field) {
-	switch a {
-	case WriteThenGoexit:
-		runtime.Goexit()
-	case WriteThenPanic:
-		panic(ce.Message)
-	case WriteThenFatal:
-		exit.With(1)
-	}
-}
-
-var _ CheckWriteHook = CheckWriteAction(0)
 
 // CheckedEntry is an Entry together with a collection of Cores that have
 // already agreed to log it.
 //
-// CheckedEntry references should be created by calling AddCore or After on a
+// CheckedEntry references should be created by calling AddCore or Should on a
 // nil *CheckedEntry. References are returned to a pool after Write, and MUST
 // NOT be retained after calling their Write method.
 type CheckedEntry struct {
 	Entry
 	ErrorOutput WriteSyncer
 	dirty       bool // best-effort detection of pool misuse
-	after       CheckWriteHook
+	should      CheckWriteAction
 	cores       []Core
 }
 
@@ -219,7 +186,7 @@ func (ce *CheckedEntry) reset() {
 	ce.Entry = Entry{}
 	ce.ErrorOutput = nil
 	ce.dirty = false
-	ce.after = nil
+	ce.should = WriteThenNoop
 	for i := range ce.cores {
 		// don't keep references to cores
 		ce.cores[i] = nil
@@ -242,7 +209,7 @@ func (ce *CheckedEntry) Write(fields ...Field) {
 			// CheckedEntry is being used after it was returned to the pool,
 			// the message may be an amalgamation from multiple call sites.
 			fmt.Fprintf(ce.ErrorOutput, "%v Unsafe CheckedEntry re-use near Entry %+v.\n", ce.Time, ce.Entry)
-			_ = ce.ErrorOutput.Sync() // ignore error
+			ce.ErrorOutput.Sync()
 		}
 		return
 	}
@@ -254,14 +221,20 @@ func (ce *CheckedEntry) Write(fields ...Field) {
 	}
 	if err != nil && ce.ErrorOutput != nil {
 		fmt.Fprintf(ce.ErrorOutput, "%v write error: %v\n", ce.Time, err)
-		_ = ce.ErrorOutput.Sync() // ignore error
+		ce.ErrorOutput.Sync()
 	}
 
-	hook := ce.after
-	if hook != nil {
-		hook.OnWrite(ce, fields)
-	}
+	should, msg := ce.should, ce.Message
 	putCheckedEntry(ce)
+
+	switch should {
+	case WriteThenPanic:
+		panic(msg)
+	case WriteThenFatal:
+		exit.Exit()
+	case WriteThenGoexit:
+		runtime.Goexit()
+	}
 }
 
 // AddCore adds a Core that has agreed to log this CheckedEntry. It's intended to be
@@ -279,20 +252,11 @@ func (ce *CheckedEntry) AddCore(ent Entry, core Core) *CheckedEntry {
 // Should sets this CheckedEntry's CheckWriteAction, which controls whether a
 // Core will panic or fatal after writing this log entry. Like AddCore, it's
 // safe to call on nil CheckedEntry references.
-//
-// Deprecated: Use [CheckedEntry.After] instead.
 func (ce *CheckedEntry) Should(ent Entry, should CheckWriteAction) *CheckedEntry {
-	return ce.After(ent, should)
-}
-
-// After sets this CheckEntry's CheckWriteHook, which will be called after this
-// log entry has been written. It's safe to call this on nil CheckedEntry
-// references.
-func (ce *CheckedEntry) After(ent Entry, hook CheckWriteHook) *CheckedEntry {
 	if ce == nil {
 		ce = getCheckedEntry()
 		ce.Entry = ent
 	}
-	ce.after = hook
+	ce.should = should
 	return ce
 }

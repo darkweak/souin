@@ -1,4 +1,4 @@
-// Copyright (c) 2016 Uber Technologies, Inc.
+// Copyright (c) 2020 Uber Technologies, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,32 +18,18 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package buffer
+package atomic
 
-import "sync"
-
-// A Pool is a type-safe wrapper around a sync.Pool.
-type Pool struct {
-	p *sync.Pool
-}
-
-// NewPool constructs a new Pool.
-func NewPool() Pool {
-	return Pool{p: &sync.Pool{
-		New: func() interface{} {
-			return &Buffer{bs: make([]byte, 0, _size)}
-		},
-	}}
-}
-
-// Get retrieves a Buffer from the pool, creating one if necessary.
-func (p Pool) Get() *Buffer {
-	buf := p.p.Get().(*Buffer)
-	buf.Reset()
-	buf.pool = p
-	return buf
-}
-
-func (p Pool) put(buf *Buffer) {
-	p.p.Put(buf)
-}
+// nocmp is an uncomparable struct. Embed this inside another struct to make
+// it uncomparable.
+//
+//  type Foo struct {
+//    nocmp
+//    // ...
+//  }
+//
+// This DOES NOT:
+//
+//  - Disallow shallow copies of structs
+//  - Disallow comparison of pointers to uncomparable structs
+type nocmp [0]func()
