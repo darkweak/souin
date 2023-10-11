@@ -17,22 +17,54 @@ import (
 	"github.com/darkweak/souin/context"
 	"github.com/darkweak/souin/helpers"
 	"github.com/darkweak/souin/pkg/api"
+	"github.com/darkweak/souin/pkg/api/prometheus"
 	"github.com/darkweak/souin/pkg/rfc"
 	"github.com/darkweak/souin/pkg/storage"
 	"github.com/darkweak/souin/pkg/surrogate"
 	"github.com/darkweak/souin/pkg/surrogate/providers"
 	"github.com/pquerna/cachecontrol/cacheobject"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 func NewHTTPCacheHandler(c configurationtypes.AbstractConfigurationInterface) *SouinBaseHandler {
+	if c.GetLogger() == nil {
+		var logLevel zapcore.Level
+		if c.GetLogLevel() == "" {
+			logLevel = zapcore.FatalLevel
+		} else if err := logLevel.UnmarshalText([]byte(c.GetLogLevel())); err != nil {
+			logLevel = zapcore.FatalLevel
+		}
+		cfg := zap.Config{
+			Encoding:         "json",
+			Level:            zap.NewAtomicLevelAt(logLevel),
+			OutputPaths:      []string{"stderr"},
+			ErrorOutputPaths: []string{"stderr"},
+			EncoderConfig: zapcore.EncoderConfig{
+				MessageKey: "message",
+
+				LevelKey:    "level",
+				EncodeLevel: zapcore.CapitalLevelEncoder,
+
+				TimeKey:    "time",
+				EncodeTime: zapcore.ISO8601TimeEncoder,
+
+				CallerKey:    "caller",
+				EncodeCaller: zapcore.ShortCallerEncoder,
+			},
+		}
+		logger, _ := cfg.Build()
+		c.SetLogger(logger)
+	}
+
 	storers, err := storage.NewStorages(c)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("Storers initialized.")
+	c.GetLogger().Debug("Storer initialized.")
 	regexpUrls := helpers.InitializeRegexp(c)
 	surrogateStorage := surrogate.InitializeSurrogate(c)
-	fmt.Println("Surrogate storage initialized.")
+	c.GetLogger().Debug("Surrogate storage initialized.")
 	var excludedRegexp *regexp.Regexp = nil
 	if c.GetDefaultCache().GetRegex().Exclude != "" {
 		excludedRegexp = regexp.MustCompile(c.GetDefaultCache().GetRegex().Exclude)
@@ -51,7 +83,7 @@ func NewHTTPCacheHandler(c configurationtypes.AbstractConfigurationInterface) *S
 		Headers:             c.GetDefaultCache().GetHeaders(),
 		DefaultCacheControl: c.GetDefaultCache().GetDefaultCacheControl(),
 	}
-	fmt.Println("Souin configuration is now loaded.")
+	c.GetLogger().Info("Souin configuration is now loaded.")
 
 	return &SouinBaseHandler{
 		Configuration:            c,
@@ -133,6 +165,7 @@ func (s *SouinBaseHandler) Store(
 	}
 
 	responseCc, _ := cacheobject.ParseResponseCacheControl(customWriter.Header().Get("Cache-Control"))
+	s.Configuration.GetLogger().Sugar().Debugf("Response cache-control %+v", responseCc)
 	if responseCc == nil {
 		customWriter.Headers.Set("Cache-Status", fmt.Sprintf("%s; fwd=uri-miss; key=%s; detail=INVALID-RESPONSE-CACHE-CONTROL", rq.Context().Value(context.CacheName), rfc.GetCacheKeyFromCtx(rq.Context())))
 		return nil
@@ -203,6 +236,7 @@ func (s *SouinBaseHandler) Store(
 		if err == nil {
 			variedHeaders := rfc.HeaderAllCommaSepValues(res.Header)
 			cachedKey += rfc.GetVariedCacheKey(rq, variedHeaders)
+			s.Configuration.GetLogger().Sugar().Debugf("Store the response %+v with duration %v", res, ma)
 
 			var wg sync.WaitGroup
 			mu := sync.Mutex{}
@@ -212,6 +246,7 @@ func (s *SouinBaseHandler) Store(
 				go func(currentStorer storage.Storer) {
 					defer wg.Done()
 					if currentStorer.Set(cachedKey, response, currentMatchedURL, ma) == nil {
+						s.Configuration.GetLogger().Sugar().Debugf("Stored the key %s in the %s provider", cachedKey, currentStorer.Name())
 					} else {
 						mu.Lock()
 						fails = append(fails, fmt.Sprintf("; detail=%s-INSERTION-ERROR", currentStorer.Name()))
@@ -247,6 +282,8 @@ func (s *SouinBaseHandler) Upstream(
 	requestCc *cacheobject.RequestCacheDirectives,
 	cachedKey string,
 ) error {
+	s.Configuration.GetLogger().Sugar().Debug("Request the upstream server")
+	prometheus.Increment(prometheus.RequestCounter)
 	if err := next(customWriter, rq); err != nil {
 		customWriter.Header().Set("Cache-Status", fmt.Sprintf("%s; fwd=uri-miss; key=%s; detail=SERVE-HTTP-ERROR", rq.Context().Value(context.CacheName), rfc.GetCacheKeyFromCtx(rq.Context())))
 		return err
@@ -282,6 +319,8 @@ func (s *SouinBaseHandler) Upstream(
 }
 
 func (s *SouinBaseHandler) Revalidate(validator *rfc.Revalidator, next handlerFunc, customWriter *CustomWriter, rq *http.Request, requestCc *cacheobject.RequestCacheDirectives, cachedKey string) error {
+	s.Configuration.GetLogger().Sugar().Debug("Revalidate the request with the upstream server")
+	prometheus.Increment(prometheus.RequestRevalidationCounter)
 	err := next(customWriter, rq)
 	s.SurrogateKeyStorer.Invalidate(rq.Method, customWriter.Header())
 
@@ -324,15 +363,14 @@ func (s *SouinBaseHandler) HandleInternally(r *http.Request) (bool, http.Handler
 		}
 	}
 
-	// Because Yægi interpretation sucks, we have to return the empty function instead of nil.
-	return false, func(w http.ResponseWriter, r *http.Request) {}
+	return false, nil
 }
 
 type handlerFunc = func(http.ResponseWriter, *http.Request) error
 
 func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, next handlerFunc) error {
-	b, handler := s.HandleInternally(rq)
-	if b {
+	s.Configuration.GetLogger().Sugar().Debugf("Incomming request %+v", rq)
+	if b, handler := s.HandleInternally(rq); b {
 		handler(rw, rq)
 		return nil
 	}
@@ -366,10 +404,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 	}
 
 	rq = s.context.SetContext(rq)
-
-	// Yaegi sucks again, it considers false as true
-	isMutationRequest := rq.Context().Value(context.IsMutationRequest).(bool)
-	if isMutationRequest {
+	if rq.Context().Value(context.IsMutationRequest).(bool) {
 		rw.Header().Set("Cache-Status", cacheName+"; fwd=bypass; detail=IS-MUTATION-REQUEST")
 
 		err := next(rw, rq)
@@ -389,12 +424,14 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 		crw.headersSent = true
 		crw.mutex.Unlock()
 	}(rq, customWriter)
+	s.Configuration.GetLogger().Sugar().Debugf("Request cache-control %+v", requestCc)
 	if modeContext.Bypass_request || !requestCc.NoCache {
 		validator := rfc.ParseRequest(rq)
 		var response *http.Response
 		for _, currentStorer := range s.Storers {
 			response = currentStorer.Prefix(cachedKey, rq, validator)
 			if response != nil {
+				s.Configuration.GetLogger().Sugar().Debugf("Found response in the %s storage", currentStorer.Name())
 				break
 			}
 		}
@@ -434,6 +471,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 			if !modeContext.Strict || rfc.ValidateMaxAgeCachedResponse(requestCc, response) != nil {
 				customWriter.Headers = response.Header
 				customWriter.statusCode = response.StatusCode
+				s.Configuration.GetLogger().Sugar().Debugf("Serve from cache %+v", rq)
 				_, _ = io.Copy(customWriter.Buf, response.Body)
 				_, err := customWriter.Send()
 
