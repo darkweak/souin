@@ -143,7 +143,7 @@ func (d *DefaultCache) GetDefaultCacheControl() string {
 // Configuration holder
 type Configuration struct {
 	// Default cache to fallback on when none are redefined.
-	DefaultCache *DefaultCache
+	DefaultCache DefaultCache
 	// API endpoints enablers.
 	API configurationtypes.API
 	// Cache keys configuration.
@@ -164,7 +164,7 @@ func (c *Configuration) GetUrls() map[string]configurationtypes.URL {
 
 // GetDefaultCache get the default cache
 func (c *Configuration) GetDefaultCache() configurationtypes.DefaultCacheInterface {
-	return c.DefaultCache
+	return &c.DefaultCache
 }
 
 // GetAPI get the default cache
