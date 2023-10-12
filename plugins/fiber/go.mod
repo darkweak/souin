@@ -4,8 +4,8 @@ go 1.20
 
 require (
 	github.com/darkweak/souin v1.6.42
-	github.com/gofiber/fiber/v2 v2.48.0
-	github.com/valyala/fasthttp v1.48.0
+	github.com/gofiber/fiber/v2 v2.49.2
+	github.com/valyala/fasthttp v1.49.0
 )
 
 require (
@@ -38,7 +38,7 @@ require (
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/btree v1.1.2 // indirect
 	github.com/google/flatbuffers v23.5.26+incompatible // indirect
-	github.com/google/uuid v1.3.0 // indirect
+	github.com/google/uuid v1.3.1 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-immutable-radix v1.3.1 // indirect
 	github.com/hashicorp/go-msgpack v0.5.5 // indirect
