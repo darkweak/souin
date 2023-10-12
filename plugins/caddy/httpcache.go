@@ -35,6 +35,7 @@ func init() {
 type SouinCaddyMiddleware struct {
 	*middleware.SouinBaseHandler
 	logger        *zap.Logger
+	cacheKeys     configurationtypes.CacheKeys
 	Configuration Configuration
 	// Logger level, fallback on caddy's one when not redefined.
 	LogLevel string `json:"log_level,omitempty"`
@@ -86,30 +87,30 @@ func (s *SouinCaddyMiddleware) ServeHTTP(rw http.ResponseWriter, r *http.Request
 }
 
 func (s *SouinCaddyMiddleware) configurationPropertyMapper() error {
-	defaultCache := DefaultCache{
-		Badger:              s.Badger,
-		Nuts:                s.Nuts,
-		Key:                 s.Key,
-		DefaultCacheControl: s.DefaultCacheControl,
-		CacheName:           s.CacheName,
-		Distributed:         s.Olric.URL != "" || s.Olric.Path != "" || s.Olric.Configuration != nil || s.Etcd.Configuration != nil || s.Redis.URL != "" || s.Redis.Configuration != nil,
-		Headers:             s.Headers,
-		Olric:               s.Olric,
-		Etcd:                s.Etcd,
-		Redis:               s.Redis,
-		Timeout:             s.Timeout,
-		TTL:                 s.TTL,
-		Stale:               s.Stale,
-		Storers:             s.Storers,
+	if s.Configuration.GetDefaultCache() == nil {
+		defaultCache := DefaultCache{
+			Badger:              s.Badger,
+			Nuts:                s.Nuts,
+			Key:                 s.Key,
+			DefaultCacheControl: s.DefaultCacheControl,
+			CacheName:           s.CacheName,
+			Distributed:         s.Olric.URL != "" || s.Olric.Path != "" || s.Olric.Configuration != nil || s.Etcd.Configuration != nil || s.Redis.URL != "" || s.Redis.Configuration != nil,
+			Headers:             s.Headers,
+			Olric:               s.Olric,
+			Etcd:                s.Etcd,
+			Redis:               s.Redis,
+			Timeout:             s.Timeout,
+			TTL:                 s.TTL,
+			Stale:               s.Stale,
+			Storers:             s.Storers,
+		}
+		s.Configuration = Configuration{
+			CacheKeys:    s.cacheKeys,
+			DefaultCache: defaultCache,
+			LogLevel:     s.LogLevel,
+		}
 	}
-	// if s.Configuration == nil {
-	// 	s.Configuration = Configuration{
-	// 		CacheKeys:    s.cacheKeys,
-	// 		DefaultCache: defaultCache,
-	// 		LogLevel:     s.LogLevel,
-	// 	}
-	// }
-	s.Configuration.DefaultCache = defaultCache
+
 	return nil
 }
 
@@ -327,6 +328,7 @@ func (s *SouinCaddyMiddleware) UnmarshalCaddyfile(h *caddyfile.Dispenser) error 
 	s.Configuration = Configuration{
 		DefaultCache: dc,
 	}
+
 	return parseConfiguration(&s.Configuration, h, false)
 }
 

@@ -279,9 +279,9 @@ func (s *SouinBaseHandler) Store(
 }
 
 type singleflightValue struct {
-	body []byte
+	body    []byte
 	headers http.Header
-	code int
+	code    int
 }
 
 func (s *SouinBaseHandler) Upstream(
@@ -294,7 +294,7 @@ func (s *SouinBaseHandler) Upstream(
 	s.Configuration.GetLogger().Sugar().Debug("Request the upstream server")
 	prometheus.Increment(prometheus.RequestCounter)
 	shared := true
-	
+
 	sfValue, err, _ := s.singleflightPool.Do(cachedKey, func() (interface{}, error) {
 		shared = false
 		if e := next(customWriter, rq); e != nil {
@@ -323,9 +323,9 @@ func (s *SouinBaseHandler) Upstream(
 			err := s.Store(customWriter, rq, requestCc, cachedKey)
 
 			return singleflightValue{
-				body: customWriter.Buf.Bytes(),
+				body:    customWriter.Buf.Bytes(),
 				headers: customWriter.Headers,
-				code: customWriter.statusCode,
+				code:    customWriter.statusCode,
 			}, err
 		}
 	})
@@ -349,7 +349,7 @@ func (s *SouinBaseHandler) Revalidate(validator *rfc.Revalidator, next handlerFu
 	prometheus.Increment(prometheus.RequestRevalidationCounter)
 
 	shared := true
-	
+
 	sfValue, err, _ := s.singleflightPool.Do(cachedKey, func() (interface{}, error) {
 		shared = false
 		err := next(customWriter, rq)
@@ -384,9 +384,9 @@ func (s *SouinBaseHandler) Revalidate(validator *rfc.Revalidator, next handlerFu
 		)
 
 		return singleflightValue{
-			body: customWriter.Buf.Bytes(),
+			body:    customWriter.Buf.Bytes(),
 			headers: customWriter.Headers,
-			code: customWriter.statusCode,
+			code:    customWriter.statusCode,
 		}, err
 	})
 
