@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Uber Technologies, Inc.
+// Copyright (c) 2016 Uber Technologies, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,26 +18,25 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-// Package stacktrace provides support for gathering stack traces
-// efficiently.
-package stacktrace
+package zap
 
 import (
 	"runtime"
+	"sync"
 
 	"go.uber.org/zap/buffer"
 	"go.uber.org/zap/internal/bufferpool"
-	"go.uber.org/zap/internal/pool"
 )
 
-var _stackPool = pool.New(func() *Stack {
-	return &Stack{
-		storage: make([]uintptr, 64),
-	}
-})
+var _stacktracePool = sync.Pool{
+	New: func() interface{} {
+		return &stacktrace{
+			storage: make([]uintptr, 64),
+		}
+	},
+}
 
-// Stack is a captured stack trace.
-type Stack struct {
+type stacktrace struct {
 	pcs    []uintptr // program counters; always a subslice of storage
 	frames *runtime.Frames
 
@@ -51,30 +50,30 @@ type Stack struct {
 	storage []uintptr
 }
 
-// Depth specifies how deep of a stack trace should be captured.
-type Depth int
+// stacktraceDepth specifies how deep of a stack trace should be captured.
+type stacktraceDepth int
 
 const (
-	// First captures only the first frame.
-	First Depth = iota
+	// stacktraceFirst captures only the first frame.
+	stacktraceFirst stacktraceDepth = iota
 
-	// Full captures the entire call stack, allocating more
+	// stacktraceFull captures the entire call stack, allocating more
 	// storage for it if needed.
-	Full
+	stacktraceFull
 )
 
-// Capture captures a stack trace of the specified depth, skipping
+// captureStacktrace captures a stack trace of the specified depth, skipping
 // the provided number of frames. skip=0 identifies the caller of
-// Capture.
+// captureStacktrace.
 //
 // The caller must call Free on the returned stacktrace after using it.
-func Capture(skip int, depth Depth) *Stack {
-	stack := _stackPool.Get()
+func captureStacktrace(skip int, depth stacktraceDepth) *stacktrace {
+	stack := _stacktracePool.Get().(*stacktrace)
 
 	switch depth {
-	case First:
+	case stacktraceFirst:
 		stack.pcs = stack.storage[:1]
-	case Full:
+	case stacktraceFull:
 		stack.pcs = stack.storage
 	}
 
@@ -88,7 +87,7 @@ func Capture(skip int, depth Depth) *Stack {
 	// runtime.Callers truncates the recorded stacktrace if there is no
 	// room in the provided slice. For the full stack trace, keep expanding
 	// storage until there are fewer frames than there is room.
-	if depth == Full {
+	if depth == stacktraceFull {
 		pcs := stack.pcs
 		for numFrames == len(pcs) {
 			pcs = make([]uintptr, len(pcs)*2)
@@ -110,56 +109,52 @@ func Capture(skip int, depth Depth) *Stack {
 
 // Free releases resources associated with this stacktrace
 // and returns it back to the pool.
-func (st *Stack) Free() {
+func (st *stacktrace) Free() {
 	st.frames = nil
 	st.pcs = nil
-	_stackPool.Put(st)
+	_stacktracePool.Put(st)
 }
 
 // Count reports the total number of frames in this stacktrace.
 // Count DOES NOT change as Next is called.
-func (st *Stack) Count() int {
+func (st *stacktrace) Count() int {
 	return len(st.pcs)
 }
 
 // Next returns the next frame in the stack trace,
 // and a boolean indicating whether there are more after it.
-func (st *Stack) Next() (_ runtime.Frame, more bool) {
+func (st *stacktrace) Next() (_ runtime.Frame, more bool) {
 	return st.frames.Next()
 }
 
-// Take returns a string representation of the current stacktrace.
-//
-// skip is the number of frames to skip before recording the stack trace.
-// skip=0 identifies the caller of Take.
-func Take(skip int) string {
-	stack := Capture(skip+1, Full)
+func takeStacktrace(skip int) string {
+	stack := captureStacktrace(skip+1, stacktraceFull)
 	defer stack.Free()
 
 	buffer := bufferpool.Get()
 	defer buffer.Free()
 
-	stackfmt := NewFormatter(buffer)
+	stackfmt := newStackFormatter(buffer)
 	stackfmt.FormatStack(stack)
 	return buffer.String()
 }
 
-// Formatter formats a stack trace into a readable string representation.
-type Formatter struct {
+// stackFormatter formats a stack trace into a readable string representation.
+type stackFormatter struct {
 	b        *buffer.Buffer
 	nonEmpty bool // whehther we've written at least one frame already
 }
 
-// NewFormatter builds a new Formatter.
-func NewFormatter(b *buffer.Buffer) Formatter {
-	return Formatter{b: b}
+// newStackFormatter builds a new stackFormatter.
+func newStackFormatter(b *buffer.Buffer) stackFormatter {
+	return stackFormatter{b: b}
 }
 
 // FormatStack formats all remaining frames in the provided stacktrace -- minus
 // the final runtime.main/runtime.goexit frame.
-func (sf *Formatter) FormatStack(stack *Stack) {
+func (sf *stackFormatter) FormatStack(stack *stacktrace) {
 	// Note: On the last iteration, frames.Next() returns false, with a valid
-	// frame, but we ignore this frame. The last frame is a runtime frame which
+	// frame, but we ignore this frame. The last frame is a a runtime frame which
 	// adds noise, since it's only either runtime.main or runtime.goexit.
 	for frame, more := stack.Next(); more; frame, more = stack.Next() {
 		sf.FormatFrame(frame)
@@ -167,7 +162,7 @@ func (sf *Formatter) FormatStack(stack *Stack) {
 }
 
 // FormatFrame formats the given frame.
-func (sf *Formatter) FormatFrame(frame runtime.Frame) {
+func (sf *stackFormatter) FormatFrame(frame runtime.Frame) {
 	if sf.nonEmpty {
 		sf.b.AppendByte('\n')
 	}
