@@ -23,8 +23,7 @@ package zapcore
 import (
 	"fmt"
 	"reflect"
-
-	"go.uber.org/zap/internal/pool"
+	"sync"
 )
 
 // Encodes the given error into fields of an object. A field with the given
@@ -37,13 +36,13 @@ import (
 // causer (from github.com/pkg/errors), a ${key}Causes field is added with an
 // array of objects containing the errors this error was comprised of.
 //
-//	{
-//	  "error": err.Error(),
-//	  "errorVerbose": fmt.Sprintf("%+v", err),
-//	  "errorCauses": [
-//	    ...
-//	  ],
-//	}
+//  {
+//    "error": err.Error(),
+//    "errorVerbose": fmt.Sprintf("%+v", err),
+//    "errorCauses": [
+//      ...
+//    ],
+//  }
 func encodeError(key string, err error, enc ObjectEncoder) (retErr error) {
 	// Try to capture panics (from nil references or otherwise) when calling
 	// the Error() method
@@ -98,18 +97,15 @@ func (errs errArray) MarshalLogArray(arr ArrayEncoder) error {
 		}
 
 		el := newErrArrayElem(errs[i])
-		err := arr.AppendObject(el)
+		arr.AppendObject(el)
 		el.Free()
-		if err != nil {
-			return err
-		}
 	}
 	return nil
 }
 
-var _errArrayElemPool = pool.New(func() *errArrayElem {
+var _errArrayElemPool = sync.Pool{New: func() interface{} {
 	return &errArrayElem{}
-})
+}}
 
 // Encodes any error into a {"error": ...} re-using the same errors logic.
 //
@@ -117,7 +113,7 @@ var _errArrayElemPool = pool.New(func() *errArrayElem {
 type errArrayElem struct{ err error }
 
 func newErrArrayElem(err error) *errArrayElem {
-	e := _errArrayElemPool.Get()
+	e := _errArrayElemPool.Get().(*errArrayElem)
 	e.err = err
 	return e
 }

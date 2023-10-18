@@ -37,10 +37,10 @@ func prepare() (res, res2 *httptest.ResponseRecorder) {
 
 	web.InsertFilterChain("/*", httpcache.chainHandleFilter)
 
-	ns := web.NewNamespace("")
-
-	ns.Get("/*", func(ctx *beegoCtx.Context) {
-		_ = ctx.Output.Body([]byte("hello"))
+	web.InsertFilterChain("/*", func(next web.FilterFunc) web.FilterFunc {
+		return func(ctx *beegoCtx.Context) {
+			_, _ = ctx.ResponseWriter.Write([]byte("hello"))
+		}
 	})
 
 	web.BeeApp.Handlers.Init()

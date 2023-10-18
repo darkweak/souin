@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Uber Technologies, Inc.
+// Copyright (c) 2020 Uber Technologies, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,20 +18,26 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-// Package internal and its subpackages hold types and functionality
-// that are not part of Zap's public API.
-package internal
+package atomic
 
-import "go.uber.org/zap/zapcore"
+//go:generate bin/gen-atomicwrapper -name=String -type=string -wrapped=Value -file=string.go
 
-// LeveledEnabler is an interface satisfied by LevelEnablers that are able to
-// report their own level.
+// String returns the wrapped value.
+func (s *String) String() string {
+	return s.Load()
+}
+
+// MarshalText encodes the wrapped string into a textual form.
 //
-// This interface is defined to use more conveniently in tests and non-zapcore
-// packages.
-// This cannot be imported from zapcore because of the cyclic dependency.
-type LeveledEnabler interface {
-	zapcore.LevelEnabler
+// This makes it encodable as JSON, YAML, XML, and more.
+func (s *String) MarshalText() ([]byte, error) {
+	return []byte(s.Load()), nil
+}
 
-	Level() zapcore.Level
+// UnmarshalText decodes text and replaces the wrapped string with it.
+//
+// This makes it decodable from JSON, YAML, XML, and more.
+func (s *String) UnmarshalText(b []byte) error {
+	s.Store(string(b))
+	return nil
 }

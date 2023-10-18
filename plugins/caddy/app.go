@@ -11,7 +11,7 @@ import (
 
 // SouinApp contains the whole Souin necessary items
 type SouinApp struct {
-	*DefaultCache
+	DefaultCache
 	// The provider to use.
 	Storers []storage.Storer
 	// Surrogate storage to support th econfiguration reload without surrogate-key data loss.
@@ -29,7 +29,7 @@ func init() {
 }
 
 // Provision implements caddy.Provisioner
-func (s *SouinApp) Provision(_ caddy.Context) error {
+func (s SouinApp) Provision(_ caddy.Context) error {
 	return nil
 }
 
@@ -37,7 +37,7 @@ func (s *SouinApp) Provision(_ caddy.Context) error {
 func (s SouinApp) Start() error {
 	_, _ = up.Delete(stored_providers_key)
 	_, _ = up.LoadOrStore(stored_providers_key, newStorageProvider())
-	if s.DefaultCache != nil && s.DefaultCache.GetTTL() == 0 {
+	if s.DefaultCache.GetTTL() == 0 {
 		return errors.New("Invalid/Incomplete default cache declaration")
 	}
 	return nil

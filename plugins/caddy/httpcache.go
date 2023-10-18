@@ -35,8 +35,8 @@ func init() {
 type SouinCaddyMiddleware struct {
 	*middleware.SouinBaseHandler
 	logger        *zap.Logger
-	Configuration *Configuration
 	cacheKeys     configurationtypes.CacheKeys
+	Configuration Configuration
 	// Logger level, fallback on caddy's one when not redefined.
 	LogLevel string `json:"log_level,omitempty"`
 	// Allowed HTTP verbs to be cached by the system.
@@ -87,52 +87,49 @@ func (s *SouinCaddyMiddleware) ServeHTTP(rw http.ResponseWriter, r *http.Request
 }
 
 func (s *SouinCaddyMiddleware) configurationPropertyMapper() error {
-	if s.Configuration != nil {
-		return nil
-	}
-	defaultCache := &DefaultCache{
-		Badger:              s.Badger,
-		Nuts:                s.Nuts,
-		Key:                 s.Key,
-		DefaultCacheControl: s.DefaultCacheControl,
-		CacheName:           s.CacheName,
-		Distributed:         s.Olric.URL != "" || s.Olric.Path != "" || s.Olric.Configuration != nil || s.Etcd.Configuration != nil || s.Redis.URL != "" || s.Redis.Configuration != nil,
-		Headers:             s.Headers,
-		Olric:               s.Olric,
-		Etcd:                s.Etcd,
-		Redis:               s.Redis,
-		Timeout:             s.Timeout,
-		TTL:                 s.TTL,
-		Stale:               s.Stale,
-		Storers:             s.Storers,
-	}
-	if s.Configuration == nil {
-		s.Configuration = &Configuration{
+	if s.Configuration.GetDefaultCache() == nil {
+		defaultCache := DefaultCache{
+			Badger:              s.Badger,
+			Nuts:                s.Nuts,
+			Key:                 s.Key,
+			DefaultCacheControl: s.DefaultCacheControl,
+			CacheName:           s.CacheName,
+			Distributed:         s.Olric.URL != "" || s.Olric.Path != "" || s.Olric.Configuration != nil || s.Etcd.Configuration != nil || s.Redis.URL != "" || s.Redis.Configuration != nil,
+			Headers:             s.Headers,
+			Olric:               s.Olric,
+			Etcd:                s.Etcd,
+			Redis:               s.Redis,
+			Timeout:             s.Timeout,
+			TTL:                 s.TTL,
+			Stale:               s.Stale,
+			Storers:             s.Storers,
+		}
+		s.Configuration = Configuration{
 			CacheKeys:    s.cacheKeys,
 			DefaultCache: defaultCache,
 			LogLevel:     s.LogLevel,
 		}
 	}
-	s.Configuration.DefaultCache = defaultCache
+
 	return nil
 }
 
 // FromApp to initialize configuration from App structure.
 func (s *SouinCaddyMiddleware) FromApp(app *SouinApp) error {
-	if s.Configuration == nil {
-		s.Configuration = &Configuration{
+	if s.Configuration.GetDefaultCache() == nil {
+		s.Configuration = Configuration{
 			URLs: make(map[string]configurationtypes.URL),
 		}
 	}
 
-	if app.DefaultCache == nil {
+	if app.DefaultCache.GetTTL() == 0 {
 		return nil
 	}
 
 	s.Configuration.API = app.API
 
-	if s.Configuration.DefaultCache == nil {
-		s.Configuration.DefaultCache = &DefaultCache{
+	if s.Configuration.GetDefaultCache() == nil {
+		s.Configuration.DefaultCache = DefaultCache{
 			AllowedHTTPVerbs:    app.DefaultCache.AllowedHTTPVerbs,
 			Headers:             app.Headers,
 			Key:                 app.Key,
@@ -235,7 +232,7 @@ func (s *SouinCaddyMiddleware) Provision(ctx caddy.Context) error {
 		return err
 	}
 
-	bh := middleware.NewHTTPCacheHandler(s.Configuration)
+	bh := middleware.NewHTTPCacheHandler(&s.Configuration)
 	surrogates, ok := up.LoadOrStore(surrogate_key, bh.SurrogateKeyStorer)
 	if ok {
 		bh.SurrogateKeyStorer = surrogates.(surrogates_providers.SurrogateInterface)
@@ -261,7 +258,7 @@ func (s *SouinCaddyMiddleware) Provision(ctx caddy.Context) error {
 				if eo.GetDM() == nil {
 					v, l, e := up.LoadOrNew(key, func() (caddy.Destructor, error) {
 						s.logger.Sugar().Debug("Create a new olric instance.")
-						eo, err := storage.EmbeddedOlricConnectionFactory(s.Configuration)
+						eo, err := storage.EmbeddedOlricConnectionFactory(&s.Configuration)
 						if eo != nil {
 							return eo.(*storage.EmbeddedOlric), err
 						}
@@ -294,8 +291,8 @@ func (s *SouinCaddyMiddleware) Provision(ctx caddy.Context) error {
 
 func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interface{}, error) {
 	souinApp := new(SouinApp)
-	cfg := &Configuration{
-		DefaultCache: &DefaultCache{
+	cfg := Configuration{
+		DefaultCache: DefaultCache{
 			AllowedHTTPVerbs: make([]string, 0),
 			Distributed:      false,
 			Headers:          []string{},
@@ -308,7 +305,7 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 		URLs: make(map[string]configurationtypes.URL),
 	}
 
-	err := parseConfiguration(cfg, h, true)
+	err := parseConfiguration(&cfg, h, true)
 
 	souinApp.DefaultCache = cfg.DefaultCache
 	souinApp.API = cfg.API
@@ -328,10 +325,11 @@ func (s *SouinCaddyMiddleware) UnmarshalCaddyfile(h *caddyfile.Dispenser) error 
 	dc := DefaultCache{
 		AllowedHTTPVerbs: make([]string, 0),
 	}
-	s.Configuration = &Configuration{
-		DefaultCache: &dc,
+	s.Configuration = Configuration{
+		DefaultCache: dc,
 	}
-	return parseConfiguration(s.Configuration, h, false)
+
+	return parseConfiguration(&s.Configuration, h, false)
 }
 
 // Interface guards
