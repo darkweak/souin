@@ -130,6 +130,7 @@ func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 	case http.MethodPost:
 		var invalidator invalidation
+		defer r.Body.Close()
 		err := json.NewDecoder(r.Body).Decode(&invalidator)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)

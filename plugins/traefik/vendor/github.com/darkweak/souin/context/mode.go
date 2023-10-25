@@ -18,6 +18,7 @@ func (mc *ModeContext) SetupContext(c configurationtypes.AbstractConfigurationIn
 	mc.Bypass_request = mode == "bypass" || mode == "bypass_request"
 	mc.Bypass_response = mode == "bypass" || mode == "bypass_response"
 	mc.Strict = !mc.Bypass_request && !mc.Bypass_response
+	c.GetLogger().Sugar().Debugf("The cache logic will run as %s: %+v", mode, mc)
 }
 
 func (mc *ModeContext) SetContext(req *http.Request) *http.Request {
