@@ -159,6 +159,8 @@ func parseConfiguration(c map[string]interface{}) Configuration {
 					dc.Headers = parseStringSlice(defaultCacheV)
 				case "key":
 					dc.Key = configCacheKey(defaultCacheV.(map[string]interface{}))
+				case "mode":
+					dc.Mode = defaultCacheV.(string)
 				case "regex":
 					exclude := defaultCacheV.(map[string]interface{})["exclude"].(string)
 					if exclude != "" {
