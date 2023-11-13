@@ -419,6 +419,10 @@ func (s *SouinBaseHandler) HandleInternally(r *http.Request) (bool, http.Handler
 type handlerFunc = func(http.ResponseWriter, *http.Request) error
 
 func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, next handlerFunc) error {
+	start := time.Now()
+	defer func(s time.Time) {
+		prometheus.Add(prometheus.AvgResponseTime, float64(time.Since(s).Milliseconds()))
+	}(start)
 	s.Configuration.GetLogger().Sugar().Debugf("Incomming request %+v", rq)
 	if b, handler := s.HandleInternally(rq); b {
 		handler(rw, rq)
@@ -512,6 +516,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 				return err
 			}
 			if resCc, _ := cacheobject.ParseResponseCacheControl(response.Header.Get("Cache-Control")); resCc.NoCachePresent {
+				prometheus.Increment(prometheus.NoCachedResponseCounter)
 				err := s.Revalidate(validator, next, customWriter, rq, requestCc, cachedKey)
 				_, _ = customWriter.Send()
 
@@ -524,6 +529,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 				s.Configuration.GetLogger().Sugar().Debugf("Serve from cache %+v", rq)
 				_, _ = io.Copy(customWriter.Buf, response.Body)
 				_, err := customWriter.Send()
+				prometheus.Increment(prometheus.CachedResponseCounter)
 
 				return err
 			}
@@ -614,6 +620,8 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 				}
 			}
 		}
+	} else {
+		prometheus.Increment(prometheus.NoCachedResponseCounter)
 	}
 
 	errorCacheCh := make(chan error)
