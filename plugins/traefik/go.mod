@@ -12,9 +12,8 @@ require (
 require (
 	github.com/antlabs/stl v0.0.1 // indirect
 	github.com/antlabs/timer v0.0.11 // indirect
-	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/gofrs/flock v0.8.1 // indirect
-	github.com/nutsdb/nutsdb v0.14.0 // indirect
+	github.com/nutsdb/nutsdb v0.14.2 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 )
 

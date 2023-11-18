@@ -21,8 +21,8 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
-	"github.com/xujiajun/utils/filesystem"
 	"github.com/xujiajun/utils/strconv2"
 )
 
@@ -35,6 +35,16 @@ func Truncate(path string, capacity int64, f *os.File) error {
 		}
 	}
 	return nil
+}
+
+func ConvertBigEndianBytesToUint64(data []byte) uint64 {
+	return binary.BigEndian.Uint64(data)
+}
+
+func ConvertUint64ToBigEndianBytes(value uint64) []byte {
+	b := make([]byte, 8)
+	binary.BigEndian.PutUint64(b, value)
+	return b
 }
 
 func MarshalInts(ints []int) ([]byte, error) {
@@ -80,54 +90,6 @@ func getDataPath(fID int64, dir string) string {
 	return dir + separator + strconv2.Int64ToStr(fID) + DataSuffix
 }
 
-// getMetaPath returns the path for the meta file in the specified directory.
-func getMetaPath(dir string) string {
-	separator := string(filepath.Separator)
-	return dir + separator + "meta"
-}
-
-// getBucketMetaPath returns the path for the bucket meta file in the specified directory.
-func getBucketMetaPath(dir string) string {
-	separator := string(filepath.Separator)
-	return getMetaPath(dir) + separator + "bucket"
-}
-
-// getBucketMetaFilePath returns the path for the bucket meta file with the given name.
-func getBucketMetaFilePath(name, dir string) string {
-	separator := string(filepath.Separator)
-	return getBucketMetaPath(dir) + separator + name + BucketMetaSuffix
-}
-
-// getBPTDir returns the BPT directory path in the specified directory.
-func getBPTDir(dir string) string {
-	separator := string(filepath.Separator)
-	return dir + separator + bptDir
-}
-
-// getBPTPath returns the BPT index path for the given file ID.
-func getBPTPath(fID int64, dir string) string {
-	separator := string(filepath.Separator)
-	return getBPTDir(dir) + separator + strconv2.Int64ToStr(fID) + BPTIndexSuffix
-}
-
-// getBPTRootPath returns the BPT root index path for the given file ID.
-func getBPTRootPath(fID int64, dir string) string {
-	separator := string(filepath.Separator)
-	return getBPTDir(dir) + separator + "root" + separator + strconv2.Int64ToStr(fID) + BPTRootIndexSuffix
-}
-
-// getBPTTxIDPath returns the BPT transaction ID index path for the given file ID.
-func getBPTTxIDPath(fID int64, dir string) string {
-	separator := string(filepath.Separator)
-	return getBPTDir(dir) + separator + "txid" + separator + strconv2.Int64ToStr(fID) + BPTTxIDIndexSuffix
-}
-
-// getBPTRootTxIDPath returns the BPT root transaction ID index path for the given file ID.
-func getBPTRootTxIDPath(fID int64, dir string) string {
-	separator := string(filepath.Separator)
-	return getBPTDir(dir) + separator + "txid" + separator + strconv2.Int64ToStr(fID) + BPTRootTxIDIndexSuffix
-}
-
 func OneOfUint16Array(value uint16, array []uint16) bool {
 	for _, v := range array {
 		if v == value {
@@ -137,11 +99,73 @@ func OneOfUint16Array(value uint16, array []uint16) bool {
 	return false
 }
 
-func createDirIfNotExist(dir string) error {
-	if ok := filesystem.PathIsExist(dir); !ok {
-		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
-			return err
-		}
+func splitIntStringStr(str, separator string) (int, string) {
+	strList := strings.Split(str, separator)
+	firstItem, _ := strconv2.StrToInt(strList[0])
+	secondItem := strList[1]
+	return firstItem, secondItem
+}
+
+func splitStringIntStr(str, separator string) (string, int) {
+	strList := strings.Split(str, separator)
+	firstItem := strList[0]
+	secondItem, _ := strconv2.StrToInt(strList[1])
+	return firstItem, secondItem
+}
+
+func splitIntIntStr(str, separator string) (int, int) {
+	strList := strings.Split(str, separator)
+	firstItem, _ := strconv2.StrToInt(strList[0])
+	secondItem, _ := strconv2.StrToInt(strList[1])
+	return firstItem, secondItem
+}
+
+func encodeListKey(key []byte, seq uint64) []byte {
+	buf := make([]byte, len(key)+8)
+	binary.LittleEndian.PutUint64(buf[:8], seq)
+	copy(buf[8:], key[:])
+	return buf
+}
+
+func decodeListKey(buf []byte) ([]byte, uint64) {
+	seq := binary.LittleEndian.Uint64(buf[:8])
+	key := make([]byte, len(buf[8:]))
+	copy(key[:], buf[8:])
+	return key, seq
+}
+
+func splitStringFloat64Str(str, separator string) (string, float64) {
+	strList := strings.Split(str, separator)
+	firstItem := strList[0]
+	secondItem, _ := strconv2.StrToFloat64(strList[1])
+	return firstItem, secondItem
+}
+
+func getFnv32(value []byte) (uint32, error) {
+	_, err := fnvHash.Write(value)
+	if err != nil {
+		return 0, err
 	}
-	return nil
+	hash := fnvHash.Sum32()
+	fnvHash.Reset()
+	return hash, nil
+}
+
+func generateSeq(seq *HeadTailSeq, isLeft bool) uint64 {
+	var res uint64
+	if isLeft {
+		res = seq.Head
+		seq.Head--
+	} else {
+		res = seq.Tail
+		seq.Tail++
+	}
+
+	return res
+}
+
+func createNewBufferWithSize(size int) *bytes.Buffer {
+	buf := new(bytes.Buffer)
+	buf.Grow(int(size))
+	return buf
 }
