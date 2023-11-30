@@ -21,52 +21,33 @@ func (tx *Tx) IterateBuckets(ds uint16, pattern string, f func(key string) bool)
 	if err := tx.checkTxIsClosed(); err != nil {
 		return err
 	}
-	if tx.db.opt.EntryIdxMode == HintBPTSparseIdxMode {
-		return ErrNotSupportHintBPTSparseIdxMode
-	}
-	if ds == DataStructureSet {
-		for bucket := range tx.db.SetIdx {
-			if end, err := MatchForRange(pattern, bucket, f); end || err != nil {
-				return err
-			}
-		}
-	}
-	if ds == DataStructureSortedSet {
-		for bucket := range tx.db.SortedSetIdx {
-			if end, err := MatchForRange(pattern, bucket, f); end || err != nil {
-				return err
-			}
-		}
-	}
-	if ds == DataStructureList {
-		f := func(bucket string) error {
-			if end, err := MatchForRange(pattern, bucket, f); end || err != nil {
-				return err
-			}
-			return nil
-		}
-		err := tx.db.Index.handleListBucket(f)
-		if err != nil {
+
+	handle := func(bucket string) error {
+		if end, err := MatchForRange(pattern, bucket, f); end || err != nil {
 			return err
 		}
+		return nil
 	}
-	if ds == DataStructureTree {
-		for bucket := range tx.db.BTreeIdx {
-			if end, err := MatchForRange(pattern, bucket, f); end || err != nil {
-				return err
-			}
-		}
+	var err error
+	if ds == DataStructureSet {
+		err = tx.db.Index.set.handleIdxBucket(handle)
 	}
-	return nil
+	if ds == DataStructureSortedSet {
+		err = tx.db.Index.sortedSet.handleIdxBucket(handle)
+	}
+	if ds == DataStructureList {
+		err = tx.db.Index.list.handleIdxBucket(handle)
+	}
+	if ds == DataStructureBTree {
+		err = tx.db.Index.bTree.handleIdxBucket(handle)
+	}
+	return err
 }
 
 // DeleteBucket delete bucket depends on ds (represents the data structure)
 func (tx *Tx) DeleteBucket(ds uint16, bucket string) error {
 	if err := tx.checkTxIsClosed(); err != nil {
 		return err
-	}
-	if tx.db.opt.EntryIdxMode == HintBPTSparseIdxMode {
-		return ErrNotSupportHintBPTSparseIdxMode
 	}
 
 	ok, err := tx.ExistBucket(ds, bucket)
@@ -83,8 +64,8 @@ func (tx *Tx) DeleteBucket(ds uint16, bucket string) error {
 	if ds == DataStructureSortedSet {
 		return tx.put(bucket, []byte("1"), nil, Persistent, DataSortedSetBucketDeleteFlag, uint64(time.Now().Unix()), DataStructureNone)
 	}
-	if ds == DataStructureTree {
-		return tx.put(bucket, []byte("2"), nil, Persistent, DataBPTreeBucketDeleteFlag, uint64(time.Now().Unix()), DataStructureNone)
+	if ds == DataStructureBTree {
+		return tx.put(bucket, []byte("2"), nil, Persistent, DataBTreeBucketDeleteFlag, uint64(time.Now().Unix()), DataStructureNone)
 	}
 	if ds == DataStructureList {
 		return tx.put(bucket, []byte("3"), nil, Persistent, DataListBucketDeleteFlag, uint64(time.Now().Unix()), DataStructureNone)
@@ -97,13 +78,13 @@ func (tx *Tx) ExistBucket(ds uint16, bucket string) (bool, error) {
 
 	switch ds {
 	case DataStructureSet:
-		_, ok = tx.db.SetIdx[bucket]
+		_, ok = tx.db.Index.set.exist(bucket)
 	case DataStructureSortedSet:
-		_, ok = tx.db.SortedSetIdx[bucket]
-	case DataStructureTree:
-		_, ok = tx.db.BTreeIdx[bucket]
+		_, ok = tx.db.Index.sortedSet.exist(bucket)
+	case DataStructureBTree:
+		_, ok = tx.db.Index.bTree.exist(bucket)
 	case DataStructureList:
-		ok = tx.db.Index.existList(bucket)
+		_, ok = tx.db.Index.list.exist(bucket)
 	default:
 		return false, ErrDataStructureNotSupported
 	}

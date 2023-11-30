@@ -3,7 +3,6 @@ package traefik
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"regexp"
 	"strings"
@@ -282,7 +281,6 @@ func New(_ context.Context, next http.Handler, config *TestConfiguration, name s
 }
 
 func (s *SouinTraefikMiddleware) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	fmt.Printf("%+v\n", s.SouinBaseHandler)
 	_ = s.SouinBaseHandler.ServeHTTP(rw, req, func(w http.ResponseWriter, r *http.Request) error {
 		s.next.ServeHTTP(w, r)
 

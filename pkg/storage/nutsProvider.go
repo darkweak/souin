@@ -51,8 +51,6 @@ func sanitizeProperties(m map[string]interface{}) map[string]interface{} {
 		switch v {
 		case 1:
 			m["EntryIdxMode"] = nutsdb.HintKeyAndRAMIdxMode
-		case 2:
-			m["EntryIdxMode"] = nutsdb.HintBPTSparseIdxMode
 		}
 	}
 

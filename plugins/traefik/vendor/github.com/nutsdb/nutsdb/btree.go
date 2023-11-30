@@ -16,9 +16,14 @@ package nutsdb
 
 import (
 	"bytes"
-	"github.com/tidwall/btree"
+	"errors"
 	"regexp"
+
+	"github.com/tidwall/btree"
 )
+
+// ErrKeyNotFound is returned when the key is not in the b tree.
+var ErrKeyNotFound = errors.New("key not found")
 
 type Item struct {
 	key []byte
@@ -51,6 +56,11 @@ func (bt *BTree) Insert(key []byte, v []byte, h *Hint) bool {
 	return replaced
 }
 
+func (bt *BTree) InsertRecord(key []byte, r *Record) bool {
+	_, replaced := bt.btree.Set(&Item{key: key, r: r})
+	return replaced
+}
+
 func (bt *BTree) Delete(key []byte) bool {
 	_, deleted := bt.btree.Delete(&Item{key: key})
 	return deleted
@@ -65,6 +75,11 @@ func (bt *BTree) All() []*Record {
 	}
 
 	return records
+}
+
+func (bt *BTree) AllItems() []*Item {
+	items := bt.btree.Items()
+	return items
 }
 
 func (bt *BTree) Range(start, end []byte) []*Record {
@@ -133,4 +148,20 @@ func (bt *BTree) PrefixSearchScan(prefix []byte, reg string, offset, limitNum in
 
 func (bt *BTree) Count() int {
 	return bt.btree.Len()
+}
+
+func (bt *BTree) PopMin() (*Item, bool) {
+	return bt.btree.PopMin()
+}
+
+func (bt *BTree) PopMax() (*Item, bool) {
+	return bt.btree.PopMax()
+}
+
+func (bt *BTree) Min() (*Item, bool) {
+	return bt.btree.Min()
+}
+
+func (bt *BTree) Max() (*Item, bool) {
+	return bt.btree.Max()
 }

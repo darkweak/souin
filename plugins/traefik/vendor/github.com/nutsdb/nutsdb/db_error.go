@@ -29,4 +29,10 @@ var (
 
 	// ErrIsMerging is returned when merge in progress
 	ErrIsMerging = errors.New("merge in progress")
+
+	// ErrNotSupportMergeWhenUsingList is returned calling 'Merge' when using list
+	ErrNotSupportMergeWhenUsingList = errors.New("not support merge when using list for now")
+
+	// ErrRecordIsNil is returned when Record is nil
+	ErrRecordIsNil = errors.New("the record is nil")
 )

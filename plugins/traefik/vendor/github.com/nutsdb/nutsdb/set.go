@@ -65,7 +65,7 @@ func (s *Set) SAdd(key string, values [][]byte, records []*Record) error {
 func (s *Set) SRem(key string, values ...[]byte) error {
 	set, ok := s.M[key]
 	if !ok {
-		return ErrKeyNotFound
+		return ErrSetNotExist
 	}
 
 	if len(values) == 0 || values[0] == nil {
@@ -257,14 +257,4 @@ func (s *Set) SUnion(key1, key2 string) ([]*Record, error) {
 	}
 
 	return records, nil
-}
-
-func getFnv32(value []byte) (uint32, error) {
-	_, err := fnvHash.Write(value)
-	if err != nil {
-		return 0, err
-	}
-	hash := fnvHash.Sum32()
-	fnvHash.Reset()
-	return hash, nil
 }
