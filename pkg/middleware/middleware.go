@@ -316,18 +316,12 @@ func (s *SouinBaseHandler) Upstream(
 			customWriter.Header().Set("Cache-Control", s.DefaultMatchedUrl.DefaultCacheControl)
 		}
 
-		select {
-		case <-rq.Context().Done():
-			return nil, baseCtx.Canceled
-		default:
-			err := s.Store(customWriter, rq, requestCc, cachedKey)
-
-			return singleflightValue{
-				body:    customWriter.Buf.Bytes(),
-				headers: customWriter.Headers,
-				code:    customWriter.statusCode,
-			}, err
-		}
+		err := s.Store(customWriter, rq, requestCc, cachedKey)
+		return singleflightValue{
+			body:    customWriter.Buf.Bytes(),
+			headers: customWriter.Headers.Clone(),
+			code:    customWriter.statusCode,
+		}, err
 	})
 
 	if err != nil {

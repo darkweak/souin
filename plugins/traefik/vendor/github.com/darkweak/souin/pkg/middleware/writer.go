@@ -3,11 +3,11 @@ package middleware
 import (
 	"bytes"
 	"net/http"
-	"strings"
 	"sync"
 
 	"github.com/darkweak/go-esi/esi"
 	"github.com/darkweak/souin/pkg/rfc"
+	"golang.org/x/exp/maps"
 )
 
 type SouinWriterInterface interface {
@@ -73,27 +73,23 @@ func (r *CustomWriter) Write(b []byte) (int, error) {
 
 // Send delays the response to handle Cache-Status
 func (r *CustomWriter) Send() (int, error) {
-	r.Headers.Del(rfc.StoredTTLHeader)
 	contentLength := r.Headers.Get(rfc.StoredLengthHeader)
 	if contentLength != "" {
-		r.Headers.Del("Content-Length")
 		r.Header().Set("Content-Length", contentLength)
 	}
-	r.Headers.Del(rfc.StoredLengthHeader)
 	defer r.Buf.Reset()
 	b := esi.Parse(r.Buf.Bytes(), r.Req)
-	for h, v := range r.Headers {
-		if len(v) > 0 {
-			r.Rw.Header().Set(h, strings.Join(v, ", "))
-		}
-	}
+	maps.Copy(r.Rw.Header(), r.Headers)
+	r.Header().Del("Content-Length")
+	r.Header().Del(rfc.StoredLengthHeader)
+	r.Header().Del(rfc.StoredTTLHeader)
 
-	r.mutex.Lock()
 	if !r.headersSent {
+		
 		// r.Rw.Header().Set("Content-Length", fmt.Sprintf("%d", len(b)))
 		r.Rw.WriteHeader(r.statusCode)
 		r.headersSent = true
 	}
-	r.mutex.Unlock()
+
 	return r.Rw.Write(b)
 }
