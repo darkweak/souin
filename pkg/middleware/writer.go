@@ -80,7 +80,6 @@ func (r *CustomWriter) Send() (int, error) {
 	defer r.Buf.Reset()
 	b := esi.Parse(r.Buf.Bytes(), r.Req)
 	maps.Copy(r.Rw.Header(), r.Headers)
-	r.Header().Del("Content-Length")
 	r.Header().Del(rfc.StoredLengthHeader)
 	r.Header().Del(rfc.StoredTTLHeader)
 
