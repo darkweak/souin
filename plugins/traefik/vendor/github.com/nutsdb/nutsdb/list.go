@@ -16,7 +16,7 @@ package nutsdb
 
 import (
 	"errors"
-	dll "github.com/emirpasic/gods/lists/doublylinkedlist"
+	"math"
 	"time"
 )
 
@@ -24,22 +24,42 @@ var (
 	// ErrListNotFound is returned when the list not found.
 	ErrListNotFound = errors.New("the list not found")
 
-	// ErrIndexOutOfRange is returned when use LSet function set index out of range.
-	ErrIndexOutOfRange = errors.New("index out of range")
+	// ErrCount is returned when count is error.
+	ErrCount = errors.New("err count")
+
+	// ErrEmptyList is returned when the list is empty.
+	ErrEmptyList = errors.New("the list is empty")
+
+	// ErrStartOrEnd is returned when start > end
+	ErrStartOrEnd = errors.New("start or end error")
 )
+
+const (
+	initialListSeq = math.MaxUint64 / 2
+)
+
+// BTree represents the btree.
+
+// HeadTailSeq list head and tail seq num
+type HeadTailSeq struct {
+	Head uint64
+	Tail uint64
+}
 
 // List represents the list.
 type List struct {
-	Items     map[string]*dll.List
+	Items     map[string]*BTree
 	TTL       map[string]uint32
 	TimeStamp map[string]uint64
+	Seq       map[string]*HeadTailSeq
 }
 
 func NewList() *List {
 	return &List{
-		Items:     make(map[string]*dll.List),
+		Items:     make(map[string]*BTree),
 		TTL:       make(map[string]uint32),
 		TimeStamp: make(map[string]uint64),
+		Seq:       make(map[string]*HeadTailSeq),
 	}
 }
 
@@ -52,55 +72,71 @@ func (l *List) RPush(key string, r *Record) error {
 }
 
 func (l *List) push(key string, r *Record, isLeft bool) error {
-	if l.IsExpire(key) {
+	// key is seq + user_key
+	userKey, curSeq := decodeListKey([]byte(key))
+	userKeyStr := string(userKey)
+	if l.IsExpire(userKeyStr) {
 		return ErrListNotFound
 	}
 
-	list, ok := l.Items[key]
+	list, ok := l.Items[userKeyStr]
 	if !ok {
-		l.Items[key] = dll.New()
-		list = l.Items[key]
+		l.Items[userKeyStr] = NewBTree()
+		list = l.Items[userKeyStr]
 	}
 
+	seq, ok := l.Seq[userKeyStr]
+	if !ok {
+		l.Seq[userKeyStr] = &HeadTailSeq{Head: initialListSeq, Tail: initialListSeq + 1}
+		seq = l.Seq[userKeyStr]
+	}
+
+	list.InsertRecord(ConvertUint64ToBigEndianBytes(curSeq), r)
 	if isLeft {
-		list.Prepend(r)
+		if seq.Head > curSeq-1 {
+			seq.Head = curSeq - 1
+		}
 	} else {
-		list.Append(r)
+		if seq.Tail < curSeq+1 {
+			seq.Tail = curSeq + 1
+		}
 	}
 
 	return nil
 }
 
 func (l *List) LPop(key string) (*Record, error) {
-	r, err := l.LPeek(key)
+	item, err := l.LPeek(key)
 	if err != nil {
 		return nil, err
 	}
 
-	l.Items[key].Remove(0)
-	return r, nil
+	l.Items[key].Delete(item.key)
+	l.Seq[key].Head = ConvertBigEndianBytesToUint64(item.key)
+	return item.r, nil
 }
 
 // RPop removes and returns the last element of the list stored at key.
 func (l *List) RPop(key string) (*Record, error) {
-	r, err := l.RPeek(key)
+	item, err := l.RPeek(key)
 	if err != nil {
 		return nil, err
 	}
 
-	l.Items[key].Remove(l.Items[key].Size() - 1)
-	return r, nil
+	l.Items[key].Delete(item.key)
+	l.Seq[key].Tail = ConvertBigEndianBytesToUint64(item.key)
+	return item.r, nil
 }
 
-func (l *List) LPeek(key string) (*Record, error) {
+func (l *List) LPeek(key string) (*Item, error) {
 	return l.peek(key, true)
 }
 
-func (l *List) RPeek(key string) (*Record, error) {
+func (l *List) RPeek(key string) (*Item, error) {
 	return l.peek(key, false)
 }
 
-func (l *List) peek(key string, isLeft bool) (*Record, error) {
+func (l *List) peek(key string, isLeft bool) (*Item, error) {
 	if l.IsExpire(key) {
 		return nil, ErrListNotFound
 	}
@@ -110,16 +146,18 @@ func (l *List) peek(key string, isLeft bool) (*Record, error) {
 	}
 
 	if isLeft {
-		if r, ok := list.Get(0); ok {
-			return r.(*Record), nil
+		item, ok := list.Min()
+		if ok {
+			return item, nil
 		}
 	} else {
-		if r, ok := list.Get(l.Items[key].Size() - 1); ok {
-			return r.(*Record), nil
+		item, ok := list.Max()
+		if ok {
+			return item, nil
 		}
 	}
 
-	return nil, nil
+	return nil, ErrEmptyList
 }
 
 // LRange returns the specified elements of the list stored at key [start,end]
@@ -134,19 +172,69 @@ func (l *List) LRange(key string, start, end int) ([]*Record, error) {
 		return nil, err
 	}
 
-	iterator := l.Items[key].Iterator()
-
-	for i := 0; i <= start; i++ {
-		iterator.Next()
+	var res []*Record
+	allRecords := l.Items[key].All()
+	for i, item := range allRecords {
+		if i >= start && i <= end {
+			res = append(res, item)
+		}
 	}
 
-	items := make([]*Record, end-start+1)
-	for i := start; i <= end; i++ {
-		items[i-start] = iterator.Value().(*Record)
-		iterator.Next()
+	return res, nil
+}
+
+// getRemoveIndexes returns a slice of indices to be removed from the list based on the count
+func (l *List) getRemoveIndexes(key string, count int, cmp func(r *Record) (bool, error)) ([][]byte, error) {
+	if l.IsExpire(key) {
+		return nil, ErrListNotFound
 	}
 
-	return items, nil
+	list, ok := l.Items[key]
+
+	if !ok {
+		return nil, ErrListNotFound
+	}
+
+	var res [][]byte
+	var allItems []*Item
+	if 0 == count {
+		count = list.Count()
+	}
+
+	allItems = l.Items[key].AllItems()
+	if count > 0 {
+		for _, item := range allItems {
+			if count <= 0 {
+				break
+			}
+			r := item.r
+			ok, err := cmp(r)
+			if err != nil {
+				return nil, err
+			}
+			if ok {
+				res = append(res, item.key)
+				count--
+			}
+		}
+	} else {
+		for i := len(allItems) - 1; i >= 0; i-- {
+			if count >= 0 {
+				break
+			}
+			r := allItems[i].r
+			ok, err := cmp(r)
+			if err != nil {
+				return nil, err
+			}
+			if ok {
+				res = append(res, allItems[i].key)
+				count++
+			}
+		}
+	}
+
+	return res, nil
 }
 
 // LRem removes the first count occurrences of elements equal to value from the list stored at key.
@@ -155,73 +243,15 @@ func (l *List) LRange(key string, start, end int) ([]*Record, error) {
 // count < 0: Remove elements equal to value moving from tail to head.
 // count = 0: Remove all elements equal to value.
 func (l *List) LRem(key string, count int, cmp func(r *Record) (bool, error)) error {
-	if l.IsExpire(key) {
-		return ErrListNotFound
+	removeIndexes, err := l.getRemoveIndexes(key, count, cmp)
+	if err != nil {
+		return err
 	}
 
-	list, ok := l.Items[key]
-
-	if !ok {
-		return ErrListNotFound
+	list := l.Items[key]
+	for _, idx := range removeIndexes {
+		list.Delete(idx)
 	}
-
-	iterator := list.Iterator()
-
-	if count >= 0 {
-		if count == 0 {
-			count = list.Size()
-		}
-		iterator.Begin()
-
-		for iterator.Next() && count > 0 {
-			r := iterator.Value().(*Record)
-
-			ok, err := cmp(r)
-			if err != nil {
-				return err
-			}
-			if ok {
-				list.Remove(iterator.Index())
-				count--
-			}
-		}
-	}
-
-	if count < 0 {
-		iterator.End()
-
-		for iterator.Prev() && count < 0 {
-			r := iterator.Value().(*Record)
-
-			ok, err := cmp(r)
-			if err != nil {
-				return err
-			}
-			if ok {
-				list.Remove(iterator.Index())
-				count++
-			}
-		}
-	}
-
-	return nil
-}
-
-// LSet sets the list element at index to value.
-func (l *List) LSet(key string, index int, r *Record) error {
-	if l.IsExpire(key) {
-		return ErrListNotFound
-	}
-	if _, ok := l.Items[key]; !ok {
-		return ErrListNotFound
-	}
-
-	size, _ := l.Size(key)
-	if index >= size || index < 0 {
-		return ErrIndexOutOfRange
-	}
-
-	l.Items[key].Set(index, r)
 
 	return nil
 }
@@ -235,16 +265,12 @@ func (l *List) LTrim(key string, start, end int) error {
 		return ErrListNotFound
 	}
 
-	items, err := l.LRange(key, start, end)
-	if err != nil {
-		return err
-	}
-
 	list := l.Items[key]
-
-	list.Clear()
-	for _, item := range items {
-		list.Append(item)
+	allItems := list.AllItems()
+	for i, item := range allItems {
+		if i < start || i > end {
+			list.Delete(item.key)
+		}
 	}
 
 	return nil
@@ -256,43 +282,37 @@ func (l *List) LRemByIndex(key string, indexes []int) error {
 		return ErrListNotFound
 	}
 
+	idxes := l.getValidIndexes(key, indexes)
+	if len(idxes) == 0 {
+		return nil
+	}
+
 	list := l.Items[key]
-
-	if list.Size() == 0 {
-		return nil
+	allItems := list.AllItems()
+	for i, item := range allItems {
+		if _, ok := idxes[i]; ok {
+			list.Delete(item.key)
+		}
 	}
 
-	if len(indexes) == 1 {
-		list.Remove(indexes[0])
-		return nil
-	}
+	return nil
+}
 
+func (l *List) getValidIndexes(key string, indexes []int) map[int]struct{} {
 	idxes := make(map[int]struct{})
+	listLen, err := l.Size(key)
+	if err != nil || 0 == listLen {
+		return idxes
+	}
+
 	for _, idx := range indexes {
-		if idx < 0 || idx >= list.Size() {
+		if idx < 0 || idx >= listLen {
 			continue
 		}
 		idxes[idx] = struct{}{}
 	}
 
-	iterator := list.Iterator()
-	iterator.Begin()
-
-	items := make([]*Record, list.Size()-len(idxes))
-	i := 0
-	for iterator.Next() {
-		if _, ok := idxes[iterator.Index()]; !ok {
-			items[i] = iterator.Value().(*Record)
-			i++
-		}
-	}
-
-	list.Clear()
-	for _, item := range items {
-		list.Append(item)
-	}
-
-	return nil
+	return idxes
 }
 
 func (l *List) IsExpire(key string) bool {
@@ -314,6 +334,7 @@ func (l *List) IsExpire(key string) bool {
 	delete(l.Items, key)
 	delete(l.TTL, key)
 	delete(l.TimeStamp, key)
+	delete(l.Seq, key)
 
 	return true
 }
@@ -326,7 +347,7 @@ func (l *List) Size(key string) (int, error) {
 		return 0, ErrListNotFound
 	}
 
-	return l.Items[key].Size(), nil
+	return l.Items[key].Count(), nil
 }
 
 func (l *List) IsEmpty(key string) (bool, error) {
@@ -352,7 +373,6 @@ func (l *List) GetListTTL(key string) (uint32, error) {
 	remain := timestamp + uint64(ttl) - uint64(now)
 
 	return uint32(remain), nil
-
 }
 
 func checkBounds(start, end int, size int) (int, int, error) {
@@ -373,7 +393,7 @@ func checkBounds(start, end int, size int) (int, int, error) {
 	}
 
 	if start > end {
-		return 0, 0, errors.New("start or end error")
+		return 0, 0, ErrStartOrEnd
 	}
 
 	return start, end, nil
