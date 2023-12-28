@@ -593,3 +593,58 @@ func Test_ETags(t *testing.T) {
 	staleReq.Header = http.Header{"If-None-Match": []string{"other"}}
 	_, _ = tester.AssertResponse(staleReq, http.StatusOK, "Hello etag!")
 }
+
+type testHugeMaxAgeHandler struct{}
+
+func (t *testHugeMaxAgeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "max-age=600")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Hello, huge max age!"))
+}
+
+func TestHugeMaxAgeHandler(t *testing.T) {
+	tester := caddytest.NewTester(t)
+	tester.InitServer(`
+	{
+		admin localhost:2999
+		http_port     9080
+		https_port    9443
+		cache
+	}
+	localhost:9080 {
+		route /huge-max-age {
+			cache
+			reverse_proxy localhost:9083
+		}
+	}`, "caddyfile")
+
+	hugeMaxAgeHandler := testHugeMaxAgeHandler{}
+	go http.ListenAndServe(":9083", &hugeMaxAgeHandler)
+	time.Sleep(time.Second)
+
+	resp1, _ := tester.AssertGetResponse(`http://localhost:9080/huge-max-age`, 200, "Hello, huge max age!")
+	if resp1.Header.Get("Age") != "" {
+		t.Errorf("unexpected Age header %v", resp1.Header.Get("Age"))
+	}
+
+	resp2, _ := tester.AssertGetResponse(`http://localhost:9080/huge-max-age`, 200, "Hello, huge max age!")
+	if resp2.Header.Get("Age") == "" {
+		t.Error("Age header should be present")
+	}
+	if resp2.Header.Get("Age") != "1" {
+		t.Error("Age header should be present")
+	}
+
+	time.Sleep(2 * time.Second)
+	resp3, _ := tester.AssertGetResponse(`http://localhost:9080/huge-max-age`, 200, "Hello, huge max age!")
+	if resp3.Header.Get("Age") != "3" {
+		t.Error("Age header should be present")
+	}
+
+	fmt.Printf(
+		"%#v\n%#v\n%#v\n\n",
+		resp1,
+		resp2,
+		resp3,
+	)
+}

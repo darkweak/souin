@@ -197,9 +197,6 @@ func (s *SouinBaseHandler) Store(
 	} else if responseCc.MaxAge >= 0 {
 		ma = time.Duration(responseCc.MaxAge) * time.Second
 	}
-	if ma > currentMatchedURL.TTL.Duration {
-		ma = currentMatchedURL.TTL.Duration
-	}
 
 	now := rq.Context().Value(context.Now).(time.Time)
 	date, _ := http.ParseTime(now.Format(http.TimeFormat))
