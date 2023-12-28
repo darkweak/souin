@@ -1,18 +1,10 @@
 +++
-weight = 3
+weight = 300
 draft = true
 title = "Configuration"
-icon = "deployed_code"
-toc = true
+icon = "settings"
 description = "Learn how to configure properly Souin"
-tags = ["Beginners", "Advanced"]
+tags = ["Beginners", "Advanced", "in-memory"]
 +++
 
-## Create New Content
-
-Navigate to the root of your Hugo project and use the `hugo new` command to create a file in the `content/docs` directory:
-
-```shell
-hugo new docs/examplepage.md
-```
-...
+## TODO

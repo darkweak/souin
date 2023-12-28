@@ -1,9 +1,8 @@
 +++
-weight = 1
+weight = 100
 draft = true
 title = "Introduction"
-icon = "extension"
-toc = true
+icon = "bookmark"
 description = "Resources to use Souin as a middleware in your favorite reverse-proxy"
 tags = ["Beginners", "Advanced"]
 +++
@@ -22,14 +21,17 @@ Souin is a powerful HTTP cache system written in go and implements the following
 
 ## Multiple backend storages
 ### Local in-memory or filesystem
-* [Badger](/docs/storages/badger)
-* [Nuts](/docs/storages/nuts)
+* [Badger]({{% relref "/docs/storages/badger" %}})
+* [Nuts]({{% relref "/docs/storages/nuts" %}})
 
 ### Distributed in-memory
-* [Redis](/docs/storages/redis)
-* [Etcd](/docs/storages/etcd)
-* [Olric](/docs/storages/olric)
+* [Embedded Olric]({{% relref "/docs/storages/embedded-olric" %}})
+
+### Distributed external services
+* [Redis]({{% relref "/docs/storages/redis" %}})
+* [Etcd]({{% relref "/docs/storages/etcd" %}})
+* [Olric]({{% relref "/docs/storages/olric" %}})
 
 
-## Fully customizable
+## Fully customizable without learning another language
 The default configuration format is YAML (using the standalone HTTP cache server) because it's programmatically generable and easier than the VCL but unlike the VCL it's not a script language.

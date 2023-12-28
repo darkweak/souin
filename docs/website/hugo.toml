@@ -10,5 +10,15 @@ title = "Souin's documentation"
         path = "github.com/gohugoio/hugo-mod-bootstrap-scss/v5"
         disable = false
 
+[params.footer]
+  copyright = "2024"
+
 [params.docs]
-  intLinkTooltip   = true
+  intLinkTooltip = true
+  darkMode       = true
+  sidebarIcons   = true
+  prism          = true
+  scrollSpy      = true
+
+  [markup.goldmark.renderer]
+    unsafe = true

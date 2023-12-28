@@ -76,3 +76,20 @@ h2 {
     padding-top: 1.5em;
     padding-bottom: 0.5em;
 }
+
+div.code-toolbar {
+    border-radius: 1rem;
+    & > pre {
+        border-radius: 1rem !important;
+    }
+}
+
+.top-header {
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+#toc-mobile > ul {
+    padding-left: 1rem;
+    padding-right: 1rem;
+}
