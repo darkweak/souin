@@ -1,0 +1,14 @@
+baseURL = 'https://souin.io/'
+languageCode = 'en-us'
+title = "Souin's documentation"
+
+[module]
+    [[module.imports]]
+        path = "github.com/colinwilson/lotusdocs"
+        disable = false
+    [[module.imports]]
+        path = "github.com/gohugoio/hugo-mod-bootstrap-scss/v5"
+        disable = false
+
+[params.docs]
+  intLinkTooltip   = true
