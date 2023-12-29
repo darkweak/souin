@@ -233,7 +233,7 @@ func (s *SouinBaseHandler) Store(
 		}
 		res.Header.Set(rfc.StoredLengthHeader, res.Header.Get("Content-Length"))
 		response, err := httputil.DumpResponse(&res, true)
-		if err == nil {
+		if err == nil && res.Header.Get("Content-Length") != "" && res.Header.Get("Content-Length") != "0" {
 			variedHeaders := rfc.HeaderAllCommaSepValues(res.Header)
 			cachedKey += rfc.GetVariedCacheKey(rq, variedHeaders)
 			s.Configuration.GetLogger().Sugar().Debugf("Store the response %+v with duration %v", res, ma)
@@ -241,31 +241,38 @@ func (s *SouinBaseHandler) Store(
 			var wg sync.WaitGroup
 			mu := sync.Mutex{}
 			fails := []string{}
-			for _, storer := range s.Storers {
-				wg.Add(1)
-				go func(currentStorer storage.Storer) {
-					defer wg.Done()
-					if currentStorer.Set(cachedKey, response, currentMatchedURL, ma) == nil {
-						s.Configuration.GetLogger().Sugar().Debugf("Stored the key %s in the %s provider", cachedKey, currentStorer.Name())
-					} else {
-						mu.Lock()
-						fails = append(fails, fmt.Sprintf("; detail=%s-INSERTION-ERROR", currentStorer.Name()))
-						mu.Unlock()
-					}
-				}(storer)
-			}
+			select {
+			case <-rq.Context().Done():
+				status += "; detail=REQUEST-CANCELED-OR-UPSTREAM-BROKEN-PIPE"
+			default:
+				for _, storer := range s.Storers {
+					wg.Add(1)
+					go func(currentStorer storage.Storer) {
+						defer wg.Done()
+						if currentStorer.Set(cachedKey, response, currentMatchedURL, ma) == nil {
+							s.Configuration.GetLogger().Sugar().Debugf("Stored the key %s in the %s provider", cachedKey, currentStorer.Name())
+						} else {
+							mu.Lock()
+							fails = append(fails, fmt.Sprintf("; detail=%s-INSERTION-ERROR", currentStorer.Name()))
+							mu.Unlock()
+						}
+					}(storer)
+				}
 
-			wg.Wait()
-			if len(fails) < s.storersLen {
-				go func(rs http.Response, key string) {
-					_ = s.SurrogateKeyStorer.Store(&rs, key)
-				}(res, cachedKey)
-				status += "; stored"
-			}
+				wg.Wait()
+				if len(fails) < s.storersLen {
+					go func(rs http.Response, key string) {
+						_ = s.SurrogateKeyStorer.Store(&rs, key)
+					}(res, cachedKey)
+					status += "; stored"
+				}
 
-			if len(fails) > 0 {
-				status += strings.Join(fails, "")
+				if len(fails) > 0 {
+					status += strings.Join(fails, "")
+				}
 			}
+		} else {
+			status += "; detail=UPSTREAM-ERROR-OR-EMPTY-RESPONSE"
 		}
 	} else {
 		status += "; detail=NO-STORE-DIRECTIVE"
