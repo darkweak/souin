@@ -16,6 +16,10 @@ type methodContext struct {
 	custom       bool
 }
 
+func (*methodContext) SetContextWithBaseRequest(req *http.Request, _ *http.Request) *http.Request {
+	return req
+}
+
 func (m *methodContext) SetupContext(c configurationtypes.AbstractConfigurationInterface) {
 	m.allowedVerbs = defaultVerbs
 	if len(c.GetDefaultCache().GetAllowedHTTPVerbs()) != 0 {

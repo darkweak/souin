@@ -12,6 +12,10 @@ const Now ctxKey = "souin_ctx.NOW"
 
 type nowContext struct{}
 
+func (*nowContext) SetContextWithBaseRequest(req *http.Request, _ *http.Request) *http.Request {
+	return req
+}
+
 func (cc *nowContext) SetupContext(_ configurationtypes.AbstractConfigurationInterface) {}
 
 func (cc *nowContext) SetContext(req *http.Request) *http.Request {

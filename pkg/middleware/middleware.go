@@ -302,6 +302,7 @@ func (s *SouinBaseHandler) Upstream(
 	sfValue, err, _ := s.singleflightPool.Do(cachedKey, func() (interface{}, error) {
 		shared = false
 		if e := next(customWriter, rq); e != nil {
+			s.Configuration.GetLogger().Sugar().Warnf("%#v", e)
 			customWriter.Header().Set("Cache-Status", fmt.Sprintf("%s; fwd=uri-miss; key=%s; detail=SERVE-HTTP-ERROR", rq.Context().Value(context.CacheName), rfc.GetCacheKeyFromCtx(rq.Context())))
 			return nil, e
 		}
@@ -427,61 +428,61 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 		return nil
 	}
 
-	rq = s.context.SetBaseContext(rq)
-	cacheName := rq.Context().Value(context.CacheName).(string)
+	req := s.context.SetBaseContext(rq)
+	cacheName := req.Context().Value(context.CacheName).(string)
 	if rq.Header.Get("Upgrade") == "websocket" || (s.ExcludeRegex != nil && s.ExcludeRegex.MatchString(rq.RequestURI)) {
 		rw.Header().Set("Cache-Status", cacheName+"; fwd=bypass; detail=EXCLUDED-REQUEST-URI")
-		return next(rw, rq)
+		return next(rw, req)
 	}
 
-	if !rq.Context().Value(context.SupportedMethod).(bool) {
+	if !req.Context().Value(context.SupportedMethod).(bool) {
 		rw.Header().Set("Cache-Status", cacheName+"; fwd=bypass; detail=UNSUPPORTED-METHOD")
 
-		err := next(rw, rq)
-		s.SurrogateKeyStorer.Invalidate(rq.Method, rw.Header())
+		err := next(rw, req)
+		s.SurrogateKeyStorer.Invalidate(req.Method, rw.Header())
 
 		return err
 	}
 
-	requestCc, coErr := cacheobject.ParseRequestCacheControl(rq.Header.Get("Cache-Control"))
+	requestCc, coErr := cacheobject.ParseRequestCacheControl(req.Header.Get("Cache-Control"))
 
-	modeContext := rq.Context().Value(context.Mode).(*context.ModeContext)
+	modeContext := req.Context().Value(context.Mode).(*context.ModeContext)
 	if !modeContext.Bypass_request && (coErr != nil || requestCc == nil) {
 		rw.Header().Set("Cache-Status", cacheName+"; fwd=bypass; detail=CACHE-CONTROL-EXTRACTION-ERROR")
 
-		err := next(rw, rq)
-		s.SurrogateKeyStorer.Invalidate(rq.Method, rw.Header())
+		err := next(rw, req)
+		s.SurrogateKeyStorer.Invalidate(req.Method, rw.Header())
 
 		return err
 	}
 
-	rq = s.context.SetContext(rq)
-	if rq.Context().Value(context.IsMutationRequest).(bool) {
+	req = s.context.SetContext(req, rq)
+	if req.Context().Value(context.IsMutationRequest).(bool) {
 		rw.Header().Set("Cache-Status", cacheName+"; fwd=bypass; detail=IS-MUTATION-REQUEST")
 
-		err := next(rw, rq)
-		s.SurrogateKeyStorer.Invalidate(rq.Method, rw.Header())
+		err := next(rw, req)
+		s.SurrogateKeyStorer.Invalidate(req.Method, rw.Header())
 
 		return err
 	}
-	cachedKey := rq.Context().Value(context.Key).(string)
+	cachedKey := req.Context().Value(context.Key).(string)
 
 	bufPool := s.bufPool.Get().(*bytes.Buffer)
 	bufPool.Reset()
 	defer s.bufPool.Put(bufPool)
-	customWriter := NewCustomWriter(rq, rw, bufPool)
+	customWriter := NewCustomWriter(req, rw, bufPool)
 	go func(req *http.Request, crw *CustomWriter) {
 		<-req.Context().Done()
 		crw.mutex.Lock()
 		crw.headersSent = true
 		crw.mutex.Unlock()
-	}(rq, customWriter)
+	}(req, customWriter)
 	s.Configuration.GetLogger().Sugar().Debugf("Request cache-control %+v", requestCc)
 	if modeContext.Bypass_request || !requestCc.NoCache {
-		validator := rfc.ParseRequest(rq)
+		validator := rfc.ParseRequest(req)
 		var response *http.Response
 		for _, currentStorer := range s.Storers {
-			response = currentStorer.Prefix(cachedKey, rq, validator)
+			response = currentStorer.Prefix(cachedKey, req, validator)
 			if response != nil {
 				s.Configuration.GetLogger().Sugar().Debugf("Found response in the %s storage", currentStorer.Name())
 				break
@@ -508,14 +509,14 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 			}
 
 			if validator.NeedRevalidation {
-				err := s.Revalidate(validator, next, customWriter, rq, requestCc, cachedKey)
+				err := s.Revalidate(validator, next, customWriter, req, requestCc, cachedKey)
 				_, _ = customWriter.Send()
 
 				return err
 			}
 			if resCc, _ := cacheobject.ParseResponseCacheControl(response.Header.Get("Cache-Control")); resCc.NoCachePresent {
 				prometheus.Increment(prometheus.NoCachedResponseCounter)
-				err := s.Revalidate(validator, next, customWriter, rq, requestCc, cachedKey)
+				err := s.Revalidate(validator, next, customWriter, req, requestCc, cachedKey)
 				_, _ = customWriter.Send()
 
 				return err
@@ -524,7 +525,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 			if !modeContext.Strict || rfc.ValidateMaxAgeCachedResponse(requestCc, response) != nil {
 				customWriter.Headers = response.Header
 				customWriter.statusCode = response.StatusCode
-				s.Configuration.GetLogger().Sugar().Debugf("Serve from cache %+v", rq)
+				s.Configuration.GetLogger().Sugar().Debugf("Serve from cache %+v", req)
 				_, _ = io.Copy(customWriter.Buf, response.Body)
 				_, err := customWriter.Send()
 				prometheus.Increment(prometheus.CachedResponseCounter)
@@ -533,7 +534,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 			}
 		} else if response == nil && !requestCc.OnlyIfCached && (requestCc.MaxStaleSet || requestCc.MaxStale > -1) {
 			for _, currentStorer := range s.Storers {
-				response = currentStorer.Prefix(storage.StalePrefix+cachedKey, rq, validator)
+				response = currentStorer.Prefix(storage.StalePrefix+cachedKey, req, validator)
 				if response != nil {
 					break
 				}
@@ -549,10 +550,10 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 					rfc.HitStaleCache(&response.Header)
 					_, _ = io.Copy(customWriter.Buf, response.Body)
 					_, err := customWriter.Send()
-					customWriter = NewCustomWriter(rq, rw, bufPool)
+					customWriter = NewCustomWriter(req, rw, bufPool)
 					go func(v *rfc.Revalidator, goCw *CustomWriter, goRq *http.Request, goNext func(http.ResponseWriter, *http.Request) error, goCc *cacheobject.RequestCacheDirectives, goCk string) {
 						_ = s.Revalidate(v, goNext, goCw, goRq, goCc, goCk)
-					}(validator, customWriter, rq, next, requestCc, cachedKey)
+					}(validator, customWriter, req, next, requestCc, cachedKey)
 					buf := s.bufPool.Get().(*bytes.Buffer)
 					buf.Reset()
 					defer s.bufPool.Put(buf)
@@ -561,8 +562,8 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 				}
 
 				if responseCc.MustRevalidate || responseCc.NoCachePresent || validator.NeedRevalidation {
-					rq.Header["If-None-Match"] = append(rq.Header["If-None-Match"], validator.ResponseETag)
-					err := s.Revalidate(validator, next, customWriter, rq, requestCc, cachedKey)
+					req.Header["If-None-Match"] = append(req.Header["If-None-Match"], validator.ResponseETag)
+					err := s.Revalidate(validator, next, customWriter, req, requestCc, cachedKey)
 					if err != nil {
 						if responseCc.StaleIfError > -1 || requestCc.StaleIfError > 0 {
 							code := fmt.Sprintf("; fwd-status=%d", customWriter.statusCode)
@@ -623,13 +624,13 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 	}
 
 	errorCacheCh := make(chan error)
-	go func() {
-		errorCacheCh <- s.Upstream(customWriter, rq, next, requestCc, cachedKey)
-	}()
+	go func(vr *http.Request) {
+		errorCacheCh <- s.Upstream(customWriter, vr, next, requestCc, cachedKey)
+	}(req)
 
 	select {
-	case <-rq.Context().Done():
-		switch rq.Context().Err() {
+	case <-req.Context().Done():
+		switch req.Context().Err() {
 		case baseCtx.DeadlineExceeded:
 			customWriter.WriteHeader(http.StatusGatewayTimeout)
 			rw.Header().Set("Cache-Status", cacheName+"; fwd=bypass; detail=DEADLINE-EXCEEDED")
