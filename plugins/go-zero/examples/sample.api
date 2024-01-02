@@ -6,9 +6,9 @@ info(
 	version: "v1.6.38"
 )
 
-type CacheReq struct {}
+type CacheReq {}
 
-type CacheRes struct {}
+type CacheRes {}
 
 service httpcache {
 	@handler main
