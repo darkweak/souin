@@ -233,7 +233,7 @@ func (s *SouinBaseHandler) Store(
 		}
 		res.Header.Set(rfc.StoredLengthHeader, res.Header.Get("Content-Length"))
 		response, err := httputil.DumpResponse(&res, true)
-		if err == nil && res.Header.Get("Content-Length") != "" && res.Header.Get("Content-Length") != "0" {
+		if err == nil && customWriter.Buf.Len() > 0 {
 			variedHeaders := rfc.HeaderAllCommaSepValues(res.Header)
 			cachedKey += rfc.GetVariedCacheKey(rq, variedHeaders)
 			s.Configuration.GetLogger().Sugar().Debugf("Store the response %+v with duration %v", res, ma)
@@ -283,9 +283,10 @@ func (s *SouinBaseHandler) Store(
 }
 
 type singleflightValue struct {
-	body    []byte
-	headers http.Header
-	code    int
+	body           []byte
+	headers        http.Header
+	requestHeaders http.Header
+	code           int
 }
 
 func (s *SouinBaseHandler) Upstream(
@@ -323,16 +324,27 @@ func (s *SouinBaseHandler) Upstream(
 
 		err := s.Store(customWriter, rq, requestCc, cachedKey)
 		return singleflightValue{
-			body:    customWriter.Buf.Bytes(),
-			headers: customWriter.Headers.Clone(),
-			code:    customWriter.statusCode,
+			body:           customWriter.Buf.Bytes(),
+			headers:        customWriter.Headers.Clone(),
+			requestHeaders: rq.Header,
+			code:           customWriter.statusCode,
 		}, err
 	})
 
 	if err != nil {
 		return err
 	}
+
 	if sfWriter, ok := sfValue.(singleflightValue); ok && shared {
+		if vary := sfWriter.headers.Get("Vary"); vary != "" {
+			variedHeaders := rfc.HeaderAllCommaSepValues(sfWriter.headers)
+			for _, vh := range variedHeaders {
+				if rq.Header.Get(vh) != sfWriter.requestHeaders.Get(vh) {
+					cachedKey += rfc.GetVariedCacheKey(rq, variedHeaders)
+					return s.Upstream(customWriter, rq, next, requestCc, cachedKey)
+				}
+			}
+		}
 		s.Configuration.GetLogger().Sugar().Infof("Reused response from concurrent request with the key %s", cachedKey)
 		customWriter.Buf.Reset()
 		customWriter.Buf.Write(sfWriter.body)
