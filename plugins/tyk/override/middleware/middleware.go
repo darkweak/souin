@@ -228,13 +228,13 @@ func (s *SouinBaseHandler) HandleInternally(r *http.Request) (bool, http.Handler
 
 type handlerFunc = func(http.ResponseWriter, *http.Request) error
 
-func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, next handlerFunc) error {
-	if b, handler := s.HandleInternally(rq); b {
-		handler(rw, rq)
+func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, baseRq *http.Request, next handlerFunc) error {
+	if b, handler := s.HandleInternally(baseRq); b {
+		handler(rw, baseRq)
 		return nil
 	}
 
-	rq = s.context.SetBaseContext(rq)
+	rq := s.context.SetBaseContext(baseRq)
 	cacheName := rq.Context().Value(context.CacheName).(string)
 	if rq.Header.Get("Upgrade") == "websocket" || (s.ExcludeRegex != nil && s.ExcludeRegex.MatchString(rq.RequestURI)) {
 		rw.Header().Set("Cache-Status", cacheName+"; fwd=bypass; detail=EXCLUDED-REQUEST-URI")
@@ -255,7 +255,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 		return next(rw, rq)
 	}
 
-	rq = s.context.SetContext(rq)
+	rq = s.context.SetContext(rq, baseRq)
 	cachedKey := rq.Context().Value(context.Key).(string)
 
 	bufPool := s.bufPool.Get().(*bytes.Buffer)
