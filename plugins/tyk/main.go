@@ -31,14 +31,14 @@ func getInstanceFromRequest(r *http.Request) (s *souinInstance) {
 }
 
 // SouinResponseHandler stores the response before sent to the client if possible, only returns otherwise
-func SouinResponseHandler(rw http.ResponseWriter, rs *http.Response, rq *http.Request) {
+func SouinResponseHandler(rw http.ResponseWriter, rs *http.Response, baseRq *http.Request) {
 	if rs.Header.Get("Cache-Status") != "" {
 		return
 	}
-	rq.URL.Path = rq.RequestURI
-	customWriter := NewCustomWriter(rq, rw, bytes.NewBuffer([]byte{}))
-	s := getInstanceFromRequest(rq)
-	rq = s.context.SetContext(s.context.SetBaseContext(rq))
+	baseRq.URL.Path = baseRq.RequestURI
+	customWriter := NewCustomWriter(baseRq, rw, bytes.NewBuffer([]byte{}))
+	s := getInstanceFromRequest(baseRq)
+	rq := s.context.SetContext(s.context.SetBaseContext(baseRq), baseRq)
 	cacheName := rq.Context().Value(context.CacheName).(string)
 	if rq.Header.Get("Upgrade") == "websocket" || (s.SouinBaseHandler.ExcludeRegex != nil && s.SouinBaseHandler.ExcludeRegex.MatchString(rq.RequestURI)) {
 		rw.Header().Set("Cache-Status", cacheName+"; fwd=bypass; detail=EXCLUDED-REQUEST-URI")
@@ -142,15 +142,15 @@ func SouinResponseHandler(rw http.ResponseWriter, rs *http.Response, rq *http.Re
 }
 
 // SouinRequestHandler handle the Tyk request
-func SouinRequestHandler(rw http.ResponseWriter, rq *http.Request) {
-	s := getInstanceFromRequest(rq)
+func SouinRequestHandler(rw http.ResponseWriter, baseRq *http.Request) {
+	s := getInstanceFromRequest(baseRq)
 
-	if b, handler := s.SouinBaseHandler.HandleInternally(rq); b {
-		handler(rw, rq)
+	if b, handler := s.SouinBaseHandler.HandleInternally(baseRq); b {
+		handler(rw, baseRq)
 		return
 	}
 
-	rq = s.context.SetBaseContext(rq)
+	rq := s.context.SetBaseContext(baseRq)
 	cacheName := rq.Context().Value(context.CacheName).(string)
 	if rq.Header.Get("Upgrade") == "websocket" || (s.SouinBaseHandler.ExcludeRegex != nil && s.SouinBaseHandler.ExcludeRegex.MatchString(rq.RequestURI)) {
 		rw.Header().Set("Cache-Status", cacheName+"; fwd=bypass; detail=EXCLUDED-REQUEST-URI")
@@ -171,7 +171,7 @@ func SouinRequestHandler(rw http.ResponseWriter, rq *http.Request) {
 		return
 	}
 
-	rq = s.context.SetContext(rq)
+	rq = s.context.SetContext(rq, baseRq)
 	cachedKey := rq.Context().Value(context.Key).(string)
 
 	bufPool := s.bufPool.Get().(*bytes.Buffer)
