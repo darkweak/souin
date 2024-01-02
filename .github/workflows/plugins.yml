@@ -162,14 +162,6 @@ jobs:
       CAPITALIZED_NAME: Roadrunner
       LOWER_NAME: roadrunner
       GO_VERSION: '1.21'
-  build-skipper-validator:
-    name: Check that Souin build as middleware
-    uses: ./.github/workflows/plugin_template.yml
-    secrets: inherit
-    with:
-      CAPITALIZED_NAME: Skipper
-      LOWER_NAME: skipper
-      GO_VERSION: '1.21'
   build-souin-validator:
     name: Check that Souin build as middleware
     uses: ./.github/workflows/plugin_template.yml

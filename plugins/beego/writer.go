@@ -26,8 +26,7 @@ func (r *CustomWriter) Write(b []byte) (int, error) {
 	r.ctx.Output.SetStatus(r.statusCode)
 	r.Buf.Grow(len(b))
 	_, _ = r.Buf.Write(b)
-	// r.Response.Header.Set("Content-Length", fmt.Sprint(r.size))
-	return len(b), nil
+	return r.Rw.Write(b)
 }
 
 // Header will write the response headers

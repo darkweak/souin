@@ -179,6 +179,9 @@ func (s *SouinCaddyMiddleware) FromApp(app *SouinApp) error {
 	if dc.Timeout.Backend.Duration == 0 {
 		s.Configuration.DefaultCache.Timeout.Backend = appDc.Timeout.Backend
 	}
+	if dc.Mode == "" {
+		s.Configuration.DefaultCache.Mode = appDc.Mode
+	}
 	if dc.Timeout.Cache.Duration == 0 {
 		s.Configuration.DefaultCache.Timeout.Cache = appDc.Timeout.Cache
 	}

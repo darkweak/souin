@@ -24,6 +24,10 @@ type keyContext struct {
 	overrides      []map[*regexp.Regexp]keyContext
 }
 
+func (*keyContext) SetContextWithBaseRequest(req *http.Request, _ *http.Request) *http.Request {
+	return req
+}
+
 func (g *keyContext) SetupContext(c configurationtypes.AbstractConfigurationInterface) {
 	k := c.GetDefaultCache().GetKey()
 	g.disable_body = k.DisableBody
