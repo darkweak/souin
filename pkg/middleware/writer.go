@@ -84,7 +84,6 @@ func (r *CustomWriter) Send() (int, error) {
 	r.Header().Del(rfc.StoredTTLHeader)
 
 	if !r.headersSent {
-		
 		// r.Rw.Header().Set("Content-Length", fmt.Sprintf("%d", len(b)))
 		r.Rw.WriteHeader(r.statusCode)
 		r.headersSent = true

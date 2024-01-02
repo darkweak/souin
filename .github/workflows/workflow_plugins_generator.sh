@@ -1,6 +1,6 @@
 #!/bin/bash
 
-plugins=("beego"  "chi"  "dotweb"  "echo"  "fiber"  "gin"  "goa"  "go-zero"  "hertz"  "kratos"  "roadrunner"  "skipper"  "souin"  "traefik"  "tyk"  "webgo")
+plugins=("beego"  "chi"  "dotweb"  "echo"  "fiber"  "gin"  "goa"  "go-zero"  "hertz"  "kratos"  "roadrunner"  "souin"  "traefik"  "tyk"  "webgo")
 go_version=1.21
 
 IFS= read -r -d '' tpl <<EOF

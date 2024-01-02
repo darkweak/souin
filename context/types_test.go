@@ -37,7 +37,7 @@ func Test_Context_SetContext(t *testing.T) {
 
 	co.Init(&c)
 	req := httptest.NewRequest(http.MethodGet, "http://domain.com", nil)
-	req = co.SetContext(req)
+	req = co.SetContext(req, req)
 	if req.Context().Value(Key) != "GET-http-domain.com-" {
 		t.Errorf("The Key context must be equal to GET-http-domain.com-, %s given.", req.Context().Value(Key))
 	}
