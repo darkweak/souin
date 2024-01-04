@@ -93,3 +93,21 @@ div.code-toolbar {
     padding-left: 1rem;
     padding-right: 1rem;
 }
+
+#doc-nav {
+    .doc-prev .card-title {
+        margin-left: auto;
+    }
+    .doc-next .card-title {
+        margin-right: auto;
+    }
+
+    .card-body {
+        display: flex;
+
+        .card-title {
+            align-items: center;
+            display: flex;
+        }
+    }
+}

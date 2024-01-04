@@ -33,5 +33,5 @@ Souin is a powerful HTTP cache system written in go and implements the following
 * [Olric]({{% relref "/docs/storages/olric" %}})
 
 
-## Fully customizable without learning another language
-The default configuration format is YAML (using the standalone HTTP cache server) because it's programmatically generable and easier than the VCL but unlike the VCL it's not a script language.
+## Fully customizable without additional language
+The default configuration format is YAML (using the standalone HTTP cache server) because it's programmatically generable and easier than the VCL but unlike the VCL it's not a script language. Refer to the [configuration page]({{% relref "/docs/configuration" %}}) to discover how to configure your Souin instance.
