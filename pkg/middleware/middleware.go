@@ -305,10 +305,8 @@ func (s *SouinBaseHandler) Upstream(
 ) error {
 	s.Configuration.GetLogger().Sugar().Debug("Request the upstream server")
 	prometheus.Increment(prometheus.RequestCounter)
-	shared := true
 
-	sfValue, err, _ := s.singleflightPool.Do(cachedKey, func() (interface{}, error) {
-		shared = false
+	sfValue, err, shared := s.singleflightPool.Do(cachedKey, func() (interface{}, error) {
 		if e := next(customWriter, rq); e != nil {
 			s.Configuration.GetLogger().Sugar().Warnf("%#v", e)
 			customWriter.Header().Set("Cache-Status", fmt.Sprintf("%s; fwd=uri-miss; key=%s; detail=SERVE-HTTP-ERROR", rq.Context().Value(context.CacheName), rfc.GetCacheKeyFromCtx(rq.Context())))
@@ -330,6 +328,8 @@ func (s *SouinBaseHandler) Upstream(
 		}
 
 		err := s.Store(customWriter, rq, requestCc, cachedKey)
+		customWriter.mutex.Lock()
+		defer customWriter.mutex.Unlock()
 		return singleflightValue{
 			body:           customWriter.Buf.Bytes(),
 			headers:        customWriter.Headers.Clone(),
@@ -368,10 +368,7 @@ func (s *SouinBaseHandler) Revalidate(validator *rfc.Revalidator, next handlerFu
 	s.Configuration.GetLogger().Sugar().Debug("Revalidate the request with the upstream server")
 	prometheus.Increment(prometheus.RequestRevalidationCounter)
 
-	shared := true
-
-	sfValue, err, _ := s.singleflightPool.Do(cachedKey, func() (interface{}, error) {
-		shared = false
+	sfValue, err, shared := s.singleflightPool.Do(cachedKey, func() (interface{}, error) {
 		err := next(customWriter, rq)
 		s.SurrogateKeyStorer.Invalidate(rq.Method, customWriter.Header())
 
@@ -403,9 +400,11 @@ func (s *SouinBaseHandler) Revalidate(validator *rfc.Revalidator, next handlerFu
 			),
 		)
 
+		customWriter.mutex.Lock()
+		defer customWriter.mutex.Unlock()
 		return singleflightValue{
 			body:    customWriter.Buf.Bytes(),
-			headers: customWriter.Headers,
+			headers: customWriter.Headers.Clone(),
 			code:    customWriter.statusCode,
 		}, err
 	})

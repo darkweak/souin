@@ -24,7 +24,7 @@ func NewCustomWriter(rq *http.Request, rw http.ResponseWriter, b *bytes.Buffer) 
 		Req:        rq,
 		Rw:         rw,
 		Headers:    http.Header{},
-		mutex:      &sync.Mutex{},
+		mutex:      sync.Mutex{},
 	}
 }
 
@@ -35,7 +35,7 @@ type CustomWriter struct {
 	Req         *http.Request
 	Headers     http.Header
 	headersSent bool
-	mutex       *sync.Mutex
+	mutex       sync.Mutex
 	statusCode  int
 	// size        int
 }
@@ -78,6 +78,8 @@ func (r *CustomWriter) Send() (int, error) {
 		r.Header().Set("Content-Length", contentLength)
 	}
 	defer r.Buf.Reset()
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
 	b := esi.Parse(r.Buf.Bytes(), r.Req)
 	maps.Copy(r.Rw.Header(), r.Headers)
 	r.Header().Del(rfc.StoredLengthHeader)
