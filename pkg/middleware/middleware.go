@@ -312,7 +312,7 @@ func (s *SouinBaseHandler) Upstream(
 	s.Configuration.GetLogger().Sugar().Debug("Request the upstream server")
 	prometheus.Increment(prometheus.RequestCounter)
 
-	sfValue, err, _ := s.singleflightPool.Do(cachedKey, func() (interface{}, error) {
+	sfValue, err, shared := s.singleflightPool.Do(cachedKey, func() (interface{}, error) {
 		if e := next(customWriter, rq); e != nil {
 			s.Configuration.GetLogger().Sugar().Warnf("%#v", e)
 			customWriter.Header().Set("Cache-Status", fmt.Sprintf("%s; fwd=uri-miss; key=%s; detail=SERVE-HTTP-ERROR", rq.Context().Value(context.CacheName), rfc.GetCacheKeyFromCtx(rq.Context())))
@@ -361,7 +361,9 @@ func (s *SouinBaseHandler) Upstream(
 				}
 			}
 		}
-		s.Configuration.GetLogger().Sugar().Infof("Reused response from concurrent request with the key %s", cachedKey)
+		if shared {
+			s.Configuration.GetLogger().Sugar().Infof("Reused response from concurrent request with the key %s", cachedKey)
+		}
 		customWriter.Write(sfWriter.body)
 		for h, v := range sfWriter.headers {
 			customWriter.Header()[h] = v
@@ -415,8 +417,10 @@ func (s *SouinBaseHandler) Revalidate(validator *rfc.Revalidator, next handlerFu
 	if err != nil {
 		return err
 	}
-	if sfWriter, ok := sfValue.(singleflightValue); ok && shared {
-		s.Configuration.GetLogger().Sugar().Infof("Reused response from concurrent request with the key %s", cachedKey)
+	if sfWriter, ok := sfValue.(singleflightValue); ok {
+		if shared {
+			s.Configuration.GetLogger().Sugar().Infof("Reused response from concurrent request with the key %s", cachedKey)
+		}
 		customWriter.Write(sfWriter.body)
 		for h, v := range sfWriter.headers {
 			customWriter.Header()[h] = v
