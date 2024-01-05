@@ -49,6 +49,14 @@ func (r *CustomWriter) Header() http.Header {
 	return r.Rw.Header()
 }
 
+// GetStatusCode returns the response status code
+func (r *CustomWriter) GetStatusCode() int {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	return r.statusCode
+}
+
 // WriteHeader will write the response headers
 func (r *CustomWriter) WriteHeader(code int) {
 	r.mutex.Lock()
@@ -77,7 +85,7 @@ func (r *CustomWriter) Send() (int, error) {
 	r.Header().Del(rfc.StoredTTLHeader)
 
 	if !r.headersSent {
-		r.Rw.WriteHeader(r.statusCode)
+		r.Rw.WriteHeader(r.GetStatusCode())
 		r.headersSent = true
 	}
 
