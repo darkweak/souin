@@ -1,5 +1,5 @@
 +++
-weight = 501
+weight = 502
 title = "Caddy"
 icon = "extension"
 description = "Use Souin directly in the Caddy web server"
