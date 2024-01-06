@@ -1,6 +1,5 @@
 +++
 weight = 100
-draft = true
 title = "Introduction"
 icon = "bookmark"
 description = "Resources to use Souin as a middleware in your favorite reverse-proxy"

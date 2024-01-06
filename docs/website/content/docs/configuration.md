@@ -1,6 +1,5 @@
 +++
 weight = 300
-draft = true
 title = "Configuration"
 icon = "settings"
 description = "Discover how to configure Souin properly"

@@ -1,6 +1,6 @@
 module website
 
-go 1.21.2
+go 1.21
 
 require (
 	github.com/colinwilson/lotusdocs v0.1.0 // indirect
