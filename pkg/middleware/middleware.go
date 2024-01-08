@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"net/http"
 	"net/http/httputil"
 	"regexp"
@@ -162,7 +163,7 @@ func (s *SouinBaseHandler) Store(
 	if customWriter.Header().Get("Cache-Control") == "" {
 		// TODO see with @mnot if mandatory to not store the response when no Cache-Control given.
 		// if s.DefaultMatchedUrl.DefaultCacheControl == "" {
-		// 	customWriter.Headers.Set("Cache-Status", fmt.Sprintf("%s; fwd=uri-miss; key=%s; detail=EMPTY-RESPONSE-CACHE-CONTROL", rq.Context().Value(context.CacheName), rfc.GetCacheKeyFromCtx(rq.Context())))
+		// 	customWriter.Header().Set("Cache-Status", fmt.Sprintf("%s; fwd=uri-miss; key=%s; detail=EMPTY-RESPONSE-CACHE-CONTROL", rq.Context().Value(context.CacheName), rfc.GetCacheKeyFromCtx(rq.Context())))
 		// 	return nil
 		// }
 		customWriter.Header().Set("Cache-Control", s.DefaultMatchedUrl.DefaultCacheControl)
@@ -364,10 +365,8 @@ func (s *SouinBaseHandler) Upstream(
 		if shared {
 			s.Configuration.GetLogger().Sugar().Infof("Reused response from concurrent request with the key %s", cachedKey)
 		}
-		customWriter.Write(sfWriter.body)
-		for h, v := range sfWriter.headers {
-			customWriter.Header()[h] = v
-		}
+		_, _ = customWriter.Write(sfWriter.body)
+		maps.Copy(customWriter.Header(), sfWriter.headers)
 		customWriter.WriteHeader(sfWriter.code)
 	}
 
@@ -421,10 +420,8 @@ func (s *SouinBaseHandler) Revalidate(validator *rfc.Revalidator, next handlerFu
 		if shared {
 			s.Configuration.GetLogger().Sugar().Infof("Reused response from concurrent request with the key %s", cachedKey)
 		}
-		customWriter.Write(sfWriter.body)
-		for h, v := range sfWriter.headers {
-			customWriter.Header()[h] = v
-		}
+		_, _ = customWriter.Write(sfWriter.body)
+		maps.Copy(customWriter.Header(), sfWriter.headers)
 		customWriter.WriteHeader(sfWriter.code)
 	}
 
@@ -623,7 +620,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 					if statusCode == http.StatusNotModified {
 						if !validator.Matched {
 							rfc.SetCacheStatusHeader(response)
-							statusCode = response.StatusCode
+							customWriter.WriteHeader(response.StatusCode)
 							for h, v := range response.Header {
 								customWriter.Header()[h] = v
 							}
