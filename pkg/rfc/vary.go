@@ -28,20 +28,24 @@ func GetVariedCacheKey(rq *http.Request, headers []string) string {
 	return VarySeparator + strings.Join(headers, DecodedHeaderSeparator)
 }
 
-// headerAllCommaSepValues returns all comma-separated values (each
-// with whitespace trimmed) for header name in headers. According to
+// VariedHeaderAllCommaSepValues returns all comma-separated values (each
+// with whitespace trimmed) for header name in 'Vary'. According to
 // Section 4.2 of the HTTP/1.1 spec
 // (http://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.2),
 // values from multiple occurrences of a header should be concatenated, if
 // the header's value is a comma-separated list.
-func HeaderAllCommaSepValues(headers http.Header) []string {
+func VariedHeaderAllCommaSepValues(headers http.Header) ([]string, bool) {
 	var vals []string
 	for _, val := range headers[http.CanonicalHeaderKey("Vary")] {
 		fields := strings.Split(val, ",")
 		for i, f := range fields {
-			fields[i] = strings.TrimSpace(f)
+			trimmedField := strings.TrimSpace(f)
+			if trimmedField == "*" {
+				return []string{"*"}, true
+			}
+			fields[i] = trimmedField
 		}
 		vals = append(vals, fields...)
 	}
-	return vals
+	return vals, false
 }

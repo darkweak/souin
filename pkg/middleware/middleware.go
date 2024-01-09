@@ -234,43 +234,50 @@ func (s *SouinBaseHandler) Store(
 		res.Header.Set(rfc.StoredLengthHeader, res.Header.Get("Content-Length"))
 		response, err := httputil.DumpResponse(&res, true)
 		if err == nil && customWriter.Buf.Len() > 0 {
-			variedHeaders := rfc.HeaderAllCommaSepValues(res.Header)
-			cachedKey += rfc.GetVariedCacheKey(rq, variedHeaders)
-			s.Configuration.GetLogger().Sugar().Debugf("Store the response %+v with duration %v", res, ma)
+			variedHeaders, isVaryStar := rfc.VariedHeaderAllCommaSepValues(res.Header)
+			if isVaryStar {
+				// "Implies that the response is uncacheable"
+				status += "; detail=UPSTREAM-VARY-STAR"
+			} else {
+				cachedKey += rfc.GetVariedCacheKey(rq, variedHeaders)
 
-			var wg sync.WaitGroup
-			mu := sync.Mutex{}
-			fails := []string{}
-			select {
-			case <-rq.Context().Done():
-				status += "; detail=REQUEST-CANCELED-OR-UPSTREAM-BROKEN-PIPE"
-			default:
-				for _, storer := range s.Storers {
-					wg.Add(1)
-					go func(currentStorer storage.Storer) {
-						defer wg.Done()
-						if currentStorer.Set(cachedKey, response, currentMatchedURL, ma) == nil {
-							s.Configuration.GetLogger().Sugar().Debugf("Stored the key %s in the %s provider", cachedKey, currentStorer.Name())
-						} else {
-							mu.Lock()
-							fails = append(fails, fmt.Sprintf("; detail=%s-INSERTION-ERROR", currentStorer.Name()))
-							mu.Unlock()
-						}
-					}(storer)
-				}
+				s.Configuration.GetLogger().Sugar().Debugf("Store the response %+v with duration %v", res, ma)
 
-				wg.Wait()
-				if len(fails) < s.storersLen {
-					go func(rs http.Response, key string) {
-						_ = s.SurrogateKeyStorer.Store(&rs, key)
-					}(res, cachedKey)
-					status += "; stored"
-				}
+				var wg sync.WaitGroup
+				mu := sync.Mutex{}
+				fails := []string{}
+				select {
+				case <-rq.Context().Done():
+					status += "; detail=REQUEST-CANCELED-OR-UPSTREAM-BROKEN-PIPE"
+				default:
+					for _, storer := range s.Storers {
+						wg.Add(1)
+						go func(currentStorer storage.Storer) {
+							defer wg.Done()
+							if currentStorer.Set(cachedKey, response, currentMatchedURL, ma) == nil {
+								s.Configuration.GetLogger().Sugar().Debugf("Stored the key %s in the %s provider", cachedKey, currentStorer.Name())
+							} else {
+								mu.Lock()
+								fails = append(fails, fmt.Sprintf("; detail=%s-INSERTION-ERROR", currentStorer.Name()))
+								mu.Unlock()
+							}
+						}(storer)
+					}
 
-				if len(fails) > 0 {
-					status += strings.Join(fails, "")
+					wg.Wait()
+					if len(fails) < s.storersLen {
+						go func(rs http.Response, key string) {
+							_ = s.SurrogateKeyStorer.Store(&rs, key)
+						}(res, cachedKey)
+						status += "; stored"
+					}
+
+					if len(fails) > 0 {
+						status += strings.Join(fails, "")
+					}
 				}
 			}
+
 		} else {
 			status += "; detail=UPSTREAM-ERROR-OR-EMPTY-RESPONSE"
 		}
@@ -337,11 +344,13 @@ func (s *SouinBaseHandler) Upstream(
 
 	if sfWriter, ok := sfValue.(singleflightValue); ok && shared {
 		if vary := sfWriter.headers.Get("Vary"); vary != "" {
-			variedHeaders := rfc.HeaderAllCommaSepValues(sfWriter.headers)
-			for _, vh := range variedHeaders {
-				if rq.Header.Get(vh) != sfWriter.requestHeaders.Get(vh) {
-					cachedKey += rfc.GetVariedCacheKey(rq, variedHeaders)
-					return s.Upstream(customWriter, rq, next, requestCc, cachedKey)
+			variedHeaders, isVaryStar := rfc.VariedHeaderAllCommaSepValues(sfWriter.headers)
+			if !isVaryStar {
+				for _, vh := range variedHeaders {
+					if rq.Header.Get(vh) != sfWriter.requestHeaders.Get(vh) {
+						cachedKey += rfc.GetVariedCacheKey(rq, variedHeaders)
+						return s.Upstream(customWriter, rq, next, requestCc, cachedKey)
+					}
 				}
 			}
 		}
