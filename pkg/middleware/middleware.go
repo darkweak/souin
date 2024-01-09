@@ -413,9 +413,6 @@ func (s *SouinBaseHandler) Revalidate(validator *rfc.Revalidator, next handlerFu
 		}, err
 	})
 
-	if err != nil {
-		return err
-	}
 	if sfWriter, ok := sfValue.(singleflightValue); ok {
 		if shared {
 			s.Configuration.GetLogger().Sugar().Infof("Reused response from concurrent request with the key %s", cachedKey)
@@ -599,12 +596,10 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 					if err != nil {
 						if responseCc.StaleIfError > -1 || requestCc.StaleIfError > 0 {
 							code := fmt.Sprintf("; fwd-status=%d", statusCode)
-							for h, v := range response.Header {
-								customWriter.Header()[h] = v
-							}
-							customWriter.WriteHeader(response.StatusCode)
 							rfc.HitStaleCache(&response.Header)
 							response.Header.Set("Cache-Status", response.Header.Get("Cache-Status")+code)
+							maps.Copy(customWriter.Header(), response.Header)
+							customWriter.WriteHeader(response.StatusCode)
 							_, _ = io.Copy(customWriter.Buf, response.Body)
 							_, err := customWriter.Send()
 
@@ -621,9 +616,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 						if !validator.Matched {
 							rfc.SetCacheStatusHeader(response)
 							customWriter.WriteHeader(response.StatusCode)
-							for h, v := range response.Header {
-								customWriter.Header()[h] = v
-							}
+							maps.Copy(customWriter.Header(), response.Header)
 							_, _ = io.Copy(customWriter.Buf, response.Body)
 							_, _ = customWriter.Send()
 
@@ -645,11 +638,9 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 				}
 
 				if rfc.ValidateMaxAgeCachedStaleResponse(requestCc, response, int(addTime.Seconds())) != nil {
-					for h, v := range response.Header {
-						customWriter.Header()[h] = v
-					}
 					customWriter.WriteHeader(response.StatusCode)
 					rfc.HitStaleCache(&response.Header)
+					maps.Copy(customWriter.Header(), response.Header)
 					_, _ = io.Copy(customWriter.Buf, response.Body)
 					_, err := customWriter.Send()
 
