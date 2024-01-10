@@ -320,7 +320,7 @@ func (s *SouinBaseHandler) Upstream(
 		if r := recover(); r != nil {
 			err := r.(error)
 			if errors.Is(err, http.ErrAbortHandler) {
-				recoveredFromErr = errors.Unwrap(err)
+				recoveredFromErr = http.ErrAbortHandler
 			} else {
 				panic(err)
 			}
