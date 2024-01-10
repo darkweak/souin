@@ -1,9 +1,9 @@
-info(
-	title: "Go-zero HTTP cache"
-	desc: "HTTP cache support as plugin for go-zero"
-	author: "darkweak"
-	email: "darkweak@protonmail.com"
-	version: "v1.6.38"
+info (
+	title:   "Go-zero HTTP cache"
+	desc:    "HTTP cache support as plugin for go-zero"
+	author:  "darkweak"
+	email:   "darkweak@protonmail.com"
+	version: "v1.6.44"
 )
 
 type CacheReq {}

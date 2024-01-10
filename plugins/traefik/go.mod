@@ -15,7 +15,6 @@ require (
 	github.com/gofrs/flock v0.8.1 // indirect
 	github.com/nutsdb/nutsdb v0.14.2 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
-	golang.org/x/exp v0.0.0-20231127185646-65229373498e // indirect
 )
 
 require (

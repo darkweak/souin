@@ -105,8 +105,18 @@ func manageAge(h *http.Header, ttl time.Duration, cacheName, key string) {
 		apparentAge = 0
 	}
 
+	var oldAge int
+	{
+		var err error
+		oldAgeString := h.Get("Age")
+		oldAge, err = strconv.Atoi(oldAgeString)
+		if err != nil {
+			oldAge = 0
+		}
+	}
+
 	cage := int(math.Ceil(apparentAge.Seconds()))
-	age := strconv.Itoa(cage)
+	age := strconv.Itoa(oldAge + cage)
 	h.Set("Age", age)
 	ttlValue := strconv.Itoa(int(ttl.Seconds()) - cage)
 	h.Set("Cache-Status", cacheName+"; hit; ttl="+ttlValue+"; key="+key)
