@@ -10,7 +10,6 @@ require (
 	github.com/gofrs/flock v0.8.1 // indirect
 	github.com/nutsdb/nutsdb v0.14.2 // indirect
 	github.com/tidwall/gjson v1.13.0 // indirect
-	golang.org/x/exp v0.0.0-20231127185646-65229373498e // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20230706204954-ccb25ca9f130 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230706204954-ccb25ca9f130 // indirect
 )

@@ -105,34 +105,43 @@ func SouinResponseHandler(rw http.ResponseWriter, rs *http.Response, baseRq *htt
 		response, err := httputil.DumpResponse(&res, true)
 		cachedKey := rq.Context().Value(context.Key).(string)
 		if err == nil {
-			variedHeaders := rfc.HeaderAllCommaSepValues(res.Header)
-			cachedKey += rfc.GetVariedCacheKey(rq, variedHeaders)
-			var wg sync.WaitGroup
-			mu := sync.Mutex{}
-			fails := []string{}
-			for _, storer := range s.SouinBaseHandler.Storers {
-				wg.Add(1)
-				go func(currentStorer storage.Storer) {
-					defer wg.Done()
-					if currentStorer.Set(cachedKey, response, currentMatchedURL, ma) == nil {
-					} else {
-						mu.Lock()
-						fails = append(fails, fmt.Sprintf("; detail=%s-INSERTION-ERROR", currentStorer.Name()))
-						mu.Unlock()
+			variedHeaders, isVaryStar := rfc.VariedHeaderAllCommaSepValues(res.Header)
+			if isVaryStar {
+				// "Implies that the response is uncacheable"
+				status += "; detail=UPSTREAM-VARY-STAR"
+			} else {
+				cachedKey += rfc.GetVariedCacheKey(rq, variedHeaders)
+				var wg sync.WaitGroup
+				mu := sync.Mutex{}
+				fails := []string{}
+				select {
+				case <-rq.Context().Done():
+					status += "; detail=REQUEST-CANCELED-OR-UPSTREAM-BROKEN-PIPE"
+				default:
+					for _, storer := range s.SouinBaseHandler.Storers {
+						wg.Add(1)
+						go func(currentStorer storage.Storer) {
+							defer wg.Done()
+							if currentStorer.Set(cachedKey, response, currentMatchedURL, ma) != nil {
+								mu.Lock()
+								fails = append(fails, fmt.Sprintf("; detail=%s-INSERTION-ERROR", currentStorer.Name()))
+								mu.Unlock()
+							}
+						}(storer)
 					}
-				}(storer)
-			}
 
-			wg.Wait()
-			if len(fails) < len(s.SouinBaseHandler.Storers) {
-				go func(rs http.Response, key string) {
-					_ = s.SurrogateKeyStorer.Store(&rs, key)
-				}(res, cachedKey)
-				status += "; stored"
-			}
+					wg.Wait()
+					if len(fails) < len(s.SouinBaseHandler.Storers) {
+						go func(rs http.Response, key string) {
+							_ = s.SouinBaseHandler.SurrogateKeyStorer.Store(&rs, key)
+						}(res, cachedKey)
+						status += "; stored"
+					}
 
-			if len(fails) > 0 {
-				status += strings.Join(fails, "")
+					if len(fails) > 0 {
+						status += strings.Join(fails, "")
+					}
+				}
 			}
 		}
 	} else {
