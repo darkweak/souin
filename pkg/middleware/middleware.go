@@ -313,6 +313,19 @@ func (s *SouinBaseHandler) Upstream(
 	s.Configuration.GetLogger().Sugar().Debug("Request the upstream server")
 	prometheus.Increment(prometheus.RequestCounter)
 
+	var recoveredFromErr error = nil
+	defer func() {
+		// In case of "http.ErrAbortHandler" panic,
+		// prevent singleflight from wrapping it into "singleflight.panicError".
+		if r := recover(); r != nil {
+			err := r.(error)
+			if errors.Is(err, http.ErrAbortHandler) {
+				recoveredFromErr = http.ErrAbortHandler
+			} else {
+				panic(err)
+			}
+		}
+	}()
 	sfValue, err, shared := s.singleflightPool.Do(cachedKey, func() (interface{}, error) {
 		if e := next(customWriter, rq); e != nil {
 			s.Configuration.GetLogger().Sugar().Warnf("%#v", e)
@@ -345,7 +358,9 @@ func (s *SouinBaseHandler) Upstream(
 			code:           statusCode,
 		}, err
 	})
-
+	if recoveredFromErr != nil {
+		panic(recoveredFromErr)
+	}
 	if err != nil {
 		return err
 	}
