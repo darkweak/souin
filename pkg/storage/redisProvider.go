@@ -6,24 +6,28 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"regexp"
+	"strings"
 	"time"
 
 	t "github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/rfc"
-	redis "github.com/redis/go-redis/v9"
+	redis "github.com/redis/rueidis"
+	"github.com/redis/rueidis/rueidiscompat"
 	"go.uber.org/zap"
 )
 
 // Redis provider type
 type Redis struct {
-	*redis.Client
+	Client        rueidiscompat.Cmdable
 	stale         time.Duration
 	ctx           context.Context
 	logger        *zap.Logger
 	reconnecting  bool
-	configuration redis.Options
+	configuration redis.ClientOption
+	close         func()
 }
 
 // RedisConnectionFactory function create new Nuts instance
@@ -31,30 +35,40 @@ func RedisConnectionFactory(c t.AbstractConfigurationInterface) (Storer, error) 
 	dc := c.GetDefaultCache()
 	bc, _ := json.Marshal(dc.GetRedis().Configuration)
 
-	var options redis.Options
+	var options redis.ClientOption
 	if dc.GetRedis().Configuration != nil {
 		if err := json.Unmarshal(bc, &options); err != nil {
 			c.GetLogger().Sugar().Infof("Cannot parse your redis configuration: %+v", err)
 		}
 	} else {
-		options = redis.Options{
-			Addr:        dc.GetRedis().URL,
-			Password:    "",
-			DB:          0,
-			PoolSize:    1000,
-			PoolTimeout: dc.GetTimeout().Cache.Duration,
+		options = redis.ClientOption{
+			InitAddress: strings.Split(dc.GetRedis().URL, ","),
+			Dialer: net.Dialer{
+				Timeout: dc.GetTimeout().Cache.Duration,
+			},
 		}
 	}
 
-	cli := redis.NewClient(&options)
+	if options.Dialer.Timeout == 0 {
+		options.Dialer.Timeout = time.Second
+	}
+
+	cli, err := redis.NewClient(options)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO remove this adapter to use directly rueidis
+	compat := rueidiscompat.NewAdapter(cli)
 
 	return &Redis{
-		Client:        cli,
+		Client:        compat,
 		ctx:           context.Background(),
 		stale:         dc.GetStale(),
 		configuration: options,
 		logger:        c.GetLogger(),
-	}, nil
+		close:         cli.Close,
+	}, err
 }
 
 // Name returns the storer name
@@ -68,19 +82,8 @@ func (provider *Redis) ListKeys() []string {
 		provider.logger.Sugar().Error("Impossible to list the redis keys while reconnecting.")
 		return []string{}
 	}
-	keys := []string{}
 
-	iter := provider.Client.Scan(provider.ctx, 0, "*", 0).Iterator()
-	for iter.Next(provider.ctx) {
-		keys = append(keys, string(iter.Val()))
-	}
-	if err := iter.Err(); err != nil {
-		if !provider.reconnecting {
-			go provider.Reconnect()
-		}
-		provider.logger.Sugar().Error(err)
-		return []string{}
-	}
+	keys, _ := provider.Client.Scan(provider.ctx, 0, "*", 0).Val()
 
 	return keys
 }
@@ -113,15 +116,15 @@ func (provider *Redis) Prefix(key string, req *http.Request, validator *rfc.Reva
 	in := make(chan *http.Response)
 	out := make(chan bool)
 
-	iter := provider.Client.Scan(provider.ctx, 0, key+"*", 0).Iterator()
-	go func(iterator *redis.ScanIterator) {
-		for iterator.Next(provider.ctx) {
+	keys, _, _ := provider.Client.Scan(provider.ctx, 0, key+"*", 0).Result()
+	go func(ks []string) {
+		for _, k := range ks {
 			select {
 			case <-out:
 				return
 			case <-time.After(1 * time.Nanosecond):
-				if varyVoter(key, req, iter.Val()) {
-					v, e := provider.Client.Get(provider.ctx, iter.Val()).Result()
+				if varyVoter(key, req, k) {
+					v, e := provider.Client.Get(provider.ctx, k).Result()
 					if e != nil && e != redis.Nil && !provider.reconnecting {
 						go provider.Reconnect()
 						in <- nil
@@ -130,20 +133,20 @@ func (provider *Redis) Prefix(key string, req *http.Request, validator *rfc.Reva
 					if res, err := http.ReadResponse(bufio.NewReader(bytes.NewBuffer([]byte(v))), req); err == nil {
 						rfc.ValidateETag(res, validator)
 						if validator.Matched {
-							provider.logger.Sugar().Debugf("The stored key %s matched the current iteration key ETag %+v", iter.Val(), validator)
+							provider.logger.Sugar().Debugf("The stored key %s matched the current iteration key ETag %+v", k, validator)
 							in <- res
 							return
 						}
-						provider.logger.Sugar().Errorf("The stored key %s didn't match the current iteration key ETag %+v", iter.Val(), validator)
+						provider.logger.Sugar().Errorf("The stored key %s didn't match the current iteration key ETag %+v", k, validator)
 					}
 				}
 			}
 		}
 		in <- nil
-	}(iter)
+	}(keys)
 
 	select {
-	case <-time.After(provider.Client.Options().PoolTimeout):
+	case <-time.After(provider.configuration.Dialer.Timeout):
 		out <- true
 		return nil
 	case v := <-in:
@@ -201,16 +204,11 @@ func (provider *Redis) DeleteMany(key string) {
 	}
 
 	keys := []string{}
-	iter := provider.Client.Scan(provider.ctx, 0, "*", 0).Iterator()
-	for iter.Next(provider.ctx) {
-		if re.MatchString(iter.Val()) {
-			keys = append(keys, iter.Val())
+	rKeys, _ := provider.Client.Scan(provider.ctx, 0, "*", 0).Val()
+	for _, rkey := range rKeys {
+		if re.MatchString(rkey) {
+			keys = append(keys, rkey)
 		}
-	}
-
-	if iter.Err() != nil && !provider.reconnecting {
-		go provider.Reconnect()
-		return
 	}
 
 	provider.Client.Del(provider.ctx, keys...)
@@ -227,13 +225,26 @@ func (provider *Redis) Reset() error {
 		provider.logger.Sugar().Error("Impossible to reset the redis instance while reconnecting.")
 		return nil
 	}
-	return provider.Client.Close()
+	provider.close()
+
+	return nil
 }
 
 func (provider *Redis) Reconnect() {
 	provider.reconnecting = true
 
-	if provider.Client = redis.NewClient(&provider.configuration); provider.Client != nil {
+	cli, err := redis.NewClient(provider.configuration)
+	if err != nil {
+		time.Sleep(10 * time.Second)
+		provider.Reconnect()
+
+		return
+	}
+
+	// TODO remove this adapter to use directly rueidis
+	provider.Client = rueidiscompat.NewAdapter(cli)
+	provider.close = cli.Close
+	if provider.Client != nil {
 		provider.reconnecting = false
 	} else {
 		time.Sleep(10 * time.Second)

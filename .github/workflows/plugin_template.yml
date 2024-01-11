@@ -64,9 +64,8 @@ jobs:
           comparison: contains
       -
         name: Run ${{ inputs.CAPITALIZED_NAME }} E2E tests
-        uses: anthonyvscode/newman-action@v1
+        uses: matt-ball/newman-action@master
         with:
           collection: "docs/e2e/Souin E2E.postman_collection.json"
-          folder: ${{ inputs.CAPITALIZED_NAME }}
-          reporters: cli
+          folder: '["${{ inputs.CAPITALIZED_NAME }}"]'
           delayRequest: 5000

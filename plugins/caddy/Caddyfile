@@ -127,24 +127,9 @@ route /redis {
         ttl 5s
         redis {
             configuration {
-                Network my-network
-                Addr 127.0.0.1:6379
-                Username user
-                Password password
-                DB 1
-                MaxRetries 1
-                MinRetryBackoff 5s
-                MaxRetryBackoff 5s
-                DialTimeout 5s
-                ReadTimeout 5s
-                WriteTimeout 5s
-                PoolFIFO true
-                PoolSize 99999
-                PoolTimeout 10s
-                MinIdleConns 100
-                MaxIdleConns 100
-                ConnMaxIdleTime 5s
-                ConnMaxLifetime 5s
+                ClientName souin-redis
+                InitAddress 127.0.0.1:6379
+                SelectDB 0
             }
         }
     }
@@ -156,21 +141,9 @@ route /redis-configuration {
         ttl 5s
         redis {
             configuration {
-                Addr 127.0.0.1:6379
-                DB 0
-                MaxRetries 1
-                MinRetryBackoff 5s
-                MaxRetryBackoff 5s
-                DialTimeout 5s
-                ReadTimeout 5s
-                WriteTimeout 5s
-                PoolFIFO true
-                PoolSize 99999
-                PoolTimeout 10s
-                MinIdleConns 100
-                MaxIdleConns 100
-                ConnMaxIdleTime 5s
-                ConnMaxLifetime 5s
+                ClientName souin-redis
+                InitAddress 127.0.0.1:6379
+                SelectDB 0
             }
         }
     }

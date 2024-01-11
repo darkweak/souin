@@ -17,3 +17,4 @@ service httpcache {
 	@handler souin_api
 	get /souin-api/:apis (CacheReq) returns (CacheRes)
 }
+
