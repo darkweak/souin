@@ -250,13 +250,19 @@ func parseBadgerConfiguration(c map[string]interface{}) map[string]interface{} {
 func parseRedisConfiguration(c map[string]interface{}) map[string]interface{} {
 	for k, v := range c {
 		switch k {
-		case "Network", "Addr", "Username", "Password":
+		case "InitAddress":
+			if s, ok := v.(string); ok {
+				c[k] = []string{s}
+			} else {
+				c[k] = v
+			}
+		case "Username", "Password", "ClientName", "ClientSetInfo", "ClientTrackingOptions":
 			c[k] = v
-		case "PoolFIFO":
+		case "SendToReplicas", "ShuffleInit", "ClientNoTouch", "DisableRetry", "DisableCache", "AlwaysPipelining", "AlwaysRESP2", "ForceSingleClient", "ReplicaOnly", "ClientNoEvict":
 			c[k] = true
-		case "DB", "MaxRetries", "PoolSize", "MinIdleConns", "MaxIdleConns":
+		case "SelectDB", "CacheSizeEachConn", "RingScaleEachConn", "ReadBufferEachConn", "WriteBufferEachConn", "BlockingPoolSize", "PipelineMultiplex":
 			c[k], _ = strconv.Atoi(v.(string))
-		case "MinRetryBackoff", "MaxRetryBackoff", "DialTimeout", "ReadTimeout", "WriteTimeout", "PoolTimeout", "ConnMaxIdleTime", "ConnMaxLifetime":
+		case "ConnWriteTimeout", "MaxFlushDelay":
 			c[k], _ = time.ParseDuration(v.(string))
 		}
 	}

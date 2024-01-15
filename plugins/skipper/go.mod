@@ -3,7 +3,7 @@ module github.com/darkweak/souin/plugins/skipper
 go 1.20
 
 require (
-	github.com/darkweak/souin v1.6.44
+	github.com/darkweak/souin v1.6.45
 	github.com/zalando/skipper v0.16.145
 )
 
@@ -72,7 +72,6 @@ require (
 	github.com/mschoch/smat v0.2.0 // indirect
 	github.com/nutsdb/nutsdb v0.14.2 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
-	github.com/onsi/gomega v1.24.1 // indirect
 	github.com/opencontainers/image-spec v1.1.0-rc4 // indirect
 	github.com/opentracing/basictracer-go v1.1.0 // indirect
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
@@ -84,6 +83,7 @@ require (
 	github.com/prometheus/procfs v0.11.0 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475 // indirect
 	github.com/redis/go-redis/v9 v9.1.0 // indirect
+	github.com/redis/rueidis v1.0.26 // indirect
 	github.com/sarslanhan/cronmask v0.0.0-20230801193303-54e29300a091 // indirect
 	github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
@@ -132,4 +132,4 @@ require (
 	layeh.com/gopher-json v0.0.0-20201124131017-552bb3c4c3bf // indirect
 )
 
-replace github.com/darkweak/souin v1.6.44 => ../..
+replace github.com/darkweak/souin v1.6.45 => ../..

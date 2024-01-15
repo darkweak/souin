@@ -13,7 +13,7 @@ require (
 	github.com/pquerna/cachecontrol v0.2.0
 	github.com/prometheus/client_golang v1.16.0
 	github.com/prometheus/client_model v0.4.0
-	github.com/redis/go-redis/v9 v9.1.0
+	github.com/redis/rueidis v1.0.26
 	go.etcd.io/etcd/client/v3 v3.5.9
 	go.uber.org/zap v1.26.0
 	golang.org/x/sync v0.5.0

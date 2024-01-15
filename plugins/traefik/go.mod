@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/akyoto/cache v1.0.6
-	github.com/darkweak/souin v1.6.44
+	github.com/darkweak/souin v1.6.45
 	github.com/pquerna/cachecontrol v0.2.0
 	go.uber.org/zap v1.26.0
 )
@@ -14,6 +14,7 @@ require (
 	github.com/antlabs/timer v0.0.11 // indirect
 	github.com/gofrs/flock v0.8.1 // indirect
 	github.com/nutsdb/nutsdb v0.14.2 // indirect
+	github.com/redis/rueidis v1.0.26 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 )
 
@@ -61,7 +62,6 @@ require (
 	github.com/prometheus/client_model v0.4.0 // indirect
 	github.com/prometheus/common v0.42.0 // indirect
 	github.com/prometheus/procfs v0.10.1 // indirect
-	github.com/redis/go-redis/v9 v9.1.0 // indirect
 	github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529 // indirect
 	github.com/spf13/cast v1.5.1
 	github.com/tidwall/btree v1.6.0 // indirect
@@ -90,6 +90,6 @@ require (
 )
 
 replace (
-	github.com/darkweak/souin v1.6.44 => ../..
+	github.com/darkweak/souin v1.6.45 => ../..
 	go.uber.org/zap v1.26.0 => go.uber.org/zap v1.21.0
 )

@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/TykTechnologies/tyk v1.9.2-0.20230330071232-370295d796b5
-	github.com/darkweak/souin v1.6.44
+	github.com/darkweak/souin v1.6.45
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pquerna/cachecontrol v0.2.0
 	go.uber.org/zap v1.26.0
@@ -104,7 +104,7 @@ require (
 	github.com/qri-io/jsonschema v0.2.1 // indirect
 	github.com/r3labs/sse/v2 v2.10.0 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475 // indirect
-	github.com/redis/go-redis/v9 v9.1.0 // indirect
+	github.com/redis/rueidis v1.0.26 // indirect
 	github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529 // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
 	github.com/tidwall/btree v1.6.0 // indirect
@@ -147,6 +147,6 @@ require (
 )
 
 replace (
-	github.com/darkweak/souin v1.6.44 => ../..
+	github.com/darkweak/souin v1.6.45 => ../..
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6 => github.com/alecthomas/kingpin/v2 v2.3.2
 )

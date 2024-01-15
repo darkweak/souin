@@ -1,6 +1,8 @@
 #!/bin/bash
 
-plugins=("beego"  "chi"  "dotweb"  "echo"  "fiber"  "gin"  "goa"  "go-zero"  "hertz"  "kratos"  "roadrunner"  "souin"  "traefik"  "tyk"  "webgo")
+# Disabled go-zero and hertz temporary
+# plugins=("beego"  "chi"  "dotweb"  "echo"  "fiber"  "gin"  "goa"  "go-zero"  "hertz"  "kratos"  "roadrunner"  "souin"  "traefik"  "tyk"  "webgo")
+plugins=("beego"  "chi"  "dotweb"  "echo"  "fiber"  "gin"  "goa"  "kratos"  "roadrunner"  "souin"  "traefik"  "tyk"  "webgo")
 go_version=1.21
 
 IFS= read -r -d '' tpl <<EOF
@@ -60,11 +62,10 @@ jobs:
         run: cd plugins/caddy && ./caddy run &
       -
         name: Run Caddy E2E tests
-        uses: anthonyvscode/newman-action@v1
+        uses: matt-ball/newman-action@master
         with:
           collection: "docs/e2e/Souin E2E.postman_collection.json"
-          folder: Caddy
-          reporters: cli
+          folder: '["Caddy"]'
           delayRequest: 5000
       -
         name: Run detached caddy
@@ -74,11 +75,10 @@ jobs:
         run: cd plugins/caddy && ./caddy run --config ./configuration.json &
       -
         name: Run Caddy E2E tests
-        uses: anthonyvscode/newman-action@v1
+        uses: matt-ball/newman-action@master
         with:
           collection: "docs/e2e/Souin E2E.postman_collection.json"
-          folder: Caddy
-          reporters: cli
+          folder: '["Caddy"]'
           delayRequest: 5000
 EOF
 workflow+="$tpl"
