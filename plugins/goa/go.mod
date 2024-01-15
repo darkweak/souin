@@ -3,7 +3,7 @@ module github.com/darkweak/souin/plugins/goa
 go 1.20
 
 require (
-	github.com/darkweak/souin v1.6.44
+	github.com/darkweak/souin v1.6.45
 	goa.design/goa/v3 v3.12.3
 )
 
@@ -88,4 +88,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/darkweak/souin v1.6.44 => ../..
+replace github.com/darkweak/souin v1.6.45 => ../..

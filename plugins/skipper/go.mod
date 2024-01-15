@@ -3,7 +3,7 @@ module github.com/darkweak/souin/plugins/skipper
 go 1.20
 
 require (
-	github.com/darkweak/souin v1.6.44
+	github.com/darkweak/souin v1.6.45
 	github.com/zalando/skipper v0.16.145
 )
 
@@ -132,4 +132,4 @@ require (
 	layeh.com/gopher-json v0.0.0-20201124131017-552bb3c4c3bf // indirect
 )
 
-replace github.com/darkweak/souin v1.6.44 => ../..
+replace github.com/darkweak/souin v1.6.45 => ../..
