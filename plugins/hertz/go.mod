@@ -2,13 +2,14 @@ module github.com/darkweak/souin/plugins/hertz
 
 go 1.20
 
-require github.com/darkweak/souin v1.6.44
+require github.com/darkweak/souin v1.6.45
 
 require (
 	github.com/antlabs/stl v0.0.1 // indirect
 	github.com/antlabs/timer v0.0.11 // indirect
 	github.com/gofrs/flock v0.8.1 // indirect
 	github.com/nutsdb/nutsdb v0.14.2 // indirect
+	github.com/redis/rueidis v1.0.26 // indirect
 	github.com/tidwall/gjson v1.13.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20230706204954-ccb25ca9f130 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230706204954-ccb25ca9f130 // indirect
@@ -70,7 +71,6 @@ require (
 	github.com/prometheus/client_model v0.4.0 // indirect
 	github.com/prometheus/common v0.44.0 // indirect
 	github.com/prometheus/procfs v0.11.0 // indirect
-	github.com/redis/go-redis/v9 v9.1.0 // indirect
 	github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529 // indirect
 	github.com/tidwall/btree v1.6.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
@@ -101,4 +101,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/darkweak/souin v1.6.44 => ../..
+replace github.com/darkweak/souin v1.6.45 => ../..

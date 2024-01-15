@@ -3,7 +3,7 @@ module github.com/darkweak/souin/plugins/goyave
 go 1.20
 
 require (
-	github.com/darkweak/souin v1.6.44
+	github.com/darkweak/souin v1.6.45
 	goyave.dev/goyave/v4 v4.4.11
 )
 
@@ -54,7 +54,6 @@ require (
 	github.com/miekg/dns v1.1.55 // indirect
 	github.com/mschoch/smat v0.2.0 // indirect
 	github.com/nutsdb/nutsdb v0.14.2 // indirect
-	github.com/onsi/gomega v1.24.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/pquerna/cachecontrol v0.2.0 // indirect
@@ -62,7 +61,7 @@ require (
 	github.com/prometheus/client_model v0.4.0 // indirect
 	github.com/prometheus/common v0.44.0 // indirect
 	github.com/prometheus/procfs v0.11.1 // indirect
-	github.com/redis/go-redis/v9 v9.1.0 // indirect
+	github.com/redis/rueidis v1.0.26 // indirect
 	github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529 // indirect
 	github.com/stretchr/testify v1.8.4 // indirect
 	github.com/tidwall/btree v1.6.0 // indirect
@@ -94,4 +93,4 @@ require (
 	gorm.io/gorm v1.25.3 // indirect
 )
 
-replace github.com/darkweak/souin v1.6.44 => ../..
+replace github.com/darkweak/souin v1.6.45 => ../..

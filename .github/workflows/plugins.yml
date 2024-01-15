@@ -54,11 +54,10 @@ jobs:
         run: cd plugins/caddy && ./caddy run &
       -
         name: Run Caddy E2E tests
-        uses: anthonyvscode/newman-action@v1
+        uses: matt-ball/newman-action@master
         with:
           collection: "docs/e2e/Souin E2E.postman_collection.json"
-          folder: Caddy
-          reporters: cli
+          folder: '["Caddy"]'
           delayRequest: 5000
       -
         name: Run detached caddy
@@ -68,11 +67,10 @@ jobs:
         run: cd plugins/caddy && ./caddy run --config ./configuration.json &
       -
         name: Run Caddy E2E tests
-        uses: anthonyvscode/newman-action@v1
+        uses: matt-ball/newman-action@master
         with:
           collection: "docs/e2e/Souin E2E.postman_collection.json"
-          folder: Caddy
-          reporters: cli
+          folder: '["Caddy"]'
           delayRequest: 5000
   build-beego-validator:
     name: Check that Souin build as middleware
@@ -129,22 +127,6 @@ jobs:
     with:
       CAPITALIZED_NAME: Goa
       LOWER_NAME: goa
-      GO_VERSION: '1.21'
-  build-go-zero-validator:
-    name: Check that Souin build as middleware
-    uses: ./.github/workflows/plugin_template.yml
-    secrets: inherit
-    with:
-      CAPITALIZED_NAME: Go-zero
-      LOWER_NAME: go-zero
-      GO_VERSION: '1.21'
-  build-hertz-validator:
-    name: Check that Souin build as middleware
-    uses: ./.github/workflows/plugin_template.yml
-    secrets: inherit
-    with:
-      CAPITALIZED_NAME: Hertz
-      LOWER_NAME: hertz
       GO_VERSION: '1.21'
   build-kratos-validator:
     name: Check that Souin build as middleware

@@ -1052,21 +1052,11 @@
                                                             },
                                                             "redis": {
                                                                 "configuration": {
-                                                                    "Addr": "127.0.0.1:6379",
-                                                                    "ConnMaxIdleTime": 5000000000,
-                                                                    "ConnMaxLifetime": 5000000000,
-                                                                    "DB": 0,
-                                                                    "DialTimeout": 5000000000,
-                                                                    "MaxIdleConns": 100,
-                                                                    "MaxRetries": 1,
-                                                                    "MaxRetryBackoff": 5000000000,
-                                                                    "MinIdleConns": 100,
-                                                                    "MinRetryBackoff": 5000000000,
-                                                                    "PoolFIFO": true,
-                                                                    "PoolSize": 99999,
-                                                                    "PoolTimeout": 10000000000,
-                                                                    "ReadTimeout": 5000000000,
-                                                                    "WriteTimeout": 5000000000
+                                                                    "ClientName": "souin-redis",
+                                                                    "InitAddress": [
+                                                                        "127.0.0.1:6379"
+                                                                    ],
+                                                                    "SelectDB": 0
                                                                 },
                                                                 "path": "",
                                                                 "url": ""
@@ -4049,24 +4039,11 @@
                                                             },
                                                             "redis": {
                                                                 "configuration": {
-                                                                    "Addr": "127.0.0.1:6379",
-                                                                    "ConnMaxIdleTime": 5000000000,
-                                                                    "ConnMaxLifetime": 5000000000,
-                                                                    "DB": 1,
-                                                                    "DialTimeout": 5000000000,
-                                                                    "MaxIdleConns": 100,
-                                                                    "MaxRetries": 1,
-                                                                    "MaxRetryBackoff": 5000000000,
-                                                                    "MinIdleConns": 100,
-                                                                    "MinRetryBackoff": 5000000000,
-                                                                    "Network": "my-network",
-                                                                    "Password": "password",
-                                                                    "PoolFIFO": true,
-                                                                    "PoolSize": 99999,
-                                                                    "PoolTimeout": 10000000000,
-                                                                    "ReadTimeout": 5000000000,
-                                                                    "Username": "user",
-                                                                    "WriteTimeout": 5000000000
+                                                                    "ClientName": "souin-redis",
+                                                                    "InitAddress": [
+                                                                        "127.0.0.1:6379"
+                                                                    ],
+                                                                    "SelectDB": 0
                                                                 },
                                                                 "path": "",
                                                                 "url": ""
