@@ -14,34 +14,37 @@ The redis client instance must connect to an external service (redis service) th
 Redis is often referred to as a data structures server. What this means is that Redis provides access to mutable data structures via a set of commands, which are sent using a server-client model with TCP sockets and a simple protocol. So different processes can query and modify the same data structures in a shared way.
 
 ## Github repository
-[https://github.com/redis/go-redis](https://github.com/redis-io/redis)
+[https://github.com/redis/rueidis](https://github.com/redis/rueidis)
 
 ## Configuration
-You can find the configuration for Redis [here](https://github.com/redis/go-redis/blob/master/options.go#L31) or check the values table below.
+You can find the configuration for Redis [here](https://github.com/redis/rueidis/blob/master/options.go#L31) or check the values table below.
 
 ### Values
 {{< table "table-hover" >}}
 | Key name              | type          | required |
 |-----------------------|---------------|----------|
-| Network               | string        | ✅       |
-| Addr                  | string        | ✅       |
-| ClientName            | string        | ❌       |
-| Protocol              | int           | ❌       |
+| InitAddress           | []string      | ✅       |
 | Username              | string        | ❌       |
 | Password              | string        | ❌       |
-| DB                    | int           | ❌       |
-| MaxRetries            | int           | ❌       |
-| MinRetryBackoff       | Duration      | ❌       |
-| MaxRetryBackoff       | Duration      | ❌       |
-| DialTimeout           | Duration      | ❌       |
-| ReadTimeout           | Duration      | ❌       |
-| WriteTimeout          | Duration      | ❌       |
-| ContextTimeoutEnabled | bool          | ❌       |
-| PoolFIFO              | bool          | ❌       |
-| PoolSize              | int           | ❌       |
-| PoolTimeout           | Duration      | ❌       |
-| MinIdleConns          | int           | ❌       |
-| MaxIdleConns          | int           | ❌       |
-| ConnMaxIdleTime       | Duration      | ❌       |
-| ConnMaxLifetime       | Duration      | ❌       |
+| ClientName            | string        | ❌       |
+| ClientSetInfo         | []string      | ❌       |
+| ClientTrackingOptions | []string      | ❌       |
+| SelectDB              | int           | ❌       |
+| CacheSizeEachConn     | int           | ❌       |
+| RingScaleEachConn     | int           | ❌       |
+| ReadBufferEachConn    | int           | ❌       |
+| WriteBufferEachConn   | int           | ❌       |
+| BlockingPoolSize      | int           | ❌       |
+| PipelineMultiplex     | int           | ❌       |
+| ConnWriteTimeout      | time.Duration | ❌       |
+| MaxFlushDelay         | time.Duration | ❌       |
+| ShuffleInit           | bool          | ❌       |
+| ClientNoTouch         | bool          | ❌       |
+| DisableRetry          | bool          | ❌       |
+| DisableCache          | bool          | ❌       |
+| AlwaysPipelining      | bool          | ❌       |
+| AlwaysRESP2           | bool          | ❌       |
+| ForceSingleClient     | bool          | ❌       |
+| ReplicaOnly           | bool          | ❌       |
+| ClientNoEvict         | bool          | ❌       |
 {{< /table >}}
