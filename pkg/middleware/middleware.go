@@ -231,6 +231,12 @@ func (s *SouinBaseHandler) Store(
 		bLen := customWriter.Buf.Len()
 		customWriter.mutex.Unlock()
 
+		respBodyMaxSize := s.Configuration.GetDefaultCache().GetMaxBodyBytes()
+		bodyTooLarge := false
+		if (respBodyMaxSize > 0) && (bLen > int(respBodyMaxSize)) {
+			bodyTooLarge = true
+		}
+
 		res := http.Response{
 			StatusCode: statusCode,
 			Body:       io.NopCloser(bytes.NewBuffer(b)),
@@ -245,7 +251,7 @@ func (s *SouinBaseHandler) Store(
 		}
 		res.Header.Set(rfc.StoredLengthHeader, res.Header.Get("Content-Length"))
 		response, err := httputil.DumpResponse(&res, true)
-		if err == nil && bLen > 0 {
+		if err == nil && bLen > 0 && !bodyTooLarge {
 			variedHeaders, isVaryStar := rfc.VariedHeaderAllCommaSepValues(res.Header)
 			if isVaryStar {
 				// "Implies that the response is uncacheable"
@@ -289,6 +295,8 @@ func (s *SouinBaseHandler) Store(
 				}
 			}
 
+		} else if err == nil && bodyTooLarge {
+			status += "; detail=UPSTREAM-RESPONSE-TOO-LARGE"
 		} else {
 			status += "; detail=UPSTREAM-ERROR-OR-EMPTY-RESPONSE"
 		}
