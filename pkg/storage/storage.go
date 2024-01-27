@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"time"
 
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/rfc"
+	"github.com/darkweak/souin/pkg/storage/types"
 )
 
 const (
@@ -17,19 +17,7 @@ const (
 	StalePrefix                     = "STALE_"
 )
 
-type Storer interface {
-	ListKeys() []string
-	Prefix(key string, req *http.Request, validator *rfc.Revalidator) *http.Response
-	Get(key string) []byte
-	Set(key string, value []byte, url configurationtypes.URL, duration time.Duration) error
-	Delete(key string)
-	DeleteMany(key string)
-	Init() error
-	Name() string
-	Reset() error
-}
-
-type StorerInstanciator func(configurationtypes.AbstractConfigurationInterface) (Storer, error)
+type StorerInstanciator func(configurationtypes.AbstractConfigurationInterface) (types.Storer, error)
 
 var storageMap = map[string]StorerInstanciator{
 	"etcd":           EtcdConnectionFactory,
@@ -60,7 +48,7 @@ func getStorageNameFromConfiguration(configuration configurationtypes.AbstractCo
 	return "badger"
 }
 
-func NewStorage(configuration configurationtypes.AbstractConfigurationInterface) (Storer, error) {
+func NewStorage(configuration configurationtypes.AbstractConfigurationInterface) (types.Storer, error) {
 	storerName := getStorageNameFromConfiguration(configuration)
 	if newStorage, found := storageMap[storerName]; found {
 		return newStorage(configuration)
@@ -82,8 +70,8 @@ func uniqueStorers(storers []string) []string {
 	return s
 }
 
-func NewStorages(configuration configurationtypes.AbstractConfigurationInterface) ([]Storer, error) {
-	storers := []Storer{}
+func NewStorages(configuration configurationtypes.AbstractConfigurationInterface) ([]types.Storer, error) {
+	storers := []types.Storer{}
 	for _, storerName := range uniqueStorers(configuration.GetDefaultCache().GetStorers()) {
 		if newStorage, found := storageMap[storerName]; found {
 			instance, err := newStorage(configuration)

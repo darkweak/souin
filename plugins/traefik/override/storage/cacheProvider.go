@@ -11,6 +11,7 @@ import (
 	"github.com/akyoto/cache"
 	t "github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/rfc"
+	"github.com/darkweak/souin/pkg/storage/types"
 )
 
 // Cache provider type
@@ -20,7 +21,7 @@ type Cache struct {
 }
 
 // CacheConnectionFactory function create new Cache instance
-func CacheConnectionFactory(c t.AbstractConfigurationInterface) (Storer, error) {
+func CacheConnectionFactory(c t.AbstractConfigurationInterface) (types.Storer, error) {
 	provider := cache.New(1 * time.Second)
 	return &Cache{Cache: provider, stale: c.GetDefaultCache().GetStale()}, nil
 }

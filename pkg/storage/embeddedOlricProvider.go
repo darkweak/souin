@@ -12,6 +12,7 @@ import (
 	"github.com/buraksezer/olric/config"
 	t "github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/rfc"
+	"github.com/darkweak/souin/pkg/storage/types"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 	yaml "gopkg.in/yaml.v3"
@@ -60,7 +61,7 @@ func tryToLoadConfiguration(olricInstance *config.Config, olricConfiguration t.C
 }
 
 // EmbeddedOlricConnectionFactory function create new EmbeddedOlric instance
-func EmbeddedOlricConnectionFactory(configuration t.AbstractConfigurationInterface) (Storer, error) {
+func EmbeddedOlricConnectionFactory(configuration t.AbstractConfigurationInterface) (types.Storer, error) {
 	var olricInstance *config.Config
 	loaded := false
 

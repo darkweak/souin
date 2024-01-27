@@ -8,6 +8,7 @@ import (
 
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/rfc"
+	"github.com/darkweak/souin/pkg/storage/types"
 )
 
 const (
@@ -28,7 +29,7 @@ type Storer interface {
 	Reset() error
 }
 
-type StorerInstanciator func(configurationtypes.AbstractConfigurationInterface) (Storer, error)
+type StorerInstanciator func(configurationtypes.AbstractConfigurationInterface) (types.Storer, error)
 
 func NewStorages(configuration configurationtypes.AbstractConfigurationInterface) ([]Storer, error) {
 	s, err := CacheConnectionFactory(configuration)

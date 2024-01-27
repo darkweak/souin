@@ -15,6 +15,7 @@ import (
 	"github.com/darkweak/souin/pkg/middleware"
 	"github.com/darkweak/souin/pkg/rfc"
 	"github.com/darkweak/souin/pkg/storage"
+	"github.com/darkweak/souin/pkg/storage/types"
 	"github.com/pquerna/cachecontrol/cacheobject"
 )
 
@@ -120,7 +121,7 @@ func SouinResponseHandler(rw http.ResponseWriter, rs *http.Response, baseRq *htt
 				default:
 					for _, storer := range s.SouinBaseHandler.Storers {
 						wg.Add(1)
-						go func(currentStorer storage.Storer) {
+						go func(currentStorer types.Storer) {
 							defer wg.Done()
 							if currentStorer.Set(cachedKey, response, currentMatchedURL, ma) != nil {
 								mu.Lock()

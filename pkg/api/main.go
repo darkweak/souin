@@ -6,7 +6,7 @@ import (
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/api/debug"
 	"github.com/darkweak/souin/pkg/api/prometheus"
-	"github.com/darkweak/souin/pkg/storage"
+	"github.com/darkweak/souin/pkg/storage/types"
 	"github.com/darkweak/souin/pkg/surrogate/providers"
 )
 
@@ -18,7 +18,7 @@ type MapHandler struct {
 // GenerateHandlerMap generate the MapHandler
 func GenerateHandlerMap(
 	configuration configurationtypes.AbstractConfigurationInterface,
-	storers []storage.Storer,
+	storers []types.Storer,
 	surrogateStorage providers.SurrogateInterface,
 ) *MapHandler {
 	hm := make(map[string]http.HandlerFunc)
@@ -45,7 +45,7 @@ func GenerateHandlerMap(
 }
 
 // Initialize contains all apis that should be enabled
-func Initialize(c configurationtypes.AbstractConfigurationInterface, storers []storage.Storer, surrogateStorage providers.SurrogateInterface) []EndpointInterface {
+func Initialize(c configurationtypes.AbstractConfigurationInterface, storers []types.Storer, surrogateStorage providers.SurrogateInterface) []EndpointInterface {
 	return []EndpointInterface{initializeSouin(c, storers,
 		surrogateStorage), debug.InitializeDebug(c), prometheus.InitializePrometheus(c)}
 }

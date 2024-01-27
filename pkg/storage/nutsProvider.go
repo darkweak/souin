@@ -10,6 +10,7 @@ import (
 
 	t "github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/rfc"
+	"github.com/darkweak/souin/pkg/storage/types"
 	"github.com/imdario/mergo"
 	"github.com/nutsdb/nutsdb"
 	"go.uber.org/zap"
@@ -67,7 +68,7 @@ func sanitizeProperties(m map[string]interface{}) map[string]interface{} {
 }
 
 // NutsConnectionFactory function create new Nuts instance
-func NutsConnectionFactory(c t.AbstractConfigurationInterface) (Storer, error) {
+func NutsConnectionFactory(c t.AbstractConfigurationInterface) (types.Storer, error) {
 	dc := c.GetDefaultCache()
 	nutsConfiguration := dc.GetNuts()
 	nutsOptions := nutsdb.DefaultOptions

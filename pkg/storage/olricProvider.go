@@ -14,6 +14,7 @@ import (
 	"github.com/buraksezer/olric/config"
 	t "github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/rfc"
+	"github.com/darkweak/souin/pkg/storage/types"
 	"go.uber.org/zap"
 )
 
@@ -29,7 +30,7 @@ type Olric struct {
 }
 
 // OlricConnectionFactory function create new Olric instance
-func OlricConnectionFactory(configuration t.AbstractConfigurationInterface) (Storer, error) {
+func OlricConnectionFactory(configuration t.AbstractConfigurationInterface) (types.Storer, error) {
 	c, err := olric.NewClusterClient([]string{configuration.GetDefaultCache().GetOlric().URL})
 	if err != nil {
 		configuration.GetLogger().Sugar().Errorf("Impossible to connect to Olric, %v", err)

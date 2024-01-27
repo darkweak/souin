@@ -10,6 +10,7 @@ import (
 
 	t "github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/rfc"
+	"github.com/darkweak/souin/pkg/storage/types"
 	badger "github.com/dgraph-io/badger/v3"
 	"github.com/imdario/mergo"
 	"go.uber.org/zap"
@@ -36,7 +37,7 @@ func (b *badgerLogger) Warningf(msg string, params ...interface{}) {
 }
 
 // BadgerConnectionFactory function create new Badger instance
-func BadgerConnectionFactory(c t.AbstractConfigurationInterface) (Storer, error) {
+func BadgerConnectionFactory(c t.AbstractConfigurationInterface) (types.Storer, error) {
 	dc := c.GetDefaultCache()
 	badgerConfiguration := dc.GetBadger()
 	badgerOptions := badger.DefaultOptions(badgerConfiguration.Path)

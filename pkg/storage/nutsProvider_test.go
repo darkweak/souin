@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/darkweak/souin/pkg/storage/types"
 	"github.com/darkweak/souin/tests"
 
 	"time"
@@ -12,13 +13,13 @@ import (
 	"github.com/darkweak/souin/errors"
 )
 
-func getNutsClientAndMatchedURL(key string) (Storer, configurationtypes.URL) {
+func getNutsClientAndMatchedURL(key string) (types.Storer, configurationtypes.URL) {
 	return GetCacheProviderClientAndMatchedURL(
 		key,
 		func() configurationtypes.AbstractConfigurationInterface {
 			return tests.MockConfiguration(tests.BaseConfiguration)
 		},
-		func(config configurationtypes.AbstractConfigurationInterface) (Storer, error) {
+		func(config configurationtypes.AbstractConfigurationInterface) (types.Storer, error) {
 			provider, _ := NutsConnectionFactory(config)
 			_ = provider.Init()
 

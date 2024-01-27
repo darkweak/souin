@@ -14,6 +14,7 @@ import (
 
 	t "github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/rfc"
+	"github.com/darkweak/souin/pkg/storage/types"
 	redis "github.com/redis/rueidis"
 	"github.com/redis/rueidis/rueidiscompat"
 	"go.uber.org/zap"
@@ -31,7 +32,7 @@ type Redis struct {
 }
 
 // RedisConnectionFactory function create new Nuts instance
-func RedisConnectionFactory(c t.AbstractConfigurationInterface) (Storer, error) {
+func RedisConnectionFactory(c t.AbstractConfigurationInterface) (types.Storer, error) {
 	dc := c.GetDefaultCache()
 	bc, _ := json.Marshal(dc.GetRedis().Configuration)
 
