@@ -3,7 +3,6 @@ package middleware
 import (
 	"bytes"
 	"net/http"
-	"strings"
 	"sync"
 
 	"github.com/darkweak/go-esi/esi"
@@ -50,6 +49,14 @@ func (r *CustomWriter) Header() http.Header {
 	return r.Rw.Header()
 }
 
+// GetStatusCode returns the response status code
+func (r *CustomWriter) GetStatusCode() int {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	return r.statusCode
+}
+
 // WriteHeader will write the response headers
 func (r *CustomWriter) WriteHeader(code int) {
 	r.mutex.Lock()
@@ -57,14 +64,13 @@ func (r *CustomWriter) WriteHeader(code int) {
 	if r.headersSent {
 		return
 	}
-	r.Headers = r.Rw.Header()
 	r.statusCode = code
-	// r.headersSent = true
-	// r.Rw.WriteHeader(code)
 }
 
 // Write will write the response body
 func (r *CustomWriter) Write(b []byte) (int, error) {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
 	r.Buf.Grow(len(b))
 	_, _ = r.Buf.Write(b)
 
@@ -73,24 +79,18 @@ func (r *CustomWriter) Write(b []byte) (int, error) {
 
 // Send delays the response to handle Cache-Status
 func (r *CustomWriter) Send() (int, error) {
-	contentLength := r.Headers.Get(rfc.StoredLengthHeader)
+	contentLength := r.Header().Get(rfc.StoredLengthHeader)
 	if contentLength != "" {
 		r.Header().Set("Content-Length", contentLength)
 	}
+
 	defer r.Buf.Reset()
 	b := esi.Parse(r.Buf.Bytes(), r.Req)
-	for h, v := range r.Headers {
-		if len(v) > 0 {
-			r.Rw.Header().Set(h, strings.Join(v, ", "))
-		}
-	}
 	r.Header().Del(rfc.StoredLengthHeader)
 	r.Header().Del(rfc.StoredTTLHeader)
 
 	if !r.headersSent {
-		
-		// r.Rw.Header().Set("Content-Length", fmt.Sprintf("%d", len(b)))
-		r.Rw.WriteHeader(r.statusCode)
+		r.Rw.WriteHeader(r.GetStatusCode())
 		r.headersSent = true
 	}
 

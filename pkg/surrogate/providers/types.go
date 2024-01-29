@@ -10,7 +10,8 @@ type SurrogateInterface interface {
 	getHeaderSeparator() string
 	getOrderedSurrogateKeyHeadersCandidate() []string
 	getOrderedSurrogateControlHeadersCandidate() []string
-	getSurrogateControl(http.Header) string
+	GetSurrogateControl(http.Header) (string, string)
+	GetSurrogateControlName() string
 	getSurrogateKey(http.Header) string
 	Purge(http.Header) (cacheKeys []string, surrogateKeys []string)
 	Invalidate(method string, h http.Header)

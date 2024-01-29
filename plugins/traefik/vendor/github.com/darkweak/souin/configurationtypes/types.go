@@ -377,8 +377,13 @@ type API struct {
 	Security   SecurityAPI `json:"security" yaml:"security"`
 }
 
+type SurrogateConfiguration struct {
+	Storer string `json:"storer", yaml:"storer"`
+}
+
 // SurrogateKeys structure define the way surrogate keys are stored
 type SurrogateKeys struct {
+	SurrogateConfiguration
 	URL     string            `json:"url" yaml:"url"`
 	Headers map[string]string `json:"headers" yaml:"headers"`
 }

@@ -136,7 +136,7 @@ func (*baseStorage) getOrderedSurrogateControlHeadersCandidate() []string {
 	}
 }
 
-func (s *baseStorage) getSurrogateControl(header http.Header) string {
+func (s *baseStorage) GetSurrogateControl(header http.Header) string {
 	for _, candidate := range s.parent.getOrderedSurrogateControlHeadersCandidate() {
 		if h := header.Get(candidate); h != "" {
 			return h
@@ -185,7 +185,7 @@ func (s *baseStorage) Store(response *http.Response, cacheKey string) error {
 	keys := s.ParseHeaders(s.parent.getSurrogateKey(h))
 
 	for _, key := range keys {
-		if controls := s.ParseHeaders(s.parent.getSurrogateControl(h)); len(controls) != 0 {
+		if controls := s.ParseHeaders(s.parent.GetSurrogateControl(h)); len(controls) != 0 {
 			for _, control := range controls {
 				if s.parent.candidateStore(control) {
 					s.storeTag(key, cacheKey, urlRegexp)

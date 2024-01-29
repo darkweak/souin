@@ -9,6 +9,7 @@ import (
 )
 
 type Storer interface {
+	MapKeys(prefix string) map[string]string
 	ListKeys() []string
 	Prefix(key string, req *http.Request, validator *rfc.Revalidator) *http.Response
 	Get(key string) []byte

@@ -9,13 +9,17 @@ import (
 
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/errors"
+	"github.com/darkweak/souin/pkg/storage"
+	"github.com/darkweak/souin/tests"
 	"go.uber.org/zap"
 )
 
 func mockCloudflareProvider() *CloudflareSurrogateStorage {
+	instanciator, _ := storage.NewStorageFromName("badger")
+	storer, _ := instanciator(tests.MockConfiguration(tests.BadgerConfiguration))
 	ass := &CloudflareSurrogateStorage{
 		baseStorage: &baseStorage{
-			Storage:    &sync.Map{},
+			Storage:    storer,
 			Keys:       make(map[string]configurationtypes.SurrogateKeys),
 			keysRegexp: make(map[string]keysRegexpInner),
 			dynamic:    true,

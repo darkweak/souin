@@ -153,12 +153,10 @@ func (provider *Badger) Get(key string) []byte {
 		return result
 	}
 
-	if item != nil {
-		_ = item.Value(func(val []byte) error {
-			result = val
-			return nil
-		})
-	}
+	_ = item.Value(func(val []byte) error {
+		result = val
+		return nil
+	})
 
 	return result
 }

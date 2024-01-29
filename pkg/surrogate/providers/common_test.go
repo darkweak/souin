@@ -9,6 +9,8 @@ import (
 
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/errors"
+	"github.com/darkweak/souin/pkg/storage"
+	"github.com/darkweak/souin/tests"
 	"go.uber.org/zap"
 )
 
@@ -18,9 +20,11 @@ const (
 )
 
 func mockCommonProvider() *baseStorage {
+	instanciator, _ := storage.NewStorageFromName("badger")
+	storer, _ := instanciator(tests.MockConfiguration(tests.BadgerConfiguration))
 	sss := &SouinSurrogateStorage{
 		baseStorage: &baseStorage{
-			Storage:    &sync.Map{},
+			Storage:    storer,
 			Keys:       make(map[string]configurationtypes.SurrogateKeys),
 			keysRegexp: make(map[string]keysRegexpInner),
 			dynamic:    true,
@@ -74,11 +78,11 @@ func TestBaseStorage_Purge(t *testing.T) {
 		errors.GenerateError(t, "The surrogates length should be equal to 0.")
 	}
 
-	bs.Storage.Store("test0", "first,second")
-	bs.Storage.Store("STALE_test0", "STALTE_first,STALE_second")
-	bs.Storage.Store("test2", "third,fourth")
-	bs.Storage.Store("test5", "first,second,fifth")
-	bs.Storage.Store("testInvalid", "invalid")
+	bs.Storage.Set("test0", []byte("first,second"), configurationtypes.URL{}, -1)
+	bs.Storage.Set("STALE_test0", []byte("STALTE_first,STALE_second"), configurationtypes.URL{}, -1)
+	bs.Storage.Set("test2", []byte("third,fourth"), configurationtypes.URL{}, -1)
+	bs.Storage.Set("test5", []byte("first,second,fifth"), configurationtypes.URL{}, -1)
+	bs.Storage.Set("testInvalid", []byte("invalid"), configurationtypes.URL{}, -1)
 	headerMock.Set(surrogateKey, baseHeaderValue)
 	tags, surrogates = bs.Purge(headerMock)
 
@@ -105,24 +109,24 @@ func TestBaseStorage_Store(t *testing.T) {
 	}
 
 	bs = mockCommonProvider()
-	bs.Storage.Store("test0", "first,second")
-	bs.Storage.Store("test2", "third,fourth")
-	bs.Storage.Store("test5", "first,second,fifth")
-	bs.Storage.Store("testInvalid", "invalid")
+	bs.Storage.Set("test0", []byte("first,second"), configurationtypes.URL{}, -1)
+	bs.Storage.Set("test2", []byte("third,fourth"), configurationtypes.URL{}, -1)
+	bs.Storage.Set("test5", []byte("first,second,fifth"), configurationtypes.URL{}, -1)
+	bs.Storage.Set("testInvalid", []byte("invalid"), configurationtypes.URL{}, -1)
 
 	if e = bs.Store(&res, "stored"); e != nil {
 		errors.GenerateError(t, "It shouldn't throw an error with a valid key.")
 	}
 
 	for i := 0; i < 5; i++ {
-		value, _ := bs.Storage.Load(fmt.Sprintf("test%d", i))
-		if !strings.Contains(value.(string), "stored") {
-			errors.GenerateError(t, fmt.Sprintf("The key test%d must include stored, %s given.", i, value.(string)))
+		value := bs.Storage.Get(fmt.Sprintf("test%d", i))
+		if !strings.Contains(string(value), "stored") {
+			errors.GenerateError(t, fmt.Sprintf("The key test%d must include stored, %s given.", i, string(value)))
 		}
 	}
 
-	value, _ := bs.Storage.Load("testInvalid")
-	if strings.Contains(value.(string), "stored") {
+	value := bs.Storage.Get("testInvalid")
+	if strings.Contains(string(value), "stored") {
 		errors.GenerateError(t, "The surrogate storage should not contain stored.")
 	}
 
@@ -133,22 +137,18 @@ func TestBaseStorage_Store(t *testing.T) {
 	res.Header.Set(surrogateKey, "something")
 	_ = bs.Store(&res, "/some")
 
-	storageSize := 0
-	bs.Storage.Range(func(_, _ interface{}) bool {
-		storageSize++
-		return true
-	})
+	storageSize := len(bs.Storage.ListKeys())
 
 	if storageSize != 2 {
 		errors.GenerateError(t, "The surrogate storage should contain 2 stored elements.")
 	}
 
-	value, _ = bs.Storage.Load("STALE_something")
-	if value.(string) != ",STALE_%2Fsomething,STALE_%2Fsome" {
+	value = bs.Storage.Get("STALE_something")
+	if string(value) != ",STALE_%2Fsomething,STALE_%2Fsome" {
 		errors.GenerateError(t, "The STALE_something surrogate storage entry must contain 2 elements ,STALE_%2Fsomething,STALE_%2Fsome.")
 	}
-	value, _ = bs.Storage.Load("something")
-	if value.(string) != ",%2Fsomething,%2Fsome" {
+	value = bs.Storage.Get("something")
+	if string(value) != ",%2Fsomething,%2Fsome" {
 		errors.GenerateError(t, "The something surrogate storage entry must contain 2 elements ,%2Fsomething,%2Fsome.")
 	}
 }
@@ -170,9 +170,9 @@ func TestBaseStorage_Store_Load(t *testing.T) {
 	}
 
 	wg.Wait()
-	v, _ := bs.Storage.Load("")
+	v := bs.Storage.Get("")
 
-	if len(strings.Split(v.(string), ",")) != length+1 {
-		errors.GenerateError(t, fmt.Sprintf("The surrogate storage should contain %d stored elements, %d given.", length+1, len(strings.Split(v.(string), ","))))
+	if len(strings.Split(string(v), ",")) != length+1 {
+		errors.GenerateError(t, fmt.Sprintf("The surrogate storage should contain %d stored elements, %d given.", length+1, len(strings.Split(string(v), ","))))
 	}
 }

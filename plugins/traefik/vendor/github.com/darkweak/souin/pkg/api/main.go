@@ -4,7 +4,9 @@ import (
 	"net/http"
 
 	"github.com/darkweak/souin/configurationtypes"
-	"github.com/darkweak/souin/pkg/storage"
+	"github.com/darkweak/souin/pkg/api/debug"
+	"github.com/darkweak/souin/pkg/api/prometheus"
+	"github.com/darkweak/souin/pkg/storage/types"
 	"github.com/darkweak/souin/pkg/surrogate/providers"
 )
 
@@ -16,7 +18,7 @@ type MapHandler struct {
 // GenerateHandlerMap generate the MapHandler
 func GenerateHandlerMap(
 	configuration configurationtypes.AbstractConfigurationInterface,
-	storers []storage.Storer,
+	storers []types.Storer,
 	surrogateStorage providers.SurrogateInterface,
 ) *MapHandler {
 	hm := make(map[string]http.HandlerFunc)
@@ -31,9 +33,7 @@ func GenerateHandlerMap(
 	for _, endpoint := range Initialize(configuration, storers, surrogateStorage) {
 		if endpoint.IsEnabled() {
 			shouldEnable = true
-			if e, ok := endpoint.(*SouinAPI); ok {
-				hm[basePathAPIS+endpoint.GetBasePath()] = e.HandleRequest
-			}
+			hm[basePathAPIS+endpoint.GetBasePath()] = endpoint.HandleRequest
 		}
 	}
 
@@ -45,6 +45,7 @@ func GenerateHandlerMap(
 }
 
 // Initialize contains all apis that should be enabled
-func Initialize(c configurationtypes.AbstractConfigurationInterface, storers []storage.Storer, surrogateStorage providers.SurrogateInterface) []EndpointInterface {
-	return []EndpointInterface{initializeSouin(c, storers, surrogateStorage)}
+func Initialize(c configurationtypes.AbstractConfigurationInterface, storers []types.Storer, surrogateStorage providers.SurrogateInterface) []EndpointInterface {
+	return []EndpointInterface{initializeSouin(c, storers,
+		surrogateStorage), debug.InitializeDebug(c), prometheus.InitializePrometheus(c)}
 }
