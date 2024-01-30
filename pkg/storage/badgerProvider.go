@@ -102,7 +102,8 @@ func (provider *Badger) MapKeys(prefix string) map[string]string {
 		opts.PrefetchValues = false
 		it := txn.NewIterator(opts)
 		defer it.Close()
-		for it.Rewind(); it.ValidForPrefix([]byte(prefix)); it.Next() {
+		p := []byte(prefix)
+		for it.Seek(p); it.ValidForPrefix(p); it.Next() {
 			_ = it.Item().Value(func(val []byte) error {
 				k, _ := strings.CutPrefix(string(it.Item().Key()), prefix)
 				keys[k] = string(val)

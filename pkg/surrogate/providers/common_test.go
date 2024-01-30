@@ -6,6 +6,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/errors"
@@ -19,9 +20,11 @@ const (
 	emptyHeaderValue = ""
 )
 
-func mockCommonProvider() *baseStorage {
+func mockCommonProvider() (*baseStorage, func() error) {
 	instanciator, _ := storage.NewStorageFromName("badger")
-	storer, _ := instanciator(tests.MockConfiguration(tests.BadgerConfiguration))
+	config := tests.MockConfiguration(tests.NutsConfiguration)
+	config.DefaultCache.Badger.Configuration = nil
+	storer, _ := instanciator(config)
 	sss := &SouinSurrogateStorage{
 		baseStorage: &baseStorage{
 			Storage:    storer,
@@ -35,11 +38,11 @@ func mockCommonProvider() *baseStorage {
 
 	sss.baseStorage.parent = sss
 
-	return sss.baseStorage
+	return sss.baseStorage, storer.(*storage.Badger).Close
 }
 
 func TestBaseStorage_ParseHeaders(t *testing.T) {
-	bs := mockCommonProvider()
+	bs, _ := mockCommonProvider()
 
 	fields := bs.ParseHeaders(baseHeaderValue)
 
@@ -56,7 +59,7 @@ func TestBaseStorage_ParseHeaders(t *testing.T) {
 }
 
 func TestBaseStorage_Purge(t *testing.T) {
-	bs := mockCommonProvider()
+	bs, _ := mockCommonProvider()
 	headerMock := http.Header{}
 	headerMock.Set(surrogateKey, baseHeaderValue)
 
@@ -78,11 +81,11 @@ func TestBaseStorage_Purge(t *testing.T) {
 		errors.GenerateError(t, "The surrogates length should be equal to 0.")
 	}
 
-	_ = bs.Storage.Set("test0", []byte("first,second"), configurationtypes.URL{}, -1)
-	_ = bs.Storage.Set("STALE_test0", []byte("STALTE_first,STALE_second"), configurationtypes.URL{}, -1)
-	_ = bs.Storage.Set("test2", []byte("third,fourth"), configurationtypes.URL{}, -1)
-	_ = bs.Storage.Set("test5", []byte("first,second,fifth"), configurationtypes.URL{}, -1)
-	_ = bs.Storage.Set("testInvalid", []byte("invalid"), configurationtypes.URL{}, -1)
+	_ = bs.Storage.Set("test0", []byte("first,second"), configurationtypes.URL{}, time.Hour)
+	_ = bs.Storage.Set("STALE_test0", []byte("STALE_first,STALE_second"), configurationtypes.URL{}, time.Hour)
+	_ = bs.Storage.Set("test2", []byte("third,fourth"), configurationtypes.URL{}, time.Hour)
+	_ = bs.Storage.Set("test5", []byte("first,second,fifth"), configurationtypes.URL{}, time.Hour)
+	_ = bs.Storage.Set("testInvalid", []byte("invalid"), configurationtypes.URL{}, time.Hour)
 	headerMock.Set(surrogateKey, baseHeaderValue)
 	tags, surrogates = bs.Purge(headerMock)
 
@@ -101,14 +104,14 @@ func TestBaseStorage_Store(t *testing.T) {
 
 	res.Header.Set(surrogateKey, baseHeaderValue)
 
-	bs := mockCommonProvider()
+	bs, _ := mockCommonProvider()
 
 	e := bs.Store(&res, "((((invalid_key_but_escaped")
 	if e != nil {
 		errors.GenerateError(t, "It shouldn't throw an error with a valid key.")
 	}
 
-	bs = mockCommonProvider()
+	bs.Storage.DeleteMany("")
 	_ = bs.Storage.Set("test0", []byte("first,second"), configurationtypes.URL{}, -1)
 	_ = bs.Storage.Set("test2", []byte("third,fourth"), configurationtypes.URL{}, -1)
 	_ = bs.Storage.Set("test5", []byte("first,second,fifth"), configurationtypes.URL{}, -1)
@@ -119,7 +122,7 @@ func TestBaseStorage_Store(t *testing.T) {
 	}
 
 	for i := 0; i < 5; i++ {
-		value := bs.Storage.Get(fmt.Sprintf("test%d", i))
+		value := bs.Storage.Get(fmt.Sprintf(surrogatePrefix+"test%d", i))
 		if !strings.Contains(string(value), "stored") {
 			errors.GenerateError(t, fmt.Sprintf("The key test%d must include stored, %s given.", i, string(value)))
 		}
@@ -130,7 +133,7 @@ func TestBaseStorage_Store(t *testing.T) {
 		errors.GenerateError(t, "The surrogate storage should not contain stored.")
 	}
 
-	bs = mockCommonProvider()
+	bs.Storage.DeleteMany("")
 	res.Header.Set(surrogateKey, "something")
 	_ = bs.Store(&res, "/something")
 	_ = bs.Store(&res, "/something")
@@ -139,15 +142,15 @@ func TestBaseStorage_Store(t *testing.T) {
 
 	storageSize := len(bs.Storage.ListKeys())
 
-	if storageSize != 2 {
-		errors.GenerateError(t, "The surrogate storage should contain 2 stored elements.")
+	if storageSize != 4 {
+		errors.GenerateError(t, "The surrogate storage should contain 4 stored elements.")
 	}
 
-	value = bs.Storage.Get("STALE_something")
+	value = bs.Storage.Get("SURROGATE_STALE_something")
 	if string(value) != ",STALE_%2Fsomething,STALE_%2Fsome" {
 		errors.GenerateError(t, "The STALE_something surrogate storage entry must contain 2 elements ,STALE_%2Fsomething,STALE_%2Fsome.")
 	}
-	value = bs.Storage.Get("something")
+	value = bs.Storage.Get("SURROGATE_something")
 	if string(value) != ",%2Fsomething,%2Fsome" {
 		errors.GenerateError(t, "The something surrogate storage entry must contain 2 elements ,%2Fsomething,%2Fsome.")
 	}
@@ -158,7 +161,7 @@ func TestBaseStorage_Store_Load(t *testing.T) {
 	res := http.Response{
 		Header: http.Header{},
 	}
-	bs := mockCommonProvider()
+	bs, _ := mockCommonProvider()
 
 	length := 3000
 	for i := 0; i < length; i++ {
@@ -170,7 +173,7 @@ func TestBaseStorage_Store_Load(t *testing.T) {
 	}
 
 	wg.Wait()
-	v := bs.Storage.Get("")
+	v := bs.Storage.Get(surrogatePrefix)
 
 	if len(strings.Split(string(v), ",")) != length+1 {
 		errors.GenerateError(t, fmt.Sprintf("The surrogate storage should contain %d stored elements, %d given.", length+1, len(strings.Split(string(v), ","))))
