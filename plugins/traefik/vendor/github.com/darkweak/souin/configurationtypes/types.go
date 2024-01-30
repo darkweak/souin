@@ -378,7 +378,7 @@ type API struct {
 }
 
 type SurrogateConfiguration struct {
-	Storer string `json:"storer", yaml:"storer"`
+	Storer string `json:"storer" yaml:"storer"`
 }
 
 // SurrogateKeys structure define the way surrogate keys are stored

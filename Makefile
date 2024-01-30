@@ -109,7 +109,7 @@ generate-workflow: ## Generate plugin workflow
 	bash .github/workflows/workflow_plugins_generator.sh
 
 golangci-lint: ## Run golangci-lint to ensure the code quality
-	docker run --rm -v $(PWD):/app -w /app golangci/golangci-lint:v1.50.1 golangci-lint run -v --timeout 180s ./...
+	docker run --rm -v $(PWD):/app -w /app golangci/golangci-lint:v1.55.2 golangci-lint run -v --timeout 180s ./...
 	for plugin in $(PLUGINS_LIST) ; do \
 		echo "Starting lint $$plugin \n" && docker run --rm -v $(PWD)/plugins/$$plugin:/app -w /app golangci/golangci-lint:v1.50.1 golangci-lint run -v --skip-dirs=override --timeout 240s ./...; \
 	done

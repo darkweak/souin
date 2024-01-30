@@ -147,7 +147,7 @@ func (s *baseStorage) storeTag(tag string, cacheKey string, re *regexp.Regexp) {
 	if s.dynamic {
 		if !re.MatchString(currentValue) {
 			s.logger.Sugar().Debugf("Store the tag %s", tag)
-			s.Storage.Set("SURROGATE_"+tag, []byte(currentValue+souinStorageSeparator+cacheKey), configurationtypes.URL{}, -1)
+			_ = s.Storage.Set("SURROGATE_"+tag, []byte(currentValue+souinStorageSeparator+cacheKey), configurationtypes.URL{}, -1)
 		}
 	}
 }
@@ -158,7 +158,6 @@ func (*baseStorage) candidateStore(tag string) bool {
 
 func (*baseStorage) getOrderedSurrogateKeyHeadersCandidate() []string {
 	return []string{
-		surrogateKey,
 		surrogateKey,
 		edgeCacheTag,
 		cacheTags,
@@ -247,6 +246,7 @@ func (s *baseStorage) Purge(header http.Header) (cacheKeys []string, surrogateKe
 	return uniqueTag(toInvalidate), surrogates
 }
 
+// Invalidate the grouped responses from the Cache-Group-Invalidation HTTP response header
 func (s *baseStorage) Invalidate(method string, headers http.Header) {
 	if !isSafeHTTPMethod(method) {
 		for _, group := range headers["Cache-Group-Invalidation"] {

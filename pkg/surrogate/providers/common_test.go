@@ -78,11 +78,11 @@ func TestBaseStorage_Purge(t *testing.T) {
 		errors.GenerateError(t, "The surrogates length should be equal to 0.")
 	}
 
-	bs.Storage.Set("test0", []byte("first,second"), configurationtypes.URL{}, -1)
-	bs.Storage.Set("STALE_test0", []byte("STALTE_first,STALE_second"), configurationtypes.URL{}, -1)
-	bs.Storage.Set("test2", []byte("third,fourth"), configurationtypes.URL{}, -1)
-	bs.Storage.Set("test5", []byte("first,second,fifth"), configurationtypes.URL{}, -1)
-	bs.Storage.Set("testInvalid", []byte("invalid"), configurationtypes.URL{}, -1)
+	_ = bs.Storage.Set("test0", []byte("first,second"), configurationtypes.URL{}, -1)
+	_ = bs.Storage.Set("STALE_test0", []byte("STALTE_first,STALE_second"), configurationtypes.URL{}, -1)
+	_ = bs.Storage.Set("test2", []byte("third,fourth"), configurationtypes.URL{}, -1)
+	_ = bs.Storage.Set("test5", []byte("first,second,fifth"), configurationtypes.URL{}, -1)
+	_ = bs.Storage.Set("testInvalid", []byte("invalid"), configurationtypes.URL{}, -1)
 	headerMock.Set(surrogateKey, baseHeaderValue)
 	tags, surrogates = bs.Purge(headerMock)
 
@@ -109,10 +109,10 @@ func TestBaseStorage_Store(t *testing.T) {
 	}
 
 	bs = mockCommonProvider()
-	bs.Storage.Set("test0", []byte("first,second"), configurationtypes.URL{}, -1)
-	bs.Storage.Set("test2", []byte("third,fourth"), configurationtypes.URL{}, -1)
-	bs.Storage.Set("test5", []byte("first,second,fifth"), configurationtypes.URL{}, -1)
-	bs.Storage.Set("testInvalid", []byte("invalid"), configurationtypes.URL{}, -1)
+	_ = bs.Storage.Set("test0", []byte("first,second"), configurationtypes.URL{}, -1)
+	_ = bs.Storage.Set("test2", []byte("third,fourth"), configurationtypes.URL{}, -1)
+	_ = bs.Storage.Set("test5", []byte("first,second,fifth"), configurationtypes.URL{}, -1)
+	_ = bs.Storage.Set("testInvalid", []byte("invalid"), configurationtypes.URL{}, -1)
 
 	if e = bs.Store(&res, "stored"); e != nil {
 		errors.GenerateError(t, "It shouldn't throw an error with a valid key.")
