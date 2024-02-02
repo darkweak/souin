@@ -85,7 +85,9 @@ func (provider *Etcd) ListKeys() []string {
 		return []string{}
 	}
 	for _, k := range r.Kvs {
-		keys = append(keys, string(k.Key))
+		if !strings.Contains(string(k.Key), surrogatePrefix) {
+			keys = append(keys, string(k.Key))
+		}
 	}
 
 	return keys
@@ -110,7 +112,8 @@ func (provider *Etcd) MapKeys(prefix string) map[string]string {
 	for _, k := range r.Kvs {
 		key := string(k.Key)
 		if strings.HasPrefix(key, prefix) {
-			keys[key] = string(k.Value)
+			nk, _ := strings.CutPrefix(key, prefix)
+			keys[nk] = string(k.Value)
 		}
 	}
 

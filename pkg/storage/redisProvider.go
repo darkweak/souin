@@ -100,7 +100,8 @@ func (provider *Redis) MapKeys(prefix string) map[string]string {
 	keys, _ := provider.Client.Scan(provider.ctx, 0, "*", 0).Val()
 	for _, key := range keys {
 		if strings.HasPrefix(key, prefix) {
-			m[key] = string(provider.Get(key))
+			k, _ := strings.CutPrefix(key, prefix)
+			m[k] = string(provider.Get(key))
 		}
 	}
 

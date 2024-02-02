@@ -33,6 +33,14 @@ const (
 	surrogatePrefix = "SURROGATE_"
 )
 
+var storageToInfiniteTTLMap = map[string]time.Duration{
+	"BADGER": 365 * 24 * time.Hour,
+	"ETCD":   365 * 24 * time.Hour,
+	"NUTS":   0,
+	"OLRIC":  365 * 24 * time.Hour,
+	"REDIS":  0,
+}
+
 func (s *baseStorage) ParseHeaders(value string) []string {
 	return regexp.MustCompile(s.parent.getHeaderSeparator()+" *").Split(value, -1)
 }
@@ -88,13 +96,14 @@ type baseStorage struct {
 	keepStale  bool
 	logger     *zap.Logger
 	mu         *sync.Mutex
+	duration   time.Duration
 }
 
 func (s *baseStorage) init(config configurationtypes.AbstractConfigurationInterface) {
 	if configuration, ok := config.GetSurrogateKeys()["_configuration"]; ok {
 		instanciator, err := storage.NewStorageFromName(configuration.SurrogateConfiguration.Storer)
 		if err != nil {
-			instanciator, _ = storage.NewStorageFromName("badger")
+			instanciator, _ = storage.NewStorageFromName("nuts")
 		}
 
 		storer, err := instanciator(config)
@@ -104,7 +113,7 @@ func (s *baseStorage) init(config configurationtypes.AbstractConfigurationInterf
 
 		s.Storage = storer
 	} else {
-		instanciator, _ := storage.NewStorageFromName("badger")
+		instanciator, _ := storage.NewStorageFromName("nuts")
 		storer, err := instanciator(config)
 		if err != nil {
 			panic(fmt.Sprintf("Impossible to instanciate the storer for the surrogate-keys: %v", err))
@@ -140,17 +149,16 @@ func (s *baseStorage) init(config configurationtypes.AbstractConfigurationInterf
 	s.logger = config.GetLogger()
 	s.keysRegexp = keysRegexp
 	s.mu = &sync.Mutex{}
+	s.duration = storageToInfiniteTTLMap[s.Storage.Name()]
 }
 
 func (s *baseStorage) storeTag(tag string, cacheKey string, re *regexp.Regexp) {
 	defer s.mu.Unlock()
 	s.mu.Lock()
 	currentValue := string(s.Storage.Get(surrogatePrefix + tag))
-	if s.dynamic {
-		if !re.MatchString(currentValue) {
-			s.logger.Sugar().Debugf("Store the tag %s", tag)
-			_ = s.Storage.Set(surrogatePrefix+tag, []byte(currentValue+souinStorageSeparator+cacheKey), configurationtypes.URL{}, time.Hour)
-		}
+	if !re.MatchString(currentValue) {
+		s.logger.Sugar().Debugf("Store the tag %s", tag)
+		_ = s.Storage.Set(surrogatePrefix+tag, []byte(currentValue+souinStorageSeparator+cacheKey), configurationtypes.URL{}, s.duration)
 	}
 }
 

@@ -72,7 +72,9 @@ func (provider *Olric) ListKeys() []string {
 
 	keys := []string{}
 	for records.Next() {
-		keys = append(keys, records.Key())
+		if !strings.Contains(records.Key(), surrogatePrefix) {
+			keys = append(keys, records.Key())
+		}
 	}
 	records.Close()
 
@@ -100,7 +102,8 @@ func (provider *Olric) MapKeys(prefix string) map[string]string {
 	keys := map[string]string{}
 	for records.Next() {
 		if strings.HasPrefix(records.Key(), prefix) {
-			keys[records.Key()] = string(provider.Get(records.Key()))
+			k, _ := strings.CutPrefix(records.Key(), prefix)
+			keys[k] = string(provider.Get(records.Key()))
 		}
 	}
 	records.Close()

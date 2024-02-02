@@ -17,6 +17,8 @@ import (
 	"go.uber.org/zap"
 )
 
+var nutsInstanceMap = map[string]*nutsdb.DB{}
+
 // Nuts provider type
 type Nuts struct {
 	*nutsdb.DB
@@ -93,17 +95,29 @@ func NutsConnectionFactory(c t.AbstractConfigurationInterface) (types.Storer, er
 		}
 	}
 
+	if instance, ok := nutsInstanceMap[nutsOptions.Dir]; ok && instance != nil {
+		return &Nuts{
+			DB:     instance,
+			stale:  dc.GetStale(),
+			logger: c.GetLogger(),
+		}, nil
+	}
+
 	db, e := nutsdb.Open(nutsOptions)
 
 	if e != nil {
 		c.GetLogger().Sugar().Error("Impossible to open the Nuts DB.", e)
+		return nil, e
 	}
 
-	return &Nuts{
+	instance := &Nuts{
 		DB:     db,
 		stale:  dc.GetStale(),
 		logger: c.GetLogger(),
-	}, nil
+	}
+	nutsInstanceMap[nutsOptions.Dir] = instance.DB
+
+	return instance, nil
 }
 
 // Name returns the storer name
@@ -118,7 +132,9 @@ func (provider *Nuts) ListKeys() []string {
 	e := provider.DB.View(func(tx *nutsdb.Tx) error {
 		e, _ := tx.GetAll(bucket)
 		for _, k := range e {
-			keys = append(keys, string(k.Key))
+			if !strings.Contains(string(k.Key), surrogatePrefix) {
+				keys = append(keys, string(k.Key))
+			}
 		}
 		return nil
 	})
@@ -138,7 +154,8 @@ func (provider *Nuts) MapKeys(prefix string) map[string]string {
 		e, _ := tx.GetAll(bucket)
 		for _, k := range e {
 			if strings.HasPrefix(string(k.Key), prefix) {
-				keys[string(k.Key)] = string(k.Value)
+				nk, _ := strings.CutPrefix(string(k.Key), prefix)
+				keys[nk] = string(k.Value)
 			}
 		}
 		return nil

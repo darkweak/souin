@@ -15,6 +15,7 @@ const (
 	encodedHeaderSemiColonSeparator = "%3B"
 	encodedHeaderColonSeparator     = "%3A"
 	StalePrefix                     = "STALE_"
+	surrogatePrefix                 = "SURROGATE_"
 )
 
 type StorerInstanciator func(configurationtypes.AbstractConfigurationInterface) (types.Storer, error)

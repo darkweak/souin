@@ -127,7 +127,10 @@ func (provider *Badger) ListKeys() []string {
 		it := txn.NewIterator(opts)
 		defer it.Close()
 		for it.Rewind(); it.Valid(); it.Next() {
-			keys = append(keys, string(it.Item().Key()))
+			key := string(it.Item().Key())
+			if !strings.Contains(key, surrogatePrefix) {
+				keys = append(keys, key)
+			}
 		}
 		return nil
 	})

@@ -46,7 +46,8 @@ func (provider *Cache) ListKeys() []string {
 func (provider *Cache) MapKeys(prefix string) map[string]string {
 	var keys map[string]string
 	provider.Cache.Range(func(key, value interface{}) bool {
-		keys[key.(string)] = value.(string)
+		k, _ := strings.CutPrefix(key.(string), prefix)
+		keys[k] = value.(string)
 		return true
 	})
 

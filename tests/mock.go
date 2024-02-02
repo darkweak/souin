@@ -139,7 +139,7 @@ api:
     enable: true
 default_cache:
   nuts:
-    path: "/tmp/nuts"
+    path: "./nuts"
   headers:
     - Authorization
   port:
