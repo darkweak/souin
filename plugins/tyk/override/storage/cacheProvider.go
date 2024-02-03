@@ -42,6 +42,17 @@ func (provider *Cache) ListKeys() []string {
 	return keys
 }
 
+// MapKeys method returns the map of existing keys
+func (provider *Cache) MapKeys(prefix string) map[string]string {
+	var keys map[string]string
+	items := provider.Items()
+	for k, v := range items {
+		keys[k] = v.Object.(string)
+	}
+
+	return keys
+}
+
 // Get method returns the populated response if exists, empty response then
 func (provider *Cache) Get(key string) []byte {
 	result, found := provider.Cache.Get(key)

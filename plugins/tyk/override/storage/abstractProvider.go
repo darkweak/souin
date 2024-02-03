@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"time"
 
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/rfc"
@@ -17,23 +16,15 @@ const (
 	StalePrefix                     = "STALE_"
 )
 
-type Storer interface {
-	ListKeys() []string
-	Prefix(key string, req *http.Request, validator *rfc.Revalidator) *http.Response
-	Get(key string) []byte
-	Set(key string, value []byte, url configurationtypes.URL, duration time.Duration) error
-	Delete(key string)
-	DeleteMany(key string)
-	Init() error
-	Name() string
-	Reset() error
-}
-
 type StorerInstanciator func(configurationtypes.AbstractConfigurationInterface) (types.Storer, error)
 
-func NewStorages(configuration configurationtypes.AbstractConfigurationInterface) ([]Storer, error) {
+func NewStorageFromName(_ string) (StorerInstanciator, error) {
+	return CacheConnectionFactory, nil
+}
+
+func NewStorages(configuration configurationtypes.AbstractConfigurationInterface) ([]types.Storer, error) {
 	s, err := CacheConnectionFactory(configuration)
-	return []Storer{s}, err
+	return []types.Storer{s}, err
 }
 
 func varyVoter(baseKey string, req *http.Request, currentKey string) bool {
