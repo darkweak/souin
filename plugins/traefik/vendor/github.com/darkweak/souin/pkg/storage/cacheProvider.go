@@ -42,7 +42,7 @@ func (provider *Cache) ListKeys() []string {
 	return keys
 }
 
-// ListKeys method returns the list of existing keys
+// MapKeys method returns the map of existing keys
 func (provider *Cache) MapKeys(prefix string) map[string]string {
 	var keys map[string]string
 	provider.Cache.Range(func(key, value interface{}) bool {
