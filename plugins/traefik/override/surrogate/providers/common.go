@@ -145,13 +145,14 @@ func (*baseStorage) getOrderedSurrogateControlHeadersCandidate() []string {
 }
 
 func (s *baseStorage) GetSurrogateControl(header http.Header) (string, string) {
-	for _, candidate := range s.parent.getOrderedSurrogateControlHeadersCandidate() {
+	parent := s.parent.getOrderedSurrogateControlHeadersCandidate()
+	for _, candidate := range parent {
 		if h := header.Get(candidate); h != "" {
 			return candidate, h
 		}
 	}
 
-	return s.parent.getOrderedSurrogateControlHeadersCandidate()[0], ""
+	return parent[len(parent)-1], ""
 }
 
 func (s *baseStorage) GetSurrogateControlName() string {

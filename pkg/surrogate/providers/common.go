@@ -46,13 +46,14 @@ func (s *baseStorage) ParseHeaders(value string) []string {
 }
 
 func getCandidateHeader(header http.Header, getCandidates func() []string) (string, string) {
-	for _, candidate := range getCandidates() {
+	candidates := getCandidates()
+	for _, candidate := range candidates {
 		if h := header.Get(candidate); h != "" {
 			return candidate, h
 		}
 	}
 
-	return getCandidates()[0], ""
+	return candidates[len(candidates)-1], ""
 }
 
 func isSafeHTTPMethod(method string) bool {
