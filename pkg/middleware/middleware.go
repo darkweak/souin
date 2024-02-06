@@ -117,10 +117,12 @@ type SouinBaseHandler struct {
 	storersLen               int
 }
 
-type upsreamError struct{}
+var Upstream50xError = upstream50xError{}
 
-func (upsreamError) Error() string {
-	return "Upstream error"
+type upstream50xError struct{}
+
+func (upstream50xError) Error() string {
+	return "Upstream 50x error"
 }
 
 func isCacheableCode(code int) bool {
@@ -154,7 +156,7 @@ func (s *SouinBaseHandler) Store(
 
 		switch statusCode {
 		case 500, 502, 503, 504:
-			return new(upsreamError)
+			return Upstream50xError
 		}
 
 		return nil
@@ -341,7 +343,7 @@ func (s *SouinBaseHandler) Upstream(
 
 			switch statusCode {
 			case 500, 502, 503, 504:
-				return nil, new(upsreamError)
+				return nil, Upstream50xError
 			}
 		}
 
@@ -686,8 +688,12 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 			return nil
 		}
 	case v := <-errorCacheCh:
-		if v == nil {
+		switch v {
+		case nil:
 			_, _ = customWriter.Send()
+		case Upstream50xError:
+			_, _ = customWriter.Send()
+			return nil
 		}
 		return v
 	}
