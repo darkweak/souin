@@ -76,8 +76,6 @@ github.com/coreos/go-systemd/v22/journal
 github.com/darkweak/go-esi/esi
 # github.com/darkweak/souin v1.6.45 => ../..
 ## explicit; go 1.19
-github.com/darkweak/souin/cache/types
-github.com/darkweak/souin/cache/ykeys
 github.com/darkweak/souin/configurationtypes
 github.com/darkweak/souin/context
 github.com/darkweak/souin/errors
@@ -88,6 +86,7 @@ github.com/darkweak/souin/pkg/api/prometheus
 github.com/darkweak/souin/pkg/middleware
 github.com/darkweak/souin/pkg/rfc
 github.com/darkweak/souin/pkg/storage
+github.com/darkweak/souin/pkg/storage/types
 github.com/darkweak/souin/pkg/surrogate
 github.com/darkweak/souin/pkg/surrogate/providers
 github.com/darkweak/souin/plugins/souin/configuration

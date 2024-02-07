@@ -21,6 +21,7 @@ import (
 	"github.com/darkweak/souin/pkg/api/prometheus"
 	"github.com/darkweak/souin/pkg/rfc"
 	"github.com/darkweak/souin/pkg/storage"
+	"github.com/darkweak/souin/pkg/storage/types"
 	"github.com/darkweak/souin/pkg/surrogate"
 	"github.com/darkweak/souin/pkg/surrogate/providers"
 	"github.com/pquerna/cachecontrol/cacheobject"
@@ -104,7 +105,7 @@ func NewHTTPCacheHandler(c configurationtypes.AbstractConfigurationInterface) *S
 
 type SouinBaseHandler struct {
 	Configuration            configurationtypes.AbstractConfigurationInterface
-	Storers                  []storage.Storer
+	Storers                  []types.Storer
 	InternalEndpointHandlers *api.MapHandler
 	ExcludeRegex             *regexp.Regexp
 	RegexpUrls               regexp.Regexp
@@ -162,16 +163,17 @@ func (s *SouinBaseHandler) Store(
 		return nil
 	}
 
-	if customWriter.Header().Get("Cache-Control") == "" {
+	headerName, cacheControl := s.SurrogateKeyStorer.GetSurrogateControl(customWriter.Header())
+	if cacheControl == "" {
 		// TODO see with @mnot if mandatory to not store the response when no Cache-Control given.
 		// if s.DefaultMatchedUrl.DefaultCacheControl == "" {
 		// 	customWriter.Header().Set("Cache-Status", fmt.Sprintf("%s; fwd=uri-miss; key=%s; detail=EMPTY-RESPONSE-CACHE-CONTROL", rq.Context().Value(context.CacheName), rfc.GetCacheKeyFromCtx(rq.Context())))
 		// 	return nil
 		// }
-		customWriter.Header().Set("Cache-Control", s.DefaultMatchedUrl.DefaultCacheControl)
+		customWriter.Header().Set(headerName, s.DefaultMatchedUrl.DefaultCacheControl)
 	}
 
-	responseCc, _ := cacheobject.ParseResponseCacheControl(customWriter.Header().Get("Cache-Control"))
+	responseCc, _ := cacheobject.ParseResponseCacheControl(customWriter.Header().Get(headerName))
 	s.Configuration.GetLogger().Sugar().Debugf("Response cache-control %+v", responseCc)
 	if responseCc == nil {
 		customWriter.Header().Set("Cache-Status", fmt.Sprintf("%s; fwd=uri-miss; key=%s; detail=INVALID-RESPONSE-CACHE-CONTROL", rq.Context().Value(context.CacheName), rfc.GetCacheKeyFromCtx(rq.Context())))
@@ -261,7 +263,7 @@ func (s *SouinBaseHandler) Store(
 				default:
 					for _, storer := range s.Storers {
 						wg.Add(1)
-						go func(currentStorer storage.Storer) {
+						go func(currentStorer types.Storer) {
 							defer wg.Done()
 							if currentStorer.Set(cachedKey, response, currentMatchedURL, ma) == nil {
 								s.Configuration.GetLogger().Sugar().Debugf("Stored the key %s in the %s provider", cachedKey, currentStorer.Name())
@@ -347,8 +349,9 @@ func (s *SouinBaseHandler) Upstream(
 			}
 		}
 
-		if customWriter.Header().Get("Cache-Control") == "" {
-			customWriter.Header().Set("Cache-Control", s.DefaultMatchedUrl.DefaultCacheControl)
+		headerName, cacheControl := s.SurrogateKeyStorer.GetSurrogateControl(customWriter.Header())
+		if cacheControl == "" {
+			customWriter.Header().Set(headerName, s.DefaultMatchedUrl.DefaultCacheControl)
 		}
 
 		err := s.Store(customWriter, rq, requestCc, cachedKey)
@@ -528,6 +531,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 			}
 		}
 
+		headerName, _ := s.SurrogateKeyStorer.GetSurrogateControl(customWriter.Header())
 		if response != nil && (!modeContext.Strict || rfc.ValidateCacheControl(response, requestCc)) {
 			if validator.ResponseETag != "" && validator.Matched {
 				rfc.SetCacheStatusHeader(response)
@@ -555,7 +559,8 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 
 				return err
 			}
-			if resCc, _ := cacheobject.ParseResponseCacheControl(response.Header.Get("Cache-Control")); resCc.NoCachePresent {
+
+			if resCc, _ := cacheobject.ParseResponseCacheControl(response.Header.Get(headerName)); resCc.NoCachePresent {
 				prometheus.Increment(prometheus.NoCachedResponseCounter)
 				err := s.Revalidate(validator, next, customWriter, req, requestCc, cachedKey)
 				_, _ = customWriter.Send()

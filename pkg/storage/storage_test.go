@@ -10,6 +10,7 @@ import (
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/errors"
 	"github.com/darkweak/souin/pkg/rfc"
+	"github.com/darkweak/souin/pkg/storage/types"
 	"github.com/darkweak/souin/tests"
 )
 
@@ -17,7 +18,7 @@ const BYTEKEY = "MyByteKey"
 const NONEXISTENTKEY = "NonexistentKey"
 const BASE_VALUE = "My first data"
 
-func verifyNewValueAfterSet(client Storer, key string, value []byte, t *testing.T) {
+func verifyNewValueAfterSet(client types.Storer, key string, value []byte, t *testing.T) {
 	newValue := client.Get(key)
 
 	if len(newValue) != len(value) {
@@ -25,7 +26,7 @@ func verifyNewValueAfterSet(client Storer, key string, value []byte, t *testing.
 	}
 }
 
-func setValueThenVerify(client Storer, key string, value []byte, matchedURL configurationtypes.URL, ttl time.Duration, t *testing.T) {
+func setValueThenVerify(client types.Storer, key string, value []byte, matchedURL configurationtypes.URL, ttl time.Duration, t *testing.T) {
 	_ = client.Set(key, value, matchedURL, ttl)
 	time.Sleep(1 * time.Second)
 	verifyNewValueAfterSet(client, key, value, t)
@@ -91,7 +92,7 @@ func TestVaryVoter(t *testing.T) {
 }
 
 // GetCacheProviderClientAndMatchedURL will work as a factory to build providers from configuration and get the URL from the key passed in parameter
-func GetCacheProviderClientAndMatchedURL(key string, configurationMocker func() configurationtypes.AbstractConfigurationInterface, factory func(configurationInterface configurationtypes.AbstractConfigurationInterface) (Storer, error)) (Storer, configurationtypes.URL) {
+func GetCacheProviderClientAndMatchedURL(key string, configurationMocker func() configurationtypes.AbstractConfigurationInterface, factory func(configurationInterface configurationtypes.AbstractConfigurationInterface) (types.Storer, error)) (types.Storer, configurationtypes.URL) {
 	config := configurationMocker()
 	client, _ := factory(config)
 

@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/darkweak/souin/configurationtypes"
-	"github.com/darkweak/souin/pkg/storage"
+	"github.com/darkweak/souin/pkg/storage/types"
 	"github.com/darkweak/souin/pkg/surrogate/providers"
 )
 
@@ -16,7 +16,7 @@ import (
 type SouinAPI struct {
 	basePath         string
 	enabled          bool
-	storers          []storage.Storer
+	storers          []types.Storer
 	surrogateStorage providers.SurrogateInterface
 	allowedMethods   []string
 }
@@ -39,7 +39,7 @@ type invalidation struct {
 
 func initializeSouin(
 	configuration configurationtypes.AbstractConfigurationInterface,
-	storers []storage.Storer,
+	storers []types.Storer,
 	surrogateStorage providers.SurrogateInterface,
 ) *SouinAPI {
 	basePath := configuration.GetAPI().Souin.BasePath

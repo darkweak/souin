@@ -17,6 +17,7 @@ import (
 	"github.com/darkweak/souin/pkg/api"
 	"github.com/darkweak/souin/pkg/rfc"
 	"github.com/darkweak/souin/pkg/storage"
+	"github.com/darkweak/souin/pkg/storage/types"
 	"github.com/darkweak/souin/pkg/surrogate"
 	"github.com/darkweak/souin/pkg/surrogate/providers"
 	"github.com/pquerna/cachecontrol/cacheobject"
@@ -98,7 +99,7 @@ func NewHTTPCacheHandler(c configurationtypes.AbstractConfigurationInterface) *S
 
 type SouinBaseHandler struct {
 	Configuration            configurationtypes.AbstractConfigurationInterface
-	Storers                  []storage.Storer
+	Storers                  []types.Storer
 	InternalEndpointHandlers *api.MapHandler
 	ExcludeRegex             *regexp.Regexp
 	RegexpUrls               regexp.Regexp
@@ -188,7 +189,7 @@ func (s *SouinBaseHandler) Upstream(
 				default:
 					for _, storer := range s.Storers {
 						wg.Add(1)
-						go func(currentStorer storage.Storer) {
+						go func(currentStorer types.Storer) {
 							defer wg.Done()
 							if currentStorer.Set(cachedKey, response, currentMatchedURL, ma) != nil {
 								mu.Lock()

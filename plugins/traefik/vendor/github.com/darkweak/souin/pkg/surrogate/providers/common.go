@@ -9,6 +9,8 @@ import (
 	"sync"
 
 	"github.com/darkweak/souin/configurationtypes"
+	"github.com/darkweak/souin/pkg/storage"
+	"github.com/darkweak/souin/pkg/storage/types"
 )
 
 const (
@@ -65,7 +67,7 @@ type keysRegexpInner struct {
 
 type baseStorage struct {
 	parent     SurrogateInterface
-	Storage    map[string]string
+	Storage    types.Storer
 	Keys       map[string]configurationtypes.SurrogateKeys
 	keysRegexp map[string]keysRegexpInner
 	dynamic    bool
@@ -74,8 +76,13 @@ type baseStorage struct {
 }
 
 func (s *baseStorage) init(config configurationtypes.AbstractConfigurationInterface) {
-	storage := make(map[string]string)
-	s.Storage = storage
+	storers, err := storage.NewStorages(config)
+	if err != nil {
+		panic(fmt.Sprintf("Impossible to instanciate the storer for the surrogate-keys: %v", err))
+	}
+
+	s.Storage = storers[0]
+
 	s.Keys = config.GetSurrogateKeys()
 	s.keepStale = config.GetDefaultCache().GetCDN().Strategy != "hard"
 	keysRegexp := make(map[string]keysRegexpInner, len(s.Keys))
@@ -105,12 +112,13 @@ func (s *baseStorage) init(config configurationtypes.AbstractConfigurationInterf
 }
 
 func (s *baseStorage) storeTag(tag string, cacheKey string, re *regexp.Regexp) {
-	if currentValue, b := s.Storage[tag]; s.dynamic || b {
+	defer s.mu.Unlock()
+	s.mu.Lock()
+	currentValue := string(s.Storage.Get(tag))
+	if s.dynamic {
 		if !re.MatchString(currentValue) {
-			s.mu.Lock()
 			fmt.Printf("Store the tag %s", tag)
-			s.Storage[tag] = currentValue + souinStorageSeparator + cacheKey
-			s.mu.Unlock()
+			_ = s.Storage.Set("SURROGATE_"+tag, []byte(currentValue+souinStorageSeparator+cacheKey), configurationtypes.URL{}, -1)
 		}
 	}
 }
@@ -136,14 +144,18 @@ func (*baseStorage) getOrderedSurrogateControlHeadersCandidate() []string {
 	}
 }
 
-func (s *baseStorage) getSurrogateControl(header http.Header) string {
+func (s *baseStorage) GetSurrogateControl(header http.Header) (string, string) {
 	for _, candidate := range s.parent.getOrderedSurrogateControlHeadersCandidate() {
 		if h := header.Get(candidate); h != "" {
-			return h
+			return candidate, h
 		}
 	}
 
-	return ""
+	return s.parent.getOrderedSurrogateControlHeadersCandidate()[0], ""
+}
+
+func (s *baseStorage) GetSurrogateControlName() string {
+	return s.parent.getOrderedSurrogateControlHeadersCandidate()[0]
 }
 
 func (s *baseStorage) getSurrogateKey(header http.Header) string {
@@ -157,17 +169,13 @@ func (s *baseStorage) getSurrogateKey(header http.Header) string {
 }
 
 func (s *baseStorage) purgeTag(tag string) []string {
-	toInvalidate := s.Storage[tag]
+	toInvalidate := string(s.Storage.Get(tag))
 	fmt.Printf("Purge the tag %s", tag)
-	s.mu.Lock()
-	delete(s.Storage, tag)
-	s.mu.Unlock()
+	s.Storage.Delete("SURROGATE_" + tag)
 	if !s.keepStale {
-		toInvalidate = toInvalidate + "," + s.Storage[stalePrefix+tag]
-		s.mu.Lock()
+		toInvalidate = toInvalidate + "," + string(s.Storage.Get(stalePrefix+tag))
 		fmt.Printf("Purge the tag %s", stalePrefix+tag)
-		delete(s.Storage, stalePrefix+tag)
-		s.mu.Unlock()
+		s.Storage.Delete("SURROGATE_" + stalePrefix + tag)
 	}
 	return strings.Split(toInvalidate, souinStorageSeparator)
 }
@@ -185,7 +193,14 @@ func (s *baseStorage) Store(response *http.Response, cacheKey string) error {
 	keys := s.ParseHeaders(s.parent.getSurrogateKey(h))
 
 	for _, key := range keys {
-		if controls := s.ParseHeaders(s.parent.getSurrogateControl(h)); len(controls) != 0 {
+		_, v := s.parent.GetSurrogateControl(h)
+		if controls := s.ParseHeaders(v); len(controls) != 0 {
+			if len(controls) == 1 && controls[0] == "" {
+				s.storeTag(key, cacheKey, urlRegexp)
+				s.storeTag(stalePrefix+key, staleKey, staleUrlRegexp)
+
+				continue
+			}
 			for _, control := range controls {
 				if s.parent.candidateStore(control) {
 					s.storeTag(key, cacheKey, urlRegexp)
@@ -224,12 +239,12 @@ func (s *baseStorage) Invalidate(method string, headers http.Header) {
 
 // List returns the stored keys associated to resources
 func (s *baseStorage) List() map[string]string {
-	return s.Storage
+	return s.Storage.MapKeys("SURROGATE_")
 }
 
 // Destruct method will shutdown properly the provider
 func (s *baseStorage) Destruct() error {
-	s.Storage = make(map[string]string)
+	s.Storage.DeleteMany("SURROGATE_.*")
 
 	return nil
 }

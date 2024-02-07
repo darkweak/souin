@@ -8,10 +8,12 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"strings"
 	"time"
 
 	t "github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/rfc"
+	"github.com/darkweak/souin/pkg/storage/types"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/connectivity"
@@ -28,7 +30,7 @@ type Etcd struct {
 }
 
 // EtcdConnectionFactory function create new Etcd instance
-func EtcdConnectionFactory(c t.AbstractConfigurationInterface) (Storer, error) {
+func EtcdConnectionFactory(c t.AbstractConfigurationInterface) (types.Storer, error) {
 	dc := c.GetDefaultCache()
 	bc, _ := json.Marshal(dc.GetEtcd().Configuration)
 	etcdConfiguration := clientv3.Config{
@@ -83,7 +85,36 @@ func (provider *Etcd) ListKeys() []string {
 		return []string{}
 	}
 	for _, k := range r.Kvs {
-		keys = append(keys, string(k.Key))
+		if !strings.Contains(string(k.Key), surrogatePrefix) {
+			keys = append(keys, string(k.Key))
+		}
+	}
+
+	return keys
+}
+
+// MapKeys method returns the map of existing keys
+func (provider *Etcd) MapKeys(prefix string) map[string]string {
+	if provider.reconnecting {
+		provider.logger.Sugar().Error("Impossible to list the etcd keys while reconnecting.")
+		return map[string]string{}
+	}
+
+	keys := map[string]string{}
+	r, e := provider.Client.Get(provider.ctx, "\x00", clientv3.WithFromKey())
+
+	if e != nil {
+		if !provider.reconnecting {
+			go provider.Reconnect()
+		}
+		return map[string]string{}
+	}
+	for _, k := range r.Kvs {
+		key := string(k.Key)
+		if strings.HasPrefix(key, prefix) {
+			nk, _ := strings.CutPrefix(key, prefix)
+			keys[nk] = string(k.Value)
+		}
 	}
 
 	return keys

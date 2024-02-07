@@ -14,6 +14,7 @@ import (
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/middleware"
 	"github.com/darkweak/souin/pkg/storage"
+	"github.com/darkweak/souin/pkg/storage/types"
 	surrogates_providers "github.com/darkweak/souin/pkg/surrogate/providers"
 	"go.uber.org/zap"
 )
@@ -269,7 +270,7 @@ func (s *SouinCaddyMiddleware) Provision(ctx caddy.Context) error {
 					})
 
 					if l && e == nil {
-						s.SouinBaseHandler.Storers = append(s.SouinBaseHandler.Storers, v.(storage.Storer))
+						s.SouinBaseHandler.Storers = append(s.SouinBaseHandler.Storers, v.(types.Storer))
 					}
 				} else {
 					s.logger.Sugar().Debug("Store the olric instance.")

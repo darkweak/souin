@@ -14,6 +14,7 @@ import (
 
 	t "github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/rfc"
+	"github.com/darkweak/souin/pkg/storage/types"
 	redis "github.com/redis/rueidis"
 	"github.com/redis/rueidis/rueidiscompat"
 	"go.uber.org/zap"
@@ -31,7 +32,7 @@ type Redis struct {
 }
 
 // RedisConnectionFactory function create new Nuts instance
-func RedisConnectionFactory(c t.AbstractConfigurationInterface) (Storer, error) {
+func RedisConnectionFactory(c t.AbstractConfigurationInterface) (types.Storer, error) {
 	dc := c.GetDefaultCache()
 	bc, _ := json.Marshal(dc.GetRedis().Configuration)
 
@@ -86,6 +87,25 @@ func (provider *Redis) ListKeys() []string {
 	keys, _ := provider.Client.Scan(provider.ctx, 0, "*", 0).Val()
 
 	return keys
+}
+
+// MapKeys method returns the list of existing keys
+func (provider *Redis) MapKeys(prefix string) map[string]string {
+	if provider.reconnecting {
+		provider.logger.Sugar().Error("Impossible to list the redis keys while reconnecting.")
+		return map[string]string{}
+	}
+
+	m := map[string]string{}
+	keys, _ := provider.Client.Scan(provider.ctx, 0, "*", 0).Val()
+	for _, key := range keys {
+		if strings.HasPrefix(key, prefix) {
+			k, _ := strings.CutPrefix(key, prefix)
+			m[k] = string(provider.Get(key))
+		}
+	}
+
+	return m
 }
 
 // Get method returns the populated response if exists, empty response then

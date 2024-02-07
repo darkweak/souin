@@ -1,13 +1,13 @@
 package storage
 
 /*
-func mockEmbeddedConfiguration(c func() string, key string) (Storer, configurationtypes.URL) {
+func mockEmbeddedConfiguration(c func() string, key string) (types.Storer, configurationtypes.URL) {
 	return GetCacheProviderClientAndMatchedURL(
 		key,
 		func() configurationtypes.AbstractConfigurationInterface {
 			return tests.MockConfiguration(c)
 		},
-		func(config configurationtypes.AbstractConfigurationInterface) (Storer, error) {
+		func(config configurationtypes.AbstractConfigurationInterface) (types.Storer, error) {
 			provider, _ := EmbeddedOlricConnectionFactory(config)
 
 			return provider, nil
