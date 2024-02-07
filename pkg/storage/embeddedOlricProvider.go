@@ -6,12 +6,14 @@ import (
 	"context"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/buraksezer/olric"
 	"github.com/buraksezer/olric/config"
 	t "github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/rfc"
+	"github.com/darkweak/souin/pkg/storage/types"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 	yaml "gopkg.in/yaml.v3"
@@ -60,7 +62,7 @@ func tryToLoadConfiguration(olricInstance *config.Config, olricConfiguration t.C
 }
 
 // EmbeddedOlricConnectionFactory function create new EmbeddedOlric instance
-func EmbeddedOlricConnectionFactory(configuration t.AbstractConfigurationInterface) (Storer, error) {
+func EmbeddedOlricConnectionFactory(configuration t.AbstractConfigurationInterface) (types.Storer, error) {
 	var olricInstance *config.Config
 	loaded := false
 
@@ -124,7 +126,29 @@ func (provider *EmbeddedOlric) ListKeys() []string {
 
 	keys := []string{}
 	for records.Next() {
-		keys = append(keys, records.Key())
+		if !strings.Contains(records.Key(), surrogatePrefix) {
+			keys = append(keys, records.Key())
+		}
+	}
+	records.Close()
+
+	return keys
+}
+
+// MapKeys method returns a map with the key and value
+func (provider *EmbeddedOlric) MapKeys(prefix string) map[string]string {
+	records, err := provider.dm.Scan(provider.ct)
+	if err != nil {
+		provider.logger.Sugar().Errorf("An error occurred while trying to map keys in Olric: %s\n", err)
+		return map[string]string{}
+	}
+
+	keys := map[string]string{}
+	for records.Next() {
+		if strings.HasPrefix(records.Key(), prefix) {
+			k, _ := strings.CutPrefix(records.Key(), prefix)
+			keys[k] = string(provider.Get(records.Key()))
+		}
 	}
 	records.Close()
 

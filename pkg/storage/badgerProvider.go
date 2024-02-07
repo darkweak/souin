@@ -6,10 +6,12 @@ import (
 	"encoding/json"
 	"net/http"
 	"regexp"
+	"strings"
 	"time"
 
 	t "github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/rfc"
+	"github.com/darkweak/souin/pkg/storage/types"
 	badger "github.com/dgraph-io/badger/v3"
 	"github.com/imdario/mergo"
 	"go.uber.org/zap"
@@ -36,7 +38,7 @@ func (b *badgerLogger) Warningf(msg string, params ...interface{}) {
 }
 
 // BadgerConnectionFactory function create new Badger instance
-func BadgerConnectionFactory(c t.AbstractConfigurationInterface) (Storer, error) {
+func BadgerConnectionFactory(c t.AbstractConfigurationInterface) (types.Storer, error) {
 	dc := c.GetDefaultCache()
 	badgerConfiguration := dc.GetBadger()
 	badgerOptions := badger.DefaultOptions(badgerConfiguration.Path)
@@ -91,6 +93,30 @@ func (provider *Badger) Name() string {
 	return "BADGER"
 }
 
+// MapKeys method returns a map with the key and value
+func (provider *Badger) MapKeys(prefix string) map[string]string {
+	keys := map[string]string{}
+
+	_ = provider.DB.View(func(txn *badger.Txn) error {
+		opts := badger.DefaultIteratorOptions
+		opts.PrefetchValues = false
+		it := txn.NewIterator(opts)
+		defer it.Close()
+		p := []byte(prefix)
+		for it.Seek(p); it.ValidForPrefix(p); it.Next() {
+			_ = it.Item().Value(func(val []byte) error {
+				k, _ := strings.CutPrefix(string(it.Item().Key()), prefix)
+				keys[k] = string(val)
+
+				return nil
+			})
+		}
+		return nil
+	})
+
+	return keys
+}
+
 // ListKeys method returns the list of existing keys
 func (provider *Badger) ListKeys() []string {
 	keys := []string{}
@@ -101,7 +127,10 @@ func (provider *Badger) ListKeys() []string {
 		it := txn.NewIterator(opts)
 		defer it.Close()
 		for it.Rewind(); it.Valid(); it.Next() {
-			keys = append(keys, string(it.Item().Key()))
+			key := string(it.Item().Key())
+			if !strings.Contains(key, surrogatePrefix) {
+				keys = append(keys, key)
+			}
 		}
 		return nil
 	})
@@ -128,10 +157,12 @@ func (provider *Badger) Get(key string) []byte {
 		return result
 	}
 
-	_ = item.Value(func(val []byte) error {
-		result = val
-		return nil
-	})
+	if item != nil {
+		_ = item.Value(func(val []byte) error {
+			result = val
+			return nil
+		})
+	}
 
 	return result
 }

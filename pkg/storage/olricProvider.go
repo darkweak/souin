@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/buraksezer/olric/config"
 	t "github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/rfc"
+	"github.com/darkweak/souin/pkg/storage/types"
 	"go.uber.org/zap"
 )
 
@@ -29,7 +31,7 @@ type Olric struct {
 }
 
 // OlricConnectionFactory function create new Olric instance
-func OlricConnectionFactory(configuration t.AbstractConfigurationInterface) (Storer, error) {
+func OlricConnectionFactory(configuration t.AbstractConfigurationInterface) (types.Storer, error) {
 	c, err := olric.NewClusterClient([]string{configuration.GetDefaultCache().GetOlric().URL})
 	if err != nil {
 		configuration.GetLogger().Sugar().Errorf("Impossible to connect to Olric, %v", err)
@@ -70,7 +72,39 @@ func (provider *Olric) ListKeys() []string {
 
 	keys := []string{}
 	for records.Next() {
-		keys = append(keys, records.Key())
+		if !strings.Contains(records.Key(), surrogatePrefix) {
+			keys = append(keys, records.Key())
+		}
+	}
+	records.Close()
+
+	return keys
+}
+
+// MapKeys method returns the map of existing keys
+func (provider *Olric) MapKeys(prefix string) map[string]string {
+	if provider.reconnecting {
+		provider.logger.Sugar().Error("Impossible to list the olric keys while reconnecting.")
+		return map[string]string{}
+	}
+	dm := provider.dm.Get().(olric.DMap)
+	defer provider.dm.Put(dm)
+
+	records, err := dm.Scan(context.Background())
+	if err != nil {
+		if !provider.reconnecting {
+			go provider.Reconnect()
+		}
+		provider.logger.Sugar().Error("An error occurred while trying to list keys in Olric: %s\n", err)
+		return map[string]string{}
+	}
+
+	keys := map[string]string{}
+	for records.Next() {
+		if strings.HasPrefix(records.Key(), prefix) {
+			k, _ := strings.CutPrefix(records.Key(), prefix)
+			keys[k] = string(provider.Get(records.Key()))
+		}
 	}
 	records.Close()
 

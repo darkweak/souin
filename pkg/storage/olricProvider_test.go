@@ -5,19 +5,20 @@ import (
 	"testing"
 	"time"
 
+	"github.com/darkweak/souin/pkg/storage/types"
 	"github.com/darkweak/souin/tests"
 
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/errors"
 )
 
-func getOlricClientAndMatchedURL(key string) (Storer, configurationtypes.URL) {
+func getOlricClientAndMatchedURL(key string) (types.Storer, configurationtypes.URL) {
 	return GetCacheProviderClientAndMatchedURL(
 		key,
 		func() configurationtypes.AbstractConfigurationInterface {
 			return tests.MockConfiguration(tests.OlricConfiguration)
 		},
-		func(config configurationtypes.AbstractConfigurationInterface) (Storer, error) {
+		func(config configurationtypes.AbstractConfigurationInterface) (types.Storer, error) {
 			provider, _ := OlricConnectionFactory(config)
 			_ = provider.Init()
 

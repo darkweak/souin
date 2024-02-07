@@ -11,6 +11,7 @@ import (
 	"github.com/akyoto/cache"
 	t "github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/rfc"
+	"github.com/darkweak/souin/pkg/storage/types"
 )
 
 // Cache provider type
@@ -20,7 +21,7 @@ type Cache struct {
 }
 
 // CacheConnectionFactory function create new Cache instance
-func CacheConnectionFactory(c t.AbstractConfigurationInterface) (Storer, error) {
+func CacheConnectionFactory(c t.AbstractConfigurationInterface) (types.Storer, error) {
 	provider := cache.New(1 * time.Second)
 	return &Cache{Cache: provider, stale: c.GetDefaultCache().GetStale()}, nil
 }
@@ -35,6 +36,18 @@ func (provider *Cache) ListKeys() []string {
 	var keys []string
 	provider.Cache.Range(func(key, _ interface{}) bool {
 		keys = append(keys, key.(string))
+		return true
+	})
+
+	return keys
+}
+
+// MapKeys method returns the map of existing keys
+func (provider *Cache) MapKeys(prefix string) map[string]string {
+	var keys map[string]string
+	provider.Cache.Range(func(key, value interface{}) bool {
+		k, _ := strings.CutPrefix(key.(string), prefix)
+		keys[k] = value.(string)
 		return true
 	})
 

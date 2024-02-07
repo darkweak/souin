@@ -10,6 +10,7 @@ import (
 
 	t "github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/rfc"
+	"github.com/darkweak/souin/pkg/storage/types"
 	"github.com/patrickmn/go-cache"
 )
 
@@ -20,7 +21,7 @@ type Cache struct {
 }
 
 // CacheConnectionFactory function create new Cache instance
-func CacheConnectionFactory(c t.AbstractConfigurationInterface) (Storer, error) {
+func CacheConnectionFactory(c t.AbstractConfigurationInterface) (types.Storer, error) {
 	provider := cache.New(1*time.Second, 1*time.Second)
 	return &Cache{Cache: provider, stale: c.GetDefaultCache().GetStale()}, nil
 }
@@ -36,6 +37,17 @@ func (provider *Cache) ListKeys() []string {
 	keys := make([]string, 0, len(items))
 	for k := range items {
 		keys = append(keys, k)
+	}
+
+	return keys
+}
+
+// MapKeys method returns the map of existing keys
+func (provider *Cache) MapKeys(prefix string) map[string]string {
+	var keys map[string]string
+	items := provider.Items()
+	for k, v := range items {
+		keys[k] = v.Object.(string)
 	}
 
 	return keys

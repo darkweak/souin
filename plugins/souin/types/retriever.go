@@ -7,12 +7,13 @@ import (
 	"github.com/darkweak/souin/cache/ykeys"
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/context"
+	"github.com/darkweak/souin/pkg/storage/types"
 	"github.com/darkweak/souin/pkg/surrogate/providers"
 )
 
 // TransportInterface interface
 type TransportInterface interface {
-	GetProvider() AbstractProviderInterface
+	GetProvider() types.Storer
 	RoundTrip(req *http.Request) (resp *http.Response, err error)
 	SetURL(url configurationtypes.URL)
 	UpdateCacheEventually(req *http.Request) (resp *http.Response, err error)
@@ -29,7 +30,7 @@ type Transport struct {
 	// The RoundTripper interface actually used to make requests
 	// If nil, http.DefaultTransport is used
 	Transport              http.RoundTripper
-	Provider               AbstractProviderInterface
+	Provider               types.Storer
 	ConfigurationURL       configurationtypes.URL
 	MarkCachedResponses    bool
 	CoalescingLayerStorage *CoalescingLayerStorage
@@ -39,7 +40,7 @@ type Transport struct {
 
 // RetrieverResponsePropertiesInterface interface
 type RetrieverResponsePropertiesInterface interface {
-	GetProvider() AbstractProviderInterface
+	GetProvider() types.Storer
 	GetConfiguration() configurationtypes.AbstractConfigurationInterface
 	GetMatchedURL() configurationtypes.URL
 	SetMatchedURL(url configurationtypes.URL)
@@ -53,7 +54,7 @@ type RetrieverResponsePropertiesInterface interface {
 
 // RetrieverResponseProperties struct
 type RetrieverResponseProperties struct {
-	Provider      AbstractProviderInterface
+	Provider      types.Storer
 	Configuration configurationtypes.AbstractConfigurationInterface
 	MatchedURL    configurationtypes.URL
 	RegexpUrls    regexp.Regexp
@@ -63,7 +64,7 @@ type RetrieverResponseProperties struct {
 }
 
 // GetProvider interface
-func (r *RetrieverResponseProperties) GetProvider() AbstractProviderInterface {
+func (r *RetrieverResponseProperties) GetProvider() types.Storer {
 	return r.Provider
 }
 

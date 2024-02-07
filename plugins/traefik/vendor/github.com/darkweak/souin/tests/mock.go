@@ -7,8 +7,8 @@ import (
 	"os"
 	"regexp"
 
-	"github.com/darkweak/souin/cache/types"
 	"github.com/darkweak/souin/configurationtypes"
+	"github.com/darkweak/souin/pkg/storage/types"
 	"github.com/darkweak/souin/plugins/souin/configuration"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -139,7 +139,7 @@ api:
     enable: true
 default_cache:
   nuts:
-    path: "/tmp/nuts"
+    path: "./nuts"
   headers:
     - Authorization
   port:
@@ -437,7 +437,7 @@ func GetValidToken() *http.Cookie {
 }
 
 // GetCacheProviderClientAndMatchedURL will work as a factory to build providers from configuration and get the URL from the key passed in parameter
-func GetCacheProviderClientAndMatchedURL(key string, configurationMocker func() configurationtypes.AbstractConfigurationInterface, factory func(configurationInterface configurationtypes.AbstractConfigurationInterface) (types.AbstractProviderInterface, error)) (types.AbstractProviderInterface, configurationtypes.URL) {
+func GetCacheProviderClientAndMatchedURL(key string, configurationMocker func() configurationtypes.AbstractConfigurationInterface, factory func(configurationInterface configurationtypes.AbstractConfigurationInterface) (types.Storer, error)) (types.Storer, configurationtypes.URL) {
 	config := configurationMocker()
 	client, _ := factory(config)
 	regexpUrls := MockInitializeRegexp(config)
