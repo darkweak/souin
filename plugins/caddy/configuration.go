@@ -270,7 +270,7 @@ func parseRedisConfiguration(c map[string]interface{}) map[string]interface{} {
 	return c
 }
 
-func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isBlocking bool) error {
+func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isGlobal bool) error {
 	for h.Next() {
 		for nesting := h.Nesting(); h.NextBlock(nesting); {
 			rootOption := h.Val()
@@ -280,6 +280,9 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isBlocking b
 				allowed = append(allowed, h.RemainingArgs()...)
 				cfg.DefaultCache.AllowedHTTPVerbs = allowed
 			case "api":
+				if !isGlobal {
+					return h.Err("'api' block must be global")
+				}
 				apiConfiguration := configurationtypes.API{}
 				for nesting := h.Nesting(); h.NextBlock(nesting); {
 					directive := h.Val()
@@ -388,8 +391,10 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isBlocking b
 					case "api_key":
 						cdn.APIKey = h.RemainingArgs()[0]
 					case "dynamic":
-						if len(h.RemainingArgs()) > 0 {
-							cdn.Dynamic, _ = strconv.ParseBool(h.RemainingArgs()[0])
+						cdn.Dynamic = true
+						args := h.RemainingArgs()
+						if len(args) > 0 {
+							cdn.Dynamic, _ = strconv.ParseBool(args[0])
 						}
 					case "hostname":
 						cdn.Hostname = h.RemainingArgs()[0]
