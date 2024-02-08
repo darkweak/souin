@@ -802,7 +802,7 @@ func TestESITags(t *testing.T) {
 	localhost:9080 {
 		route /esi-include-1 {
 			cache
-			respond "esi-include-1"
+			respond "esi-include-1 with some long content to ensure the compute works well. Also add some dummy text with some $pecial characters without recursive esi includes"
 		}
 		route /esi-include-2 {
 			cache
@@ -815,18 +815,18 @@ func TestESITags(t *testing.T) {
 		}
 	}`, "caddyfile")
 
-	resp1, _ := tester.AssertGetResponse(`http://localhost:9080/esi-path`, 200, "Hello esi-include-1 and esi-include-2!")
+	resp1, _ := tester.AssertGetResponse(`http://localhost:9080/esi-path`, 200, "Hello esi-include-1 with some long content to ensure the compute works well. Also add some dummy text with some $pecial characters without recursive esi includes and esi-include-2!")
 	if resp1.Header.Get("Age") != "" {
 		t.Errorf("unexpected Age header %v", resp1.Header.Get("Age"))
 	}
 	if resp1.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-http-localhost:9080-/esi-path" {
 		t.Errorf("unexpected Cache-Status header %v", resp1.Header.Get("Cache-Status"))
 	}
-	if resp1.Header.Get("Content-Length") != "38" {
+	if resp1.Header.Get("Content-Length") != "180" {
 		t.Errorf("unexpected Content-Length header %v", resp1.Header.Get("Content-Length"))
 	}
 
-	resp2, _ := tester.AssertGetResponse(`http://localhost:9080/esi-path`, 200, "Hello esi-include-1 and esi-include-2!")
+	resp2, _ := tester.AssertGetResponse(`http://localhost:9080/esi-path`, 200, "Hello esi-include-1 with some long content to ensure the compute works well. Also add some dummy text with some $pecial characters without recursive esi includes and esi-include-2!")
 	if resp2.Header.Get("Age") == "" {
 		t.Error("Age header should be present")
 	}
@@ -834,7 +834,7 @@ func TestESITags(t *testing.T) {
 		t.Error("Age header should be present")
 	}
 
-	resp3, _ := tester.AssertGetResponse(`http://localhost:9080/esi-include-1`, 200, "esi-include-1")
+	resp3, _ := tester.AssertGetResponse(`http://localhost:9080/esi-include-1`, 200, "esi-include-1 with some long content to ensure the compute works well. Also add some dummy text with some $pecial characters without recursive esi includes")
 	if resp3.Header.Get("Age") == "" {
 		t.Error("Age header should be present")
 	}
