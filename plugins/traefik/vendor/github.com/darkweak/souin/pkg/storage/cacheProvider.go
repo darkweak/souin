@@ -20,10 +20,17 @@ type Cache struct {
 	stale time.Duration
 }
 
+var sharedCache *Cache
+
 // CacheConnectionFactory function create new Cache instance
 func CacheConnectionFactory(c t.AbstractConfigurationInterface) (types.Storer, error) {
 	provider := cache.New(1 * time.Second)
-	return &Cache{Cache: provider, stale: c.GetDefaultCache().GetStale()}, nil
+
+	if sharedCache == nil {
+		sharedCache = &Cache{Cache: provider, stale: c.GetDefaultCache().GetStale()}
+	}
+
+	return sharedCache, nil
 }
 
 // Name returns the storer name
@@ -44,10 +51,12 @@ func (provider *Cache) ListKeys() []string {
 
 // MapKeys method returns the map of existing keys
 func (provider *Cache) MapKeys(prefix string) map[string]string {
-	var keys map[string]string
+	keys := map[string]string{}
 	provider.Cache.Range(func(key, value interface{}) bool {
-		k, _ := strings.CutPrefix(key.(string), prefix)
-		keys[k] = value.(string)
+		if strings.HasPrefix(key.(string), prefix) {
+			k, _ := strings.CutPrefix(key.(string), prefix)
+			keys[k] = string(value.([]byte))
+		}
 		return true
 	})
 
