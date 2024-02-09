@@ -3,6 +3,7 @@ package middleware
 import (
 	"bytes"
 	"net/http"
+	"strconv"
 	"sync"
 
 	"github.com/darkweak/go-esi/esi"
@@ -79,13 +80,12 @@ func (r *CustomWriter) Write(b []byte) (int, error) {
 
 // Send delays the response to handle Cache-Status
 func (r *CustomWriter) Send() (int, error) {
-	contentLength := r.Header().Get(rfc.StoredLengthHeader)
-	if contentLength != "" {
-		r.Header().Set("Content-Length", contentLength)
-	}
-
 	defer r.Buf.Reset()
+	r.Header().Set("Content-Length", r.Header().Get(rfc.StoredLengthHeader))
 	b := esi.Parse(r.Buf.Bytes(), r.Req)
+	if len(b) != 0 {
+		r.Header().Set("Content-Length", strconv.Itoa(len(b)))
+	}
 	r.Header().Del(rfc.StoredLengthHeader)
 	r.Header().Del(rfc.StoredTTLHeader)
 
