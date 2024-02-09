@@ -26,6 +26,7 @@ var storageMap = map[string]StorerInstanciator{
 	"olric":          OlricConnectionFactory,
 	"embedded_olric": EmbeddedOlricConnectionFactory,
 	"nuts":           NutsConnectionFactory,
+	"nuts_memcached": NutsMemcachedConnectionFactory,
 	"badger":         BadgerConnectionFactory,
 }
 
@@ -44,6 +45,8 @@ func getStorageNameFromConfiguration(configuration configurationtypes.AbstractCo
 		}
 	} else if configuration.GetDefaultCache().GetNuts().Configuration != nil || configuration.GetDefaultCache().GetNuts().Path != "" {
 		return "nuts"
+	} else if configuration.GetDefaultCache().GetNutsMemcached().Configuration != nil || configuration.GetDefaultCache().GetNutsMemcached().Path != "" {
+		return "nuts_memcached"
 	}
 
 	return "badger"
