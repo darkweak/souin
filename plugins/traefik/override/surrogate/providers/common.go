@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/storage"
@@ -15,6 +16,7 @@ import (
 
 const (
 	cdnCacheControl       = "CDN-Cache-Control"
+	cacheGroupKey         = "Cache-Groups"
 	surrogateKey          = "Surrogate-Key"
 	surrogateControl      = "Surrogate-Control"
 	cacheControl          = "Cache-Control"
@@ -26,8 +28,13 @@ const (
 	cacheTags             = "Cache-Tags"
 	cacheTag              = "Cache-Tag"
 
-	stalePrefix = "STALE_"
+	stalePrefix     = "STALE_"
+	surrogatePrefix = "SURROGATE_"
 )
+
+var storageToInfiniteTTLMap = map[string]time.Duration{
+	"CACHE": 365 * 24 * time.Hour,
+}
 
 func (s *baseStorage) ParseHeaders(value string) []string {
 	return regexp.MustCompile(s.parent.getHeaderSeparator()+" *").Split(value, -1)
@@ -73,6 +80,7 @@ type baseStorage struct {
 	dynamic    bool
 	keepStale  bool
 	mu         *sync.Mutex
+	duration   time.Duration
 }
 
 func (s *baseStorage) init(config configurationtypes.AbstractConfigurationInterface) {
@@ -109,17 +117,16 @@ func (s *baseStorage) init(config configurationtypes.AbstractConfigurationInterf
 	s.dynamic = config.GetDefaultCache().GetCDN().Dynamic
 	s.keysRegexp = keysRegexp
 	s.mu = &sync.Mutex{}
+	s.duration = storageToInfiniteTTLMap[s.Storage.Name()]
 }
 
 func (s *baseStorage) storeTag(tag string, cacheKey string, re *regexp.Regexp) {
 	defer s.mu.Unlock()
 	s.mu.Lock()
-	currentValue := string(s.Storage.Get(tag))
-	if s.dynamic {
-		if !re.MatchString(currentValue) {
-			fmt.Printf("Store the tag %s", tag)
-			_ = s.Storage.Set("SURROGATE_"+tag, []byte(currentValue+souinStorageSeparator+cacheKey), configurationtypes.URL{}, -1)
-		}
+	currentValue := string(s.Storage.Get(surrogatePrefix + tag))
+	if !re.MatchString(currentValue) {
+		fmt.Printf("Store the tag %s", tag)
+		_ = s.Storage.Set(surrogatePrefix+tag, []byte(currentValue+souinStorageSeparator+cacheKey), configurationtypes.URL{}, -1)
 	}
 }
 
@@ -172,11 +179,11 @@ func (s *baseStorage) getSurrogateKey(header http.Header) string {
 func (s *baseStorage) purgeTag(tag string) []string {
 	toInvalidate := string(s.Storage.Get(tag))
 	fmt.Printf("Purge the tag %s", tag)
-	s.Storage.Delete("SURROGATE_" + tag)
+	s.Storage.Delete(surrogatePrefix + tag)
 	if !s.keepStale {
 		toInvalidate = toInvalidate + "," + string(s.Storage.Get(stalePrefix+tag))
 		fmt.Printf("Purge the tag %s", stalePrefix+tag)
-		s.Storage.Delete("SURROGATE_" + stalePrefix + tag)
+		s.Storage.Delete(surrogatePrefix + stalePrefix + tag)
 	}
 	return strings.Split(toInvalidate, souinStorageSeparator)
 }
@@ -240,12 +247,12 @@ func (s *baseStorage) Invalidate(method string, headers http.Header) {
 
 // List returns the stored keys associated to resources
 func (s *baseStorage) List() map[string]string {
-	return s.Storage.MapKeys("SURROGATE_")
+	return s.Storage.MapKeys(surrogatePrefix)
 }
 
 // Destruct method will shutdown properly the provider
 func (s *baseStorage) Destruct() error {
-	s.Storage.DeleteMany("SURROGATE_.*")
+	s.Storage.DeleteMany(surrogatePrefix + ".*")
 
 	return nil
 }
