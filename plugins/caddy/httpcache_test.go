@@ -294,6 +294,62 @@ func TestNotHandledRoute(t *testing.T) {
 	}
 }
 
+func TestMaxBodyByte(t *testing.T) {
+	tester := caddytest.NewTester(t)
+	tester.InitServer(`
+	{
+		admin localhost:2999
+		http_port 9080
+		https_port 9443
+		cache {
+			ttl 5s
+			max_body_bytes 30
+		}
+	}
+	localhost:9080 {
+		route /max-body-bytes-stored {
+			cache
+			respond "Hello, Max body bytes stored!"
+		}
+		route /max-body-bytes-not-stored {
+			cache
+			respond "Hello, Max body bytes not stored due to the response length!"
+		}
+	}`, "caddyfile")
+
+	respStored1, _ := tester.AssertGetResponse(`http://localhost:9080/max-body-bytes-stored`, 200, "Hello, Max body bytes stored!")
+	respStored2, _ := tester.AssertGetResponse(`http://localhost:9080/max-body-bytes-stored`, 200, "Hello, Max body bytes stored!")
+	if respStored1.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-http-localhost:9080-/max-body-bytes-stored" {
+		t.Errorf("unexpected Cache-Status header value %v", respStored1.Header.Get("Cache-Status"))
+	}
+	if respStored1.Header.Get("Age") != "" {
+		t.Errorf("unexpected Age header %v", respStored1.Header.Get("Age"))
+	}
+
+	if respStored2.Header.Get("Cache-Status") != "Souin; hit; ttl=4; key=GET-http-localhost:9080-/max-body-bytes-stored" {
+		t.Errorf("unexpected Cache-Status header value %v", respStored2.Header.Get("Cache-Status"))
+	}
+	if respStored2.Header.Get("Age") == "" {
+		t.Error("Age header should be present")
+	}
+
+	respNotStored1, _ := tester.AssertGetResponse(`http://localhost:9080/max-body-bytes-not-stored`, 200, "Hello, Max body bytes not stored due to the response length!")
+	respNotStored2, _ := tester.AssertGetResponse(`http://localhost:9080/max-body-bytes-not-stored`, 200, "Hello, Max body bytes not stored due to the response length!")
+	if respNotStored1.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; detail=UPSTREAM-RESPONSE-TOO-LARGE; key=GET-http-localhost:9080-/max-body-bytes-not-stored" {
+		t.Errorf("unexpected Cache-Status header value %v", respNotStored1.Header.Get("Cache-Status"))
+	}
+	if respNotStored1.Header.Get("Age") != "" {
+		t.Errorf("unexpected Age header %v", respNotStored1.Header.Get("Age"))
+	}
+
+	if respNotStored2.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; detail=UPSTREAM-RESPONSE-TOO-LARGE; key=GET-http-localhost:9080-/max-body-bytes-not-stored" {
+		t.Errorf("unexpected Cache-Status header value %v", respNotStored2.Header.Get("Cache-Status"))
+	}
+	if respNotStored2.Header.Get("Age") != "" {
+		t.Errorf("unexpected Age header %v", respNotStored2.Header.Get("Age"))
+	}
+}
+
 func TestMultiProvider(t *testing.T) {
 	var wg sync.WaitGroup
 	var responses []*http.Response

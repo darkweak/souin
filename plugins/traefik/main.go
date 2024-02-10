@@ -203,6 +203,8 @@ func parseConfiguration(c map[string]interface{}) Configuration {
 					dc.Storers = parseStringSlice(defaultCacheV)
 				case "default_cache_control":
 					dc.DefaultCacheControl = defaultCacheV.(string)
+				case "max_body_bytes":
+					dc.MaxBodyBytes, _ = defaultCacheV.(uint64)
 				}
 			}
 			configuration.DefaultCache = &dc

@@ -233,6 +233,7 @@ type DefaultCache struct {
 	Timeout             Timeout       `json:"timeout" yaml:"timeout"`
 	TTL                 Duration      `json:"ttl" yaml:"ttl"`
 	DefaultCacheControl string        `json:"default_cache_control" yaml:"default_cache_control"`
+	MaxBodyBytes        uint64        `json:"max_body_bytes" yaml:"max_body_bytes"`
 }
 
 // GetAllowedHTTPVerbs returns the allowed verbs to cache
@@ -325,6 +326,11 @@ func (d *DefaultCache) GetDefaultCacheControl() string {
 	return d.DefaultCacheControl
 }
 
+// GetMaxBodyBytes returns the default maximum body size (in bytes) for storing into cache
+func (d *DefaultCache) GetMaxBodyBytes() uint64 {
+	return d.MaxBodyBytes
+}
+
 // DefaultCacheInterface interface
 type DefaultCacheInterface interface {
 	GetAllowedHTTPVerbs() []string
@@ -345,6 +351,7 @@ type DefaultCacheInterface interface {
 	GetTimeout() Timeout
 	GetTTL() time.Duration
 	GetDefaultCacheControl() string
+	GetMaxBodyBytes() uint64
 }
 
 // APIEndpoint is the minimal structure to define an endpoint

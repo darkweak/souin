@@ -37,7 +37,6 @@ type CustomWriter struct {
 	headersSent bool
 	mutex       *sync.Mutex
 	statusCode  int
-	// size        int
 }
 
 // Header will write the response headers
