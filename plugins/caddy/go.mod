@@ -5,7 +5,7 @@ go 1.21
 require (
 	github.com/buraksezer/olric v0.5.4
 	github.com/caddyserver/caddy/v2 v2.7.6
-	github.com/darkweak/souin v1.6.45
+	github.com/darkweak/souin v1.6.46-0.20240209164332-6a3a38592bc2
 	go.uber.org/zap v1.26.0
 )
 
