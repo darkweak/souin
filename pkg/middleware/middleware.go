@@ -243,6 +243,12 @@ func (s *SouinBaseHandler) Store(
 		if res.Header.Get("Content-Length") == "" {
 			res.Header.Set("Content-Length", fmt.Sprint(bLen))
 		}
+		respBodyMaxSize := int(s.Configuration.GetDefaultCache().GetMaxBodyBytes())
+		if respBodyMaxSize > 0 && bLen > respBodyMaxSize {
+			customWriter.Header().Set("Cache-Status", status+"; detail=UPSTREAM-RESPONSE-TOO-LARGE; key="+rfc.GetCacheKeyFromCtx(rq.Context()))
+
+			return nil
+		}
 		res.Header.Set(rfc.StoredLengthHeader, res.Header.Get("Content-Length"))
 		response, err := httputil.DumpResponse(&res, true)
 		if err == nil && bLen > 0 {

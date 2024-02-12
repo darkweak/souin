@@ -192,6 +192,9 @@ func (s *SouinCaddyMiddleware) FromApp(app *SouinApp) error {
 	if dc.DefaultCacheControl == "" {
 		s.Configuration.DefaultCache.DefaultCacheControl = appDc.DefaultCacheControl
 	}
+	if dc.MaxBodyBytes == 0 {
+		s.Configuration.DefaultCache.MaxBodyBytes = appDc.MaxBodyBytes
+	}
 	if dc.CacheName == "" {
 		s.Configuration.DefaultCache.CacheName = appDc.CacheName
 	}
