@@ -4,7 +4,7 @@ go 1.21
 
 require (
 	github.com/beego/beego/v2 v2.1.1
-	github.com/darkweak/souin v1.6.45
+	github.com/darkweak/souin v1.6.46
 )
 
 require (
@@ -89,4 +89,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/darkweak/souin v1.6.45 => ../..
+replace github.com/darkweak/souin v1.6.46 => ../..
