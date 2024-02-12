@@ -173,7 +173,7 @@ func (s *SouinBaseHandler) Store(
 		customWriter.Header().Set(headerName, s.DefaultMatchedUrl.DefaultCacheControl)
 	}
 
-	responseCc, _ := cacheobject.ParseResponseCacheControl(customWriter.Header().Get(headerName))
+	responseCc, _ := cacheobject.ParseResponseCacheControl(rfc.HeaderAllCommaSepValuesString(customWriter.Header(), headerName))
 	s.Configuration.GetLogger().Sugar().Debugf("Response cache-control %+v", responseCc)
 	if responseCc == nil {
 		customWriter.Header().Set("Cache-Status", fmt.Sprintf("%s; fwd=uri-miss; key=%s; detail=INVALID-RESPONSE-CACHE-CONTROL", rq.Context().Value(context.CacheName), rfc.GetCacheKeyFromCtx(rq.Context())))
@@ -486,7 +486,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 		return err
 	}
 
-	requestCc, coErr := cacheobject.ParseRequestCacheControl(req.Header.Get("Cache-Control"))
+	requestCc, coErr := cacheobject.ParseRequestCacheControl(rfc.HeaderAllCommaSepValuesString(req.Header, "Cache-Control"))
 
 	modeContext := req.Context().Value(context.Mode).(*context.ModeContext)
 	if !modeContext.Bypass_request && (coErr != nil || requestCc == nil) {
@@ -559,8 +559,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 
 				return err
 			}
-
-			if resCc, _ := cacheobject.ParseResponseCacheControl(response.Header.Get(headerName)); resCc.NoCachePresent {
+			if resCc, _ := cacheobject.ParseResponseCacheControl(rfc.HeaderAllCommaSepValuesString(response.Header, headerName)); resCc.NoCachePresent {
 				prometheus.Increment(prometheus.NoCachedResponseCounter)
 				err := s.Revalidate(validator, next, customWriter, req, requestCc, cachedKey)
 				_, _ = customWriter.Send()
@@ -591,7 +590,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 				addTime, _ := time.ParseDuration(response.Header.Get(rfc.StoredTTLHeader))
 				rfc.SetCacheStatusHeader(response)
 
-				responseCc, _ := cacheobject.ParseResponseCacheControl(response.Header.Get("Cache-Control"))
+				responseCc, _ := cacheobject.ParseResponseCacheControl(rfc.HeaderAllCommaSepValuesString(response.Header, "Cache-Control"))
 				if responseCc.StaleWhileRevalidate > 0 {
 					for h, v := range response.Header {
 						customWriter.Header()[h] = v
