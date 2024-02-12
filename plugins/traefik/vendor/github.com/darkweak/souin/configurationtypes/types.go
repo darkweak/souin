@@ -233,7 +233,7 @@ type DefaultCache struct {
 	Timeout             Timeout       `json:"timeout" yaml:"timeout"`
 	TTL                 Duration      `json:"ttl" yaml:"ttl"`
 	DefaultCacheControl string        `json:"default_cache_control" yaml:"default_cache_control"`
-	MaxBodyBytes        uint64        `json:"max_body_bytes" yaml:"max_body_bytes"`
+	MaxBodyBytes        uint64        `json:"max_cachable_body_bytes" yaml:"max_cachable_body_bytes"`
 }
 
 // GetAllowedHTTPVerbs returns the allowed verbs to cache

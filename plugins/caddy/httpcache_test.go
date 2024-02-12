@@ -303,7 +303,7 @@ func TestMaxBodyByte(t *testing.T) {
 		https_port 9443
 		cache {
 			ttl 5s
-			max_body_bytes 30
+			max_cachable_body_bytes 30
 		}
 	}
 	localhost:9080 {
