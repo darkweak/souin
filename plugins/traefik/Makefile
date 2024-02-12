@@ -30,6 +30,7 @@ replace: ## Replace sources in the vendor folder deeper than the go mod replace
 	$(MAKE) copy-to base=$(API) target=api
 	$(MAKE) copy-to base=$(PKG) target=api
 	$(MAKE) copy-to base=$(PKG) target=storage
+	$(MAKE) copy-file-to base=$(PKG) target=rfc/vary.go
 	$(MAKE) copy-file-to base=$(PKG) target=middleware/middleware.go
 	$(MAKE) copy-file-to base=$(PKG) target=middleware/writer.go
 

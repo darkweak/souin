@@ -117,7 +117,6 @@ func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		if regexp.MustCompile(s.GetBasePath()+"/surrogate_keys").FindString(r.RequestURI) != "" {
-			fmt.Printf("r.RequestURI => %#v\n", s.surrogateStorage.List())
 			res, _ = json.Marshal(s.surrogateStorage.List())
 		} else if compile {
 			search := regexp.MustCompile(s.GetBasePath()+"/(.+)").FindAllStringSubmatch(r.RequestURI, -1)[0][1]

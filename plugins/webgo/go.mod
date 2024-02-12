@@ -1,6 +1,6 @@
 module github.com/darkweak/souin/plugins/webgo
 
-go 1.20
+go 1.21
 
 require (
 	github.com/bnkamalesh/webgo/v6 v6.7.0

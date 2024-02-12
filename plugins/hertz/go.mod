@@ -1,6 +1,6 @@
 module github.com/darkweak/souin/plugins/hertz
 
-go 1.20
+go 1.21
 
 require github.com/darkweak/souin v1.6.45
 
