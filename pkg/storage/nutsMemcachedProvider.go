@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bradfitz/gomemcache/memcache"
 	t "github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/rfc"
 	"github.com/darkweak/souin/pkg/storage/types"
@@ -21,8 +22,9 @@ var nutsMemcachedInstanceMap = map[string]*nutsdb.DB{}
 // NutsMemcached provider type
 type NutsMemcached struct {
 	*nutsdb.DB
-	stale  time.Duration
-	logger *zap.Logger
+	stale          time.Duration
+	logger         *zap.Logger
+	memcacheClient *memcache.Client
 }
 
 // const (
@@ -75,6 +77,13 @@ func NutsMemcachedConnectionFactory(c t.AbstractConfigurationInterface) (types.S
 	nutsConfiguration := dc.GetNutsMemcached()
 	nutsOptions := nutsdb.DefaultOptions
 	nutsOptions.Dir = "/tmp/souin-nuts-memcached"
+
+	// `HintKeyAndRAMIdxMode` represents ram index (only key) mode.
+	nutsOptions.EntryIdxMode = nutsdb.HintKeyAndRAMIdxMode
+	// `HintBPTSparseIdxMode` represents b+ tree sparse index mode.
+	// Note: this mode was removed after v0.14.0
+	//nutsOptions.EntryIdxMode = nutsdb.HintBPTSparseIdxMode
+
 	if nutsConfiguration.Configuration != nil {
 		var parsedNuts nutsdb.Options
 		nutsConfiguration.Configuration = sanitizeProperties(nutsConfiguration.Configuration.(map[string]interface{}))
@@ -110,9 +119,10 @@ func NutsMemcachedConnectionFactory(c t.AbstractConfigurationInterface) (types.S
 	}
 
 	instance := &NutsMemcached{
-		DB:     db,
-		stale:  dc.GetStale(),
-		logger: c.GetLogger(),
+		DB:             db,
+		stale:          dc.GetStale(),
+		logger:         c.GetLogger(),
+		memcacheClient: memcache.New("127.0.0.1:11211"), // hardcoded for now
 	}
 	nutsMemcachedInstanceMap[nutsOptions.Dir] = instance.DB
 
@@ -169,13 +179,30 @@ func (provider *NutsMemcached) MapKeys(prefix string) map[string]string {
 
 // Get method returns the populated response if exists, empty response then
 func (provider *NutsMemcached) Get(key string) (item []byte) {
-	_ = provider.DB.View(func(tx *nutsdb.Tx) error {
-		i, e := tx.Get(bucket, []byte(key))
-		if i != nil {
+	// get from nuts
+	keyFound := false
+	{
+		_ = provider.DB.View(func(tx *nutsdb.Tx) error {
+			i, e := tx.Get(bucket, []byte(key))
+			if i != nil {
+				// Value is stored in memcached
+				//item = i.Value
+				keyFound = true
+			}
+			return e
+		})
+	}
+
+	// get from memcached
+	if keyFound {
+		// Reminder: the key must be at most 250 bytes in length
+		//fmt.Println("memcached GET", key)
+		i, e := provider.memcacheClient.Get(key)
+		if e == nil && i != nil {
 			item = i.Value
 		}
-		return e
-	})
+
+	}
 
 	return
 }
@@ -192,17 +219,29 @@ func (provider *NutsMemcached) Prefix(key string, req *http.Request, validator *
 		} else {
 			for _, entry := range entries {
 				if varyVoter(key, req, string(entry.Key)) {
-					if res, err := http.ReadResponse(bufio.NewReader(bytes.NewBuffer(entry.Value)), req); err == nil {
-						rfc.ValidateETag(res, validator)
-						if validator.Matched {
-							provider.logger.Sugar().Debugf("The stored key %s matched the current iteration key ETag %+v", string(entry.Key), validator)
-							result = res
-							return nil
-						}
+					// TODO: improve this
+					// store header only in nuts and avoid query to memcached on each vary
+					// E.g, rfc.ValidateETag on NutsDB header value, retrieve response body later from memcached.
 
-						provider.logger.Sugar().Debugf("The stored key %s didn't match the current iteration key ETag %+v", string(entry.Key), validator)
+					// Reminder: the key must be at most 250 bytes in length
+					//fmt.Println("memcached PREFIX", key, "GET", string(entry.Key))
+					i, e := provider.memcacheClient.Get(string(entry.Key))
+					if e == nil && i != nil {
+						res, err := http.ReadResponse(bufio.NewReader(bytes.NewBuffer(i.Value)), req)
+						if err == nil {
+							rfc.ValidateETag(res, validator)
+							if validator.Matched {
+								provider.logger.Sugar().Debugf("The stored key %s matched the current iteration key ETag %+v", string(entry.Key), validator)
+								result = res
+								return nil
+							}
+
+							provider.logger.Sugar().Debugf("The stored key %s didn't match the current iteration key ETag %+v", string(entry.Key), validator)
+						} else {
+							provider.logger.Sugar().Errorf("An error occured while reading response for the key %s: %v", string(entry.Key), err)
+						}
 					} else {
-						provider.logger.Sugar().Errorf("An error occured while reading response for the key %s: %v", string(entry.Key), err)
+						provider.logger.Sugar().Errorf("An error occured while reading memcached for the key %s: %v", string(entry.Key), err)
 					}
 				}
 			}
@@ -214,26 +253,51 @@ func (provider *NutsMemcached) Prefix(key string, req *http.Request, validator *
 }
 
 // Set method will store the response in Nuts provider
-func (provider *NutsMemcached) Set(key string, value []byte, url t.URL, duration time.Duration) error {
-	if duration == 0 {
-		duration = url.TTL.Duration
+func (provider *NutsMemcached) Set(key string, value []byte, url t.URL, ttl time.Duration) error {
+	if ttl == 0 {
+		ttl = url.TTL.Duration
 	}
 
-	err := provider.DB.Update(func(tx *nutsdb.Tx) error {
-		return tx.Put(bucket, []byte(key), value, uint32(duration.Seconds()))
-	})
+	// set to nuts (normal TTL)
+	{
+		err := provider.DB.Update(func(tx *nutsdb.Tx) error {
+			// No value is stored, value is stored in memcached
+			return tx.Put(bucket, []byte(key), []byte{}, uint32(ttl.Seconds()))
+		})
 
-	if err != nil {
-		provider.logger.Sugar().Errorf("Impossible to set value into Nuts, %v", err)
-		return err
+		if err != nil {
+			provider.logger.Sugar().Errorf("Impossible to set value into Nuts, %v", err)
+			return err
+		}
 	}
 
-	err = provider.DB.Update(func(tx *nutsdb.Tx) error {
-		return tx.Put(bucket, []byte(StalePrefix+key), value, uint32((provider.stale + duration).Seconds()))
-	})
+	// set to nuts (stale TTL)
+	staleTtl := int32((provider.stale + ttl).Seconds())
+	{
+		err := provider.DB.Update(func(tx *nutsdb.Tx) error {
+			// No value is stored, value is stored in memcached
+			return tx.Put(bucket, []byte(StalePrefix+key), []byte{}, uint32(staleTtl))
+		})
 
-	if err != nil {
-		provider.logger.Sugar().Errorf("Impossible to set value into Nuts, %v", err)
+		if err != nil {
+			provider.logger.Sugar().Errorf("Impossible to set value into Nuts, %v", err)
+		}
+	}
+
+	// set to memcached with stale TTL
+	{
+		// Reminder: the key must be at most 250 bytes in length
+		//fmt.Println("memcached SET", key)
+		err := provider.memcacheClient.Set(
+			&memcache.Item{
+				Key:        key,
+				Value:      value,
+				Expiration: staleTtl,
+			},
+		)
+		if err != nil {
+			provider.logger.Sugar().Errorf("Impossible to set value into Memcached, %v", err)
+		}
 	}
 
 	return nil
