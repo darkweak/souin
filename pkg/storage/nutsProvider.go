@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
@@ -212,6 +213,69 @@ func (provider *Nuts) Prefix(key string, req *http.Request, validator *rfc.Reval
 	})
 
 	return result
+}
+
+// GetMultiLevel tries to load the key and check if one of linked keys is a fresh/stale candidate.
+func (provider *Nuts) GetMultiLevel(key string, req *http.Request, validator *rfc.Revalidator) (fresh *http.Response, stale *http.Response) {
+	var resultFresh *http.Response
+	var resultStale *http.Response
+
+	_ = provider.DB.View(func(tx *nutsdb.Tx) error {
+		i, e := tx.Get(bucket, []byte(mappingKeyPrefix+key))
+		if e != nil && !errors.Is(e, nutsdb.ErrKeyNotFound) {
+			return e
+		}
+
+		var val []byte
+		if i != nil {
+			val = i.Value
+		}
+		resultFresh, resultStale, e = mappingElection(provider, val, req, validator, provider.logger)
+
+		return e
+	})
+
+	return resultFresh, resultStale
+}
+
+// SetMultiLevel tries to store the keywith the given value and update the mapping key to store metadata.
+func (provider *Nuts) SetMultiLevel(baseKey, key string, value []byte, variedHeaders http.Header, etag string, duration time.Duration) error {
+	now := time.Now()
+
+	err := provider.DB.Update(func(tx *nutsdb.Tx) error {
+		var e error
+		e = tx.Put(bucket, []byte(key), value, uint32(duration.Seconds()))
+		if e != nil {
+			provider.logger.Sugar().Errorf("Impossible to set the key %s into Nuts, %v", key, e)
+			return e
+		}
+
+		mappingKey := mappingKeyPrefix + baseKey
+		item, e := tx.Get(bucket, []byte(mappingKey))
+		if e != nil && !errors.Is(e, nutsdb.ErrKeyNotFound) {
+			provider.logger.Sugar().Errorf("Impossible to get the base key %s in Nuts, %v", baseKey, e)
+			return e
+		}
+
+		var val []byte
+		if item != nil {
+			val = item.Value
+		}
+		val, e = mappingUpdater(key, val, provider.logger, now, now.Add(duration), now.Add(duration+provider.stale), variedHeaders, etag)
+		if e != nil {
+			return e
+		}
+
+		provider.logger.Sugar().Errorf("Store the new mapping for the key %s in Nuts, %v", key, string(val))
+
+		return tx.Put(bucket, []byte(mappingKey), val, uint32(time.Hour.Seconds()))
+	})
+
+	if err != nil {
+		provider.logger.Sugar().Errorf("Impossible to set value into Nuts, %v", err)
+	}
+
+	return err
 }
 
 // Set method will store the response in Nuts provider

@@ -1,14 +1,20 @@
 package storage
 
 import (
+	"bufio"
+	"bytes"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/rfc"
 	"github.com/darkweak/souin/pkg/storage/types"
+	"go.uber.org/zap"
 )
 
 const (
@@ -16,6 +22,7 @@ const (
 	encodedHeaderColonSeparator     = "%3A"
 	StalePrefix                     = "STALE_"
 	surrogatePrefix                 = "SURROGATE_"
+	mappingKeyPrefix                = "IDX_"
 )
 
 type StorerInstanciator func(configurationtypes.AbstractConfigurationInterface) (types.Storer, error)
@@ -144,4 +151,99 @@ func varyVoter(baseKey string, req *http.Request, currentKey string) bool {
 	}
 
 	return false
+}
+
+func mappingElection(provider types.Storer, item []byte, req *http.Request, validator *rfc.Revalidator, logger *zap.Logger) (resultFresh *http.Response, resultStale *http.Response, e error) {
+	var mapping types.StorageMapper
+	if len(item) != 0 {
+		e = json.NewDecoder(bytes.NewBuffer(item)).Decode(&mapping)
+		if e != nil {
+			return resultFresh, resultStale, e
+		}
+	}
+
+	fmt.Printf("MAPPING => %#v\n", mapping)
+	for keyName, keyItem := range mapping.Mapping {
+		valid := true
+		for hname, hval := range keyItem.VariedHeaders {
+			if req.Header.Get(hname) != strings.Join(hval, ", ") {
+				valid = false
+			}
+		}
+
+		if !valid {
+			continue
+		}
+
+		rfc.ValidateETagFromHeader(keyItem.Etag, validator)
+		if validator.Matched {
+			// If the key is fresh enough.
+			if time.Since(keyItem.FreshTime) < 0 {
+				response := provider.Get(keyName)
+				if response != nil {
+					if resultFresh, e = http.ReadResponse(bufio.NewReader(bytes.NewBuffer(response)), req); e == nil {
+						logger.Sugar().Errorf("An error occured while reading response for the key %s: %v", string(keyName), e)
+						return resultFresh, resultStale, e
+					}
+
+					logger.Sugar().Debugf("The stored key %s matched the current iteration key ETag %+v", string(keyName), validator)
+					return resultFresh, resultStale, e
+				}
+			}
+
+			// If the key is still stale.
+			if time.Since(keyItem.StaleTime) < 0 {
+				response := provider.Get(keyName)
+				if response != nil {
+					if resultStale, e = http.ReadResponse(bufio.NewReader(bytes.NewBuffer(response)), req); e == nil {
+						logger.Sugar().Errorf("An error occured while reading response for the key %s: %v", string(keyName), e)
+						return resultFresh, resultStale, e
+					}
+
+					logger.Sugar().Debugf("The stored key %s matched the current iteration key ETag %+v as stale", string(keyName), validator)
+					// We can always return the found stale because a fresh response could be in the next iteration.
+					if resultFresh != nil {
+						return resultFresh, resultStale, e
+					}
+				}
+			}
+		} else {
+			logger.Sugar().Debugf("The stored key %s didn't match the current iteration key ETag %+v", string(keyName), validator)
+		}
+	}
+
+	return resultFresh, resultStale, e
+}
+
+func mappingUpdater(key string, item []byte, logger *zap.Logger, now, freshTime, staleTime time.Time, variedHeaders http.Header, etag string) (val []byte, e error) {
+	var mapping types.StorageMapper
+	if len(item) == 0 {
+		mapping = types.StorageMapper{}
+	} else {
+		e = json.NewDecoder(bytes.NewBuffer(item)).Decode(&mapping)
+		if e != nil {
+			logger.Sugar().Errorf("Impossible to decode the key %s, %v", key, e)
+			return nil, e
+		}
+	}
+
+	if mapping.Mapping == nil {
+		mapping.Mapping = make(map[string]types.KeyIndex)
+	}
+
+	mapping.Mapping[key] = types.KeyIndex{
+		StoredAt:      now,
+		FreshTime:     freshTime,
+		StaleTime:     staleTime,
+		VariedHeaders: variedHeaders,
+		Etag:          etag,
+	}
+
+	val, e = json.Marshal(mapping)
+	if e != nil {
+		logger.Sugar().Errorf("Impossible to encode the mapping value for the key %s, %v", key, e)
+		return nil, e
+	}
+
+	return val, e
 }

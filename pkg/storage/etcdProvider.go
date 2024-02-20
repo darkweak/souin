@@ -174,6 +174,55 @@ func (provider *Etcd) Prefix(key string, req *http.Request, validator *rfc.Reval
 	return nil
 }
 
+// GetMultiLevel tries to load the key and check if one of linked keys is a fresh/stale candidate.
+func (provider *Etcd) GetMultiLevel(key string, req *http.Request, validator *rfc.Revalidator) (fresh *http.Response, stale *http.Response) {
+	if provider.reconnecting {
+		provider.logger.Sugar().Error("Impossible to get the etcd key while reconnecting.")
+		return
+	}
+
+	var resultFresh *http.Response
+	var resultStale *http.Response
+
+	r, e := provider.Client.Get(provider.ctx, key)
+	if e != nil {
+		go provider.Reconnect()
+		return resultFresh, resultStale
+	}
+
+	if len(r.Kvs) > 0 {
+		resultFresh, resultStale, _ = mappingElection(provider, r.Kvs[0].Value, req, validator, provider.logger)
+	}
+
+	return resultFresh, resultStale
+}
+
+// SetMultiLevel tries to store the keywith the given value and update the mapping key to store metadata.
+func (provider *Etcd) SetMultiLevel(baseKey, key string, value []byte, variedHeaders http.Header, etag string, duration time.Duration) error {
+	if provider.reconnecting {
+		provider.logger.Sugar().Error("Impossible to set the etcd value while reconnecting.")
+		return fmt.Errorf("reconnecting error")
+	}
+
+	now := time.Now()
+	if err := provider.Set(key, value, t.URL{}, duration); err != nil {
+		if !provider.reconnecting {
+			go provider.Reconnect()
+		}
+		provider.logger.Sugar().Errorf("Impossible to set value into Redis, %v", err)
+		return err
+	}
+
+	mappingKey := mappingKeyPrefix + baseKey
+	r := provider.Get(mappingKey)
+	val, e := mappingUpdater(mappingKeyPrefix+baseKey, []byte(r), provider.logger, now, now.Add(duration), now.Add(duration+provider.stale), variedHeaders, etag)
+	if e != nil {
+		return e
+	}
+
+	return provider.Set(mappingKey, val, t.URL{}, time.Hour)
+}
+
 // Set method will store the response in Etcd provider
 func (provider *Etcd) Set(key string, value []byte, url t.URL, duration time.Duration) error {
 	if provider.reconnecting {

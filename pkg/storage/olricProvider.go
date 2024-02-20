@@ -111,6 +111,57 @@ func (provider *Olric) MapKeys(prefix string) map[string]string {
 	return keys
 }
 
+// GetMultiLevel tries to load the key and check if one of linked keys is a fresh/stale candidate.
+func (provider *Olric) GetMultiLevel(key string, req *http.Request, validator *rfc.Revalidator) (fresh *http.Response, stale *http.Response) {
+	var resultFresh *http.Response
+	var resultStale *http.Response
+
+	dm := provider.dm.Get().(olric.DMap)
+	defer provider.dm.Put(dm)
+	res, e := dm.Get(context.Background(), key)
+
+	if e != nil {
+		return resultFresh, resultStale
+	}
+
+	val, _ := res.Byte()
+	resultFresh, resultStale, _ = mappingElection(provider, val, req, validator, provider.logger)
+
+	return resultFresh, resultStale
+}
+
+// SetMultiLevel tries to store the keywith the given value and update the mapping key to store metadata.
+func (provider *Olric) SetMultiLevel(baseKey, key string, value []byte, variedHeaders http.Header, etag string, duration time.Duration) error {
+	now := time.Now()
+
+	dm := provider.dm.Get().(olric.DMap)
+	defer provider.dm.Put(dm)
+	if err := dm.Put(context.Background(), key, value, olric.EX(duration)); err != nil {
+		provider.logger.Sugar().Errorf("Impossible to set value into EmbeddedOlric, %v", err)
+		return err
+	}
+
+	mappingKey := mappingKeyPrefix + baseKey
+	res, e := dm.Get(context.Background(), mappingKey)
+	if e != nil && !errors.Is(e, olric.ErrKeyNotFound) {
+		provider.logger.Sugar().Errorf("Impossible to get the key %s EmbeddedOlric, %v", baseKey, e)
+		return nil
+	}
+
+	val, e := res.Byte()
+	if e != nil {
+		provider.logger.Sugar().Errorf("Impossible to parse the key %s value as byte, %v", baseKey, e)
+		return e
+	}
+
+	val, e = mappingUpdater(key, val, provider.logger, now, now.Add(duration), now.Add(duration+provider.stale), variedHeaders, etag)
+	if e != nil {
+		return e
+	}
+
+	return provider.Set(mappingKey, val, t.URL{}, time.Hour)
+}
+
 // Prefix method returns the populated response if exists, empty response then
 func (provider *Olric) Prefix(key string, req *http.Request, validator *rfc.Revalidator) *http.Response {
 	if provider.reconnecting {

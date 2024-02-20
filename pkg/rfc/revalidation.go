@@ -59,7 +59,12 @@ func ParseRequest(req *http.Request) *Revalidator {
 }
 
 func ValidateETag(res *http.Response, validator *Revalidator) {
-	validator.ResponseETag = res.Header.Get("ETag")
+	ValidateETagFromHeader(res.Header.Get("ETag"), validator)
+
+}
+
+func ValidateETagFromHeader(etag string, validator *Revalidator) {
+	validator.ResponseETag = etag
 	validator.NeedRevalidation = validator.NeedRevalidation || validator.ResponseETag != ""
 	validator.Matched = validator.ResponseETag == "" || (validator.ResponseETag != "" && len(validator.RequestETags) == 0)
 

@@ -108,6 +108,62 @@ func (provider *Redis) MapKeys(prefix string) map[string]string {
 	return m
 }
 
+// GetMultiLevel tries to load the key and check if one of linked keys is a fresh/stale candidate.
+func (provider *Redis) GetMultiLevel(key string, req *http.Request, validator *rfc.Revalidator) (fresh *http.Response, stale *http.Response) {
+	if provider.reconnecting {
+		provider.logger.Sugar().Error("Impossible to get the redis key while reconnecting.")
+		return
+	}
+
+	var resultFresh *http.Response
+	var resultStale *http.Response
+
+	r, e := provider.Client.Get(provider.ctx, key).Result()
+	if e != nil {
+		if e != redis.Nil && !provider.reconnecting {
+			go provider.Reconnect()
+		}
+		return resultFresh, resultStale
+	}
+
+	resultFresh, resultStale, _ = mappingElection(provider, []byte(r), req, validator, provider.logger)
+
+	return resultFresh, resultStale
+}
+
+// SetMultiLevel tries to store the keywith the given value and update the mapping key to store metadata.
+func (provider *Redis) SetMultiLevel(baseKey, key string, value []byte, variedHeaders http.Header, etag string, duration time.Duration) error {
+	if provider.reconnecting {
+		provider.logger.Sugar().Error("Impossible to set the redis value while reconnecting.")
+		return fmt.Errorf("reconnecting error")
+	}
+
+	now := time.Now()
+	if err := provider.Client.Set(provider.ctx, key, value, duration).Err(); err != nil {
+		if !provider.reconnecting {
+			go provider.Reconnect()
+		}
+		provider.logger.Sugar().Errorf("Impossible to set value into Redis, %v", err)
+		return err
+	}
+
+	mappingKey := mappingKeyPrefix + baseKey
+	r, e := provider.Client.Get(provider.ctx, mappingKey).Result()
+	if e != nil {
+		if e != redis.Nil && !provider.reconnecting {
+			go provider.Reconnect()
+		}
+		return e
+	}
+
+	val, e := mappingUpdater(key, []byte(r), provider.logger, now, now.Add(duration), now.Add(duration+provider.stale), variedHeaders, etag)
+	if e != nil {
+		return e
+	}
+
+	return provider.Set(mappingKey, val, t.URL{}, time.Hour)
+}
+
 // Get method returns the populated response if exists, empty response then
 func (provider *Redis) Get(key string) (item []byte) {
 	if provider.reconnecting {

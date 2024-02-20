@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"errors"
 	"net/http"
 	"os"
 	"strings"
@@ -183,6 +184,53 @@ func (provider *EmbeddedOlric) Prefix(key string, req *http.Request, validator *
 	records.Close()
 
 	return nil
+}
+
+// GetMultiLevel tries to load the key and check if one of linked keys is a fresh/stale candidate.
+func (provider *EmbeddedOlric) GetMultiLevel(key string, req *http.Request, validator *rfc.Revalidator) (fresh *http.Response, stale *http.Response) {
+	var resultFresh *http.Response
+	var resultStale *http.Response
+
+	res, e := provider.dm.Get(provider.ct, key)
+
+	if e != nil {
+		return resultFresh, resultStale
+	}
+
+	val, _ := res.Byte()
+	resultFresh, resultStale, _ = mappingElection(provider, val, req, validator, provider.logger)
+
+	return resultFresh, resultStale
+}
+
+// SetMultiLevel tries to store the keywith the given value and update the mapping key to store metadata.
+func (provider *EmbeddedOlric) SetMultiLevel(baseKey, key string, value []byte, variedHeaders http.Header, etag string, duration time.Duration) error {
+	now := time.Now()
+
+	if err := provider.dm.Put(provider.ct, key, value, olric.EX(duration)); err != nil {
+		provider.logger.Sugar().Errorf("Impossible to set value into EmbeddedOlric, %v", err)
+		return err
+	}
+
+	mappingKey := mappingKeyPrefix + baseKey
+	res, e := provider.dm.Get(provider.ct, mappingKey)
+	if e != nil && !errors.Is(e, olric.ErrKeyNotFound) {
+		provider.logger.Sugar().Errorf("Impossible to get the key %s EmbeddedOlric, %v", baseKey, e)
+		return nil
+	}
+
+	val, e := res.Byte()
+	if e != nil {
+		provider.logger.Sugar().Errorf("Impossible to parse the key %s value as byte, %v", baseKey, e)
+		return e
+	}
+
+	val, e = mappingUpdater(key, val, provider.logger, now, now.Add(duration), now.Add(duration+provider.stale), variedHeaders, etag)
+	if e != nil {
+		return e
+	}
+
+	return provider.Set(mappingKey, val, t.URL{}, time.Hour)
 }
 
 // Get method returns the populated response if exists, empty response then

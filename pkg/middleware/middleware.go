@@ -257,7 +257,7 @@ func (s *SouinBaseHandler) Store(
 				// "Implies that the response is uncacheable"
 				status += "; detail=UPSTREAM-VARY-STAR"
 			} else {
-				cachedKey += rfc.GetVariedCacheKey(rq, variedHeaders)
+				variedKey := cachedKey + rfc.GetVariedCacheKey(rq, variedHeaders)
 				s.Configuration.GetLogger().Sugar().Debugf("Store the response %+v with duration %v", res, ma)
 
 				var wg sync.WaitGroup
@@ -267,12 +267,16 @@ func (s *SouinBaseHandler) Store(
 				case <-rq.Context().Done():
 					status += "; detail=REQUEST-CANCELED-OR-UPSTREAM-BROKEN-PIPE"
 				default:
+					vhs := http.Header{}
+					for _, hname := range variedHeaders {
+						vhs.Set(hname, rq.Header.Get(hname))
+					}
 					for _, storer := range s.Storers {
 						wg.Add(1)
 						go func(currentStorer types.Storer) {
 							defer wg.Done()
-							if currentStorer.Set(cachedKey, response, currentMatchedURL, ma) == nil {
-								s.Configuration.GetLogger().Sugar().Debugf("Stored the key %s in the %s provider", cachedKey, currentStorer.Name())
+							if currentStorer.SetMultiLevel(cachedKey, cachedKey, response, vhs, rq.Header.Get("Etag"), ma) == nil {
+								s.Configuration.GetLogger().Sugar().Debugf("Stored the key %s in the %s provider", variedKey, currentStorer.Name())
 							} else {
 								mu.Lock()
 								fails = append(fails, fmt.Sprintf("; detail=%s-INSERTION-ERROR", currentStorer.Name()))
@@ -285,7 +289,7 @@ func (s *SouinBaseHandler) Store(
 					if len(fails) < s.storersLen {
 						go func(rs http.Response, key string) {
 							_ = s.SurrogateKeyStorer.Store(&rs, key)
-						}(res, cachedKey)
+						}(res, variedKey)
 						status += "; stored"
 					}
 
@@ -530,7 +534,12 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 		validator := rfc.ParseRequest(req)
 		var response *http.Response
 		for _, currentStorer := range s.Storers {
-			response = currentStorer.Prefix(cachedKey, req, validator)
+			fresh, stale := currentStorer.GetMultiLevel(cachedKey, req, validator)
+
+			response = fresh
+			if fresh == nil {
+				response = stale
+			}
 			if response != nil {
 				s.Configuration.GetLogger().Sugar().Debugf("Found response in the %s storage", currentStorer.Name())
 				break
