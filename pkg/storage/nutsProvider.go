@@ -217,9 +217,6 @@ func (provider *Nuts) Prefix(key string, req *http.Request, validator *rfc.Reval
 
 // GetMultiLevel tries to load the key and check if one of linked keys is a fresh/stale candidate.
 func (provider *Nuts) GetMultiLevel(key string, req *http.Request, validator *rfc.Revalidator) (fresh *http.Response, stale *http.Response) {
-	var resultFresh *http.Response
-	var resultStale *http.Response
-
 	_ = provider.DB.View(func(tx *nutsdb.Tx) error {
 		i, e := tx.Get(bucket, []byte(mappingKeyPrefix+key))
 		if e != nil && !errors.Is(e, nutsdb.ErrKeyNotFound) {
@@ -230,12 +227,12 @@ func (provider *Nuts) GetMultiLevel(key string, req *http.Request, validator *rf
 		if i != nil {
 			val = i.Value
 		}
-		resultFresh, resultStale, e = mappingElection(provider, val, req, validator, provider.logger)
+		fresh, stale, e = mappingElection(provider, val, req, validator, provider.logger)
 
 		return e
 	})
 
-	return resultFresh, resultStale
+	return
 }
 
 // SetMultiLevel tries to store the keywith the given value and update the mapping key to store metadata.
@@ -247,9 +244,16 @@ func (provider *Nuts) SetMultiLevel(baseKey, key string, value []byte, variedHea
 		e = tx.Put(bucket, []byte(key), value, uint32(duration.Seconds()))
 		if e != nil {
 			provider.logger.Sugar().Errorf("Impossible to set the key %s into Nuts, %v", key, e)
-			return e
 		}
 
+		return e
+	})
+
+	if err != nil {
+		return err
+	}
+
+	err = provider.DB.Update(func(tx *nutsdb.Tx) error {
 		mappingKey := mappingKeyPrefix + baseKey
 		item, e := tx.Get(bucket, []byte(mappingKey))
 		if e != nil && !errors.Is(e, nutsdb.ErrKeyNotFound) {
@@ -261,6 +265,7 @@ func (provider *Nuts) SetMultiLevel(baseKey, key string, value []byte, variedHea
 		if item != nil {
 			val = item.Value
 		}
+
 		val, e = mappingUpdater(key, val, provider.logger, now, now.Add(duration), now.Add(duration+provider.stale), variedHeaders, etag)
 		if e != nil {
 			return e

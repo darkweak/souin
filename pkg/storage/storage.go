@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -162,7 +161,6 @@ func mappingElection(provider types.Storer, item []byte, req *http.Request, vali
 		}
 	}
 
-	fmt.Printf("MAPPING => %#v\n", mapping)
 	for keyName, keyItem := range mapping.Mapping {
 		valid := true
 		for hname, hval := range keyItem.VariedHeaders {
@@ -181,7 +179,7 @@ func mappingElection(provider types.Storer, item []byte, req *http.Request, vali
 			if time.Since(keyItem.FreshTime) < 0 {
 				response := provider.Get(keyName)
 				if response != nil {
-					if resultFresh, e = http.ReadResponse(bufio.NewReader(bytes.NewBuffer(response)), req); e == nil {
+					if resultFresh, e = http.ReadResponse(bufio.NewReader(bytes.NewBuffer(response)), req); e != nil {
 						logger.Sugar().Errorf("An error occured while reading response for the key %s: %v", string(keyName), e)
 						return resultFresh, resultStale, e
 					}
@@ -195,7 +193,7 @@ func mappingElection(provider types.Storer, item []byte, req *http.Request, vali
 			if time.Since(keyItem.StaleTime) < 0 {
 				response := provider.Get(keyName)
 				if response != nil {
-					if resultStale, e = http.ReadResponse(bufio.NewReader(bytes.NewBuffer(response)), req); e == nil {
+					if resultStale, e = http.ReadResponse(bufio.NewReader(bytes.NewBuffer(response)), req); e != nil {
 						logger.Sugar().Errorf("An error occured while reading response for the key %s: %v", string(keyName), e)
 						return resultFresh, resultStale, e
 					}

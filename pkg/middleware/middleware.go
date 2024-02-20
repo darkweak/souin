@@ -269,13 +269,14 @@ func (s *SouinBaseHandler) Store(
 				default:
 					vhs := http.Header{}
 					for _, hname := range variedHeaders {
-						vhs.Set(hname, rq.Header.Get(hname))
+						hn := strings.Split(hname, ":")
+						vhs.Set(hn[0], rq.Header.Get(hn[0]))
 					}
 					for _, storer := range s.Storers {
 						wg.Add(1)
 						go func(currentStorer types.Storer) {
 							defer wg.Done()
-							if currentStorer.SetMultiLevel(cachedKey, cachedKey, response, vhs, rq.Header.Get("Etag"), ma) == nil {
+							if currentStorer.SetMultiLevel(cachedKey, variedKey, response, vhs, rq.Header.Get("Etag"), ma) == nil {
 								s.Configuration.GetLogger().Sugar().Debugf("Stored the key %s in the %s provider", variedKey, currentStorer.Name())
 							} else {
 								mu.Lock()
@@ -386,7 +387,7 @@ func (s *SouinBaseHandler) Upstream(
 			if !isVaryStar {
 				for _, vh := range variedHeaders {
 					if rq.Header.Get(vh) != sfWriter.requestHeaders.Get(vh) {
-						cachedKey += rfc.GetVariedCacheKey(rq, variedHeaders)
+						// cachedKey += rfc.GetVariedCacheKey(rq, variedHeaders)
 						return s.Upstream(customWriter, rq, next, requestCc, cachedKey)
 					}
 				}
@@ -532,22 +533,19 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 	s.Configuration.GetLogger().Sugar().Debugf("Request cache-control %+v", requestCc)
 	if modeContext.Bypass_request || !requestCc.NoCache {
 		validator := rfc.ParseRequest(req)
-		var response *http.Response
+		var fresh, stale *http.Response
 		for _, currentStorer := range s.Storers {
-			fresh, stale := currentStorer.GetMultiLevel(cachedKey, req, validator)
+			fresh, stale = currentStorer.GetMultiLevel(cachedKey, req, validator)
 
-			response = fresh
-			if fresh == nil {
-				response = stale
-			}
-			if response != nil {
-				s.Configuration.GetLogger().Sugar().Debugf("Found response in the %s storage", currentStorer.Name())
+			if fresh != nil || stale != nil {
+				s.Configuration.GetLogger().Sugar().Debugf("Found at least one valid response in the %s storage", currentStorer.Name())
 				break
 			}
 		}
 
 		headerName, _ := s.SurrogateKeyStorer.GetSurrogateControl(customWriter.Header())
-		if response != nil && (!modeContext.Strict || rfc.ValidateCacheControl(response, requestCc)) {
+		if fresh != nil && (!modeContext.Strict || rfc.ValidateCacheControl(fresh, requestCc)) {
+			response := fresh
 			if validator.ResponseETag != "" && validator.Matched {
 				rfc.SetCacheStatusHeader(response)
 				for h, v := range response.Header {
@@ -594,13 +592,9 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 
 				return err
 			}
-		} else if response == nil && !requestCc.OnlyIfCached && (requestCc.MaxStaleSet || requestCc.MaxStale > -1) {
-			for _, currentStorer := range s.Storers {
-				response = currentStorer.Prefix(storage.StalePrefix+cachedKey, req, validator)
-				if response != nil {
-					break
-				}
-			}
+		} else if !requestCc.OnlyIfCached && (requestCc.MaxStaleSet || requestCc.MaxStale > -1) {
+			response := stale
+
 			if nil != response && (!modeContext.Strict || rfc.ValidateCacheControl(response, requestCc)) {
 				addTime, _ := time.ParseDuration(response.Header.Get(rfc.StoredTTLHeader))
 				rfc.SetCacheStatusHeader(response)

@@ -203,9 +203,6 @@ func (provider *Badger) Prefix(key string, req *http.Request, validator *rfc.Rev
 
 // GetMultiLevel tries to load the key and check if one of linked keys is a fresh/stale candidate.
 func (provider *Badger) GetMultiLevel(key string, req *http.Request, validator *rfc.Revalidator) (fresh *http.Response, stale *http.Response) {
-	var resultFresh *http.Response
-	var resultStale *http.Response
-
 	_ = provider.DB.View(func(tx *badger.Txn) error {
 		i, e := tx.Get([]byte(mappingKeyPrefix + key))
 		if e != nil && !errors.Is(e, badger.ErrKeyNotFound) {
@@ -220,12 +217,12 @@ func (provider *Badger) GetMultiLevel(key string, req *http.Request, validator *
 				return nil
 			})
 		}
-		resultFresh, resultStale, e = mappingElection(provider, val, req, validator, provider.logger)
+		fresh, stale, e = mappingElection(provider, val, req, validator, provider.logger)
 
 		return e
 	})
 
-	return resultFresh, resultStale
+	return
 }
 
 // SetMultiLevel tries to store the keywith the given value and update the mapping key to store metadata.
@@ -234,7 +231,7 @@ func (provider *Badger) SetMultiLevel(baseKey, key string, value []byte, variedH
 
 	err := provider.DB.Update(func(tx *badger.Txn) error {
 		var e error
-		e = tx.SetEntry(badger.NewEntry([]byte(key), value).WithTTL(duration))
+		e = tx.SetEntry(badger.NewEntry([]byte(key), value).WithTTL(duration + provider.stale))
 		if e != nil {
 			provider.logger.Sugar().Errorf("Impossible to set the key %s into Badger, %v", key, e)
 			return e
