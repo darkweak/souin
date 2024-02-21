@@ -271,7 +271,7 @@ func (provider *Nuts) SetMultiLevel(baseKey, key string, value []byte, variedHea
 			return e
 		}
 
-		provider.logger.Sugar().Errorf("Store the new mapping for the key %s in Nuts, %v", key, string(val))
+		provider.logger.Sugar().Debugf("Store the new mapping for the key %s in Nuts, %v", key, string(val))
 
 		return tx.Put(bucket, []byte(mappingKey), val, nutsdb.Persistent)
 	})

@@ -133,11 +133,11 @@ func Test_HttpcacheKratosPlugin_NewHTTPCacheFilter_API(t *testing.T) {
 	rs := res.Result()
 	defer rs.Body.Close()
 	if rs.Header.Get("Content-Type") != "application/json" {
-		t.Error("The response must contain be in JSON.")
+		t.Error("The response must be in JSON.")
 	}
 	b, _ := io.ReadAll(rs.Body)
 	res.Result().Body.Close()
-	if string(b) != "[]" {
+	if string(b) != "[\"IDX_GET-http-example.com-/handled\"]" {
 		t.Error("The response body must be an empty array because no request has been stored")
 	}
 	req2 := httptest.NewRequest(http.MethodGet, "/handled", nil)
@@ -152,7 +152,7 @@ func Test_HttpcacheKratosPlugin_NewHTTPCacheFilter_API(t *testing.T) {
 	rs = res3.Result()
 	rs.Body.Close()
 	if rs.Header.Get("Content-Type") != "application/json" {
-		t.Error("The response must contain be in JSON.")
+		t.Error("The response must be in JSON.")
 	}
 	b, _ = io.ReadAll(rs.Body)
 	rs.Body.Close()
@@ -161,7 +161,7 @@ func Test_HttpcacheKratosPlugin_NewHTTPCacheFilter_API(t *testing.T) {
 	if len(payload) != 2 {
 		t.Error("The system must store 2 items, the fresh and the stale one")
 	}
-	if payload[0] != "GET-http-example.com-/handled" || payload[1] != "STALE_GET-http-example.com-/handled" {
+	if payload[0] != "GET-http-example.com-/handled" || payload[1] != "IDX_GET-http-example.com-/handled" {
 		t.Error("The payload items mismatch from the expectations.")
 	}
 }

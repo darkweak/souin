@@ -30,6 +30,9 @@ func prepare() (res *httptest.ResponseRecorder, res2 *httptest.ResponseRecorder,
 	res2 = httptest.NewRecorder()
 	gin.SetMode(gin.TestMode)
 	s := New(DevDefaultConfiguration)
+	for _, storer := range s.SouinBaseHandler.Storers {
+		_ = storer.Reset()
+	}
 	c, r = gin.CreateTestContext(res)
 	c.Request = req
 	r.Use(s.Process())

@@ -31,7 +31,11 @@ func defaultHandler(w http.ResponseWriter, _ *http.Request) {
 }
 
 func prepare() (res *httptest.ResponseRecorder, res2 *httptest.ResponseRecorder, router http.HandlerFunc) {
-	router = NewHTTPCache(DevDefaultConfiguration).Handle(defaultHandler)
+	httpcache := NewHTTPCache(DevDefaultConfiguration)
+	for _, storer := range httpcache.SouinBaseHandler.Storers {
+		_ = storer.Reset()
+	}
+	router = httpcache.Handle(defaultHandler)
 	res = httptest.NewRecorder()
 	res2 = httptest.NewRecorder()
 	return
@@ -103,7 +107,7 @@ func Test_SouinGoZeroPlugin_Middleware_APIHandle(t *testing.T) {
 	if len(payload) != 2 {
 		t.Error("The system must store 2 items, the fresh and the stale one")
 	}
-	if payload[0] != "GET-http-example.com-/handled" || payload[1] != "STALE_GET-http-example.com-/handled" {
+	if payload[0] != "GET-http-example.com-/handled" || payload[1] != "IDX_GET-http-example.com-/handled" {
 		t.Error("The payload items mismatch from the expectations.")
 	}
 }

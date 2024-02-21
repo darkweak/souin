@@ -258,7 +258,7 @@ func (provider *Badger) SetMultiLevel(baseKey, key string, value []byte, variedH
 			return e
 		}
 
-		provider.logger.Sugar().Errorf("Store the new mapping for the key %s in Badger, %v", key, string(val))
+		provider.logger.Sugar().Debugf("Store the new mapping for the key %s in Badger, %v", key, string(val))
 		return tx.SetEntry(badger.NewEntry([]byte(mappingKey), val))
 	})
 
