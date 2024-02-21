@@ -205,7 +205,7 @@ func (provider *Etcd) SetMultiLevel(baseKey, key string, value []byte, variedHea
 	}
 
 	now := time.Now()
-	if err := provider.Set(key, value, t.URL{}, duration); err != nil {
+	if err := provider.Set(key, value, t.URL{}, duration+provider.stale); err != nil {
 		if !provider.reconnecting {
 			go provider.Reconnect()
 		}
@@ -220,7 +220,7 @@ func (provider *Etcd) SetMultiLevel(baseKey, key string, value []byte, variedHea
 		return e
 	}
 
-	return provider.Set(mappingKey, val, t.URL{}, time.Hour)
+	return provider.Set(mappingKey, val, t.URL{}, duration+provider.stale)
 }
 
 // Set method will store the response in Etcd provider

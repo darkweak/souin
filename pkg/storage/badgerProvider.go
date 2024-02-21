@@ -259,8 +259,7 @@ func (provider *Badger) SetMultiLevel(baseKey, key string, value []byte, variedH
 		}
 
 		provider.logger.Sugar().Errorf("Store the new mapping for the key %s in Badger, %v", key, string(val))
-
-		return tx.Set([]byte(mappingKey), val)
+		return tx.SetEntry(badger.NewEntry([]byte(mappingKey), val))
 	})
 
 	if err != nil {
@@ -272,21 +271,8 @@ func (provider *Badger) SetMultiLevel(baseKey, key string, value []byte, variedH
 
 // Set method will store the response in Badger provider
 func (provider *Badger) Set(key string, value []byte, url t.URL, duration time.Duration) error {
-	if duration == 0 {
-		duration = url.TTL.Duration
-	}
-
 	err := provider.DB.Update(func(txn *badger.Txn) error {
 		return txn.SetEntry(badger.NewEntry([]byte(key), value).WithTTL(duration))
-	})
-
-	if err != nil {
-		provider.logger.Sugar().Errorf("Impossible to set value into Badger, %v", err)
-		return err
-	}
-
-	err = provider.DB.Update(func(txn *badger.Txn) error {
-		return txn.SetEntry(badger.NewEntry([]byte(StalePrefix+key), value).WithTTL(provider.stale + duration))
 	})
 
 	if err != nil {

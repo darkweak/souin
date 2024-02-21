@@ -207,7 +207,7 @@ func (provider *EmbeddedOlric) GetMultiLevel(key string, req *http.Request, vali
 func (provider *EmbeddedOlric) SetMultiLevel(baseKey, key string, value []byte, variedHeaders http.Header, etag string, duration time.Duration) error {
 	now := time.Now()
 
-	if err := provider.dm.Put(provider.ct, key, value, olric.EX(duration)); err != nil {
+	if err := provider.dm.Put(provider.ct, key, value, olric.EX(duration+provider.stale)); err != nil {
 		provider.logger.Sugar().Errorf("Impossible to set value into EmbeddedOlric, %v", err)
 		return err
 	}
@@ -230,7 +230,7 @@ func (provider *EmbeddedOlric) SetMultiLevel(baseKey, key string, value []byte, 
 		return e
 	}
 
-	return provider.Set(mappingKey, val, t.URL{}, time.Hour)
+	return provider.dm.Put(provider.ct, mappingKey, val)
 }
 
 // Get method returns the populated response if exists, empty response then

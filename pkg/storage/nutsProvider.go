@@ -241,7 +241,7 @@ func (provider *Nuts) SetMultiLevel(baseKey, key string, value []byte, variedHea
 
 	err := provider.DB.Update(func(tx *nutsdb.Tx) error {
 		var e error
-		e = tx.Put(bucket, []byte(key), value, uint32(duration.Seconds()))
+		e = tx.Put(bucket, []byte(key), value, uint32((duration + provider.stale).Seconds()))
 		if e != nil {
 			provider.logger.Sugar().Errorf("Impossible to set the key %s into Nuts, %v", key, e)
 		}
@@ -273,7 +273,7 @@ func (provider *Nuts) SetMultiLevel(baseKey, key string, value []byte, variedHea
 
 		provider.logger.Sugar().Errorf("Store the new mapping for the key %s in Nuts, %v", key, string(val))
 
-		return tx.Put(bucket, []byte(mappingKey), val, uint32(time.Hour.Seconds()))
+		return tx.Put(bucket, []byte(mappingKey), val, nutsdb.Persistent)
 	})
 
 	if err != nil {
