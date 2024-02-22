@@ -184,7 +184,7 @@ func (provider *Etcd) GetMultiLevel(key string, req *http.Request, validator *rf
 	var resultFresh *http.Response
 	var resultStale *http.Response
 
-	r, e := provider.Client.Get(provider.ctx, key)
+	r, e := provider.Client.Get(provider.ctx, mappingKeyPrefix+key)
 	if e != nil {
 		go provider.Reconnect()
 		return resultFresh, resultStale
@@ -205,17 +205,31 @@ func (provider *Etcd) SetMultiLevel(baseKey, key string, value []byte, variedHea
 	}
 
 	now := time.Now()
-	if err := provider.Set(key, value, t.URL{}, duration+provider.stale); err != nil {
+	if provider.reconnecting {
+		provider.logger.Sugar().Error("Impossible to set the etcd value while reconnecting.")
+		return fmt.Errorf("reconnecting error")
+	}
+	if provider.Client.ActiveConnection().GetState() != connectivity.Ready && provider.Client.ActiveConnection().GetState() != connectivity.Idle {
+		return fmt.Errorf("the connection is not ready: %v", provider.Client.ActiveConnection().GetState())
+	}
+
+	rs, err := provider.Client.Grant(context.TODO(), int64(duration.Seconds()))
+	if err == nil {
+		_, err = provider.Client.Put(provider.ctx, key, string(value), clientv3.WithLease(rs.ID))
+		fmt.Println("Put err =>", err)
+	}
+
+	if err != nil {
 		if !provider.reconnecting {
 			go provider.Reconnect()
 		}
-		provider.logger.Sugar().Errorf("Impossible to set value into Redis, %v", err)
+		provider.logger.Sugar().Errorf("Impossible to set value into Etcd, %v", err)
 		return err
 	}
 
 	mappingKey := mappingKeyPrefix + baseKey
 	r := provider.Get(mappingKey)
-	val, e := mappingUpdater(mappingKey, []byte(r), provider.logger, now, now.Add(duration), now.Add(duration+provider.stale), variedHeaders, etag)
+	val, e := mappingUpdater(key, []byte(r), provider.logger, now, now.Add(duration), now.Add(duration+provider.stale), variedHeaders, etag)
 	if e != nil {
 		return e
 	}
