@@ -203,7 +203,7 @@ func (provider *EmbeddedOlric) GetMultiLevel(key string, req *http.Request, vali
 	return resultFresh, resultStale
 }
 
-// SetMultiLevel tries to store the keywith the given value and update the mapping key to store metadata.
+// SetMultiLevel tries to store the key with the given value and update the mapping key to store metadata.
 func (provider *EmbeddedOlric) SetMultiLevel(baseKey, key string, value []byte, variedHeaders http.Header, etag string, duration time.Duration) error {
 	now := time.Now()
 

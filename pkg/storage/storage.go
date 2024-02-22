@@ -166,6 +166,7 @@ func mappingElection(provider types.Storer, item []byte, req *http.Request, vali
 		for hname, hval := range keyItem.VariedHeaders {
 			if req.Header.Get(hname) != strings.Join(hval, ", ") {
 				valid = false
+				break
 			}
 		}
 

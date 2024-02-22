@@ -197,7 +197,7 @@ func (provider *Etcd) GetMultiLevel(key string, req *http.Request, validator *rf
 	return resultFresh, resultStale
 }
 
-// SetMultiLevel tries to store the keywith the given value and update the mapping key to store metadata.
+// SetMultiLevel tries to store the key with the given value and update the mapping key to store metadata.
 func (provider *Etcd) SetMultiLevel(baseKey, key string, value []byte, variedHeaders http.Header, etag string, duration time.Duration) error {
 	if provider.reconnecting {
 		provider.logger.Sugar().Error("Impossible to set the etcd value while reconnecting.")
