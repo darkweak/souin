@@ -240,8 +240,7 @@ func (provider *Nuts) SetMultiLevel(baseKey, key string, value []byte, variedHea
 	now := time.Now()
 
 	err := provider.DB.Update(func(tx *nutsdb.Tx) error {
-		var e error
-		e = tx.Put(bucket, []byte(key), value, uint32((duration + provider.stale).Seconds()))
+		e := tx.Put(bucket, []byte(key), value, uint32((duration + provider.stale).Seconds()))
 		if e != nil {
 			provider.logger.Sugar().Errorf("Impossible to set the key %s into Nuts, %v", key, e)
 		}

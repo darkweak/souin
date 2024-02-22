@@ -215,7 +215,7 @@ func (provider *Etcd) SetMultiLevel(baseKey, key string, value []byte, variedHea
 
 	mappingKey := mappingKeyPrefix + baseKey
 	r := provider.Get(mappingKey)
-	val, e := mappingUpdater(mappingKeyPrefix+baseKey, []byte(r), provider.logger, now, now.Add(duration), now.Add(duration+provider.stale), variedHeaders, etag)
+	val, e := mappingUpdater(mappingKey, []byte(r), provider.logger, now, now.Add(duration), now.Add(duration+provider.stale), variedHeaders, etag)
 	if e != nil {
 		return e
 	}
@@ -240,16 +240,6 @@ func (provider *Etcd) Set(key string, value []byte, url t.URL, duration time.Dur
 	if err == nil {
 		_, err = provider.Client.Put(provider.ctx, key, string(value), clientv3.WithLease(rs.ID))
 	}
-
-	if err != nil {
-		if !provider.reconnecting {
-			go provider.Reconnect()
-		}
-		provider.logger.Sugar().Errorf("Impossible to set value into Etcd, %v", err)
-		return err
-	}
-
-	_, err = provider.Client.Put(provider.ctx, StalePrefix+key, string(value), clientv3.WithLease(rs.ID))
 
 	if err != nil {
 		if !provider.reconnecting {
