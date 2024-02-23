@@ -204,7 +204,7 @@ func (provider *Badger) Prefix(key string, req *http.Request, validator *rfc.Rev
 // GetMultiLevel tries to load the key and check if one of linked keys is a fresh/stale candidate.
 func (provider *Badger) GetMultiLevel(key string, req *http.Request, validator *rfc.Revalidator) (fresh *http.Response, stale *http.Response) {
 	_ = provider.DB.View(func(tx *badger.Txn) error {
-		i, e := tx.Get([]byte(mappingKeyPrefix + key))
+		i, e := tx.Get([]byte(MappingKeyPrefix + key))
 		if e != nil && !errors.Is(e, badger.ErrKeyNotFound) {
 			return e
 		}
@@ -237,7 +237,7 @@ func (provider *Badger) SetMultiLevel(baseKey, key string, value []byte, variedH
 			return e
 		}
 
-		mappingKey := mappingKeyPrefix + baseKey
+		mappingKey := MappingKeyPrefix + baseKey
 		item, e := tx.Get([]byte(mappingKey))
 		if e != nil && !errors.Is(e, badger.ErrKeyNotFound) {
 			provider.logger.Sugar().Errorf("Impossible to get the base key %s in Badger, %v", mappingKey, e)

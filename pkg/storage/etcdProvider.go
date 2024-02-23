@@ -184,7 +184,7 @@ func (provider *Etcd) GetMultiLevel(key string, req *http.Request, validator *rf
 	var resultFresh *http.Response
 	var resultStale *http.Response
 
-	r, e := provider.Client.Get(provider.ctx, mappingKeyPrefix+key)
+	r, e := provider.Client.Get(provider.ctx, MappingKeyPrefix+key)
 	if e != nil {
 		go provider.Reconnect()
 		return resultFresh, resultStale
@@ -227,7 +227,7 @@ func (provider *Etcd) SetMultiLevel(baseKey, key string, value []byte, variedHea
 		return err
 	}
 
-	mappingKey := mappingKeyPrefix + baseKey
+	mappingKey := MappingKeyPrefix + baseKey
 	r := provider.Get(mappingKey)
 	val, e := mappingUpdater(key, []byte(r), provider.logger, now, now.Add(duration), now.Add(duration+provider.stale), variedHeaders, etag)
 	if e != nil {

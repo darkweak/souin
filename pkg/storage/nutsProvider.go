@@ -218,7 +218,7 @@ func (provider *Nuts) Prefix(key string, req *http.Request, validator *rfc.Reval
 // GetMultiLevel tries to load the key and check if one of linked keys is a fresh/stale candidate.
 func (provider *Nuts) GetMultiLevel(key string, req *http.Request, validator *rfc.Revalidator) (fresh *http.Response, stale *http.Response) {
 	_ = provider.DB.View(func(tx *nutsdb.Tx) error {
-		i, e := tx.Get(bucket, []byte(mappingKeyPrefix+key))
+		i, e := tx.Get(bucket, []byte(MappingKeyPrefix+key))
 		if e != nil && !errors.Is(e, nutsdb.ErrKeyNotFound) {
 			return e
 		}
@@ -253,7 +253,7 @@ func (provider *Nuts) SetMultiLevel(baseKey, key string, value []byte, variedHea
 	}
 
 	err = provider.DB.Update(func(tx *nutsdb.Tx) error {
-		mappingKey := mappingKeyPrefix + baseKey
+		mappingKey := MappingKeyPrefix + baseKey
 		item, e := tx.Get(bucket, []byte(mappingKey))
 		if e != nil && !errors.Is(e, nutsdb.ErrKeyNotFound) {
 			provider.logger.Sugar().Errorf("Impossible to get the base key %s in Nuts, %v", baseKey, e)

@@ -141,7 +141,7 @@ func (provider *Olric) SetMultiLevel(baseKey, key string, value []byte, variedHe
 		return err
 	}
 
-	mappingKey := mappingKeyPrefix + baseKey
+	mappingKey := MappingKeyPrefix + baseKey
 	res, e := dm.Get(context.Background(), mappingKey)
 	if e != nil && !errors.Is(e, olric.ErrKeyNotFound) {
 		provider.logger.Sugar().Errorf("Impossible to get the key %s EmbeddedOlric, %v", baseKey, e)

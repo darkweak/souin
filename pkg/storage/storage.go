@@ -21,7 +21,7 @@ const (
 	encodedHeaderColonSeparator     = "%3A"
 	StalePrefix                     = "STALE_"
 	surrogatePrefix                 = "SURROGATE_"
-	mappingKeyPrefix                = "IDX_"
+	MappingKeyPrefix                = "IDX_"
 )
 
 type StorerInstanciator func(configurationtypes.AbstractConfigurationInterface) (types.Storer, error)
@@ -182,11 +182,11 @@ func mappingElection(provider types.Storer, item []byte, req *http.Request, vali
 				if response != nil {
 					if resultFresh, e = http.ReadResponse(bufio.NewReader(bytes.NewBuffer(response)), req); e != nil {
 						logger.Sugar().Errorf("An error occured while reading response for the key %s: %v", string(keyName), e)
-						return resultFresh, resultStale, e
+						return
 					}
 
 					logger.Sugar().Debugf("The stored key %s matched the current iteration key ETag %+v", string(keyName), validator)
-					return resultFresh, resultStale, e
+					return
 				}
 			}
 
@@ -196,13 +196,13 @@ func mappingElection(provider types.Storer, item []byte, req *http.Request, vali
 				if response != nil {
 					if resultStale, e = http.ReadResponse(bufio.NewReader(bytes.NewBuffer(response)), req); e != nil {
 						logger.Sugar().Errorf("An error occured while reading response for the key %s: %v", string(keyName), e)
-						return resultFresh, resultStale, e
+						return
 					}
 
 					logger.Sugar().Debugf("The stored key %s matched the current iteration key ETag %+v as stale", string(keyName), validator)
 					// We can always return the found stale because a fresh response could be in the next iteration.
 					if resultFresh != nil {
-						return resultFresh, resultStale, e
+						return
 					}
 				}
 			}
@@ -211,7 +211,7 @@ func mappingElection(provider types.Storer, item []byte, req *http.Request, vali
 		}
 	}
 
-	return resultFresh, resultStale, e
+	return
 }
 
 func mappingUpdater(key string, item []byte, logger *zap.Logger, now, freshTime, staleTime time.Time, variedHeaders http.Header, etag string) (val []byte, e error) {

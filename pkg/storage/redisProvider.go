@@ -121,7 +121,7 @@ func (provider *Redis) GetMultiLevel(key string, req *http.Request, validator *r
 	var resultFresh *http.Response
 	var resultStale *http.Response
 
-	b, e := provider.inClient.Do(provider.ctx, provider.inClient.B().Get().Key(mappingKeyPrefix+key).Build()).AsBytes()
+	b, e := provider.inClient.Do(provider.ctx, provider.inClient.B().Get().Key(MappingKeyPrefix+key).Build()).AsBytes()
 	if e != nil {
 		if !errors.Is(e, redis.Nil) && !provider.reconnecting {
 			go provider.Reconnect()
@@ -150,7 +150,7 @@ func (provider *Redis) SetMultiLevel(baseKey, key string, value []byte, variedHe
 		return err
 	}
 
-	mappingKey := mappingKeyPrefix + baseKey
+	mappingKey := MappingKeyPrefix + baseKey
 	v, e := provider.inClient.Do(provider.ctx, provider.inClient.B().Get().Key(mappingKey).Build()).AsBytes()
 	if e != nil && !errors.Is(e, redis.Nil) {
 		if !provider.reconnecting {
