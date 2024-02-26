@@ -3,7 +3,7 @@ package storage
 import (
 	"bufio"
 	"bytes"
-	"encoding/json"
+	"encoding/gob"
 	"errors"
 	"net/http"
 	"net/url"
@@ -155,7 +155,7 @@ func varyVoter(baseKey string, req *http.Request, currentKey string) bool {
 func mappingElection(provider types.Storer, item []byte, req *http.Request, validator *rfc.Revalidator, logger *zap.Logger) (resultFresh *http.Response, resultStale *http.Response, e error) {
 	var mapping types.StorageMapper
 	if len(item) != 0 {
-		e = json.NewDecoder(bytes.NewBuffer(item)).Decode(&mapping)
+		e = gob.NewDecoder(bytes.NewBuffer(item)).Decode(&mapping)
 		if e != nil {
 			return resultFresh, resultStale, e
 		}
@@ -219,7 +219,7 @@ func mappingUpdater(key string, item []byte, logger *zap.Logger, now, freshTime,
 	if len(item) == 0 {
 		mapping = types.StorageMapper{}
 	} else {
-		e = json.NewDecoder(bytes.NewBuffer(item)).Decode(&mapping)
+		e = gob.NewDecoder(bytes.NewBuffer(item)).Decode(&mapping)
 		if e != nil {
 			logger.Sugar().Errorf("Impossible to decode the key %s, %v", key, e)
 			return nil, e
@@ -238,11 +238,14 @@ func mappingUpdater(key string, item []byte, logger *zap.Logger, now, freshTime,
 		Etag:          etag,
 	}
 
-	val, e = json.Marshal(mapping)
+	buf := new(bytes.Buffer)
+	e = gob.NewEncoder(buf).Encode(mapping)
 	if e != nil {
 		logger.Sugar().Errorf("Impossible to encode the mapping value for the key %s, %v", key, e)
 		return nil, e
 	}
+
+	val = buf.Bytes()
 
 	return val, e
 }

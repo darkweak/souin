@@ -1,6 +1,8 @@
 package api
 
 import (
+	"bytes"
+	"encoding/gob"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -69,7 +71,7 @@ func (s *SouinAPI) BulkDelete(key string, purge bool) {
 	for _, current := range s.storers {
 		if b := current.Get(storage.MappingKeyPrefix + key); len(b) > 0 {
 			var mapping types.StorageMapper
-			if e := json.Unmarshal(b, &mapping); e == nil {
+			if e := gob.NewDecoder(bytes.NewBuffer(b)).Decode(&mapping); e == nil {
 				for k := range mapping.Mapping {
 					current.Delete(k)
 				}
