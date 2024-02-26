@@ -3722,6 +3722,10 @@
 			"value": "http://domain.com"
 		},
 		{
+			"key": "goa_url",
+			"value": "http://domain.com"
+		},
+		{
 			"key": "souin_url",
 			"value": "http://domain.com"
 		},
