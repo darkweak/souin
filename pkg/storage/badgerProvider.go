@@ -284,7 +284,9 @@ func (provider *Badger) Set(key string, value []byte, url t.URL, duration time.D
 
 // Delete method will delete the response in Badger provider if exists corresponding to key param
 func (provider *Badger) Delete(key string) {
-	_ = provider.DB.DropPrefix([]byte(key))
+	_ = provider.DB.Update(func(txn *badger.Txn) error {
+		return txn.Delete([]byte(key))
+	})
 }
 
 // DeleteMany method will delete the responses in Badger provider if exists corresponding to the regex key param

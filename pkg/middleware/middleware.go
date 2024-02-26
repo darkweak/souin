@@ -469,6 +469,15 @@ func (s *SouinBaseHandler) HandleInternally(r *http.Request) (bool, http.Handler
 }
 
 type handlerFunc = func(http.ResponseWriter, *http.Request) error
+type statusCodeLogger struct {
+	http.ResponseWriter
+	statusCode int
+}
+
+func (s *statusCodeLogger) WriteHeader(code int) {
+	s.statusCode = code
+	s.ResponseWriter.WriteHeader(code)
+}
 
 func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, next handlerFunc) error {
 	start := time.Now()
@@ -490,9 +499,22 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 
 	if !req.Context().Value(context.SupportedMethod).(bool) {
 		rw.Header().Set("Cache-Status", cacheName+"; fwd=bypass; detail=UNSUPPORTED-METHOD")
+		nrw := &statusCodeLogger{
+			ResponseWriter: rw,
+			statusCode:     0,
+		}
 
-		err := next(rw, req)
+		err := next(nrw, req)
 		s.SurrogateKeyStorer.Invalidate(req.Method, rw.Header())
+
+		if err == nil && req.Method != http.MethodGet && nrw.statusCode < http.StatusBadRequest {
+			// Invalidate related GET keys when the method is not allowed and the response is valid
+			req.Method = http.MethodGet
+			keyname := s.context.SetContext(req, rq).Context().Value(context.Key).(string)
+			for _, storer := range s.Storers {
+				storer.DeleteMany(fmt.Sprintf("(%s)?%s((%s|/).*|$)", storage.MappingKeyPrefix, keyname, rfc.VarySeparator))
+			}
+		}
 
 		return err
 	}
