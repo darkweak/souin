@@ -276,7 +276,7 @@ func (s *SouinBaseHandler) Store(
 						wg.Add(1)
 						go func(currentStorer types.Storer) {
 							defer wg.Done()
-							if currentStorer.SetMultiLevel(cachedKey, variedKey, response, vhs, rq.Header.Get("Etag"), ma) == nil {
+							if currentStorer.SetMultiLevel(cachedKey, variedKey, response, vhs, res.Header.Get("Etag"), ma) == nil {
 								s.Configuration.GetLogger().Sugar().Debugf("Stored the key %s in the %s provider", variedKey, currentStorer.Name())
 							} else {
 								mu.Lock()
