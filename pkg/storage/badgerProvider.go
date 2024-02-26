@@ -226,14 +226,14 @@ func (provider *Badger) GetMultiLevel(key string, req *http.Request, validator *
 }
 
 // SetMultiLevel tries to store the key with the given value and update the mapping key to store metadata.
-func (provider *Badger) SetMultiLevel(baseKey, key string, value []byte, variedHeaders http.Header, etag string, duration time.Duration) error {
+func (provider *Badger) SetMultiLevel(baseKey, variedKey string, value []byte, variedHeaders http.Header, etag string, duration time.Duration) error {
 	now := time.Now()
 
 	err := provider.DB.Update(func(tx *badger.Txn) error {
 		var e error
-		e = tx.SetEntry(badger.NewEntry([]byte(key), value).WithTTL(duration + provider.stale))
+		e = tx.SetEntry(badger.NewEntry([]byte(variedKey), value).WithTTL(duration + provider.stale))
 		if e != nil {
-			provider.logger.Sugar().Errorf("Impossible to set the key %s into Badger, %v", key, e)
+			provider.logger.Sugar().Errorf("Impossible to set the key %s into Badger, %v", variedKey, e)
 			return e
 		}
 
@@ -253,12 +253,12 @@ func (provider *Badger) SetMultiLevel(baseKey, key string, value []byte, variedH
 			})
 		}
 
-		val, e = mappingUpdater(key, val, provider.logger, now, now.Add(duration), now.Add(duration+provider.stale), variedHeaders, etag)
+		val, e = mappingUpdater(variedKey, val, provider.logger, now, now.Add(duration), now.Add(duration+provider.stale), variedHeaders, etag)
 		if e != nil {
 			return e
 		}
 
-		provider.logger.Sugar().Debugf("Store the new mapping for the key %s in Badger, %v", key, string(val))
+		provider.logger.Sugar().Debugf("Store the new mapping for the key %s in Badger, %v", variedKey, string(val))
 		return tx.SetEntry(badger.NewEntry([]byte(mappingKey), val))
 	})
 

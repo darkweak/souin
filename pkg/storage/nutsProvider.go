@@ -236,13 +236,13 @@ func (provider *Nuts) GetMultiLevel(key string, req *http.Request, validator *rf
 }
 
 // SetMultiLevel tries to store the key with the given value and update the mapping key to store metadata.
-func (provider *Nuts) SetMultiLevel(baseKey, key string, value []byte, variedHeaders http.Header, etag string, duration time.Duration) error {
+func (provider *Nuts) SetMultiLevel(baseKey, variedKey string, value []byte, variedHeaders http.Header, etag string, duration time.Duration) error {
 	now := time.Now()
 
 	err := provider.DB.Update(func(tx *nutsdb.Tx) error {
-		e := tx.Put(bucket, []byte(key), value, uint32((duration + provider.stale).Seconds()))
+		e := tx.Put(bucket, []byte(variedKey), value, uint32((duration + provider.stale).Seconds()))
 		if e != nil {
-			provider.logger.Sugar().Errorf("Impossible to set the key %s into Nuts, %v", key, e)
+			provider.logger.Sugar().Errorf("Impossible to set the key %s into Nuts, %v", variedKey, e)
 		}
 
 		return e
@@ -265,12 +265,12 @@ func (provider *Nuts) SetMultiLevel(baseKey, key string, value []byte, variedHea
 			val = item.Value
 		}
 
-		val, e = mappingUpdater(key, val, provider.logger, now, now.Add(duration), now.Add(duration+provider.stale), variedHeaders, etag)
+		val, e = mappingUpdater(variedKey, val, provider.logger, now, now.Add(duration), now.Add(duration+provider.stale), variedHeaders, etag)
 		if e != nil {
 			return e
 		}
 
-		provider.logger.Sugar().Debugf("Store the new mapping for the key %s in Nuts, %v", key, string(val))
+		provider.logger.Sugar().Debugf("Store the new mapping for the key %s in Nuts, %v", variedKey, string(val))
 
 		return tx.Put(bucket, []byte(mappingKey), val, nutsdb.Persistent)
 	})

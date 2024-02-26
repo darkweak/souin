@@ -132,14 +132,14 @@ func (provider *Redis) GetMultiLevel(key string, req *http.Request, validator *r
 }
 
 // SetMultiLevel tries to store the key with the given value and update the mapping key to store metadata.
-func (provider *Redis) SetMultiLevel(baseKey, key string, value []byte, variedHeaders http.Header, etag string, duration time.Duration) error {
+func (provider *Redis) SetMultiLevel(baseKey, variedKey string, value []byte, variedHeaders http.Header, etag string, duration time.Duration) error {
 	if provider.reconnecting {
 		provider.logger.Sugar().Error("Impossible to set the redis value while reconnecting.")
 		return fmt.Errorf("reconnecting error")
 	}
 
 	now := time.Now()
-	if err := provider.inClient.Do(provider.ctx, provider.inClient.B().Set().Key(key).Value(string(value)).Ex(duration+provider.stale).Build()).Error(); err != nil {
+	if err := provider.inClient.Do(provider.ctx, provider.inClient.B().Set().Key(variedKey).Value(string(value)).Ex(duration+provider.stale).Build()).Error(); err != nil {
 		if !provider.reconnecting {
 			go provider.Reconnect()
 		}
@@ -156,7 +156,7 @@ func (provider *Redis) SetMultiLevel(baseKey, key string, value []byte, variedHe
 		return e
 	}
 
-	val, e := mappingUpdater(key, v, provider.logger, now, now.Add(duration), now.Add(duration+provider.stale), variedHeaders, etag)
+	val, e := mappingUpdater(variedKey, v, provider.logger, now, now.Add(duration), now.Add(duration+provider.stale), variedHeaders, etag)
 	if e != nil {
 		return e
 	}

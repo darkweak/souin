@@ -195,7 +195,7 @@ func (provider *Etcd) GetMultiLevel(key string, req *http.Request, validator *rf
 }
 
 // SetMultiLevel tries to store the key with the given value and update the mapping key to store metadata.
-func (provider *Etcd) SetMultiLevel(baseKey, key string, value []byte, variedHeaders http.Header, etag string, duration time.Duration) error {
+func (provider *Etcd) SetMultiLevel(baseKey, variedKey string, value []byte, variedHeaders http.Header, etag string, duration time.Duration) error {
 	if provider.reconnecting {
 		provider.logger.Sugar().Error("Impossible to set the etcd value while reconnecting.")
 		return fmt.Errorf("reconnecting error")
@@ -212,7 +212,7 @@ func (provider *Etcd) SetMultiLevel(baseKey, key string, value []byte, variedHea
 
 	rs, err := provider.Client.Grant(context.TODO(), int64(duration.Seconds()))
 	if err == nil {
-		_, err = provider.Client.Put(provider.ctx, key, string(value), clientv3.WithLease(rs.ID))
+		_, err = provider.Client.Put(provider.ctx, variedKey, string(value), clientv3.WithLease(rs.ID))
 		fmt.Println("Put err =>", err)
 	}
 
@@ -226,7 +226,7 @@ func (provider *Etcd) SetMultiLevel(baseKey, key string, value []byte, variedHea
 
 	mappingKey := MappingKeyPrefix + baseKey
 	r := provider.Get(mappingKey)
-	val, e := mappingUpdater(key, []byte(r), provider.logger, now, now.Add(duration), now.Add(duration+provider.stale), variedHeaders, etag)
+	val, e := mappingUpdater(variedKey, []byte(r), provider.logger, now, now.Add(duration), now.Add(duration+provider.stale), variedHeaders, etag)
 	if e != nil {
 		return e
 	}

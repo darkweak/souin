@@ -128,12 +128,12 @@ func (provider *Olric) GetMultiLevel(key string, req *http.Request, validator *r
 }
 
 // SetMultiLevel tries to store the key with the given value and update the mapping key to store metadata.
-func (provider *Olric) SetMultiLevel(baseKey, key string, value []byte, variedHeaders http.Header, etag string, duration time.Duration) error {
+func (provider *Olric) SetMultiLevel(baseKey, variedKey string, value []byte, variedHeaders http.Header, etag string, duration time.Duration) error {
 	now := time.Now()
 
 	dm := provider.dm.Get().(olric.DMap)
 	defer provider.dm.Put(dm)
-	if err := dm.Put(context.Background(), key, value, olric.EX(duration)); err != nil {
+	if err := dm.Put(context.Background(), variedKey, value, olric.EX(duration)); err != nil {
 		provider.logger.Sugar().Errorf("Impossible to set value into EmbeddedOlric, %v", err)
 		return err
 	}
@@ -151,7 +151,7 @@ func (provider *Olric) SetMultiLevel(baseKey, key string, value []byte, variedHe
 		return e
 	}
 
-	val, e = mappingUpdater(key, val, provider.logger, now, now.Add(duration), now.Add(duration+provider.stale), variedHeaders, etag)
+	val, e = mappingUpdater(variedKey, val, provider.logger, now, now.Add(duration), now.Add(duration+provider.stale), variedHeaders, etag)
 	if e != nil {
 		return e
 	}
