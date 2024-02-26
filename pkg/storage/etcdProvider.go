@@ -181,20 +181,17 @@ func (provider *Etcd) GetMultiLevel(key string, req *http.Request, validator *rf
 		return
 	}
 
-	var resultFresh *http.Response
-	var resultStale *http.Response
-
 	r, e := provider.Client.Get(provider.ctx, MappingKeyPrefix+key)
 	if e != nil {
 		go provider.Reconnect()
-		return resultFresh, resultStale
+		return fresh, stale
 	}
 
 	if len(r.Kvs) > 0 {
-		resultFresh, resultStale, _ = mappingElection(provider, r.Kvs[0].Value, req, validator, provider.logger)
+		fresh, stale, _ = mappingElection(provider, r.Kvs[0].Value, req, validator, provider.logger)
 	}
 
-	return resultFresh, resultStale
+	return fresh, stale
 }
 
 // SetMultiLevel tries to store the key with the given value and update the mapping key to store metadata.

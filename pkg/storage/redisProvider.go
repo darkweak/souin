@@ -118,20 +118,17 @@ func (provider *Redis) GetMultiLevel(key string, req *http.Request, validator *r
 		return
 	}
 
-	var resultFresh *http.Response
-	var resultStale *http.Response
-
 	b, e := provider.inClient.Do(provider.ctx, provider.inClient.B().Get().Key(MappingKeyPrefix+key).Build()).AsBytes()
 	if e != nil {
 		if !errors.Is(e, redis.Nil) && !provider.reconnecting {
 			go provider.Reconnect()
 		}
-		return resultFresh, resultStale
+		return fresh, stale
 	}
 
-	resultFresh, resultStale, _ = mappingElection(provider, b, req, validator, provider.logger)
+	fresh, stale, _ = mappingElection(provider, b, req, validator, provider.logger)
 
-	return resultFresh, resultStale
+	return fresh, stale
 }
 
 // SetMultiLevel tries to store the key with the given value and update the mapping key to store metadata.

@@ -188,19 +188,16 @@ func (provider *EmbeddedOlric) Prefix(key string, req *http.Request, validator *
 
 // GetMultiLevel tries to load the key and check if one of linked keys is a fresh/stale candidate.
 func (provider *EmbeddedOlric) GetMultiLevel(key string, req *http.Request, validator *rfc.Revalidator) (fresh *http.Response, stale *http.Response) {
-	var resultFresh *http.Response
-	var resultStale *http.Response
-
 	res, e := provider.dm.Get(provider.ct, key)
 
 	if e != nil {
-		return resultFresh, resultStale
+		return fresh, stale
 	}
 
 	val, _ := res.Byte()
-	resultFresh, resultStale, _ = mappingElection(provider, val, req, validator, provider.logger)
+	fresh, stale, _ = mappingElection(provider, val, req, validator, provider.logger)
 
-	return resultFresh, resultStale
+	return fresh, stale
 }
 
 // SetMultiLevel tries to store the key with the given value and update the mapping key to store metadata.
