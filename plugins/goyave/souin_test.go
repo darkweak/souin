@@ -32,7 +32,11 @@ type HttpCacheMiddlewareTestSuite struct {
 }
 
 func prepare(suite *HttpCacheMiddlewareTestSuite, request *http.Request) (*SouinGoyaveMiddleware, *goyave.Request) {
-	return NewHTTPCache(DevDefaultConfiguration), suite.CreateTestRequest(request)
+	httpcache := NewHTTPCache(DevDefaultConfiguration)
+	for _, storer := range httpcache.SouinBaseHandler.Storers {
+		_ = storer.Reset()
+	}
+	return httpcache, suite.CreateTestRequest(request)
 }
 
 func TestHttpCacheMiddlewareTestSuite(t *testing.T) {
@@ -135,7 +139,7 @@ func (suite *HttpCacheMiddlewareTestSuite) Test_SouinFiberPlugin_Middleware_APIH
 	if len(payload) != 2 {
 		suite.T().Error("The system must store 2 items, the fresh and the stale one")
 	}
-	if payload[0] != "GET-http-example.com-/handled" || payload[1] != "STALE_GET-http-example.com-/handled" {
+	if payload[0] != "GET-http-example.com-/handled" || payload[1] != "IDX_GET-http-example.com-/handled" {
 		suite.T().Error("The payload items mismatch from the expectations.")
 	}
 }

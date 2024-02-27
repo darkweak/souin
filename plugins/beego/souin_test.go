@@ -34,6 +34,9 @@ func prepare() (res, res2 *httptest.ResponseRecorder) {
 
 	_ = web.LoadAppConfig("json", "beego.json")
 	httpcache := NewHTTPCache(DevDefaultConfiguration)
+	for _, storer := range httpcache.SouinBaseHandler.Storers {
+		_ = storer.Reset()
+	}
 
 	web.InsertFilterChain("/*", httpcache.chainHandleFilter)
 
@@ -114,7 +117,7 @@ func Test_SouinBeegoPlugin_Middleware_APIHandle(t *testing.T) {
 	if len(payload) != 2 {
 		t.Error("The system must store 2 items, the fresh and the stale one")
 	}
-	if payload[0] != "GET-http-example.com-/handled" || payload[1] != "STALE_GET-http-example.com-/handled" {
+	if payload[0] != "GET-http-example.com-/handled" || payload[1] != "IDX_GET-http-example.com-/handled" {
 		t.Error("The payload items mismatch from the expectations.")
 	}
 }

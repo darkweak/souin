@@ -201,6 +201,9 @@ func Test_Plugin_Middleware_Mutation(t *testing.T) {
 func Test_Plugin_Middleware_API(t *testing.T) {
 	p := &Plugin{}
 	_ = p.Init(&configWrapper{}, newTestLogger())
+	for _, storer := range p.SouinBaseHandler.Storers {
+		_ = storer.Reset()
+	}
 	handler := p.Middleware(nextFilter)
 	req, res, res2 := prepare("/httpcache_api/httpcache")
 	handler.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest("PURGE", "/httpcache_api/httpcache/.+", nil))
@@ -253,7 +256,7 @@ func Test_Plugin_Middleware_API(t *testing.T) {
 	if len(payload) != 2 {
 		t.Error("The system must store 2 items, the fresh and the stale one")
 	}
-	if payload[0] != "GET-http-example.com-/handled" || payload[1] != "STALE_GET-http-example.com-/handled" {
+	if payload[0] != "GET-http-example.com-/handled" || payload[1] != "IDX_GET-http-example.com-/handled" {
 		t.Error("The payload items mismatch from the expectations.")
 	}
 }

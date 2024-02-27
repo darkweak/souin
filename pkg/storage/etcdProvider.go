@@ -174,6 +174,66 @@ func (provider *Etcd) Prefix(key string, req *http.Request, validator *rfc.Reval
 	return nil
 }
 
+// GetMultiLevel tries to load the key and check if one of linked keys is a fresh/stale candidate.
+func (provider *Etcd) GetMultiLevel(key string, req *http.Request, validator *rfc.Revalidator) (fresh *http.Response, stale *http.Response) {
+	if provider.reconnecting {
+		provider.logger.Sugar().Error("Impossible to get the etcd key while reconnecting.")
+		return
+	}
+
+	r, e := provider.Client.Get(provider.ctx, MappingKeyPrefix+key)
+	if e != nil {
+		go provider.Reconnect()
+		return fresh, stale
+	}
+
+	if len(r.Kvs) > 0 {
+		fresh, stale, _ = mappingElection(provider, r.Kvs[0].Value, req, validator, provider.logger)
+	}
+
+	return fresh, stale
+}
+
+// SetMultiLevel tries to store the key with the given value and update the mapping key to store metadata.
+func (provider *Etcd) SetMultiLevel(baseKey, variedKey string, value []byte, variedHeaders http.Header, etag string, duration time.Duration) error {
+	if provider.reconnecting {
+		provider.logger.Sugar().Error("Impossible to set the etcd value while reconnecting.")
+		return fmt.Errorf("reconnecting error")
+	}
+
+	now := time.Now()
+	if provider.reconnecting {
+		provider.logger.Sugar().Error("Impossible to set the etcd value while reconnecting.")
+		return fmt.Errorf("reconnecting error")
+	}
+	if provider.Client.ActiveConnection().GetState() != connectivity.Ready && provider.Client.ActiveConnection().GetState() != connectivity.Idle {
+		return fmt.Errorf("the connection is not ready: %v", provider.Client.ActiveConnection().GetState())
+	}
+
+	rs, err := provider.Client.Grant(context.TODO(), int64(duration.Seconds()))
+	if err == nil {
+		_, err = provider.Client.Put(provider.ctx, variedKey, string(value), clientv3.WithLease(rs.ID))
+		fmt.Println("Put err =>", err)
+	}
+
+	if err != nil {
+		if !provider.reconnecting {
+			go provider.Reconnect()
+		}
+		provider.logger.Sugar().Errorf("Impossible to set value into Etcd, %v", err)
+		return err
+	}
+
+	mappingKey := MappingKeyPrefix + baseKey
+	r := provider.Get(mappingKey)
+	val, e := mappingUpdater(variedKey, []byte(r), provider.logger, now, now.Add(duration), now.Add(duration+provider.stale), variedHeaders, etag)
+	if e != nil {
+		return e
+	}
+
+	return provider.Set(mappingKey, val, t.URL{}, duration+provider.stale)
+}
+
 // Set method will store the response in Etcd provider
 func (provider *Etcd) Set(key string, value []byte, url t.URL, duration time.Duration) error {
 	if provider.reconnecting {
@@ -191,16 +251,6 @@ func (provider *Etcd) Set(key string, value []byte, url t.URL, duration time.Dur
 	if err == nil {
 		_, err = provider.Client.Put(provider.ctx, key, string(value), clientv3.WithLease(rs.ID))
 	}
-
-	if err != nil {
-		if !provider.reconnecting {
-			go provider.Reconnect()
-		}
-		provider.logger.Sugar().Errorf("Impossible to set value into Etcd, %v", err)
-		return err
-	}
-
-	_, err = provider.Client.Put(provider.ctx, StalePrefix+key, string(value), clientv3.WithLease(rs.ID))
 
 	if err != nil {
 		if !provider.reconnecting {
