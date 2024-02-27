@@ -29,7 +29,11 @@ func Test_NewHTTPCache(t *testing.T) {
 func prepare() *fiber.App {
 	app := fiber.New()
 
-	app.Use(NewHTTPCache(DevDefaultConfiguration).Handle)
+	httpcache := NewHTTPCache(DevDefaultConfiguration)
+	for _, storer := range httpcache.SouinBaseHandler.Storers {
+		_ = storer.Reset()
+	}
+	app.Use(httpcache.Handle)
 	app.Get("/*", func(c *fiber.Ctx) error {
 		return c.SendString("Hello, World 👋!")
 	})
@@ -139,7 +143,7 @@ func Test_SouinFiberPlugin_Middleware_APIHandle(t *testing.T) {
 	if len(payload) != 2 {
 		t.Error("The system must store 2 items, the fresh and the stale one")
 	}
-	if payload[0] != "GET-http-example.com-/handled" || payload[1] != "STALE_GET-http-example.com-/handled" {
+	if payload[0] != "GET-http-example.com-/handled" || payload[1] != "IDX_GET-http-example.com-/handled" {
 		t.Error("The payload items mismatch from the expectations.")
 	}
 }

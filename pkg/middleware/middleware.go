@@ -257,7 +257,7 @@ func (s *SouinBaseHandler) Store(
 				// "Implies that the response is uncacheable"
 				status += "; detail=UPSTREAM-VARY-STAR"
 			} else {
-				cachedKey += rfc.GetVariedCacheKey(rq, variedHeaders)
+				variedKey := cachedKey + rfc.GetVariedCacheKey(rq, variedHeaders)
 				s.Configuration.GetLogger().Sugar().Debugf("Store the response %+v with duration %v", res, ma)
 
 				var wg sync.WaitGroup
@@ -267,12 +267,17 @@ func (s *SouinBaseHandler) Store(
 				case <-rq.Context().Done():
 					status += "; detail=REQUEST-CANCELED-OR-UPSTREAM-BROKEN-PIPE"
 				default:
+					vhs := http.Header{}
+					for _, hname := range variedHeaders {
+						hn := strings.Split(hname, ":")
+						vhs.Set(hn[0], rq.Header.Get(hn[0]))
+					}
 					for _, storer := range s.Storers {
 						wg.Add(1)
 						go func(currentStorer types.Storer) {
 							defer wg.Done()
-							if currentStorer.Set(cachedKey, response, currentMatchedURL, ma) == nil {
-								s.Configuration.GetLogger().Sugar().Debugf("Stored the key %s in the %s provider", cachedKey, currentStorer.Name())
+							if currentStorer.SetMultiLevel(cachedKey, variedKey, response, vhs, res.Header.Get("Etag"), ma) == nil {
+								s.Configuration.GetLogger().Sugar().Debugf("Stored the key %s in the %s provider", variedKey, currentStorer.Name())
 							} else {
 								mu.Lock()
 								fails = append(fails, fmt.Sprintf("; detail=%s-INSERTION-ERROR", currentStorer.Name()))
@@ -285,7 +290,7 @@ func (s *SouinBaseHandler) Store(
 					if len(fails) < s.storersLen {
 						go func(rs http.Response, key string) {
 							_ = s.SurrogateKeyStorer.Store(&rs, key)
-						}(res, cachedKey)
+						}(res, variedKey)
 						status += "; stored"
 					}
 
@@ -382,7 +387,7 @@ func (s *SouinBaseHandler) Upstream(
 			if !isVaryStar {
 				for _, vh := range variedHeaders {
 					if rq.Header.Get(vh) != sfWriter.requestHeaders.Get(vh) {
-						cachedKey += rfc.GetVariedCacheKey(rq, variedHeaders)
+						// cachedKey += rfc.GetVariedCacheKey(rq, variedHeaders)
 						return s.Upstream(customWriter, rq, next, requestCc, cachedKey)
 					}
 				}
@@ -464,6 +469,15 @@ func (s *SouinBaseHandler) HandleInternally(r *http.Request) (bool, http.Handler
 }
 
 type handlerFunc = func(http.ResponseWriter, *http.Request) error
+type statusCodeLogger struct {
+	http.ResponseWriter
+	statusCode int
+}
+
+func (s *statusCodeLogger) WriteHeader(code int) {
+	s.statusCode = code
+	s.ResponseWriter.WriteHeader(code)
+}
 
 func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, next handlerFunc) error {
 	start := time.Now()
@@ -485,9 +499,22 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 
 	if !req.Context().Value(context.SupportedMethod).(bool) {
 		rw.Header().Set("Cache-Status", cacheName+"; fwd=bypass; detail=UNSUPPORTED-METHOD")
+		nrw := &statusCodeLogger{
+			ResponseWriter: rw,
+			statusCode:     0,
+		}
 
-		err := next(rw, req)
+		err := next(nrw, req)
 		s.SurrogateKeyStorer.Invalidate(req.Method, rw.Header())
+
+		if err == nil && req.Method != http.MethodGet && nrw.statusCode < http.StatusBadRequest {
+			// Invalidate related GET keys when the method is not allowed and the response is valid
+			req.Method = http.MethodGet
+			keyname := s.context.SetContext(req, rq).Context().Value(context.Key).(string)
+			for _, storer := range s.Storers {
+				storer.DeleteMany(fmt.Sprintf("(%s)?%s((%s|/).*|$)", storage.MappingKeyPrefix, keyname, rfc.VarySeparator))
+			}
+		}
 
 		return err
 	}
@@ -528,17 +555,19 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 	s.Configuration.GetLogger().Sugar().Debugf("Request cache-control %+v", requestCc)
 	if modeContext.Bypass_request || !requestCc.NoCache {
 		validator := rfc.ParseRequest(req)
-		var response *http.Response
+		var fresh, stale *http.Response
 		for _, currentStorer := range s.Storers {
-			response = currentStorer.Prefix(cachedKey, req, validator)
-			if response != nil {
-				s.Configuration.GetLogger().Sugar().Debugf("Found response in the %s storage", currentStorer.Name())
+			fresh, stale = currentStorer.GetMultiLevel(cachedKey, req, validator)
+
+			if fresh != nil || stale != nil {
+				s.Configuration.GetLogger().Sugar().Debugf("Found at least one valid response in the %s storage", currentStorer.Name())
 				break
 			}
 		}
 
 		headerName, _ := s.SurrogateKeyStorer.GetSurrogateControl(customWriter.Header())
-		if response != nil && (!modeContext.Strict || rfc.ValidateCacheControl(response, requestCc)) {
+		if fresh != nil && (!modeContext.Strict || rfc.ValidateCacheControl(fresh, requestCc)) {
+			response := fresh
 			if validator.ResponseETag != "" && validator.Matched {
 				rfc.SetCacheStatusHeader(response)
 				for h, v := range response.Header {
@@ -585,13 +614,9 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 
 				return err
 			}
-		} else if response == nil && !requestCc.OnlyIfCached && (requestCc.MaxStaleSet || requestCc.MaxStale > -1) {
-			for _, currentStorer := range s.Storers {
-				response = currentStorer.Prefix(storage.StalePrefix+cachedKey, req, validator)
-				if response != nil {
-					break
-				}
-			}
+		} else if !requestCc.OnlyIfCached && (requestCc.MaxStaleSet || requestCc.MaxStale > -1) {
+			response := stale
+
 			if nil != response && (!modeContext.Strict || rfc.ValidateCacheControl(response, requestCc)) {
 				addTime, _ := time.ParseDuration(response.Header.Get(rfc.StoredTTLHeader))
 				rfc.SetCacheStatusHeader(response)

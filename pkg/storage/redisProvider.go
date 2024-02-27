@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -22,6 +23,7 @@ import (
 
 // Redis provider type
 type Redis struct {
+	inClient      redis.Client
 	Client        rueidiscompat.Cmdable
 	stale         time.Duration
 	ctx           context.Context
@@ -63,6 +65,7 @@ func RedisConnectionFactory(c t.AbstractConfigurationInterface) (types.Storer, e
 	compat := rueidiscompat.NewAdapter(cli)
 
 	return &Redis{
+		inClient:      cli,
 		Client:        compat,
 		ctx:           context.Background(),
 		stale:         dc.GetStale(),
@@ -108,23 +111,82 @@ func (provider *Redis) MapKeys(prefix string) map[string]string {
 	return m
 }
 
-// Get method returns the populated response if exists, empty response then
-func (provider *Redis) Get(key string) (item []byte) {
+// GetMultiLevel tries to load the key and check if one of linked keys is a fresh/stale candidate.
+func (provider *Redis) GetMultiLevel(key string, req *http.Request, validator *rfc.Revalidator) (fresh *http.Response, stale *http.Response) {
 	if provider.reconnecting {
 		provider.logger.Sugar().Error("Impossible to get the redis key while reconnecting.")
 		return
 	}
-	r, e := provider.Client.Get(provider.ctx, key).Result()
+
+	b, e := provider.inClient.Do(provider.ctx, provider.inClient.B().Get().Key(MappingKeyPrefix+key).Build()).AsBytes()
 	if e != nil {
-		if e != redis.Nil && !provider.reconnecting {
+		if !errors.Is(e, redis.Nil) && !provider.reconnecting {
 			go provider.Reconnect()
 		}
-		return
+		return fresh, stale
 	}
 
-	item = []byte(r)
+	fresh, stale, _ = mappingElection(provider, b, req, validator, provider.logger)
 
-	return
+	return fresh, stale
+}
+
+// SetMultiLevel tries to store the key with the given value and update the mapping key to store metadata.
+func (provider *Redis) SetMultiLevel(baseKey, variedKey string, value []byte, variedHeaders http.Header, etag string, duration time.Duration) error {
+	if provider.reconnecting {
+		provider.logger.Sugar().Error("Impossible to set the redis value while reconnecting.")
+		return fmt.Errorf("reconnecting error")
+	}
+
+	now := time.Now()
+	if err := provider.inClient.Do(provider.ctx, provider.inClient.B().Set().Key(variedKey).Value(string(value)).Ex(duration+provider.stale).Build()).Error(); err != nil {
+		if !provider.reconnecting {
+			go provider.Reconnect()
+		}
+		provider.logger.Sugar().Errorf("Impossible to set value into Redis, %v", err)
+		return err
+	}
+
+	mappingKey := MappingKeyPrefix + baseKey
+	v, e := provider.inClient.Do(provider.ctx, provider.inClient.B().Get().Key(mappingKey).Build()).AsBytes()
+	if e != nil && !errors.Is(e, redis.Nil) {
+		if !provider.reconnecting {
+			go provider.Reconnect()
+		}
+		return e
+	}
+
+	val, e := mappingUpdater(variedKey, v, provider.logger, now, now.Add(duration), now.Add(duration+provider.stale), variedHeaders, etag)
+	if e != nil {
+		return e
+	}
+
+	if e = provider.inClient.Do(provider.ctx, provider.inClient.B().Set().Key(mappingKey).Value(string(val)).Build()).Error(); e != nil {
+		if !provider.reconnecting {
+			go provider.Reconnect()
+		}
+		provider.logger.Sugar().Errorf("Impossible to set value into Redis, %v", e)
+	}
+
+	return e
+}
+
+// Get method returns the populated response if exists, empty response then
+func (provider *Redis) Get(key string) []byte {
+	if provider.reconnecting {
+		provider.logger.Sugar().Error("Impossible to get the redis key while reconnecting.")
+		return nil
+	}
+
+	r, e := provider.inClient.Do(provider.ctx, provider.inClient.B().Get().Key(key).Build()).AsBytes()
+	if e != nil && e != redis.Nil {
+		if !provider.reconnecting {
+			go provider.Reconnect()
+		}
+		return nil
+	}
+
+	return r
 }
 
 // Prefix method returns the populated response if exists, empty response then
