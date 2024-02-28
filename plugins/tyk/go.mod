@@ -1,6 +1,8 @@
 module github.com/darkweak/souin/plugins/tyk
 
-go 1.19
+go 1.21
+
+toolchain go1.21.0
 
 require (
 	github.com/TykTechnologies/tyk v1.9.2-0.20230330071232-370295d796b5

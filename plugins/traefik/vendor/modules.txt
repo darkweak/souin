@@ -75,7 +75,7 @@ github.com/coreos/go-systemd/v22/journal
 ## explicit; go 1.18
 github.com/darkweak/go-esi/esi
 # github.com/darkweak/souin v1.6.46 => ../..
-## explicit; go 1.19
+## explicit; go 1.21
 github.com/darkweak/souin/configurationtypes
 github.com/darkweak/souin/context
 github.com/darkweak/souin/errors

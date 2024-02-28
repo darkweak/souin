@@ -246,22 +246,15 @@ func (provider *Redis) Set(key string, value []byte, url t.URL, duration time.Du
 		duration = url.TTL.Duration
 	}
 
-	if err := provider.Client.Set(provider.ctx, key, value, duration).Err(); err != nil {
-		if !provider.reconnecting {
-			go provider.Reconnect()
-		}
-		provider.logger.Sugar().Errorf("Impossible to set value into Redis, %v", err)
-		return err
-	}
-
-	if err := provider.Client.Set(provider.ctx, StalePrefix+key, value, duration+provider.stale).Err(); err != nil {
+	err := provider.Client.Set(provider.ctx, key, value, duration).Err()
+	if err != nil {
 		if !provider.reconnecting {
 			go provider.Reconnect()
 		}
 		provider.logger.Sugar().Errorf("Impossible to set value into Redis, %v", err)
 	}
 
-	return nil
+	return err
 }
 
 // Delete method will delete the response in Etcd provider if exists corresponding to key param
