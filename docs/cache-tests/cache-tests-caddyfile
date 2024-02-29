@@ -1,16 +1,16 @@
 {
-    order cache before rewrite
-    cache {
-        api {
-            prometheus
-            souin
-        }
-        cdn {
-            dynamic
-        }
-        ttl 1000s
-        default_cache_control public
+  order cache before rewrite
+  cache {
+    api {
+      prometheus
+      souin
     }
+    cdn {
+      dynamic
+    }
+    ttl 1000s
+    default_cache_control public
+  }
 }
 
 :4443
