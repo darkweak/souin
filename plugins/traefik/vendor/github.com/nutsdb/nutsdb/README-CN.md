@@ -6,119 +6,148 @@
 
 [English](https://github.com/nutsdb/nutsdb/blob/master/README.md) | 简体中文
 
-NutsDB是纯Go语言编写一个简单、高性能、内嵌型、持久化的key-value数据库。
+NutsDB 是一个用纯 Go 编写的简单、快速、可嵌入且持久的键/值存储。
 
-NutsDB支持事务，从v0.2.0之后的版本开始支持ACID的特性，建议使用最新的release版本。v0.2.0之前的版本，保持高性能，没有作sync，但是具备高性能的写（本地测试，百万数据写入达40~50W+/s）。所有的操作都在事务中执行。NutsDB从v0.2.0版本开始支持多种数据结构，如列表(list)、集合(set)、有序集合(sorted set)。从0.4.0版本开始增加自定义配置读写方式、启动时候的文件载入方式、sync是否开启等，详情见[选项配置](https://github.com/nutsdb/nutsdb/blob/master/README-CN.md#%E9%80%89%E9%A1%B9%E9%85%8D%E7%BD%AE)
+它支持完全可序列化的事务以及 List、Set、SortedSet 等多种数据结构。 所有操作都发生在 Tx 内部。 Tx 代表一个事务，可以是只读的，也可以是读写的。 只读事务可以读取给定存储桶和给定键的值或迭代一组键值对。 读写事务可以从数据库中读取、更新和删除键。
 
+我们可以在NutsDB的文档网站了解更多：[NutsDB Documents](https://nutsdb.github.io/nutsdb-docs/)
 
-### 加群
-欢迎对NutsDB感兴趣的加群、一起开发，具体看这个issue：https://github.com/nutsdb/nutsdb/issues/116
+欢迎对NutsDB感兴趣的加群、一起开发，具体看这个issue：https://github.com/nutsdb/nutsdb/issues/116。
 
 ### 关注nutsdb公众号
  <img src="https://user-images.githubusercontent.com/6065007/221391600-4f53e966-c376-426e-9dec-27364a0704d1.png"   height = "300" alt="nutsdb公众号" align=center />
 
 
 ### 公告
-* v0.12.0 release, 详情见：https://github.com/nutsdb/nutsdb/issues/293
-* v0.11.0 release, 详情见： https://github.com/nutsdb/nutsdb/issues/219
-* v0.10.0 release, 详情见： https://github.com/nutsdb/nutsdb/issues/193
-* v0.9.0 release，详情见： https://github.com/nutsdb/nutsdb/issues/167
+* v1.0.0 发布，详情见： [https://github.com/nutsdb/nutsdb/releases/tag/v1.0.0](https://github.com/nutsdb/nutsdb/releases/tag/v1.0.0)
+* v0.14.3 发布，详情见： [https://github.com/nutsdb/nutsdb/releases/tag/v0.14.3](https://github.com/nutsdb/nutsdb/releases/tag/v0.14.3)
+* v0.14.2 发布，详情见：[https://github.com/nutsdb/nutsdb/releases/tag/v0.14.2](https://github.com/nutsdb/nutsdb/releases/tag/v0.14.2)
+* v0.14.1 发布，详情见：[https://github.com/nutsdb/nutsdb/releases/tag/v0.14.1](https://github.com/nutsdb/nutsdb/releases/tag/v0.14.1)
 
-📢 注意：从v0.9.0开始，**DefaultOptions**里面的**defaultSegmentSize**做了调整从原来的**8MB**变成了**256MB**，如果你原来设置256MB不用改，如果原来使用的是默认值的，需要手动改成8MB，不然原来的数据不会解析。这边的大小调整原因是从v0.9.0开始有对文件描述符的缓存（详解见PR https://github.com/nutsdb/nutsdb/issues/164 ），所以需要用户看下自己的fd数量，有不清楚可以提issue或者群里问。
+📢 注意：从v0.9.0开始，**DefaultOptions** 里面的 **defaultSegmentSize** 做了调整从原来的 **8MB** 变成了 **256MB**，如果你原来设置 256MB 不用改，如果原来使用的是默认值的，需要手动改成 8MB，不然原来的数据不会解析。这边的大小调整原因是从 v0.9.0 开始有对文件描述符的缓存（详解见PR https://github.com/nutsdb/nutsdb/issues/164 ），所以需要用户看下自己的文件描述符数量，有不清楚可以提issue或者群里问。
+
+**nutsdb v1.0.0 **之后，由于底层数据存储协议的变化，**旧版本的数据不兼容**。 请在使用新版本之前重写数据。 并且当前的 Bucket 需要手动创建。 详细请参见Bucket使用[文档](./docs/user_guides/use-buckets.md)。
 
 ### 学习资料
 
 https://www.bilibili.com/video/BV1T34y1x7AS/
 
 ## 架构设计
-![image](https://user-images.githubusercontent.com/6065007/163700148-3f176acf-c9c5-4248-a999-684acb92849a.png)
+![nutsdb-架构图](./docs/img/nutsdb-架构图.png)
 
 
 
 
 ## 目录
 
-- [入门指南](#入门指南)
-  - [安装](#安装)
-  - [开启数据库](#开启数据库)
-  - [选项配置](#选项配置)
-    - [默认选项](#默认选项)
-  - [使用事务](#使用事务)
-    - [读写事务](#读写事务)
-    - [只读事务](#只读事务)
-    - [手动管理事务](#手动管理事务)
-  - [使用buckets](#使用buckets)
-    - [迭代buckets](#迭代buckets)
-    - [删除bucket](#删除bucket)
-  - [使用键值对](#使用键值对)
-  - [使用TTL](#使用ttl)
-  - [对keys的扫描操作](#对keys的扫描操作)
-    - [前缀扫描](#前缀扫描)
-    - [前缀后的正则搜索扫描](#前缀后的正则扫描)    
-    - [范围扫描](#范围扫描)
+- [NutsDB        ](#nutsdb--------)
+    - [关注nutsdb公众号](#关注nutsdb公众号)
+    - [公告](#公告)
+    - [学习资料](#学习资料)
+  - [架构设计](#架构设计)
+  - [目录](#目录)
+  - [入门指南](#入门指南)
+    - [安装](#安装)
+    - [开启数据库](#开启数据库)
+    - [选项配置](#选项配置)
+      - [默认选项](#默认选项)
+    - [使用事务](#使用事务)
+      - [读写事务](#读写事务)
+      - [只读事务](#只读事务)
+      - [手动管理事务](#手动管理事务)
+    - [使用buckets](#使用buckets)
+      - [迭代buckets](#迭代buckets)
+      - [删除bucket](#删除bucket)
+    - [使用键值对](#使用键值对)
+      - [基本操作](#基本操作)
+      - [对值的位操作](#对值的位操作)
+      - [对值的自增和自减操作](#对值的自增和自减操作)
+      - [对值的连续多次Set和Get](#对值的连续多次set和get)
+      - [对值的增补操作](#对值的增补操作)
+      - [获取值的一部分](#获取值的一部分)
+    - [使用TTL](#使用ttl)
+    - [对keys的扫描操作](#对keys的扫描操作)
+      - [前缀扫描](#前缀扫描)
+      - [前缀后的正则扫描](#前缀后的正则扫描)
+      - [范围扫描](#范围扫描)
     - [获取全部的key和value](#获取全部的key和value)
     - [迭代器](#迭代器)
-  - [合并操作](#合并操作)
-  - [数据库备份](#数据库备份)
-- [使用内存模式](#使用内存模式)
-- [使用其他数据结构](#使用其他数据结构)
-   - [List](#list)
-     - [RPush](#rpush)
-     - [LPush](#lpush)
-     - [LPop](#lpop)
-     - [LPeek](#lpeek)
-     - [RPop](#rpop)
-     - [RPeek](#rpeek)
-     - [LRange](#lrange)
-     - [LRem](#lrem)
-     - [LRemByIndex](#lrembyindex)
-     - [LTrim](#LTrim)
-     - [LSize](#lsize)      
-     - [LKeys](#lkeys)
-   - [Set](#set)
-     - [SAdd](#sadd)
-     - [SAreMembers](#saremembers)
-     - [SCard](#scard)
-     - [SDiffByOneBucket](#sdiffbyonebucket)
-     - [SDiffByTwoBuckets](#sdiffbytwobuckets)
-     - [SHasKey](#shaskey)
-     - [SIsMember](#sismember)
-     - [SMembers](#smembers)
-     - [SMoveByOneBucket](#smovebyonebucket)
-     - [SMoveByTwoBuckets](#smovebytwobuckets)
-     - [SPop](#spop)
-     - [SRem](#srem)
-     - [SUnionByOneBucket](#sunionbyonebucket)
-     - [SUnionByTwoBucket](#sunionbytwobuckets)
-     - [SKeys](#skeys)
-   - [Sorted Set](#sorted-set)
-     - [ZAdd](#zadd)
-     - [ZCard](#zcard)
-     - [ZCount](#zcount)
-     - [ZGetByKey](#zgetbykey)
-     - [ZMembers](#zmembers)
-     - [ZPeekMax](#zpeekmax)
-     - [ZPeekMin](#zpeekmin)
-     - [ZPopMax](#zpopmax)
-     - [ZPopMin](#zpopmin)
-     - [ZRangeByRank](#zrangebyrank)
-     - [ZRangeByScore](#zrangebyscore)
-     - [ZRank](#zrank)
-     - [ZRevRank](#zrevrank)
-     - [ZRem](#zrem)
-     - [ZRemRangeByRank](#zremrangebyrank)
-     - [ZScore](#zscore)
-     - [ZKeys](#zkeys)
-- [与其他数据库的比较](#与其他数据库的比较)
-   - [BoltDB](#boltdb)
-   - [LevelDB, RocksDB](#leveldb-rocksdb)
-   - [Badger](#badger)
-- [Benchmarks](#benchmarks)
-- [警告和限制](#警告和限制)
-- [联系作者](#联系作者)
-- [参与贡献](#参与贡献)
-- [致谢](#致谢)
-- [License](#license)
+      - [正向的迭代器](#正向的迭代器)
+      - [反向的迭代器](#反向的迭代器)
+    - [合并操作](#合并操作)
+    - [数据库备份](#数据库备份)
+    - [使用内存模式](#使用内存模式)
+    - [使用其他数据结构](#使用其他数据结构)
+      - [List](#list)
+        - [RPush](#rpush)
+        - [LPush](#lpush)
+        - [LPop](#lpop)
+        - [LPeek](#lpeek)
+        - [RPop](#rpop)
+        - [RPeek](#rpeek)
+        - [LRange](#lrange)
+        - [LRem](#lrem)
+        - [LRemByIndex](#lrembyindex)
+        - [LTrim](#ltrim)
+        - [LSize](#lsize)
+        - [LKeys](#lkeys)
+      - [Set](#set)
+        - [SAdd](#sadd)
+        - [SAreMembers](#saremembers)
+        - [SCard](#scard)
+        - [SDiffByOneBucket](#sdiffbyonebucket)
+        - [SDiffByTwoBuckets](#sdiffbytwobuckets)
+        - [SHasKey](#shaskey)
+        - [SIsMember](#sismember)
+        - [SMembers](#smembers)
+        - [SMoveByOneBucket](#smovebyonebucket)
+        - [SMoveByTwoBuckets](#smovebytwobuckets)
+        - [SPop](#spop)
+        - [SRem](#srem)
+        - [SUnionByOneBucket](#sunionbyonebucket)
+        - [SUnionByTwoBuckets](#sunionbytwobuckets)
+        - [SKeys](#skeys)
+      - [Sorted Set](#sorted-set)
+        - [ZAdd](#zadd)
+        - [ZCard](#zcard)
+        - [ZCount](#zcount)
+        - [ZGetByKey](#zgetbykey)
+        - [ZMembers](#zmembers)
+        - [ZPeekMax](#zpeekmax)
+        - [ZPeekMin](#zpeekmin)
+        - [ZPopMax](#zpopmax)
+        - [ZPopMin](#zpopmin)
+        - [ZRangeByRank](#zrangebyrank)
+        - [ZRangeByScore](#zrangebyscore)
+        - [ZRank](#zrank)
+      - [ZRevRank](#zrevrank)
+        - [ZRem](#zrem)
+        - [ZRemRangeByRank](#zremrangebyrank)
+        - [ZScore](#zscore)
+        - [ZKeys](#zkeys)
+    - [与其他数据库的比较](#与其他数据库的比较)
+      - [BoltDB](#boltdb)
+      - [LevelDB, RocksDB](#leveldb-rocksdb)
+      - [Badger](#badger)
+    - [Benchmarks](#benchmarks)
+  - [测试的环境:](#测试的环境)
+  - [Benchmark的结果:](#benchmark的结果)
+  - [结论:](#结论)
+    - [写性能:](#写性能)
+    - [读性能:](#读性能)
+    - [警告和限制](#警告和限制)
+      - [隔离级别低到高：](#隔离级别低到高)
+        - [1）未提交读（READ UNCOMMITTED）](#1未提交读read-uncommitted)
+        - [2）在提交读（READ COMMITTED）](#2在提交读read-committed)
+        - [3）在可重复读（REPEATABLE READS）](#3在可重复读repeatable-reads)
+        - [4）可串行化 （Serializable）](#4可串行化-serializable)
+    - [联系作者](#联系作者)
+    - [参与贡献](#参与贡献)
+      - [代码风格指南参考](#代码风格指南参考)
+      - [git commit 规范参考](#git-commit-规范参考)
+      - [type的参考](#type的参考)
+    - [致谢](#致谢)
+    - [License](#license)
 
 ## 入门指南
 
@@ -403,6 +432,8 @@ if err := db.Update(
 
 ### 使用键值对
 
+#### 基本操作
+
 将key-value键值对保存在一个bucket, 你可以使用 `tx.Put` 这个方法:
 
 * 添加数据
@@ -427,7 +458,7 @@ if err := db.Update(
 * 更新数据
 
 上面的代码执行之后key为"name1"和value值"val1"被保存在命名为bucket1的bucket里面。
- 
+
 如果你要做更新操作，你可以仍然用`tx.Put`方法去执行，比如下面的例子把value的值改成"val1-modify"：
 
 ```golang
@@ -455,10 +486,10 @@ if err := db.View(
 func(tx *nutsdb.Tx) error {
     key := []byte("name1")
     bucket := "bucket1"
-    if e, err := tx.Get(bucket, key); err != nil {
+    if value, err := tx.Get(bucket, key); err != nil {
         return err
     } else {
-        fmt.Println(string(e.Value)) // "val1-modify"
+        fmt.Println(string(value)) // "val1-modify"
     }
     return nil
 }); err != nil {
@@ -481,6 +512,165 @@ if err := db.Update(
     return nil
 }); err != nil {
     log.Fatal(err)
+}
+```
+
+#### 对值的位操作
+
+* 使用`tx.GetBit()`方法获取某一键所对应的值在某一偏移量上的值。当对应的键存在时，返回参数中偏移量所对应位置的上的值，当偏移量超出原有的数据范围时，将返回0且不报错；当对应的键不存在时，将报错提示键不存在。
+
+```golang
+if err := db.View(func(tx *nutsdb.Tx) error {
+	bucket := "bucket"
+	key := []byte("key")
+	offset := 2
+    bit, err := tx.GetBit(bucket, key, offset)
+    if err != nil {
+        return err
+    }
+    log.Println("get bit:", bit)
+    return nil
+}); err != nil {
+    log.Println(err)
+}
+```
+
+* 使用`tx.SetBit()`方法添加某一键所对应的值在某一偏移量上的值。当对应的键存在时，将会修改偏移量所对应的位上的值；当对应的键不存在或者偏移量超出原有的数据范围时，将会对原有值进行扩容直到能够在偏移量对应位置上修改。除偏移量对应位置之外，自动扩容产生的位的值均为0。
+
+```golang
+if err := db.Update(func(tx *nutsdb.Tx) error {
+	bucket := "bucket"
+	key := []byte("key")
+	offset := 2
+	bit := 1
+	return tx.SetBit(bucket, key, offset, bit)
+}); err != nil {
+    log.Println(err)
+}
+```
+
+#### 对值的自增和自减操作
+
+在对值进行自增和自减操作时需要键存在，否则将报错提示键不存在。当值的自增和自减结果将超出`int64`的范围时，将使用基于字符串的大数计算，所以不必担心值的范围过大。
+
+* 使用`tx.Incr()`方法让某一键所对应的值自增1
+
+```golang
+if err := db.Update(func(tx *nutsdb.Tx) error {
+	bucket := "bucket"
+	key := []byte("key")
+    return tx.Incr(bucket, key)
+}); err != nil {
+    log.Println(err)
+}
+```
+
+* 使用`tx.IncrBy()`方法让某一键所对应的值自增指定的值
+
+```golang
+if err := db.Update(func(tx *nutsdb.Tx) error {
+    bucket := "bucket"
+    key := []byte("key")
+    return tx.IncrBy(bucket, key, 10)
+}); err != nil {
+    log.Println(err)
+}
+```
+
+* 使用`tx.Decr()`方法让某一键所对应的值自减1
+
+```golang
+if err := db.Update(func(tx *nutsdb.Tx) error {
+	bucket := "bucket"
+	key := []byte("key")
+    return tx.Decr(bucket, key)
+}); err != nil {
+    log.Println(err)
+}
+```
+
+* 使用`tx.DecrBy()`方法让某一键所对应的值自减指定的值
+
+```golang
+if err := db.Update(func(tx *nutsdb.Tx) error {
+    bucket := "bucket"
+    key := []byte("key")
+    return tx.DecrBy(bucket, key, 10)
+}); err != nil {
+    log.Println(err)
+}
+```
+
+#### 对值的连续多次Set和Get
+
+* 使用`tx.MSet()`方法连续多次设置键值对。当使用`tx.MSet()`需要以`...[]byte`类型传入若干个键值对。此处要求参数的总数为偶数个，设i为从0开始的偶数，则第i个参数和第i+1个参数将分别成为一个键值对的键和值。
+
+```golang
+if err := db.Update(func(tx *nutsdb.Tx) error {
+	bucekt := "bucket"
+	args := [][]byte{
+        []byte("1"), []byte("2"), []byte("3"), []byte("4"),
+    }
+    return tx.MSet(bucket, nutsdb.Persistent, args...)
+}); err != nil {
+    log.Println(err)
+}
+```
+
+* 使用`tx.MGet()`方法连续多次取值。当使用`tx.MGet()`需要以`...[]byte`类型传入若干个键，若其中任何一个键不存在都会返回`key not found`错误。返回值是一个切片，长度与传入的参数相同，并且根据切片索引一一对应。
+
+```golang
+if err := db.View(func(tx *nutsdb.Tx) error {
+	bucket := "bucket"
+	key := [][]byte{
+		[]byte("1"), []byte("2"), []byte("3"), []byte("4"),
+    }
+    values, err := tx.MGet(bucket, key...)
+    if err != nil {
+        return err
+    }
+    for i, value := range values {
+        log.Printf("get value by MGet, the %d value is '%s'", i, string(value))
+    }
+    return nil
+}); err != nil {
+    log.Println(err)
+}
+```
+
+#### 对值的增补操作
+
+* 使用`tx.Append()`方法对值进行增补。
+
+```golang
+if err := db.Update(func(tx *nutsdb.Tx) error {
+	bucket := "bucket"
+	key := "key"
+	appendage := "appendage"
+    return tx.Append(bucket, []byte(key), []byte(appendage))
+}); err != nil {
+    log.Println(err)
+}
+```
+
+#### 获取值的一部分
+
+* 使用`tx.GetRange()`方法可以根据给定的索引获取值的一部分。通过两个`int`类型的参数确定一个闭区间，返回闭区间所对应部分的值。
+
+```golang
+if err := db.View(func(tx *nutsdb.Tx) error {
+	bucket := "bucket"
+	key := "key"
+	start := 0
+	end := 2
+    value, err := tx.GetRange(bucket, []byte(key), start, end)
+    if err != nil {
+        return err
+    }
+    log.Printf("got value: '%s'", string(value))
+    return nil
+}); err != nil {
+    log.Println(err)
 }
 ```
 
@@ -509,7 +699,7 @@ if err := db.Update(
 ### 对keys的扫描操作
 
 key在一个bucket里面按照byte-sorted有序排序的，所以对于keys的扫描操作，在NutsDB里是很高效的。
- 
+
 
 #### 前缀扫描
 
@@ -2112,7 +2302,7 @@ BoltDB最慢。
 ### 读性能: 
 
 默认模式下，读都很快。其中NutsDB在默认配置下比其他数据库快一倍。但是如果使用`HintKeyAndRAMIdxMode`的选项，读速度比默认配置低很多。道理很简单，默认配置是全内存索引，但是`HintKeyAndRAMIdxMode`的模式，是内存索引+磁盘混合的方式，但是这个选项模式可以保存远大于内存的数据。特别是value远大于key的场景效果更明显。
- 
+
 
 ### 警告和限制
 
@@ -2184,14 +2374,14 @@ nutsDB不会出现“不可重复读”这种情况，当高并发的时候，�
 定义：这个隔离级别中，基于锁机制并发控制的DBMS需要对选定对象的读锁（read locks）和写锁（write locks）一直保持到事务结束，但不要求“范围锁”，因此可能会发生“幻影读”。
 
 关于幻影读定义，指在事务执行过程中，当两个完全相同的查询语句执行得到不同的结果集。这种现象称为“幻影读（phantom read）”，有些人也叫他幻读，正如上面所说，在nutsDB中，当进行只读操作的时候，同一时间只能并发只读操作，其他有关“写”的事务是被阻塞的，直到这些只读锁释放为止，因此不会出现“幻影读”的情况。
- 
+
 ##### 4）可串行化 （Serializable）
 
 定义：这个隔离级别是最高的。避免了所有上面的“脏读”、不可重复读”、“幻影读”现象。
 
 在nutsDB中，一个只读事务和一个写（读写）事务，是互斥的，需要串行执行，不会出现并发执行。nutsDB属于这个可串行化级别。
 这个级别的隔离一般来说在高并发场景下性能会受到影响。但是如果锁本身性能还可以，也不失为一个简单有效的方法。当前版本nutsDB基于读写锁，在并发读多写少的场景下，性能会好一点。
- 
+
 
 4、（D）持久化
 
@@ -2215,23 +2405,29 @@ nutsDB不会出现“不可重复读”这种情况，当高并发的时候，�
 * 提pull requests
 * 优化修改README文档
 
+感谢以下贡献者，感谢你们的付出！
+
+<a href="https://github.com/nutsdb/nutsdb/graphs/contributors">
+<img src="https://contrib.rocks/image?repo=nutsdb/nutsdb" />
+</a>
+
 #### 代码风格指南参考
 
 https://github.com/golang/go/wiki/CodeReviewComments
 
 #### git commit 规范参考
- 
+
  commit message格式
- 
+
  ```
  <type>(<scope>): <subject>
  ```
 
- 
+
 ####  type的参考
 
 ![image](https://user-images.githubusercontent.com/6065007/162549766-58f164df-3794-4a5a-ab25-dd47962de74e.png)
- 
+
  
 
 详情参考英文版的 [CONTRIBUTING](https://github.com/nutsdb/nutsdb/blob/master/CONTRIBUTING.md) 。

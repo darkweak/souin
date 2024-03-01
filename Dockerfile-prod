@@ -10,7 +10,6 @@ RUN mkdir -p /app/src/github.com/darkweak/cmd
 RUN mkdir -p /app/src/github.com/darkweak/souin
 ADD ./go.* /app/src/github.com/darkweak/souin/
 RUN mkdir -p /ssl
-ADD ./cache /app/src/github.com/darkweak/souin/cache
 ADD ./context /app/src/github.com/darkweak/souin/context
 ADD ./pkg /app/src/github.com/darkweak/souin/pkg
 ADD ./tests /app/src/github.com/darkweak/souin/tests

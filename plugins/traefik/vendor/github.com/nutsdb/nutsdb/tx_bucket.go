@@ -14,34 +14,92 @@
 
 package nutsdb
 
-import "time"
-
 // IterateBuckets iterate over all the bucket depends on ds (represents the data structure)
-func (tx *Tx) IterateBuckets(ds uint16, pattern string, f func(key string) bool) error {
+func (tx *Tx) IterateBuckets(ds uint16, pattern string, f func(bucket string) bool) error {
 	if err := tx.checkTxIsClosed(); err != nil {
 		return err
 	}
 
-	handle := func(bucket string) error {
-		if end, err := MatchForRange(pattern, bucket, f); end || err != nil {
-			return err
-		}
-		return nil
-	}
-	var err error
 	if ds == DataStructureSet {
-		err = tx.db.Index.set.handleIdxBucket(handle)
+		for bucketId := range tx.db.Index.set.idx {
+			bucket, err := tx.db.bm.GetBucketById(uint64(bucketId))
+			if err != nil {
+				return err
+			}
+			if end, err := MatchForRange(pattern, bucket.Name, f); end || err != nil {
+				return err
+			}
+		}
 	}
 	if ds == DataStructureSortedSet {
-		err = tx.db.Index.sortedSet.handleIdxBucket(handle)
+		for bucketId := range tx.db.Index.sortedSet.idx {
+			bucket, err := tx.db.bm.GetBucketById(uint64(bucketId))
+			if err != nil {
+				return err
+			}
+			if end, err := MatchForRange(pattern, bucket.Name, f); end || err != nil {
+				return err
+			}
+		}
 	}
 	if ds == DataStructureList {
-		err = tx.db.Index.list.handleIdxBucket(handle)
+		for bucketId := range tx.db.Index.list.idx {
+			bucket, err := tx.db.bm.GetBucketById(uint64(bucketId))
+			if err != nil {
+				return err
+			}
+			if end, err := MatchForRange(pattern, bucket.Name, f); end || err != nil {
+				return err
+			}
+		}
 	}
 	if ds == DataStructureBTree {
-		err = tx.db.Index.bTree.handleIdxBucket(handle)
+		for bucketId := range tx.db.Index.bTree.idx {
+			bucket, err := tx.db.bm.GetBucketById(uint64(bucketId))
+			if err != nil {
+				return err
+			}
+			if end, err := MatchForRange(pattern, bucket.Name, f); end || err != nil {
+				return err
+			}
+		}
 	}
-	return err
+	return nil
+}
+
+func (tx *Tx) NewKVBucket(name string) error {
+	return tx.NewBucket(DataStructureBTree, name)
+}
+
+func (tx *Tx) NewListBucket(name string) error {
+	return tx.NewBucket(DataStructureList, name)
+}
+
+func (tx *Tx) NewSetBucket(name string) error {
+	return tx.NewBucket(DataStructureSet, name)
+}
+
+func (tx *Tx) NewSortSetBucket(name string) error {
+	return tx.NewBucket(DataStructureSortedSet, name)
+}
+
+func (tx *Tx) NewBucket(ds uint16, name string) (err error) {
+	if tx.ExistBucket(ds, name) {
+		return ErrBucketAlreadyExist
+	}
+	bucket := &Bucket{
+		Meta: &BucketMeta{
+			Op: BucketInsertOperation,
+		},
+		Id:   tx.db.bm.Gen.GenId(),
+		Ds:   ds,
+		Name: name,
+	}
+	if _, exist := tx.pendingBucketList[ds]; !exist {
+		tx.pendingBucketList[ds] = map[BucketName]*Bucket{}
+	}
+	tx.pendingBucketList[ds][name] = bucket
+	return nil
 }
 
 // DeleteBucket delete bucket depends on ds (represents the data structure)
@@ -50,44 +108,23 @@ func (tx *Tx) DeleteBucket(ds uint16, bucket string) error {
 		return err
 	}
 
-	ok, err := tx.ExistBucket(ds, bucket)
+	b, err := tx.db.bm.GetBucket(ds, bucket)
 	if err != nil {
-		return err
-	}
-	if !ok {
 		return ErrBucketNotFound
 	}
 
-	if ds == DataStructureSet {
-		return tx.put(bucket, []byte("0"), nil, Persistent, DataSetBucketDeleteFlag, uint64(time.Now().Unix()), DataStructureNone)
+	deleteBucket := &Bucket{
+		Meta: &BucketMeta{
+			Op: BucketDeleteOperation,
+		},
+		Id:   b.Id,
+		Ds:   ds,
+		Name: bucket,
 	}
-	if ds == DataStructureSortedSet {
-		return tx.put(bucket, []byte("1"), nil, Persistent, DataSortedSetBucketDeleteFlag, uint64(time.Now().Unix()), DataStructureNone)
-	}
-	if ds == DataStructureBTree {
-		return tx.put(bucket, []byte("2"), nil, Persistent, DataBTreeBucketDeleteFlag, uint64(time.Now().Unix()), DataStructureNone)
-	}
-	if ds == DataStructureList {
-		return tx.put(bucket, []byte("3"), nil, Persistent, DataListBucketDeleteFlag, uint64(time.Now().Unix()), DataStructureNone)
-	}
-	return nil
+
+	return tx.putBucket(deleteBucket)
 }
 
-func (tx *Tx) ExistBucket(ds uint16, bucket string) (bool, error) {
-	var ok bool
-
-	switch ds {
-	case DataStructureSet:
-		_, ok = tx.db.Index.set.exist(bucket)
-	case DataStructureSortedSet:
-		_, ok = tx.db.Index.sortedSet.exist(bucket)
-	case DataStructureBTree:
-		_, ok = tx.db.Index.bTree.exist(bucket)
-	case DataStructureList:
-		_, ok = tx.db.Index.list.exist(bucket)
-	default:
-		return false, ErrDataStructureNotSupported
-	}
-
-	return ok, nil
+func (tx *Tx) ExistBucket(ds uint16, bucket string) bool {
+	return tx.db.bm.ExistBucket(ds, bucket)
 }

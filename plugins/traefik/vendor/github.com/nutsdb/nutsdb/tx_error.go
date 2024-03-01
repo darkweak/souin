@@ -47,5 +47,17 @@ var (
 	ErrTxnTooBig = errors.New("Txn is too big to fit into one request")
 
 	// ErrTxnExceedWriteLimit is returned when this tx's write is exceed max write record
-	ErrTxnExceedWriteLimit = errors.New("Txn is exceed max write record count")
+	ErrTxnExceedWriteLimit = errors.New("txn is exceed max write record count")
+
+	ErrBucketAlreadyExist = errors.New("bucket is already exist")
+
+	ErrorBucketNotExist = errors.New("bucket is not exist yet, please use NewBucket function to create this bucket first")
+
+	ErrValueNotInteger = errors.New("value is not an integer")
+
+	ErrOffsetInvalid = errors.New("offset is invalid")
+
+	ErrKVArgsLenNotEven = errors.New("parameters is used to represent key value pairs and cannot be odd numbers")
+
+	ErrStartGreaterThanEnd = errors.New("start is greater than end")
 )
