@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"regexp"
 	"strings"
 	"time"
 
@@ -17,14 +16,12 @@ import (
 	"github.com/darkweak/souin/pkg/rfc"
 	"github.com/darkweak/souin/pkg/storage/types"
 	redis "github.com/redis/rueidis"
-	"github.com/redis/rueidis/rueidiscompat"
 	"go.uber.org/zap"
 )
 
 // Redis provider type
 type Redis struct {
 	inClient      redis.Client
-	Client        rueidiscompat.Cmdable
 	stale         time.Duration
 	ctx           context.Context
 	logger        *zap.Logger
@@ -61,12 +58,8 @@ func RedisConnectionFactory(c t.AbstractConfigurationInterface) (types.Storer, e
 		return nil, err
 	}
 
-	// TODO remove this adapter to use directly rueidis
-	compat := rueidiscompat.NewAdapter(cli)
-
 	return &Redis{
 		inClient:      cli,
-		Client:        compat,
 		ctx:           context.Background(),
 		stale:         dc.GetStale(),
 		configuration: options,
@@ -87,7 +80,7 @@ func (provider *Redis) ListKeys() []string {
 		return []string{}
 	}
 
-	keys, _ := provider.Client.Scan(provider.ctx, 0, "*", 0).Val()
+	keys, _ := provider.inClient.Do(provider.ctx, provider.inClient.B().Keys().Pattern("*").Build()).AsStrSlice()
 
 	return keys
 }
@@ -100,7 +93,7 @@ func (provider *Redis) MapKeys(prefix string) map[string]string {
 	}
 
 	m := map[string]string{}
-	keys, _ := provider.Client.Scan(provider.ctx, 0, "*", 0).Val()
+	keys, _ := provider.inClient.Do(provider.ctx, provider.inClient.B().Keys().Pattern("*").Build()).AsStrSlice()
 	for _, key := range keys {
 		if strings.HasPrefix(key, prefix) {
 			k, _ := strings.CutPrefix(key, prefix)
@@ -198,7 +191,7 @@ func (provider *Redis) Prefix(key string, req *http.Request, validator *rfc.Reva
 	in := make(chan *http.Response)
 	out := make(chan bool)
 
-	keys, _, _ := provider.Client.Scan(provider.ctx, 0, key+"*", 0).Result()
+	keys, _ := provider.inClient.Do(provider.ctx, provider.inClient.B().Keys().Pattern(key+"*").Build()).AsStrSlice()
 	go func(ks []string) {
 		for _, k := range ks {
 			select {
@@ -206,13 +199,7 @@ func (provider *Redis) Prefix(key string, req *http.Request, validator *rfc.Reva
 				return
 			case <-time.After(1 * time.Nanosecond):
 				if varyVoter(key, req, k) {
-					v, e := provider.Client.Get(provider.ctx, k).Result()
-					if e != nil && e != redis.Nil && !provider.reconnecting {
-						go provider.Reconnect()
-						in <- nil
-						return
-					}
-					if res, err := http.ReadResponse(bufio.NewReader(bytes.NewBuffer([]byte(v))), req); err == nil {
+					if res, err := http.ReadResponse(bufio.NewReader(bytes.NewBuffer(provider.Get(k))), req); err == nil {
 						rfc.ValidateETag(res, validator)
 						if validator.Matched {
 							provider.logger.Sugar().Debugf("The stored key %s matched the current iteration key ETag %+v", k, validator)
@@ -242,11 +229,8 @@ func (provider *Redis) Set(key string, value []byte, url t.URL, duration time.Du
 		provider.logger.Sugar().Error("Impossible to set the redis value while reconnecting.")
 		return fmt.Errorf("reconnecting error")
 	}
-	if duration == 0 {
-		duration = url.TTL.Duration
-	}
 
-	err := provider.Client.Set(provider.ctx, key, value, duration).Err()
+	err := provider.inClient.Do(provider.ctx, provider.inClient.B().Set().Key(key).Value(string(value)).Ex(duration+provider.stale).Build()).Error()
 	if err != nil {
 		if !provider.reconnecting {
 			go provider.Reconnect()
@@ -263,7 +247,7 @@ func (provider *Redis) Delete(key string) {
 		provider.logger.Sugar().Error("Impossible to delete the redis key while reconnecting.")
 		return
 	}
-	_ = provider.Client.Del(provider.ctx, key)
+	_ = provider.inClient.Do(provider.ctx, provider.inClient.B().Del().Key(key).Build())
 }
 
 // DeleteMany method will delete the responses in Nuts provider if exists corresponding to the regex key param
@@ -272,21 +256,9 @@ func (provider *Redis) DeleteMany(key string) {
 		provider.logger.Sugar().Error("Impossible to delete the redis keys while reconnecting.")
 		return
 	}
-	re, e := regexp.Compile(key)
 
-	if e != nil {
-		return
-	}
-
-	keys := []string{}
-	rKeys, _ := provider.Client.Scan(provider.ctx, 0, "*", 0).Val()
-	for _, rkey := range rKeys {
-		if re.MatchString(rkey) {
-			keys = append(keys, rkey)
-		}
-	}
-
-	provider.Client.Del(provider.ctx, keys...)
+	keys, _ := provider.inClient.Do(provider.ctx, provider.inClient.B().Keys().Pattern(key).Build()).AsStrSlice()
+	_ = provider.inClient.Do(provider.ctx, provider.inClient.B().Del().Key(keys...).Build())
 }
 
 // Init method will
@@ -316,10 +288,9 @@ func (provider *Redis) Reconnect() {
 		return
 	}
 
-	// TODO remove this adapter to use directly rueidis
-	provider.Client = rueidiscompat.NewAdapter(cli)
+	provider.inClient = cli
 	provider.close = cli.Close
-	if provider.Client != nil {
+	if provider.inClient != nil {
 		provider.reconnecting = false
 	} else {
 		time.Sleep(10 * time.Second)
