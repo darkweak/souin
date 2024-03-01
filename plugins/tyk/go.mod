@@ -6,7 +6,7 @@ toolchain go1.21.0
 
 require (
 	github.com/TykTechnologies/tyk v1.9.2-0.20230330071232-370295d796b5
-	github.com/darkweak/souin v1.6.46
+	github.com/darkweak/souin v1.6.47
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pquerna/cachecontrol v0.2.0
 	go.uber.org/zap v1.26.0
@@ -149,6 +149,6 @@ require (
 )
 
 replace (
-	github.com/darkweak/souin v1.6.46 => ../..
+	github.com/darkweak/souin v1.6.47 => ../..
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6 => github.com/alecthomas/kingpin/v2 v2.3.2
 )
