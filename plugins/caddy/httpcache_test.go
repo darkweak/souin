@@ -125,11 +125,15 @@ func TestCacheKeys(t *testing.T) {
 		cache 
 	}
 	localhost:9080 {
-		route /query-string {
+		route /cache-keys {
 			cache {
 				cache_keys {
 					query= {
 						disable_query
+					}
+					query2= {
+						disable_body
+                        disable_host
 					}
 				}
 			}
@@ -137,12 +141,12 @@ func TestCacheKeys(t *testing.T) {
 		}
 	}`, "caddyfile")
 
-	resp1, _ := tester.AssertGetResponse(`http://localhost:9080/query-string?query=string`, 200, "Hello, query string!")
-	if resp1.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-http-localhost:9080-/query-string" {
+	resp1, _ := tester.AssertGetResponse(`http://localhost:9080/cache-keys?query=string`, 200, "Hello, query string!")
+	if resp1.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-http-localhost:9080-/cache-keys" {
 		t.Errorf("unexpected Cache-Status header %v", resp1.Header)
 	}
-	resp2, _ := tester.AssertGetResponse(`http://localhost:9080/query-string?foo=bar`, 200, "Hello, query string!")
-	if resp2.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-http-localhost:9080-/query-string?foo=bar" {
+	resp2, _ := tester.AssertGetResponse(`http://localhost:9080/cache-keys?foo=bar`, 200, "Hello, query string!")
+	if resp2.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-http-localhost:9080-/cache-keys?foo=bar" {
 		t.Errorf("unexpected Cache-Status header %v", resp2.Header)
 	}
 }
