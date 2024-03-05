@@ -29,7 +29,6 @@ const (
 	cacheTags             = "Cache-Tags"
 	cacheTag              = "Cache-Tag"
 
-	stalePrefix     = "STALE_"
 	surrogatePrefix = "SURROGATE_"
 )
 
@@ -198,13 +197,10 @@ func (s *baseStorage) getSurrogateKey(header http.Header) string {
 }
 
 func (s *baseStorage) purgeTag(tag string) []string {
-	toInvalidate := string(s.Storage.Get(tag))
+	toInvalidate := string(s.Storage.Get(surrogatePrefix + tag))
 	s.logger.Sugar().Debugf("Purge the tag %s", tag)
-	s.Storage.Delete(surrogatePrefix + tag)
 	if !s.keepStale {
-		toInvalidate = toInvalidate + "," + string(s.Storage.Get(stalePrefix+tag))
-		s.logger.Sugar().Debugf("Purge the tag %s", stalePrefix+tag)
-		s.Storage.Delete(surrogatePrefix + stalePrefix + tag)
+		s.Storage.Delete(surrogatePrefix + tag)
 	}
 	return strings.Split(toInvalidate, souinStorageSeparator)
 }
@@ -214,11 +210,8 @@ func (s *baseStorage) Store(response *http.Response, cacheKey string) error {
 	h := response.Header
 
 	cacheKey = url.QueryEscape(cacheKey)
-	staleKey := stalePrefix + cacheKey
 
 	urlRegexp := regexp.MustCompile("(^|" + regexp.QuoteMeta(souinStorageSeparator) + ")" + regexp.QuoteMeta(cacheKey) + "(" + regexp.QuoteMeta(souinStorageSeparator) + "|$)")
-	staleUrlRegexp := regexp.MustCompile("(^|" + regexp.QuoteMeta(souinStorageSeparator) + ")" + regexp.QuoteMeta(staleKey) + "(" + regexp.QuoteMeta(souinStorageSeparator) + "|$)")
-
 	keys := s.ParseHeaders(s.parent.getSurrogateKey(h))
 
 	for _, key := range keys {
@@ -226,19 +219,16 @@ func (s *baseStorage) Store(response *http.Response, cacheKey string) error {
 		if controls := s.ParseHeaders(v); len(controls) != 0 {
 			if len(controls) == 1 && controls[0] == "" {
 				s.storeTag(key, cacheKey, urlRegexp)
-				s.storeTag(stalePrefix+key, staleKey, staleUrlRegexp)
 
 				continue
 			}
 			for _, control := range controls {
 				if s.parent.candidateStore(control) {
 					s.storeTag(key, cacheKey, urlRegexp)
-					s.storeTag(stalePrefix+key, staleKey, staleUrlRegexp)
 				}
 			}
 		} else {
 			s.storeTag(key, cacheKey, urlRegexp)
-			s.storeTag(stalePrefix+key, staleKey, staleUrlRegexp)
 		}
 	}
 
@@ -253,6 +243,8 @@ func (s *baseStorage) Purge(header http.Header) (cacheKeys []string, surrogateKe
 	for _, su := range surrogates {
 		toInvalidate = append(toInvalidate, s.purgeTag(su)...)
 	}
+
+	s.logger.Sugar().Debugf("Purge the following tags: %+v", toInvalidate)
 
 	return uniqueTag(toInvalidate), surrogates
 }
