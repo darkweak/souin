@@ -135,6 +135,15 @@ func isCacheableCode(code int) bool {
 	return false
 }
 
+func canStatusCodeEmptyContent(code int) bool {
+	switch code {
+	case 204, 301, 405:
+		return true
+	}
+
+	return false
+}
+
 func canBypassAuthorizationRestriction(headers http.Header, bypassed []string) bool {
 	for _, header := range bypassed {
 		if strings.ToLower(header) == "authorization" {
@@ -251,7 +260,7 @@ func (s *SouinBaseHandler) Store(
 		}
 		res.Header.Set(rfc.StoredLengthHeader, res.Header.Get("Content-Length"))
 		response, err := httputil.DumpResponse(&res, true)
-		if err == nil && bLen > 0 {
+		if err == nil && (bLen > 0 || canStatusCodeEmptyContent(statusCode)) {
 			variedHeaders, isVaryStar := rfc.VariedHeaderAllCommaSepValues(res.Header)
 			if isVaryStar {
 				// "Implies that the response is uncacheable"
