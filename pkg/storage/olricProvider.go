@@ -232,7 +232,9 @@ func (provider *Olric) Set(key string, value []byte, url t.URL, duration time.Du
 
 	dm := provider.dm.Get().(olric.DMap)
 	defer provider.dm.Put(dm)
-	if err := dm.Put(context.Background(), key, value, olric.EX(duration)); err != nil {
+
+	err := dm.Put(context.Background(), key, value, olric.EX(duration))
+	if err != nil {
 		if !provider.reconnecting {
 			go provider.Reconnect()
 		}
@@ -240,14 +242,7 @@ func (provider *Olric) Set(key string, value []byte, url t.URL, duration time.Du
 		return err
 	}
 
-	if err := dm.Put(context.Background(), StalePrefix+key, value, olric.EX(provider.stale+duration)); err != nil {
-		if !provider.reconnecting {
-			go provider.Reconnect()
-		}
-		provider.logger.Sugar().Errorf("Impossible to set value into Olric, %v", err)
-	}
-
-	return nil
+	return err
 }
 
 // Delete method will delete the response in Olric provider if exists corresponding to key param

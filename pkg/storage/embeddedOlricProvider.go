@@ -253,10 +253,6 @@ func (provider *EmbeddedOlric) Set(key string, value []byte, url t.URL, duration
 		return err
 	}
 
-	if err := provider.dm.Put(provider.ct, StalePrefix+key, value, olric.EX(provider.stale+duration)); err != nil {
-		provider.logger.Sugar().Errorf("Impossible to set value into EmbeddedOlric, %v", err)
-	}
-
 	return nil
 }
 

@@ -1,0 +1,27 @@
+{
+  order cache before rewrite
+  cache {
+    api {
+      prometheus
+      souin
+    }
+    cdn {
+      dynamic
+    }
+    ttl 1000s
+    default_cache_control public
+  }
+}
+
+:4443
+
+route {
+  cache {
+    default_cache_control no-store
+  }
+  reverse_proxy 127.0.0.1:8000 {
+  	transport http {
+  		dial_timeout 10s
+  	}
+  }
+}

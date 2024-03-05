@@ -294,18 +294,9 @@ func (provider *Nuts) Set(key string, value []byte, url t.URL, duration time.Dur
 
 	if err != nil {
 		provider.logger.Sugar().Errorf("Impossible to set value into Nuts, %v", err)
-		return err
 	}
 
-	err = provider.DB.Update(func(tx *nutsdb.Tx) error {
-		return tx.Put(bucket, []byte(StalePrefix+key), value, uint32((provider.stale + duration).Seconds()))
-	})
-
-	if err != nil {
-		provider.logger.Sugar().Errorf("Impossible to set value into Nuts, %v", err)
-	}
-
-	return nil
+	return err
 }
 
 // Delete method will delete the response in Nuts provider if exists corresponding to key param

@@ -29,10 +29,14 @@ type IteratorOptions struct {
 }
 
 func NewIterator(tx *Tx, bucket string, options IteratorOptions) *Iterator {
+	b, err := tx.db.bm.GetBucket(DataStructureBTree, bucket)
+	if err != nil {
+		return nil
+	}
 	iterator := &Iterator{
 		tx:      tx,
 		options: options,
-		iter:    tx.db.Index.bTree.getWithDefault(bucket).btree.Iter(),
+		iter:    tx.db.Index.bTree.getWithDefault(b.Id).btree.Iter(),
 	}
 
 	if options.Reverse {
@@ -73,5 +77,5 @@ func (it *Iterator) Key() []byte {
 }
 
 func (it *Iterator) Value() ([]byte, error) {
-	return it.tx.db.getValueByRecord(it.iter.Item().r)
+	return it.tx.db.getValueByRecord(it.iter.Item().record)
 }

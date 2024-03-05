@@ -10,3 +10,5 @@ traefik.json
 plugins/caddy/caddy
 plugins/caddy/.github/*
 /vendor/
+
+testing/

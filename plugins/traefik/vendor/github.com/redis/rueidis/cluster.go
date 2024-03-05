@@ -3,6 +3,7 @@ package rueidis
 import (
 	"context"
 	"errors"
+	"io"
 	"math/rand"
 	"net"
 	"runtime"
@@ -71,18 +72,18 @@ var retrycachep = util.NewPool(func(capacity int) *retrycache {
 })
 
 type clusterClient struct {
-	pslots     [16384]conn
-	rslots     []conn
-	opt        *ClientOption
-	replicaOpt *ClientOption
-	conns      map[string]connrole
-	connFn     connFn
-	sc         call
-	mu         sync.RWMutex
-	stop       uint32
-	cmd        Builder
-	retry      bool
-	aws        bool
+	pslots [16384]conn
+	rslots []conn
+	opt    *ClientOption
+	rOpt   *ClientOption
+	conns  map[string]connrole
+	connFn connFn
+	sc     call
+	mu     sync.RWMutex
+	stop   uint32
+	cmd    Builder
+	retry  bool
+	aws    bool
 }
 
 // NOTE: connrole and conn must be initialized at the same time
@@ -106,9 +107,9 @@ func newClusterClient(opt *ClientOption, connFn connFn) (client *clusterClient, 
 	}
 
 	if opt.SendToReplicas != nil {
-		replicaOpt := *opt
-		replicaOpt.ReplicaOnly = true
-		client.replicaOpt = &replicaOpt
+		rOpt := *opt
+		rOpt.ReplicaOnly = true
+		client.rOpt = &rOpt
 	}
 
 	client.connFn = func(dst string, opt *ClientOption) conn {
@@ -232,13 +233,11 @@ func (c *clusterClient) _refresh() (err error) {
 	for master, g := range groups {
 		conns[master] = connrole{conn: c.connFn(master, c.opt), replica: false}
 		for _, addr := range g.nodes[1:] {
-			var cc conn
-			if c.opt.SendToReplicas != nil {
-				cc = c.connFn(addr, c.replicaOpt)
+			if c.rOpt != nil {
+				conns[addr] = connrole{conn: c.connFn(addr, c.rOpt), replica: true}
 			} else {
-				cc = c.connFn(addr, c.opt)
+				conns[addr] = connrole{conn: c.connFn(addr, c.opt), replica: true}
 			}
-			conns[addr] = connrole{conn: cc, replica: true}
 		}
 	}
 	// make sure InitAddress always be present
@@ -255,7 +254,7 @@ func (c *clusterClient) _refresh() (err error) {
 	c.mu.RLock()
 	for addr, cc := range c.conns {
 		fresh, ok := conns[addr]
-		if ok && (cc.replica == fresh.replica || c.opt.SendToReplicas == nil) {
+		if ok && (cc.replica == fresh.replica || c.rOpt == nil) {
 			conns[addr] = connrole{
 				conn:    cc.conn,
 				replica: fresh.replica,
@@ -277,7 +276,7 @@ func (c *clusterClient) _refresh() (err error) {
 					pslots[i] = conns[g.nodes[1+rand.Intn(nodesCount-1)]].conn
 				}
 			}
-		case c.opt.SendToReplicas != nil:
+		case c.rOpt != nil: // implies c.opt.SendToReplicas != nil
 			if len(rslots) == 0 { // lazy init
 				rslots = make([]conn, 16384)
 			}
@@ -1001,6 +1000,43 @@ ret:
 		cmds.PutCompleted(subscribe)
 	}
 	return err
+}
+
+func (c *clusterClient) DoStream(ctx context.Context, cmd Completed) RedisResultStream {
+	cc, err := c.pick(ctx, cmd.Slot(), c.toReplica(cmd))
+	if err != nil {
+		return RedisResultStream{e: err}
+	}
+	ret := cc.DoStream(ctx, cmd)
+	cmds.PutCompleted(cmd)
+	return ret
+}
+
+func (c *clusterClient) DoMultiStream(ctx context.Context, multi ...Completed) MultiRedisResultStream {
+	if len(multi) == 0 {
+		return RedisResultStream{e: io.EOF}
+	}
+	slot := multi[0].Slot()
+	repl := c.toReplica(multi[0])
+	for i := 1; i < len(multi); i++ {
+		if s := multi[i].Slot(); s != cmds.InitSlot {
+			if slot == cmds.InitSlot {
+				slot = s
+			} else if slot != s {
+				panic("DoMultiStream across multiple slots is not supported")
+			}
+		}
+		repl = repl && c.toReplica(multi[i])
+	}
+	cc, err := c.pick(ctx, slot, repl)
+	if err != nil {
+		return RedisResultStream{e: err}
+	}
+	ret := cc.DoMultiStream(ctx, multi...)
+	for _, cmd := range multi {
+		cmds.PutCompleted(cmd)
+	}
+	return ret
 }
 
 func (c *clusterClient) Dedicated(fn func(DedicatedClient) error) (err error) {

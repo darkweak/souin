@@ -67,7 +67,7 @@ func TestBaseStorage_Purge(t *testing.T) {
 		errors.GenerateError(t, "The tags length should be empty.")
 	}
 	if len(surrogates) != 5 {
-		errors.GenerateError(t, "The surrogates length should be equal to 0.")
+		errors.GenerateError(t, "The surrogates length should be equal to 5.")
 	}
 
 	headerMock.Set(surrogateKey, emptyHeaderValue)
@@ -80,16 +80,17 @@ func TestBaseStorage_Purge(t *testing.T) {
 		errors.GenerateError(t, "The surrogates length should be equal to 0.")
 	}
 
-	_ = bs.Storage.Set("test0", []byte("first,second"), configurationtypes.URL{}, storageToInfiniteTTLMap[bs.Storage.Name()])
-	_ = bs.Storage.Set("STALE_test0", []byte("STALE_first,STALE_second"), configurationtypes.URL{}, storageToInfiniteTTLMap[bs.Storage.Name()])
-	_ = bs.Storage.Set("test2", []byte("third,fourth"), configurationtypes.URL{}, storageToInfiniteTTLMap[bs.Storage.Name()])
-	_ = bs.Storage.Set("test5", []byte("first,second,fifth"), configurationtypes.URL{}, storageToInfiniteTTLMap[bs.Storage.Name()])
-	_ = bs.Storage.Set("testInvalid", []byte("invalid"), configurationtypes.URL{}, storageToInfiniteTTLMap[bs.Storage.Name()])
+	_ = bs.Storage.Set(surrogatePrefix+"test0", []byte("first,second"), configurationtypes.URL{}, storageToInfiniteTTLMap[bs.Storage.Name()])
+	_ = bs.Storage.Set(surrogatePrefix+"STALE_test0", []byte("STALE_first,STALE_second"), configurationtypes.URL{}, storageToInfiniteTTLMap[bs.Storage.Name()])
+	_ = bs.Storage.Set(surrogatePrefix+"test2", []byte("third,fourth"), configurationtypes.URL{}, storageToInfiniteTTLMap[bs.Storage.Name()])
+	_ = bs.Storage.Set(surrogatePrefix+"test5", []byte("first,second,fifth"), configurationtypes.URL{}, storageToInfiniteTTLMap[bs.Storage.Name()])
+	_ = bs.Storage.Set(surrogatePrefix+"testInvalid", []byte("invalid"), configurationtypes.URL{}, storageToInfiniteTTLMap[bs.Storage.Name()])
+
 	headerMock.Set(surrogateKey, baseHeaderValue)
 	tags, surrogates = bs.Purge(headerMock)
 
-	if len(tags) != 6 {
-		errors.GenerateError(t, "The tags length should be equal to 6.")
+	if len(tags) != 4 {
+		errors.GenerateError(t, "The tags length should be equal to 4.")
 	}
 	if len(surrogates) != 5 {
 		errors.GenerateError(t, "The surrogates length should be equal to 5.")
@@ -137,17 +138,12 @@ func TestBaseStorage_Store(t *testing.T) {
 	res.Header.Set(surrogateKey, "something")
 	_ = bs.Store(&res, "/some")
 
-	storageSize := len(bs.Storage.ListKeys())
-
+	storageSize := len(bs.Storage.MapKeys(surrogatePrefix))
 	if storageSize != 9 {
 		errors.GenerateError(t, fmt.Sprintf("The surrogate storage should contain 9 stored elements, %v given: %#v.\n", storageSize, bs.Storage.ListKeys()))
 	}
 
-	value = bs.Storage.Get("SURROGATE_STALE_something")
-	if string(value) != ",STALE_%2Fsomething,STALE_%2Fsome" {
-		errors.GenerateError(t, "The STALE_something surrogate storage entry must contain 2 elements ,STALE_%2Fsomething,STALE_%2Fsome.")
-	}
-	value = bs.Storage.Get("SURROGATE_something")
+	value = bs.Storage.Get(surrogatePrefix + "something")
 	if string(value) != ",%2Fsomething,%2Fsome" {
 		errors.GenerateError(t, "The something surrogate storage entry must contain 2 elements ,%2Fsomething,%2Fsome.")
 	}

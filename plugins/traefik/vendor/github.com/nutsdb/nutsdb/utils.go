@@ -73,12 +73,12 @@ func UnmarshalInts(data []byte) ([]int, error) {
 	return ints, nil
 }
 
-func MatchForRange(pattern, key string, f func(key string) bool) (end bool, err error) {
-	match, err := filepath.Match(pattern, key)
+func MatchForRange(pattern, bucket string, f func(bucket string) bool) (end bool, err error) {
+	match, err := filepath.Match(pattern, bucket)
 	if err != nil {
 		return true, err
 	}
-	if match && !f(key) {
+	if match && !f(bucket) {
 		return true, nil
 	}
 	return false, nil
@@ -168,4 +168,13 @@ func createNewBufferWithSize(size int) *bytes.Buffer {
 	buf := new(bytes.Buffer)
 	buf.Grow(int(size))
 	return buf
+}
+
+func UvarintSize(x uint64) int {
+	i := 0
+	for x >= 0x80 {
+		x >>= 7
+		i++
+	}
+	return i + 1
 }

@@ -133,7 +133,9 @@ type ClientOption struct {
 	// The default for cluster clients is 0, which means 1 connection (2^0).
 	PipelineMultiplex int
 
-	// ConnWriteTimeout is applied net.Conn.SetWriteDeadline and periodic PING to redis
+	// ConnWriteTimeout is read/write timeout for each connection. If specified,
+	// it is used to control the maximum duration waits for responses to pipeline commands.
+	// Also, ConnWriteTimeout is applied net.Conn.SetDeadline and periodic PING to redis
 	// Since the Dialer.KeepAlive will not be triggered if there is data in the outgoing buffer,
 	// ConnWriteTimeout should be set in order to detect local congestion or unresponsive redis server.
 	// This default is ClientOption.Dialer.KeepAlive * (9+1), where 9 is the default of tcp_keepalive_probes on Linux.
@@ -209,6 +211,22 @@ type Client interface {
 	// DoMultiCache is similar to DoCache, but works with multiple cacheable commands across different slots.
 	// It will first group commands by slots and will send only cache missed commands to redis.
 	DoMultiCache(ctx context.Context, multi ...CacheableTTL) (resp []RedisResult)
+
+	// DoStream send a command to redis through a dedicated connection acquired from a connection pool.
+	// It returns a RedisResultStream, but it does not read the command response until the RedisResultStream.WriteTo is called.
+	// After the RedisResultStream.WriteTo is called, the underlying connection is then recycled.
+	// DoStream should only be used when you want to stream redis response directly to an io.Writer without additional allocation,
+	// otherwise, the normal Do() should be used instead.
+	// Also note that DoStream can only work with commands returning string, integer, or float response.
+	DoStream(ctx context.Context, cmd Completed) RedisResultStream
+
+	// DoMultiStream is similar to DoStream, but pipelines multiple commands to redis.
+	// It returns a MultiRedisResultStream, and users should call MultiRedisResultStream.WriteTo as many times as the number of commands sequentially
+	// to read each command response from redis. After all responses are read, the underlying connection is then recycled.
+	// DoMultiStream should only be used when you want to stream redis responses directly to an io.Writer without additional allocation,
+	// otherwise, the normal DoMulti() should be used instead.
+	// DoMultiStream does not support multiple key slots when connecting to a redis cluster.
+	DoMultiStream(ctx context.Context, multi ...Completed) MultiRedisResultStream
 
 	// Dedicated acquire a connection from the blocking connection pool, no one else can use the connection
 	// during Dedicated. The main usage of Dedicated is CAS operation, which is WATCH + MULTI + EXEC.
@@ -295,10 +313,10 @@ type AuthCredentials struct {
 // It will first try to connect as cluster client. If the len(ClientOption.InitAddress) == 1 and
 // the address does not enable cluster mode, the NewClient() will use single client instead.
 func NewClient(option ClientOption) (client Client, err error) {
-	if option.ReadBufferEachConn <= 0 {
+	if option.ReadBufferEachConn < 32 { // the buffer should be able to hold an int64 string at least
 		option.ReadBufferEachConn = DefaultReadBuffer
 	}
-	if option.WriteBufferEachConn <= 0 {
+	if option.WriteBufferEachConn < 32 {
 		option.WriteBufferEachConn = DefaultWriteBuffer
 	}
 	if option.CacheSizeEachConn <= 0 {
