@@ -267,7 +267,7 @@ func (s *SouinBaseHandler) Store(
 				status += "; detail=UPSTREAM-VARY-STAR"
 			} else {
 				variedKey := cachedKey + rfc.GetVariedCacheKey(rq, variedHeaders)
-				s.Configuration.GetLogger().Sugar().Debugf("Store the response %+v with duration %v", res, ma)
+				s.Configuration.GetLogger().Sugar().Debugf("Store the response for %s with duration %v", variedKey, ma)
 
 				var wg sync.WaitGroup
 				mu := sync.Mutex{}
