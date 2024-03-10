@@ -288,6 +288,7 @@ func (provider *Redis) Reconnect() {
 		return
 	}
 
+	provider.close()
 	provider.inClient = cli
 	provider.close = cli.Close
 	if provider.inClient != nil {
