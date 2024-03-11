@@ -15,7 +15,7 @@ on:
 
 jobs:
   plugin-test:
-    name: Check that Souin build as ${{ inputs.CAPITALIZED_NAME }} middleware
+    name: ${{ inputs.CAPITALIZED_NAME }}
     runs-on: ubuntu-latest
     env: 
       GO_VERSION: ${{ inputs.GO_VERSION }}

@@ -5,7 +5,7 @@ on:
 
 jobs:
   build-caddy-validator:
-    name: Check that Souin build as caddy module
+    name: Caddy
     runs-on: ubuntu-latest
     services:
       redis:
@@ -153,7 +153,6 @@ jobs:
             title: 'cache-tests suite result'
 
   build-beego-validator:
-    name: Check that Souin build as middleware
     uses: ./.github/workflows/plugin_template.yml
     secrets: inherit
     with:
@@ -161,7 +160,6 @@ jobs:
       LOWER_NAME: beego
       GO_VERSION: '1.21'
   build-chi-validator:
-    name: Check that Souin build as middleware
     uses: ./.github/workflows/plugin_template.yml
     secrets: inherit
     with:
@@ -169,7 +167,6 @@ jobs:
       LOWER_NAME: chi
       GO_VERSION: '1.21'
   build-dotweb-validator:
-    name: Check that Souin build as middleware
     uses: ./.github/workflows/plugin_template.yml
     secrets: inherit
     with:
@@ -177,7 +174,6 @@ jobs:
       LOWER_NAME: dotweb
       GO_VERSION: '1.21'
   build-echo-validator:
-    name: Check that Souin build as middleware
     uses: ./.github/workflows/plugin_template.yml
     secrets: inherit
     with:
@@ -185,7 +181,6 @@ jobs:
       LOWER_NAME: echo
       GO_VERSION: '1.21'
   build-fiber-validator:
-    name: Check that Souin build as middleware
     uses: ./.github/workflows/plugin_template.yml
     secrets: inherit
     with:
@@ -193,7 +188,6 @@ jobs:
       LOWER_NAME: fiber
       GO_VERSION: '1.21'
   build-gin-validator:
-    name: Check that Souin build as middleware
     uses: ./.github/workflows/plugin_template.yml
     secrets: inherit
     with:
@@ -201,7 +195,6 @@ jobs:
       LOWER_NAME: gin
       GO_VERSION: '1.21'
   build-goa-validator:
-    name: Check that Souin build as middleware
     uses: ./.github/workflows/plugin_template.yml
     secrets: inherit
     with:
@@ -209,7 +202,6 @@ jobs:
       LOWER_NAME: goa
       GO_VERSION: '1.21'
   build-kratos-validator:
-    name: Check that Souin build as middleware
     uses: ./.github/workflows/plugin_template.yml
     secrets: inherit
     with:
@@ -217,7 +209,6 @@ jobs:
       LOWER_NAME: kratos
       GO_VERSION: '1.21'
   build-roadrunner-validator:
-    name: Check that Souin build as middleware
     uses: ./.github/workflows/plugin_template.yml
     secrets: inherit
     with:
@@ -225,7 +216,6 @@ jobs:
       LOWER_NAME: roadrunner
       GO_VERSION: '1.21'
   build-souin-validator:
-    name: Check that Souin build as middleware
     uses: ./.github/workflows/plugin_template.yml
     secrets: inherit
     with:
@@ -233,7 +223,6 @@ jobs:
       LOWER_NAME: souin
       GO_VERSION: '1.21'
   build-traefik-validator:
-    name: Check that Souin build as middleware
     uses: ./.github/workflows/plugin_template.yml
     secrets: inherit
     with:
@@ -241,7 +230,6 @@ jobs:
       LOWER_NAME: traefik
       GO_VERSION: '1.21'
   build-tyk-validator:
-    name: Check that Souin build as middleware
     uses: ./.github/workflows/plugin_template.yml
     secrets: inherit
     with:
@@ -249,7 +237,6 @@ jobs:
       LOWER_NAME: tyk
       GO_VERSION: '1.21'
   build-webgo-validator:
-    name: Check that Souin build as middleware
     uses: ./.github/workflows/plugin_template.yml
     secrets: inherit
     with:
