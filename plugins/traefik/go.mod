@@ -12,7 +12,11 @@ require (
 require (
 	github.com/antlabs/stl v0.0.1 // indirect
 	github.com/antlabs/timer v0.0.11 // indirect
+	github.com/dolthub/maphash v0.1.0 // indirect
+	github.com/dolthub/swiss v0.2.1 // indirect
+	github.com/gammazero/deque v0.2.1 // indirect
 	github.com/gofrs/flock v0.8.1 // indirect
+	github.com/maypok86/otter v1.1.1 // indirect
 	github.com/nutsdb/nutsdb v1.0.4 // indirect
 	github.com/redis/rueidis v1.0.31 // indirect
 	go.uber.org/atomic v1.7.0 // indirect

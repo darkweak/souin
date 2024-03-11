@@ -225,6 +225,7 @@ type DefaultCache struct {
 	Mode                string        `json:"mode" yaml:"mode"`
 	Nuts                CacheProvider `json:"nuts" yaml:"nuts"`
 	Olric               CacheProvider `json:"olric" yaml:"olric"`
+	Otter               CacheProvider `json:"otter" yaml:"otter"`
 	Redis               CacheProvider `json:"redis" yaml:"redis"`
 	Port                Port          `json:"port" yaml:"port"`
 	Regex               Regex         `json:"regex" yaml:"regex"`
@@ -286,6 +287,11 @@ func (d *DefaultCache) GetNuts() CacheProvider {
 	return d.Nuts
 }
 
+// GetOtter returns otter configuration
+func (d *DefaultCache) GetOtter() CacheProvider {
+	return d.Otter
+}
+
 // GetOlric returns olric configuration
 func (d *DefaultCache) GetOlric() CacheProvider {
 	return d.Olric
@@ -340,6 +346,7 @@ type DefaultCacheInterface interface {
 	GetDistributed() bool
 	GetEtcd() CacheProvider
 	GetMode() string
+	GetOtter() CacheProvider
 	GetNuts() CacheProvider
 	GetOlric() CacheProvider
 	GetRedis() CacheProvider
