@@ -13,7 +13,7 @@ on:
 
 jobs:
   build-caddy-validator:
-    name: Check that Souin build as caddy module
+    name: Caddy
     runs-on: ubuntu-latest
     services:
       redis:
@@ -168,7 +168,6 @@ for i in ${!plugins[@]}; do
   capitalized="$(tr '[:lower:]' '[:upper:]' <<< ${lower:0:1})${lower:1}"
   IFS= read -d '' tpl <<EOF
   build-$lower-validator:
-    name: Check that Souin build as middleware
     uses: ./.github/workflows/plugin_template.yml
     secrets: inherit
     with:
