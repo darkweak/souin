@@ -30,6 +30,7 @@ var storageMap = map[string]StorerInstanciator{
 	"etcd":           EtcdConnectionFactory,
 	"redis":          RedisConnectionFactory,
 	"olric":          OlricConnectionFactory,
+	"otter":          OtterConnectionFactory,
 	"embedded_olric": EmbeddedOlricConnectionFactory,
 	"nuts":           NutsConnectionFactory,
 	"badger":         BadgerConnectionFactory,
@@ -48,6 +49,8 @@ func getStorageNameFromConfiguration(configuration configurationtypes.AbstractCo
 				return "embedded_olric"
 			}
 		}
+	} else if configuration.GetDefaultCache().GetOtter().Configuration != nil || configuration.GetDefaultCache().GetOtter().Path != "" {
+		return "otter"
 	} else if configuration.GetDefaultCache().GetNuts().Configuration != nil || configuration.GetDefaultCache().GetNuts().Path != "" {
 		return "nuts"
 	}

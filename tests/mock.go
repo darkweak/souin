@@ -124,6 +124,46 @@ urls:
 `
 }
 
+// OtterConfiguration simulate the configuration for the Otter storage
+func OtterConfiguration() string {
+	return `
+api:
+  basepath: /souin-api
+  security:
+    secret: your_secret_key
+    enable: true
+    users:
+      - username: user1
+        password: test
+  souin:
+    enable: true
+default_cache:
+  otter: 
+    configuration: {}
+  headers:
+    - Authorization
+  port:
+    web: 80
+    tls: 443
+  regex:
+    exclude: 'ARegexHere'
+  ttl: 1000s
+reverse_proxy_url: 'http://domain.com:81'
+ssl_providers:
+  - traefik
+urls:
+  'domain.com/':
+    ttl: 1000s
+    headers:
+      - Authorization
+  'mysubdomain.domain.com':
+    ttl: 50s
+    headers:
+      - Authorization
+      - 'Content-Type'
+`
+}
+
 // NutsConfiguration simulate the configuration for the Nuts storage
 func NutsConfiguration() string {
 	return `
