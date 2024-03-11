@@ -112,7 +112,7 @@ func (s *baseStorage) init(config configurationtypes.AbstractConfigurationInterf
 
 		s.Storage = storer
 	} else {
-		instanciator, _ := storage.NewStorageFromName(defaultStorerName)
+		instanciator, _ := storage.NewStorageFromName(strings.ToLower(defaultStorerName))
 		storer, err := instanciator(config)
 		if err != nil {
 			s.logger.Sugar().Errorf("Impossible to instanciate the storer %s for the surrogate-keys: %v", defaultStorerName, err)
