@@ -83,7 +83,7 @@ type baseStorage struct {
 	duration   time.Duration
 }
 
-func (s *baseStorage) init(config configurationtypes.AbstractConfigurationInterface) {
+func (s *baseStorage) init(config configurationtypes.AbstractConfigurationInterface, _ string) {
 	storers, err := storage.NewStorages(config)
 	if err != nil {
 		panic(fmt.Sprintf("Impossible to instanciate the storer for the surrogate-keys: %v", err))

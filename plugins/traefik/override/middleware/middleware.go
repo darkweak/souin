@@ -32,7 +32,7 @@ func NewHTTPCacheHandler(c configurationtypes.AbstractConfigurationInterface) *S
 	}
 	fmt.Println("Storers initialized.")
 	regexpUrls := helpers.InitializeRegexp(c)
-	surrogateStorage := surrogate.InitializeSurrogate(c)
+	surrogateStorage := surrogate.InitializeSurrogate(c, storers[0].Name())
 	fmt.Println("Surrogate storage initialized.")
 	var excludedRegexp *regexp.Regexp = nil
 	if c.GetDefaultCache().GetRegex().Exclude != "" {
