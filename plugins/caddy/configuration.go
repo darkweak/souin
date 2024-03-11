@@ -40,6 +40,8 @@ type DefaultCache struct {
 	Etcd configurationtypes.CacheProvider `json:"etcd"`
 	// NutsDB provider configuration.
 	Nuts configurationtypes.CacheProvider `json:"nuts"`
+	// NutsMemcached provider configuration.
+	NutsMemcached configurationtypes.CacheProvider `json:"nuts_memcached"`
 	// Regex to exclude cache.
 	Regex configurationtypes.Regex `json:"regex"`
 	// Storage providers chaining and order.
@@ -100,6 +102,11 @@ func (d *DefaultCache) GetMode() string {
 // GetNuts returns nuts configuration
 func (d *DefaultCache) GetNuts() configurationtypes.CacheProvider {
 	return d.Nuts
+}
+
+// GetNutsMemcached returns nuts_memcached configuration
+func (d *DefaultCache) GetNutsMemcached() configurationtypes.CacheProvider {
+	return d.NutsMemcached
 }
 
 // GetOlric returns olric configuration
@@ -491,6 +498,24 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isGlobal boo
 					}
 				}
 				cfg.DefaultCache.Nuts = provider
+			case "nuts_memcached":
+				provider := configurationtypes.CacheProvider{}
+				for nesting := h.Nesting(); h.NextBlock(nesting); {
+					directive := h.Val()
+					switch directive {
+					case "url":
+						urlArgs := h.RemainingArgs()
+						provider.URL = urlArgs[0]
+					case "path":
+						urlArgs := h.RemainingArgs()
+						provider.Path = urlArgs[0]
+					case "configuration":
+						provider.Configuration = parseCaddyfileRecursively(h)
+					default:
+						return h.Errf("unsupported nuts directive: %s", directive)
+					}
+				}
+				cfg.DefaultCache.NutsMemcached = provider
 			case "olric":
 				cfg.DefaultCache.Distributed = true
 				provider := configurationtypes.CacheProvider{}

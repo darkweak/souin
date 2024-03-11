@@ -224,6 +224,7 @@ type DefaultCache struct {
 	Etcd                CacheProvider `json:"etcd" yaml:"etcd"`
 	Mode                string        `json:"mode" yaml:"mode"`
 	Nuts                CacheProvider `json:"nuts" yaml:"nuts"`
+	NutsMemcached       CacheProvider `json:"nuts_memcached" yaml:"nuts_memcached"`
 	Olric               CacheProvider `json:"olric" yaml:"olric"`
 	Redis               CacheProvider `json:"redis" yaml:"redis"`
 	Port                Port          `json:"port" yaml:"port"`
@@ -286,6 +287,11 @@ func (d *DefaultCache) GetNuts() CacheProvider {
 	return d.Nuts
 }
 
+// GetNutsMemcached returns nuts_memcached configuration
+func (d *DefaultCache) GetNutsMemcached() CacheProvider {
+	return d.NutsMemcached
+}
+
 // GetOlric returns olric configuration
 func (d *DefaultCache) GetOlric() CacheProvider {
 	return d.Olric
@@ -341,6 +347,7 @@ type DefaultCacheInterface interface {
 	GetEtcd() CacheProvider
 	GetMode() string
 	GetNuts() CacheProvider
+	GetNutsMemcached() CacheProvider
 	GetOlric() CacheProvider
 	GetRedis() CacheProvider
 	GetHeaders() []string
