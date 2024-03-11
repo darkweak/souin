@@ -906,3 +906,74 @@ func TestESITags(t *testing.T) {
 		t.Error("Cache-Status should be already stored")
 	}
 }
+
+func TestCacheableStatusCode(t *testing.T) {
+	caddyTester := caddytest.NewTester(t)
+	caddyTester.InitServer(`
+	{
+		admin localhost:2999
+		http_port     9080
+		https_port    9443
+		order cache before rewrite
+		cache {
+			ttl 10s
+		}
+	}
+	localhost:9080 {
+		cache
+
+		respond /cache-200 "" 200 {
+			close
+		}
+		respond /cache-204 "" 204 {
+			close
+		}
+		respond /cache-301 "" 301 {
+			close
+		}
+		respond /cache-405 "" 405 {
+			close
+		}
+	}`, "caddyfile")
+
+	cacheChecker := func(tester *caddytest.Tester, path string, expectedStatusCode int, expectedCached bool) {
+		resp1, _ := tester.AssertGetResponse("http://localhost:9080"+path, expectedStatusCode, "")
+		if resp1.Header.Get("Age") != "" {
+			t.Errorf("unexpected Age header %v", resp1.Header.Get("Age"))
+		}
+
+		cacheStatus := "Souin; fwd=uri-miss; "
+		if expectedCached {
+			cacheStatus += "stored; "
+		} else {
+			cacheStatus += "detail=UPSTREAM-ERROR-OR-EMPTY-RESPONSE; "
+		}
+		cacheStatus += "key=GET-http-localhost:9080-" + path
+
+		if resp1.Header.Get("Cache-Status") != cacheStatus {
+			t.Errorf("unexpected first Cache-Status header %v", resp1.Header.Get("Cache-Status"))
+		}
+
+		resp1, _ = tester.AssertGetResponse("http://localhost:9080"+path, expectedStatusCode, "")
+
+		cacheStatus = "Souin; "
+		if expectedCached {
+			if resp1.Header.Get("Age") != "1" {
+				t.Errorf("unexpected Age header %v", resp1.Header.Get("Age"))
+			}
+			cacheStatus += "hit; ttl=9; "
+		} else {
+			cacheStatus += "fwd=uri-miss; detail=UPSTREAM-ERROR-OR-EMPTY-RESPONSE; "
+		}
+		cacheStatus += "key=GET-http-localhost:9080-" + path
+
+		if resp1.Header.Get("Cache-Status") != cacheStatus {
+			t.Errorf("unexpected second Cache-Status header %v", resp1.Header.Get("Cache-Status"))
+		}
+	}
+
+	cacheChecker(caddyTester, "/cache-200", 200, false)
+	cacheChecker(caddyTester, "/cache-204", 204, true)
+	cacheChecker(caddyTester, "/cache-301", 301, true)
+	cacheChecker(caddyTester, "/cache-405", 405, true)
+}
