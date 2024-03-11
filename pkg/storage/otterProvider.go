@@ -25,7 +25,19 @@ type Otter struct {
 
 // OtterConnectionFactory function create new Otter instance
 func OtterConnectionFactory(c t.AbstractConfigurationInterface) (types.Storer, error) {
-	cache, e := otter.MustBuilder[string, []byte](10_000).
+	defaultStorageSize := 10_000
+	otterConfiguration := c.GetDefaultCache().GetOtter().Configuration
+	if otterConfiguration != nil {
+		if oc, ok := otterConfiguration.(map[string]interface{}); ok {
+			if v, found := oc["size"]; found && v != nil {
+				if val, ok := v.(int); ok && val > 0 {
+					defaultStorageSize = val
+				}
+			}
+		}
+	}
+
+	cache, e := otter.MustBuilder[string, []byte](defaultStorageSize).
 		CollectStats().
 		Cost(func(key string, value []byte) uint32 {
 			return 1

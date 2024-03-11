@@ -500,6 +500,15 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isGlobal boo
 				cfg.DefaultCache.Nuts = provider
 			case "otter":
 				provider := configurationtypes.CacheProvider{}
+				for nesting := h.Nesting(); h.NextBlock(nesting); {
+					directive := h.Val()
+					switch directive {
+					case "configuration":
+						provider.Configuration = parseCaddyfileRecursively(h)
+					default:
+						return h.Errf("unsupported otter directive: %s", directive)
+					}
+				}
 				cfg.DefaultCache.Otter = provider
 			case "olric":
 				cfg.DefaultCache.Distributed = true
