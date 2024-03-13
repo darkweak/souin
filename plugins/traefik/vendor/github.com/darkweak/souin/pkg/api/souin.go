@@ -1,13 +1,17 @@
 package api
 
 import (
+	"bytes"
+	"encoding/gob"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/darkweak/souin/configurationtypes"
+	"github.com/darkweak/souin/pkg/storage"
 	"github.com/darkweak/souin/pkg/storage/types"
 	"github.com/darkweak/souin/pkg/surrogate/providers"
 )
@@ -62,10 +66,30 @@ func initializeSouin(
 }
 
 // BulkDelete allow user to delete multiple items with regexp
-func (s *SouinAPI) BulkDelete(key string) {
+func (s *SouinAPI) BulkDelete(key string, purge bool) {
+	key, _ = strings.CutPrefix(key, storage.MappingKeyPrefix)
 	for _, current := range s.storers {
-		current.DeleteMany(key)
+		if b := current.Get(storage.MappingKeyPrefix + key); len(b) > 0 {
+			var mapping types.StorageMapper
+			if e := gob.NewDecoder(bytes.NewBuffer(b)).Decode(&mapping); e == nil {
+				for k := range mapping.Mapping {
+					current.Delete(k)
+				}
+			}
+
+			if purge {
+				current.Delete(storage.MappingKeyPrefix + key)
+			} else {
+				newFreshTime := time.Now()
+				for k, v := range mapping.Mapping {
+					v.FreshTime = newFreshTime
+					mapping.Mapping[k] = v
+				}
+			}
+		}
 	}
+
+	s.Delete(key)
 }
 
 // Delete will delete a record into the provider cache system and will update the Souin API if enabled
@@ -130,6 +154,7 @@ func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 	case http.MethodPost:
 		var invalidator invalidation
+		defer r.Body.Close()
 		err := json.NewDecoder(r.Body).Decode(&invalidator)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
@@ -195,9 +220,7 @@ func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 		}
 
 		for _, k := range keysToInvalidate {
-			for _, current := range s.storers {
-				current.Delete(k)
-			}
+			s.BulkDelete(k, invalidator.Purge)
 		}
 		w.WriteHeader(http.StatusOK)
 	case "PURGE":
@@ -216,14 +239,12 @@ func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 				fmt.Println("Successfully clear the cache and the surrogate keys storage.")
 			} else {
 				submatch := keysRg.FindAllStringSubmatch(r.RequestURI, -1)[0][1]
-				s.BulkDelete(submatch)
+				s.BulkDelete(submatch, true)
 			}
 		} else {
 			ck, _ := s.surrogateStorage.Purge(r.Header)
 			for _, k := range ck {
-				for _, current := range s.storers {
-					current.Delete(k)
-				}
+				s.BulkDelete(k, true)
 			}
 		}
 		w.WriteHeader(http.StatusNoContent)
