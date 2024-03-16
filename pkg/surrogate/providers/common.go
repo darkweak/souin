@@ -250,8 +250,11 @@ func (s *baseStorage) Purge(header http.Header) (cacheKeys []string, surrogateKe
 
 // Invalidate the grouped responses from the Cache-Group-Invalidation HTTP response header
 func (s *baseStorage) Invalidate(method string, headers http.Header) {
+	s.mu.Lock()
+	vals := headers.Values("Cache-Group-Invalidation")
+	s.mu.Unlock()
 	if !isSafeHTTPMethod(method) {
-		for _, group := range headers["Cache-Group-Invalidation"] {
+		for _, group := range vals {
 			s.purgeTag(group)
 		}
 	}

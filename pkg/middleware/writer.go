@@ -67,6 +67,13 @@ func (r *CustomWriter) WriteHeader(code int) {
 	r.statusCode = code
 }
 
+// SetHeader will set the response HTTP header key/value pair
+func (r *CustomWriter) SetHeader(key, value string) {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+	r.Headers.Set(key, value)
+}
+
 // Write will write the response body
 func (r *CustomWriter) Write(b []byte) (int, error) {
 	r.mutex.Lock()
@@ -80,16 +87,18 @@ func (r *CustomWriter) Write(b []byte) (int, error) {
 // Send delays the response to handle Cache-Status
 func (r *CustomWriter) Send() (int, error) {
 	defer r.Buf.Reset()
-	r.Header().Set("Content-Length", r.Header().Get(rfc.StoredLengthHeader))
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+	r.Rw.Header().Set("Content-Length", r.Rw.Header().Get(rfc.StoredLengthHeader))
 	b := esi.Parse(r.Buf.Bytes(), r.Req)
 	if len(b) != 0 {
-		r.Header().Set("Content-Length", strconv.Itoa(len(b)))
+		r.Rw.Header().Set("Content-Length", strconv.Itoa(len(b)))
 	}
-	r.Header().Del(rfc.StoredLengthHeader)
-	r.Header().Del(rfc.StoredTTLHeader)
+	r.Rw.Header().Del(rfc.StoredLengthHeader)
+	r.Rw.Header().Del(rfc.StoredTTLHeader)
 
 	if !r.headersSent {
-		r.Rw.WriteHeader(r.GetStatusCode())
+		r.Rw.WriteHeader(r.statusCode)
 		r.headersSent = true
 	}
 
