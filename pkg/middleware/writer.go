@@ -71,7 +71,7 @@ func (r *CustomWriter) WriteHeader(code int) {
 func (r *CustomWriter) SetHeader(key, value string) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
-	r.Headers.Set(key, value)
+	r.Rw.Header().Set(key, value)
 }
 
 // Write will write the response body
@@ -101,6 +101,5 @@ func (r *CustomWriter) Send() (int, error) {
 		r.Rw.WriteHeader(r.statusCode)
 		r.headersSent = true
 	}
-
 	return r.Rw.Write(b)
 }
