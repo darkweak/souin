@@ -73,6 +73,7 @@ func (provider *Redis) Name() string {
 
 // ListKeys method returns the list of existing keys
 func (provider *Redis) ListKeys() []string {
+	provider.logger.Sugar().Debugf("Call the ListKeys function in redis")
 	keys, _ := provider.inClient.Do(provider.ctx, provider.inClient.B().Keys().Pattern("*").Build()).AsStrSlice()
 
 	return keys
@@ -81,12 +82,11 @@ func (provider *Redis) ListKeys() []string {
 // MapKeys method returns the list of existing keys
 func (provider *Redis) MapKeys(prefix string) map[string]string {
 	m := map[string]string{}
-	keys, _ := provider.inClient.Do(provider.ctx, provider.inClient.B().Keys().Pattern("*").Build()).AsStrSlice()
+	provider.logger.Sugar().Debugf("Call the MapKeys in redis with the prefix %s", prefix)
+	keys, _ := provider.inClient.Do(provider.ctx, provider.inClient.B().Keys().Pattern(prefix+"*").Build()).AsStrSlice()
 	for _, key := range keys {
-		if strings.HasPrefix(key, prefix) {
-			k, _ := strings.CutPrefix(key, prefix)
-			m[k] = string(provider.Get(key))
-		}
+		k, _ := strings.CutPrefix(key, prefix)
+		m[k] = string(provider.Get(key))
 	}
 
 	return m
@@ -94,7 +94,6 @@ func (provider *Redis) MapKeys(prefix string) map[string]string {
 
 // GetMultiLevel tries to load the key and check if one of linked keys is a fresh/stale candidate.
 func (provider *Redis) GetMultiLevel(key string, req *http.Request, validator *rfc.Revalidator) (fresh *http.Response, stale *http.Response) {
-
 	b, e := provider.inClient.Do(provider.ctx, provider.inClient.B().Get().Key(MappingKeyPrefix+key).Build()).AsBytes()
 	if e != nil {
 		return fresh, stale
@@ -195,6 +194,7 @@ func (provider *Redis) Delete(key string) {
 
 // DeleteMany method will delete the responses in Redis provider if exists corresponding to the regex key param
 func (provider *Redis) DeleteMany(key string) {
+	provider.logger.Sugar().Debugf("Call the DeleteMany function in redis")
 	keys, _ := provider.inClient.Do(provider.ctx, provider.inClient.B().Keys().Pattern(key).Build()).AsStrSlice()
 	_ = provider.inClient.Do(provider.ctx, provider.inClient.B().Del().Key(keys...).Build())
 }
