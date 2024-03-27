@@ -15,7 +15,7 @@ type FastlySurrogateStorage struct {
 	strategy       string
 }
 
-func generateFastlyInstance(config configurationtypes.AbstractConfigurationInterface) *FastlySurrogateStorage {
+func generateFastlyInstance(config configurationtypes.AbstractConfigurationInterface, defaultStorerName string) *FastlySurrogateStorage {
 	cdn := config.GetDefaultCache().GetCDN()
 	f := &FastlySurrogateStorage{
 		baseStorage:    &baseStorage{},
@@ -28,7 +28,7 @@ func generateFastlyInstance(config configurationtypes.AbstractConfigurationInter
 		f.strategy = "1"
 	}
 
-	f.init(config)
+	f.init(config, defaultStorerName)
 	f.parent = f
 
 	return f

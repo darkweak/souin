@@ -9,10 +9,10 @@ type SouinSurrogateStorage struct {
 	*baseStorage
 }
 
-func generateSouinInstance(config configurationtypes.AbstractConfigurationInterface) *SouinSurrogateStorage {
+func generateSouinInstance(config configurationtypes.AbstractConfigurationInterface, defaultStorerName string) *SouinSurrogateStorage {
 	s := &SouinSurrogateStorage{baseStorage: &baseStorage{}}
 
-	s.init(config)
+	s.init(config, defaultStorerName)
 	s.parent = s
 
 	return s
