@@ -71,9 +71,9 @@ func TestSurrogateFactory(t *testing.T) {
 	fastlyConfiguration := mockConfiguration(cdnConfigurationFastly)
 	souinConfiguration := mockConfiguration(cdnConfigurationSouin)
 
-	akamaiProvider := SurrogateFactory(akamaiConfiguration)
-	fastlyProvider := SurrogateFactory(fastlyConfiguration)
-	souinProvider := SurrogateFactory(souinConfiguration)
+	akamaiProvider := SurrogateFactory(akamaiConfiguration, "nuts")
+	fastlyProvider := SurrogateFactory(fastlyConfiguration, "nuts")
+	souinProvider := SurrogateFactory(souinConfiguration, "nuts")
 
 	if akamaiProvider == nil {
 		errors.GenerateError(t, "Impossible to create the Akamai surrogate provider instance")

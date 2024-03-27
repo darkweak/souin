@@ -1,7 +1,6 @@
 package providers
 
 import (
-	"fmt"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -99,7 +98,7 @@ type baseStorage struct {
 	duration   time.Duration
 }
 
-func (s *baseStorage) init(config configurationtypes.AbstractConfigurationInterface) {
+func (s *baseStorage) init(config configurationtypes.AbstractConfigurationInterface, defaultStorerName string) {
 	if configuration, ok := config.GetSurrogateKeys()["_configuration"]; ok {
 		instanciator, err := storage.NewStorageFromName(configuration.SurrogateConfiguration.Storer)
 		if err != nil {
@@ -108,15 +107,15 @@ func (s *baseStorage) init(config configurationtypes.AbstractConfigurationInterf
 
 		storer, err := instanciator(config)
 		if err != nil {
-			panic(fmt.Sprintf("Impossible to instanciate the storer for the surrogate-keys: %v", err))
+			s.logger.Sugar().Errorf("Impossible to instanciate the storer for the surrogate-keys: %v", err)
 		}
 
 		s.Storage = storer
 	} else {
-		instanciator, _ := storage.NewStorageFromName("nuts")
+		instanciator, _ := storage.NewStorageFromName(strings.ToLower(defaultStorerName))
 		storer, err := instanciator(config)
 		if err != nil {
-			panic(fmt.Sprintf("Impossible to instanciate the storer for the surrogate-keys: %v", err))
+			s.logger.Sugar().Errorf("Impossible to instanciate the storer %s for the surrogate-keys: %v", defaultStorerName, err)
 		}
 
 		s.Storage = storer

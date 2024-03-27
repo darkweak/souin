@@ -18,7 +18,7 @@ type CloudflareSurrogateStorage struct {
 	zoneID         string
 }
 
-func generateCloudflareInstance(config configurationtypes.AbstractConfigurationInterface) *CloudflareSurrogateStorage {
+func generateCloudflareInstance(config configurationtypes.AbstractConfigurationInterface, defaultStorerName string) *CloudflareSurrogateStorage {
 	cdn := config.GetDefaultCache().GetCDN()
 	f := &CloudflareSurrogateStorage{
 		baseStorage:    &baseStorage{},
@@ -27,7 +27,7 @@ func generateCloudflareInstance(config configurationtypes.AbstractConfigurationI
 		email:          cdn.Email,
 	}
 
-	f.init(config)
+	f.init(config, defaultStorerName)
 	f.parent = f
 
 	return f

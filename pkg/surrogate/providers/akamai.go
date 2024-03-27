@@ -14,7 +14,7 @@ type AkamaiSurrogateStorage struct {
 	url string
 }
 
-func generateAkamaiInstance(config configurationtypes.AbstractConfigurationInterface) *AkamaiSurrogateStorage {
+func generateAkamaiInstance(config configurationtypes.AbstractConfigurationInterface, defaultStorerName string) *AkamaiSurrogateStorage {
 	cdn := config.GetDefaultCache().GetCDN()
 	a := &AkamaiSurrogateStorage{baseStorage: &baseStorage{}}
 
@@ -28,7 +28,7 @@ func generateAkamaiInstance(config configurationtypes.AbstractConfigurationInter
 		a.url += "/" + cdn.Network
 	}
 
-	a.init(config)
+	a.init(config, defaultStorerName)
 	a.parent = a
 
 	return a
