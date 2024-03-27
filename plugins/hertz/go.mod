@@ -7,7 +7,11 @@ require github.com/darkweak/souin v1.6.47
 require (
 	github.com/antlabs/stl v0.0.1 // indirect
 	github.com/antlabs/timer v0.0.11 // indirect
+	github.com/dolthub/maphash v0.1.0 // indirect
+	github.com/dolthub/swiss v0.2.1 // indirect
+	github.com/gammazero/deque v0.2.1 // indirect
 	github.com/gofrs/flock v0.8.1 // indirect
+	github.com/maypok86/otter v1.1.1 // indirect
 	github.com/nutsdb/nutsdb v0.14.3 // indirect
 	github.com/redis/rueidis v1.0.31 // indirect
 	github.com/tidwall/gjson v1.13.0 // indirect

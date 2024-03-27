@@ -40,6 +40,8 @@ type DefaultCache struct {
 	Etcd configurationtypes.CacheProvider `json:"etcd"`
 	// NutsDB provider configuration.
 	Nuts configurationtypes.CacheProvider `json:"nuts"`
+	// Otter provider configuration.
+	Otter configurationtypes.CacheProvider `json:"otter"`
 	// Regex to exclude cache.
 	Regex configurationtypes.Regex `json:"regex"`
 	// Storage providers chaining and order.
@@ -100,6 +102,11 @@ func (d *DefaultCache) GetMode() string {
 // GetNuts returns nuts configuration
 func (d *DefaultCache) GetNuts() configurationtypes.CacheProvider {
 	return d.Nuts
+}
+
+// GetOtter returns otter configuration
+func (d *DefaultCache) GetOtter() configurationtypes.CacheProvider {
+	return d.Otter
 }
 
 // GetOlric returns olric configuration
@@ -491,6 +498,18 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isGlobal boo
 					}
 				}
 				cfg.DefaultCache.Nuts = provider
+			case "otter":
+				provider := configurationtypes.CacheProvider{}
+				for nesting := h.Nesting(); h.NextBlock(nesting); {
+					directive := h.Val()
+					switch directive {
+					case "configuration":
+						provider.Configuration = parseCaddyfileRecursively(h)
+					default:
+						return h.Errf("unsupported otter directive: %s", directive)
+					}
+				}
+				cfg.DefaultCache.Otter = provider
 			case "olric":
 				cfg.DefaultCache.Distributed = true
 				provider := configurationtypes.CacheProvider{}
