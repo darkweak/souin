@@ -224,6 +224,19 @@ func parseDefaultCache(dcConfiguration map[string]config.Value) *configurationty
 				}
 			}
 			dc.Nuts = provider
+		case "otter":
+			provider := configurationtypes.CacheProvider{}
+			otterConfiguration, _ := defaultCacheV.Map()
+			for otterConfigurationK, otterConfigurationV := range otterConfiguration {
+				switch otterConfigurationK {
+				case configurationPK:
+					configMap, e := otterConfigurationV.Map()
+					if e == nil {
+						provider.Configuration = parseRecursively(configMap)
+					}
+				}
+			}
+			dc.Otter = provider
 		case "olric":
 			provider := configurationtypes.CacheProvider{}
 			olricConfiguration, _ := defaultCacheV.Map()

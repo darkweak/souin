@@ -30,7 +30,7 @@ type Redis struct {
 	close         func()
 }
 
-// RedisConnectionFactory function create new Nuts instance
+// RedisConnectionFactory function create new Redis instance
 func RedisConnectionFactory(c t.AbstractConfigurationInterface) (types.Storer, error) {
 	dc := c.GetDefaultCache()
 	bc, _ := json.Marshal(dc.GetRedis().Configuration)
@@ -250,7 +250,7 @@ func (provider *Redis) Delete(key string) {
 	_ = provider.inClient.Do(provider.ctx, provider.inClient.B().Del().Key(key).Build())
 }
 
-// DeleteMany method will delete the responses in Nuts provider if exists corresponding to the regex key param
+// DeleteMany method will delete the responses in Redis provider if exists corresponding to the regex key param
 func (provider *Redis) DeleteMany(key string) {
 	if provider.reconnecting {
 		provider.logger.Sugar().Error("Impossible to delete the redis keys while reconnecting.")

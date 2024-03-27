@@ -187,6 +187,19 @@ func parseDefaultCache(dcConfiguration map[string]interface{}) *configurationtyp
 				}
 			}
 			dc.Nuts = provider
+		case "otter":
+			provider := configurationtypes.CacheProvider{}
+			for otterConfigurationK, otterConfigurationV := range defaultCacheV.(map[string]interface{}) {
+				switch otterConfigurationK {
+				case url:
+					provider.URL, _ = otterConfigurationV.(string)
+				case path:
+					provider.Path, _ = otterConfigurationV.(string)
+				case configurationPK:
+					provider.Configuration = otterConfigurationV.(map[string]interface{})
+				}
+			}
+			dc.Otter = provider
 		case "olric":
 			provider := configurationtypes.CacheProvider{}
 			for olricConfigurationK, olricConfigurationV := range defaultCacheV.(map[string]interface{}) {
