@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net"
 	"net/http"
 	"strings"
@@ -83,6 +84,14 @@ func (provider *Redis) ListKeys() []string {
 func (provider *Redis) MapKeys(prefix string) map[string]string {
 	m := map[string]string{}
 	provider.logger.Sugar().Debugf("Call the MapKeys in redis with the prefix %s", prefix)
+	var scan redis.ScanEntry
+	var err error
+	for more := true; more; more = scan.Cursor != 0 {
+		if scan, err = provider.inClient.Do(context.Background(), provider.inClient.B().Scan().Cursor(scan.Cursor).Build()).AsScanEntry(); err != nil {
+			panic(err)
+		}
+		fmt.Println(scan.Elements)
+	}
 	keys, _ := provider.inClient.Do(provider.ctx, provider.inClient.B().Keys().Pattern(prefix+"*").Build()).AsStrSlice()
 	for _, key := range keys {
 		k, _ := strings.CutPrefix(key, prefix)
