@@ -33,6 +33,7 @@ func TestRedisConnectionFactory(t *testing.T) {
 	r, err := RedisConnectionFactory(c)
 
 	if nil != err {
+		fmt.Printf("%#v\n", err)
 		errors.GenerateError(t, "Shouldn't have panic")
 	}
 
@@ -102,5 +103,49 @@ func TestRedis_Init(t *testing.T) {
 
 	if nil != err {
 		errors.GenerateError(t, "Impossible to init Redis provider")
+	}
+}
+
+func TestRedis_MapKeys(t *testing.T) {
+	client, _ := RedisConnectionFactory(tests.MockConfiguration(tests.RedisConfiguration))
+
+	max := 10
+	prefix := "MAP_KEYS_PREFIX_"
+	m := client.MapKeys(prefix)
+	if len(m) != 0 {
+		t.Error("The map should be empty")
+	}
+
+	for i := 0; i < max; i++ {
+		client.Set(fmt.Sprintf("%s%d", prefix, i), []byte(fmt.Sprintf("Hello from %d", i)), configurationtypes.URL{}, time.Second)
+	}
+
+	m = client.MapKeys(prefix)
+	if len(m) != max {
+		t.Errorf("The map should contain %d elements, %d given", max, len(m))
+	}
+
+	for k, v := range m {
+		if v != fmt.Sprintf("Hello from %s", k) {
+			t.Errorf("Expected Hello from %s, %s given", k, v)
+		}
+	}
+}
+
+func TestRedis_DeleteMany(t *testing.T) {
+	client, _ := RedisConnectionFactory(tests.MockConfiguration(tests.RedisConfiguration))
+
+	if len(client.MapKeys("")) != 11 {
+		t.Error("The map should contain 11 elements")
+	}
+
+	client.DeleteMany("MAP_KEYS_PREFIX_*")
+	if len(client.MapKeys("")) != 1 {
+		t.Error("The map should contain 1 element")
+	}
+
+	client.DeleteMany("*")
+	if len(client.MapKeys("")) != 0 {
+		t.Error("The map should be empty")
 	}
 }

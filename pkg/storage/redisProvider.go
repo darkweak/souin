@@ -6,7 +6,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net"
 	"net/http"
 	"strings"
@@ -45,6 +44,8 @@ func RedisConnectionFactory(c t.AbstractConfigurationInterface) (types.Storer, e
 			Dialer: net.Dialer{
 				Timeout: dc.GetTimeout().Cache.Duration,
 			},
+			SelectDB:   0,
+			ClientName: "souin-redis",
 		}
 	}
 
@@ -86,14 +87,14 @@ func (provider *Redis) MapKeys(prefix string) map[string]string {
 	provider.logger.Sugar().Debugf("Call the MapKeys in redis with the prefix %s", prefix)
 	var scan redis.ScanEntry
 	var err error
+	elements := []string{}
 	for more := true; more; more = scan.Cursor != 0 {
-		if scan, err = provider.inClient.Do(context.Background(), provider.inClient.B().Scan().Cursor(scan.Cursor).Build()).AsScanEntry(); err != nil {
-			panic(err)
+		if scan, err = provider.inClient.Do(context.Background(), provider.inClient.B().Scan().Cursor(scan.Cursor).Match(prefix+"*").Build()).AsScanEntry(); err != nil {
+			provider.logger.Sugar().Errorf("Cannot scan: %v", err)
 		}
-		fmt.Println(scan.Elements)
+		elements = append(elements, scan.Elements...)
 	}
-	keys, _ := provider.inClient.Do(provider.ctx, provider.inClient.B().Keys().Pattern(prefix+"*").Build()).AsStrSlice()
-	for _, key := range keys {
+	for _, key := range elements {
 		k, _ := strings.CutPrefix(key, prefix)
 		m[k] = string(provider.Get(key))
 	}
@@ -204,8 +205,16 @@ func (provider *Redis) Delete(key string) {
 // DeleteMany method will delete the responses in Redis provider if exists corresponding to the regex key param
 func (provider *Redis) DeleteMany(key string) {
 	provider.logger.Sugar().Debugf("Call the DeleteMany function in redis")
-	keys, _ := provider.inClient.Do(provider.ctx, provider.inClient.B().Keys().Pattern(key).Build()).AsStrSlice()
-	_ = provider.inClient.Do(provider.ctx, provider.inClient.B().Del().Key(keys...).Build())
+	var scan redis.ScanEntry
+	var err error
+	elements := []string{}
+	for more := true; more; more = scan.Cursor != 0 {
+		if scan, err = provider.inClient.Do(context.Background(), provider.inClient.B().Scan().Cursor(scan.Cursor).Match(key).Build()).AsScanEntry(); err != nil {
+			provider.logger.Sugar().Errorf("Cannot scan: %v", err)
+		}
+		elements = append(elements, scan.Elements...)
+	}
+	_ = provider.inClient.Do(provider.ctx, provider.inClient.B().Del().Key(elements...).Build())
 }
 
 // Init method will
