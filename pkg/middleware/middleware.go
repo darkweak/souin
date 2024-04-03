@@ -521,7 +521,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 			req.Method = http.MethodGet
 			keyname := s.context.SetContext(req, rq).Context().Value(context.Key).(string)
 			for _, storer := range s.Storers {
-				storer.DeleteMany(fmt.Sprintf("(%s)?%s((%s|/).*|$)", storage.MappingKeyPrefix, keyname, rfc.VarySeparator))
+				storer.Delete(storage.MappingKeyPrefix + keyname)
 			}
 		}
 

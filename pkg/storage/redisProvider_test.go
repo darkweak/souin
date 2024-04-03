@@ -33,7 +33,6 @@ func TestRedisConnectionFactory(t *testing.T) {
 	r, err := RedisConnectionFactory(c)
 
 	if nil != err {
-		fmt.Printf("%#v\n", err)
 		errors.GenerateError(t, "Shouldn't have panic")
 	}
 
@@ -117,7 +116,7 @@ func TestRedis_MapKeys(t *testing.T) {
 	}
 
 	for i := 0; i < max; i++ {
-		client.Set(fmt.Sprintf("%s%d", prefix, i), []byte(fmt.Sprintf("Hello from %d", i)), configurationtypes.URL{}, time.Second)
+		_ = client.Set(fmt.Sprintf("%s%d", prefix, i), []byte(fmt.Sprintf("Hello from %d", i)), configurationtypes.URL{}, time.Second)
 	}
 
 	m = client.MapKeys(prefix)
