@@ -76,9 +76,25 @@ func (provider *Redis) Name() string {
 // ListKeys method returns the list of existing keys
 func (provider *Redis) ListKeys() []string {
 	provider.logger.Sugar().Debugf("Call the ListKeys function in redis")
-	keys, _ := provider.inClient.Do(provider.ctx, provider.inClient.B().Keys().Pattern("*").Build()).AsStrSlice()
+	var scan redis.ScanEntry
+	var err error
+	elements := []string{}
+	for more := true; more; more = scan.Cursor != 0 {
+		if scan, err = provider.inClient.Do(context.Background(), provider.inClient.B().Scan().Cursor(scan.Cursor).Match(MappingKeyPrefix+"*").Build()).AsScanEntry(); err != nil {
+			provider.logger.Sugar().Errorf("Cannot scan: %v", err)
+		}
+		for _, element := range scan.Elements {
+			value := provider.Get(element)
+			mapping, err := decodeMapping(value)
+			if err == nil {
+				for _, v := range mapping.Mapping {
+					elements = append(elements, v.RealKey)
+				}
+			}
+		}
+	}
 
-	return keys
+	return elements
 }
 
 // MapKeys method returns the list of existing keys
@@ -115,7 +131,7 @@ func (provider *Redis) GetMultiLevel(key string, req *http.Request, validator *r
 }
 
 // SetMultiLevel tries to store the key with the given value and update the mapping key to store metadata.
-func (provider *Redis) SetMultiLevel(baseKey, variedKey string, value []byte, variedHeaders http.Header, etag string, duration time.Duration) error {
+func (provider *Redis) SetMultiLevel(baseKey, variedKey string, value []byte, variedHeaders http.Header, etag string, duration time.Duration, realKey string) error {
 	now := time.Now()
 	if err := provider.inClient.Do(provider.ctx, provider.inClient.B().Set().Key(variedKey).Value(string(value)).Ex(duration+provider.stale).Build()).Error(); err != nil {
 		provider.logger.Sugar().Errorf("Impossible to set value into Redis, %v", err)
@@ -128,7 +144,7 @@ func (provider *Redis) SetMultiLevel(baseKey, variedKey string, value []byte, va
 		return e
 	}
 
-	val, e := mappingUpdater(variedKey, v, provider.logger, now, now.Add(duration), now.Add(duration+provider.stale), variedHeaders, etag)
+	val, e := mappingUpdater(variedKey, v, provider.logger, now, now.Add(duration), now.Add(duration+provider.stale), variedHeaders, etag, realKey)
 	if e != nil {
 		return e
 	}

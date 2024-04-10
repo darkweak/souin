@@ -61,7 +61,7 @@ func (provider *Olric) ListKeys() []string {
 	dm := provider.dm.Get().(olric.DMap)
 	defer provider.dm.Put(dm)
 
-	records, err := dm.Scan(context.Background())
+	records, err := dm.Scan(context.Background(), olric.Match("^"+MappingKeyPrefix))
 	if err != nil {
 		if !provider.reconnecting {
 			go provider.Reconnect()
@@ -72,8 +72,11 @@ func (provider *Olric) ListKeys() []string {
 
 	keys := []string{}
 	for records.Next() {
-		if !strings.Contains(records.Key(), surrogatePrefix) {
-			keys = append(keys, records.Key())
+		mapping, err := decodeMapping(provider.Get(records.Key()))
+		if err == nil {
+			for _, v := range mapping.Mapping {
+				keys = append(keys, v.RealKey)
+			}
 		}
 	}
 	records.Close()
@@ -128,7 +131,7 @@ func (provider *Olric) GetMultiLevel(key string, req *http.Request, validator *r
 }
 
 // SetMultiLevel tries to store the key with the given value and update the mapping key to store metadata.
-func (provider *Olric) SetMultiLevel(baseKey, variedKey string, value []byte, variedHeaders http.Header, etag string, duration time.Duration) error {
+func (provider *Olric) SetMultiLevel(baseKey, variedKey string, value []byte, variedHeaders http.Header, etag string, duration time.Duration, realKey string) error {
 	now := time.Now()
 
 	dm := provider.dm.Get().(olric.DMap)
@@ -151,7 +154,7 @@ func (provider *Olric) SetMultiLevel(baseKey, variedKey string, value []byte, va
 		return e
 	}
 
-	val, e = mappingUpdater(variedKey, val, provider.logger, now, now.Add(duration), now.Add(duration+provider.stale), variedHeaders, etag)
+	val, e = mappingUpdater(variedKey, val, provider.logger, now, now.Add(duration), now.Add(duration+provider.stale), variedHeaders, etag, realKey)
 	if e != nil {
 		return e
 	}

@@ -155,10 +155,16 @@ func varyVoter(baseKey string, req *http.Request, currentKey string) bool {
 	return false
 }
 
+func decodeMapping(item []byte) (mapping types.StorageMapper, e error) {
+	e = gob.NewDecoder(bytes.NewBuffer(item)).Decode(&mapping)
+
+	return
+}
+
 func mappingElection(provider types.Storer, item []byte, req *http.Request, validator *rfc.Revalidator, logger *zap.Logger) (resultFresh *http.Response, resultStale *http.Response, e error) {
 	var mapping types.StorageMapper
 	if len(item) != 0 {
-		e = gob.NewDecoder(bytes.NewBuffer(item)).Decode(&mapping)
+		mapping, e = decodeMapping(item)
 		if e != nil {
 			return resultFresh, resultStale, e
 		}
@@ -217,7 +223,7 @@ func mappingElection(provider types.Storer, item []byte, req *http.Request, vali
 	return
 }
 
-func mappingUpdater(key string, item []byte, logger *zap.Logger, now, freshTime, staleTime time.Time, variedHeaders http.Header, etag string) (val []byte, e error) {
+func mappingUpdater(key string, item []byte, logger *zap.Logger, now, freshTime, staleTime time.Time, variedHeaders http.Header, etag, realKey string) (val []byte, e error) {
 	var mapping types.StorageMapper
 	if len(item) == 0 {
 		mapping = types.StorageMapper{}
@@ -239,6 +245,7 @@ func mappingUpdater(key string, item []byte, logger *zap.Logger, now, freshTime,
 		StaleTime:     staleTime,
 		VariedHeaders: variedHeaders,
 		Etag:          etag,
+		RealKey:       realKey,
 	}
 
 	buf := new(bytes.Buffer)

@@ -131,10 +131,13 @@ func (provider *Nuts) ListKeys() []string {
 	keys := []string{}
 
 	e := provider.DB.View(func(tx *nutsdb.Tx) error {
-		e, _ := tx.GetAll(bucket)
+		e, _ := tx.PrefixScan(bucket, []byte(MappingKeyPrefix), 0, 100)
 		for _, k := range e {
-			if !strings.Contains(string(k.Key), surrogatePrefix) {
-				keys = append(keys, string(k.Key))
+			mapping, err := decodeMapping(k.Value)
+			if err == nil {
+				for _, v := range mapping.Mapping {
+					keys = append(keys, v.RealKey)
+				}
 			}
 		}
 		return nil
@@ -236,7 +239,7 @@ func (provider *Nuts) GetMultiLevel(key string, req *http.Request, validator *rf
 }
 
 // SetMultiLevel tries to store the key with the given value and update the mapping key to store metadata.
-func (provider *Nuts) SetMultiLevel(baseKey, variedKey string, value []byte, variedHeaders http.Header, etag string, duration time.Duration) error {
+func (provider *Nuts) SetMultiLevel(baseKey, variedKey string, value []byte, variedHeaders http.Header, etag string, duration time.Duration, realKey string) error {
 	now := time.Now()
 
 	err := provider.DB.Update(func(tx *nutsdb.Tx) error {
@@ -265,12 +268,12 @@ func (provider *Nuts) SetMultiLevel(baseKey, variedKey string, value []byte, var
 			val = item.Value
 		}
 
-		val, e = mappingUpdater(variedKey, val, provider.logger, now, now.Add(duration), now.Add(duration+provider.stale), variedHeaders, etag)
+		val, e = mappingUpdater(variedKey, val, provider.logger, now, now.Add(duration), now.Add(duration+provider.stale), variedHeaders, etag, realKey)
 		if e != nil {
 			return e
 		}
 
-		provider.logger.Sugar().Debugf("Store the new mapping for the key %s in Nuts, %v", variedKey, string(val))
+		provider.logger.Sugar().Debugf("Store the new mapping for the key %s in Nuts", variedKey)
 
 		return tx.Put(bucket, []byte(mappingKey), val, nutsdb.Persistent)
 	})

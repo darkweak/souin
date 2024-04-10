@@ -14,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cespare/xxhash/v2"
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/context"
 	"github.com/darkweak/souin/helpers"
@@ -285,7 +286,14 @@ func (s *SouinBaseHandler) Store(
 						wg.Add(1)
 						go func(currentStorer types.Storer) {
 							defer wg.Done()
-							if currentStorer.SetMultiLevel(cachedKey, variedKey, response, vhs, res.Header.Get("Etag"), ma) == nil {
+							if currentStorer.SetMultiLevel(
+								fmt.Sprint(xxhash.Sum64String(cachedKey)),
+								fmt.Sprint(xxhash.Sum64String(variedKey)),
+								response,
+								vhs,
+								res.Header.Get("Etag"), ma,
+								variedKey,
+							) == nil {
 								s.Configuration.GetLogger().Sugar().Debugf("Stored the key %s in the %s provider", variedKey, currentStorer.Name())
 							} else {
 								mu.Lock()
@@ -566,7 +574,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 		validator := rfc.ParseRequest(req)
 		var fresh, stale *http.Response
 		for _, currentStorer := range s.Storers {
-			fresh, stale = currentStorer.GetMultiLevel(cachedKey, req, validator)
+			fresh, stale = currentStorer.GetMultiLevel(fmt.Sprint(xxhash.Sum64String(cachedKey)), req, validator)
 
 			if fresh != nil || stale != nil {
 				s.Configuration.GetLogger().Sugar().Debugf("Found at least one valid response in the %s storage", currentStorer.Name())

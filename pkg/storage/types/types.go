@@ -14,6 +14,7 @@ type KeyIndex struct {
 	StaleTime     time.Time   `json:"stale"`
 	VariedHeaders http.Header `json:"varied"`
 	Etag          string      `json:"etag"`
+	RealKey       string      `json:"realKey"`
 }
 
 type StorageMapper struct {
@@ -34,5 +35,5 @@ type Storer interface {
 
 	// Multi level storer to handle fresh/stale at once
 	GetMultiLevel(key string, req *http.Request, validator *rfc.Revalidator) (fresh *http.Response, stale *http.Response)
-	SetMultiLevel(baseKey, variedKey string, value []byte, variedHeaders http.Header, etag string, duration time.Duration) error
+	SetMultiLevel(baseKey, variedKey string, value []byte, variedHeaders http.Header, etag string, duration time.Duration, realKey string) error
 }

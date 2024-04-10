@@ -127,11 +127,17 @@ func (provider *Badger) ListKeys() []string {
 		opts.PrefetchValues = false
 		it := txn.NewIterator(opts)
 		defer it.Close()
-		for it.Rewind(); it.Valid(); it.Next() {
-			key := string(it.Item().Key())
-			if !strings.Contains(key, surrogatePrefix) {
-				keys = append(keys, key)
-			}
+		for it.Seek([]byte(MappingKeyPrefix)); it.ValidForPrefix([]byte(MappingKeyPrefix)); it.Next() {
+			_ = it.Item().Value(func(val []byte) error {
+				mapping, err := decodeMapping(val)
+				if err == nil {
+					for _, v := range mapping.Mapping {
+						keys = append(keys, v.RealKey)
+					}
+				}
+
+				return nil
+			})
 		}
 		return nil
 	})
@@ -226,7 +232,7 @@ func (provider *Badger) GetMultiLevel(key string, req *http.Request, validator *
 }
 
 // SetMultiLevel tries to store the key with the given value and update the mapping key to store metadata.
-func (provider *Badger) SetMultiLevel(baseKey, variedKey string, value []byte, variedHeaders http.Header, etag string, duration time.Duration) error {
+func (provider *Badger) SetMultiLevel(baseKey, variedKey string, value []byte, variedHeaders http.Header, etag string, duration time.Duration, realKey string) error {
 	now := time.Now()
 
 	err := provider.DB.Update(func(tx *badger.Txn) error {
@@ -253,12 +259,12 @@ func (provider *Badger) SetMultiLevel(baseKey, variedKey string, value []byte, v
 			})
 		}
 
-		val, e = mappingUpdater(variedKey, val, provider.logger, now, now.Add(duration), now.Add(duration+provider.stale), variedHeaders, etag)
+		val, e = mappingUpdater(variedKey, val, provider.logger, now, now.Add(duration), now.Add(duration+provider.stale), variedHeaders, etag, realKey)
 		if e != nil {
 			return e
 		}
 
-		provider.logger.Sugar().Debugf("Store the new mapping for the key %s in Badger, %v", variedKey, string(val))
+		provider.logger.Sugar().Debugf("Store the new mapping for the key %s in Badger", variedKey)
 		return tx.SetEntry(badger.NewEntry([]byte(mappingKey), val))
 	})
 

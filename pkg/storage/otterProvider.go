@@ -79,9 +79,14 @@ func (provider *Otter) MapKeys(prefix string) map[string]string {
 func (provider *Otter) ListKeys() []string {
 	keys := []string{}
 
-	provider.cache.Range(func(key string, _ []byte) bool {
-		if !strings.Contains(key, surrogatePrefix) {
-			keys = append(keys, key)
+	provider.cache.Range(func(key string, value []byte) bool {
+		if strings.HasPrefix(key, MappingKeyPrefix) {
+			mapping, err := decodeMapping(value)
+			if err == nil {
+				for _, v := range mapping.Mapping {
+					keys = append(keys, v.RealKey)
+				}
+			}
 		}
 
 		return true
@@ -138,7 +143,7 @@ func (provider *Otter) GetMultiLevel(key string, req *http.Request, validator *r
 }
 
 // SetMultiLevel tries to store the key with the given value and update the mapping key to store metadata.
-func (provider *Otter) SetMultiLevel(baseKey, variedKey string, value []byte, variedHeaders http.Header, etag string, duration time.Duration) error {
+func (provider *Otter) SetMultiLevel(baseKey, variedKey string, value []byte, variedHeaders http.Header, etag string, duration time.Duration, realKey string) error {
 	now := time.Now()
 	inserted := provider.cache.Set(variedKey, value, duration)
 	if !inserted {
@@ -153,12 +158,12 @@ func (provider *Otter) SetMultiLevel(baseKey, variedKey string, value []byte, va
 		return nil
 	}
 
-	val, e := mappingUpdater(variedKey, item, provider.logger, now, now.Add(duration), now.Add(duration+provider.stale), variedHeaders, etag)
+	val, e := mappingUpdater(variedKey, item, provider.logger, now, now.Add(duration), now.Add(duration+provider.stale), variedHeaders, etag, realKey)
 	if e != nil {
 		return e
 	}
 
-	provider.logger.Sugar().Debugf("Store the new mapping for the key %s in Badger, %v", variedKey, string(val))
+	provider.logger.Sugar().Debugf("Store the new mapping for the key %s in Badger", variedKey)
 	// Used to calculate -(now * 2)
 	negativeNow, _ := time.ParseDuration(fmt.Sprintf("-%d", time.Now().Nanosecond()*2))
 	inserted = provider.cache.Set(mappingKey, val, negativeNow)
