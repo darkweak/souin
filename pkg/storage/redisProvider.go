@@ -26,6 +26,7 @@ type Redis struct {
 	logger        *zap.Logger
 	configuration redis.ClientOption
 	close         func()
+	hashtags      string
 }
 
 // RedisConnectionFactory function create new Redis instance
@@ -34,9 +35,17 @@ func RedisConnectionFactory(c t.AbstractConfigurationInterface) (types.Storer, e
 	bc, _ := json.Marshal(dc.GetRedis().Configuration)
 
 	var options redis.ClientOption
+	var hashtags string
 	if dc.GetRedis().Configuration != nil {
 		if err := json.Unmarshal(bc, &options); err != nil {
 			c.GetLogger().Sugar().Infof("Cannot parse your redis configuration: %+v", err)
+		}
+		if redisConfig, ok := dc.GetRedis().Configuration.(map[string]interface{}); ok && redisConfig != nil {
+			if value, ok := redisConfig["HashTag"]; ok {
+				if v, ok := value.(string); ok {
+					hashtags = v
+				}
+			}
 		}
 	} else {
 		options = redis.ClientOption{
@@ -65,6 +74,7 @@ func RedisConnectionFactory(c t.AbstractConfigurationInterface) (types.Storer, e
 		configuration: options,
 		logger:        c.GetLogger(),
 		close:         cli.Close,
+		hashtags:      hashtags,
 	}, err
 }
 
@@ -80,7 +90,7 @@ func (provider *Redis) ListKeys() []string {
 	var err error
 	elements := []string{}
 	for more := true; more; more = scan.Cursor != 0 {
-		if scan, err = provider.inClient.Do(context.Background(), provider.inClient.B().Scan().Cursor(scan.Cursor).Match(MappingKeyPrefix+"*").Build()).AsScanEntry(); err != nil {
+		if scan, err = provider.inClient.Do(context.Background(), provider.inClient.B().Scan().Cursor(scan.Cursor).Match(provider.hashtags+MappingKeyPrefix+"*").Build()).AsScanEntry(); err != nil {
 			provider.logger.Sugar().Errorf("Cannot scan: %v", err)
 		}
 		for _, element := range scan.Elements {
@@ -88,7 +98,9 @@ func (provider *Redis) ListKeys() []string {
 			mapping, err := decodeMapping(value)
 			if err == nil {
 				for _, v := range mapping.Mapping {
-					elements = append(elements, v.RealKey)
+					if !v.FreshTime.Before(time.Now()) || !v.StaleTime.Before(time.Now()) {
+						elements = append(elements, v.RealKey)
+					}
 				}
 			}
 		}
@@ -120,7 +132,7 @@ func (provider *Redis) MapKeys(prefix string) map[string]string {
 
 // GetMultiLevel tries to load the key and check if one of linked keys is a fresh/stale candidate.
 func (provider *Redis) GetMultiLevel(key string, req *http.Request, validator *rfc.Revalidator) (fresh *http.Response, stale *http.Response) {
-	b, e := provider.inClient.Do(provider.ctx, provider.inClient.B().Get().Key(MappingKeyPrefix+key).Build()).AsBytes()
+	b, e := provider.inClient.Do(provider.ctx, provider.inClient.B().Get().Key(provider.hashtags+MappingKeyPrefix+key).Build()).AsBytes()
 	if e != nil {
 		return fresh, stale
 	}
@@ -133,18 +145,18 @@ func (provider *Redis) GetMultiLevel(key string, req *http.Request, validator *r
 // SetMultiLevel tries to store the key with the given value and update the mapping key to store metadata.
 func (provider *Redis) SetMultiLevel(baseKey, variedKey string, value []byte, variedHeaders http.Header, etag string, duration time.Duration, realKey string) error {
 	now := time.Now()
-	if err := provider.inClient.Do(provider.ctx, provider.inClient.B().Set().Key(variedKey).Value(string(value)).Ex(duration+provider.stale).Build()).Error(); err != nil {
+	if err := provider.inClient.Do(provider.ctx, provider.inClient.B().Set().Key(provider.hashtags+variedKey).Value(string(value)).Ex(duration+provider.stale).Build()).Error(); err != nil {
 		provider.logger.Sugar().Errorf("Impossible to set value into Redis, %v", err)
 		return err
 	}
 
-	mappingKey := MappingKeyPrefix + baseKey
+	mappingKey := provider.hashtags + MappingKeyPrefix + baseKey
 	v, e := provider.inClient.Do(provider.ctx, provider.inClient.B().Get().Key(mappingKey).Build()).AsBytes()
 	if e != nil && !errors.Is(e, redis.Nil) {
 		return e
 	}
 
-	val, e := mappingUpdater(variedKey, v, provider.logger, now, now.Add(duration), now.Add(duration+provider.stale), variedHeaders, etag, realKey)
+	val, e := mappingUpdater(provider.hashtags+variedKey, v, provider.logger, now, now.Add(duration), now.Add(duration+provider.stale), variedHeaders, etag, realKey)
 	if e != nil {
 		return e
 	}
