@@ -25,7 +25,13 @@ The following Caddyfile will enable Souin as cache system in caddy. We set dynam
 }
 
 {$SERVER_NAME} {
-    cache
+	@authorized-cache {
+		not header_regexp Cookie "comment_author|wordpress_[a-f0-9]+|wp-postpass|wordpress_logged_in"
+		not path_regexp "(/wp-admin/|/xmlrpc.php|/wp-(app|cron|login|register|mail).php|wp-.*.php|/feed/|index.php|wp-comments-popup.php|wp-links-opml.php|wp-locations.php|sitemap(index)?.xml|[a-z0-9-]+-sitemap([0-9]+)?.xml)"
+		not method POST
+		not expression {query} != ''
+	}
+    cache @authorized-cache
     root * /var/www/html
     encode zstd gzip
 
