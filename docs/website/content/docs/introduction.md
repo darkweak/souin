@@ -22,6 +22,7 @@ Souin is a powerful HTTP cache system written in go and implements the following
 ### Local in-memory or filesystem
 * [Badger]({{% relref "/docs/storages/badger" %}})
 * [Nuts]({{% relref "/docs/storages/nuts" %}})
+* [Otter]({{% relref "/docs/storages/otter" %}})
 
 ### Distributed in-memory
 * [Embedded Olric]({{% relref "/docs/storages/embedded-olric" %}})

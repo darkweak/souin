@@ -1,5 +1,5 @@
 +++
-weight = 406
+weight = 407
 title = "Redis"
 icon = "home_storage"
 description = "Redis is an in-memory database that persists on disk"
