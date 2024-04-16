@@ -41,6 +41,10 @@ func configCacheKey(keyConfiguration map[string]interface{}) configurationtypes.
 			key.DisableMethod = cast.ToBool(keyV)
 		case "disable_query":
 			key.DisableQuery = cast.ToBool(keyV)
+		case "disable_scheme":
+			key.DisableScheme = true
+		case "hash":
+			key.Hash = true
 		case "headers":
 			key.Headers = parseStringSlice(keyV)
 		case "hide":

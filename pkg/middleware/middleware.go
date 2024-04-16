@@ -268,6 +268,10 @@ func (s *SouinBaseHandler) Store(
 				status += "; detail=UPSTREAM-VARY-STAR"
 			} else {
 				variedKey := cachedKey + rfc.GetVariedCacheKey(rq, variedHeaders)
+				if rq.Context().Value(context.Hashed).(bool) {
+					cachedKey = fmt.Sprint(xxhash.Sum64String(cachedKey))
+					variedKey = fmt.Sprint(xxhash.Sum64String(variedKey))
+				}
 				s.Configuration.GetLogger().Sugar().Debugf("Store the response for %s with duration %v", variedKey, ma)
 
 				var wg sync.WaitGroup
@@ -287,8 +291,8 @@ func (s *SouinBaseHandler) Store(
 						go func(currentStorer types.Storer) {
 							defer wg.Done()
 							if currentStorer.SetMultiLevel(
-								fmt.Sprint(xxhash.Sum64String(cachedKey)),
-								fmt.Sprint(xxhash.Sum64String(variedKey)),
+								cachedKey,
+								variedKey,
 								response,
 								vhs,
 								res.Header.Get("Etag"), ma,
@@ -573,8 +577,12 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 	if modeContext.Bypass_request || !requestCc.NoCache {
 		validator := rfc.ParseRequest(req)
 		var fresh, stale *http.Response
+		finalKey := cachedKey
+		if rq.Context().Value(context.Hashed).(bool) {
+			finalKey = fmt.Sprint(xxhash.Sum64String(finalKey))
+		}
 		for _, currentStorer := range s.Storers {
-			fresh, stale = currentStorer.GetMultiLevel(fmt.Sprint(xxhash.Sum64String(cachedKey)), req, validator)
+			fresh, stale = currentStorer.GetMultiLevel(finalKey, req, validator)
 
 			if fresh != nil || stale != nil {
 				s.Configuration.GetLogger().Sugar().Debugf("Found at least one valid response in the %s storage", currentStorer.Name())

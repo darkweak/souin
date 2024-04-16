@@ -13,6 +13,7 @@ require (
 	github.com/gofrs/flock v0.8.1 // indirect
 	github.com/maypok86/otter v1.1.1 // indirect
 	github.com/nutsdb/nutsdb v0.14.3 // indirect
+	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
 	github.com/redis/rueidis v1.0.31 // indirect
 	github.com/tidwall/gjson v1.13.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20230822172742-b8732ec3820d // indirect

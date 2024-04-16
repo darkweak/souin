@@ -12,6 +12,7 @@ const (
 	Key            ctxKey = "souin_ctx.CACHE_KEY"
 	DisplayableKey ctxKey = "souin_ctx.DISPLAYABLE_KEY"
 	IgnoredHeaders ctxKey = "souin_ctx.IGNORE_HEADERS"
+	Hashed         ctxKey = "souin_ctx.HASHED"
 )
 
 type keyContext struct {
@@ -19,7 +20,9 @@ type keyContext struct {
 	disable_host   bool
 	disable_method bool
 	disable_query  bool
+	disable_scheme bool
 	displayable    bool
+	hash           bool
 	headers        []string
 	overrides      []map[*regexp.Regexp]keyContext
 }
@@ -34,6 +37,8 @@ func (g *keyContext) SetupContext(c configurationtypes.AbstractConfigurationInte
 	g.disable_host = k.DisableHost
 	g.disable_method = k.DisableMethod
 	g.disable_query = k.DisableQuery
+	g.disable_scheme = k.DisableScheme
+	g.hash = k.Hash
 	g.displayable = !k.Hide
 	g.headers = k.Headers
 
@@ -46,6 +51,8 @@ func (g *keyContext) SetupContext(c configurationtypes.AbstractConfigurationInte
 				disable_host:   v.DisableHost,
 				disable_method: v.DisableMethod,
 				disable_query:  v.DisableQuery,
+				disable_scheme: v.DisableScheme,
+				hash:           v.Hash,
 				displayable:    !v.Hide,
 				headers:        v.Headers,
 			}})
@@ -57,11 +64,9 @@ func (g *keyContext) SetContext(req *http.Request) *http.Request {
 	key := req.URL.Path
 	var headers []string
 
-	scheme := "http-"
-	if req.TLS != nil {
-		scheme = "https-"
-	}
+	hash := g.hash
 	query := ""
+	scheme := ""
 	body := ""
 	host := ""
 	method := ""
@@ -78,6 +83,13 @@ func (g *keyContext) SetContext(req *http.Request) *http.Request {
 
 	if !g.disable_host {
 		host = req.Host + "-"
+	}
+
+	if !g.disable_scheme {
+		scheme = "http-"
+		if req.TLS != nil {
+			scheme = "https-"
+		}
 	}
 
 	if !g.disable_method {
@@ -97,6 +109,7 @@ func (g *keyContext) SetContext(req *http.Request) *http.Request {
 				host = ""
 				method = ""
 				query = ""
+				scheme = ""
 				if !v.disable_query && len(req.URL.RawQuery) > 0 {
 					query = "?" + req.URL.RawQuery
 				}
@@ -109,12 +122,21 @@ func (g *keyContext) SetContext(req *http.Request) *http.Request {
 				if !v.disable_host {
 					host = req.Host + "-"
 				}
+				if !v.disable_scheme {
+					scheme = "http-"
+					if req.TLS != nil {
+						scheme = "https-"
+					}
+				}
 				if len(v.headers) > 0 {
 					headerValues = ""
 					for _, hn := range v.headers {
 						headers = v.headers
 						headerValues += "-" + req.Header.Get(hn)
 					}
+				}
+				if v.hash {
+					hash = true
 				}
 				hasOverride = true
 				break
@@ -126,13 +148,19 @@ func (g *keyContext) SetContext(req *http.Request) *http.Request {
 		}
 	}
 
+	key = method + scheme + host + key + query + body + headerValues
+
 	return req.WithContext(
 		context.WithValue(
 			context.WithValue(
 				context.WithValue(
-					req.Context(),
-					Key,
-					method+scheme+host+key+query+body+headerValues,
+					context.WithValue(
+						req.Context(),
+						Key,
+						key,
+					),
+					Hashed,
+					hash,
 				),
 				IgnoredHeaders,
 				headers,

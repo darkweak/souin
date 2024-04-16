@@ -13,6 +13,7 @@ import (
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/rfc"
 	"github.com/darkweak/souin/pkg/storage/types"
+	"github.com/pierrec/lz4"
 	"go.uber.org/zap"
 )
 
@@ -189,7 +190,9 @@ func mappingElection(provider types.Storer, item []byte, req *http.Request, vali
 			if time.Since(keyItem.FreshTime) < 0 {
 				response := provider.Get(keyName)
 				if response != nil {
-					if resultFresh, e = http.ReadResponse(bufio.NewReader(bytes.NewBuffer(response)), req); e != nil {
+					var buf bytes.Buffer
+					_, _ = lz4.NewReader(&buf).Read(response)
+					if resultFresh, e = http.ReadResponse(bufio.NewReader(&buf), req); e != nil {
 						logger.Sugar().Errorf("An error occured while reading response for the key %s: %v", string(keyName), e)
 						return
 					}
@@ -203,16 +206,14 @@ func mappingElection(provider types.Storer, item []byte, req *http.Request, vali
 			if time.Since(keyItem.StaleTime) < 0 {
 				response := provider.Get(keyName)
 				if response != nil {
-					if resultStale, e = http.ReadResponse(bufio.NewReader(bytes.NewBuffer(response)), req); e != nil {
+					var buf bytes.Buffer
+					_, _ = lz4.NewReader(&buf).Read(response)
+					if resultStale, e = http.ReadResponse(bufio.NewReader(&buf), req); e != nil {
 						logger.Sugar().Errorf("An error occured while reading response for the key %s: %v", string(keyName), e)
 						return
 					}
 
 					logger.Sugar().Debugf("The stored key %s matched the current iteration key ETag %+v as stale", string(keyName), validator)
-					// We can always return the found stale because a fresh response could be in the next iteration.
-					if resultFresh != nil {
-						return
-					}
 				}
 			}
 		} else {
@@ -256,6 +257,9 @@ func mappingUpdater(key string, item []byte, logger *zap.Logger, now, freshTime,
 	}
 
 	val = buf.Bytes()
+
+	compressed := make([]byte, len(val))
+	_, e = lz4.CompressBlock(val, compressed, nil)
 
 	return val, e
 }
