@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
 	"net/http"
@@ -13,6 +12,7 @@ import (
 	"github.com/darkweak/souin/pkg/rfc"
 	"github.com/darkweak/souin/pkg/storage/types"
 	"github.com/maypok86/otter"
+	lz4 "github.com/pierrec/lz4/v4"
 	"go.uber.org/zap"
 )
 
@@ -105,24 +105,11 @@ func (provider *Otter) Get(key string) []byte {
 	return result
 }
 
-// Prefix method returns the populated response if exists, empty response then
-func (provider *Otter) Prefix(key string, req *http.Request, validator *rfc.Revalidator) *http.Response {
-	var result *http.Response
-	provider.cache.Range(func(k string, val []byte) bool {
-		if varyVoter(key, req, k) {
-			if res, err := http.ReadResponse(bufio.NewReader(bytes.NewBuffer(val)), req); err == nil {
-				rfc.ValidateETag(res, validator)
-				if validator.Matched {
-					provider.logger.Sugar().Debugf("The stored key %s matched the current iteration key ETag %+v", k, validator)
-					result = res
-					return false
-				} else {
-					provider.logger.Sugar().Debugf("The stored key %s didn't match the current iteration key ETag %+v", k, validator)
-				}
-			} else {
-				provider.logger.Sugar().Errorf("An error occured while reading response for the key %s: %v", k, err)
-			}
-		}
+// Prefix method returns the keys that match the prefix key
+func (provider *Otter) Prefix(key string) []string {
+	result := []string{}
+	provider.cache.Range(func(k string, _ []byte) bool {
+		result = append(result, k)
 
 		return true
 	})
@@ -145,7 +132,13 @@ func (provider *Otter) GetMultiLevel(key string, req *http.Request, validator *r
 // SetMultiLevel tries to store the key with the given value and update the mapping key to store metadata.
 func (provider *Otter) SetMultiLevel(baseKey, variedKey string, value []byte, variedHeaders http.Header, etag string, duration time.Duration, realKey string) error {
 	now := time.Now()
-	inserted := provider.cache.Set(variedKey, value, duration)
+
+	compressed := new(bytes.Buffer)
+	if _, err := lz4.NewWriter(compressed).ReadFrom(bytes.NewReader(value)); err != nil {
+		provider.logger.Sugar().Errorf("Impossible to compress the key %s into Otter, %v", variedKey, err)
+		return err
+	}
+	inserted := provider.cache.Set(variedKey, compressed.Bytes(), duration)
 	if !inserted {
 		provider.logger.Sugar().Errorf("Impossible to set value into Otter, too large for the cost function")
 		return nil

@@ -36,6 +36,7 @@ var storageToInfiniteTTLMap = map[string]time.Duration{
 	"ETCD":   365 * 24 * time.Hour,
 	"NUTS":   0,
 	"OLRIC":  365 * 24 * time.Hour,
+	"OTTER":  365 * 24 * time.Hour,
 	"REDIS":  0,
 }
 

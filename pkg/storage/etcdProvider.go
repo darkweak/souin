@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -14,6 +13,7 @@ import (
 	t "github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/rfc"
 	"github.com/darkweak/souin/pkg/storage/types"
+	lz4 "github.com/pierrec/lz4/v4"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/connectivity"
@@ -143,8 +143,8 @@ func (provider *Etcd) Get(key string) (item []byte) {
 	return
 }
 
-// Prefix method returns the populated response if exists, empty response then
-func (provider *Etcd) Prefix(key string, req *http.Request, validator *rfc.Revalidator) *http.Response {
+// Prefix method returns the keys that match the prefix key
+func (provider *Etcd) Prefix(key string) []string {
 	if provider.reconnecting {
 		provider.logger.Sugar().Error("Impossible to get the etcd keys by prefix while reconnecting.")
 		return nil
@@ -156,21 +156,10 @@ func (provider *Etcd) Prefix(key string, req *http.Request, validator *rfc.Reval
 		return nil
 	}
 
+	result := []string{}
 	if e == nil && r != nil {
 		for _, v := range r.Kvs {
-			if varyVoter(key, req, string(v.Key)) {
-				if res, err := http.ReadResponse(bufio.NewReader(bytes.NewBuffer(v.Value)), req); err == nil {
-					rfc.ValidateETag(res, validator)
-					if validator.Matched {
-						provider.logger.Sugar().Debugf("The stored key %s matched the current iteration key ETag %+v", string(v.Key), validator)
-						return res
-					}
-
-					provider.logger.Sugar().Debugf("The stored key %s didn't match the current iteration key ETag %+v", string(v.Key), validator)
-				} else {
-					provider.logger.Sugar().Errorf("An error occured while reading response for the key %s: %v", string(v.Key), err)
-				}
-			}
+			result = append(result, string(v.Key))
 		}
 	}
 
@@ -213,9 +202,14 @@ func (provider *Etcd) SetMultiLevel(baseKey, variedKey string, value []byte, var
 		return fmt.Errorf("the connection is not ready: %v", provider.Client.ActiveConnection().GetState())
 	}
 
+	compressed := new(bytes.Buffer)
+	if _, err := lz4.NewWriter(compressed).ReadFrom(bytes.NewReader(value)); err != nil {
+		provider.logger.Sugar().Errorf("Impossible to compress the key %s into Etcd, %v", variedKey, err)
+		return err
+	}
 	rs, err := provider.Client.Grant(context.TODO(), int64(duration.Seconds()))
 	if err == nil {
-		_, err = provider.Client.Put(provider.ctx, variedKey, string(value), clientv3.WithLease(rs.ID))
+		_, err = provider.Client.Put(provider.ctx, variedKey, compressed.String(), clientv3.WithLease(rs.ID))
 		fmt.Println("Put err =>", err)
 	}
 

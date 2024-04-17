@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -14,6 +13,7 @@ import (
 	t "github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/rfc"
 	"github.com/darkweak/souin/pkg/storage/types"
+	lz4 "github.com/pierrec/lz4/v4"
 	redis "github.com/redis/rueidis"
 	"go.uber.org/zap"
 )
@@ -145,7 +145,13 @@ func (provider *Redis) GetMultiLevel(key string, req *http.Request, validator *r
 // SetMultiLevel tries to store the key with the given value and update the mapping key to store metadata.
 func (provider *Redis) SetMultiLevel(baseKey, variedKey string, value []byte, variedHeaders http.Header, etag string, duration time.Duration, realKey string) error {
 	now := time.Now()
-	if err := provider.inClient.Do(provider.ctx, provider.inClient.B().Set().Key(provider.hashtags+variedKey).Value(string(value)).Ex(duration+provider.stale).Build()).Error(); err != nil {
+
+	compressed := new(bytes.Buffer)
+	if _, err := lz4.NewWriter(compressed).ReadFrom(bytes.NewReader(value)); err != nil {
+		provider.logger.Sugar().Errorf("Impossible to compress the key %s into Redis, %v", variedKey, err)
+		return err
+	}
+	if err := provider.inClient.Do(provider.ctx, provider.inClient.B().Set().Key(provider.hashtags+variedKey).Value(compressed.String()).Ex(duration+provider.stale).Build()).Error(); err != nil {
 		provider.logger.Sugar().Errorf("Impossible to set value into Redis, %v", err)
 		return err
 	}
@@ -178,41 +184,10 @@ func (provider *Redis) Get(key string) []byte {
 	return r
 }
 
-// Prefix method returns the populated response if exists, empty response then
-func (provider *Redis) Prefix(key string, req *http.Request, validator *rfc.Revalidator) *http.Response {
-	in := make(chan *http.Response)
-	out := make(chan bool)
-
+// Prefix method returns the keys that match the prefix key
+func (provider *Redis) Prefix(key string) []string {
 	keys, _ := provider.inClient.Do(provider.ctx, provider.inClient.B().Keys().Pattern(key+"*").Build()).AsStrSlice()
-	go func(ks []string) {
-		for _, k := range ks {
-			select {
-			case <-out:
-				return
-			case <-time.After(1 * time.Nanosecond):
-				if varyVoter(key, req, k) {
-					if res, err := http.ReadResponse(bufio.NewReader(bytes.NewBuffer(provider.Get(k))), req); err == nil {
-						rfc.ValidateETag(res, validator)
-						if validator.Matched {
-							provider.logger.Sugar().Debugf("The stored key %s matched the current iteration key ETag %+v", k, validator)
-							in <- res
-							return
-						}
-						provider.logger.Sugar().Errorf("The stored key %s didn't match the current iteration key ETag %+v", k, validator)
-					}
-				}
-			}
-		}
-		in <- nil
-	}(keys)
-
-	select {
-	case <-time.After(provider.configuration.Dialer.Timeout):
-		out <- true
-		return nil
-	case v := <-in:
-		return v
-	}
+	return keys
 }
 
 // Set method will store the response in Etcd provider

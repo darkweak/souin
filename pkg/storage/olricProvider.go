@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"errors"
@@ -16,6 +15,7 @@ import (
 	t "github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/rfc"
 	"github.com/darkweak/souin/pkg/storage/types"
+	lz4 "github.com/pierrec/lz4/v4"
 	"go.uber.org/zap"
 )
 
@@ -136,15 +136,21 @@ func (provider *Olric) SetMultiLevel(baseKey, variedKey string, value []byte, va
 
 	dm := provider.dm.Get().(olric.DMap)
 	defer provider.dm.Put(dm)
-	if err := dm.Put(context.Background(), variedKey, value, olric.EX(duration)); err != nil {
-		provider.logger.Sugar().Errorf("Impossible to set value into EmbeddedOlric, %v", err)
+
+	compressed := new(bytes.Buffer)
+	if _, err := lz4.NewWriter(compressed).ReadFrom(bytes.NewReader(value)); err != nil {
+		provider.logger.Sugar().Errorf("Impossible to compress the key %s into Olric, %v", variedKey, err)
+		return err
+	}
+	if err := dm.Put(context.Background(), variedKey, compressed.Bytes(), olric.EX(duration)); err != nil {
+		provider.logger.Sugar().Errorf("Impossible to set value into Olric, %v", err)
 		return err
 	}
 
 	mappingKey := MappingKeyPrefix + baseKey
 	res, e := dm.Get(context.Background(), mappingKey)
 	if e != nil && !errors.Is(e, olric.ErrKeyNotFound) {
-		provider.logger.Sugar().Errorf("Impossible to get the key %s EmbeddedOlric, %v", baseKey, e)
+		provider.logger.Sugar().Errorf("Impossible to get the key %s Olric, %v", baseKey, e)
 		return nil
 	}
 
@@ -162,8 +168,8 @@ func (provider *Olric) SetMultiLevel(baseKey, variedKey string, value []byte, va
 	return provider.Set(mappingKey, val, t.URL{}, time.Hour)
 }
 
-// Prefix method returns the populated response if exists, empty response then
-func (provider *Olric) Prefix(key string, req *http.Request, validator *rfc.Revalidator) *http.Response {
+// Prefix method returns the keys that match the prefix key
+func (provider *Olric) Prefix(key string) []string {
 	if provider.reconnecting {
 		provider.logger.Sugar().Error("Impossible to get the olric keys by prefix while reconnecting.")
 		return nil
@@ -180,26 +186,13 @@ func (provider *Olric) Prefix(key string, req *http.Request, validator *rfc.Reva
 		return nil
 	}
 
+	result := []string{}
 	for records.Next() {
-		if varyVoter(key, req, records.Key()) {
-			if val := provider.Get(records.Key()); val != nil {
-				if res, err := http.ReadResponse(bufio.NewReader(bytes.NewBuffer(val)), req); err == nil {
-					rfc.ValidateETag(res, validator)
-					if validator.Matched {
-						provider.logger.Sugar().Debugf("The stored key %s matched the current iteration key ETag %+v", records.Key(), validator)
-						return res
-					}
-
-					provider.logger.Sugar().Debugf("The stored key %s didn't match the current iteration key ETag %+v", records.Key(), validator)
-				} else {
-					provider.logger.Sugar().Errorf("An error occured while reading response for the key %s: %v", records.Key(), err)
-				}
-			}
-		}
+		result = append(result, records.Key())
 	}
 	records.Close()
 
-	return nil
+	return result
 }
 
 // Get method returns the populated response if exists, empty response then

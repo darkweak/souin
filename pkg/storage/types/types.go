@@ -24,7 +24,7 @@ type StorageMapper struct {
 type Storer interface {
 	MapKeys(prefix string) map[string]string
 	ListKeys() []string
-	Prefix(key string, req *http.Request, validator *rfc.Revalidator) *http.Response
+	Prefix(key string) []string
 	Get(key string) []byte
 	Set(key string, value []byte, url configurationtypes.URL, duration time.Duration) error
 	Delete(key string)

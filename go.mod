@@ -11,7 +11,7 @@ require (
 	github.com/imdario/mergo v0.3.13
 	github.com/maypok86/otter v1.1.1
 	github.com/nutsdb/nutsdb v0.14.3
-	github.com/pierrec/lz4 v2.6.1+incompatible
+	github.com/pierrec/lz4/v4 v4.1.21
 	github.com/pquerna/cachecontrol v0.2.0
 	github.com/prometheus/client_golang v1.16.0
 	github.com/prometheus/client_model v0.4.0
@@ -33,7 +33,6 @@ require (
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/dolthub/maphash v0.1.0 // indirect
 	github.com/dolthub/swiss v0.2.1 // indirect
-	github.com/frankban/quicktest v1.14.6 // indirect
 	github.com/gammazero/deque v0.2.1 // indirect
 	github.com/go-redis/redis/v8 v8.11.5 // indirect
 	github.com/gofrs/flock v0.8.1 // indirect

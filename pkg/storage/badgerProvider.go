@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/json"
 	"errors"
@@ -15,6 +14,7 @@ import (
 	"github.com/darkweak/souin/pkg/storage/types"
 	badger "github.com/dgraph-io/badger/v3"
 	"github.com/imdario/mergo"
+	lz4 "github.com/pierrec/lz4/v4"
 	"go.uber.org/zap"
 )
 
@@ -174,32 +174,16 @@ func (provider *Badger) Get(key string) []byte {
 	return result
 }
 
-// Prefix method returns the populated response if exists, empty response then
-func (provider *Badger) Prefix(key string, req *http.Request, validator *rfc.Revalidator) *http.Response {
-	var result *http.Response
+// Prefix method returns the keys that match the prefix key
+func (provider *Badger) Prefix(key string) []string {
+	result := []string{}
 
 	_ = provider.DB.View(func(txn *badger.Txn) error {
 		prefix := []byte(key)
 		it := txn.NewIterator(badger.DefaultIteratorOptions)
 		defer it.Close()
 		for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
-			if varyVoter(key, req, string(it.Item().Key())) {
-				_ = it.Item().Value(func(val []byte) error {
-					if res, err := http.ReadResponse(bufio.NewReader(bytes.NewBuffer(val)), req); err == nil {
-						rfc.ValidateETag(res, validator)
-						if validator.Matched {
-							provider.logger.Sugar().Debugf("The stored key %s matched the current iteration key ETag %+v", it.Item().Key(), validator)
-							result = res
-						} else {
-							provider.logger.Sugar().Debugf("The stored key %s didn't match the current iteration key ETag %+v", it.Item().Key(), validator)
-						}
-					} else {
-						provider.logger.Sugar().Errorf("An error occured while reading response for the key %s: %v", it.Item().Key(), err)
-					}
-
-					return nil
-				})
-			}
+			result = append(result, string(it.Item().Key()))
 		}
 		return nil
 	})
@@ -237,7 +221,14 @@ func (provider *Badger) SetMultiLevel(baseKey, variedKey string, value []byte, v
 
 	err := provider.DB.Update(func(tx *badger.Txn) error {
 		var e error
-		e = tx.SetEntry(badger.NewEntry([]byte(variedKey), value).WithTTL(duration + provider.stale))
+
+		compressed := new(bytes.Buffer)
+		if _, err := lz4.NewWriter(compressed).ReadFrom(bytes.NewReader(value)); err != nil {
+			provider.logger.Sugar().Errorf("Impossible to compress the key %s into Badger, %v", variedKey, e)
+			return e
+		}
+
+		e = tx.SetEntry(badger.NewEntry([]byte(variedKey), compressed.Bytes()).WithTTL(duration + provider.stale))
 		if e != nil {
 			provider.logger.Sugar().Errorf("Impossible to set the key %s into Badger, %v", variedKey, e)
 			return e

@@ -578,7 +578,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 		validator := rfc.ParseRequest(req)
 		var fresh, stale *http.Response
 		finalKey := cachedKey
-		if rq.Context().Value(context.Hashed).(bool) {
+		if req.Context().Value(context.Hashed).(bool) {
 			finalKey = fmt.Sprint(xxhash.Sum64String(finalKey))
 		}
 		for _, currentStorer := range s.Storers {
