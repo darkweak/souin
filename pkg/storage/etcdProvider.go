@@ -163,7 +163,7 @@ func (provider *Etcd) Prefix(key string) []string {
 		}
 	}
 
-	return nil
+	return result
 }
 
 // GetMultiLevel tries to load the key and check if one of linked keys is a fresh/stale candidate.

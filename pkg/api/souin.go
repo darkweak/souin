@@ -164,7 +164,7 @@ func (s *SouinAPI) purgeMapping() {
 			}
 
 			if updated {
-				current.Set(storage.MappingKeyPrefix+k, []byte{}, configurationtypes.URL{}, infiniteStoreDuration)
+				_ = current.Set(storage.MappingKeyPrefix+k, []byte{}, configurationtypes.URL{}, infiniteStoreDuration)
 			}
 		}
 	}
