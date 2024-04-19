@@ -16,12 +16,17 @@ type methodContext struct {
 	custom       bool
 }
 
+func (*methodContext) SetContextWithBaseRequest(req *http.Request, _ *http.Request) *http.Request {
+	return req
+}
+
 func (m *methodContext) SetupContext(c configurationtypes.AbstractConfigurationInterface) {
 	m.allowedVerbs = defaultVerbs
 	if len(c.GetDefaultCache().GetAllowedHTTPVerbs()) != 0 {
 		m.allowedVerbs = c.GetDefaultCache().GetAllowedHTTPVerbs()
 		m.custom = true
 	}
+	c.GetLogger().Sugar().Debugf("Allow %d method(s). %v.", len(m.allowedVerbs), m.allowedVerbs)
 }
 
 func (m *methodContext) SetContext(req *http.Request) *http.Request {
