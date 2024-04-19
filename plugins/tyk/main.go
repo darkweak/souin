@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/TykTechnologies/tyk/ctx"
+	"github.com/cespare/xxhash"
 	"github.com/darkweak/souin/context"
 	"github.com/darkweak/souin/pkg/middleware"
 	"github.com/darkweak/souin/pkg/rfc"
@@ -189,10 +190,16 @@ func SouinRequestHandler(rw http.ResponseWriter, baseRq *http.Request) {
 	defer s.bufPool.Put(bufPool)
 	if !requestCc.NoCache {
 		validator := rfc.ParseRequest(rq)
-		var response *http.Response
-		for _, currentStorer := range s.SouinBaseHandler.Storers {
-			response = currentStorer.Prefix(cachedKey, rq, validator)
-			if response != nil {
+		var fresh, stale *http.Response
+		finalKey := cachedKey
+		if rq.Context().Value(context.Hashed).(bool) {
+			finalKey = fmt.Sprint(xxhash.Sum64String(finalKey))
+		}
+		for _, currentStorer := range s.Storers {
+			fresh, stale = currentStorer.GetMultiLevel(finalKey, rq, validator)
+
+			if fresh != nil || stale != nil {
+				s.Configuration.GetLogger().Sugar().Debugf("Found at least one valid response in the %s storage", currentStorer.Name())
 				break
 			}
 		}

@@ -1,8 +1,8 @@
 package storage
 
 import (
-	"bufio"
 	"bytes"
+	"errors"
 	"net/http"
 	"regexp"
 	"strings"
@@ -12,18 +12,25 @@ import (
 	"github.com/darkweak/souin/pkg/rfc"
 	"github.com/darkweak/souin/pkg/storage/types"
 	"github.com/patrickmn/go-cache"
+	"github.com/pierrec/lz4/v4"
+	"go.uber.org/zap"
 )
 
 // Cache provider type
 type Cache struct {
 	*cache.Cache
-	stale time.Duration
+	logger *zap.Logger
+	stale  time.Duration
 }
 
 // CacheConnectionFactory function create new Cache instance
 func CacheConnectionFactory(c t.AbstractConfigurationInterface) (types.Storer, error) {
 	provider := cache.New(1*time.Second, 1*time.Second)
-	return &Cache{Cache: provider, stale: c.GetDefaultCache().GetStale()}, nil
+	return &Cache{
+		Cache:  provider,
+		logger: c.GetLogger(),
+		stale:  c.GetDefaultCache().GetStale(),
+	}, nil
 }
 
 // Name returns the storer name
@@ -65,34 +72,11 @@ func (provider *Cache) Get(key string) []byte {
 }
 
 // Prefix method returns the populated response if exists, empty response then
-func (provider *Cache) Prefix(key string, req *http.Request, validator *rfc.Revalidator) *http.Response {
-	var result *http.Response
-
-	for k, v := range provider.Items() {
-		if k == key {
-			if res, err := http.ReadResponse(bufio.NewReader(bytes.NewBuffer(v.Object.([]byte))), req); err == nil {
-				rfc.ValidateETag(res, validator)
-				if validator.Matched {
-					result = res
-				}
-			}
-
-			return result
-		}
-
-		if !strings.HasPrefix(k, key) {
-			continue
-		}
-
-		if varyVoter(key, req, k) {
-			if res, err := http.ReadResponse(bufio.NewReader(bytes.NewBuffer(v.Object.([]byte))), req); err == nil {
-				rfc.ValidateETag(res, validator)
-				if validator.Matched {
-					result = res
-				}
-			}
-
-			return result
+func (provider *Cache) Prefix(key string) []string {
+	result := []string{}
+	for k := range provider.Items() {
+		if strings.HasPrefix(k, key) {
+			result = append(result, k)
 		}
 	}
 
@@ -106,7 +90,6 @@ func (provider *Cache) Set(key string, value []byte, url t.URL, duration time.Du
 	}
 
 	provider.Cache.Set(key, value, duration)
-	provider.Cache.Set(StalePrefix+key, value, provider.stale+duration)
 
 	return nil
 }
@@ -139,6 +122,56 @@ func (provider *Cache) Init() error {
 // Reset method will reset or close provider
 func (provider *Cache) Reset() error {
 	provider.Cache.Flush()
+
+	return nil
+}
+
+func (provider *Cache) GetMultiLevel(key string, req *http.Request, validator *rfc.Revalidator) (fresh *http.Response, stale *http.Response) {
+	r, found := provider.Cache.Get(MappingKeyPrefix + key)
+	if !found {
+		return
+	}
+
+	v, ok := r.([]byte)
+	if !ok {
+		return
+	}
+
+	if len(v) > 0 {
+		fresh, stale, _ = mappingElection(provider, v, req, validator, provider.logger)
+	}
+
+	return fresh, stale
+}
+func (provider *Cache) SetMultiLevel(baseKey, variedKey string, value []byte, variedHeaders http.Header, etag string, duration time.Duration, realKey string) error {
+	now := time.Now()
+
+	var e error
+	compressed := new(bytes.Buffer)
+	if _, e := lz4.NewWriter(compressed).ReadFrom(bytes.NewReader(value)); e != nil {
+		provider.logger.Sugar().Errorf("Impossible to compress the key %s into storage, %v", variedKey, e)
+		return e
+	}
+
+	provider.Cache.Set(variedKey, compressed.Bytes(), duration+provider.stale)
+	mappingKey := MappingKeyPrefix + baseKey
+	r, found := provider.Cache.Get(mappingKey)
+	if !found {
+		return errors.New("key not found")
+	}
+
+	val, ok := r.([]byte)
+	if !ok {
+		return errors.New("value is not a byte slice")
+	}
+
+	val, e = mappingUpdater(variedKey, val, provider.logger, now, now.Add(duration), now.Add(duration+provider.stale), variedHeaders, etag, realKey)
+	if e != nil {
+		return e
+	}
+
+	provider.logger.Sugar().Debugf("Store the new mapping for the key %s in storage", variedKey)
+	provider.Cache.Set(mappingKey, val, -1)
 
 	return nil
 }
