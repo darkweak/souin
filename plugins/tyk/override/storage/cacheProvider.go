@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"bytes"
 	"errors"
 	"net/http"
 	"regexp"
@@ -12,7 +11,6 @@ import (
 	"github.com/darkweak/souin/pkg/rfc"
 	"github.com/darkweak/souin/pkg/storage/types"
 	"github.com/patrickmn/go-cache"
-	"github.com/pierrec/lz4/v4"
 	"go.uber.org/zap"
 )
 
@@ -147,13 +145,7 @@ func (provider *Cache) SetMultiLevel(baseKey, variedKey string, value []byte, va
 	now := time.Now()
 
 	var e error
-	compressed := new(bytes.Buffer)
-	if _, e := lz4.NewWriter(compressed).ReadFrom(bytes.NewReader(value)); e != nil {
-		provider.logger.Sugar().Errorf("Impossible to compress the key %s into storage, %v", variedKey, e)
-		return e
-	}
-
-	provider.Cache.Set(variedKey, compressed.Bytes(), duration+provider.stale)
+	provider.Cache.Set(variedKey, value, duration+provider.stale)
 	mappingKey := MappingKeyPrefix + baseKey
 	r, found := provider.Cache.Get(mappingKey)
 	if !found {

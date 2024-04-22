@@ -12,7 +12,6 @@ import (
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/rfc"
 	"github.com/darkweak/souin/pkg/storage/types"
-	"github.com/pierrec/lz4/v4"
 	"go.uber.org/zap"
 )
 
@@ -100,10 +99,7 @@ func mappingElection(provider types.Storer, item []byte, req *http.Request, vali
 			if time.Since(keyItem.FreshTime) < 0 {
 				response := provider.Get(keyName)
 				if response != nil {
-					bufW := new(bytes.Buffer)
-					reader := lz4.NewReader(bytes.NewBuffer(response))
-					_, _ = reader.WriteTo(bufW)
-					if resultFresh, e = http.ReadResponse(bufio.NewReader(bufW), req); e != nil {
+					if resultFresh, e = http.ReadResponse(bufio.NewReader(bytes.NewBuffer(response)), req); e != nil {
 						logger.Sugar().Errorf("An error occured while reading response for the key %s: %v", string(keyName), e)
 						return
 					}
@@ -117,10 +113,7 @@ func mappingElection(provider types.Storer, item []byte, req *http.Request, vali
 			if time.Since(keyItem.StaleTime) < 0 {
 				response := provider.Get(keyName)
 				if response != nil {
-					bufW := new(bytes.Buffer)
-					reader := lz4.NewReader(bytes.NewBuffer(response))
-					_, _ = reader.WriteTo(bufW)
-					if resultStale, e = http.ReadResponse(bufio.NewReader(bufW), req); e != nil {
+					if resultStale, e = http.ReadResponse(bufio.NewReader(bytes.NewBuffer(response)), req); e != nil {
 						logger.Sugar().Errorf("An error occured while reading response for the key %s: %v", string(keyName), e)
 						return
 					}
