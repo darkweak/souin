@@ -164,7 +164,13 @@ func (s *SouinAPI) purgeMapping() {
 			}
 
 			if updated {
-				_ = current.Set(storage.MappingKeyPrefix+k, []byte{}, configurationtypes.URL{}, infiniteStoreDuration)
+				buf := new(bytes.Buffer)
+				e = gob.NewEncoder(buf).Encode(mapping)
+				if e != nil {
+					fmt.Println("Impossible to re-encode the mapping", storage.MappingKeyPrefix+k)
+					current.Delete(storage.MappingKeyPrefix + k)
+				}
+				_ = current.Set(storage.MappingKeyPrefix+k, buf.Bytes(), configurationtypes.URL{}, infiniteStoreDuration)
 			}
 		}
 	}

@@ -96,12 +96,15 @@ func (provider *Redis) ListKeys() []string {
 		for _, element := range scan.Elements {
 			value := provider.Get(element)
 			mapping, err := decodeMapping(value)
-			if err == nil {
-				for _, v := range mapping.Mapping {
-					if !v.FreshTime.Before(time.Now()) || !v.StaleTime.Before(time.Now()) {
-						elements = append(elements, v.RealKey)
-					}
+			if err != nil {
+				continue
+			}
+
+			for _, v := range mapping.Mapping {
+				if v.FreshTime.Before(time.Now()) && v.StaleTime.Before(time.Now()) {
+					continue
 				}
+				elements = append(elements, v.RealKey)
 			}
 		}
 	}
