@@ -11,11 +11,10 @@ import (
 	"time"
 
 	"github.com/TykTechnologies/tyk/ctx"
-	"github.com/cespare/xxhash"
+	"github.com/cespare/xxhash/v2"
 	"github.com/darkweak/souin/context"
 	"github.com/darkweak/souin/pkg/middleware"
 	"github.com/darkweak/souin/pkg/rfc"
-	"github.com/darkweak/souin/pkg/storage"
 	"github.com/darkweak/souin/pkg/storage/types"
 	"github.com/pquerna/cachecontrol/cacheobject"
 )
@@ -176,6 +175,7 @@ func SouinRequestHandler(rw http.ResponseWriter, baseRq *http.Request) {
 
 	requestCc, coErr := cacheobject.ParseRequestCacheControl(rq.Header.Get("Cache-Control"))
 
+	modeContext := rq.Context().Value(context.Mode).(*context.ModeContext)
 	if coErr != nil || requestCc == nil {
 		rw.Header().Set("Cache-Status", cacheName+"; fwd=bypass; detail=CACHE-CONTROL-EXTRACTION-ERROR")
 
@@ -199,12 +199,13 @@ func SouinRequestHandler(rw http.ResponseWriter, baseRq *http.Request) {
 			fresh, stale = currentStorer.GetMultiLevel(finalKey, rq, validator)
 
 			if fresh != nil || stale != nil {
-				s.Configuration.GetLogger().Sugar().Debugf("Found at least one valid response in the %s storage", currentStorer.Name())
+				fmt.Printf("Found at least one valid response in the %s storage\n", currentStorer.Name())
 				break
 			}
 		}
 
-		if response != nil && rfc.ValidateCacheControl(response, requestCc) {
+		if fresh != nil && (!modeContext.Strict || rfc.ValidateCacheControl(fresh, requestCc)) {
+			response := fresh
 			rfc.SetCacheStatusHeader(response)
 			if rfc.ValidateMaxAgeCachedResponse(requestCc, response) != nil {
 				for hn, hv := range response.Header {
@@ -214,13 +215,9 @@ func SouinRequestHandler(rw http.ResponseWriter, baseRq *http.Request) {
 
 				return
 			}
-		} else if response == nil && (requestCc.MaxStaleSet || requestCc.MaxStale > -1) {
-			for _, currentStorer := range s.SouinBaseHandler.Storers {
-				response = currentStorer.Prefix(storage.StalePrefix+cachedKey, rq, validator)
-				if response != nil {
-					break
-				}
-			}
+		} else if !requestCc.OnlyIfCached && (requestCc.MaxStaleSet || requestCc.MaxStale > -1) {
+			response := stale
+
 			if nil != response && rfc.ValidateCacheControl(response, requestCc) {
 				addTime, _ := time.ParseDuration(response.Header.Get(rfc.StoredTTLHeader))
 				rfc.SetCacheStatusHeader(response)

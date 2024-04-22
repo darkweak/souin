@@ -152,6 +152,7 @@ func (s *SouinAPI) purgeMapping() {
 			var mapping types.StorageMapper
 			e := gob.NewDecoder(bytes.NewBuffer([]byte(v))).Decode(&mapping)
 			if e != nil {
+				current.Delete(storage.MappingKeyPrefix + k)
 				continue
 			}
 
