@@ -49,6 +49,12 @@ func (c *CacheKeys) parseJSON(rootDecoder *json.Decoder) {
 			case "disable_query":
 				val, _ := rootDecoder.Token()
 				key.DisableQuery, _ = strconv.ParseBool(fmt.Sprint(val))
+			case "disable_scheme":
+				val, _ := rootDecoder.Token()
+				key.DisableScheme, _ = strconv.ParseBool(fmt.Sprint(val))
+			case "hash":
+				val, _ := rootDecoder.Token()
+				key.Hash, _ = strconv.ParseBool(fmt.Sprint(val))
 			case "hide":
 				val, _ := rootDecoder.Token()
 				key.Hide, _ = strconv.ParseBool(fmt.Sprint(val))
@@ -208,6 +214,8 @@ type Key struct {
 	DisableHost   bool     `json:"disable_host,omitempty" yaml:"disable_host,omitempty"`
 	DisableMethod bool     `json:"disable_method,omitempty" yaml:"disable_method,omitempty"`
 	DisableQuery  bool     `json:"disable_query,omitempty" yaml:"disable_query,omitempty"`
+	DisableScheme bool     `json:"disable_scheme,omitempty" yaml:"disable_scheme,omitempty"`
+	Hash          bool     `json:"hash,omitempty" yaml:"hash,omitempty"`
 	Hide          bool     `json:"hide,omitempty" yaml:"hide,omitempty"`
 	Headers       []string `json:"headers,omitempty" yaml:"headers,omitempty"`
 }

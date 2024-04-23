@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"errors"
@@ -16,6 +15,7 @@ import (
 	"github.com/darkweak/souin/pkg/rfc"
 	"github.com/darkweak/souin/pkg/storage/types"
 	"github.com/google/uuid"
+	lz4 "github.com/pierrec/lz4/v4"
 	"go.uber.org/zap"
 	yaml "gopkg.in/yaml.v3"
 )
@@ -118,8 +118,7 @@ func (provider *EmbeddedOlric) Name() string {
 
 // ListKeys method returns the list of existing keys
 func (provider *EmbeddedOlric) ListKeys() []string {
-
-	records, err := provider.dm.Scan(provider.ct)
+	records, err := provider.dm.Scan(provider.ct, olric.Match("^"+MappingKeyPrefix))
 	if err != nil {
 		provider.logger.Sugar().Errorf("An error occurred while trying to list keys in Olric: %s\n", err)
 		return []string{}
@@ -127,8 +126,11 @@ func (provider *EmbeddedOlric) ListKeys() []string {
 
 	keys := []string{}
 	for records.Next() {
-		if !strings.Contains(records.Key(), surrogatePrefix) {
-			keys = append(keys, records.Key())
+		mapping, err := decodeMapping(provider.Get(records.Key()))
+		if err == nil {
+			for _, v := range mapping.Mapping {
+				keys = append(keys, v.RealKey)
+			}
 		}
 	}
 	records.Close()
@@ -156,34 +158,21 @@ func (provider *EmbeddedOlric) MapKeys(prefix string) map[string]string {
 	return keys
 }
 
-// Prefix method returns the populated response if exists, empty response then
-func (provider *EmbeddedOlric) Prefix(key string, req *http.Request, validator *rfc.Revalidator) *http.Response {
+// Prefix method returns the keys that match the prefix key
+func (provider *EmbeddedOlric) Prefix(key string) []string {
 	records, err := provider.dm.Scan(provider.ct, olric.Match("^"+key+"({|$)"))
 	if err != nil {
 		provider.logger.Sugar().Errorf("An error occurred while trying to retrieve data in Olric: %s\n", err)
 		return nil
 	}
 
+	result := []string{}
 	for records.Next() {
-		if varyVoter(key, req, records.Key()) {
-			if val := provider.Get(records.Key()); val != nil {
-				if res, err := http.ReadResponse(bufio.NewReader(bytes.NewBuffer(val)), req); err == nil {
-					rfc.ValidateETag(res, validator)
-					if validator.Matched {
-						provider.logger.Sugar().Debugf("The stored key %s matched the current iteration key ETag %+v", records.Key(), validator)
-						return res
-					}
-
-					provider.logger.Sugar().Debugf("The stored key %s didn't match the current iteration key ETag %+v", records.Key(), validator)
-				} else {
-					provider.logger.Sugar().Errorf("An error occured while reading response for the key %s: %v", records.Key(), err)
-				}
-			}
-		}
+		result = append(result, records.Key())
 	}
 	records.Close()
 
-	return nil
+	return result
 }
 
 // GetMultiLevel tries to load the key and check if one of linked keys is a fresh/stale candidate.
@@ -201,10 +190,16 @@ func (provider *EmbeddedOlric) GetMultiLevel(key string, req *http.Request, vali
 }
 
 // SetMultiLevel tries to store the key with the given value and update the mapping key to store metadata.
-func (provider *EmbeddedOlric) SetMultiLevel(baseKey, variedKey string, value []byte, variedHeaders http.Header, etag string, duration time.Duration) error {
+func (provider *EmbeddedOlric) SetMultiLevel(baseKey, variedKey string, value []byte, variedHeaders http.Header, etag string, duration time.Duration, realKey string) error {
 	now := time.Now()
 
-	if err := provider.dm.Put(provider.ct, variedKey, value, olric.EX(duration+provider.stale)); err != nil {
+	compressed := new(bytes.Buffer)
+	if _, err := lz4.NewWriter(compressed).ReadFrom(bytes.NewReader(value)); err != nil {
+		provider.logger.Sugar().Errorf("Impossible to compress the key %s into EmbeddedOlric, %v", variedKey, err)
+		return err
+	}
+
+	if err := provider.dm.Put(provider.ct, variedKey, compressed, olric.EX(duration+provider.stale)); err != nil {
 		provider.logger.Sugar().Errorf("Impossible to set value into EmbeddedOlric, %v", err)
 		return err
 	}
@@ -222,7 +217,7 @@ func (provider *EmbeddedOlric) SetMultiLevel(baseKey, variedKey string, value []
 		return e
 	}
 
-	val, e = mappingUpdater(variedKey, val, provider.logger, now, now.Add(duration), now.Add(duration+provider.stale), variedHeaders, etag)
+	val, e = mappingUpdater(variedKey, val, provider.logger, now, now.Add(duration), now.Add(duration+provider.stale), variedHeaders, etag, realKey)
 	if e != nil {
 		return e
 	}

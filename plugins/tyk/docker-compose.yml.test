@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   tyk-builder:
     image: tykio/tyk-plugin-compiler:v5.0.0

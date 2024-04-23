@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -14,6 +13,7 @@ import (
 	t "github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/rfc"
 	"github.com/darkweak/souin/pkg/storage/types"
+	lz4 "github.com/pierrec/lz4/v4"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/connectivity"
@@ -76,7 +76,7 @@ func (provider *Etcd) ListKeys() []string {
 	}
 	keys := []string{}
 
-	r, e := provider.Client.Get(provider.ctx, "\x00", clientv3.WithFromKey())
+	r, e := provider.Client.Get(provider.ctx, MappingKeyPrefix, clientv3.WithPrefix())
 
 	if e != nil {
 		if !provider.reconnecting {
@@ -85,8 +85,11 @@ func (provider *Etcd) ListKeys() []string {
 		return []string{}
 	}
 	for _, k := range r.Kvs {
-		if !strings.Contains(string(k.Key), surrogatePrefix) {
-			keys = append(keys, string(k.Key))
+		mapping, err := decodeMapping(k.Value)
+		if err == nil {
+			for _, v := range mapping.Mapping {
+				keys = append(keys, v.RealKey)
+			}
 		}
 	}
 
@@ -140,8 +143,8 @@ func (provider *Etcd) Get(key string) (item []byte) {
 	return
 }
 
-// Prefix method returns the populated response if exists, empty response then
-func (provider *Etcd) Prefix(key string, req *http.Request, validator *rfc.Revalidator) *http.Response {
+// Prefix method returns the keys that match the prefix key
+func (provider *Etcd) Prefix(key string) []string {
 	if provider.reconnecting {
 		provider.logger.Sugar().Error("Impossible to get the etcd keys by prefix while reconnecting.")
 		return nil
@@ -153,25 +156,14 @@ func (provider *Etcd) Prefix(key string, req *http.Request, validator *rfc.Reval
 		return nil
 	}
 
+	result := []string{}
 	if e == nil && r != nil {
 		for _, v := range r.Kvs {
-			if varyVoter(key, req, string(v.Key)) {
-				if res, err := http.ReadResponse(bufio.NewReader(bytes.NewBuffer(v.Value)), req); err == nil {
-					rfc.ValidateETag(res, validator)
-					if validator.Matched {
-						provider.logger.Sugar().Debugf("The stored key %s matched the current iteration key ETag %+v", string(v.Key), validator)
-						return res
-					}
-
-					provider.logger.Sugar().Debugf("The stored key %s didn't match the current iteration key ETag %+v", string(v.Key), validator)
-				} else {
-					provider.logger.Sugar().Errorf("An error occured while reading response for the key %s: %v", string(v.Key), err)
-				}
-			}
+			result = append(result, string(v.Key))
 		}
 	}
 
-	return nil
+	return result
 }
 
 // GetMultiLevel tries to load the key and check if one of linked keys is a fresh/stale candidate.
@@ -195,7 +187,7 @@ func (provider *Etcd) GetMultiLevel(key string, req *http.Request, validator *rf
 }
 
 // SetMultiLevel tries to store the key with the given value and update the mapping key to store metadata.
-func (provider *Etcd) SetMultiLevel(baseKey, variedKey string, value []byte, variedHeaders http.Header, etag string, duration time.Duration) error {
+func (provider *Etcd) SetMultiLevel(baseKey, variedKey string, value []byte, variedHeaders http.Header, etag string, duration time.Duration, realKey string) error {
 	if provider.reconnecting {
 		provider.logger.Sugar().Error("Impossible to set the etcd value while reconnecting.")
 		return fmt.Errorf("reconnecting error")
@@ -210,9 +202,14 @@ func (provider *Etcd) SetMultiLevel(baseKey, variedKey string, value []byte, var
 		return fmt.Errorf("the connection is not ready: %v", provider.Client.ActiveConnection().GetState())
 	}
 
+	compressed := new(bytes.Buffer)
+	if _, err := lz4.NewWriter(compressed).ReadFrom(bytes.NewReader(value)); err != nil {
+		provider.logger.Sugar().Errorf("Impossible to compress the key %s into Etcd, %v", variedKey, err)
+		return err
+	}
 	rs, err := provider.Client.Grant(context.TODO(), int64(duration.Seconds()))
 	if err == nil {
-		_, err = provider.Client.Put(provider.ctx, variedKey, string(value), clientv3.WithLease(rs.ID))
+		_, err = provider.Client.Put(provider.ctx, variedKey, compressed.String(), clientv3.WithLease(rs.ID))
 		fmt.Println("Put err =>", err)
 	}
 
@@ -226,7 +223,7 @@ func (provider *Etcd) SetMultiLevel(baseKey, variedKey string, value []byte, var
 
 	mappingKey := MappingKeyPrefix + baseKey
 	r := provider.Get(mappingKey)
-	val, e := mappingUpdater(variedKey, []byte(r), provider.logger, now, now.Add(duration), now.Add(duration+provider.stale), variedHeaders, etag)
+	val, e := mappingUpdater(variedKey, []byte(r), provider.logger, now, now.Add(duration), now.Add(duration+provider.stale), variedHeaders, etag, realKey)
 	if e != nil {
 		return e
 	}

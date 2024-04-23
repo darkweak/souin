@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cespare/xxhash/v2"
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/context"
 	"github.com/darkweak/souin/helpers"
@@ -272,15 +273,22 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, baseRq *http.Reques
 	if !requestCc.NoCache {
 		validator := rfc.ParseRequest(rq)
 		var response *http.Response
+		var fresh, stale *http.Response
+		finalKey := cachedKey
+		if rq.Context().Value(context.Hashed).(bool) {
+			finalKey = fmt.Sprint(xxhash.Sum64String(finalKey))
+		}
 		for _, currentStorer := range s.Storers {
-			response = currentStorer.Prefix(cachedKey, rq, validator)
-			if response != nil {
-				s.Configuration.GetLogger().Sugar().Debugf("Found response in the %s storage", currentStorer.Name())
+			fresh, stale = currentStorer.GetMultiLevel(finalKey, rq, validator)
+
+			if fresh != nil || stale != nil {
+				s.Configuration.GetLogger().Sugar().Debugf("Found at least one valid response in the %s storage", currentStorer.Name())
 				break
 			}
 		}
 
-		if response != nil && rfc.ValidateCacheControl(response, requestCc) {
+		if rfc.ValidateCacheControl(response, requestCc) {
+			response := fresh
 			rfc.SetCacheStatusHeader(response)
 			if rfc.ValidateMaxAgeCachedResponse(requestCc, response) != nil {
 				customWriter.Headers = response.Header
@@ -290,13 +298,9 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, baseRq *http.Reques
 
 				return nil
 			}
-		} else if response == nil && (requestCc.MaxStaleSet || requestCc.MaxStale > -1) {
-			for _, currentStorer := range s.Storers {
-				response = currentStorer.Prefix(storage.StalePrefix+cachedKey, rq, validator)
-				if response != nil {
-					break
-				}
-			}
+		} else if requestCc.MaxStaleSet || requestCc.MaxStale > -1 {
+			response := stale
+
 			if nil != response && rfc.ValidateCacheControl(response, requestCc) {
 				addTime, _ := time.ParseDuration(response.Header.Get(rfc.StoredTTLHeader))
 				rfc.SetCacheStatusHeader(response)

@@ -19,6 +19,8 @@ type keyContext struct {
 	disable_host   bool
 	disable_method bool
 	disable_query  bool
+	disable_scheme bool
+	hash           bool
 	displayable    bool
 	headers        []string
 	overrides      []map[*regexp.Regexp]keyContext
@@ -30,6 +32,8 @@ func (g *keyContext) SetupContext(c configurationtypes.AbstractConfigurationInte
 	g.disable_host = k.DisableHost
 	g.disable_method = k.DisableMethod
 	g.disable_query = k.DisableQuery
+	g.disable_scheme = k.DisableScheme
+	g.hash = k.Hash
 	g.displayable = !k.Hide
 	g.headers = k.Headers
 
@@ -42,6 +46,8 @@ func (g *keyContext) SetupContext(c configurationtypes.AbstractConfigurationInte
 				disable_host:   v.DisableHost,
 				disable_method: v.DisableMethod,
 				disable_query:  v.DisableQuery,
+				disable_scheme: v.DisableScheme,
+				hash:           v.Hash,
 				displayable:    !v.Hide,
 				headers:        v.Headers,
 			}})

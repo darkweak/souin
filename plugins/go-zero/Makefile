@@ -1,6 +1,6 @@
 .PHONY: load-checker prepare vendor
 
-DC=docker-compose -f docker-compose.yml.test 
+DC=docker compose -f docker-compose.yml.test 
 
 load-checker: ## Ensure Souin is running
 	cd examples && echo "MIDDLEWARE_RESULT=$$($(DC) logs go-zero | grep 'Souin configuration' | tail -n 1)"

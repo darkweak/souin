@@ -114,10 +114,10 @@ func Test_SouinChiPlugin_Middleware_APIHandle(t *testing.T) {
 	res2.Result().Body.Close()
 	var payload []string
 	_ = json.Unmarshal(b, &payload)
-	if len(payload) != 2 {
-		t.Error("The system must store 2 items, the fresh and the stale one")
+	if len(payload) != 1 {
+		t.Error("The system must store 1 item, excluding the mapping")
 	}
-	if payload[0] != "GET-http-example.com-/handled" || payload[1] != "IDX_GET-http-example.com-/handled" {
+	if payload[0] != "GET-http-example.com-/handled" {
 		t.Error("The payload items mismatch from the expectations.")
 	}
 }

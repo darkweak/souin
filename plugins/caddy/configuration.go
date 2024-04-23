@@ -380,6 +380,10 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isGlobal boo
 							ck.DisableMethod = true
 						case "disable_query":
 							ck.DisableQuery = true
+						case "disable_scheme":
+							ck.DisableScheme = true
+						case "hash":
+							ck.Hash = true
 						case "hide":
 							ck.Hide = true
 						case "headers":
@@ -462,6 +466,10 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isGlobal boo
 						config_key.DisableMethod = true
 					case "disable_query":
 						config_key.DisableQuery = true
+					case "disable_scheme":
+						config_key.DisableScheme = true
+					case "hash":
+						config_key.Hash = true
 					case "hide":
 						config_key.Hide = true
 					case "headers":

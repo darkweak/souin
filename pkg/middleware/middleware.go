@@ -14,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cespare/xxhash/v2"
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/context"
 	"github.com/darkweak/souin/helpers"
@@ -267,6 +268,10 @@ func (s *SouinBaseHandler) Store(
 				status += "; detail=UPSTREAM-VARY-STAR"
 			} else {
 				variedKey := cachedKey + rfc.GetVariedCacheKey(rq, variedHeaders)
+				if rq.Context().Value(context.Hashed).(bool) {
+					cachedKey = fmt.Sprint(xxhash.Sum64String(cachedKey))
+					variedKey = fmt.Sprint(xxhash.Sum64String(variedKey))
+				}
 				s.Configuration.GetLogger().Sugar().Debugf("Store the response for %s with duration %v", variedKey, ma)
 
 				var wg sync.WaitGroup
@@ -285,7 +290,14 @@ func (s *SouinBaseHandler) Store(
 						wg.Add(1)
 						go func(currentStorer types.Storer) {
 							defer wg.Done()
-							if currentStorer.SetMultiLevel(cachedKey, variedKey, response, vhs, res.Header.Get("Etag"), ma) == nil {
+							if currentStorer.SetMultiLevel(
+								cachedKey,
+								variedKey,
+								response,
+								vhs,
+								res.Header.Get("Etag"), ma,
+								variedKey,
+							) == nil {
 								s.Configuration.GetLogger().Sugar().Debugf("Stored the key %s in the %s provider", variedKey, currentStorer.Name())
 							} else {
 								mu.Lock()
@@ -521,7 +533,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 			req.Method = http.MethodGet
 			keyname := s.context.SetContext(req, rq).Context().Value(context.Key).(string)
 			for _, storer := range s.Storers {
-				storer.DeleteMany(fmt.Sprintf("(%s)?%s((%s|/).*|$)", storage.MappingKeyPrefix, keyname, rfc.VarySeparator))
+				storer.Delete(storage.MappingKeyPrefix + keyname)
 			}
 		}
 
@@ -565,8 +577,12 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 	if modeContext.Bypass_request || !requestCc.NoCache {
 		validator := rfc.ParseRequest(req)
 		var fresh, stale *http.Response
+		finalKey := cachedKey
+		if req.Context().Value(context.Hashed).(bool) {
+			finalKey = fmt.Sprint(xxhash.Sum64String(finalKey))
+		}
 		for _, currentStorer := range s.Storers {
-			fresh, stale = currentStorer.GetMultiLevel(cachedKey, req, validator)
+			fresh, stale = currentStorer.GetMultiLevel(finalKey, req, validator)
 
 			if fresh != nil || stale != nil {
 				s.Configuration.GetLogger().Sugar().Debugf("Found at least one valid response in the %s storage", currentStorer.Name())
@@ -723,6 +739,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 		switch req.Context().Err() {
 		case baseCtx.DeadlineExceeded:
 			customWriter.WriteHeader(http.StatusGatewayTimeout)
+			s.Configuration.GetLogger().Sugar().Infof("Internal server error on endpoint %s: %v", req.URL, s.Storers)
 			rw.Header().Set("Cache-Status", cacheName+"; fwd=bypass; detail=DEADLINE-EXCEEDED")
 			_, _ = customWriter.Rw.Write([]byte("Internal server error"))
 			return baseCtx.DeadlineExceeded

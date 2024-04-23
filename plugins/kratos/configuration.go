@@ -103,6 +103,10 @@ func parseCacheKeys(ccConfiguration map[string]config.Value) configurationtypes.
 				ck.DisableMethod = true
 			case "disable_query":
 				ck.DisableQuery = true
+			case "disable_scheme":
+				ck.DisableScheme = true
+			case "hash":
+				ck.Hash = true
 			case "hide":
 				ck.Hide = true
 			case "headers":

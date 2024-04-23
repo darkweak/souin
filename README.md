@@ -87,6 +87,9 @@ cache_keys:
     disable_host: true # Prevent the host from being used in the cache key
     disable_method: true # Prevent the method from being used in the cache key
     disable_query: true # Prevent the query string from being used in the cache key
+    disable_scheme: true # request scheme the query string from being used in the cache key
+    hash: true # Hash the cache key instead of a plaintext one
+    hide: true # Prevent the cache key to be in the response Cache-Status header
     headers: # Add headers to the key
       - Authorization # Add the header value in the key
       - Content-Type # Add the header value in the key
@@ -107,6 +110,9 @@ default_cache:
     disable_host: true # Prevent the host from being used in the cache key
     disable_method: true # Prevent the method from being used in the cache key
     disable_query: true # Prevent the query string from being used in the cache key
+    disable_scheme: true # Prevent the request scheme string from being used in the cache key
+    hash: true # Hash the cache key instead of a plaintext one
+    hide: true # Prevent the cache key to be in the response Cache-Status header
     headers: # Add headers to the key
       - Authorization # Add the header value in the key
       - Content-Type # Add the header value in the key
@@ -172,6 +178,8 @@ surrogate_keys:
 | `cache_keys.{your regexp}.disable_host`           | Disable the host part in the key matching the regexp                                                                                        | `true`<br/><br/>`(default: false)`                                                                                        |
 | `cache_keys.{your regexp}.disable_method`         | Disable the method part in the key matching the regexp                                                                                      | `true`<br/><br/>`(default: false)`                                                                                        |
 | `cache_keys.{your regexp}.disable_query`          | Disable the query string part in the key matching the regexp                                                                                | `true`<br/><br/>`(default: false)`                                                                                        |
+| `cache_keys.{your regexp}.disable_scheme`         | Disable the request scheme string part in the key matching the regexp                                                                       | `true`<br/><br/>`(default: false)`                                                                                        |
+| `cache_keys.{your regexp}.hash`                   | Hash the key matching the regexp                                                                                                            | `true`<br/><br/>`(default: false)`                                                                                        |
 | `cache_keys.{your regexp}.headers`                | Add headers to the key matching the regexp                                                                                                  | `- Authorization`<br/><br/>`- Content-Type`<br/><br/>`- X-Additional-Header`                                              |
 | `cache_keys.{your regexp}.hide`                   | Prevent the key from being exposed in the `Cache-Status` HTTP response header                                                               | `true`<br/><br/>`(default: false)`                                                                                        |
 | `cdn`                                             | The CDN management, if you use any cdn to proxy your requests Souin will handle that                                                        |                                                                                                                           |
@@ -197,6 +205,8 @@ surrogate_keys:
 | `default_cache.key.disable_host`                  | Disable the host part in the key                                                                                                            | `true`<br/><br/>`(default: false)`                                                                                        |
 | `default_cache.key.disable_method`                | Disable the method part in the key                                                                                                          | `true`<br/><br/>`(default: false)`                                                                                        |
 | `default_cache.key.disable_query`                 | Disable the query string part in the key                                                                                                    | `true`<br/><br/>`(default: false)`                                                                                        |
+| `default_cache.key.disable_scheme`                | Disable the request scheme string part in the key                                                                                           | `true`<br/><br/>`(default: false)`                                                                                        |
+| `default_cache.key.hash`                          | Hash the key name in the storage                                                                                                            | `true`<br/><br/>`(default: false)`                                                                                        |
 | `default_cache.key.headers`                       | Add headers to the key matching the regexp                                                                                                  | `- Authorization`<br/><br/>`- Content-Type`<br/><br/>`- X-Additional-Header`                                              |
 | `default_cache.key.hide`                          | Prevent the key from being exposed in the `Cache-Status` HTTP response header                                                               | `true`<br/><br/>`(default: false)`                                                                                        |
 | `default_cache.mode`                              | RFC respect tweaking                                                                                                                        | One of `bypass` `bypass_request` `bypass_response` `strict` (default `strict`)                                            |
@@ -468,8 +478,10 @@ There is the fully configuration below
                 disable_host
                 disable_method
                 disable_query
+                disable_scheme
                 headers X-Token Authorization
                 hide
+                hash
             }
         }
         cdn {
@@ -488,6 +500,9 @@ There is the fully configuration below
             disable_host
             disable_method
             disable_query
+            disable_scheme
+            hash
+            hide
             headers Content-Type Authorization
         }
         log_level debug
