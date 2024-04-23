@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -14,6 +13,7 @@ import (
 	t "github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/rfc"
 	"github.com/darkweak/souin/pkg/storage/types"
+	lz4 "github.com/pierrec/lz4/v4"
 	redis "github.com/redis/rueidis"
 	"go.uber.org/zap"
 )
@@ -26,6 +26,7 @@ type Redis struct {
 	logger        *zap.Logger
 	configuration redis.ClientOption
 	close         func()
+	hashtags      string
 }
 
 // RedisConnectionFactory function create new Redis instance
@@ -34,9 +35,17 @@ func RedisConnectionFactory(c t.AbstractConfigurationInterface) (types.Storer, e
 	bc, _ := json.Marshal(dc.GetRedis().Configuration)
 
 	var options redis.ClientOption
+	var hashtags string
 	if dc.GetRedis().Configuration != nil {
 		if err := json.Unmarshal(bc, &options); err != nil {
 			c.GetLogger().Sugar().Infof("Cannot parse your redis configuration: %+v", err)
+		}
+		if redisConfig, ok := dc.GetRedis().Configuration.(map[string]interface{}); ok && redisConfig != nil {
+			if value, ok := redisConfig["HashTag"]; ok {
+				if v, ok := value.(string); ok {
+					hashtags = v
+				}
+			}
 		}
 	} else {
 		options = redis.ClientOption{
@@ -44,6 +53,8 @@ func RedisConnectionFactory(c t.AbstractConfigurationInterface) (types.Storer, e
 			Dialer: net.Dialer{
 				Timeout: dc.GetTimeout().Cache.Duration,
 			},
+			SelectDB:   0,
+			ClientName: "souin-redis",
 		}
 	}
 
@@ -63,6 +74,7 @@ func RedisConnectionFactory(c t.AbstractConfigurationInterface) (types.Storer, e
 		configuration: options,
 		logger:        c.GetLogger(),
 		close:         cli.Close,
+		hashtags:      hashtags,
 	}, err
 }
 
@@ -73,20 +85,49 @@ func (provider *Redis) Name() string {
 
 // ListKeys method returns the list of existing keys
 func (provider *Redis) ListKeys() []string {
-	keys, _ := provider.inClient.Do(provider.ctx, provider.inClient.B().Keys().Pattern("*").Build()).AsStrSlice()
+	provider.logger.Sugar().Debugf("Call the ListKeys function in redis")
+	var scan redis.ScanEntry
+	var err error
+	elements := []string{}
+	for more := true; more; more = scan.Cursor != 0 {
+		if scan, err = provider.inClient.Do(context.Background(), provider.inClient.B().Scan().Cursor(scan.Cursor).Match(provider.hashtags+MappingKeyPrefix+"*").Build()).AsScanEntry(); err != nil {
+			provider.logger.Sugar().Errorf("Cannot scan: %v", err)
+		}
+		for _, element := range scan.Elements {
+			value := provider.Get(element)
+			mapping, err := decodeMapping(value)
+			if err != nil {
+				continue
+			}
 
-	return keys
+			for _, v := range mapping.Mapping {
+				if v.FreshTime.Before(time.Now()) && v.StaleTime.Before(time.Now()) {
+					continue
+				}
+				elements = append(elements, v.RealKey)
+			}
+		}
+	}
+
+	return elements
 }
 
 // MapKeys method returns the list of existing keys
 func (provider *Redis) MapKeys(prefix string) map[string]string {
 	m := map[string]string{}
-	keys, _ := provider.inClient.Do(provider.ctx, provider.inClient.B().Keys().Pattern("*").Build()).AsStrSlice()
-	for _, key := range keys {
-		if strings.HasPrefix(key, prefix) {
-			k, _ := strings.CutPrefix(key, prefix)
-			m[k] = string(provider.Get(key))
+	provider.logger.Sugar().Debugf("Call the MapKeys in redis with the prefix %s", prefix)
+	var scan redis.ScanEntry
+	var err error
+	elements := []string{}
+	for more := true; more; more = scan.Cursor != 0 {
+		if scan, err = provider.inClient.Do(context.Background(), provider.inClient.B().Scan().Cursor(scan.Cursor).Match(prefix+"*").Build()).AsScanEntry(); err != nil {
+			provider.logger.Sugar().Errorf("Cannot scan: %v", err)
 		}
+		elements = append(elements, scan.Elements...)
+	}
+	for _, key := range elements {
+		k, _ := strings.CutPrefix(key, prefix)
+		m[k] = string(provider.Get(key))
 	}
 
 	return m
@@ -94,8 +135,7 @@ func (provider *Redis) MapKeys(prefix string) map[string]string {
 
 // GetMultiLevel tries to load the key and check if one of linked keys is a fresh/stale candidate.
 func (provider *Redis) GetMultiLevel(key string, req *http.Request, validator *rfc.Revalidator) (fresh *http.Response, stale *http.Response) {
-
-	b, e := provider.inClient.Do(provider.ctx, provider.inClient.B().Get().Key(MappingKeyPrefix+key).Build()).AsBytes()
+	b, e := provider.inClient.Do(provider.ctx, provider.inClient.B().Get().Key(provider.hashtags+MappingKeyPrefix+key).Build()).AsBytes()
 	if e != nil {
 		return fresh, stale
 	}
@@ -106,20 +146,26 @@ func (provider *Redis) GetMultiLevel(key string, req *http.Request, validator *r
 }
 
 // SetMultiLevel tries to store the key with the given value and update the mapping key to store metadata.
-func (provider *Redis) SetMultiLevel(baseKey, variedKey string, value []byte, variedHeaders http.Header, etag string, duration time.Duration) error {
+func (provider *Redis) SetMultiLevel(baseKey, variedKey string, value []byte, variedHeaders http.Header, etag string, duration time.Duration, realKey string) error {
 	now := time.Now()
-	if err := provider.inClient.Do(provider.ctx, provider.inClient.B().Set().Key(variedKey).Value(string(value)).Ex(duration+provider.stale).Build()).Error(); err != nil {
+
+	compressed := new(bytes.Buffer)
+	if _, err := lz4.NewWriter(compressed).ReadFrom(bytes.NewReader(value)); err != nil {
+		provider.logger.Sugar().Errorf("Impossible to compress the key %s into Redis, %v", variedKey, err)
+		return err
+	}
+	if err := provider.inClient.Do(provider.ctx, provider.inClient.B().Set().Key(provider.hashtags+variedKey).Value(compressed.String()).Ex(duration+provider.stale).Build()).Error(); err != nil {
 		provider.logger.Sugar().Errorf("Impossible to set value into Redis, %v", err)
 		return err
 	}
 
-	mappingKey := MappingKeyPrefix + baseKey
+	mappingKey := provider.hashtags + MappingKeyPrefix + baseKey
 	v, e := provider.inClient.Do(provider.ctx, provider.inClient.B().Get().Key(mappingKey).Build()).AsBytes()
 	if e != nil && !errors.Is(e, redis.Nil) {
 		return e
 	}
 
-	val, e := mappingUpdater(variedKey, v, provider.logger, now, now.Add(duration), now.Add(duration+provider.stale), variedHeaders, etag)
+	val, e := mappingUpdater(provider.hashtags+variedKey, v, provider.logger, now, now.Add(duration), now.Add(duration+provider.stale), variedHeaders, etag, realKey)
 	if e != nil {
 		return e
 	}
@@ -141,41 +187,10 @@ func (provider *Redis) Get(key string) []byte {
 	return r
 }
 
-// Prefix method returns the populated response if exists, empty response then
-func (provider *Redis) Prefix(key string, req *http.Request, validator *rfc.Revalidator) *http.Response {
-	in := make(chan *http.Response)
-	out := make(chan bool)
-
+// Prefix method returns the keys that match the prefix key
+func (provider *Redis) Prefix(key string) []string {
 	keys, _ := provider.inClient.Do(provider.ctx, provider.inClient.B().Keys().Pattern(key+"*").Build()).AsStrSlice()
-	go func(ks []string) {
-		for _, k := range ks {
-			select {
-			case <-out:
-				return
-			case <-time.After(1 * time.Nanosecond):
-				if varyVoter(key, req, k) {
-					if res, err := http.ReadResponse(bufio.NewReader(bytes.NewBuffer(provider.Get(k))), req); err == nil {
-						rfc.ValidateETag(res, validator)
-						if validator.Matched {
-							provider.logger.Sugar().Debugf("The stored key %s matched the current iteration key ETag %+v", k, validator)
-							in <- res
-							return
-						}
-						provider.logger.Sugar().Errorf("The stored key %s didn't match the current iteration key ETag %+v", k, validator)
-					}
-				}
-			}
-		}
-		in <- nil
-	}(keys)
-
-	select {
-	case <-time.After(provider.configuration.Dialer.Timeout):
-		out <- true
-		return nil
-	case v := <-in:
-		return v
-	}
+	return keys
 }
 
 // Set method will store the response in Etcd provider
@@ -195,8 +210,17 @@ func (provider *Redis) Delete(key string) {
 
 // DeleteMany method will delete the responses in Redis provider if exists corresponding to the regex key param
 func (provider *Redis) DeleteMany(key string) {
-	keys, _ := provider.inClient.Do(provider.ctx, provider.inClient.B().Keys().Pattern(key).Build()).AsStrSlice()
-	_ = provider.inClient.Do(provider.ctx, provider.inClient.B().Del().Key(keys...).Build())
+	provider.logger.Sugar().Debugf("Call the DeleteMany function in redis")
+	var scan redis.ScanEntry
+	var err error
+	elements := []string{}
+	for more := true; more; more = scan.Cursor != 0 {
+		if scan, err = provider.inClient.Do(context.Background(), provider.inClient.B().Scan().Cursor(scan.Cursor).Match(key).Build()).AsScanEntry(); err != nil {
+			provider.logger.Sugar().Errorf("Cannot scan: %v", err)
+		}
+		elements = append(elements, scan.Elements...)
+	}
+	_ = provider.inClient.Do(provider.ctx, provider.inClient.B().Del().Key(elements...).Build())
 }
 
 // Init method will

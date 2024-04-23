@@ -1,6 +1,6 @@
 .PHONY: load-checker prepare replace vendor
 
-DC=docker-compose -f docker-compose.yml.test 
+DC=docker compose -f docker-compose.yml.test 
 
 load-checker: ## Ensure Souin is running
 	echo "MIDDLEWARE_RESULT=$$($(DC) logs tyk-gateway | grep 'Souin configuration' | tail -n 1)"

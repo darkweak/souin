@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/json"
 	"errors"
@@ -15,6 +14,7 @@ import (
 	"github.com/darkweak/souin/pkg/storage/types"
 	"github.com/imdario/mergo"
 	"github.com/nutsdb/nutsdb"
+	lz4 "github.com/pierrec/lz4/v4"
 	"go.uber.org/zap"
 )
 
@@ -131,10 +131,13 @@ func (provider *Nuts) ListKeys() []string {
 	keys := []string{}
 
 	e := provider.DB.View(func(tx *nutsdb.Tx) error {
-		e, _ := tx.GetAll(bucket)
+		e, _ := tx.PrefixScan(bucket, []byte(MappingKeyPrefix), 0, 100)
 		for _, k := range e {
-			if !strings.Contains(string(k.Key), surrogatePrefix) {
-				keys = append(keys, string(k.Key))
+			mapping, err := decodeMapping(k.Value)
+			if err == nil {
+				for _, v := range mapping.Mapping {
+					keys = append(keys, v.RealKey)
+				}
 			}
 		}
 		return nil
@@ -182,9 +185,9 @@ func (provider *Nuts) Get(key string) (item []byte) {
 	return
 }
 
-// Prefix method returns the populated response if exists, empty response then
-func (provider *Nuts) Prefix(key string, req *http.Request, validator *rfc.Revalidator) *http.Response {
-	var result *http.Response
+// Prefix method returns the keys that match the prefix key
+func (provider *Nuts) Prefix(key string) []string {
+	result := []string{}
 
 	_ = provider.DB.View(func(tx *nutsdb.Tx) error {
 		prefix := []byte(key)
@@ -193,20 +196,7 @@ func (provider *Nuts) Prefix(key string, req *http.Request, validator *rfc.Reval
 			return err
 		} else {
 			for _, entry := range entries {
-				if varyVoter(key, req, string(entry.Key)) {
-					if res, err := http.ReadResponse(bufio.NewReader(bytes.NewBuffer(entry.Value)), req); err == nil {
-						rfc.ValidateETag(res, validator)
-						if validator.Matched {
-							provider.logger.Sugar().Debugf("The stored key %s matched the current iteration key ETag %+v", string(entry.Key), validator)
-							result = res
-							return nil
-						}
-
-						provider.logger.Sugar().Debugf("The stored key %s didn't match the current iteration key ETag %+v", string(entry.Key), validator)
-					} else {
-						provider.logger.Sugar().Errorf("An error occured while reading response for the key %s: %v", string(entry.Key), err)
-					}
-				}
+				result = append(result, string(entry.Key))
 			}
 		}
 		return nil
@@ -236,11 +226,16 @@ func (provider *Nuts) GetMultiLevel(key string, req *http.Request, validator *rf
 }
 
 // SetMultiLevel tries to store the key with the given value and update the mapping key to store metadata.
-func (provider *Nuts) SetMultiLevel(baseKey, variedKey string, value []byte, variedHeaders http.Header, etag string, duration time.Duration) error {
+func (provider *Nuts) SetMultiLevel(baseKey, variedKey string, value []byte, variedHeaders http.Header, etag string, duration time.Duration, realKey string) error {
 	now := time.Now()
 
+	compressed := new(bytes.Buffer)
+	if _, err := lz4.NewWriter(compressed).ReadFrom(bytes.NewReader(value)); err != nil {
+		provider.logger.Sugar().Errorf("Impossible to compress the key %s into Nuts, %v", variedKey, err)
+		return err
+	}
 	err := provider.DB.Update(func(tx *nutsdb.Tx) error {
-		e := tx.Put(bucket, []byte(variedKey), value, uint32((duration + provider.stale).Seconds()))
+		e := tx.Put(bucket, []byte(variedKey), compressed.Bytes(), uint32((duration + provider.stale).Seconds()))
 		if e != nil {
 			provider.logger.Sugar().Errorf("Impossible to set the key %s into Nuts, %v", variedKey, e)
 		}
@@ -265,12 +260,12 @@ func (provider *Nuts) SetMultiLevel(baseKey, variedKey string, value []byte, var
 			val = item.Value
 		}
 
-		val, e = mappingUpdater(variedKey, val, provider.logger, now, now.Add(duration), now.Add(duration+provider.stale), variedHeaders, etag)
+		val, e = mappingUpdater(variedKey, val, provider.logger, now, now.Add(duration), now.Add(duration+provider.stale), variedHeaders, etag, realKey)
 		if e != nil {
 			return e
 		}
 
-		provider.logger.Sugar().Debugf("Store the new mapping for the key %s in Nuts, %v", variedKey, string(val))
+		provider.logger.Sugar().Debugf("Store the new mapping for the key %s in Nuts", variedKey)
 
 		return tx.Put(bucket, []byte(mappingKey), val, nutsdb.Persistent)
 	})

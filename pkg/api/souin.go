@@ -134,6 +134,51 @@ func (s *SouinAPI) listKeys(search string) []string {
 	return res
 }
 
+var storageToInfiniteTTLMap = map[string]time.Duration{
+	"BADGER": 365 * 24 * time.Hour,
+	"ETCD":   365 * 24 * time.Hour,
+	"NUTS":   0,
+	"OLRIC":  365 * 24 * time.Hour,
+	"OTTER":  365 * 24 * time.Hour,
+	"REDIS":  0,
+}
+
+func (s *SouinAPI) purgeMapping() {
+	now := time.Now()
+	for _, current := range s.storers {
+		infiniteStoreDuration := storageToInfiniteTTLMap[current.Name()]
+		values := current.MapKeys(storage.MappingKeyPrefix)
+		for k, v := range values {
+			var mapping types.StorageMapper
+			e := gob.NewDecoder(bytes.NewBuffer([]byte(v))).Decode(&mapping)
+			if e != nil {
+				current.Delete(storage.MappingKeyPrefix + k)
+				continue
+			}
+
+			updated := false
+			for key, val := range mapping.Mapping {
+				if now.Sub(val.FreshTime) > 0 && now.Sub(val.StaleTime) > 0 {
+					delete(mapping.Mapping, key)
+					updated = true
+				}
+			}
+
+			if updated {
+				buf := new(bytes.Buffer)
+				e = gob.NewEncoder(buf).Encode(mapping)
+				if e != nil {
+					fmt.Println("Impossible to re-encode the mapping", storage.MappingKeyPrefix+k)
+					current.Delete(storage.MappingKeyPrefix + k)
+				}
+				_ = current.Set(storage.MappingKeyPrefix+k, buf.Bytes(), configurationtypes.URL{}, infiniteStoreDuration)
+			}
+		}
+	}
+
+	fmt.Println("Successfully clear the mappings.")
+}
+
 // HandleRequest will handle the request
 func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 	res := []byte{}
@@ -227,6 +272,7 @@ func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 		if compile {
 			keysRg := regexp.MustCompile(s.GetBasePath() + "/(.+)")
 			flushRg := regexp.MustCompile(s.GetBasePath() + "/flush$")
+			mappingRg := regexp.MustCompile(s.GetBasePath() + "/mapping$")
 
 			if flushRg.FindString(r.RequestURI) != "" {
 				for _, current := range s.storers {
@@ -237,6 +283,8 @@ func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 					fmt.Printf("Error while purging the surrogate keys: %+v.", e)
 				}
 				fmt.Println("Successfully clear the cache and the surrogate keys storage.")
+			} else if mappingRg.FindString(r.RequestURI) != "" {
+				s.purgeMapping()
 			} else {
 				submatch := keysRg.FindAllStringSubmatch(r.RequestURI, -1)[0][1]
 				s.BulkDelete(submatch, true)

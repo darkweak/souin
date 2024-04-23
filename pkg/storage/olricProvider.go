@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"errors"
@@ -16,6 +15,7 @@ import (
 	t "github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/rfc"
 	"github.com/darkweak/souin/pkg/storage/types"
+	lz4 "github.com/pierrec/lz4/v4"
 	"go.uber.org/zap"
 )
 
@@ -61,7 +61,7 @@ func (provider *Olric) ListKeys() []string {
 	dm := provider.dm.Get().(olric.DMap)
 	defer provider.dm.Put(dm)
 
-	records, err := dm.Scan(context.Background())
+	records, err := dm.Scan(context.Background(), olric.Match("^"+MappingKeyPrefix))
 	if err != nil {
 		if !provider.reconnecting {
 			go provider.Reconnect()
@@ -72,8 +72,11 @@ func (provider *Olric) ListKeys() []string {
 
 	keys := []string{}
 	for records.Next() {
-		if !strings.Contains(records.Key(), surrogatePrefix) {
-			keys = append(keys, records.Key())
+		mapping, err := decodeMapping(provider.Get(records.Key()))
+		if err == nil {
+			for _, v := range mapping.Mapping {
+				keys = append(keys, v.RealKey)
+			}
 		}
 	}
 	records.Close()
@@ -128,20 +131,26 @@ func (provider *Olric) GetMultiLevel(key string, req *http.Request, validator *r
 }
 
 // SetMultiLevel tries to store the key with the given value and update the mapping key to store metadata.
-func (provider *Olric) SetMultiLevel(baseKey, variedKey string, value []byte, variedHeaders http.Header, etag string, duration time.Duration) error {
+func (provider *Olric) SetMultiLevel(baseKey, variedKey string, value []byte, variedHeaders http.Header, etag string, duration time.Duration, realKey string) error {
 	now := time.Now()
 
 	dm := provider.dm.Get().(olric.DMap)
 	defer provider.dm.Put(dm)
-	if err := dm.Put(context.Background(), variedKey, value, olric.EX(duration)); err != nil {
-		provider.logger.Sugar().Errorf("Impossible to set value into EmbeddedOlric, %v", err)
+
+	compressed := new(bytes.Buffer)
+	if _, err := lz4.NewWriter(compressed).ReadFrom(bytes.NewReader(value)); err != nil {
+		provider.logger.Sugar().Errorf("Impossible to compress the key %s into Olric, %v", variedKey, err)
+		return err
+	}
+	if err := dm.Put(context.Background(), variedKey, compressed.Bytes(), olric.EX(duration)); err != nil {
+		provider.logger.Sugar().Errorf("Impossible to set value into Olric, %v", err)
 		return err
 	}
 
 	mappingKey := MappingKeyPrefix + baseKey
 	res, e := dm.Get(context.Background(), mappingKey)
 	if e != nil && !errors.Is(e, olric.ErrKeyNotFound) {
-		provider.logger.Sugar().Errorf("Impossible to get the key %s EmbeddedOlric, %v", baseKey, e)
+		provider.logger.Sugar().Errorf("Impossible to get the key %s Olric, %v", baseKey, e)
 		return nil
 	}
 
@@ -151,7 +160,7 @@ func (provider *Olric) SetMultiLevel(baseKey, variedKey string, value []byte, va
 		return e
 	}
 
-	val, e = mappingUpdater(variedKey, val, provider.logger, now, now.Add(duration), now.Add(duration+provider.stale), variedHeaders, etag)
+	val, e = mappingUpdater(variedKey, val, provider.logger, now, now.Add(duration), now.Add(duration+provider.stale), variedHeaders, etag, realKey)
 	if e != nil {
 		return e
 	}
@@ -159,8 +168,8 @@ func (provider *Olric) SetMultiLevel(baseKey, variedKey string, value []byte, va
 	return provider.Set(mappingKey, val, t.URL{}, time.Hour)
 }
 
-// Prefix method returns the populated response if exists, empty response then
-func (provider *Olric) Prefix(key string, req *http.Request, validator *rfc.Revalidator) *http.Response {
+// Prefix method returns the keys that match the prefix key
+func (provider *Olric) Prefix(key string) []string {
 	if provider.reconnecting {
 		provider.logger.Sugar().Error("Impossible to get the olric keys by prefix while reconnecting.")
 		return nil
@@ -177,26 +186,13 @@ func (provider *Olric) Prefix(key string, req *http.Request, validator *rfc.Reva
 		return nil
 	}
 
+	result := []string{}
 	for records.Next() {
-		if varyVoter(key, req, records.Key()) {
-			if val := provider.Get(records.Key()); val != nil {
-				if res, err := http.ReadResponse(bufio.NewReader(bytes.NewBuffer(val)), req); err == nil {
-					rfc.ValidateETag(res, validator)
-					if validator.Matched {
-						provider.logger.Sugar().Debugf("The stored key %s matched the current iteration key ETag %+v", records.Key(), validator)
-						return res
-					}
-
-					provider.logger.Sugar().Debugf("The stored key %s didn't match the current iteration key ETag %+v", records.Key(), validator)
-				} else {
-					provider.logger.Sugar().Errorf("An error occured while reading response for the key %s: %v", records.Key(), err)
-				}
-			}
-		}
+		result = append(result, records.Key())
 	}
 	records.Close()
 
-	return nil
+	return result
 }
 
 // Get method returns the populated response if exists, empty response then

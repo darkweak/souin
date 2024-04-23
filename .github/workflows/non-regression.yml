@@ -49,9 +49,9 @@ jobs:
       - name: Build and run the docker stack
         run: |
           docker network create your_network || true
-          docker-compose -f docker-compose.yml.test up -d --build --force-recreate --remove-orphans
+          docker compose -f docker-compose.yml.test up -d --build --force-recreate --remove-orphans
       - name: Run pkg storage tests
-        run: docker-compose -f docker-compose.yml.test exec -T souin go test -v -race ./pkg/storage
+        run: docker compose -f docker-compose.yml.test exec -T souin go test -v -race ./pkg/storage
   validate-prod-container-building:
     needs: unit-test-golang-with-services
     name: Validate that the container build for prod
@@ -65,7 +65,7 @@ jobs:
         run: docker network create your_network || true
       -
         name: Build the stack
-        run: docker-compose -f docker-compose.yml.prod up -d --build --force-recreate --remove-orphans
+        run: docker compose -f docker-compose.yml.prod up -d --build --force-recreate --remove-orphans
       -
         name: Souin container healthceck
-        run: docker-compose -f docker-compose.yml.prod exec -T souin ls
+        run: docker compose -f docker-compose.yml.prod exec -T souin ls

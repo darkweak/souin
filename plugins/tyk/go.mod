@@ -6,6 +6,7 @@ toolchain go1.21.0
 
 require (
 	github.com/TykTechnologies/tyk v1.9.2-0.20230330071232-370295d796b5
+	github.com/cespare/xxhash/v2 v2.2.0
 	github.com/darkweak/souin v1.6.47
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pquerna/cachecontrol v0.2.0
@@ -31,7 +32,6 @@ require (
 	github.com/buraksezer/olric v0.5.4 // indirect
 	github.com/bwmarrin/snowflake v0.3.0 // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
-	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/clbanning/mxj v1.8.4 // indirect
 	github.com/coreos/go-semver v0.3.1 // indirect
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
@@ -99,7 +99,7 @@ require (
 	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/nutsdb/nutsdb v0.14.3 // indirect
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
-	github.com/pierrec/lz4/v4 v4.1.17 // indirect
+	github.com/pierrec/lz4/v4 v4.1.21 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmylund/go-cache v2.1.0+incompatible // indirect
 	github.com/prometheus/client_golang v1.16.0 // indirect

@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/json"
 	"errors"
@@ -15,6 +14,7 @@ import (
 	"github.com/darkweak/souin/pkg/storage/types"
 	badger "github.com/dgraph-io/badger/v3"
 	"github.com/imdario/mergo"
+	lz4 "github.com/pierrec/lz4/v4"
 	"go.uber.org/zap"
 )
 
@@ -127,11 +127,17 @@ func (provider *Badger) ListKeys() []string {
 		opts.PrefetchValues = false
 		it := txn.NewIterator(opts)
 		defer it.Close()
-		for it.Rewind(); it.Valid(); it.Next() {
-			key := string(it.Item().Key())
-			if !strings.Contains(key, surrogatePrefix) {
-				keys = append(keys, key)
-			}
+		for it.Seek([]byte(MappingKeyPrefix)); it.ValidForPrefix([]byte(MappingKeyPrefix)); it.Next() {
+			_ = it.Item().Value(func(val []byte) error {
+				mapping, err := decodeMapping(val)
+				if err == nil {
+					for _, v := range mapping.Mapping {
+						keys = append(keys, v.RealKey)
+					}
+				}
+
+				return nil
+			})
 		}
 		return nil
 	})
@@ -168,32 +174,16 @@ func (provider *Badger) Get(key string) []byte {
 	return result
 }
 
-// Prefix method returns the populated response if exists, empty response then
-func (provider *Badger) Prefix(key string, req *http.Request, validator *rfc.Revalidator) *http.Response {
-	var result *http.Response
+// Prefix method returns the keys that match the prefix key
+func (provider *Badger) Prefix(key string) []string {
+	result := []string{}
 
 	_ = provider.DB.View(func(txn *badger.Txn) error {
 		prefix := []byte(key)
 		it := txn.NewIterator(badger.DefaultIteratorOptions)
 		defer it.Close()
 		for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
-			if varyVoter(key, req, string(it.Item().Key())) {
-				_ = it.Item().Value(func(val []byte) error {
-					if res, err := http.ReadResponse(bufio.NewReader(bytes.NewBuffer(val)), req); err == nil {
-						rfc.ValidateETag(res, validator)
-						if validator.Matched {
-							provider.logger.Sugar().Debugf("The stored key %s matched the current iteration key ETag %+v", it.Item().Key(), validator)
-							result = res
-						} else {
-							provider.logger.Sugar().Debugf("The stored key %s didn't match the current iteration key ETag %+v", it.Item().Key(), validator)
-						}
-					} else {
-						provider.logger.Sugar().Errorf("An error occured while reading response for the key %s: %v", it.Item().Key(), err)
-					}
-
-					return nil
-				})
-			}
+			result = append(result, string(it.Item().Key()))
 		}
 		return nil
 	})
@@ -226,12 +216,19 @@ func (provider *Badger) GetMultiLevel(key string, req *http.Request, validator *
 }
 
 // SetMultiLevel tries to store the key with the given value and update the mapping key to store metadata.
-func (provider *Badger) SetMultiLevel(baseKey, variedKey string, value []byte, variedHeaders http.Header, etag string, duration time.Duration) error {
+func (provider *Badger) SetMultiLevel(baseKey, variedKey string, value []byte, variedHeaders http.Header, etag string, duration time.Duration, realKey string) error {
 	now := time.Now()
 
 	err := provider.DB.Update(func(tx *badger.Txn) error {
 		var e error
-		e = tx.SetEntry(badger.NewEntry([]byte(variedKey), value).WithTTL(duration + provider.stale))
+
+		compressed := new(bytes.Buffer)
+		if _, err := lz4.NewWriter(compressed).ReadFrom(bytes.NewReader(value)); err != nil {
+			provider.logger.Sugar().Errorf("Impossible to compress the key %s into Badger, %v", variedKey, e)
+			return e
+		}
+
+		e = tx.SetEntry(badger.NewEntry([]byte(variedKey), compressed.Bytes()).WithTTL(duration + provider.stale))
 		if e != nil {
 			provider.logger.Sugar().Errorf("Impossible to set the key %s into Badger, %v", variedKey, e)
 			return e
@@ -253,12 +250,12 @@ func (provider *Badger) SetMultiLevel(baseKey, variedKey string, value []byte, v
 			})
 		}
 
-		val, e = mappingUpdater(variedKey, val, provider.logger, now, now.Add(duration), now.Add(duration+provider.stale), variedHeaders, etag)
+		val, e = mappingUpdater(variedKey, val, provider.logger, now, now.Add(duration), now.Add(duration+provider.stale), variedHeaders, etag, realKey)
 		if e != nil {
 			return e
 		}
 
-		provider.logger.Sugar().Debugf("Store the new mapping for the key %s in Badger, %v", variedKey, string(val))
+		provider.logger.Sugar().Debugf("Store the new mapping for the key %s in Badger", variedKey)
 		return tx.SetEntry(badger.NewEntry([]byte(mappingKey), val))
 	})
 

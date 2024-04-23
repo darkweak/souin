@@ -97,7 +97,7 @@ func Test_SouinGoaPlugin_Middleware_APIHandle(t *testing.T) {
 	}
 	b, _ := io.ReadAll(res.Result().Body)
 	res.Result().Body.Close()
-	if string(b) != "[\"IDX_GET-http-example.com-/handled\",\"IDX_GET-http-example.com-/not-handled\"]" {
+	if string(b) != "[\"GET-http-example.com-/handled\",\"GET-http-example.com-/not-handled\"]" {
 		t.Error("The response body must be an empty array because no request has been stored")
 	}
 	handler.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/handled", nil))
@@ -109,10 +109,10 @@ func Test_SouinGoaPlugin_Middleware_APIHandle(t *testing.T) {
 	res2.Result().Body.Close()
 	var payload []string
 	_ = json.Unmarshal(b, &payload)
-	if len(payload) != 3 {
-		t.Error("The system must store 2 items, the fresh and the stale one")
+	if len(payload) != 2 {
+		t.Error("The system must store 2 items, excluding the mapping")
 	}
-	if payload[0] != "GET-http-example.com-/handled" || payload[1] != "IDX_GET-http-example.com-/handled" {
+	if payload[0] != "GET-http-example.com-/handled" || payload[1] != "GET-http-example.com-/not-handled" {
 		t.Error("The payload items mismatch from the expectations.")
 	}
 }

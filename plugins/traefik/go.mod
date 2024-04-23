@@ -18,6 +18,7 @@ require (
 	github.com/gofrs/flock v0.8.1 // indirect
 	github.com/maypok86/otter v1.1.1 // indirect
 	github.com/nutsdb/nutsdb v1.0.4 // indirect
+	github.com/pierrec/lz4/v4 v4.1.21 // indirect
 	github.com/redis/rueidis v1.0.31 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20230822172742-b8732ec3820d // indirect

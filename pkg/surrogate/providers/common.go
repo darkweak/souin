@@ -36,6 +36,7 @@ var storageToInfiniteTTLMap = map[string]time.Duration{
 	"ETCD":   365 * 24 * time.Hour,
 	"NUTS":   0,
 	"OLRIC":  365 * 24 * time.Hour,
+	"OTTER":  365 * 24 * time.Hour,
 	"REDIS":  0,
 }
 
@@ -264,7 +265,5 @@ func (s *baseStorage) List() map[string]string {
 
 // Destruct method will shutdown properly the provider
 func (s *baseStorage) Destruct() error {
-	s.Storage.DeleteMany(surrogatePrefix + ".*")
-
-	return nil
+	return s.Storage.Reset()
 }
