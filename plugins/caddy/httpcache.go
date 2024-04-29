@@ -54,6 +54,8 @@ type SouinCaddyMiddleware struct {
 	Nuts configurationtypes.CacheProvider `json:"nuts,omitempty"`
 	// Configure the Otter cache storage.
 	Otter configurationtypes.CacheProvider `json:"otter,omitempty"`
+	// Configure the Otter cache storage.
+	NutsMemcached configurationtypes.CacheProvider `json:"nuts_memcached,omitempty"`
 	// Enable the Etcd distributed cache storage.
 	Etcd configurationtypes.CacheProvider `json:"etcd,omitempty"`
 	// Enable the Redis distributed cache storage.
@@ -95,6 +97,7 @@ func (s *SouinCaddyMiddleware) configurationPropertyMapper() error {
 			Badger:              s.Badger,
 			Nuts:                s.Nuts,
 			Otter:               s.Otter,
+			NutsMemcached:       s.NutsMemcached,
 			Key:                 s.Key,
 			DefaultCacheControl: s.DefaultCacheControl,
 			CacheName:           s.CacheName,
@@ -221,6 +224,9 @@ func (s *SouinCaddyMiddleware) FromApp(app *SouinApp) error {
 	}
 	if dc.Otter.Path == "" && dc.Otter.Configuration == nil {
 		s.Configuration.DefaultCache.Otter = appDc.Otter
+	}
+	if dc.NutsMemcached.Path == "" && dc.NutsMemcached.Configuration == nil {
+		s.Configuration.DefaultCache.NutsMemcached = appDc.NutsMemcached
 	}
 	if dc.Regex.Exclude == "" {
 		s.Configuration.DefaultCache.Regex.Exclude = appDc.Regex.Exclude

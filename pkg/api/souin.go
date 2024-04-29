@@ -135,12 +135,13 @@ func (s *SouinAPI) listKeys(search string) []string {
 }
 
 var storageToInfiniteTTLMap = map[string]time.Duration{
-	"BADGER": 365 * 24 * time.Hour,
-	"ETCD":   365 * 24 * time.Hour,
-	"NUTS":   0,
-	"OLRIC":  365 * 24 * time.Hour,
-	"OTTER":  365 * 24 * time.Hour,
-	"REDIS":  0,
+	"BADGER":         365 * 24 * time.Hour,
+	"ETCD":           365 * 24 * time.Hour,
+	"NUTS":           0,
+	"NUTS_MEMCACHED": 0,
+	"OLRIC":          365 * 24 * time.Hour,
+	"OTTER":          365 * 24 * time.Hour,
+	"REDIS":          0,
 }
 
 func (s *SouinAPI) purgeMapping() {
