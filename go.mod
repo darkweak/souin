@@ -3,6 +3,7 @@ module github.com/darkweak/souin
 go 1.21
 
 require (
+	github.com/bradfitz/gomemcache v0.0.0-20230905024940-24af94b03874
 	github.com/buraksezer/olric v0.5.4
 	github.com/cespare/xxhash/v2 v2.2.0
 	github.com/dgraph-io/badger/v3 v3.2103.5
