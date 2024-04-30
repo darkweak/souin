@@ -125,21 +125,6 @@ func NutsMemcachedConnectionFactory(c t.AbstractConfigurationInterface) (types.S
 		}
 	}
 
-	if instance, ok := nutsMemcachedInstanceMap[nutsOptions.Dir]; ok && instance != nil {
-		return &NutsMemcached{
-			DB:     instance,
-			stale:  dc.GetStale(),
-			logger: c.GetLogger(),
-		}, nil
-	}
-
-	db, e := nutsdb.Open(nutsOptions)
-
-	if e != nil {
-		c.GetLogger().Sugar().Error("Impossible to open the Nuts DB.", e)
-		return nil, e
-	}
-
 	// Ristretto config
 	var numCounters int64 = 1e7 // number of keys to track frequency of (10M).
 	var maxCost int64 = 1 << 30 // maximum cost of cache (1GB).
@@ -162,6 +147,25 @@ func NutsMemcachedConnectionFactory(c t.AbstractConfigurationInterface) (types.S
 	})
 	if err != nil {
 		c.GetLogger().Sugar().Error("Impossible to make new Ristretto cache.", err)
+		return nil, err
+	}
+	//c.GetLogger().Sugar().Debugf("Ristretto cache was created with NumCounters=%d, MaxCost=%d", numCounters, maxCost)
+
+	// If multiple caches are created on the same directory, reuse the same NutsDB instance.
+	// E.g., in automated tests.
+	if instance, ok := nutsMemcachedInstanceMap[nutsOptions.Dir]; ok && instance != nil {
+		return &NutsMemcached{
+			DB:     instance,
+			stale:  dc.GetStale(),
+			logger: c.GetLogger(),
+			//memcacheClient: memcache.New("127.0.0.1:11211"), // hardcoded for now
+			ristrettoCache: ristrettoCache,
+		}, nil
+	}
+
+	db, e := nutsdb.Open(nutsOptions)
+	if e != nil {
+		c.GetLogger().Sugar().Error("Impossible to open the Nuts DB.", e)
 		return nil, e
 	}
 
@@ -354,7 +358,7 @@ func (provider *NutsMemcached) Set(key string, value []byte, url t.URL, duration
 	}
 
 	// set to memcached
-	_ = provider.setToMemcached(memcachedKey, value, int32(duration.Seconds()))
+	_ = provider.setToMemcached(memcachedKey, value, duration)
 	return nil
 }
 
@@ -414,7 +418,7 @@ func (provider *NutsMemcached) getFromNuts(nutsKey string) (memcachedKey string,
 }
 
 // Reminder: the memcachedKey must be at most 250 bytes in length
-func (provider *NutsMemcached) setToMemcached(memcachedKey string, value []byte, ttl int32) (err error) {
+func (provider *NutsMemcached) setToMemcached(memcachedKey string, value []byte, ttl time.Duration) (err error) {
 	//fmt.Println("memcached SET", key)
 	// err = provider.memcacheClient.Set(
 	// 	&memcache.Item{
@@ -426,9 +430,16 @@ func (provider *NutsMemcached) setToMemcached(memcachedKey string, value []byte,
 	//if err != nil {
 	// 	provider.logger.Sugar().Errorf("Failed to set into memcached, %v", err)
 	// }
-	ok := provider.ristrettoCache.Set(memcachedKey, value, int64(len(value)))
+
+	ok := provider.ristrettoCache.SetWithTTL(memcachedKey, value, int64(len(value)), ttl)
 	if !ok {
-		provider.logger.Sugar().Debugf("Value not set to ristretto cache, key=%v", memcachedKey)
+		provider.logger.Sugar().Debugf(
+			"Value not set to ristretto cache, key=%v ttl=%.2fs len=%d",
+			memcachedKey, ttl.Seconds(), len(value),
+		)
+		// Note: failed to store is not considered an error because Ristretto doesn't guarantee
+		//       a value is set or not.
+		// See https://pkg.go.dev/github.com/dgraph-io/ristretto@v0.1.1#Cache.Set
 	}
 	return
 }
