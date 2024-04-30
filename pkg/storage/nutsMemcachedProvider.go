@@ -37,8 +37,9 @@ var nutsMemcachedInstanceMap = map[string]*nutsdb.DB{}
 // NutsMemcached provider type
 type NutsMemcached struct {
 	*nutsdb.DB
-	stale  time.Duration
-	logger *zap.Logger
+	bucketName string
+	stale      time.Duration
+	logger     *zap.Logger
 	//memcacheClient *memcache.Client
 	ristrettoCache *ristretto.Cache
 }
@@ -91,6 +92,7 @@ func sanitizeProperties(m map[string]interface{}) map[string]interface{} {
 // NutsConnectionFactory function create new NutsMemcached instance
 func NutsMemcachedConnectionFactory(c t.AbstractConfigurationInterface) (types.Storer, error) {
 	dc := c.GetDefaultCache()
+	cacheName := dc.GetCacheName()
 	nutsConfiguration := dc.GetNutsMemcached()
 	nutsOptions := nutsdb.DefaultOptions
 	nutsOptions.Dir = "/tmp/souin-nuts-memcached"
@@ -155,9 +157,10 @@ func NutsMemcachedConnectionFactory(c t.AbstractConfigurationInterface) (types.S
 	// E.g., in automated tests.
 	if instance, ok := nutsMemcachedInstanceMap[nutsOptions.Dir]; ok && instance != nil {
 		return &NutsMemcached{
-			DB:     instance,
-			stale:  dc.GetStale(),
-			logger: c.GetLogger(),
+			DB:         instance,
+			bucketName: cacheName,
+			stale:      dc.GetStale(),
+			logger:     c.GetLogger(),
 			//memcacheClient: memcache.New("127.0.0.1:11211"), // hardcoded for now
 			ristrettoCache: ristrettoCache,
 		}, nil
@@ -170,9 +173,10 @@ func NutsMemcachedConnectionFactory(c t.AbstractConfigurationInterface) (types.S
 	}
 
 	instance := &NutsMemcached{
-		DB:     db,
-		stale:  dc.GetStale(),
-		logger: c.GetLogger(),
+		DB:         db,
+		bucketName: cacheName,
+		stale:      dc.GetStale(),
+		logger:     c.GetLogger(),
 		//memcacheClient: memcache.New("127.0.0.1:11211"), // hardcoded for now
 		ristrettoCache: ristrettoCache,
 	}
@@ -191,7 +195,7 @@ func (provider *NutsMemcached) ListKeys() []string {
 	keys := []string{}
 
 	e := provider.DB.View(func(tx *nutsdb.Tx) error {
-		e, _ := tx.PrefixScan(bucket, []byte(MappingKeyPrefix), 0, 100)
+		e, _ := tx.PrefixScan(provider.bucketName, []byte(MappingKeyPrefix), 0, 100)
 		for _, k := range e {
 			mapping, err := decodeMapping(k.Value)
 			if err == nil {
@@ -215,7 +219,7 @@ func (provider *NutsMemcached) MapKeys(prefix string) map[string]string {
 	keys := map[string]string{}
 
 	e := provider.DB.View(func(tx *nutsdb.Tx) error {
-		e, _ := tx.GetAll(bucket)
+		e, _ := tx.GetAll(provider.bucketName)
 		for _, k := range e {
 			if strings.HasPrefix(string(k.Key), prefix) {
 				nk, _ := strings.CutPrefix(string(k.Key), prefix)
@@ -250,7 +254,7 @@ func (provider *NutsMemcached) Prefix(key string) []string {
 	_ = provider.DB.View(func(tx *nutsdb.Tx) error {
 		prefix := []byte(key)
 
-		if entries, err := tx.PrefixSearchScan(bucket, prefix, "^({|$)", 0, 50); err != nil {
+		if entries, err := tx.PrefixSearchScan(provider.bucketName, prefix, "^({|$)", 0, 50); err != nil {
 			return err
 		} else {
 			for _, entry := range entries {
@@ -266,7 +270,7 @@ func (provider *NutsMemcached) Prefix(key string) []string {
 // GetMultiLevel tries to load the key and check if one of linked keys is a fresh/stale candidate.
 func (provider *NutsMemcached) GetMultiLevel(key string, req *http.Request, validator *rfc.Revalidator) (fresh *http.Response, stale *http.Response) {
 	_ = provider.DB.View(func(tx *nutsdb.Tx) error {
-		i, e := tx.Get(bucket, []byte(MappingKeyPrefix+key))
+		i, e := tx.Get(provider.bucketName, []byte(MappingKeyPrefix+key))
 		if e != nil && !errors.Is(e, nutsdb.ErrKeyNotFound) {
 			return e
 		}
@@ -306,7 +310,7 @@ func (provider *NutsMemcached) SetMultiLevel(baseKey, variedKey string, value []
 
 	err := provider.DB.Update(func(tx *nutsdb.Tx) error {
 		mappingKey := MappingKeyPrefix + baseKey
-		item, e := tx.Get(bucket, []byte(mappingKey))
+		item, e := tx.Get(provider.bucketName, []byte(mappingKey))
 		if e != nil && !errors.Is(e, nutsdb.ErrKeyNotFound) {
 			provider.logger.Sugar().Errorf("Impossible to get the base key %s in Nuts, %v", baseKey, e)
 			return e
@@ -324,7 +328,7 @@ func (provider *NutsMemcached) SetMultiLevel(baseKey, variedKey string, value []
 
 		provider.logger.Sugar().Debugf("Store the new mapping for the key %s in Nuts", variedKey)
 
-		return tx.Put(bucket, []byte(mappingKey), val, nutsdb.Persistent)
+		return tx.Put(provider.bucketName, []byte(mappingKey), val, nutsdb.Persistent)
 	})
 
 	if err != nil {
@@ -348,7 +352,7 @@ func (provider *NutsMemcached) Set(key string, value []byte, url t.URL, duration
 	{
 		err := provider.DB.Update(func(tx *nutsdb.Tx) error {
 			// key: cache-key, value: memcached-key
-			return tx.Put(bucket, []byte(key), []byte(memcachedKey), uint32(duration.Seconds()))
+			return tx.Put(provider.bucketName, []byte(key), []byte(memcachedKey), uint32(duration.Seconds()))
 		})
 
 		if err != nil {
@@ -373,21 +377,21 @@ func (provider *NutsMemcached) Delete(key string) {
 
 	// delete from nuts
 	_ = provider.DB.Update(func(tx *nutsdb.Tx) error {
-		return tx.Delete(bucket, []byte(key))
+		return tx.Delete(provider.bucketName, []byte(key))
 	})
 }
 
 // DeleteMany method will delete the responses in Nuts provider if exists corresponding to the regex key param
 func (provider *NutsMemcached) DeleteMany(keyReg string) {
 	_ = provider.DB.Update(func(tx *nutsdb.Tx) error {
-		if entries, err := tx.PrefixSearchScan(bucket, []byte(""), keyReg, 0, nutsLimit); err != nil {
+		if entries, err := tx.PrefixSearchScan(provider.bucketName, []byte(""), keyReg, 0, nutsLimit); err != nil {
 			return err
 		} else {
 			for _, entry := range entries {
 				// delete from memcached
 				_ = provider.delFromMemcached(string(entry.Value))
 				// delete from nuts
-				_ = tx.Delete(bucket, entry.Key)
+				_ = tx.Delete(provider.bucketName, entry.Key)
 			}
 		}
 		return nil
@@ -402,13 +406,13 @@ func (provider *NutsMemcached) Init() error {
 // Reset method will reset or close provider
 func (provider *NutsMemcached) Reset() error {
 	return provider.DB.Update(func(tx *nutsdb.Tx) error {
-		return tx.DeleteBucket(1, bucket)
+		return tx.DeleteBucket(1, provider.bucketName)
 	})
 }
 
 func (provider *NutsMemcached) getFromNuts(nutsKey string) (memcachedKey string, err error) {
 	err = provider.DB.View(func(tx *nutsdb.Tx) error {
-		i, e := tx.Get(bucket, []byte(nutsKey))
+		i, e := tx.Get(provider.bucketName, []byte(nutsKey))
 		if i != nil {
 			memcachedKey = string(i.Value)
 		}
