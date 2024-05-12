@@ -6,7 +6,6 @@ require (
 	github.com/akyoto/cache v1.0.6
 	github.com/darkweak/souin v1.6.47
 	github.com/pquerna/cachecontrol v0.2.0
-	go.uber.org/zap v1.26.0
 )
 
 require (
@@ -86,6 +85,7 @@ require (
 	go.step.sm/linkedca v0.20.1 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/mock v0.3.0 // indirect
+	go.uber.org/zap v1.26.0 // indirect
 	golang.org/x/crypto v0.16.0 // indirect
 	golang.org/x/exp v0.0.0-20230310171629-522b1b587ee0 // indirect
 	golang.org/x/term v0.15.0 // indirect
@@ -163,7 +163,7 @@ require (
 	google.golang.org/grpc v1.59.0 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 replace (
