@@ -7,6 +7,8 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/caddyserver/caddy/v2"
+	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/plugins/souin/configuration"
 )
@@ -61,8 +63,12 @@ func Test_KeyContext_SetupContext(t *testing.T) {
 }
 
 func Test_KeyContext_SetContext(t *testing.T) {
-	ctx := keyContext{}
 	req := httptest.NewRequest(http.MethodGet, "http://domain.com", nil)
+	ctx := keyContext{
+		initializer: func(r *http.Request, repl *caddy.Replacer, w http.ResponseWriter, s *caddyhttp.Server) *http.Request {
+			return r.WithContext(context.WithValue(r.Context(), caddy.ReplacerCtxKey, caddy.NewReplacer()))
+		},
+	}
 	req = ctx.SetContext(req.WithContext(context.WithValue(req.Context(), HashBody, "-with_the_hash")))
 	if req.Context().Value(Key).(string) != "GET-http-domain.com--with_the_hash" {
 		t.Errorf("The Key context must be equal to GET-http-domain.com--with_the_hash, %s given.", req.Context().Value(Key).(string))
@@ -78,6 +84,9 @@ func Test_KeyContext_SetContext(t *testing.T) {
 		disable_host:   true,
 		disable_method: true,
 		overrides:      []map[*regexp.Regexp]keyContext{m},
+		initializer: func(r *http.Request, repl *caddy.Replacer, w http.ResponseWriter, s *caddyhttp.Server) *http.Request {
+			return r.WithContext(context.WithValue(r.Context(), caddy.ReplacerCtxKey, caddy.NewReplacer()))
+		},
 	}
 	req2 := httptest.NewRequest(http.MethodGet, "http://domain.com/matched", nil)
 	req2 = ctx2.SetContext(req2.WithContext(context.WithValue(req2.Context(), HashBody, "")))
@@ -94,6 +103,9 @@ func Test_KeyContext_SetContext(t *testing.T) {
 	ctx3 := keyContext{
 		disable_method: true,
 		overrides:      []map[*regexp.Regexp]keyContext{m},
+		initializer: func(r *http.Request, repl *caddy.Replacer, w http.ResponseWriter, s *caddyhttp.Server) *http.Request {
+			return r.WithContext(context.WithValue(r.Context(), caddy.ReplacerCtxKey, caddy.NewReplacer()))
+		},
 	}
 	req3 := httptest.NewRequest(http.MethodGet, "http://domain.com/matched", nil)
 	req3 = ctx3.SetContext(req3.WithContext(context.WithValue(req3.Context(), HashBody, "")))
@@ -112,6 +124,9 @@ func Test_KeyContext_SetContext(t *testing.T) {
 		disable_query:  true,
 		disable_method: false,
 		disable_host:   false,
+		initializer: func(r *http.Request, repl *caddy.Replacer, w http.ResponseWriter, s *caddyhttp.Server) *http.Request {
+			return r.WithContext(context.WithValue(r.Context(), caddy.ReplacerCtxKey, caddy.NewReplacer()))
+		},
 	}
 	req5 := httptest.NewRequest(http.MethodGet, "http://domain.com/matched?query=string", nil)
 	req5 = ctx4.SetContext(req5.WithContext(context.WithValue(req5.Context(), HashBody, "")))
@@ -123,6 +138,9 @@ func Test_KeyContext_SetContext(t *testing.T) {
 		disable_query:  false,
 		disable_method: false,
 		disable_host:   false,
+		initializer: func(r *http.Request, repl *caddy.Replacer, w http.ResponseWriter, s *caddyhttp.Server) *http.Request {
+			return r.WithContext(context.WithValue(r.Context(), caddy.ReplacerCtxKey, caddy.NewReplacer()))
+		},
 	}
 	req6 := httptest.NewRequest(http.MethodGet, "http://domain.com/matched?query=string", nil)
 	req6 = ctx5.SetContext(req6.WithContext(context.WithValue(req6.Context(), HashBody, "")))

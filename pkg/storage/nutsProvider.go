@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -108,6 +109,11 @@ func NutsConnectionFactory(c t.AbstractConfigurationInterface) (types.Storer, er
 
 	if e != nil {
 		c.GetLogger().Sugar().Error("Impossible to open the Nuts DB.", e)
+
+		if errors.Is(e, nutsdb.ErrCrc) {
+			_ = os.Remove(nutsOptions.Dir)
+			return NutsConnectionFactory(c)
+		}
 		return nil, e
 	}
 
