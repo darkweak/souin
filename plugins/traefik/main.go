@@ -49,6 +49,8 @@ func configCacheKey(keyConfiguration map[string]interface{}) configurationtypes.
 			key.Headers = parseStringSlice(keyV)
 		case "hide":
 			key.Hide = cast.ToBool(keyV)
+		case "template":
+			key.Template = keyV.(string)
 		}
 	}
 

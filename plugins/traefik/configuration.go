@@ -22,6 +22,11 @@ func (c *Configuration) GetUrls() map[string]configurationtypes.URL {
 	return c.URLs
 }
 
+// GetPluginName get the plugin name
+func (c *Configuration) GetPluginName() string {
+	return "traefik"
+}
+
 // GetDefaultCache get the default cache
 func (c *Configuration) GetDefaultCache() configurationtypes.DefaultCacheInterface {
 	return c.DefaultCache
