@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/caddyserver/caddy/v2"
-	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/plugins/souin/configuration"
 )
@@ -65,7 +64,7 @@ func Test_KeyContext_SetupContext(t *testing.T) {
 func Test_KeyContext_SetContext(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "http://domain.com", nil)
 	ctx := keyContext{
-		initializer: func(r *http.Request, repl *caddy.Replacer, w http.ResponseWriter, s *caddyhttp.Server) *http.Request {
+		initializer: func(r *http.Request) *http.Request {
 			return r.WithContext(context.WithValue(r.Context(), caddy.ReplacerCtxKey, caddy.NewReplacer()))
 		},
 	}
@@ -84,7 +83,7 @@ func Test_KeyContext_SetContext(t *testing.T) {
 		disable_host:   true,
 		disable_method: true,
 		overrides:      []map[*regexp.Regexp]keyContext{m},
-		initializer: func(r *http.Request, repl *caddy.Replacer, w http.ResponseWriter, s *caddyhttp.Server) *http.Request {
+		initializer: func(r *http.Request) *http.Request {
 			return r.WithContext(context.WithValue(r.Context(), caddy.ReplacerCtxKey, caddy.NewReplacer()))
 		},
 	}
@@ -103,7 +102,7 @@ func Test_KeyContext_SetContext(t *testing.T) {
 	ctx3 := keyContext{
 		disable_method: true,
 		overrides:      []map[*regexp.Regexp]keyContext{m},
-		initializer: func(r *http.Request, repl *caddy.Replacer, w http.ResponseWriter, s *caddyhttp.Server) *http.Request {
+		initializer: func(r *http.Request) *http.Request {
 			return r.WithContext(context.WithValue(r.Context(), caddy.ReplacerCtxKey, caddy.NewReplacer()))
 		},
 	}
@@ -124,7 +123,7 @@ func Test_KeyContext_SetContext(t *testing.T) {
 		disable_query:  true,
 		disable_method: false,
 		disable_host:   false,
-		initializer: func(r *http.Request, repl *caddy.Replacer, w http.ResponseWriter, s *caddyhttp.Server) *http.Request {
+		initializer: func(r *http.Request) *http.Request {
 			return r.WithContext(context.WithValue(r.Context(), caddy.ReplacerCtxKey, caddy.NewReplacer()))
 		},
 	}
@@ -138,7 +137,7 @@ func Test_KeyContext_SetContext(t *testing.T) {
 		disable_query:  false,
 		disable_method: false,
 		disable_host:   false,
-		initializer: func(r *http.Request, repl *caddy.Replacer, w http.ResponseWriter, s *caddyhttp.Server) *http.Request {
+		initializer: func(r *http.Request) *http.Request {
 			return r.WithContext(context.WithValue(r.Context(), caddy.ReplacerCtxKey, caddy.NewReplacer()))
 		},
 	}

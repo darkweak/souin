@@ -29,7 +29,7 @@ type keyContext struct {
 	template       string
 	overrides      []map[*regexp.Regexp]keyContext
 
-	initializer func(r *http.Request, repl *caddy.Replacer, w http.ResponseWriter, s *caddyhttp.Server) *http.Request
+	initializer func(r *http.Request) *http.Request
 }
 
 func (*keyContext) SetContextWithBaseRequest(req *http.Request, _ *http.Request) *http.Request {
@@ -68,9 +68,15 @@ func (g *keyContext) SetupContext(c configurationtypes.AbstractConfigurationInte
 
 	switch c.GetPluginName() {
 	case "caddy":
-		g.initializer = caddyhttp.PrepareRequest
+		g.initializer = func(r *http.Request) *http.Request {
+			return r
+		}
 	default:
-		g.initializer = caddyhttp.PrepareRequest
+		g.initializer = func(r *http.Request) *http.Request {
+			repl := caddy.NewReplacer()
+
+			return caddyhttp.PrepareRequest(r, repl, nil, nil)
+		}
 	}
 }
 
@@ -140,8 +146,7 @@ func (g *keyContext) computeKey(req *http.Request) (key string, headers []string
 }
 
 func (g *keyContext) SetContext(req *http.Request) *http.Request {
-	repl := caddy.NewReplacer()
-	rq := g.initializer(req, repl, nil, nil)
+	rq := g.initializer(req)
 	key, headers, hash, displayable := g.computeKey(rq)
 
 	return req.WithContext(
