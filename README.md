@@ -116,7 +116,7 @@ default_cache:
     headers: # Add headers to the key
       - Authorization # Add the header value in the key
       - Content-Type # Add the header value in the key
-    hide: true # Prevent the key from being exposed in the `Cache-Status` HTTP response header
+    template: "{http.request.method}-{http.request.host}-{http.request.path}" # Use caddy placeholders to create the key (when this option is enabled, disable_* directives are skipped)
   etcd: # If distributed is set to true, you'll have to define either the etcd or olric section
     configuration: # Configure directly the Etcd client
       endpoints: # Define multiple endpoints
@@ -209,6 +209,7 @@ surrogate_keys:
 | `default_cache.key.hash`                          | Hash the key name in the storage                                                                                                            | `true`<br/><br/>`(default: false)`                                                                                        |
 | `default_cache.key.headers`                       | Add headers to the key matching the regexp                                                                                                  | `- Authorization`<br/><br/>`- Content-Type`<br/><br/>`- X-Additional-Header`                                              |
 | `default_cache.key.hide`                          | Prevent the key from being exposed in the `Cache-Status` HTTP response header                                                               | `true`<br/><br/>`(default: false)`                                                                                        |
+| `default_cache.key.template`                      | Use caddy placeholders to create the key (when this option is enabled, disable_* directives are skipped)                                    | [Placeholders documentation](https://caddyserver.com/docs/caddyfile/concepts#placeholders)                                |
 | `default_cache.mode`                              | RFC respect tweaking                                                                                                                        | One of `bypass` `bypass_request` `bypass_response` `strict` (default `strict`)                                            |
 | `default_cache.nuts`                              | Configure the Nuts cache storage                                                                                                            |                                                                                                                           |
 | `default_cache.nuts.path`                         | Set the Nuts file path storage                                                                                                              | `/anywhere/nuts/storage`                                                                                                  |
