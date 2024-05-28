@@ -265,6 +265,88 @@ func TestAgeHeader(t *testing.T) {
 	}
 }
 
+func TestKeyGeneration(t *testing.T) {
+	tester := caddytest.NewTester(t)
+	tester.InitServer(`
+	{
+		admin localhost:2999
+		http_port     9080
+		https_port    9443
+		cache {
+			ttl 1000s
+		}
+	}
+	localhost:9080 {
+		route /key-template-route {
+			cache {
+				key {
+					template {method}-{host}-{path}-WITH_SUFFIX
+				}
+			}
+			respond "Hello, template route!"
+		}
+		route /key-headers-route {
+			cache {
+				key {
+					headers X-Header X-Internal
+				}
+			}
+			respond "Hello, headers route!"
+		}
+		route /key-hash-route {
+			cache {
+				key {
+					hash
+				}
+			}
+			respond "Hello, hash route!"
+		}
+	}`, "caddyfile")
+
+	resp1, _ := tester.AssertGetResponse(`http://localhost:9080/key-template-route`, 200, "Hello, template route!")
+	if resp1.Header.Get("Age") != "" {
+		t.Errorf("unexpected Age header %v", resp1.Header.Get("Age"))
+	}
+	if !strings.Contains(resp1.Header.Get("Cache-Status"), "key=GET-localhost-/key-template-route-WITH_SUFFIX") {
+		t.Errorf("unexpected Cache-Status header %v", resp1.Header.Get("Cache-Status"))
+	}
+
+	resp2, _ := tester.AssertGetResponse(`http://localhost:9080/key-template-route`, 200, "Hello, template route!")
+	if resp2.Header.Get("Age") == "" {
+		t.Error("Age header should be present")
+	}
+	if resp2.Header.Get("Age") != "1" {
+		t.Error("Age header should be present")
+	}
+	if !strings.Contains(resp2.Header.Get("Cache-Status"), "key=GET-localhost-/key-template-route-WITH_SUFFIX") {
+		t.Errorf("unexpected Cache-Status header %v", resp2.Header.Get("Cache-Status"))
+	}
+
+	rq, _ := http.NewRequest(http.MethodGet, "http://localhost:9080/key-headers-route", nil)
+	rq.Header = http.Header{
+		"X-Internal": []string{"my-value"},
+	}
+	resp1, _ = tester.AssertResponse(rq, 200, "Hello, headers route!")
+	if resp1.Header.Get("Age") != "" {
+		t.Errorf("unexpected Age header %v", resp1.Header.Get("Age"))
+	}
+	if !strings.Contains(resp1.Header.Get("Cache-Status"), "key=GET-http-localhost:9080-/key-headers-route--my-value") {
+		t.Errorf("unexpected Cache-Status header %v", resp1.Header.Get("Cache-Status"))
+	}
+
+	rq.Header = http.Header{
+		"X-Header":   []string{"first"},
+		"X-Internal": []string{"my-value"},
+	}
+	resp1, _ = tester.AssertResponse(rq, 200, "Hello, headers route!")
+	if resp1.Header.Get("Age") != "" {
+		t.Errorf("unexpected Age header %v", resp1.Header.Get("Age"))
+	}
+	if !strings.Contains(resp1.Header.Get("Cache-Status"), "key=GET-http-localhost:9080-/key-headers-route-first-my-value") {
+		t.Errorf("unexpected Cache-Status header %v", resp1.Header.Get("Cache-Status"))
+	}
+}
+
 func TestNotHandledRoute(t *testing.T) {
 	tester := caddytest.NewTester(t)
 	tester.InitServer(`
@@ -814,6 +896,7 @@ func TestVaryHandler(t *testing.T) {
 			t.Error("The object is not type of *http.Response")
 		}
 
+		fmt.Printf("%d\n%s => %s\n%s => %s\n", ttl, rs.Header.Get("Cache-Status"), rs.Header.Get("Age"), fmt.Sprintf("Souin; hit; ttl=%d; key=GET-http-localhost:9080-/vary-multiple", ttl), fmt.Sprint(120-ttl))
 		if rs.Header.Get("Cache-Status") != fmt.Sprintf("Souin; hit; ttl=%d; key=GET-http-localhost:9080-/vary-multiple", ttl) || rs.Header.Get("Age") != fmt.Sprint(120-ttl) {
 			t.Errorf("The response doesn't match the expected header or age: %s => %s", rs.Header.Get("Cache-Status"), rs.Header.Get("Age"))
 		}

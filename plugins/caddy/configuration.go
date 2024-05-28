@@ -177,6 +177,11 @@ func (c *Configuration) GetUrls() map[string]configurationtypes.URL {
 }
 
 // GetDefaultCache get the default cache
+func (c *Configuration) GetPluginName() string {
+	return "caddy"
+}
+
+// GetDefaultCache get the default cache
 func (c *Configuration) GetDefaultCache() configurationtypes.DefaultCacheInterface {
 	return &c.DefaultCache
 }
@@ -382,6 +387,8 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isGlobal boo
 							ck.DisableQuery = true
 						case "disable_scheme":
 							ck.DisableScheme = true
+						case "template":
+							ck.Template = h.RemainingArgs()[0]
 						case "hash":
 							ck.Hash = true
 						case "hide":
@@ -468,6 +475,8 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isGlobal boo
 						config_key.DisableQuery = true
 					case "disable_scheme":
 						config_key.DisableScheme = true
+					case "template":
+						config_key.Template = h.RemainingArgs()[0]
 					case "hash":
 						config_key.Hash = true
 					case "hide":

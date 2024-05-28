@@ -58,6 +58,9 @@ func (c *CacheKeys) parseJSON(rootDecoder *json.Decoder) {
 			case "hide":
 				val, _ := rootDecoder.Token()
 				key.Hide, _ = strconv.ParseBool(fmt.Sprint(val))
+			case "template":
+				val, _ := rootDecoder.Token()
+				key.Template = fmt.Sprint(val)
 			case "headers":
 				val, _ := rootDecoder.Token()
 				key.Headers = []string{}
@@ -217,6 +220,7 @@ type Key struct {
 	DisableScheme bool     `json:"disable_scheme,omitempty" yaml:"disable_scheme,omitempty"`
 	Hash          bool     `json:"hash,omitempty" yaml:"hash,omitempty"`
 	Hide          bool     `json:"hide,omitempty" yaml:"hide,omitempty"`
+	Template      string   `json:"template,omitempty" yaml:"template,omitempty"`
 	Headers       []string `json:"headers,omitempty" yaml:"headers,omitempty"`
 }
 
@@ -413,6 +417,7 @@ type SurrogateKeys struct {
 // AbstractConfigurationInterface interface
 type AbstractConfigurationInterface interface {
 	GetUrls() map[string]URL
+	GetPluginName() string
 	GetDefaultCache() DefaultCacheInterface
 	GetAPI() API
 	GetLogLevel() string

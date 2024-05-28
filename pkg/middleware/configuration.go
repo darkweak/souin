@@ -13,6 +13,7 @@ type BaseConfiguration struct {
 	URLs          map[string]configurationtypes.URL `json:"urls" yaml:"urls"`
 	LogLevel      string                            `json:"log_level" yaml:"log_level"`
 	Logger        *zap.Logger
+	PluginName    string
 	Ykeys         map[string]configurationtypes.SurrogateKeys `json:"ykeys" yaml:"ykeys"`
 	SurrogateKeys map[string]configurationtypes.SurrogateKeys `json:"surrogate_keys" yaml:"surrogate_keys"`
 }
@@ -20,6 +21,11 @@ type BaseConfiguration struct {
 // GetUrls get the urls list in the configuration
 func (c *BaseConfiguration) GetUrls() map[string]configurationtypes.URL {
 	return c.URLs
+}
+
+// GetPluginName get the plugin name
+func (c *BaseConfiguration) GetPluginName() string {
+	return c.PluginName
 }
 
 // GetDefaultCache get the default cache

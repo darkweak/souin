@@ -1,0 +1,30 @@
+_gitignore/
+*.log
+Caddyfile
+Caddyfile.*
+!caddyfile/
+
+# artifacts from pprof tooling
+*.prof
+*.test
+
+# build artifacts and helpers
+cmd/caddy/caddy
+cmd/caddy/caddy.exe
+cmd/caddy/tmp/*.exe
+cmd/caddy/.env
+
+# mac specific
+.DS_Store
+
+# go modules
+vendor
+
+# goreleaser artifacts
+dist
+caddy-build
+caddy-dist
+
+# IDE files
+.idea/
+.vscode/
