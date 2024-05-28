@@ -19,6 +19,7 @@ type Configuration struct {
 	URLs            map[string]configurationtypes.URL `yaml:"urls"`
 	LogLevel        string                            `yaml:"log_level"`
 	logger          *zap.Logger
+	PluginName      string
 	Ykeys           map[string]configurationtypes.SurrogateKeys `yaml:"ykeys"`
 	SurrogateKeys   map[string]configurationtypes.SurrogateKeys `yaml:"surrogate_keys"`
 }
@@ -52,6 +53,11 @@ func (c *Configuration) GetReverseProxyURL() string {
 // GetSSLProviders get the ssl providers
 func (c *Configuration) GetSSLProviders() []string {
 	return c.SSLProviders
+}
+
+// GetPluginName get the plugin name
+func (c *Configuration) GetPluginName() string {
+	return c.PluginName
 }
 
 // GetDefaultCache get the default cache

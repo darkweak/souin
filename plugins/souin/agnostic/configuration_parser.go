@@ -83,6 +83,8 @@ func parseCacheKeys(ccConfiguration map[string]interface{}) configurationtypes.C
 						ck.Headers = append(ck.Headers, hv.(string))
 					}
 				}
+			case "template":
+				ck.Template = cacheKeysConfigurationVMapV.(string)
 			}
 		}
 		cacheKeys = append(cacheKeys, configurationtypes.CacheKey{{Regexp: regexp.MustCompile(cacheKeysConfigurationK)}: ck})
