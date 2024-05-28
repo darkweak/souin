@@ -5,7 +5,7 @@ go 1.21
 require (
 	github.com/buraksezer/olric v0.5.4
 	github.com/caddyserver/caddy/v2 v2.7.6
-	github.com/darkweak/souin v1.6.47
+	github.com/darkweak/souin v1.6.48
 	go.uber.org/zap v1.26.0
 )
 
@@ -195,4 +195,4 @@ require (
 	howett.net/plist v1.0.0 // indirect
 )
 
-replace github.com/darkweak/souin v1.6.47 => ../..
+replace github.com/darkweak/souin v1.6.48 => ../..

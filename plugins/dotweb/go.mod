@@ -3,7 +3,7 @@ module github.com/darkweak/souin/plugins/dotweb
 go 1.21
 
 require (
-	github.com/darkweak/souin v1.6.47
+	github.com/darkweak/souin v1.6.48
 	github.com/devfeel/dotweb v1.7.21
 )
 
@@ -163,4 +163,4 @@ require (
 	howett.net/plist v1.0.0 // indirect
 )
 
-replace github.com/darkweak/souin v1.6.47 => ../..
+replace github.com/darkweak/souin v1.6.48 => ../..
