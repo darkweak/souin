@@ -3,7 +3,7 @@ info (
 	desc:    "HTTP cache support as plugin for go-zero"
 	author:  "darkweak"
 	email:   "darkweak@protonmail.com"
-	version: "v1.6.47"
+	version: "v1.6.49"
 )
 
 type CacheReq {}

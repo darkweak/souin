@@ -23,7 +23,7 @@ type DefaultCache struct {
 	// The default Cache-Control header value if none set by the upstream server.
 	DefaultCacheControl string `json:"default_cache_control"`
 	// The maximum body size (in bytes) to be stored into cache.
-	MaxBodyBytes uint64 `json:"max_cachable_body_bytes"`
+	MaxBodyBytes uint64 `json:"max_cacheable_body_bytes"`
 	// Redis provider configuration.
 	Distributed bool `json:"distributed"`
 	// Headers to add to the cache key if they are present.
@@ -437,11 +437,11 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isGlobal boo
 			case "default_cache_control":
 				args := h.RemainingArgs()
 				cfg.DefaultCache.DefaultCacheControl = strings.Join(args, " ")
-			case "max_cachable_body_bytes":
+			case "max_cacheable_body_bytes":
 				args := h.RemainingArgs()
 				maxBodyBytes, err := strconv.ParseUint(args[0], 10, 64)
 				if err != nil {
-					return h.Errf("unsupported max_cachable_body_bytes: %s", args)
+					return h.Errf("unsupported max_cacheable_body_bytes: %s", args)
 				} else {
 					cfg.DefaultCache.MaxBodyBytes = maxBodyBytes
 				}

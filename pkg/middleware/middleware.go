@@ -725,12 +725,11 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 				}
 			}
 		}
-	} else {
-		prometheus.Increment(prometheus.NoCachedResponseCounter)
 	}
 
 	errorCacheCh := make(chan error)
 	go func(vr *http.Request, cw *CustomWriter) {
+		prometheus.Increment(prometheus.NoCachedResponseCounter)
 		errorCacheCh <- s.Upstream(cw, vr, next, requestCc, cachedKey)
 	}(req, customWriter)
 

@@ -4,7 +4,7 @@ go 1.21
 
 require (
 	github.com/bnkamalesh/webgo/v6 v6.7.0
-	github.com/darkweak/souin v1.6.48
+	github.com/darkweak/souin v1.6.49
 )
 
 require (
@@ -162,4 +162,4 @@ require (
 	howett.net/plist v1.0.0 // indirect
 )
 
-replace github.com/darkweak/souin v1.6.48 => ../..
+replace github.com/darkweak/souin v1.6.49 => ../..

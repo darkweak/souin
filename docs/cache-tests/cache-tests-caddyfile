@@ -1,5 +1,4 @@
 {
-  order cache before rewrite
   cache {
     api {
       prometheus

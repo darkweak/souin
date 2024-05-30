@@ -375,7 +375,7 @@
 									"",
 									"pm.test(\"Prometheus is populated.\", function () {",
 									"    const result = pm.response.text();",
-									"    pm.expect(result).to.include('souin_request_counter 7');",
+									"    pm.expect(result).to.include('souin_request_upstream_counter 7');",
 									"//    pm.expect(result).to.include('souin_no_cached_response_counter 7');",
 									"//    pm.expect(result).to.include('souin_cached_response_counter 3');",
 									"//    pm.expect(result).to.include('souin_avg_response_time_count 7');",

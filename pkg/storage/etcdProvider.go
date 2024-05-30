@@ -210,7 +210,6 @@ func (provider *Etcd) SetMultiLevel(baseKey, variedKey string, value []byte, var
 	rs, err := provider.Client.Grant(context.TODO(), int64(duration.Seconds()))
 	if err == nil {
 		_, err = provider.Client.Put(provider.ctx, variedKey, compressed.String(), clientv3.WithLease(rs.ID))
-		fmt.Println("Put err =>", err)
 	}
 
 	if err != nil {

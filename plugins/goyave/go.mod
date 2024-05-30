@@ -3,7 +3,7 @@ module github.com/darkweak/souin/plugins/goyave
 go 1.21
 
 require (
-	github.com/darkweak/souin v1.6.48
+	github.com/darkweak/souin v1.6.49
 	goyave.dev/goyave/v4 v4.4.11
 )
 
@@ -169,4 +169,4 @@ require (
 	howett.net/plist v1.0.0 // indirect
 )
 
-replace github.com/darkweak/souin v1.6.48 => ../..
+replace github.com/darkweak/souin v1.6.49 => ../..
