@@ -27,6 +27,7 @@ func init() {
 	caddy.RegisterModule(SouinCaddyMiddleware{})
 	httpcaddyfile.RegisterGlobalOption(moduleName, parseCaddyfileGlobalOption)
 	httpcaddyfile.RegisterHandlerDirective(moduleName, parseCaddyfileHandlerDirective)
+	httpcaddyfile.RegisterDirectiveOrder(moduleName, httpcaddyfile.Before, "rewrite")
 }
 
 // SouinCaddyMiddleware development repository of the cache handler, allows

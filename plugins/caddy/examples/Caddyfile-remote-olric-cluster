@@ -1,5 +1,4 @@
 {
-    order cache before rewrite
     cache {
         log_level info
         olric {

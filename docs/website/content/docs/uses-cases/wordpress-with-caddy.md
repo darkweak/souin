@@ -16,7 +16,6 @@ The following Caddyfile will enable Souin as cache system in caddy. We set dynam
 ```
 {
     default_sni {$SERVER_NAME}
-    order cache before rewrite
     cache {
         api {
             souin

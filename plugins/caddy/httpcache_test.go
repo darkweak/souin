@@ -19,7 +19,6 @@ func TestMinimal(t *testing.T) {
 	tester.InitServer(`
 	{
 		admin localhost:2999
-		order cache before rewrite
 		http_port     9080
 		https_port    9443
 		cache
@@ -53,7 +52,6 @@ func TestHead(t *testing.T) {
 	tester.InitServer(`
 	{
 		admin localhost:2999
-		order cache before rewrite
 		http_port     9080
 		https_port    9443
 		cache
@@ -88,7 +86,6 @@ func TestQueryString(t *testing.T) {
 	tester.InitServer(`
 	{
 		admin localhost:2999
-		order cache before rewrite
 		http_port     9080
 		https_port    9443
 		cache {
@@ -119,7 +116,6 @@ func TestMaxAge(t *testing.T) {
 	tester.InitServer(`
 	{
 		admin localhost:2999
-		order cache before rewrite
 		http_port     9080
 		https_port    9443
 		cache
@@ -154,7 +150,6 @@ func TestMaxStale(t *testing.T) {
 	tester.InitServer(`
 	{
 		admin localhost:2999
-		order cache before rewrite
 		http_port     9080
 		https_port    9443
 		cache {
@@ -385,7 +380,7 @@ func TestMaxBodyByte(t *testing.T) {
 		https_port 9443
 		cache {
 			ttl 5s
-			max_cachable_body_bytes 30
+			max_cacheable_body_bytes 30
 		}
 	}
 	localhost:9080 {
@@ -607,7 +602,6 @@ func TestMustRevalidate(t *testing.T) {
 	tester.InitServer(`
 	{
 		admin localhost:2999
-		order cache before rewrite
 		http_port     9080
 		cache {
 			ttl 5s
@@ -707,7 +701,6 @@ func Test_ETags(t *testing.T) {
 	tester.InitServer(`
 	{
 		admin localhost:2999
-		order cache before rewrite
 		http_port     9080
 		cache {
 			ttl 50s
@@ -896,7 +889,6 @@ func TestVaryHandler(t *testing.T) {
 			t.Error("The object is not type of *http.Response")
 		}
 
-		fmt.Printf("%d\n%s => %s\n%s => %s\n", ttl, rs.Header.Get("Cache-Status"), rs.Header.Get("Age"), fmt.Sprintf("Souin; hit; ttl=%d; key=GET-http-localhost:9080-/vary-multiple", ttl), fmt.Sprint(120-ttl))
 		if rs.Header.Get("Cache-Status") != fmt.Sprintf("Souin; hit; ttl=%d; key=GET-http-localhost:9080-/vary-multiple", ttl) || rs.Header.Get("Age") != fmt.Sprint(120-ttl) {
 			t.Errorf("The response doesn't match the expected header or age: %s => %s", rs.Header.Get("Cache-Status"), rs.Header.Get("Age"))
 		}
@@ -997,7 +989,6 @@ func TestCacheableStatusCode(t *testing.T) {
 		admin localhost:2999
 		http_port     9080
 		https_port    9443
-		order cache before rewrite
 		cache {
 			ttl 10s
 		}

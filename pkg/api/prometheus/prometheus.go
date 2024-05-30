@@ -13,7 +13,7 @@ const (
 	counter = "counter"
 	average = "average"
 
-	RequestCounter             = "souin_request_counter"
+	RequestCounter             = "souin_request_upstream_counter"
 	RequestRevalidationCounter = "souin_request_revalidation_counter"
 	NoCachedResponseCounter    = "souin_no_cached_response_counter"
 	CachedResponseCounter      = "souin_cached_response_counter"
@@ -99,8 +99,8 @@ func push(promType, name, help string) {
 // Run populate and prepare the map with the default values.
 func run() {
 	registered = make(map[string]interface{})
-	push(counter, RequestCounter, "Total request counter")
-	push(counter, RequestRevalidationCounter, "Total request revalidation counter")
+	push(counter, RequestCounter, "Total upstream request counter")
+	push(counter, RequestRevalidationCounter, "Total revalidation request revalidation counter")
 	push(counter, NoCachedResponseCounter, "No cached response counter")
 	push(counter, CachedResponseCounter, "Cached response counter")
 	push(average, AvgResponseTime, "Average response time")

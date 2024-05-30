@@ -330,7 +330,7 @@ func parseDefaultCache(dcConfiguration map[string]config.Value) *configurationty
 			}
 		case "default_cache_control":
 			dc.DefaultCacheControl, _ = defaultCacheV.String()
-		case "max_cachable_body_bytes":
+		case "max_cacheable_body_bytes":
 			mbb, ok := defaultCacheV.Load().(uint64)
 			if ok {
 				dc.MaxBodyBytes = mbb
