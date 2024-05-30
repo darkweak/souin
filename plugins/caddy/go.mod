@@ -7,7 +7,7 @@ toolchain go1.21.2
 require (
 	github.com/buraksezer/olric v0.5.4
 	github.com/caddyserver/caddy/v2 v2.8.1
-	github.com/darkweak/souin v1.6.48
+	github.com/darkweak/souin v1.6.49
 	go.uber.org/zap v1.27.0
 )
 
@@ -200,4 +200,4 @@ require (
 	howett.net/plist v1.0.0 // indirect
 )
 
-replace github.com/darkweak/souin v1.6.48 => ../..
+replace github.com/darkweak/souin v1.6.49 => ../..

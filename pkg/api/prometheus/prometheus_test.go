@@ -19,11 +19,11 @@ func Test_Run(t *testing.T) {
 
 	i, ok := registered[RequestCounter]
 	if !ok {
-		t.Error("The registered array must have the souin_request_counter key")
+		t.Error("The registered array must have the souin_request_upstream_counter key")
 	}
 	_, ok = i.(*prometheus.Counter)
 	if ok {
-		t.Errorf("The souin_request_counter element must be a *prometheus.Counter object, %T given.", i)
+		t.Errorf("The souin_request_upstream_counter element must be a *prometheus.Counter object, %T given.", i)
 	}
 
 	i, ok = registered[RequestRevalidationCounter]
@@ -80,15 +80,15 @@ func Test_Add(t *testing.T) {
 	prometheus.DefaultRegisterer = prometheus.NewRegistry()
 	run()
 	if getMetricValue(registered[RequestCounter].(prometheus.Counter), counter) != 0 {
-		t.Errorf("The souin_request_counter value must be equal to 0 since it's not updated, %f given.", getMetricValue(registered[RequestCounter].(prometheus.Counter), counter))
+		t.Errorf("The souin_request_upstream_counter value must be equal to 0 since it's not updated, %f given.", getMetricValue(registered[RequestCounter].(prometheus.Counter), counter))
 	}
 	Add(RequestCounter, 12.34)
 	if getMetricValue(registered[RequestCounter].(prometheus.Counter), counter) != 12.34 {
-		t.Errorf("The souin_request_counter value must be equal to 12.34 when it's updated with it, %f given.", getMetricValue(registered[RequestCounter].(prometheus.Counter), counter))
+		t.Errorf("The souin_request_upstream_counter value must be equal to 12.34 when it's updated with it, %f given.", getMetricValue(registered[RequestCounter].(prometheus.Counter), counter))
 	}
 	Add(RequestCounter, 1.2)
 	if getMetricValue(registered[RequestCounter].(prometheus.Counter), counter) != 13.54 {
-		t.Errorf("The souin_request_counter value must be equal to 13.54 when it's updated with +1.2, %f given.", getMetricValue(registered[RequestCounter].(prometheus.Counter), counter))
+		t.Errorf("The souin_request_upstream_counter value must be equal to 13.54 when it's updated with +1.2, %f given.", getMetricValue(registered[RequestCounter].(prometheus.Counter), counter))
 	}
 	if getMetricValue(registered[AvgResponseTime].(prometheus.Histogram), average) != 0 {
 		t.Errorf("The souin_avg_response_time value must be equal to 0 since it's not updated, %f given.", getMetricValue(registered[AvgResponseTime].(prometheus.Histogram), average))
@@ -107,15 +107,15 @@ func Test_Increment(t *testing.T) {
 	prometheus.DefaultRegisterer = prometheus.NewRegistry()
 	run()
 	if getMetricValue(registered[RequestCounter].(prometheus.Counter), counter) != 0 {
-		t.Errorf("The souin_request_counter value must be equal to 0 since it's not incremented yet, %f given.", getMetricValue(registered[RequestCounter].(prometheus.Counter), counter))
+		t.Errorf("The souin_request_upstream_counter value must be equal to 0 since it's not incremented yet, %f given.", getMetricValue(registered[RequestCounter].(prometheus.Counter), counter))
 	}
 	Increment(RequestCounter)
 	if getMetricValue(registered[RequestCounter].(prometheus.Counter), counter) != 1.00 {
-		t.Errorf("The souin_request_counter value must be equal to 1.00 when it's incremented once, %f given.", getMetricValue(registered[RequestCounter].(prometheus.Counter), counter))
+		t.Errorf("The souin_request_upstream_counter value must be equal to 1.00 when it's incremented once, %f given.", getMetricValue(registered[RequestCounter].(prometheus.Counter), counter))
 	}
 	Increment(RequestCounter)
 	if getMetricValue(registered[RequestCounter].(prometheus.Counter), counter) != 2.00 {
-		t.Errorf("The souin_request_counter value must be equal to 2.00 when it's incremented twice, %f given.", getMetricValue(registered[RequestCounter].(prometheus.Counter), counter))
+		t.Errorf("The souin_request_upstream_counter value must be equal to 2.00 when it's incremented twice, %f given.", getMetricValue(registered[RequestCounter].(prometheus.Counter), counter))
 	}
 }
 
