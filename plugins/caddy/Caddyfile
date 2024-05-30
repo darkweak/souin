@@ -1,5 +1,4 @@
 {
-    order cache before rewrite
     debug
     log {
         level debug

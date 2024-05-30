@@ -19,7 +19,6 @@ func TestMinimal(t *testing.T) {
 	tester.InitServer(`
 	{
 		admin localhost:2999
-		order cache before rewrite
 		http_port     9080
 		https_port    9443
 		cache
@@ -53,7 +52,6 @@ func TestHead(t *testing.T) {
 	tester.InitServer(`
 	{
 		admin localhost:2999
-		order cache before rewrite
 		http_port     9080
 		https_port    9443
 		cache
@@ -88,7 +86,6 @@ func TestQueryString(t *testing.T) {
 	tester.InitServer(`
 	{
 		admin localhost:2999
-		order cache before rewrite
 		http_port     9080
 		https_port    9443
 		cache {
@@ -119,7 +116,6 @@ func TestMaxAge(t *testing.T) {
 	tester.InitServer(`
 	{
 		admin localhost:2999
-		order cache before rewrite
 		http_port     9080
 		https_port    9443
 		cache
@@ -154,7 +150,6 @@ func TestMaxStale(t *testing.T) {
 	tester.InitServer(`
 	{
 		admin localhost:2999
-		order cache before rewrite
 		http_port     9080
 		https_port    9443
 		cache {
@@ -607,7 +602,6 @@ func TestMustRevalidate(t *testing.T) {
 	tester.InitServer(`
 	{
 		admin localhost:2999
-		order cache before rewrite
 		http_port     9080
 		cache {
 			ttl 5s
@@ -707,7 +701,6 @@ func Test_ETags(t *testing.T) {
 	tester.InitServer(`
 	{
 		admin localhost:2999
-		order cache before rewrite
 		http_port     9080
 		cache {
 			ttl 50s
@@ -997,7 +990,6 @@ func TestCacheableStatusCode(t *testing.T) {
 		admin localhost:2999
 		http_port     9080
 		https_port    9443
-		order cache before rewrite
 		cache {
 			ttl 10s
 		}

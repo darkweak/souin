@@ -16,7 +16,6 @@ This is a distributed HTTP cache module for Caddy based on [Souin](https://githu
 Using the minimal configuration the responses will be cached for `120s`
 ```caddy
 {
-    order cache before rewrite
     cache
 }
 
@@ -30,7 +29,6 @@ example.com {
 Here are all the available options for the global options
 ```caddy
 {
-    order cache before rewrite
     log {
         level debug
     }
