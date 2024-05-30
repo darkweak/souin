@@ -196,6 +196,7 @@ surrogate_keys:
 | `default_cache.badger`                            | Configure the Badger cache storage                                                                                                          |                                                                                                                           |
 | `default_cache.badger.path`                       | Configure Badger with a file                                                                                                                | `/anywhere/badger_configuration.json`                                                                                     |
 | `default_cache.badger.configuration`              | Configure Badger directly in the Caddyfile or your JSON caddy configuration                                                                 | [See the Badger configuration for the options](https://dgraph.io/docs/badger/get-started/)                                |
+| `default_cache.default_cache_control`             | Set the default value of `Cache-Control` response header if not set by upstream (Souin treats empty `Cache-Control` as `public` if omitted) | `no-store`                                                                                                                |
 | `default_cache.etcd`                              | Configure the Etcd cache storage                                                                                                            |                                                                                                                           |
 | `default_cache.etcd.configuration`                | Configure Etcd directly in the Caddyfile or your JSON caddy configuration                                                                   | [See the Etcd configuration for the options](https://pkg.go.dev/go.etcd.io/etcd/clientv3#Config)                          |
 | `default_cache.etcd`                              | Configure the Etcd cache storage                                                                                                            |                                                                                                                           |
@@ -210,6 +211,7 @@ surrogate_keys:
 | `default_cache.key.headers`                       | Add headers to the key matching the regexp                                                                                                  | `- Authorization`<br/><br/>`- Content-Type`<br/><br/>`- X-Additional-Header`                                              |
 | `default_cache.key.hide`                          | Prevent the key from being exposed in the `Cache-Status` HTTP response header                                                               | `true`<br/><br/>`(default: false)`                                                                                        |
 | `default_cache.key.template`                      | Use caddy placeholders to create the key (when this option is enabled, disable_* directives are skipped)                                    | [Placeholders documentation](https://caddyserver.com/docs/caddyfile/concepts#placeholders)                                |
+| `default_cache.max_cacheable_body_bytes`           | Set the maximum size (in bytes) for a response body to be cached (unlimited if omited)                                                      | `1048576` (1MB)                                                                                                           |
 | `default_cache.mode`                              | RFC respect tweaking                                                                                                                        | One of `bypass` `bypass_request` `bypass_response` `strict` (default `strict`)                                            |
 | `default_cache.nuts`                              | Configure the Nuts cache storage                                                                                                            |                                                                                                                           |
 | `default_cache.nuts.path`                         | Set the Nuts file path storage                                                                                                              | `/anywhere/nuts/storage`                                                                                                  |
@@ -217,6 +219,9 @@ surrogate_keys:
 | `default_cache.olric`                             | Configure the Olric cache storage                                                                                                           |                                                                                                                           |
 | `default_cache.olric.path`                        | Configure Olric with a file                                                                                                                 | `/anywhere/olric_configuration.json`                                                                                      |
 | `default_cache.olric.configuration`               | Configure Olric directly in the Caddyfile or your JSON caddy configuration                                                                  | [See the Olric configuration for the options](https://github.com/buraksezer/olric/blob/master/cmd/olricd/olricd.yaml/)    |
+| `default_cache.otter`                             | Configure the Otter cache storage                                                                                                           |                                                                                                                           |
+| `default_cache.otter.configuration`               | Configure Otter directly in the Caddyfile or your JSON caddy configuration                                                                  |                                                                                                                           |
+| `default_cache.otter.configuration.size`          | Set the size of the pool in Otter                                                                                                           | `999999` (default `10000`)                                                                                                |
 | `default_cache.port.{web,tls}`                    | The device's local HTTP/TLS port that Souin should be listening on                                                                          | Respectively `80` and `443`                                                                                               |
 | `default_cache.regex.exclude`                     | The regex used to prevent paths being cached                                                                                                | `^[A-z]+.*$`                                                                                                              |
 | `default_cache.stale`                             | The stale duration                                                                                                                          | `25m`                                                                                                                     |
@@ -224,8 +229,6 @@ surrogate_keys:
 | `default_cache.timeout.backend`                   | The timeout duration to consider the backend as unreachable                                                                                 | `10s`                                                                                                                     |
 | `default_cache.timeout.cache`                     | The timeout duration to consider the cache provider as unreachable                                                                          | `10ms`                                                                                                                    |
 | `default_cache.ttl`                               | The TTL duration                                                                                                                            | `120s`                                                                                                                    |
-| `default_cache.default_cache_control`             | Set the default value of `Cache-Control` response header if not set by upstream (Souin treats empty `Cache-Control` as `public` if omitted) | `no-store`                                                                                                                |
-| `default_cache.max_cachable_body_bytes`                    | Set the maximum size (in bytes) for a response body to be cached (unlimited if omited) | `1048576` (1MB) |
 | `log_level`                                       | The log level                                                                                                                               | `One of DEBUG, INFO, WARN, ERROR, DPANIC, PANIC, FATAL it's case insensitive`                                             |
 | `reverse_proxy_url`                               | The reverse-proxy's instance URL (Apache, Nginx, Træfik...)                                                                                 | - `http://yourservice` (Container way)<br/>`http://localhost:81` (Local way)<br/>`http://yourdomain.com:81` (Network way) |
 | `ssl_providers`                                   | List of your providers handling certificates                                                                                                | `- traefik`<br/><br/>`- nginx`<br/><br/>`- apache`                                                                        |
@@ -251,12 +254,12 @@ The base path for the prometheus API is `/metrics`.
 |:--------|:---------|:----------------------------------------|
 | `GET`   | `/`      | Expose the different keys listed below. |
 
-| Key                                | Definition                      |
-|:-----------------------------------|:--------------------------------|
-| `souin_request_counter`            | Count the incoming requests     |
-| `souin_no_cached_response_counter` | Count the uncacheable responses |
-| `souin_cached_response_counter`    | Count the cacheable responses   |
-| `souin_avg_response_time`          | Average response time           |
+| Key                                | Definition                                          |
+|:-----------------------------------|:----------------------------------------------------|
+| `souin_request_upstream_counter`   | Count the incoming requests that go to the upstream |
+| `souin_no_cached_response_counter` | Count the uncacheable responses                     |
+| `souin_cached_response_counter`    | Count the cacheable responses                       |
+| `souin_avg_response_time`          | Average response time                               |
 
 ### Souin API
 Souin API allow users to manage the cache.  
@@ -321,6 +324,15 @@ The cache system sits on top of three providers at the moment. It provides two i
     "NodeNum": 42,
     "SyncEnable": true,
     "StartFileLoadingMode": 1
+  }
+}
+```
+
+**The Otter provider**: you can tune its configuration using the otter configuration inside your Souin configuration. In order to do that, you have to declare the `otter` block. See the following json example.
+```json
+"otter": {
+  "configuration": {
+    "size": 9999999
   }
 }
 ```
@@ -454,7 +466,6 @@ xcaddy build --with github.com/darkweak/souin/plugins/caddy
 There is the fully configuration below
 ```caddy
 {
-    order cache before rewrite
     log {
         level debug
     }

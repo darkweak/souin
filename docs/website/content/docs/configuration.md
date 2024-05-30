@@ -66,6 +66,12 @@ default: `false`
 * **disable_query**: Prevent the URL query to be part of the generated key.  
 default: `false`
 
+* **disable_scheme**: Prevent the scheme to be part of the generated key.  
+default: `false`
+
+* **hash**: Hash the key in the storage.  
+default: `false`
+
 * **headers**: Add specific headers to the generated key.  
 
 * **hide**: Prevent the key from being exposed in the `Cache-Status` HTTP response header.  
@@ -147,10 +153,21 @@ default: `false`
 * **disable_query**: Prevent the URL query to be part of the generated key.  
 default: `false`
 
+* **disable_scheme**: Prevent the scheme to be part of the generated key.  
+default: `false`
+
+* **hash**: Hash the key in the storage.  
+default: `false`
+
 * **headers**: Add specific headers to the generated key.  
 
 * **hide**: Prevent the key from being exposed in the `Cache-Status` HTTP response header.  
 default: `false`
+
+#### Max cacheable body bytes
+Limit to define if the body size is allowed to be cached. (e.g. `1048576` (1MB)).  
+If a limit is set, your streamed/chunk responses won't be cached.  
+default: `unlimited`
 
 #### Mode
 The mode prefix allow you to bypass some RFC requirements. (e.g. `default_cache.mode`).  
@@ -179,6 +196,12 @@ The olric prefix configure the olric storage. (e.g. `default_cache.olric`).
 * **configuration**: Configure the Embedded Olric instance directly in your configuration file. It won't connect to an external olric instance.  
 [See the Embedded Olric configuration for the options]({{% relref "/docs/storages/embedded-olric" %}})
 
+#### Otter
+The otter prefix configure the otter storage. (e.g. `default_cache.otter`).
+
+* **configuration**: Configure Otter directly in your configuration file.  
+[See the Otter configuration for the options]({{% relref "/docs/storages/otter" %}})
+
 #### Regex
 The regex prefix configure the actions to do on URL that match the regex. (e.g. `default_cache.regex`).
 
@@ -188,6 +211,10 @@ example: `^[A-z]+.*$`
 #### Stale
 The stale prefix configure the duration to keep the stale responses in the storage. (e.g. `default_cache.stale`).  
 example: `1d`
+
+#### Storers
+The storers prefix configure the order to use the storages, with that you'll be able to chain them, use a local in-memory and fallback to a redis or distributed one that is slower. (e.g. `default_cache.storers`).  
+example: `[nuts otter badger]`
 
 #### Timeout
 The timeout prefix configure the timeouts. (e.g. `default_cache.timeout`).
