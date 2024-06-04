@@ -113,7 +113,7 @@ func writeChunk(filename string, data []byte, hasHeaderFooter bool, header, foot
 		}
 	}
 	if !hasHeaderFooter {
-		f.WriteString(fmt.Sprintf("%s @ %s\n", header, time.Now().UTC().Format(time.RFC3339)))
+		fmt.Fprintf(f, "%s @ %s\n", header, time.Now().UTC().Format(time.RFC3339))
 	}
 	f.Write(data)
 	if !bytes.HasSuffix(data, []byte("\n")) {

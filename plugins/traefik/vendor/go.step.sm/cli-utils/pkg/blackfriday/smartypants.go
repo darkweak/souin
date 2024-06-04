@@ -13,6 +13,7 @@
 //
 //
 
+//nolint:gocritic,revive // ignore blackfriday
 package blackfriday
 
 import (

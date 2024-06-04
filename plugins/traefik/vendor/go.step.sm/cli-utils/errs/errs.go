@@ -115,13 +115,13 @@ func TooManyArguments(ctx *cli.Context) error {
 
 // InsecureArgument returns an error with the given argument requiring the
 // --insecure flag.
-func InsecureArgument(ctx *cli.Context, name string) error {
+func InsecureArgument(_ *cli.Context, name string) error {
 	return fmt.Errorf("positional argument <%s> requires the '--insecure' flag", name)
 }
 
 // FlagValueInsecure returns an error with the given flag and value requiring
 // the --insecure flag.
-func FlagValueInsecure(ctx *cli.Context, flag, value string) error {
+func FlagValueInsecure(_ *cli.Context, flag, value string) error {
 	return fmt.Errorf("flag '--%s %s' requires the '--insecure' flag", flag, value)
 }
 
@@ -139,7 +139,7 @@ func InvalidFlagValue(ctx *cli.Context, flag, value, options string) error {
 // InvalidFlagValueMsg returns an error with the given value being missing or
 // invalid for the given flag. Optionally it returns an error message to aid
 // in debugging.
-func InvalidFlagValueMsg(ctx *cli.Context, flag, value, msg string) error {
+func InvalidFlagValueMsg(_ *cli.Context, flag, value, msg string) error {
 	var format string
 	if value == "" {
 		format = fmt.Sprintf("missing value for flag '--%s'", flag)
@@ -156,19 +156,19 @@ func InvalidFlagValueMsg(ctx *cli.Context, flag, value, msg string) error {
 
 // IncompatibleFlag returns an error with the flag being incompatible with the
 // given value.
-func IncompatibleFlag(ctx *cli.Context, flag, value string) error {
+func IncompatibleFlag(_ *cli.Context, flag, value string) error {
 	return fmt.Errorf("flag '--%s' is incompatible with '%s'", flag, value)
 }
 
 // IncompatibleFlagWithFlag returns an error with the flag being incompatible with the
 // given value.
-func IncompatibleFlagWithFlag(ctx *cli.Context, flag, withFlag string) error {
+func IncompatibleFlagWithFlag(_ *cli.Context, flag, withFlag string) error {
 	return fmt.Errorf("flag '--%s' is incompatible with '--%s'", flag, withFlag)
 }
 
 // IncompatibleFlagValue returns an error with the flag being incompatible with the
 // given value.
-func IncompatibleFlagValue(ctx *cli.Context, flag, incompatibleWith,
+func IncompatibleFlagValue(_ *cli.Context, flag, incompatibleWith,
 	incompatibleWithValue string) error {
 	return fmt.Errorf("flag '--%s' is incompatible with flag '--%s %s'",
 		flag, incompatibleWith, incompatibleWithValue)
@@ -185,7 +185,7 @@ func IncompatibleFlagValues(ctx *cli.Context, flag, value, incompatibleWith,
 // IncompatibleFlagValueWithFlagValue returns an error with the given value
 // being missing or invalid for the given flag. Optionally it lists the given
 // formatted options at the end.
-func IncompatibleFlagValueWithFlagValue(ctx *cli.Context, flag, value,
+func IncompatibleFlagValueWithFlagValue(_ *cli.Context, flag, value,
 	withFlag, withValue, options string) error {
 	format := fmt.Sprintf("flag '--%s %s' is incompatible with flag '--%s %s'",
 		flag, value, withFlag, withValue)
@@ -205,29 +205,29 @@ func RequiredFlag(ctx *cli.Context, flag string) error {
 }
 
 // RequiredWithFlag returns an error with the required flag message with another flag.
-func RequiredWithFlag(ctx *cli.Context, flag, required string) error {
+func RequiredWithFlag(_ *cli.Context, flag, required string) error {
 	return fmt.Errorf("flag '--%s' requires the '--%s' flag", flag, required)
 }
 
 // RequiredWithFlagValue returns an error with the required flag message.
-func RequiredWithFlagValue(ctx *cli.Context, flag, value, required string) error {
+func RequiredWithFlagValue(_ *cli.Context, flag, value, required string) error {
 	return fmt.Errorf("'--%s %s' requires the '--%s' flag", flag, value, required)
 }
 
 // RequiredWithProvisionerTypeFlag returns an error with the required flag message.
-func RequiredWithProvisionerTypeFlag(ctx *cli.Context, provisionerType, required string) error {
+func RequiredWithProvisionerTypeFlag(_ *cli.Context, provisionerType, required string) error {
 	return fmt.Errorf("provisioner type '%s' requires the '--%s' flag", provisionerType, required)
 }
 
 // RequiredInsecureFlag returns an error with the given flag requiring the
 // insecure flag message.
-func RequiredInsecureFlag(ctx *cli.Context, flag string) error {
+func RequiredInsecureFlag(_ *cli.Context, flag string) error {
 	return fmt.Errorf("flag '--%s' requires the '--insecure' flag", flag)
 }
 
 // RequiredSubtleFlag returns an error with the given flag requiring the
 // subtle flag message..
-func RequiredSubtleFlag(ctx *cli.Context, flag string) error {
+func RequiredSubtleFlag(_ *cli.Context, flag string) error {
 	return fmt.Errorf("flag '--%s' requires the '--subtle' flag", flag)
 }
 
@@ -239,7 +239,7 @@ func RequiredUnlessInsecureFlag(ctx *cli.Context, flag string) error {
 
 // RequiredUnlessFlag returns an error with the required flag message unless
 // the specified flag is used.
-func RequiredUnlessFlag(ctx *cli.Context, flag, unlessFlag string) error {
+func RequiredUnlessFlag(_ *cli.Context, flag, unlessFlag string) error {
 	return fmt.Errorf("flag '--%s' is required unless the '--%s' flag is provided", flag, unlessFlag)
 }
 
@@ -250,7 +250,7 @@ func RequiredUnlessSubtleFlag(ctx *cli.Context, flag string) error {
 }
 
 // RequiredOrFlag returns an error with a list of flags being required messages.
-func RequiredOrFlag(ctx *cli.Context, flags ...string) error {
+func RequiredOrFlag(_ *cli.Context, flags ...string) error {
 	params := make([]string, len(flags))
 	for i, flag := range flags {
 		params[i] = "--" + flag
@@ -260,7 +260,7 @@ func RequiredOrFlag(ctx *cli.Context, flags ...string) error {
 
 // RequiredWithOrFlag returns an error with a list of flags at least one of which
 // is required in conjunction with the last flag in the list.
-func RequiredWithOrFlag(ctx *cli.Context, withFlag string, flags ...string) error {
+func RequiredWithOrFlag(_ *cli.Context, withFlag string, flags ...string) error {
 	params := make([]string, len(flags))
 	for i := 0; i < len(flags); i++ {
 		params[i] = "--" + flags[i]
@@ -270,25 +270,25 @@ func RequiredWithOrFlag(ctx *cli.Context, withFlag string, flags ...string) erro
 
 // MinSizeFlag returns an error with a greater or equal message message for
 // the given flag and size.
-func MinSizeFlag(ctx *cli.Context, flag, size string) error {
+func MinSizeFlag(_ *cli.Context, flag, size string) error {
 	return fmt.Errorf("flag '--%s' must be greater than or equal to %s", flag, size)
 }
 
 // MinSizeInsecureFlag returns an error with a requiring --insecure flag
 // message with the given flag an size.
-func MinSizeInsecureFlag(ctx *cli.Context, flag, size string) error {
+func MinSizeInsecureFlag(_ *cli.Context, flag, size string) error {
 	return fmt.Errorf("flag '--%s' requires at least %s unless '--insecure' flag is provided", flag, size)
 }
 
 // MutuallyExclusiveFlags returns an error with mutually exclusive message for
 // the given flags.
-func MutuallyExclusiveFlags(ctx *cli.Context, flag1, flag2 string) error {
+func MutuallyExclusiveFlags(_ *cli.Context, flag1, flag2 string) error {
 	return fmt.Errorf("flag '--%s' and flag '--%s' are mutually exclusive", flag1, flag2)
 }
 
 // UnsupportedFlag returns an error with a message saying that the given flag is
 // not yet supported.
-func UnsupportedFlag(ctx *cli.Context, flag string) error {
+func UnsupportedFlag(_ *cli.Context, flag string) error {
 	return fmt.Errorf("flag '--%s' is not yet supported", flag)
 }
 

@@ -87,7 +87,7 @@ func (t *JavaTrust) Install(filename string, cert *x509.Certificate) error {
 }
 
 // Uninstall implements the Trust interface.
-func (t *JavaTrust) Uninstall(filename string, cert *x509.Certificate) error {
+func (t *JavaTrust) Uninstall(_ string, cert *x509.Certificate) error {
 	args := []string{
 		"-delete",
 		"-alias", uniqueName(cert),

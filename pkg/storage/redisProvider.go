@@ -195,7 +195,13 @@ func (provider *Redis) Prefix(key string) []string {
 
 // Set method will store the response in Etcd provider
 func (provider *Redis) Set(key string, value []byte, url t.URL, duration time.Duration) error {
-	err := provider.inClient.Do(provider.ctx, provider.inClient.B().Set().Key(key).Value(string(value)).Ex(duration+provider.stale).Build()).Error()
+	var cmd redis.Completed
+	if duration == -1 {
+		cmd = provider.inClient.B().Set().Key(key).Value(string(value)).Build()
+	} else {
+		cmd = provider.inClient.B().Set().Key(key).Value(string(value)).Ex(duration + provider.stale).Build()
+	}
+	err := provider.inClient.Do(provider.ctx, cmd).Error()
 	if err != nil {
 		provider.logger.Sugar().Errorf("Impossible to set value into Redis, %v", err)
 	}

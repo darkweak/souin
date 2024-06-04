@@ -1,3 +1,46 @@
+# 4.18.3 (March 9, 2024)
+
+Use spaces instead of parentheses for SQL sanitization.
+
+This still solves the problem of negative numbers creating a line comment, but this avoids breaking edge cases such as
+`set foo to $1` where the substitution is taking place in a location where an arbitrary expression is not allowed.
+
+# 4.18.2 (March 4, 2024)
+
+Fix CVE-2024-27289
+
+SQL injection can occur when all of the following conditions are met:
+
+1. The non-default simple protocol is used.
+2. A placeholder for a numeric value must be immediately preceded by a minus.
+3. There must be a second placeholder for a string value after the first placeholder; both must be on the same line.
+4. Both parameter values must be user-controlled.
+
+Thanks to Paul Gerste for reporting this issue.
+
+Fix CVE-2024-27304
+
+SQL injection can occur if an attacker can cause a single query or bind message to exceed 4 GB in size. An integer
+overflow in the calculated message size can cause the one large message to be sent as multiple messages under the
+attacker's control.
+
+Thanks to Paul Gerste for reporting this issue.
+
+* Fix *dbTx.Exec not checking if it is already closed
+
+# 4.18.1 (February 27, 2023)
+
+* Fix: Support pgx v4 and v5 stdlib in same program (Tomáš Procházka)
+
+# 4.18.0 (February 11, 2023)
+
+* Upgrade pgconn to v1.14.0
+* Upgrade pgproto3 to v2.3.2
+* Upgrade pgtype to v1.14.0
+* Fix query sanitizer when query text contains Unicode replacement character
+* Fix context with value in BeforeConnect (David Harju)
+* Support pgx v4 and v5 stdlib in same program (Vitalii Solodilov)
+
 # 4.17.2 (September 3, 2022)
 
 * Fix panic when logging batch error (Tom Möller)

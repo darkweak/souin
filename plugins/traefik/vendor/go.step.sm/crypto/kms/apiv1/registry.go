@@ -13,12 +13,12 @@ type KeyManagerNewFunc func(ctx context.Context, opts Options) (KeyManager, erro
 
 // Register adds to the registry a method to create a KeyManager of type t.
 func Register(t Type, fn KeyManagerNewFunc) {
-	registry.Store(t, fn)
+	registry.Store(t.normalize(), fn)
 }
 
 // LoadKeyManagerNewFunc returns the function initialize a KayManager.
 func LoadKeyManagerNewFunc(t Type) (KeyManagerNewFunc, bool) {
-	v, ok := registry.Load(t)
+	v, ok := registry.Load(t.normalize())
 	if !ok {
 		return nil, false
 	}

@@ -28,14 +28,14 @@ type client struct {
 
 	initialPacketNumber  protocol.PacketNumber
 	hasNegotiatedVersion bool
-	version              protocol.VersionNumber
+	version              protocol.Version
 
 	handshakeChan chan struct{}
 
 	conn quicConn
 
 	tracer    *logging.ConnectionTracer
-	tracingID uint64
+	tracingID ConnectionTracingID
 	logger    utils.Logger
 }
 
@@ -232,7 +232,7 @@ func (c *client) dial(ctx context.Context) error {
 
 	select {
 	case <-ctx.Done():
-		c.conn.shutdown()
+		c.conn.destroy(nil)
 		return context.Cause(ctx)
 	case err := <-errorChan:
 		return err

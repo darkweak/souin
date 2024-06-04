@@ -80,7 +80,7 @@ func (t *NSSTrust) Install(filename string, cert *x509.Certificate) error {
 }
 
 // Uninstall implements the Trust interface.
-func (t *NSSTrust) Uninstall(filename string, cert *x509.Certificate) (err error) {
+func (t *NSSTrust) Uninstall(_ string, cert *x509.Certificate) (err error) {
 	forEachNSSProfile(func(profile string) {
 		if err != nil {
 			return
