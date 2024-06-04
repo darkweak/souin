@@ -23,34 +23,34 @@ func convertName(s string) string {
 }
 
 // Names used for key usages.
-var (
-	KeyUsageDigitalSignature  = convertName("DigitalSignature")
-	KeyUsageContentCommitment = convertName("ContentCommitment")
-	KeyUsageKeyEncipherment   = convertName("KeyEncipherment")
-	KeyUsageDataEncipherment  = convertName("DataEncipherment")
-	KeyUsageKeyAgreement      = convertName("KeyAgreement")
-	KeyUsageCertSign          = convertName("CertSign")
-	KeyUsageCRLSign           = convertName("CRLSign")
-	KeyUsageEncipherOnly      = convertName("EncipherOnly")
-	KeyUsageDecipherOnly      = convertName("DecipherOnly")
+const (
+	KeyUsageDigitalSignature  = "digitalSignature"
+	KeyUsageContentCommitment = "contentCommitment"
+	KeyUsageKeyEncipherment   = "keyEncipherment"
+	KeyUsageDataEncipherment  = "dataEncipherment"
+	KeyUsageKeyAgreement      = "keyAgreement"
+	KeyUsageCertSign          = "certSign"
+	KeyUsageCRLSign           = "crlSign"
+	KeyUsageEncipherOnly      = "encipherOnly"
+	KeyUsageDecipherOnly      = "decipherOnly"
 )
 
 // Names used for extended key usages.
-var (
-	ExtKeyUsageAny                            = convertName("Any")
-	ExtKeyUsageServerAuth                     = convertName("ServerAuth")
-	ExtKeyUsageClientAuth                     = convertName("ClientAuth")
-	ExtKeyUsageCodeSigning                    = convertName("CodeSigning")
-	ExtKeyUsageEmailProtection                = convertName("EmailProtection")
-	ExtKeyUsageIPSECEndSystem                 = convertName("IPSECEndSystem")
-	ExtKeyUsageIPSECTunnel                    = convertName("IPSECTunnel")
-	ExtKeyUsageIPSECUser                      = convertName("IPSECUser")
-	ExtKeyUsageTimeStamping                   = convertName("TimeStamping")
-	ExtKeyUsageOCSPSigning                    = convertName("OCSPSigning")
-	ExtKeyUsageMicrosoftServerGatedCrypto     = convertName("MicrosoftServerGatedCrypto")
-	ExtKeyUsageNetscapeServerGatedCrypto      = convertName("NetscapeServerGatedCrypto")
-	ExtKeyUsageMicrosoftCommercialCodeSigning = convertName("MicrosoftCommercialCodeSigning")
-	ExtKeyUsageMicrosoftKernelCodeSigning     = convertName("MicrosoftKernelCodeSigning")
+const (
+	ExtKeyUsageAny                            = "any"
+	ExtKeyUsageServerAuth                     = "serverAuth"
+	ExtKeyUsageClientAuth                     = "clientAuth"
+	ExtKeyUsageCodeSigning                    = "codeSigning"
+	ExtKeyUsageEmailProtection                = "emailProtection"
+	ExtKeyUsageIPSECEndSystem                 = "ipsecEndSystem"
+	ExtKeyUsageIPSECTunnel                    = "ipsecTunnel"
+	ExtKeyUsageIPSECUser                      = "ipsecUser"
+	ExtKeyUsageTimeStamping                   = "timeStamping"
+	ExtKeyUsageOCSPSigning                    = "ocspSigning"
+	ExtKeyUsageMicrosoftServerGatedCrypto     = "microsoftServerGatedCrypto"
+	ExtKeyUsageNetscapeServerGatedCrypto      = "netscapeServerGatedCrypto"
+	ExtKeyUsageMicrosoftCommercialCodeSigning = "microsoftCommercialCodeSigning"
+	ExtKeyUsageMicrosoftKernelCodeSigning     = "microsoftKernelCodeSigning"
 )
 
 // Names used and SubjectAlternativeNames types.
@@ -66,6 +66,7 @@ const (
 	RegisteredIDType        = "registeredID"
 	PermanentIdentifierType = "permanentIdentifier"
 	HardwareModuleNameType  = "hardwareModuleName"
+	UserPrincipalNameType   = "userPrincipalName"
 )
 
 //nolint:deadcode // ignore
@@ -86,6 +87,16 @@ const (
 // is "[type:]value", printable will be used as default type if none is
 // provided.
 const sanTypeSeparator = ":"
+
+// User Principal Name or UPN is a subject alternative name used for smart card
+// logon. This OID is associated with Microsoft cryptography and has the
+// internal name of szOID_NT_PRINCIPAL_NAME.
+//
+// The UPN is defined in Microsoft Open Specifications and Windows client
+// documentation for IT Pros:
+//   - https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-wcce/ea9ef420-4cbf-44bc-b093-c4175139f90f
+//   - https://learn.microsoft.com/en-us/windows/security/identity-protection/smart-cards/smart-card-certificate-requirements-and-enumeration
+var oidUserPrincipalName = []int{1, 3, 6, 1, 4, 1, 311, 20, 2, 3}
 
 // RFC 4043 - https://datatracker.ietf.org/doc/html/rfc4043
 var oidPermanentIdentifier = []int{1, 3, 6, 1, 5, 5, 7, 8, 3}
@@ -328,7 +339,7 @@ func (s SubjectAlternativeName) RawValue() (asn1.RawValue, error) {
 		return asn1.RawValue{Tag: nameTypeIP, Class: asn1.ClassContextSpecific, Bytes: ip}, nil
 	case RegisteredIDType:
 		if s.Value == "" {
-			return zero, errors.New("error parsing RegisteredID SAN: blank value is not allowed")
+			return zero, errors.New("error parsing RegisteredID SAN: empty value is not allowed")
 		}
 		oid, err := parseObjectIdentifier(s.Value)
 		if err != nil {
@@ -356,11 +367,17 @@ func (s SubjectAlternativeName) RawValue() (asn1.RawValue, error) {
 		}
 		return otherName, nil
 	case HardwareModuleNameType:
-		if len(s.ASN1Value) == 0 {
-			return zero, errors.New("error parsing HardwareModuleName SAN: empty asn1Value is not allowed")
+		var data []byte
+		switch {
+		case len(s.ASN1Value) != 0:
+			data = s.ASN1Value
+		case s.Value != "":
+			data = []byte(s.Value)
+		default:
+			return zero, errors.New("error parsing HardwareModuleName SAN: empty value or asn1Value is not allowed")
 		}
 		var v HardwareModuleName
-		if err := json.Unmarshal(s.ASN1Value, &v); err != nil {
+		if err := json.Unmarshal(data, &v); err != nil {
 			return zero, errors.Wrap(err, "error unmarshaling HardwareModuleName SAN")
 		}
 		otherName, err := marshalOtherName(oidHardwareModuleNameIdentifier, v.asn1Type())
@@ -369,11 +386,17 @@ func (s SubjectAlternativeName) RawValue() (asn1.RawValue, error) {
 		}
 		return otherName, nil
 	case DirectoryNameType:
-		if len(s.ASN1Value) == 0 {
-			return zero, errors.New("error parsing DirectoryName SAN: empty asn1Value is not allowed")
+		var data []byte
+		switch {
+		case len(s.ASN1Value) != 0:
+			data = s.ASN1Value
+		case s.Value != "":
+			data = []byte(s.Value)
+		default:
+			return zero, errors.New("error parsing DirectoryName SAN: empty value or asn1Value is not allowed")
 		}
 		var dn Name
-		if err := json.Unmarshal(s.ASN1Value, &dn); err != nil {
+		if err := json.Unmarshal(data, &dn); err != nil {
 			return zero, errors.Wrap(err, "error unmarshaling DirectoryName SAN")
 		}
 		rdn, err := asn1.Marshal(dn.goValue().ToRDNSequence())
@@ -389,6 +412,22 @@ func (s SubjectAlternativeName) RawValue() (asn1.RawValue, error) {
 			IsCompound: true,
 			Bytes:      rdn,
 		}, nil
+	case UserPrincipalNameType:
+		if s.Value == "" {
+			return zero, errors.New("error parsing UserPrincipalName SAN: empty value is not allowed")
+		}
+		rawBytes, err := marshalExplicitValue(s.Value, "utf8")
+		if err != nil {
+			return zero, errors.Wrapf(err, "error marshaling ASN1 value %q", s.Value)
+		}
+		upnBytes, err := asn1.MarshalWithParams(otherName{
+			TypeID: oidUserPrincipalName,
+			Value:  asn1.RawValue{FullBytes: rawBytes},
+		}, "tag:0")
+		if err != nil {
+			return zero, errors.Wrap(err, "error marshaling UserPrincipalName SAN")
+		}
+		return asn1.RawValue{FullBytes: upnBytes}, nil
 	case X400AddressType, EDIPartyNameType:
 		return zero, fmt.Errorf("unimplemented SAN type %s", s.Type)
 	default:
@@ -400,7 +439,7 @@ func (s SubjectAlternativeName) RawValue() (asn1.RawValue, error) {
 
 		// The default type is printable, but if the value is prefixed with a
 		// type, use that.
-		var value, params = s.Value, "printable"
+		value, params := s.Value, "printable"
 		if strings.Contains(value, sanTypeSeparator) {
 			params = strings.Split(value, sanTypeSeparator)[0]
 			value = value[len(params)+1:]
@@ -417,7 +456,7 @@ func (s SubjectAlternativeName) RawValue() (asn1.RawValue, error) {
 			Value:  asn1.RawValue{FullBytes: rawBytes},
 		}, "tag:0")
 		if err != nil {
-			return zero, errors.Wrap(err, "unable to Marshal otherName SAN")
+			return zero, errors.Wrap(err, "error marshaling otherName SAN")
 		}
 		return asn1.RawValue{FullBytes: otherNameBytes}, nil
 	}
@@ -448,7 +487,7 @@ type asn1Params struct {
 func parseFieldParameters(str string) (p asn1Params) {
 	var part string
 	var params []string
-	for len(str) > 0 {
+	for str != "" {
 		part, str, _ = strings.Cut(str, ",")
 		switch part {
 		// string types
@@ -456,8 +495,8 @@ func parseFieldParameters(str string) (p asn1Params) {
 			p.Type = part
 			params = append(params, part)
 		// types that are parsed from the string.
-		// int and oid are not a type that can be set in a tag.
-		case "int", "oid":
+		// int, oid, and bool are not a type that can be set in a tag.
+		case "int", "oid", "bool", "boolean":
 			p.Type = part
 		// types parsed from the string as a time
 		case "utc", "generalized":
@@ -535,6 +574,12 @@ func marshalValue(value, params string) ([]byte, error) {
 			}
 		}
 		return asn1.MarshalWithParams(t, p.Params)
+	case "bool", "boolean":
+		b, err := strconv.ParseBool(value)
+		if err != nil {
+			return nil, errors.Wrap(err, "invalid bool value")
+		}
+		return asn1.MarshalWithParams(b, p.Params)
 	default: // if it's an unknown type, default to printable
 		if !isPrintableString(value, true, true) {
 			return nil, fmt.Errorf("invalid printable value")
@@ -571,23 +616,23 @@ func (k *KeyUsage) UnmarshalJSON(data []byte) error {
 	for _, s := range ms {
 		var ku x509.KeyUsage
 		switch convertName(s) {
-		case KeyUsageDigitalSignature:
+		case convertName(KeyUsageDigitalSignature):
 			ku = x509.KeyUsageDigitalSignature
-		case KeyUsageContentCommitment:
+		case convertName(KeyUsageContentCommitment):
 			ku = x509.KeyUsageContentCommitment
-		case KeyUsageKeyEncipherment:
+		case convertName(KeyUsageKeyEncipherment):
 			ku = x509.KeyUsageKeyEncipherment
-		case KeyUsageDataEncipherment:
+		case convertName(KeyUsageDataEncipherment):
 			ku = x509.KeyUsageDataEncipherment
-		case KeyUsageKeyAgreement:
+		case convertName(KeyUsageKeyAgreement):
 			ku = x509.KeyUsageKeyAgreement
-		case KeyUsageCertSign:
+		case convertName(KeyUsageCertSign):
 			ku = x509.KeyUsageCertSign
-		case KeyUsageCRLSign:
+		case convertName(KeyUsageCRLSign):
 			ku = x509.KeyUsageCRLSign
-		case KeyUsageEncipherOnly:
+		case convertName(KeyUsageEncipherOnly):
 			ku = x509.KeyUsageEncipherOnly
-		case KeyUsageDecipherOnly:
+		case convertName(KeyUsageDecipherOnly):
 			ku = x509.KeyUsageDecipherOnly
 		default:
 			return errors.Errorf("unsupported keyUsage %s", s)
@@ -658,33 +703,33 @@ func (k *ExtKeyUsage) UnmarshalJSON(data []byte) error {
 	for i, s := range ms {
 		var ku x509.ExtKeyUsage
 		switch convertName(s) {
-		case ExtKeyUsageAny:
+		case convertName(ExtKeyUsageAny):
 			ku = x509.ExtKeyUsageAny
-		case ExtKeyUsageServerAuth:
+		case convertName(ExtKeyUsageServerAuth):
 			ku = x509.ExtKeyUsageServerAuth
-		case ExtKeyUsageClientAuth:
+		case convertName(ExtKeyUsageClientAuth):
 			ku = x509.ExtKeyUsageClientAuth
-		case ExtKeyUsageCodeSigning:
+		case convertName(ExtKeyUsageCodeSigning):
 			ku = x509.ExtKeyUsageCodeSigning
-		case ExtKeyUsageEmailProtection:
+		case convertName(ExtKeyUsageEmailProtection):
 			ku = x509.ExtKeyUsageEmailProtection
-		case ExtKeyUsageIPSECEndSystem:
+		case convertName(ExtKeyUsageIPSECEndSystem):
 			ku = x509.ExtKeyUsageIPSECEndSystem
-		case ExtKeyUsageIPSECTunnel:
+		case convertName(ExtKeyUsageIPSECTunnel):
 			ku = x509.ExtKeyUsageIPSECTunnel
-		case ExtKeyUsageIPSECUser:
+		case convertName(ExtKeyUsageIPSECUser):
 			ku = x509.ExtKeyUsageIPSECUser
-		case ExtKeyUsageTimeStamping:
+		case convertName(ExtKeyUsageTimeStamping):
 			ku = x509.ExtKeyUsageTimeStamping
-		case ExtKeyUsageOCSPSigning:
+		case convertName(ExtKeyUsageOCSPSigning):
 			ku = x509.ExtKeyUsageOCSPSigning
-		case ExtKeyUsageMicrosoftServerGatedCrypto:
+		case convertName(ExtKeyUsageMicrosoftServerGatedCrypto):
 			ku = x509.ExtKeyUsageMicrosoftServerGatedCrypto
-		case ExtKeyUsageNetscapeServerGatedCrypto:
+		case convertName(ExtKeyUsageNetscapeServerGatedCrypto):
 			ku = x509.ExtKeyUsageNetscapeServerGatedCrypto
-		case ExtKeyUsageMicrosoftCommercialCodeSigning:
+		case convertName(ExtKeyUsageMicrosoftCommercialCodeSigning):
 			ku = x509.ExtKeyUsageMicrosoftCommercialCodeSigning
-		case ExtKeyUsageMicrosoftKernelCodeSigning:
+		case convertName(ExtKeyUsageMicrosoftKernelCodeSigning):
 			ku = x509.ExtKeyUsageMicrosoftKernelCodeSigning
 		default:
 			return errors.Errorf("unsupported extKeyUsage %s", s)
@@ -1072,7 +1117,7 @@ type SubjectAlternativeNames struct {
 	PermanentIdentifiers []PermanentIdentifier
 	HardwareModuleNames  []HardwareModuleName
 	TPMHardwareDetails   TPMHardwareDetails
-	//OtherNames          []OtherName // TODO(hs): unused at the moment; do we need it? what type definition to use?
+	// OtherNames          []OtherName // TODO(hs): unused at the moment; do we need it? what type definition to use?
 }
 
 // TPMHardwareDetails is a container for some details

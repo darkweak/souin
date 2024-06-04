@@ -10,7 +10,6 @@ import (
 	"os"
 
 	"github.com/pkg/errors"
-	"gopkg.in/square/go-jose.v2/jwt"
 
 	"go.step.sm/cli-utils/step"
 	"go.step.sm/cli-utils/ui"
@@ -146,7 +145,7 @@ func (a *Authority) unsafeLoadProvisionerFromDatabase(crt *x509.Certificate) (pr
 
 // LoadProvisionerByToken returns an interface to the provisioner that
 // provisioned the token.
-func (a *Authority) LoadProvisionerByToken(token *jwt.JSONWebToken, claims *jwt.Claims) (provisioner.Interface, error) {
+func (a *Authority) LoadProvisionerByToken(token *jose.JSONWebToken, claims *jose.Claims) (provisioner.Interface, error) {
 	a.adminMutex.RLock()
 	defer a.adminMutex.RUnlock()
 	p, ok := a.provisioners.LoadByToken(token, claims)
@@ -202,6 +201,7 @@ func (a *Authority) generateProvisionerConfig(ctx context.Context) (provisioner.
 		AuthorizeRenewFunc:    a.authorizeRenewFunc,
 		AuthorizeSSHRenewFunc: a.authorizeSSHRenewFunc,
 		WebhookClient:         a.webhookClient,
+		SCEPKeyManager:        a.scepKeyManager,
 	}, nil
 }
 
@@ -609,19 +609,19 @@ func provisionerWebhookToLinkedca(pwh *provisioner.Webhook) *linkedca.Webhook {
 }
 
 func durationsToCertificates(d *linkedca.Durations) (min, max, def *provisioner.Duration, err error) {
-	if len(d.Min) > 0 {
+	if d.Min != "" {
 		min, err = provisioner.NewDuration(d.Min)
 		if err != nil {
 			return nil, nil, nil, admin.WrapErrorISE(err, "error parsing minimum duration '%s'", d.Min)
 		}
 	}
-	if len(d.Max) > 0 {
+	if d.Max != "" {
 		max, err = provisioner.NewDuration(d.Max)
 		if err != nil {
 			return nil, nil, nil, admin.WrapErrorISE(err, "error parsing maximum duration '%s'", d.Max)
 		}
 	}
-	if len(d.Default) > 0 {
+	if d.Default != "" {
 		def, err = provisioner.NewDuration(d.Default)
 		if err != nil {
 			return nil, nil, nil, admin.WrapErrorISE(err, "error parsing default duration '%s'", d.Default)

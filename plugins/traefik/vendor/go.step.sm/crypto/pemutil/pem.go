@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"math/big"
 	"os"
+	"strings"
 
 	"github.com/pkg/errors"
 	"go.step.sm/crypto/internal/utils"
@@ -277,32 +278,80 @@ func ParseCertificateRequest(pemData []byte) (*x509.CertificateRequest, error) {
 	return nil, errors.New("error parsing certificate request: no certificate found")
 }
 
+// PEMType represents a PEM block type. (e.g., CERTIFICATE, CERTIFICATE REQUEST, etc.)
+type PEMType int
+
+func (pt PEMType) String() string {
+	switch pt {
+	case PEMTypeCertificate:
+		return "certificate"
+	case PEMTypeCertificateRequest:
+		return "certificate request"
+	default:
+		return "undefined"
+	}
+}
+
+const (
+	// PEMTypeUndefined undefined
+	PEMTypeUndefined = iota
+	// PEMTypeCertificate CERTIFICATE
+	PEMTypeCertificate
+	// PEMTypeCertificateRequest CERTIFICATE REQUEST
+	PEMTypeCertificateRequest
+)
+
+// InvalidPEMError represents an error that occurs when parsing a file with
+// PEM encoded data.
+type InvalidPEMError struct {
+	Type    PEMType
+	File    string
+	Message string
+	Err     error
+}
+
+func (e *InvalidPEMError) Error() string {
+	switch {
+	case e.Message != "":
+		return e.Message
+	case e.Err != nil:
+		return fmt.Sprintf("error decoding PEM data: %v", e.Err)
+	default:
+		var prefix = "input"
+		if e.File != "" {
+			prefix = fmt.Sprintf("file %s", e.File)
+		}
+		if e.Type == PEMTypeUndefined {
+			return fmt.Sprintf("%s does not contain valid PEM encoded data", prefix)
+		}
+		return fmt.Sprintf("%s does not contain a valid PEM encoded %s", prefix, e.Type)
+	}
+}
+
+func (e *InvalidPEMError) Unwrap() error {
+	return e.Err
+}
+
 // ReadCertificate returns a *x509.Certificate from the given filename. It
 // supports certificates formats PEM and DER.
 func ReadCertificate(filename string, opts ...Options) (*x509.Certificate, error) {
-	b, err := utils.ReadFile(filename)
-	if err != nil {
+	// Populate options
+	ctx := newContext(filename)
+	if err := ctx.apply(opts); err != nil {
 		return nil, err
 	}
 
-	// PEM format
-	if bytes.Contains(b, PEMBlockHeader) {
-		var crt interface{}
-		crt, err = Read(filename, opts...)
-		if err != nil {
-			return nil, err
-		}
-		switch crt := crt.(type) {
-		case *x509.Certificate:
-			return crt, nil
-		default:
-			return nil, errors.Errorf("error decoding PEM: file '%s' does not contain a certificate", filename)
-		}
+	bundle, err := ReadCertificateBundle(filename)
+	switch {
+	case err != nil:
+		return nil, err
+	case len(bundle) == 0:
+		return nil, errors.Errorf("file %s does not contain a valid PEM or DER formatted certificate", filename)
+	case len(bundle) > 1 && !ctx.firstBlock:
+		return nil, errors.Errorf("error decoding %s: contains more than one PEM encoded block", filename)
+	default:
+		return bundle[0], nil
 	}
-
-	// DER format (binary)
-	crt, err := x509.ParseCertificate(b)
-	return crt, errors.Wrapf(err, "error parsing %s", filename)
 }
 
 // ReadCertificateBundle returns a list of *x509.Certificate from the given
@@ -324,7 +373,7 @@ func ReadCertificateBundle(filename string) ([]*x509.Certificate, error) {
 				break
 			}
 			if block.Type != "CERTIFICATE" {
-				return nil, errors.Errorf("error decoding PEM: file '%s' is not a certificate bundle", filename)
+				continue
 			}
 			var crt *x509.Certificate
 			crt, err = x509.ParseCertificate(block.Bytes)
@@ -333,8 +382,8 @@ func ReadCertificateBundle(filename string) ([]*x509.Certificate, error) {
 			}
 			bundle = append(bundle, crt)
 		}
-		if len(b) > 0 {
-			return nil, errors.Errorf("error decoding PEM: file '%s' contains unexpected data", filename)
+		if len(bundle) == 0 {
+			return nil, &InvalidPEMError{File: filename, Type: PEMTypeCertificate}
 		}
 		return bundle, nil
 	}
@@ -357,15 +406,25 @@ func ReadCertificateRequest(filename string) (*x509.CertificateRequest, error) {
 
 	// PEM format
 	if bytes.Contains(b, PEMBlockHeader) {
-		csr, err := Parse(b, WithFilename(filename))
-		if err != nil {
-			return nil, err
-		}
-		switch csr := csr.(type) {
-		case *x509.CertificateRequest:
+		var block *pem.Block
+		for len(b) > 0 {
+			block, b = pem.Decode(b)
+			if block == nil {
+				break
+			}
+			if !strings.HasSuffix(block.Type, "CERTIFICATE REQUEST") {
+				continue
+			}
+			csr, err := x509.ParseCertificateRequest(block.Bytes)
+			if err != nil {
+				return nil, &InvalidPEMError{
+					File: filename, Type: PEMTypeCertificateRequest,
+					Message: fmt.Sprintf("error parsing %s: CSR PEM block is invalid: %v", filename, err),
+					Err:     err,
+				}
+			}
+
 			return csr, nil
-		default:
-			return nil, errors.Errorf("error decoding PEM: file '%s' does not contain a certificate request", filename)
 		}
 	}
 
@@ -739,4 +798,43 @@ func BundleCertificate(bundlePEM []byte, certsPEM ...[]byte) ([]byte, bool, erro
 	}
 
 	return bundlePEM, modified, nil
+}
+
+// UnbundleCertificate removes PEM-encoded certificates from a PEM-encoded
+// certificate bundle.
+func UnbundleCertificate(bundlePEM []byte, certsPEM ...[]byte) ([]byte, bool, error) {
+	if len(certsPEM) == 0 {
+		return bundlePEM, false, nil
+	}
+	drop := make(map[[sha256.Size224]byte]bool, len(certsPEM))
+	for i := range certsPEM {
+		certs, err := ParseCertificateBundle(certsPEM[i])
+		if err != nil {
+			return nil, false, fmt.Errorf("invalid certificate %d: %w", i, err)
+		}
+		for _, cert := range certs {
+			drop[sha256.Sum224(cert.Raw)] = true
+		}
+	}
+
+	var modified bool
+	var keep []byte
+
+	bundle, err := ParseCertificateBundle(bundlePEM)
+	if err != nil {
+		return nil, false, fmt.Errorf("invalid bundle: %w", err)
+	}
+	for _, cert := range bundle {
+		sum := sha256.Sum224(cert.Raw)
+		if drop[sum] {
+			modified = true
+			continue
+		}
+		keep = append(keep, pem.EncodeToMemory(&pem.Block{
+			Type:  "CERTIFICATE",
+			Bytes: cert.Raw,
+		})...)
+	}
+
+	return keep, modified, nil
 }

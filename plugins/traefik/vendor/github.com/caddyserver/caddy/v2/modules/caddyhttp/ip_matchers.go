@@ -37,13 +37,6 @@ type MatchRemoteIP struct {
 	// The IPs or CIDR ranges to match.
 	Ranges []string `json:"ranges,omitempty"`
 
-	// If true, prefer the first IP in the request's X-Forwarded-For
-	// header, if present, rather than the immediate peer's IP, as
-	// the reference IP against which to match. Note that it is easy
-	// to spoof request headers. Default: false
-	// DEPRECATED: This is insecure, MatchClientIP should be used instead.
-	Forwarded bool `json:"forwarded,omitempty"`
-
 	// cidrs and zones vars should aligned always in the same
 	// length and indexes for matching later
 	cidrs  []*netip.Prefix
@@ -79,14 +72,11 @@ func (MatchRemoteIP) CaddyModule() caddy.ModuleInfo {
 
 // UnmarshalCaddyfile implements caddyfile.Unmarshaler.
 func (m *MatchRemoteIP) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
+	// iterate to merge multiple matchers into one
 	for d.Next() {
 		for d.NextArg() {
 			if d.Val() == "forwarded" {
-				if len(m.Ranges) > 0 {
-					return d.Err("if used, 'forwarded' must be first argument")
-				}
-				m.Forwarded = true
-				continue
+				return d.Err("the 'forwarded' option is no longer supported; use the 'client_ip' matcher instead")
 			}
 			if d.Val() == "private_ranges" {
 				m.Ranges = append(m.Ranges, PrivateRangesCIDR()...)
@@ -106,7 +96,7 @@ func (m *MatchRemoteIP) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 //
 // Example:
 //
-//	expression remote_ip('forwarded', '192.168.0.0/16', '172.16.0.0/12', '10.0.0.0/8')
+//	expression remote_ip('192.168.0.0/16', '172.16.0.0/12', '10.0.0.0/8')
 func (MatchRemoteIP) CELLibrary(ctx caddy.Context) (cel.Library, error) {
 	return CELMatcherImpl(
 		// name of the macro, this is the function name that users see when writing expressions.
@@ -127,11 +117,7 @@ func (MatchRemoteIP) CELLibrary(ctx caddy.Context) (cel.Library, error) {
 
 			for _, input := range strList.([]string) {
 				if input == "forwarded" {
-					if len(m.Ranges) > 0 {
-						return nil, errors.New("if used, 'forwarded' must be first argument")
-					}
-					m.Forwarded = true
-					continue
+					return nil, errors.New("the 'forwarded' option is no longer supported; use the 'client_ip' matcher instead")
 				}
 				m.Ranges = append(m.Ranges, input)
 			}
@@ -152,21 +138,12 @@ func (m *MatchRemoteIP) Provision(ctx caddy.Context) error {
 	m.cidrs = cidrs
 	m.zones = zones
 
-	if m.Forwarded {
-		m.logger.Warn("remote_ip's forwarded mode is deprecated; use the 'client_ip' matcher instead")
-	}
-
 	return nil
 }
 
 // Match returns true if r matches m.
 func (m MatchRemoteIP) Match(r *http.Request) bool {
 	address := r.RemoteAddr
-	if m.Forwarded {
-		if fwdFor := r.Header.Get("X-Forwarded-For"); fwdFor != "" {
-			address = strings.TrimSpace(strings.Split(fwdFor, ",")[0])
-		}
-	}
 	clientIP, zoneID, err := parseIPZoneFromString(address)
 	if err != nil {
 		m.logger.Error("getting remote IP", zap.Error(err))
@@ -189,6 +166,7 @@ func (MatchClientIP) CaddyModule() caddy.ModuleInfo {
 
 // UnmarshalCaddyfile implements caddyfile.Unmarshaler.
 func (m *MatchClientIP) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
+	// iterate to merge multiple matchers into one
 	for d.Next() {
 		for d.NextArg() {
 			if d.Val() == "private_ranges" {
@@ -300,7 +278,7 @@ func parseIPZoneFromString(address string) (netip.Addr, string, error) {
 		ipStr = address // OK; probably didn't have a port
 	}
 
-	// Some IPv6-Adresses can contain zone identifiers at the end,
+	// Some IPv6-Addresses can contain zone identifiers at the end,
 	// which are separated with "%"
 	zoneID := ""
 	if strings.Contains(ipStr, "%") {

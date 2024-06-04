@@ -6,12 +6,39 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/asn1"
 	"encoding/json"
 
 	"github.com/pkg/errors"
+	"golang.org/x/crypto/cryptobyte"
+	cryptobyte_asn1 "golang.org/x/crypto/cryptobyte/asn1"
 )
 
-var oidExtensionSubjectAltName = []int{2, 5, 29, 17}
+var (
+	oidExtensionSubjectAltName = []int{2, 5, 29, 17}
+	oidChallengePassword       = []int{1, 2, 840, 113549, 1, 9, 7}
+)
+
+type publicKeyInfo struct {
+	Raw       asn1.RawContent
+	Algorithm pkix.AlgorithmIdentifier
+	PublicKey asn1.BitString
+}
+
+type tbsCertificateRequest struct {
+	Raw           asn1.RawContent
+	Version       int
+	Subject       asn1.RawValue
+	PublicKey     publicKeyInfo
+	RawAttributes []asn1.RawValue `asn1:"tag:0"`
+}
+
+type certificateRequest struct {
+	Raw                asn1.RawContent
+	TBSCSR             tbsCertificateRequest
+	SignatureAlgorithm pkix.AlgorithmIdentifier
+	SignatureValue     asn1.BitString
+}
 
 // CertificateRequest is the JSON representation of an X.509 certificate. It is
 // used to build a certificate request from a template.
@@ -25,6 +52,7 @@ type CertificateRequest struct {
 	SANs               []SubjectAlternativeName `json:"sans"`
 	Extensions         []Extension              `json:"extensions"`
 	SignatureAlgorithm SignatureAlgorithm       `json:"signatureAlgorithm"`
+	ChallengePassword  string                   `json:"-"`
 	PublicKey          interface{}              `json:"-"`
 	PublicKeyAlgorithm x509.PublicKeyAlgorithm  `json:"-"`
 	Signature          []byte                   `json:"-"`
@@ -101,7 +129,7 @@ func NewCertificateRequestFromX509(cr *x509.CertificateRequest) *CertificateRequ
 	}
 }
 
-// GetCertificateRequest returns the equivalent x509.CertificateRequest.
+// GetCertificateRequest returns the signed x509.CertificateRequest.
 func (c *CertificateRequest) GetCertificateRequest() (*x509.CertificateRequest, error) {
 	cert := c.GetCertificate().GetCertificate()
 	asn1Data, err := x509.CreateCertificateRequest(rand.Reader, &x509.CertificateRequest{
@@ -116,8 +144,127 @@ func (c *CertificateRequest) GetCertificateRequest() (*x509.CertificateRequest, 
 	if err != nil {
 		return nil, errors.Wrap(err, "error creating certificate request")
 	}
+
+	// If a challenge password is provided, encode and prepend it as a challenge
+	// password attribute.
+	//
+	// The challengePassword attribute doesn't follow the ASN.1 encoding of
+	// [pkix.AttributeTypeAndValueSET] used in the deprecated
+	// [x509.CertificateRequest.Attributes], so this requires some low-level
+	// ASN.1 operations.
+	if c.ChallengePassword != "" {
+		asn1Data, err = c.addChallengePassword(asn1Data)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	// This should not fail
 	return x509.ParseCertificateRequest(asn1Data)
+}
+
+// addChallengePassword unmarshals the asn1Data into a certificateRequest and
+// creates a new one with the challengePassword.
+func (c *CertificateRequest) addChallengePassword(asn1Data []byte) ([]byte, error) {
+	// Build challengePassword attribute (RFC 2985 section-5.4). The resulting
+	// bytes will be added as an asn1.RawValue in the RawAttributes.
+	var builder cryptobyte.Builder
+	builder.AddASN1(cryptobyte_asn1.SEQUENCE, func(child *cryptobyte.Builder) {
+		child.AddASN1ObjectIdentifier(oidChallengePassword)
+		child.AddASN1(cryptobyte_asn1.SET, func(value *cryptobyte.Builder) {
+			switch {
+			case isPrintableString(c.ChallengePassword, true, true):
+				value.AddASN1(cryptobyte_asn1.PrintableString, func(s *cryptobyte.Builder) {
+					s.AddBytes([]byte(c.ChallengePassword))
+				})
+			case isUTF8String(c.ChallengePassword):
+				value.AddASN1(cryptobyte_asn1.UTF8String, func(s *cryptobyte.Builder) {
+					s.AddBytes([]byte(c.ChallengePassword))
+				})
+			default:
+				value.SetError(errors.New("error marshaling challenge password: password is not valid"))
+			}
+		})
+	})
+
+	b, err := builder.Bytes()
+	if err != nil {
+		return nil, errors.Wrap(err, "error marshaling challenge password")
+	}
+	challengePasswordAttr := asn1.RawValue{
+		FullBytes: b,
+	}
+
+	// Parse certificate request
+	var csr certificateRequest
+
+	rest, err := asn1.Unmarshal(asn1Data, &csr)
+	if err != nil {
+		return nil, err
+	} else if len(rest) != 0 {
+		return nil, errors.New("error unmarshalling certificate request: trailing data")
+	}
+
+	sigAlgo := csr.SignatureAlgorithm
+	tbsCSR := tbsCertificateRequest{
+		Version:       csr.TBSCSR.Version,
+		Subject:       csr.TBSCSR.Subject,
+		PublicKey:     csr.TBSCSR.PublicKey,
+		RawAttributes: csr.TBSCSR.RawAttributes,
+	}
+
+	// Prepend challengePassword attribute
+	tbsCSR.RawAttributes = append([]asn1.RawValue{challengePasswordAttr}, tbsCSR.RawAttributes...)
+
+	// Marshal tbsCertificateRequest
+	tbsCSRContents, err := asn1.Marshal(tbsCSR)
+	if err != nil {
+		return nil, errors.Wrap(err, "error creating certificate request")
+	}
+	tbsCSR.Raw = tbsCSRContents
+
+	// Get the hash used previously
+	var hashFunc crypto.Hash
+	found := false
+	sigAlgoOID := sigAlgo.Algorithm
+	for _, m := range signatureAlgorithmMapping {
+		if sigAlgoOID.Equal(m.oid) {
+			hashFunc = m.hash
+			found = true
+			break
+		}
+	}
+	if !found {
+		return nil, errors.Errorf("error creating certificate request: unsupported signature algorithm %s", sigAlgoOID)
+	}
+
+	// Sign tbsCertificateRequest
+	signed := tbsCSRContents
+	if hashFunc != 0 {
+		h := hashFunc.New()
+		h.Write(signed)
+		signed = h.Sum(nil)
+	}
+
+	var signature []byte
+	signature, err = c.Signer.Sign(rand.Reader, signed, hashFunc)
+	if err != nil {
+		return nil, errors.Wrap(err, "error creating certificate request")
+	}
+
+	// Build new certificate request and marshal
+	asn1Data, err = asn1.Marshal(certificateRequest{
+		TBSCSR:             tbsCSR,
+		SignatureAlgorithm: sigAlgo,
+		SignatureValue: asn1.BitString{
+			Bytes:     signature,
+			BitLength: len(signature) * 8,
+		},
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "error creating certificate request")
+	}
+	return asn1Data, nil
 }
 
 // GetCertificate returns the Certificate representation of the

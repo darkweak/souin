@@ -246,6 +246,7 @@ type DefaultCache struct {
 	TTL                 Duration      `json:"ttl" yaml:"ttl"`
 	DefaultCacheControl string        `json:"default_cache_control" yaml:"default_cache_control"`
 	MaxBodyBytes        uint64        `json:"max_cachable_body_bytes" yaml:"max_cachable_body_bytes"`
+	DisableCoalescing   bool          `json:"disable_coalescing" yaml:"disable_coalescing"`
 }
 
 // GetAllowedHTTPVerbs returns the allowed verbs to cache
@@ -346,6 +347,11 @@ func (d *DefaultCache) GetDefaultCacheControl() string {
 // GetMaxBodyBytes returns the default maximum body size (in bytes) for storing into cache
 func (d *DefaultCache) GetMaxBodyBytes() uint64 {
 	return d.MaxBodyBytes
+}
+
+// IsCoalescingDisable returns if the coalescing is disabled
+func (d *DefaultCache) IsCoalescingDisable() bool {
+	return d.DisableCoalescing
 }
 
 // DefaultCacheInterface interface

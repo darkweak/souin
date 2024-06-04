@@ -388,6 +388,11 @@ func (s *SouinBaseHandler) Upstream(
 
 		err := s.Store(customWriter, rq, requestCc, cachedKey)
 		defer customWriter.Buf.Reset()
+
+		if s.Configuration.GetDefaultCache().IsCoalescingDisable() {
+			return nil, err
+		}
+
 		return singleflightValue{
 			body:           customWriter.Buf.Bytes(),
 			headers:        customWriter.Header().Clone(),

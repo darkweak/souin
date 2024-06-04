@@ -44,12 +44,6 @@ func init() {
 		SystemTrustFilename = "/etc/ssl/certs/%s.crt"
 		SystemTrustCommand = []string{"trust", "extract-compat"}
 	}
-	if SystemTrustCommand != nil {
-		_, err := exec.LookPath(SystemTrustCommand[0])
-		if err != nil {
-			SystemTrustCommand = nil
-		}
-	}
 }
 
 func pathExists(path string) bool {
@@ -88,7 +82,7 @@ func installPlatform(filename string, cert *x509.Certificate) error {
 	return nil
 }
 
-func uninstallPlatform(filename string, cert *x509.Certificate) error {
+func uninstallPlatform(_ string, cert *x509.Certificate) error {
 	if SystemTrustCommand == nil {
 		return ErrNotSupported
 	}
