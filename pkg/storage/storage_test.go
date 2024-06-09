@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/darkweak/souin/configurationtypes"
-	"github.com/darkweak/souin/errors"
 	"github.com/darkweak/souin/pkg/rfc"
 	"github.com/darkweak/souin/pkg/storage/types"
 	"github.com/darkweak/souin/tests"
@@ -22,7 +21,7 @@ func verifyNewValueAfterSet(client types.Storer, key string, value []byte, t *te
 	newValue := client.Get(key)
 
 	if len(newValue) != len(value) {
-		errors.GenerateError(t, fmt.Sprintf("Key %s should be equals to %s, %s provided", key, value, newValue))
+		t.Errorf("Key %s should be equals to %s, %s provided", key, value, newValue)
 	}
 }
 
@@ -36,16 +35,16 @@ func TestInitializeProvider(t *testing.T) {
 	c := tests.MockConfiguration(tests.BaseConfiguration)
 	storer, err := NewStorage(c)
 	if nil != err {
-		errors.GenerateError(t, "NewStorage should return a new storer")
+		t.Error("NewStorage should return a new storer")
 	}
 	if storer.Init() != err {
-		errors.GenerateError(t, "Init shouldn't crash")
+		t.Error("Init shouldn't crash")
 	}
 }
 
 func TestVaryVoter(t *testing.T) {
 	if !varyVoter("myBaseKey", nil, "myBaseKey") {
-		errors.GenerateError(t, "The vary voter must return true when both keys are equal")
+		t.Error("The vary voter must return true when both keys are equal")
 	}
 
 	rq := http.Request{
@@ -87,7 +86,7 @@ func TestVaryVoter(t *testing.T) {
 	varyResponse6 := varyVoter("baseKey", &rq, fmt.Sprintf("baseKey%s%s", rfc.VarySeparator, "X-Value-Test:something-valid;X-With-Comma:first%3Adirective"))
 
 	if !(varyResponse1 && varyResponse2 && varyResponse3 && varyResponse5 && varyResponse6) || varyResponse4 {
-		errors.GenerateError(t, "The varyVoter must match the expected")
+		t.Error("The varyVoter must match the expected")
 	}
 }
 

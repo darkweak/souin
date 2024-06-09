@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/darkweak/souin/pkg/storage/types"
@@ -10,7 +9,6 @@ import (
 	"time"
 
 	"github.com/darkweak/souin/configurationtypes"
-	"github.com/darkweak/souin/errors"
 )
 
 func getOtterClientAndMatchedURL(key string) (types.Storer, configurationtypes.URL) {
@@ -34,11 +32,11 @@ func TestCustomOtterConnectionFactory(t *testing.T) {
 	r, err := OtterConnectionFactory(c)
 
 	if nil != err {
-		errors.GenerateError(t, "Shouldn't have panic")
+		t.Error("Shouldn't have panic")
 	}
 
 	if nil == r {
-		errors.GenerateError(t, "Otter should be instanciated")
+		t.Error("Otter should be instanciated")
 	}
 }
 
@@ -47,11 +45,11 @@ func TestOtterConnectionFactory(t *testing.T) {
 	r, err := OtterConnectionFactory(c)
 
 	if nil != err {
-		errors.GenerateError(t, "Shouldn't have panic")
+		t.Error("Shouldn't have panic")
 	}
 
 	if nil == r {
-		errors.GenerateError(t, "Otter should be instanciated")
+		t.Error("Otter should be instanciated")
 	}
 }
 
@@ -63,10 +61,10 @@ func TestIShouldBeAbleToReadAndWriteDataInOtter(t *testing.T) {
 
 	res := client.Get("Test")
 	if res == nil || len(res) <= 0 {
-		errors.GenerateError(t, fmt.Sprintf("Key %s should exist", BASE_VALUE))
+		t.Errorf("Key %s should exist", BASE_VALUE)
 	}
 	if BASE_VALUE != string(res) {
-		errors.GenerateError(t, fmt.Sprintf("%s not corresponding to %s", string(res), BASE_VALUE))
+		t.Errorf("%s not corresponding to %s", string(res), BASE_VALUE)
 	}
 }
 
@@ -75,7 +73,7 @@ func TestOtter_GetRequestInCache(t *testing.T) {
 	client, _ := OtterConnectionFactory(c)
 	res := client.Get(NONEXISTENTKEY)
 	if 0 < len(res) {
-		errors.GenerateError(t, fmt.Sprintf("Key %s should not exist", NONEXISTENTKEY))
+		t.Errorf("Key %s should not exist", NONEXISTENTKEY)
 	}
 }
 
@@ -86,11 +84,11 @@ func TestOtter_GetSetRequestInCache_OneByte(t *testing.T) {
 
 	res := client.Get(BYTEKEY)
 	if len(res) == 0 {
-		errors.GenerateError(t, fmt.Sprintf("Key %s should exist", BYTEKEY))
+		t.Errorf("Key %s should exist", BYTEKEY)
 	}
 
 	if string(res) != "A" {
-		errors.GenerateError(t, fmt.Sprintf("%s not corresponding to %v", res, 65))
+		t.Errorf("%s not corresponding to %v", res, 65)
 	}
 }
 
@@ -114,7 +112,7 @@ func TestOtter_DeleteRequestInCache(t *testing.T) {
 	client.Delete(BYTEKEY)
 	time.Sleep(1 * time.Second)
 	if 0 < len(client.Get(BYTEKEY)) {
-		errors.GenerateError(t, fmt.Sprintf("Key %s should not exist", BYTEKEY))
+		t.Errorf("Key %s should not exist", BYTEKEY)
 	}
 }
 
@@ -123,6 +121,6 @@ func TestOtter_Init(t *testing.T) {
 	err := client.Init()
 
 	if nil != err {
-		errors.GenerateError(t, "Impossible to init Otter provider")
+		t.Error("Impossible to init Otter provider")
 	}
 }

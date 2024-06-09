@@ -3,7 +3,6 @@ package storage
 import (
 	"testing"
 
-	"github.com/darkweak/souin/errors"
 	"github.com/darkweak/souin/tests"
 )
 
@@ -12,6 +11,6 @@ func TestInitializeProvider(t *testing.T) {
 	p := InitializeProvider(c)
 	err := p.Init()
 	if nil != err {
-		errors.GenerateError(t, "Init shouldn't crash")
+		t.Error("Init shouldn't crash")
 	}
 }

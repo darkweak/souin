@@ -243,6 +243,11 @@ func (provider *Nuts) SetMultiLevel(baseKey, variedKey string, value []byte, var
 		provider.logger.Sugar().Errorf("Impossible to compress the key %s into Nuts, %v", variedKey, err)
 		return err
 	}
+
+	_ = provider.DB.Update(func(tx *nutsdb.Tx) error {
+		return tx.NewBucket(nutsdb.DataStructureBTree, bucket)
+	})
+
 	err := provider.DB.Update(func(tx *nutsdb.Tx) error {
 		e := tx.Put(bucket, []byte(variedKey), compressed.Bytes(), uint32((duration + provider.stale).Seconds()))
 		if e != nil {
@@ -293,9 +298,7 @@ func (provider *Nuts) Set(key string, value []byte, url t.URL, duration time.Dur
 	}
 
 	_ = provider.DB.Update(func(tx *nutsdb.Tx) error {
-		tx.NewBucket(nutsdb.DataStructureBTree, bucket)
-
-		return nil
+		return tx.NewBucket(nutsdb.DataStructureBTree, bucket)
 	})
 
 	err := provider.DB.Update(func(tx *nutsdb.Tx) error {

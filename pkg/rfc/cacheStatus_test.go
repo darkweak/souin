@@ -2,13 +2,11 @@ package rfc
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	souinCtx "github.com/darkweak/souin/context"
-	"github.com/darkweak/souin/errors"
 	"github.com/pquerna/cachecontrol/cacheobject"
 )
 
@@ -17,15 +15,15 @@ func TestSetRequestCacheStatus(t *testing.T) {
 
 	SetRequestCacheStatus(&h, "AHeader", "Souin")
 	if h.Get("Cache-Status") != "Souin; fwd=request; detail=AHeader" {
-		errors.GenerateError(t, fmt.Sprintf("The Cache-Status must match %s, %s given", "Souin; fwd=request; detail=AHeader", h.Get("Cache-Status")))
+		t.Errorf("The Cache-Status must match %s, %s given", "Souin; fwd=request; detail=AHeader", h.Get("Cache-Status"))
 	}
 	SetRequestCacheStatus(&h, "", "Souin")
 	if h.Get("Cache-Status") != "Souin; fwd=request; detail=" {
-		errors.GenerateError(t, fmt.Sprintf("The Cache-Status must match %s, %s given", "Souin; fwd=request; detail=", h.Get("Cache-Status")))
+		t.Errorf("The Cache-Status must match %s, %s given", "Souin; fwd=request; detail=", h.Get("Cache-Status"))
 	}
 	SetRequestCacheStatus(&h, "A very long header with spaces", "Souin")
 	if h.Get("Cache-Status") != "Souin; fwd=request; detail=A very long header with spaces" {
-		errors.GenerateError(t, fmt.Sprintf("The Cache-Status must match %s, %s given", "Souin; fwd=request; detail=A very long header with spaces", h.Get("Cache-Status")))
+		t.Errorf("The Cache-Status must match %s, %s given", "Souin; fwd=request; detail=A very long header with spaces", h.Get("Cache-Status"))
 	}
 }
 
@@ -40,7 +38,7 @@ func TestValidateCacheControl(t *testing.T) {
 	reqCc, _ := cacheobject.ParseRequestCacheControl("")
 	valid := ValidateCacheControl(&r, reqCc)
 	if !valid {
-		errors.GenerateError(t, "The Cache-Control should be valid while an empty string is provided")
+		t.Error("The Cache-Control should be valid while an empty string is provided")
 	}
 	h := http.Header{
 		"Cache-Control": []string{"stale-if-error;malformed"},
@@ -48,7 +46,7 @@ func TestValidateCacheControl(t *testing.T) {
 	r.Header = h
 	valid = ValidateCacheControl(&r, &cacheobject.RequestCacheDirectives{})
 	if valid {
-		errors.GenerateError(t, "The Cache-Control shouldn't be valid with max-age")
+		t.Error("The Cache-Control shouldn't be valid with max-age")
 	}
 }
 
