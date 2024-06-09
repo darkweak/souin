@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/darkweak/souin/configurationtypes"
-	"github.com/darkweak/souin/errors"
 	"github.com/darkweak/souin/pkg/storage"
 	"github.com/darkweak/souin/tests"
 	"go.uber.org/zap"
@@ -41,14 +40,14 @@ func TestSouinSurrogateStorage_Store(t *testing.T) {
 
 	var e error
 	if e = sp.Store(&res, "stored"); e != nil {
-		errors.GenerateError(t, "It should not throw an error while store.")
+		t.Error("It should not throw an error while store.")
 	}
 
 	if res.Header.Get(surrogateKey) != "test0, test1,   test2,  test3, test4" {
-		errors.GenerateError(t, "The response should contains the Surrogate-keys header.")
+		t.Error("The response should contains the Surrogate-keys header.")
 	}
 
 	if res.Header.Get(surrogateControl) != "public, max-age=5" {
-		errors.GenerateError(t, "The response should contains the Surrogate-control header.")
+		t.Error("The response should contains the Surrogate-control header.")
 	}
 }

@@ -3,7 +3,6 @@ package providers
 import (
 	"testing"
 
-	"github.com/darkweak/souin/errors"
 	"github.com/darkweak/souin/plugins/souin/configuration"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -76,12 +75,12 @@ func TestSurrogateFactory(t *testing.T) {
 	souinProvider := SurrogateFactory(souinConfiguration, "nuts")
 
 	if akamaiProvider == nil {
-		errors.GenerateError(t, "Impossible to create the Akamai surrogate provider instance")
+		t.Error("Impossible to create the Akamai surrogate provider instance")
 	}
 	if fastlyProvider == nil {
-		errors.GenerateError(t, "Impossible to create the Fastly surrogate provider instance")
+		t.Error("Impossible to create the Fastly surrogate provider instance")
 	}
 	if souinProvider == nil {
-		errors.GenerateError(t, "Impossible to create the Souin surrogate provider instance")
+		t.Error("Impossible to create the Souin surrogate provider instance")
 	}
 }

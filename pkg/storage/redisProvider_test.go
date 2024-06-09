@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/darkweak/souin/configurationtypes"
-	"github.com/darkweak/souin/errors"
 )
 
 func getRedisClientAndMatchedURL(key string) (types.Storer, configurationtypes.URL) {
@@ -33,11 +32,11 @@ func TestRedisConnectionFactory(t *testing.T) {
 	r, err := RedisConnectionFactory(c)
 
 	if nil != err {
-		errors.GenerateError(t, "Shouldn't have panic")
+		t.Error("Shouldn't have panic")
 	}
 
 	if nil == r {
-		errors.GenerateError(t, "Redis should be instanciated")
+		t.Error("Redis should be instanciated")
 	}
 }
 
@@ -49,10 +48,10 @@ func TestIShouldBeAbleToReadAndWriteDataInRedis(t *testing.T) {
 
 	res := client.Get("Test")
 	if res == nil || len(res) <= 0 {
-		errors.GenerateError(t, fmt.Sprintf("Key %s should exist", BASE_VALUE))
+		t.Errorf("Key %s should exist", BASE_VALUE)
 	}
 	if BASE_VALUE != string(res) {
-		errors.GenerateError(t, fmt.Sprintf("%s not corresponding to %s", string(res), BASE_VALUE))
+		t.Errorf("%s not corresponding to %s", string(res), BASE_VALUE)
 	}
 }
 
@@ -61,7 +60,7 @@ func TestRedis_GetRequestInCache(t *testing.T) {
 	client, _ := RedisConnectionFactory(c)
 	res := client.Get(NONEXISTENTKEY)
 	if 0 < len(res) {
-		errors.GenerateError(t, fmt.Sprintf("Key %s should not exist", NONEXISTENTKEY))
+		t.Errorf("Key %s should not exist", NONEXISTENTKEY)
 	}
 }
 
@@ -72,11 +71,11 @@ func TestRedis_GetSetRequestInCache_OneByte(t *testing.T) {
 
 	res := client.Get(BYTEKEY)
 	if len(res) == 0 {
-		errors.GenerateError(t, fmt.Sprintf("Key %s should exist", BYTEKEY))
+		t.Errorf("Key %s should exist", BYTEKEY)
 	}
 
 	if string(res) != "A" {
-		errors.GenerateError(t, fmt.Sprintf("%s not corresponding to %v", res, 65))
+		t.Errorf("%s not corresponding to %v", res, 65)
 	}
 }
 
@@ -92,7 +91,7 @@ func TestRedis_DeleteRequestInCache(t *testing.T) {
 	client.Delete(BYTEKEY)
 	time.Sleep(1 * time.Second)
 	if 0 < len(client.Get(BYTEKEY)) {
-		errors.GenerateError(t, fmt.Sprintf("Key %s should not exist", BYTEKEY))
+		t.Errorf("Key %s should not exist", BYTEKEY)
 	}
 }
 
@@ -101,7 +100,7 @@ func TestRedis_Init(t *testing.T) {
 	err := client.Init()
 
 	if nil != err {
-		errors.GenerateError(t, "Impossible to init Redis provider")
+		t.Error("Impossible to init Redis provider")
 	}
 }
 

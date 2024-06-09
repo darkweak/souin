@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -9,7 +8,6 @@ import (
 	"github.com/darkweak/souin/tests"
 
 	"github.com/darkweak/souin/configurationtypes"
-	"github.com/darkweak/souin/errors"
 )
 
 func getOlricClientAndMatchedURL(key string) (types.Storer, configurationtypes.URL) {
@@ -36,7 +34,7 @@ func TestIShouldBeAbleToReadAndWriteDataInOlric(t *testing.T) {
 	time.Sleep(3 * time.Second)
 	res := client.Get("Test")
 	if BASE_VALUE != string(res) {
-		errors.GenerateError(t, fmt.Sprintf("%s not corresponding to %s", res, BASE_VALUE))
+		t.Errorf("%s not corresponding to %s", res, BASE_VALUE)
 	}
 }
 
@@ -47,7 +45,7 @@ func TestOlric_GetRequestInCache(t *testing.T) {
 	}()
 	res := client.Get(NONEXISTENTKEY)
 	if string(res) != "" {
-		errors.GenerateError(t, fmt.Sprintf("Key %s should not exist", NONEXISTENTKEY))
+		t.Errorf("Key %s should not exist", NONEXISTENTKEY)
 	}
 }
 
@@ -86,7 +84,7 @@ func TestOlric_DeleteRequestInCache(t *testing.T) {
 	client.Delete(BYTEKEY)
 	time.Sleep(1 * time.Second)
 	if 0 < len(client.Get(BYTEKEY)) {
-		errors.GenerateError(t, fmt.Sprintf("Key %s should not exist", BYTEKEY))
+		t.Errorf("Key %s should not exist", BYTEKEY)
 	}
 }
 
@@ -98,6 +96,6 @@ func TestOlric_Init(t *testing.T) {
 	}()
 
 	if nil != err {
-		errors.GenerateError(t, "Impossible to init Olric provider")
+		t.Error("Impossible to init Olric provider")
 	}
 }
