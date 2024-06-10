@@ -25,6 +25,7 @@ import (
 	"github.com/darkweak/souin/pkg/storage/types"
 	"github.com/darkweak/souin/pkg/surrogate"
 	"github.com/darkweak/souin/pkg/surrogate/providers"
+	"github.com/google/uuid"
 	"github.com/pquerna/cachecontrol/cacheobject"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -362,7 +363,12 @@ func (s *SouinBaseHandler) Upstream(
 			}
 		}
 	}()
-	sfValue, err, shared := s.singleflightPool.Do(cachedKey, func() (interface{}, error) {
+
+	singleflightCacheKey := cachedKey
+	if s.Configuration.GetDefaultCache().IsCoalescingDisable() {
+		singleflightCacheKey += uuid.NewString()
+	}
+	sfValue, err, shared := s.singleflightPool.Do(singleflightCacheKey, func() (interface{}, error) {
 		if e := next(customWriter, rq); e != nil {
 			s.Configuration.GetLogger().Sugar().Warnf("%#v", e)
 			customWriter.Header().Set("Cache-Status", fmt.Sprintf("%s; fwd=uri-miss; key=%s; detail=SERVE-HTTP-ERROR", rq.Context().Value(context.CacheName), rfc.GetCacheKeyFromCtx(rq.Context())))
@@ -388,10 +394,6 @@ func (s *SouinBaseHandler) Upstream(
 
 		err := s.Store(customWriter, rq, requestCc, cachedKey)
 		defer customWriter.Buf.Reset()
-
-		if s.Configuration.GetDefaultCache().IsCoalescingDisable() {
-			return nil, err
-		}
 
 		return singleflightValue{
 			body:           customWriter.Buf.Bytes(),
@@ -434,7 +436,11 @@ func (s *SouinBaseHandler) Revalidate(validator *rfc.Revalidator, next handlerFu
 	s.Configuration.GetLogger().Sugar().Debug("Revalidate the request with the upstream server")
 	prometheus.Increment(prometheus.RequestRevalidationCounter)
 
-	sfValue, err, shared := s.singleflightPool.Do(cachedKey, func() (interface{}, error) {
+	singleflightCacheKey := cachedKey
+	if s.Configuration.GetDefaultCache().IsCoalescingDisable() {
+		singleflightCacheKey += uuid.NewString()
+	}
+	sfValue, err, shared := s.singleflightPool.Do(singleflightCacheKey, func() (interface{}, error) {
 		err := next(customWriter, rq)
 		s.SurrogateKeyStorer.Invalidate(rq.Method, customWriter.Header())
 
