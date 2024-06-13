@@ -18,7 +18,7 @@ require (
 	github.com/pquerna/cachecontrol v0.2.0
 	github.com/prometheus/client_golang v1.19.1
 	github.com/prometheus/client_model v0.5.0
-	github.com/redis/rueidis v1.0.31
+	github.com/redis/go-redis/v9 v9.5.3
 	go.etcd.io/etcd/client/v3 v3.5.12
 	go.uber.org/zap v1.27.0
 	golang.org/x/sync v0.7.0
@@ -92,7 +92,8 @@ require (
 	github.com/mitchellh/go-ps v1.0.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/mschoch/smat v0.2.0 // indirect
-	github.com/onsi/ginkgo/v2 v2.13.2 // indirect
+	github.com/onsi/ginkgo/v2 v2.15.0 // indirect
+	github.com/onsi/gomega v1.31.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/quic-go/qpack v0.4.0 // indirect
 	github.com/quic-go/quic-go v0.44.0 // indirect

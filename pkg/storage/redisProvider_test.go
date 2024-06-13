@@ -133,6 +133,8 @@ func TestRedis_MapKeys(t *testing.T) {
 func TestRedis_DeleteMany(t *testing.T) {
 	client, _ := RedisConnectionFactory(tests.MockConfiguration(tests.RedisConfiguration))
 
+	fmt.Println(client.MapKeys(""))
+	fmt.Println(len(client.MapKeys("")))
 	if len(client.MapKeys("")) != 12 {
 		t.Error("The map should contain 12 elements")
 	}

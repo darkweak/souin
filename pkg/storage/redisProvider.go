@@ -5,8 +5,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"net"
+	"fmt"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
@@ -14,18 +15,19 @@ import (
 	"github.com/darkweak/souin/pkg/rfc"
 	"github.com/darkweak/souin/pkg/storage/types"
 	lz4 "github.com/pierrec/lz4/v4"
-	redis "github.com/redis/rueidis"
+	redis "github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )
 
 // Redis provider type
 type Redis struct {
-	inClient      redis.Client
+	inClient      *redis.ClusterClient
 	stale         time.Duration
 	ctx           context.Context
 	logger        *zap.Logger
-	configuration redis.ClientOption
-	close         func()
+	configuration redis.ClusterOptions
+	close         func() error
+	reconnecting  bool
 	hashtags      string
 }
 
@@ -34,7 +36,7 @@ func RedisConnectionFactory(c t.AbstractConfigurationInterface) (types.Storer, e
 	dc := c.GetDefaultCache()
 	bc, _ := json.Marshal(dc.GetRedis().Configuration)
 
-	var options redis.ClientOption
+	var options redis.ClusterOptions
 	var hashtags string
 	if dc.GetRedis().Configuration != nil {
 		if err := json.Unmarshal(bc, &options); err != nil {
@@ -48,24 +50,15 @@ func RedisConnectionFactory(c t.AbstractConfigurationInterface) (types.Storer, e
 			}
 		}
 	} else {
-		options = redis.ClientOption{
-			InitAddress: strings.Split(dc.GetRedis().URL, ","),
-			Dialer: net.Dialer{
-				Timeout: dc.GetTimeout().Cache.Duration,
-			},
-			SelectDB:   0,
-			ClientName: "souin-redis",
+		options = redis.ClusterOptions{
+			Addrs:       strings.Split(dc.GetRedis().URL, ","),
+			PoolSize:    1000,
+			DialTimeout: dc.GetTimeout().Cache.Duration,
+			ClientName:  "souin-redis",
 		}
 	}
 
-	if options.Dialer.Timeout == 0 {
-		options.Dialer.Timeout = time.Second
-	}
-
-	cli, err := redis.NewClient(options)
-	if err != nil {
-		return nil, err
-	}
+	cli := redis.NewClusterClient(&options)
 
 	return &Redis{
 		inClient:      cli,
@@ -75,7 +68,7 @@ func RedisConnectionFactory(c t.AbstractConfigurationInterface) (types.Storer, e
 		logger:        c.GetLogger(),
 		close:         cli.Close,
 		hashtags:      hashtags,
-	}, err
+	}, nil
 }
 
 // Name returns the storer name
@@ -85,49 +78,47 @@ func (provider *Redis) Name() string {
 
 // ListKeys method returns the list of existing keys
 func (provider *Redis) ListKeys() []string {
-	provider.logger.Sugar().Debugf("Call the ListKeys function in redis")
-	var scan redis.ScanEntry
-	var err error
-	elements := []string{}
-	for more := true; more; more = scan.Cursor != 0 {
-		if scan, err = provider.inClient.Do(context.Background(), provider.inClient.B().Scan().Cursor(scan.Cursor).Match(provider.hashtags+MappingKeyPrefix+"*").Build()).AsScanEntry(); err != nil {
-			provider.logger.Sugar().Errorf("Cannot scan: %v", err)
-		}
-		for _, element := range scan.Elements {
-			value := provider.Get(element)
-			mapping, err := decodeMapping(value)
-			if err != nil {
-				continue
-			}
+	if provider.reconnecting {
+		provider.logger.Sugar().Error("Impossible to list the redis keys while reconnecting.")
+		return []string{}
+	}
+	keys := []string{}
 
-			for _, v := range mapping.Mapping {
-				if v.FreshTime.Before(time.Now()) && v.StaleTime.Before(time.Now()) {
-					continue
-				}
-				elements = append(elements, v.RealKey)
-			}
+	iter := provider.inClient.Scan(provider.ctx, 0, "*", 0).Iterator()
+	for iter.Next(provider.ctx) {
+		keys = append(keys, string(iter.Val()))
+	}
+	if err := iter.Err(); err != nil {
+		if !provider.reconnecting {
+			go provider.Reconnect()
 		}
+		provider.logger.Sugar().Error(err)
+		return []string{}
 	}
 
-	return elements
+	return keys
 }
 
 // MapKeys method returns the list of existing keys
 func (provider *Redis) MapKeys(prefix string) map[string]string {
 	m := map[string]string{}
-	provider.logger.Sugar().Debugf("Call the MapKeys in redis with the prefix %s", prefix)
-	var scan redis.ScanEntry
-	var err error
-	elements := []string{}
-	for more := true; more; more = scan.Cursor != 0 {
-		if scan, err = provider.inClient.Do(context.Background(), provider.inClient.B().Scan().Cursor(scan.Cursor).Match(prefix+"*").Build()).AsScanEntry(); err != nil {
-			provider.logger.Sugar().Errorf("Cannot scan: %v", err)
-		}
-		elements = append(elements, scan.Elements...)
+	keys := []string{}
+
+	iter := provider.inClient.Scan(provider.ctx, 0, prefix+"*", 0).Iterator()
+	for iter.Next(provider.ctx) {
+		keys = append(keys, string(iter.Val()))
 	}
-	for _, key := range elements {
-		k, _ := strings.CutPrefix(key, prefix)
-		m[k] = string(provider.Get(key))
+	if err := iter.Err(); err != nil {
+		return m
+	}
+
+	vals, err := provider.inClient.MGet(provider.ctx, keys...).Result()
+	if err != nil {
+		return m
+	}
+	for idx, item := range keys {
+		k, _ := strings.CutPrefix(item, prefix)
+		m[k] = vals[idx].(string)
 	}
 
 	return m
@@ -135,7 +126,7 @@ func (provider *Redis) MapKeys(prefix string) map[string]string {
 
 // GetMultiLevel tries to load the key and check if one of linked keys is a fresh/stale candidate.
 func (provider *Redis) GetMultiLevel(key string, req *http.Request, validator *rfc.Revalidator) (fresh *http.Response, stale *http.Response) {
-	b, e := provider.inClient.Do(provider.ctx, provider.inClient.B().Get().Key(provider.hashtags+MappingKeyPrefix+key).Build()).AsBytes()
+	b, e := provider.inClient.Get(provider.ctx, provider.hashtags+MappingKeyPrefix+key).Bytes()
 	if e != nil {
 		return fresh, stale
 	}
@@ -154,13 +145,14 @@ func (provider *Redis) SetMultiLevel(baseKey, variedKey string, value []byte, va
 		provider.logger.Sugar().Errorf("Impossible to compress the key %s into Redis, %v", variedKey, err)
 		return err
 	}
-	if err := provider.inClient.Do(provider.ctx, provider.inClient.B().Set().Key(provider.hashtags+variedKey).Value(compressed.String()).Ex(duration+provider.stale).Build()).Error(); err != nil {
+
+	if err := provider.Set(provider.hashtags+variedKey, compressed.Bytes(), t.URL{}, duration); err != nil {
 		provider.logger.Sugar().Errorf("Impossible to set value into Redis, %v", err)
 		return err
 	}
 
 	mappingKey := provider.hashtags + MappingKeyPrefix + baseKey
-	v, e := provider.inClient.Do(provider.ctx, provider.inClient.B().Get().Key(mappingKey).Build()).AsBytes()
+	v, e := provider.inClient.Get(provider.ctx, mappingKey).Bytes()
 	if e != nil && !errors.Is(e, redis.Nil) {
 		return e
 	}
@@ -170,7 +162,7 @@ func (provider *Redis) SetMultiLevel(baseKey, variedKey string, value []byte, va
 		return e
 	}
 
-	if e = provider.inClient.Do(provider.ctx, provider.inClient.B().Set().Key(mappingKey).Value(string(val)).Build()).Error(); e != nil {
+	if e = provider.Set(mappingKey, val, t.URL{}, -1); e != nil {
 		provider.logger.Sugar().Errorf("Impossible to set value into Redis, %v", e)
 	}
 
@@ -178,31 +170,48 @@ func (provider *Redis) SetMultiLevel(baseKey, variedKey string, value []byte, va
 }
 
 // Get method returns the populated response if exists, empty response then
-func (provider *Redis) Get(key string) []byte {
-	r, e := provider.inClient.Do(provider.ctx, provider.inClient.B().Get().Key(key).Build()).AsBytes()
-	if e != nil && e != redis.Nil {
-		return nil
+func (provider *Redis) Get(key string) (item []byte) {
+	if provider.reconnecting {
+		provider.logger.Sugar().Error("Impossible to get the redis key while reconnecting.")
+		return
+	}
+	r, e := provider.inClient.Get(provider.ctx, key).Result()
+	if e != nil {
+		if e != redis.Nil && !provider.reconnecting {
+			go provider.Reconnect()
+		}
+		return
 	}
 
-	return r
+	item = []byte(r)
+
+	return
 }
 
 // Prefix method returns the keys that match the prefix key
 func (provider *Redis) Prefix(key string) []string {
-	keys, _ := provider.inClient.Do(provider.ctx, provider.inClient.B().Keys().Pattern(key+"*").Build()).AsStrSlice()
-	return keys
+	// keys, _ := provider.inClient.Do(provider.ctx, provider.inClient.B().Keys().Pattern(key+"*").Build()).AsStrSlice()
+	return []string{}
 }
 
 // Set method will store the response in Etcd provider
 func (provider *Redis) Set(key string, value []byte, url t.URL, duration time.Duration) error {
-	var cmd redis.Completed
-	if duration == -1 {
-		cmd = provider.inClient.B().Set().Key(key).Value(string(value)).Build()
-	} else {
-		cmd = provider.inClient.B().Set().Key(key).Value(string(value)).Ex(duration + provider.stale).Build()
+	if provider.reconnecting {
+		provider.logger.Sugar().Error("Impossible to set the redis value while reconnecting.")
+		return fmt.Errorf("reconnecting error")
 	}
-	err := provider.inClient.Do(provider.ctx, cmd).Error()
+
+	if duration == -1 {
+		duration = 0
+	} else {
+		duration += provider.stale
+	}
+
+	err := provider.inClient.Set(provider.ctx, key, value, duration).Err()
 	if err != nil {
+		if !provider.reconnecting {
+			go provider.Reconnect()
+		}
 		provider.logger.Sugar().Errorf("Impossible to set value into Redis, %v", err)
 	}
 
@@ -211,22 +220,39 @@ func (provider *Redis) Set(key string, value []byte, url t.URL, duration time.Du
 
 // Delete method will delete the response in Etcd provider if exists corresponding to key param
 func (provider *Redis) Delete(key string) {
-	_ = provider.inClient.Do(provider.ctx, provider.inClient.B().Del().Key(key).Build())
+	if provider.reconnecting {
+		provider.logger.Sugar().Error("Impossible to delete the redis key while reconnecting.")
+		return
+	}
+	_ = provider.inClient.Del(provider.ctx, key)
 }
 
 // DeleteMany method will delete the responses in Redis provider if exists corresponding to the regex key param
 func (provider *Redis) DeleteMany(key string) {
-	provider.logger.Sugar().Debugf("Call the DeleteMany function in redis")
-	var scan redis.ScanEntry
-	var err error
-	elements := []string{}
-	for more := true; more; more = scan.Cursor != 0 {
-		if scan, err = provider.inClient.Do(context.Background(), provider.inClient.B().Scan().Cursor(scan.Cursor).Match(key).Build()).AsScanEntry(); err != nil {
-			provider.logger.Sugar().Errorf("Cannot scan: %v", err)
-		}
-		elements = append(elements, scan.Elements...)
+	if provider.reconnecting {
+		provider.logger.Sugar().Error("Impossible to delete the redis keys while reconnecting.")
+		return
 	}
-	_ = provider.inClient.Do(provider.ctx, provider.inClient.B().Del().Key(elements...).Build())
+	re, e := regexp.Compile(key)
+
+	if e != nil {
+		return
+	}
+
+	keys := []string{}
+	iter := provider.inClient.Scan(provider.ctx, 0, "*", 0).Iterator()
+	for iter.Next(provider.ctx) {
+		if re.MatchString(iter.Val()) {
+			keys = append(keys, iter.Val())
+		}
+	}
+
+	if iter.Err() != nil && !provider.reconnecting {
+		go provider.Reconnect()
+		return
+	}
+
+	provider.inClient.Del(provider.ctx, keys...)
 }
 
 // Init method will
@@ -236,11 +262,20 @@ func (provider *Redis) Init() error {
 
 // Reset method will reset or close provider
 func (provider *Redis) Reset() error {
-	_ = provider.inClient.Do(provider.ctx, provider.inClient.B().Flushdb().Build())
-
-	return nil
+	if provider.reconnecting {
+		provider.logger.Sugar().Error("Impossible to reset the redis instance while reconnecting.")
+		return nil
+	}
+	return provider.inClient.Close()
 }
 
 func (provider *Redis) Reconnect() {
-	provider.logger.Debug("Doing nothing on reconnect because rueidis handles it!")
+	provider.reconnecting = true
+
+	if provider.inClient = redis.NewClusterClient(&provider.configuration); provider.inClient != nil {
+		provider.reconnecting = false
+	} else {
+		time.Sleep(10 * time.Second)
+		provider.Reconnect()
+	}
 }
