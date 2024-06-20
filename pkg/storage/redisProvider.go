@@ -55,6 +55,7 @@ func RedisConnectionFactory(c t.AbstractConfigurationInterface) (types.Storer, e
 			PoolSize:    1000,
 			DialTimeout: dc.GetTimeout().Cache.Duration,
 			ClientName:  "souin-redis",
+			ReadOnly:    true,
 		}
 	}
 
