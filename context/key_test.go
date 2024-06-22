@@ -9,13 +9,12 @@ import (
 
 	"github.com/caddyserver/caddy/v2"
 	"github.com/darkweak/souin/configurationtypes"
-	"github.com/darkweak/souin/plugins/souin/configuration"
 )
 
 func Test_KeyContext_SetupContext(t *testing.T) {
 	ctx := keyContext{}
-	ctx.SetupContext(&configuration.Configuration{
-		DefaultCache: &configurationtypes.DefaultCache{
+	ctx.SetupContext(&testConfiguration{
+		defaultCache: &configurationtypes.DefaultCache{
 			Key: configurationtypes.Key{},
 		},
 	})
@@ -37,14 +36,14 @@ func Test_KeyContext_SetupContext(t *testing.T) {
 			},
 		},
 	}
-	ctx.SetupContext(&configuration.Configuration{
-		DefaultCache: &configurationtypes.DefaultCache{
+	ctx.SetupContext(&testConfiguration{
+		defaultCache: &configurationtypes.DefaultCache{
 			Key: configurationtypes.Key{
 				DisableHost:   true,
 				DisableMethod: true,
 			},
 		},
-		CacheKeys: m,
+		cacheKeys: m,
 	})
 
 	if !ctx.disable_host {

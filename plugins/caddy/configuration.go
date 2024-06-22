@@ -357,7 +357,7 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isGlobal boo
 				}
 				cfg.API = apiConfiguration
 			case "badger":
-				provider := configurationtypes.CacheProvider{}
+				provider := configurationtypes.CacheProvider{Found: true}
 				for nesting := h.Nesting(); h.NextBlock(nesting); {
 					directive := h.Val()
 					switch directive {
@@ -454,7 +454,7 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isGlobal boo
 				}
 			case "etcd":
 				cfg.DefaultCache.Distributed = true
-				provider := configurationtypes.CacheProvider{}
+				provider := configurationtypes.CacheProvider{Found: true}
 				for nesting := h.Nesting(); h.NextBlock(nesting); {
 					directive := h.Val()
 					switch directive {
@@ -505,7 +505,7 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isGlobal boo
 				}
 				cfg.DefaultCache.Mode = args[0]
 			case "nuts":
-				provider := configurationtypes.CacheProvider{}
+				provider := configurationtypes.CacheProvider{Found: true}
 				for nesting := h.Nesting(); h.NextBlock(nesting); {
 					directive := h.Val()
 					switch directive {
@@ -523,7 +523,7 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isGlobal boo
 				}
 				cfg.DefaultCache.Nuts = provider
 			case "otter":
-				provider := configurationtypes.CacheProvider{}
+				provider := configurationtypes.CacheProvider{Found: true}
 				for nesting := h.Nesting(); h.NextBlock(nesting); {
 					directive := h.Val()
 					switch directive {
@@ -536,7 +536,7 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isGlobal boo
 				cfg.DefaultCache.Otter = provider
 			case "olric":
 				cfg.DefaultCache.Distributed = true
-				provider := configurationtypes.CacheProvider{}
+				provider := configurationtypes.CacheProvider{Found: true}
 				for nesting := h.Nesting(); h.NextBlock(nesting); {
 					directive := h.Val()
 					switch directive {
@@ -555,7 +555,7 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isGlobal boo
 				cfg.DefaultCache.Olric = provider
 			case "redis":
 				cfg.DefaultCache.Distributed = true
-				provider := configurationtypes.CacheProvider{}
+				provider := configurationtypes.CacheProvider{Found: true}
 				for nesting := h.Nesting(); h.NextBlock(nesting); {
 					directive := h.Val()
 					switch directive {
