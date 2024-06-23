@@ -37,7 +37,7 @@ require (
 	github.com/clbanning/mxj v1.8.4 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.3 // indirect
 	github.com/darkweak/go-esi v0.0.5 // indirect
-	github.com/darkweak/storages/core v0.0.0-00010101000000-000000000000 // indirect
+	github.com/darkweak/storages/core v0.0.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgraph-io/badger v1.6.2 // indirect
 	github.com/dgraph-io/badger/v2 v2.2007.4 // indirect
@@ -184,6 +184,5 @@ require (
 replace (
 	github.com/darkweak/souin v1.6.49 => ../..
 	github.com/darkweak/souin/plugins/souin => ../souin
-	github.com/darkweak/storages/core => ../../../storages/core
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6 => github.com/alecthomas/kingpin/v2 v2.3.2
 )

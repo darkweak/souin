@@ -10,7 +10,6 @@ import (
 )
 
 type testConfiguration struct {
-	urls         map[string]configurationtypes.URL
 	defaultCache *configurationtypes.DefaultCache
 	cacheKeys    configurationtypes.CacheKeys
 }
@@ -34,7 +33,6 @@ func (*testConfiguration) GetLogger() *zap.Logger {
 	return zap.NewNop()
 }
 func (*testConfiguration) SetLogger(*zap.Logger) {
-	return
 }
 func (*testConfiguration) GetYkeys() map[string]configurationtypes.SurrogateKeys {
 	return nil

@@ -18,7 +18,7 @@ require (
 	github.com/caddyserver/zerossl v0.1.3 // indirect
 	github.com/chzyer/readline v1.5.1 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.3 // indirect
-	github.com/darkweak/storages/core v0.0.0-00010101000000-000000000000 // indirect
+	github.com/darkweak/storages/core v0.0.1 // indirect
 	github.com/dgraph-io/badger v1.6.2 // indirect
 	github.com/dgraph-io/badger/v2 v2.2007.4 // indirect
 	github.com/dgryski/go-farm v0.0.0-20200201041132-a6ae2369ad13 // indirect
@@ -136,7 +136,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace (
-	github.com/darkweak/souin v1.6.49 => ../..
-	github.com/darkweak/storages/core => ../../../storages/core
-)
+replace github.com/darkweak/souin v1.6.49 => ../..

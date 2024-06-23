@@ -170,7 +170,4 @@ require (
 	howett.net/plist v1.0.0 // indirect
 )
 
-replace (
-	github.com/darkweak/souin v1.6.49 => ../..
-	github.com/darkweak/storages/core => ../../../storages/core
-)
+replace github.com/darkweak/souin v1.6.49 => ../..

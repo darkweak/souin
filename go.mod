@@ -5,7 +5,7 @@ go 1.22.1
 require (
 	github.com/caddyserver/caddy/v2 v2.8.4
 	github.com/cespare/xxhash/v2 v2.2.0
-	github.com/darkweak/storages/core v0.0.0-00010101000000-000000000000
+	github.com/darkweak/storages/core v0.0.1
 	github.com/google/uuid v1.6.0
 	github.com/pierrec/lz4/v4 v4.1.21
 	github.com/pquerna/cachecontrol v0.2.0
@@ -123,5 +123,3 @@ require (
 	golang.org/x/tools v0.21.0 // indirect
 	google.golang.org/grpc v1.63.2 // indirect
 )
-
-replace github.com/darkweak/storages/core => ../storages/core

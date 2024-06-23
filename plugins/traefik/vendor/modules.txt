@@ -81,7 +81,7 @@ github.com/darkweak/souin/pkg/storage/types
 github.com/darkweak/souin/pkg/surrogate
 github.com/darkweak/souin/pkg/surrogate/providers
 github.com/darkweak/souin/tests
-# github.com/darkweak/storages/core v0.0.0-00010101000000-000000000000 => ../../../storages/core
+# github.com/darkweak/storages/core v0.0.1
 ## explicit; go 1.22.1
 github.com/darkweak/storages/core
 # github.com/dgraph-io/badger v1.6.2
@@ -707,5 +707,4 @@ gopkg.in/yaml.v3
 # howett.net/plist v1.0.0
 ## explicit; go 1.12
 howett.net/plist
-# github.com/darkweak/storages/core => ../../../storages/core
 # go.uber.org/zap v1.26.0 => go.uber.org/zap v1.21.0

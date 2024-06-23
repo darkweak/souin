@@ -1,9 +1,9 @@
 package providers
 
-const (
-	baseHeaderValue  = "test0, test1,   test2,  test3, test4"
-	emptyHeaderValue = ""
-)
+// const (
+// 	baseHeaderValue  = "test0, test1,   test2,  test3, test4"
+// 	emptyHeaderValue = ""
+// )
 
 /*
 func mockCommonProvider() *baseStorage /*, func() error {

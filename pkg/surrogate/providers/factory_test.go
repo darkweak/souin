@@ -62,7 +62,6 @@ func (*testConfiguration) GetLogger() *zap.Logger {
 	return zap.NewNop()
 }
 func (*testConfiguration) SetLogger(*zap.Logger) {
-	return
 }
 func (*testConfiguration) GetYkeys() map[string]configurationtypes.SurrogateKeys {
 	return nil
