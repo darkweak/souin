@@ -95,8 +95,8 @@ func (s *SouinAPI) BulkDelete(key string, purge bool) {
 // Delete will delete a record into the provider cache system and will update the Souin API if enabled
 // The key can be a regexp to delete multiple items
 func (s *SouinAPI) Delete(key string) {
+	_, err := regexp.Compile(key)
 	for _, current := range s.storers {
-		_, err := regexp.Compile(key)
 		if err != nil {
 			current.DeleteMany(key)
 		} else {
