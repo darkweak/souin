@@ -1,6 +1,7 @@
 package database
 
 import (
+	"database/sql"
 	"fmt"
 
 	"errors"
@@ -17,7 +18,7 @@ var (
 
 // IsErrNotFound returns true if the cause of the given error is ErrNotFound.
 func IsErrNotFound(err error) bool {
-	return errors.Is(err, ErrNotFound)
+	return errors.Is(err, ErrNotFound) || errors.Is(err, sql.ErrNoRows)
 }
 
 // IsErrOpNotSupported returns true if the cause of the given error is ErrOpNotSupported.

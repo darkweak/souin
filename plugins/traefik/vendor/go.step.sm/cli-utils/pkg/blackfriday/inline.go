@@ -11,6 +11,7 @@
 // Functions to parse inline elements.
 //
 
+//nolint:gocritic,whitespace,wastedassign,revive // ignore blackfriday
 package blackfriday
 
 import (
@@ -721,7 +722,9 @@ func linkEndsWithEntity(data []byte, linkEnd int) bool {
 }
 
 // hasPrefixCaseInsensitive is a custom implementation of
-//     strings.HasPrefix(strings.ToLower(s), prefix)
+//
+//	strings.HasPrefix(strings.ToLower(s), prefix)
+//
 // we rolled our own because ToLower pulls in a huge machinery of lowercasing
 // anything from Unicode and that's very slow. Since this func will only be
 // used on ASCII protocol prefixes, we can take shortcuts.

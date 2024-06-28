@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -138,8 +139,8 @@ func (provider *Nuts) ListKeys() []string {
 
 	e := provider.DB.View(func(tx *nutsdb.Tx) error {
 		e, _ := tx.PrefixScan(bucket, []byte(MappingKeyPrefix), 0, 100)
-		for _, k := range e {
-			mapping, err := decodeMapping(k.Value)
+		for _, v := range e {
+			mapping, err := decodeMapping(v)
 			if err == nil {
 				for _, v := range mapping.Mapping {
 					keys = append(keys, v.RealKey)
@@ -159,13 +160,15 @@ func (provider *Nuts) ListKeys() []string {
 // MapKeys method returns the map of existing keys
 func (provider *Nuts) MapKeys(prefix string) map[string]string {
 	keys := map[string]string{}
+	bytePrefix := []byte(prefix)
 
 	e := provider.DB.View(func(tx *nutsdb.Tx) error {
-		e, _ := tx.GetAll(bucket)
-		for _, k := range e {
-			if strings.HasPrefix(string(k.Key), prefix) {
-				nk, _ := strings.CutPrefix(string(k.Key), prefix)
-				keys[nk] = string(k.Value)
+		nKeys, values, _ := tx.GetAll(bucket)
+		for iteration, v := range values {
+			k := nKeys[iteration]
+			if bytes.HasPrefix(k, bytePrefix) {
+				nk, _ := strings.CutPrefix(string(k), prefix)
+				keys[nk] = string(v)
 			}
 		}
 		return nil
@@ -181,9 +184,9 @@ func (provider *Nuts) MapKeys(prefix string) map[string]string {
 // Get method returns the populated response if exists, empty response then
 func (provider *Nuts) Get(key string) (item []byte) {
 	_ = provider.DB.View(func(tx *nutsdb.Tx) error {
-		i, e := tx.Get(bucket, []byte(key))
-		if i != nil {
-			item = i.Value
+		v, e := tx.Get(bucket, []byte(key))
+		if v != nil {
+			item = v
 		}
 		return e
 	})
@@ -191,22 +194,22 @@ func (provider *Nuts) Get(key string) (item []byte) {
 	return
 }
 
+// Should not be used anymore
 // Prefix method returns the keys that match the prefix key
 func (provider *Nuts) Prefix(key string) []string {
 	result := []string{}
-
-	_ = provider.DB.View(func(tx *nutsdb.Tx) error {
-		prefix := []byte(key)
-
-		if entries, err := tx.PrefixSearchScan(bucket, prefix, "^({|$)", 0, 50); err != nil {
-			return err
-		} else {
-			for _, entry := range entries {
-				result = append(result, string(entry.Key))
-			}
-		}
-		return nil
-	})
+	// _ = provider.DB.View(func(tx *nutsdb.Tx) error {
+	// 	prefix := []byte(key)
+	//
+	// 	if entries, err := tx.PrefixSearchScan(bucket, prefix, "^({|$)", 0, 50); err != nil {
+	// 		return err
+	// 	} else {
+	// 		for _, entry := range entries {
+	// 			result = append(result, string(entry.Key))
+	// 		}
+	// 	}
+	// 	return nil
+	// })
 
 	return result
 }
@@ -221,7 +224,7 @@ func (provider *Nuts) GetMultiLevel(key string, req *http.Request, validator *rf
 
 		var val []byte
 		if i != nil {
-			val = i.Value
+			val = i
 		}
 		fresh, stale, e = mappingElection(provider, val, req, validator, provider.logger)
 
@@ -240,6 +243,11 @@ func (provider *Nuts) SetMultiLevel(baseKey, variedKey string, value []byte, var
 		provider.logger.Sugar().Errorf("Impossible to compress the key %s into Nuts, %v", variedKey, err)
 		return err
 	}
+
+	_ = provider.DB.Update(func(tx *nutsdb.Tx) error {
+		return tx.NewBucket(nutsdb.DataStructureBTree, bucket)
+	})
+
 	err := provider.DB.Update(func(tx *nutsdb.Tx) error {
 		e := tx.Put(bucket, []byte(variedKey), compressed.Bytes(), uint32((duration + provider.stale).Seconds()))
 		if e != nil {
@@ -263,7 +271,7 @@ func (provider *Nuts) SetMultiLevel(baseKey, variedKey string, value []byte, var
 
 		var val []byte
 		if item != nil {
-			val = item.Value
+			val = item
 		}
 
 		val, e = mappingUpdater(variedKey, val, provider.logger, now, now.Add(duration), now.Add(duration+provider.stale), variedHeaders, etag, realKey)
@@ -289,6 +297,10 @@ func (provider *Nuts) Set(key string, value []byte, url t.URL, duration time.Dur
 		duration = url.TTL.Duration
 	}
 
+	_ = provider.DB.Update(func(tx *nutsdb.Tx) error {
+		return tx.NewBucket(nutsdb.DataStructureBTree, bucket)
+	})
+
 	err := provider.DB.Update(func(tx *nutsdb.Tx) error {
 		return tx.Put(bucket, []byte(key), value, uint32(duration.Seconds()))
 	})
@@ -309,12 +321,19 @@ func (provider *Nuts) Delete(key string) {
 
 // DeleteMany method will delete the responses in Nuts provider if exists corresponding to the regex key param
 func (provider *Nuts) DeleteMany(key string) {
+	rg, err := regexp.Compile(key)
+	if err != nil {
+		provider.logger.Sugar().Errorf("The key %s is not a valid regexp: %v", key, err)
+		return
+	}
 	_ = provider.DB.Update(func(tx *nutsdb.Tx) error {
-		if entries, err := tx.PrefixSearchScan(bucket, []byte(""), key, 0, nutsLimit); err != nil {
+		if entries, err := tx.GetKeys(bucket); err != nil {
 			return err
 		} else {
 			for _, entry := range entries {
-				_ = tx.Delete(bucket, entry.Key)
+				if rg.Match(entry) {
+					_ = tx.Delete(bucket, entry)
+				}
 			}
 		}
 		return nil

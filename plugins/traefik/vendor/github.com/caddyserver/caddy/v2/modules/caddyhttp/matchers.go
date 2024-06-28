@@ -26,6 +26,7 @@ import (
 	"reflect"
 	"regexp"
 	"runtime"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -224,6 +225,7 @@ func (MatchHost) CaddyModule() caddy.ModuleInfo {
 
 // UnmarshalCaddyfile implements caddyfile.Unmarshaler.
 func (m *MatchHost) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
+	// iterate to merge multiple matchers into one
 	for d.Next() {
 		*m = append(*m, d.RemainingArgs()...)
 		if d.NextBlock(0) {
@@ -454,8 +456,7 @@ func (m MatchPath) Match(r *http.Request) bool {
 		// treat it as a fast substring match
 		if strings.Count(matchPattern, "*") == 2 &&
 			strings.HasPrefix(matchPattern, "*") &&
-			strings.HasSuffix(matchPattern, "*") &&
-			strings.Count(matchPattern, "*") == 2 {
+			strings.HasSuffix(matchPattern, "*") {
 			if strings.Contains(reqPathForPattern, matchPattern[1:len(matchPattern)-1]) {
 				return true
 			}
@@ -631,6 +632,7 @@ func (MatchPath) CELLibrary(ctx caddy.Context) (cel.Library, error) {
 
 // UnmarshalCaddyfile implements caddyfile.Unmarshaler.
 func (m *MatchPath) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
+	// iterate to merge multiple matchers into one
 	for d.Next() {
 		*m = append(*m, d.RemainingArgs()...)
 		if d.NextBlock(0) {
@@ -673,7 +675,10 @@ func (MatchPathRE) CELLibrary(ctx caddy.Context) (cel.Library, error) {
 		[]*cel.Type{cel.StringType},
 		func(data ref.Val) (RequestMatcher, error) {
 			pattern := data.(types.String)
-			matcher := MatchPathRE{MatchRegexp{Pattern: string(pattern)}}
+			matcher := MatchPathRE{MatchRegexp{
+				Name:    ctx.Value(MatcherNameCtxKey).(string),
+				Pattern: string(pattern),
+			}}
 			err := matcher.Provision(ctx)
 			return matcher, err
 		},
@@ -692,7 +697,14 @@ func (MatchPathRE) CELLibrary(ctx caddy.Context) (cel.Library, error) {
 				return nil, err
 			}
 			strParams := params.([]string)
-			matcher := MatchPathRE{MatchRegexp{Name: strParams[0], Pattern: strParams[1]}}
+			name := strParams[0]
+			if name == "" {
+				name = ctx.Value(MatcherNameCtxKey).(string)
+			}
+			matcher := MatchPathRE{MatchRegexp{
+				Name:    name,
+				Pattern: strParams[1],
+			}}
 			err = matcher.Provision(ctx)
 			return matcher, err
 		},
@@ -715,6 +727,7 @@ func (MatchMethod) CaddyModule() caddy.ModuleInfo {
 
 // UnmarshalCaddyfile implements caddyfile.Unmarshaler.
 func (m *MatchMethod) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
+	// iterate to merge multiple matchers into one
 	for d.Next() {
 		*m = append(*m, d.RemainingArgs()...)
 		if d.NextBlock(0) {
@@ -769,6 +782,7 @@ func (m *MatchQuery) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 	if *m == nil {
 		*m = make(map[string][]string)
 	}
+	// iterate to merge multiple matchers into one
 	for d.Next() {
 		for _, query := range d.RemainingArgs() {
 			if query == "" {
@@ -789,6 +803,12 @@ func (m *MatchQuery) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 
 // Match returns true if r matches m. An empty m matches an empty query string.
 func (m MatchQuery) Match(r *http.Request) bool {
+	// If no query keys are configured, this only
+	// matches an empty query string.
+	if len(m) == 0 {
+		return len(r.URL.Query()) == 0
+	}
+
 	repl := r.Context().Value(caddy.ReplacerCtxKey).(*caddy.Replacer)
 
 	// parse query string just once, for efficiency
@@ -806,19 +826,25 @@ func (m MatchQuery) Match(r *http.Request) bool {
 		return false
 	}
 
+	// Count the amount of matched keys, to ensure we AND
+	// between all configured query keys; all keys must
+	// match at least one value.
+	matchedKeys := 0
 	for param, vals := range m {
 		param = repl.ReplaceAll(param, "")
 		paramVal, found := parsed[param]
-		if found {
-			for _, v := range vals {
-				v = repl.ReplaceAll(v, "")
-				if paramVal[0] == v || v == "*" {
-					return true
-				}
+		if !found {
+			return false
+		}
+		for _, v := range vals {
+			v = repl.ReplaceAll(v, "")
+			if slices.Contains(paramVal, v) || v == "*" {
+				matchedKeys++
+				break
 			}
 		}
 	}
-	return len(m) == 0 && len(r.URL.Query()) == 0
+	return matchedKeys == len(m)
 }
 
 // CELLibrary produces options that expose this matcher for use in CEL
@@ -855,6 +881,7 @@ func (m *MatchHeader) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 	if *m == nil {
 		*m = make(map[string][]string)
 	}
+	// iterate to merge multiple matchers into one
 	for d.Next() {
 		var field, val string
 		if !d.Args(&field) {
@@ -989,6 +1016,7 @@ func (m *MatchHeaderRE) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 	if *m == nil {
 		*m = make(map[string]*MatchRegexp)
 	}
+	// iterate to merge multiple matchers into one
 	for d.Next() {
 		var first, second, third string
 		if !d.Args(&first, &second) {
@@ -1003,6 +1031,11 @@ func (m *MatchHeaderRE) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 		} else {
 			field = first
 			val = second
+		}
+
+		// Default to the named matcher's name, if no regexp name is provided
+		if name == "" {
+			name = d.GetContextString(caddyfile.MatcherNameCtxKey)
 		}
 
 		// If there's already a pattern for this field
@@ -1081,7 +1114,10 @@ func (MatchHeaderRE) CELLibrary(ctx caddy.Context) (cel.Library, error) {
 			}
 			strParams := params.([]string)
 			matcher := MatchHeaderRE{}
-			matcher[strParams[0]] = &MatchRegexp{Pattern: strParams[1], Name: ""}
+			matcher[strParams[0]] = &MatchRegexp{
+				Pattern: strParams[1],
+				Name:    ctx.Value(MatcherNameCtxKey).(string),
+			}
 			err = matcher.Provision(ctx)
 			return matcher, err
 		},
@@ -1100,8 +1136,15 @@ func (MatchHeaderRE) CELLibrary(ctx caddy.Context) (cel.Library, error) {
 				return nil, err
 			}
 			strParams := params.([]string)
+			name := strParams[0]
+			if name == "" {
+				name = ctx.Value(MatcherNameCtxKey).(string)
+			}
 			matcher := MatchHeaderRE{}
-			matcher[strParams[1]] = &MatchRegexp{Pattern: strParams[2], Name: strParams[0]}
+			matcher[strParams[1]] = &MatchRegexp{
+				Pattern: strParams[2],
+				Name:    name,
+			}
 			err = matcher.Provision(ctx)
 			return matcher, err
 		},
@@ -1153,6 +1196,7 @@ func (m MatchProtocol) Match(r *http.Request) bool {
 
 // UnmarshalCaddyfile implements caddyfile.Unmarshaler.
 func (m *MatchProtocol) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
+	// iterate to merge multiple matchers into one
 	for d.Next() {
 		var proto string
 		if !d.Args(&proto) {
@@ -1194,6 +1238,7 @@ func (MatchNot) CaddyModule() caddy.ModuleInfo {
 
 // UnmarshalCaddyfile implements caddyfile.Unmarshaler.
 func (m *MatchNot) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
+	// iterate to merge multiple matchers into one
 	for d.Next() {
 		matcherSet, err := ParseCaddyfileNestedMatcherSet(d)
 		if err != nil {
@@ -1264,7 +1309,6 @@ type MatchRegexp struct {
 	Pattern string `json:"pattern"`
 
 	compiled *regexp.Regexp
-	phPrefix string
 }
 
 // Provision compiles the regular expression.
@@ -1274,10 +1318,6 @@ func (mre *MatchRegexp) Provision(caddy.Context) error {
 		return fmt.Errorf("compiling matcher regexp %s: %v", mre.Pattern, err)
 	}
 	mre.compiled = re
-	mre.phPrefix = regexpPlaceholderPrefix
-	if mre.Name != "" {
-		mre.phPrefix += "." + mre.Name
-	}
 	return nil
 }
 
@@ -1301,16 +1341,25 @@ func (mre *MatchRegexp) Match(input string, repl *caddy.Replacer) bool {
 
 	// save all capture groups, first by index
 	for i, match := range matches {
-		key := mre.phPrefix + "." + strconv.Itoa(i)
-		repl.Set(key, match)
+		keySuffix := "." + strconv.Itoa(i)
+		if mre.Name != "" {
+			repl.Set(regexpPlaceholderPrefix+"."+mre.Name+keySuffix, match)
+		}
+		repl.Set(regexpPlaceholderPrefix+keySuffix, match)
 	}
 
 	// then by name
 	for i, name := range mre.compiled.SubexpNames() {
-		if i != 0 && name != "" {
-			key := mre.phPrefix + "." + name
-			repl.Set(key, matches[i])
+		// skip the first element (the full match), and empty names
+		if i == 0 || name == "" {
+			continue
 		}
+
+		keySuffix := "." + name
+		if mre.Name != "" {
+			repl.Set(regexpPlaceholderPrefix+"."+mre.Name+keySuffix, matches[i])
+		}
+		repl.Set(regexpPlaceholderPrefix+keySuffix, matches[i])
 	}
 
 	return true
@@ -1318,6 +1367,7 @@ func (mre *MatchRegexp) Match(input string, repl *caddy.Replacer) bool {
 
 // UnmarshalCaddyfile implements caddyfile.Unmarshaler.
 func (mre *MatchRegexp) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
+	// iterate to merge multiple matchers into one
 	for d.Next() {
 		// If this is the second iteration of the loop
 		// then there's more than one path_regexp matcher
@@ -1336,6 +1386,12 @@ func (mre *MatchRegexp) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 		default:
 			return d.ArgErr()
 		}
+
+		// Default to the named matcher's name, if no regexp name is provided
+		if mre.Name == "" {
+			mre.Name = d.GetContextString(caddyfile.MatcherNameCtxKey)
+		}
+
 		if d.NextBlock(0) {
 			return d.Err("malformed path_regexp matcher: blocks are not supported")
 		}

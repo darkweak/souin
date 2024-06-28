@@ -52,6 +52,8 @@ type DefaultCache struct {
 	TTL configurationtypes.Duration `json:"ttl"`
 	// Stale time to live.
 	Stale configurationtypes.Duration `json:"stale"`
+	// Disable the coalescing system.
+	DisableCoalescing bool `json:"disable_coalescing"`
 }
 
 // GetAllowedHTTPVerbs returns the allowed verbs to cache
@@ -152,6 +154,11 @@ func (d *DefaultCache) GetDefaultCacheControl() string {
 // GetMaxBodyBytes returns the maximum body size (in bytes) to be cached
 func (d *DefaultCache) GetMaxBodyBytes() uint64 {
 	return d.MaxBodyBytes
+}
+
+// IsCoalescingDisable returns if the coalescing is disabled
+func (d *DefaultCache) IsCoalescingDisable() bool {
+	return d.DisableCoalescing
 }
 
 // Configuration holder
@@ -615,6 +622,8 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isGlobal boo
 				if err == nil {
 					cfg.DefaultCache.TTL.Duration = ttl
 				}
+			case "disable_coalescing":
+				cfg.DefaultCache.DisableCoalescing = true
 			default:
 				return h.Errf("unsupported root directive: %s", rootOption)
 			}

@@ -186,7 +186,7 @@ func (l *lexer) next() (bool, error) {
 			}
 
 			// check if we're done, i.e. that the last few characters are the marker
-			if len(val) > len(heredocMarker) && heredocMarker == string(val[len(val)-len(heredocMarker):]) {
+			if len(val) >= len(heredocMarker) && heredocMarker == string(val[len(val)-len(heredocMarker):]) {
 				// set the final value
 				val, err = l.finalizeHeredoc(val, heredocMarker)
 				if err != nil {
@@ -313,6 +313,11 @@ func (l *lexer) finalizeHeredoc(val []rune, marker string) ([]rune, error) {
 	// iterate over each line and strip the whitespace from the front
 	var out string
 	for lineNum, lineText := range lines[:len(lines)-1] {
+		if lineText == "" || lineText == "\r" {
+			out += "\n"
+			continue
+		}
+
 		// find an exact match for the padding
 		index := strings.Index(lineText, paddingToStrip)
 
@@ -335,6 +340,8 @@ func (l *lexer) finalizeHeredoc(val []rune, marker string) ([]rune, error) {
 	return []rune(out), nil
 }
 
+// Quoted returns true if the token was enclosed in quotes
+// (i.e. double quotes, backticks, or heredoc).
 func (t Token) Quoted() bool {
 	return t.wasQuoted > 0
 }
@@ -349,6 +356,19 @@ func (t Token) NumLineBreaks() int {
 		lineBreaks += 2
 	}
 	return lineBreaks
+}
+
+// Clone returns a deep copy of the token.
+func (t Token) Clone() Token {
+	return Token{
+		File:          t.File,
+		imports:       append([]string{}, t.imports...),
+		Line:          t.Line,
+		Text:          t.Text,
+		wasQuoted:     t.wasQuoted,
+		heredocMarker: t.heredocMarker,
+		snippetName:   t.snippetName,
+	}
 }
 
 var heredocMarkerRegexp = regexp.MustCompile("^[A-Za-z0-9_-]+$")

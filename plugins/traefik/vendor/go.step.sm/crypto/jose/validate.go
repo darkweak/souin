@@ -162,6 +162,12 @@ func validateSigJWK(jwk *JSONWebKey) error {
 			return nil
 		}
 		errctx = "kty 'OKP' and crv 'Ed25519'"
+	case OpaqueSigner:
+		for _, alg := range k.Algs() {
+			if jwk.Algorithm == string(alg) {
+				return nil
+			}
+		}
 	}
 
 	return errors.Errorf("alg '%s' is not compatible with %s", jwk.Algorithm, errctx)

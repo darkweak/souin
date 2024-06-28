@@ -13,11 +13,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/darkweak/souin/errors"
 	"github.com/darkweak/souin/pkg/middleware"
 	"github.com/darkweak/souin/plugins/souin/configuration"
 	"github.com/darkweak/souin/plugins/souin/providers"
 )
+
+type canceledRequestContextError struct{}
+
+func (c *canceledRequestContextError) Error() string {
+	return "The user canceled the request"
+}
 
 func startServer(config *tls.Config, port string) (net.Listener, *http.Server) {
 	server := http.Server{
@@ -74,7 +79,7 @@ func main() {
 			select {
 			case <-req.Context().Done():
 				c.GetLogger().Debug("The request was canceled by the user.")
-				return &errors.CanceledRequestContextError{}
+				return &canceledRequestContextError{}
 			default:
 				res, err := proxy.Transport.RoundTrip(req)
 				if err != nil {

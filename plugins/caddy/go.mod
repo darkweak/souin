@@ -6,7 +6,7 @@ toolchain go1.21.2
 
 require (
 	github.com/buraksezer/olric v0.5.4
-	github.com/caddyserver/caddy/v2 v2.8.1
+	github.com/caddyserver/caddy/v2 v2.8.4
 	github.com/darkweak/souin v1.6.49
 	go.uber.org/zap v1.27.0
 )
@@ -30,7 +30,7 @@ require (
 	github.com/bits-and-blooms/bitset v1.5.0 // indirect
 	github.com/buraksezer/consistent v0.10.0 // indirect
 	github.com/bwmarrin/snowflake v0.3.0 // indirect
-	github.com/caddyserver/certmagic v0.21.2 // indirect
+	github.com/caddyserver/certmagic v0.21.3 // indirect
 	github.com/caddyserver/zerossl v0.1.3 // indirect
 	github.com/cenkalti/backoff/v4 v4.2.1 // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
@@ -111,7 +111,7 @@ require (
 	github.com/mitchellh/go-ps v1.0.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/mschoch/smat v0.2.0 // indirect
-	github.com/nutsdb/nutsdb v0.14.3 // indirect
+	github.com/nutsdb/nutsdb v1.0.4 // indirect
 	github.com/onsi/ginkgo/v2 v2.13.2 // indirect
 	github.com/pierrec/lz4/v4 v4.1.21 // indirect
 	github.com/pires/go-proxyproto v0.7.0 // indirect

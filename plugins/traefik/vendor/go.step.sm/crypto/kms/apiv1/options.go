@@ -72,8 +72,13 @@ func (e NotImplementedError) Error() string {
 	return "not implemented"
 }
 
+func (e NotImplementedError) Is(target error) bool {
+	_, ok := target.(NotImplementedError)
+	return ok
+}
+
 // AlreadyExistsError is the type of error returned if a key already exists. This
-// is currently only implmented for pkcs11 and tpmkms.
+// is currently only implemented for pkcs11, tpmkms, and mackms.
 type AlreadyExistsError struct {
 	Message string
 }
@@ -82,7 +87,30 @@ func (e AlreadyExistsError) Error() string {
 	if e.Message != "" {
 		return e.Message
 	}
-	return "key already exists"
+	return "already exists"
+}
+
+func (e AlreadyExistsError) Is(target error) bool {
+	_, ok := target.(AlreadyExistsError)
+	return ok
+}
+
+// NotFoundError is the type of error returned if a key or certificate does not
+// exist. This is currently only implemented for capi and mackms.
+type NotFoundError struct {
+	Message string
+}
+
+func (e NotFoundError) Error() string {
+	if e.Message != "" {
+		return e.Message
+	}
+	return "not found"
+}
+
+func (e NotFoundError) Is(target error) bool {
+	_, ok := target.(NotFoundError)
+	return ok
 }
 
 // Type represents the KMS type used.
@@ -109,7 +137,49 @@ const (
 	CAPIKMS Type = "capi"
 	// TPMKMS
 	TPMKMS Type = "tpmkms"
+	// MacKMS is the KMS implementation using macOS Keychain and Secure Enclave.
+	MacKMS Type = "mackms"
 )
+
+// TypeOf returns the type of of the given uri.
+func TypeOf(rawuri string) (Type, error) {
+	u, err := uri.Parse(rawuri)
+	if err != nil {
+		return DefaultKMS, err
+	}
+	t := Type(u.Scheme).normalize()
+	if err := t.Validate(); err != nil {
+		return DefaultKMS, err
+	}
+	return t, nil
+}
+
+func (t Type) normalize() Type {
+	return Type(strings.ToLower(string(t)))
+}
+
+// Validate return an error if the type is not a supported one.
+func (t Type) Validate() error {
+	typ := t.normalize()
+
+	switch typ {
+	case DefaultKMS, SoftKMS: // Go crypto based kms.
+		return nil
+	case CloudKMS, AmazonKMS, AzureKMS: // Cloud based kms.
+		return nil
+	case YubiKey, PKCS11, TPMKMS: // Hardware based kms.
+		return nil
+	case SSHAgentKMS, CAPIKMS, MacKMS: // Others
+		return nil
+	}
+
+	// Check other registered types
+	if _, ok := registry.Load(typ); ok {
+		return nil
+	}
+
+	return fmt.Errorf("unsupported kms type %s", t)
+}
 
 // Options are the KMS options. They represent the kms object in the ca.json.
 type Options struct {
@@ -155,18 +225,7 @@ func (o *Options) Validate() error {
 	if o == nil {
 		return nil
 	}
-
-	typ := strings.ToLower(string(o.Type))
-	switch Type(typ) {
-	case DefaultKMS, SoftKMS: // Go crypto based kms.
-	case CloudKMS, AmazonKMS, AzureKMS: // Cloud based kms.
-	case YubiKey, PKCS11, TPMKMS: // Hardware based kms.
-	case SSHAgentKMS, CAPIKMS: // Others
-	default:
-		return fmt.Errorf("unsupported kms type %s", o.Type)
-	}
-
-	return nil
+	return o.Type.Validate()
 }
 
 // GetType returns the type in the type property or the one present in the URI.
@@ -175,18 +234,14 @@ func (o *Options) GetType() (Type, error) {
 		return o.Type, nil
 	}
 	if o.URI != "" {
-		u, err := uri.Parse(o.URI)
-		if err != nil {
-			return DefaultKMS, err
-		}
-		return Type(strings.ToLower(u.Scheme)), nil
+		return TypeOf(o.URI)
 	}
 	return SoftKMS, nil
 }
 
 var ErrNonInteractivePasswordPrompt = errors.New("password required in non-interactive context")
 
-var NonInteractivePasswordPrompter = func(s string) ([]byte, error) {
+var NonInteractivePasswordPrompter = func(string) ([]byte, error) {
 	return nil, ErrNonInteractivePasswordPrompt
 }
 

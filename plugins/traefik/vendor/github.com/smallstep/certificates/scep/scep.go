@@ -5,12 +5,12 @@ import (
 	"crypto/x509"
 	"encoding/asn1"
 
-	microscep "github.com/micromdm/scep/v2/scep"
-	"go.mozilla.org/pkcs7"
+	"github.com/smallstep/pkcs7"
+	smallscep "github.com/smallstep/scep"
 )
 
 // FailInfoName models the name/value of failInfo
-type FailInfoName microscep.FailInfo
+type FailInfoName smallscep.FailInfo
 
 // FailInfo models a failInfo object consisting of a
 // name/identifier and a failInfoText, the latter of
@@ -29,16 +29,16 @@ var (
 	oidSCEPsenderNonce    = asn1.ObjectIdentifier{2, 16, 840, 1, 113733, 1, 9, 5}
 	oidSCEPrecipientNonce = asn1.ObjectIdentifier{2, 16, 840, 1, 113733, 1, 9, 6}
 	oidSCEPtransactionID  = asn1.ObjectIdentifier{2, 16, 840, 1, 113733, 1, 9, 7}
-	oidSCEPfailInfoText   = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 24}
+	oidSCEPfailInfoText   = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 24, 1}
 	//oidChallengePassword  = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 9, 7}
 )
 
 // PKIMessage defines the possible SCEP message types
 type PKIMessage struct {
-	microscep.TransactionID
-	microscep.MessageType
-	microscep.SenderNonce
-	*microscep.CSRReqMessage
+	smallscep.TransactionID
+	smallscep.MessageType
+	smallscep.SenderNonce
+	*smallscep.CSRReqMessage
 
 	*CertRepMessage
 
@@ -57,9 +57,9 @@ type PKIMessage struct {
 
 // CertRepMessage is a type of PKIMessage
 type CertRepMessage struct {
-	microscep.PKIStatus
-	microscep.RecipientNonce
-	microscep.FailInfo
+	smallscep.PKIStatus
+	smallscep.RecipientNonce
+	smallscep.FailInfo
 
 	Certificate *x509.Certificate
 
