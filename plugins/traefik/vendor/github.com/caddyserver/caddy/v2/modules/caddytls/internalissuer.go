@@ -94,7 +94,7 @@ func (iss *InternalIssuer) Provision(ctx caddy.Context) error {
 }
 
 // IssuerKey returns the unique issuer key for the
-// confgured CA endpoint.
+// configured CA endpoint.
 func (iss InternalIssuer) IssuerKey() string {
 	return iss.ca.ID
 }
@@ -129,7 +129,7 @@ func (iss InternalIssuer) Issue(ctx context.Context, csr *x509.CertificateReques
 		)
 	}
 
-	certChain, err := auth.Sign(csr, provisioner.SignOptions{}, customCertLifetime(caddy.Duration(lifetime)))
+	certChain, err := auth.SignWithContext(ctx, csr, provisioner.SignOptions{}, customCertLifetime(caddy.Duration(lifetime)))
 	if err != nil {
 		return nil, err
 	}
@@ -155,31 +155,29 @@ func (iss InternalIssuer) Issue(ctx context.Context, csr *x509.CertificateReques
 //	    sign_with_root
 //	}
 func (iss *InternalIssuer) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
-	for d.Next() {
-		for d.NextBlock(0) {
-			switch d.Val() {
-			case "ca":
-				if !d.AllArgs(&iss.CA) {
-					return d.ArgErr()
-				}
-
-			case "lifetime":
-				if !d.NextArg() {
-					return d.ArgErr()
-				}
-				dur, err := caddy.ParseDuration(d.Val())
-				if err != nil {
-					return err
-				}
-				iss.Lifetime = caddy.Duration(dur)
-
-			case "sign_with_root":
-				if d.NextArg() {
-					return d.ArgErr()
-				}
-				iss.SignWithRoot = true
-
+	d.Next() // consume issuer name
+	for d.NextBlock(0) {
+		switch d.Val() {
+		case "ca":
+			if !d.AllArgs(&iss.CA) {
+				return d.ArgErr()
 			}
+
+		case "lifetime":
+			if !d.NextArg() {
+				return d.ArgErr()
+			}
+			dur, err := caddy.ParseDuration(d.Val())
+			if err != nil {
+				return err
+			}
+			iss.Lifetime = caddy.Duration(dur)
+
+		case "sign_with_root":
+			if d.NextArg() {
+				return d.ArgErr()
+			}
+			iss.SignWithRoot = true
 		}
 	}
 	return nil

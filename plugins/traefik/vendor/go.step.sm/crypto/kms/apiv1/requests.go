@@ -5,6 +5,7 @@ import (
 	"crypto"
 	"crypto/x509"
 	"fmt"
+	"time"
 )
 
 // ProtectionLevel specifies on some KMS how cryptographic operations are
@@ -130,7 +131,7 @@ type GetPublicKeyRequest struct {
 type CreateKeyRequest struct {
 	// Name represents the key name or label used to identify a key.
 	//
-	// Used by: awskms, cloudkms, azurekms, pkcs11, yubikey, tpmkms.
+	// Used by: awskms, cloudkms, azurekms, pkcs11, yubikey, tpmkms, mackms.
 	Name string
 
 	// SignatureAlgorithm represents the type of key to create.
@@ -160,6 +161,12 @@ type CreateKeyRequest struct {
 	//
 	// Used by: yubikey
 	TouchPolicy TouchPolicy
+
+	// DestroyRetentionPeriod is the period of time that a key spends in a
+	// destroy scheduled state before transitioning to destroyed.
+	//
+	// Used by: cloudkms
+	DestroyRetentionPeriod time.Duration
 }
 
 // CreateKeyResponse is the response value of the kms.CreateKey method.
@@ -280,4 +287,25 @@ type CreateAttestationResponse struct {
 	PublicKey               crypto.PublicKey
 	CertificationParameters *CertificationParameters
 	PermanentIdentifier     string
+}
+
+// DeleteKeyRequest is the parameter used in the kms.DeleteKey method.
+//
+// # Experimental
+//
+// Notice: This API is EXPERIMENTAL and may be changed or removed in a later
+// release.
+type DeleteKeyRequest struct {
+	Name string
+}
+
+// DeleteCertificateRequest is the parameter used in the kms.DeleteCertificate
+// method.
+//
+// # Experimental
+//
+// Notice: This API is EXPERIMENTAL and may be changed or removed in a later
+// release.
+type DeleteCertificateRequest struct {
+	Name string
 }

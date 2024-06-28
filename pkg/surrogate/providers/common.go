@@ -37,7 +37,7 @@ var storageToInfiniteTTLMap = map[string]time.Duration{
 	"NUTS":   0,
 	"OLRIC":  365 * 24 * time.Hour,
 	"OTTER":  365 * 24 * time.Hour,
-	"REDIS":  0,
+	"REDIS":  -1,
 }
 
 func (s *baseStorage) ParseHeaders(value string) []string {

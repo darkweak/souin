@@ -122,7 +122,7 @@ func installPlatform(filename string, cert *x509.Certificate) error {
 	return nil
 }
 
-func uninstallPlatform(filename string, cert *x509.Certificate) error {
+func uninstallPlatform(filename string, _ *x509.Certificate) error {
 	cmd := exec.Command("sudo", "security", "remove-trusted-cert", "-d", filename)
 	out, err := cmd.CombinedOutput()
 	if err != nil {

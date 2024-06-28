@@ -11,7 +11,7 @@ import (
 )
 
 // attributeTypeNames are the subject attributes managed by Go and this package.
-// newExtraNames will populate .Insecure.CR.ExtraNames with the attributes not
+// NewExtraNames will populate .Insecure.CR.ExtraNames with the attributes not
 // present on this map.
 var attributeTypeNames = map[string]string{
 	"2.5.4.6":  "C",
@@ -54,7 +54,7 @@ func newName(n pkix.Name) Name {
 		PostalCode:         n.PostalCode,
 		SerialNumber:       n.SerialNumber,
 		CommonName:         n.CommonName,
-		ExtraNames:         newExtraNames(n.Names),
+		ExtraNames:         NewExtraNames(n.Names),
 	}
 }
 
@@ -154,9 +154,9 @@ type DistinguishedName struct {
 	Value interface{}      `json:"value"`
 }
 
-// newExtraNames returns a list of DistinguishedName with the attributes not
+// NewExtraNames returns a list of DistinguishedName with the attributes not
 // present in attributeTypeNames.
-func newExtraNames(atvs []pkix.AttributeTypeAndValue) []DistinguishedName {
+func NewExtraNames(atvs []pkix.AttributeTypeAndValue) []DistinguishedName {
 	var extraNames []DistinguishedName
 	for _, atv := range atvs {
 		if _, ok := attributeTypeNames[atv.Type.String()]; !ok {

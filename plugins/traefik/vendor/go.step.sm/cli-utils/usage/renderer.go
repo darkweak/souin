@@ -366,7 +366,7 @@ func (r *Renderer) RenderNode(w io.Writer, node *md.Node, entering bool) md.Walk
 }
 
 // RenderHeader implements blackfriday.Renderer interface.
-func (r *Renderer) RenderHeader(w io.Writer, ast *md.Node) {}
+func (r *Renderer) RenderHeader(io.Writer, *md.Node) {}
 
 // RenderFooter implements blackfriday.Renderer interface.
-func (r *Renderer) RenderFooter(w io.Writer, ast *md.Node) {}
+func (r *Renderer) RenderFooter(io.Writer, *md.Node) {}

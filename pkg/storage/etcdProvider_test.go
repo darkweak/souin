@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/darkweak/souin/pkg/storage/types"
@@ -10,7 +9,6 @@ import (
 	"time"
 
 	"github.com/darkweak/souin/configurationtypes"
-	"github.com/darkweak/souin/errors"
 )
 
 func getEtcdClientAndMatchedURL(key string) (types.Storer, configurationtypes.URL) {
@@ -43,11 +41,11 @@ func TestEtcdConnectionFactory(t *testing.T) {
 	ch <- true
 
 	if nil != err {
-		errors.GenerateError(t, "Shouldn't have panic")
+		t.Error("Shouldn't have panic")
 	}
 
 	if nil == r {
-		errors.GenerateError(t, "Etcd should be instanciated")
+		t.Error("Etcd should be instanciated")
 	}
 }
 
@@ -59,10 +57,10 @@ func TestIShouldBeAbleToReadAndWriteDataInEtcd(t *testing.T) {
 
 	res := client.Get("Test")
 	if res == nil || len(res) <= 0 {
-		errors.GenerateError(t, fmt.Sprintf("Key %s should exist", BASE_VALUE))
+		t.Errorf("Key %s should exist", BASE_VALUE)
 	}
 	if BASE_VALUE != string(res) {
-		errors.GenerateError(t, fmt.Sprintf("%s not corresponding to %s", string(res), BASE_VALUE))
+		t.Errorf("%s not corresponding to %s", string(res), BASE_VALUE)
 	}
 }
 
@@ -71,7 +69,7 @@ func TestEtcd_GetRequestInCache(t *testing.T) {
 	client, _ := EtcdConnectionFactory(c)
 	res := client.Get(NONEXISTENTKEY)
 	if 0 < len(res) {
-		errors.GenerateError(t, fmt.Sprintf("Key %s should not exist", NONEXISTENTKEY))
+		t.Errorf("Key %s should not exist", NONEXISTENTKEY)
 	}
 }
 
@@ -82,11 +80,11 @@ func TestEtcd_GetSetRequestInCache_OneByte(t *testing.T) {
 
 	res := client.Get(BYTEKEY)
 	if len(res) == 0 {
-		errors.GenerateError(t, fmt.Sprintf("Key %s should exist", BYTEKEY))
+		t.Errorf("Key %s should exist", BYTEKEY)
 	}
 
 	if string(res) != "A" {
-		errors.GenerateError(t, fmt.Sprintf("%s not corresponding to %v", res, 65))
+		t.Errorf("%s not corresponding to %v", res, 65)
 	}
 }
 
@@ -102,7 +100,7 @@ func TestEtcd_DeleteRequestInCache(t *testing.T) {
 	client.Delete(BYTEKEY)
 	time.Sleep(1 * time.Second)
 	if 0 < len(client.Get(BYTEKEY)) {
-		errors.GenerateError(t, fmt.Sprintf("Key %s should not exist", BYTEKEY))
+		t.Errorf("Key %s should not exist", BYTEKEY)
 	}
 }
 
@@ -111,6 +109,6 @@ func TestEtcd_Init(t *testing.T) {
 	err := client.Init()
 
 	if nil != err {
-		errors.GenerateError(t, "Impossible to init Etcd provider")
+		t.Error("Impossible to init Etcd provider")
 	}
 }

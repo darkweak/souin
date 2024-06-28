@@ -247,6 +247,7 @@ type DefaultCache struct {
 	TTL                 Duration      `json:"ttl" yaml:"ttl"`
 	DefaultCacheControl string        `json:"default_cache_control" yaml:"default_cache_control"`
 	MaxBodyBytes        uint64        `json:"max_cacheable_body_bytes" yaml:"max_cacheable_body_bytes"`
+	DisableCoalescing   bool          `json:"disable_coalescing" yaml:"disable_coalescing"`
 }
 
 // GetAllowedHTTPVerbs returns the allowed verbs to cache
@@ -349,6 +350,11 @@ func (d *DefaultCache) GetMaxBodyBytes() uint64 {
 	return d.MaxBodyBytes
 }
 
+// IsCoalescingDisable returns if the coalescing is disabled
+func (d *DefaultCache) IsCoalescingDisable() bool {
+	return d.DisableCoalescing
+}
+
 // DefaultCacheInterface interface
 type DefaultCacheInterface interface {
 	GetAllowedHTTPVerbs() []string
@@ -371,6 +377,7 @@ type DefaultCacheInterface interface {
 	GetTTL() time.Duration
 	GetDefaultCacheControl() string
 	GetMaxBodyBytes() uint64
+	IsCoalescingDisable() bool
 }
 
 // APIEndpoint is the minimal structure to define an endpoint

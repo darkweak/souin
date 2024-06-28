@@ -267,6 +267,9 @@ func ParseX5cInsecure(tok string, roots []*x509.Certificate) (*JSONWebToken, [][
 		Intermediates: interPool,
 		// A hack so we skip validity period validation.
 		CurrentTime: leaf.NotAfter.Add(-1 * time.Minute),
+		KeyUsages: []x509.ExtKeyUsage{
+			x509.ExtKeyUsageClientAuth,
+		},
 	})
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "error verifying x5cInsecure certificate chain")

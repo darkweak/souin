@@ -17,7 +17,6 @@ ADD ./pkg /app/src/github.com/darkweak/souin/pkg
 ADD ./tests /app/src/github.com/darkweak/souin/tests
 ADD ./configuration /app/src/github.com/darkweak/souin/configuration
 ADD ./configurationtypes /app/src/github.com/darkweak/souin/configurationtypes
-ADD ./errors /app/src/github.com/darkweak/souin/errors
 ADD ./helpers /app/src/github.com/darkweak/souin/helpers
 ADD ./plugins /app/src/github.com/darkweak/souin/plugins
 

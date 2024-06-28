@@ -1,3 +1,4 @@
+//go:build !linux && !darwin && !windows && !freebsd
 // +build !linux,!darwin,!windows,!freebsd
 
 package truststore
@@ -12,10 +13,10 @@ var (
 	CertutilInstallHelp = ""
 )
 
-func installPlatform(filename string, cert *x509.Certificate) error {
+func installPlatform(string, *x509.Certificate) error {
 	return ErrTrustNotSupported
 }
 
-func uninstallPlatform(filename string, cert *x509.Certificate) error {
+func uninstallPlatform(string, *x509.Certificate) error {
 	return ErrTrustNotSupported
 }

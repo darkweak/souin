@@ -32,6 +32,9 @@ type Options = apiv1.Options
 // Type represents the KMS type used.
 type Type = apiv1.Type
 
+// TypeOf returns the KMS type of the given uri.
+var TypeOf = apiv1.TypeOf
+
 // Default is the implementation of the default KMS.
 var Default = &softkms.SoftKMS{}
 

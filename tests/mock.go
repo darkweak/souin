@@ -3,12 +3,8 @@ package tests
 import (
 	"fmt"
 	"log"
-	"net/http"
 	"os"
-	"regexp"
 
-	"github.com/darkweak/souin/configurationtypes"
-	"github.com/darkweak/souin/pkg/storage/types"
 	"github.com/darkweak/souin/plugins/souin/configuration"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -447,48 +443,4 @@ func MockConfiguration(configurationToLoad func() string) *configuration.Configu
 	config.SetLogger(logger)
 
 	return &config
-}
-
-// MockInitializeRegexp is an helper to mock the regexp initialization
-func MockInitializeRegexp(configurationInstance configurationtypes.AbstractConfigurationInterface) regexp.Regexp {
-	u := ""
-	for k := range configurationInstance.GetUrls() {
-		if "" != u {
-			u += "|"
-		}
-		u += "(" + k + ")"
-	}
-
-	return *regexp.MustCompile(u)
-}
-
-// GetTokenName returns the token name
-func GetTokenName() string {
-	return "souin-authorization-token"
-}
-
-// GetValidToken returns a valid token
-func GetValidToken() *http.Cookie {
-	return &http.Cookie{
-		Name:  GetTokenName(),
-		Value: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6InVzZXIxIiwiZXhwIjoxNjE0MTI0Nzk5OX0.7blW8hKWls2UgHLU8KOzwTG13uNoJR3UhLgoVdyCzx0",
-		Path:  "/",
-	}
-}
-
-// GetCacheProviderClientAndMatchedURL will work as a factory to build providers from configuration and get the URL from the key passed in parameter
-func GetCacheProviderClientAndMatchedURL(key string, configurationMocker func() configurationtypes.AbstractConfigurationInterface, factory func(configurationInterface configurationtypes.AbstractConfigurationInterface) (types.Storer, error)) (types.Storer, configurationtypes.URL) {
-	config := configurationMocker()
-	client, _ := factory(config)
-	regexpUrls := MockInitializeRegexp(config)
-	regexpURL := regexpUrls.FindString(key)
-	matchedURL := configurationtypes.URL{
-		TTL:     configurationtypes.Duration{Duration: config.GetDefaultCache().GetTTL()},
-		Headers: config.GetDefaultCache().GetHeaders(),
-	}
-	if "" != regexpURL {
-		matchedURL = config.GetUrls()[regexpURL]
-	}
-
-	return client, matchedURL
 }

@@ -87,7 +87,7 @@ menu:
 	w.Write(b)
 }
 
-func helpPreprocessor(w io.Writer, templ string, data interface{}, applyRx bool) []byte {
+func helpPreprocessor(_ io.Writer, templ string, data interface{}, applyRx bool) []byte {
 	buf := new(bytes.Buffer)
 	cli.HelpPrinterCustom(buf, templ, data, nil)
 	//w.Write(buf.Bytes())

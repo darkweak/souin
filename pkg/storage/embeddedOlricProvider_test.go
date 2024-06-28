@@ -28,7 +28,7 @@ func TestIShouldBeAbleToReadAndWriteDataInEmbeddedOlric(t *testing.T) {
 	_ = client.Set("Test", []byte(BASE_VALUE), u, time.Duration(10)*time.Second)
 	res := client.Get("Test")
 	if BASE_VALUE != string(res) {
-		errors.GenerateError(t, fmt.Sprintf("%s not corresponding to %s", res, BASE_VALUE))
+		t.Errorf("%s not corresponding to %s", res, BASE_VALUE)
 	}
 	_ = client.Reset()
 }
@@ -39,7 +39,7 @@ func TestIShouldBeAbleToReadAndWriteDataInEmbeddedOlricWithoutYAML(t *testing.T)
 	time.Sleep(3 * time.Second)
 	res := client.Get("Test")
 	if BASE_VALUE != string(res) {
-		errors.GenerateError(t, fmt.Sprintf("%s not corresponding to %s", res, BASE_VALUE))
+		t.Errorf("%s not corresponding to %s", res, BASE_VALUE)
 	}
 	_ = client.Reset()
 }
@@ -48,7 +48,7 @@ func TestEmbeddedOlric_GetRequestInCache(t *testing.T) {
 	client, _ := getEmbeddedOlricClientAndMatchedURL(NONEXISTENTKEY)
 	res := client.Get(NONEXISTENTKEY)
 	if string(res) != "" {
-		errors.GenerateError(t, fmt.Sprintf("Key %s should not exist", NONEXISTENTKEY))
+		t.Errorf("Key %s should not exist", NONEXISTENTKEY)
 	}
 	_ = client.Reset()
 }
@@ -79,7 +79,7 @@ func TestEmbeddedOlric_DeleteRequestInCache(t *testing.T) {
 	client.Delete(BYTEKEY)
 	time.Sleep(1 * time.Second)
 	if 0 < len(client.Get(BYTEKEY)) {
-		errors.GenerateError(t, fmt.Sprintf("Key %s should not exist", BYTEKEY))
+		t.Errorf("Key %s should not exist", BYTEKEY)
 	}
 	_ = client.Reset()
 }
@@ -89,7 +89,7 @@ func TestEmbeddedOlric_Init(t *testing.T) {
 	err := client.Init()
 
 	if nil != err {
-		errors.GenerateError(t, "Impossible to init EmbeddedOlric provider")
+		t.Error("Impossible to init EmbeddedOlric provider")
 	}
 	_ = client.Reset()
 }

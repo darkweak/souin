@@ -15,7 +15,6 @@ import (
 
 	"go.step.sm/crypto/kms"
 	kmsapi "go.step.sm/crypto/kms/apiv1"
-	"go.step.sm/crypto/kms/uri"
 	"go.step.sm/linkedca"
 
 	"github.com/smallstep/certificates/webhook"
@@ -59,7 +58,7 @@ type SCEP struct {
 	encryptionAlgorithm           int
 	challengeValidationController *challengeValidationController
 	notificationController        *notificationController
-	keyManager                    kmsapi.KeyManager
+	keyManager                    SCEPKeyManager
 	decrypter                     crypto.Decrypter
 	decrypterCertificate          *x509.Certificate
 	signer                        crypto.Signer
@@ -146,12 +145,13 @@ var (
 // that case, the other webhooks will be skipped. If none of
 // the webhooks indicates the value of the challenge was accepted,
 // an error is returned.
-func (c *challengeValidationController) Validate(ctx context.Context, csr *x509.CertificateRequest, challenge, transactionID string) error {
+func (c *challengeValidationController) Validate(ctx context.Context, csr *x509.CertificateRequest, provisionerName, challenge, transactionID string) error {
 	for _, wh := range c.webhooks {
 		req, err := webhook.NewRequestBody(webhook.WithX509CertificateRequest(csr))
 		if err != nil {
 			return fmt.Errorf("failed creating new webhook request: %w", err)
 		}
+		req.ProvisionerName = provisionerName
 		req.SCEPChallenge = challenge
 		req.SCEPTransactionID = transactionID
 		resp, err := wh.DoWithContext(ctx, c.client, req, nil) // TODO(hs): support templated URL? Requires some refactoring
@@ -268,34 +268,38 @@ func (s *SCEP) Init(config Config) (err error) {
 	)
 
 	// parse the decrypter key PEM contents if available
-	if decryptionKeyPEM := s.DecrypterKeyPEM; len(decryptionKeyPEM) > 0 {
+	if len(s.DecrypterKeyPEM) > 0 {
 		// try reading the PEM for validation
-		block, rest := pem.Decode(decryptionKeyPEM)
+		block, rest := pem.Decode(s.DecrypterKeyPEM)
 		if len(rest) > 0 {
 			return errors.New("failed parsing decrypter key: trailing data")
 		}
 		if block == nil {
 			return errors.New("failed parsing decrypter key: no PEM block found")
 		}
+
 		opts := kms.Options{
 			Type: kmsapi.SoftKMS,
 		}
-		if s.keyManager, err = kms.New(context.Background(), opts); err != nil {
+		km, err := kms.New(context.Background(), opts)
+		if err != nil {
 			return fmt.Errorf("failed initializing kms: %w", err)
 		}
-		kmsDecrypter, ok := s.keyManager.(kmsapi.Decrypter)
+		scepKeyManager, ok := km.(SCEPKeyManager)
 		if !ok {
 			return fmt.Errorf("%q is not a kmsapi.Decrypter", opts.Type)
 		}
-		if s.decrypter, err = kmsDecrypter.CreateDecrypter(&kmsapi.CreateDecrypterRequest{
-			DecryptionKeyPEM: decryptionKeyPEM,
+		s.keyManager = scepKeyManager
+
+		if s.decrypter, err = s.keyManager.CreateDecrypter(&kmsapi.CreateDecrypterRequest{
+			DecryptionKeyPEM: s.DecrypterKeyPEM,
 			Password:         []byte(s.DecrypterKeyPassword),
 			PasswordPrompter: kmsapi.NonInteractivePasswordPrompter,
 		}); err != nil {
 			return fmt.Errorf("failed creating decrypter: %w", err)
 		}
 		if s.signer, err = s.keyManager.CreateSigner(&kmsapi.CreateSignerRequest{
-			SigningKeyPEM:    decryptionKeyPEM, // TODO(hs): support distinct signer key in the future?
+			SigningKeyPEM:    s.DecrypterKeyPEM, // TODO(hs): support distinct signer key in the future?
 			Password:         []byte(s.DecrypterKeyPassword),
 			PasswordPrompter: kmsapi.NonInteractivePasswordPrompter,
 		}); err != nil {
@@ -303,41 +307,44 @@ func (s *SCEP) Init(config Config) (err error) {
 		}
 	}
 
-	if decryptionKeyURI := s.DecrypterKeyURI; len(decryptionKeyURI) > 0 {
-		u, err := uri.Parse(s.DecrypterKeyURI)
+	if s.DecrypterKeyURI != "" {
+		kmsType, err := kmsapi.TypeOf(s.DecrypterKeyURI)
 		if err != nil {
 			return fmt.Errorf("failed parsing decrypter key: %w", err)
 		}
-		var kmsType kmsapi.Type
-		switch {
-		case u.Scheme != "":
-			kmsType = kms.Type(u.Scheme)
-		default:
-			kmsType = kmsapi.SoftKMS
+
+		if config.SCEPKeyManager != nil {
+			s.keyManager = config.SCEPKeyManager
+		} else {
+			if kmsType == kmsapi.DefaultKMS {
+				kmsType = kmsapi.SoftKMS
+			}
+			opts := kms.Options{
+				Type: kmsType,
+				URI:  s.DecrypterKeyURI,
+			}
+			km, err := kms.New(context.Background(), opts)
+			if err != nil {
+				return fmt.Errorf("failed initializing kms: %w", err)
+			}
+			scepKeyManager, ok := km.(SCEPKeyManager)
+			if !ok {
+				return fmt.Errorf("%q is not a kmsapi.Decrypter", opts.Type)
+			}
+			s.keyManager = scepKeyManager
 		}
-		opts := kms.Options{
-			Type: kmsType,
-			URI:  s.DecrypterKeyURI,
-		}
-		if s.keyManager, err = kms.New(context.Background(), opts); err != nil {
-			return fmt.Errorf("failed initializing kms: %w", err)
-		}
-		kmsDecrypter, ok := s.keyManager.(kmsapi.Decrypter)
-		if !ok {
-			return fmt.Errorf("%q is not a kmsapi.Decrypter", opts.Type)
-		}
-		if kmsType != "softkms" { // TODO(hs): this should likely become more transparent?
-			decryptionKeyURI = u.Opaque
-		}
-		if s.decrypter, err = kmsDecrypter.CreateDecrypter(&kmsapi.CreateDecrypterRequest{
-			DecryptionKey:    decryptionKeyURI,
+
+		// Create decrypter and signer with the same key:
+		// TODO(hs): support distinct signer key in the future?
+		if s.decrypter, err = s.keyManager.CreateDecrypter(&kmsapi.CreateDecrypterRequest{
+			DecryptionKey:    s.DecrypterKeyURI,
 			Password:         []byte(s.DecrypterKeyPassword),
 			PasswordPrompter: kmsapi.NonInteractivePasswordPrompter,
 		}); err != nil {
 			return fmt.Errorf("failed creating decrypter: %w", err)
 		}
 		if s.signer, err = s.keyManager.CreateSigner(&kmsapi.CreateSignerRequest{
-			SigningKey:       decryptionKeyURI, // TODO(hs): support distinct signer key in the future?
+			SigningKey:       s.DecrypterKeyURI,
 			Password:         []byte(s.DecrypterKeyPassword),
 			PasswordPrompter: kmsapi.NonInteractivePasswordPrompter,
 		}); err != nil {
@@ -439,7 +446,7 @@ func (s *SCEP) ValidateChallenge(ctx context.Context, csr *x509.CertificateReque
 	}
 	switch s.selectValidationMethod() {
 	case validationMethodWebhook:
-		return s.challengeValidationController.Validate(ctx, csr, challenge, transactionID)
+		return s.challengeValidationController.Validate(ctx, csr, s.Name, challenge, transactionID)
 	default:
 		if subtle.ConstantTimeCompare([]byte(s.ChallengePassword), []byte(challenge)) == 0 {
 			return errors.New("invalid challenge password provided")

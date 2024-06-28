@@ -19,10 +19,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"log/slog"
 	"reflect"
 
 	"github.com/caddyserver/certmagic"
 	"go.uber.org/zap"
+	"go.uber.org/zap/exp/zapslog"
+
+	"github.com/caddyserver/caddy/v2/internal/filesystems"
 )
 
 // Context is a type which defines the lifetime of modules that
@@ -37,10 +41,12 @@ import (
 // not actually need to do this).
 type Context struct {
 	context.Context
+
 	moduleInstances map[string][]Module
 	cfg             *Config
-	cleanupFuncs    []func()
 	ancestry        []Module
+	cleanupFuncs    []func()                // invoked at every config unload
+	exitFuncs       []func(context.Context) // invoked at config unload ONLY IF the process is exiting (EXPERIMENTAL)
 }
 
 // NewContext provides a new context derived from the given
@@ -79,6 +85,25 @@ func NewContext(ctx Context) (Context, context.CancelFunc) {
 // OnCancel executes f when ctx is canceled.
 func (ctx *Context) OnCancel(f func()) {
 	ctx.cleanupFuncs = append(ctx.cleanupFuncs, f)
+}
+
+// Filesystems returns a ref to the FilesystemMap.
+// EXPERIMENTAL: This API is subject to change.
+func (ctx *Context) Filesystems() FileSystems {
+	// if no config is loaded, we use a default filesystemmap, which includes the osfs
+	if ctx.cfg == nil {
+		return &filesystems.FilesystemMap{}
+	}
+	return ctx.cfg.filesystems
+}
+
+// OnExit executes f when the process exits gracefully.
+// The function is only executed if the process is gracefully
+// shut down while this context is active.
+//
+// EXPERIMENTAL API: subject to change or removal.
+func (ctx *Context) OnExit(f func(context.Context)) {
+	ctx.exitFuncs = append(ctx.exitFuncs, f)
 }
 
 // LoadModule loads the Caddy module(s) from the specified field of the parent struct
@@ -164,7 +189,6 @@ func (ctx Context) LoadModule(structPointer any, fieldName string) (any, error) 
 				return nil, err
 			}
 			result = val
-
 		} else if isJSONRawMessage(typ.Elem()) {
 			// val is `[]json.RawMessage`
 
@@ -180,7 +204,6 @@ func (ctx Context) LoadModule(structPointer any, fieldName string) (any, error) 
 				all = append(all, val)
 			}
 			result = all
-
 		} else if typ.Elem().Kind() == reflect.Slice && isJSONRawMessage(typ.Elem().Elem()) {
 			// val is `[][]json.RawMessage`
 
@@ -201,7 +224,6 @@ func (ctx Context) LoadModule(structPointer any, fieldName string) (any, error) 
 				all = append(all, allInner)
 			}
 			result = all
-
 		} else if isModuleMapType(typ.Elem()) {
 			// val is `[]map[string]json.RawMessage`
 
@@ -431,24 +453,28 @@ func (ctx Context) App(name string) (any, error) {
 	return modVal, nil
 }
 
-// AppIfConfigured returns an app by its name if it has been
-// configured. Can be called instead of App() to avoid
-// instantiating an empty app when that's not desirable. If
-// the app has not been loaded, nil is returned.
-//
-// We return any type instead of the App type because it is not
-// intended for the caller of this method to be the one to start
-// or stop App modules. The caller is expected to assert to the
-// concrete type.
-func (ctx Context) AppIfConfigured(name string) any {
+// AppIfConfigured is like App, but it returns an error if the
+// app has not been configured. This is useful when the app is
+// required and its absence is a configuration error; or when
+// the app is optional and you don't want to instantiate a
+// new one that hasn't been explicitly configured. If the app
+// is not in the configuration, the error wraps ErrNotConfigured.
+func (ctx Context) AppIfConfigured(name string) (any, error) {
 	if ctx.cfg == nil {
-		// this can happen if the currently-active context
-		// is being accessed, but no config has successfully
-		// been loaded yet
-		return nil
+		return nil, fmt.Errorf("app module %s: %w", name, ErrNotConfigured)
 	}
-	return ctx.cfg.apps[name]
+	if app, ok := ctx.cfg.apps[name]; ok {
+		return app, nil
+	}
+	appRaw := ctx.cfg.AppsRaw[name]
+	if appRaw == nil {
+		return nil, fmt.Errorf("app module %s: %w", name, ErrNotConfigured)
+	}
+	return ctx.App(name)
 }
+
+// ErrNotConfigured indicates a module is not configured.
+var ErrNotConfigured = fmt.Errorf("module not configured")
 
 // Storage returns the configured Caddy storage implementation.
 func (ctx Context) Storage() certmagic.Storage {
@@ -494,6 +520,30 @@ func (ctx Context) Logger(module ...Module) *zap.Logger {
 	return ctx.cfg.Logging.Logger(mod)
 }
 
+// Slogger returns a slog logger that is intended for use by
+// the most recent module associated with the context.
+func (ctx Context) Slogger() *slog.Logger {
+	if ctx.cfg == nil {
+		// often the case in tests; just use a dev logger
+		l, err := zap.NewDevelopment()
+		if err != nil {
+			panic("config missing, unable to create dev logger: " + err.Error())
+		}
+		return slog.New(zapslog.NewHandler(l.Core(), nil))
+	}
+	mod := ctx.Module()
+	if mod == nil {
+		return slog.New(zapslog.NewHandler(Log().Core(), nil))
+	}
+
+	return slog.New(zapslog.NewHandler(
+		ctx.cfg.Logging.Logger(mod).Core(),
+		&zapslog.HandlerOptions{
+			LoggerName: string(mod.CaddyModule().ID),
+		},
+	))
+}
+
 // Modules returns the lineage of modules that this context provisioned,
 // with the most recent/current module being last in the list.
 func (ctx Context) Modules() []Module {
@@ -509,4 +559,16 @@ func (ctx Context) Module() Module {
 		return nil
 	}
 	return ctx.ancestry[len(ctx.ancestry)-1]
+}
+
+// WithValue returns a new context with the given key-value pair.
+func (ctx *Context) WithValue(key, value any) Context {
+	return Context{
+		Context:         context.WithValue(ctx.Context, key, value),
+		moduleInstances: ctx.moduleInstances,
+		cfg:             ctx.cfg,
+		ancestry:        ctx.ancestry,
+		cleanupFuncs:    ctx.cleanupFuncs,
+		exitFuncs:       ctx.exitFuncs,
+	}
 }

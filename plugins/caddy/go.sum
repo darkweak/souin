@@ -102,10 +102,10 @@ github.com/buraksezer/olric v0.5.4 h1:LDgLIfVoyol4qzdNirrrDUKqzFw0yDsa7ukvLrpP4c
 github.com/buraksezer/olric v0.5.4/go.mod h1:ndjlnRvJfFrE8eJlQNBJsDJa11tIsb5BXSfPmTi7qjE=
 github.com/bwmarrin/snowflake v0.3.0 h1:xm67bEhkKh6ij1790JB83OujPR5CzNe8QuQqAgISZN0=
 github.com/bwmarrin/snowflake v0.3.0/go.mod h1:NdZxfVWX+oR6y2K0o6qAYv6gIOP9rjG0/E9WsDpxqwE=
-github.com/caddyserver/caddy/v2 v2.8.1 h1:UVWB6J5f/GwHPyvdTrm0uM7YhfaWb4Ztdrp/z6ROHsM=
-github.com/caddyserver/caddy/v2 v2.8.1/go.mod h1:fb5FjJLu9ii9ojskkUk8kSYDYy4DBxR0GMKLA/4WaME=
-github.com/caddyserver/certmagic v0.21.2 h1:O18LtaYBGDooyy257cYePnhp4lPfz6TaJELil6Q1fDg=
-github.com/caddyserver/certmagic v0.21.2/go.mod h1:Zq6pklO9nVRl3DIFUw9gVUfXKdpc/0qwTUAQMBlfgtI=
+github.com/caddyserver/caddy/v2 v2.8.4 h1:q3pe0wpBj1OcHFZ3n/1nl4V4bxBrYoSoab7rL9BMYNk=
+github.com/caddyserver/caddy/v2 v2.8.4/go.mod h1:vmDAHp3d05JIvuhc24LmnxVlsZmWnUwbP5WMjzcMPWw=
+github.com/caddyserver/certmagic v0.21.3 h1:pqRRry3yuB4CWBVq9+cUqu+Y6E2z8TswbhNx1AZeYm0=
+github.com/caddyserver/certmagic v0.21.3/go.mod h1:Zq6pklO9nVRl3DIFUw9gVUfXKdpc/0qwTUAQMBlfgtI=
 github.com/caddyserver/zerossl v0.1.3 h1:onS+pxp3M8HnHpN5MMbOMyNjmTheJyWRaZYwn+YTAyA=
 github.com/caddyserver/zerossl v0.1.3/go.mod h1:CxA0acn7oEGO6//4rtrRjYgEoa4MFw/XofZnrYwGqG4=
 github.com/cenkalti/backoff/v4 v4.2.1 h1:y4OZtCnogmCPw98Zjyt5a6+QwPLGkiQsYW5oUqylYbM=
@@ -466,8 +466,8 @@ github.com/modern-go/reflect2 v1.0.1/go.mod h1:bx2lNnkwVCuqBIxFjflWJWanXIb3Rllmb
 github.com/mschoch/smat v0.2.0 h1:8imxQsjDm8yFEAVBe7azKmKSgzSkZXDuKkSq9374khM=
 github.com/mschoch/smat v0.2.0/go.mod h1:kc9mz7DoBKqDyiRL7VZN8KvXQMWeTaVnttLRXOlotKw=
 github.com/mwitkow/go-conntrack v0.0.0-20161129095857-cc309e4a2223/go.mod h1:qRWi+5nqEBWmkhHvq77mSJWrCKwh8bxhgT7d/eI7P4U=
-github.com/nutsdb/nutsdb v0.14.3 h1:IcHyiAtVXgaYvqnjugiVl2+9tjhK5ElBI+KtaXwKdwY=
-github.com/nutsdb/nutsdb v0.14.3/go.mod h1:6inOji9rFBporXeHDjJny4g50RpQbkjSK5jI1hht0j8=
+github.com/nutsdb/nutsdb v1.0.4 h1:BurzkxijXJY1/AkIXe1ek+U1ta3WGi6nJt4nCLqkxQ8=
+github.com/nutsdb/nutsdb v1.0.4/go.mod h1:jIbbpBXajzTMZ0o33Yn5zoYIo3v0Dz4WstkVce+sYuQ=
 github.com/nxadm/tail v1.4.4/go.mod h1:kenIhsEOeOJmVchQTgglprH7qJGnHDVpk1VPCcaMI8A=
 github.com/nxadm/tail v1.4.8 h1:nPr65rt6Y5JFSKQO7qToXr7pePgD6Gwiw05lkbyAQTE=
 github.com/nxadm/tail v1.4.8/go.mod h1:+ncqLTQzXmGhMZNUePPaPqPvBxHAIsmXswZKocGu+AU=

@@ -2,10 +2,8 @@ package providers
 
 import (
 	"crypto/tls"
-	"fmt"
 	"testing"
 
-	"github.com/darkweak/souin/errors"
 	"github.com/darkweak/souin/tests"
 )
 
@@ -32,7 +30,7 @@ func TestCommonProvider_LoadFromConfigFile(t *testing.T) {
 	}
 
 	if 1 != len(config.Certificates) {
-		errors.GenerateError(t, fmt.Sprintf("Certificates length %d not corresponding to received %d", 1, len(config.Certificates)))
+		t.Errorf("Certificates length %d not corresponding to received %d", 1, len(config.Certificates))
 	}
 }
 
@@ -49,7 +47,7 @@ func TestCommonProvider_LoadFromConfigFile2(t *testing.T) {
 	}
 
 	if 0 != len(config.Certificates) {
-		errors.GenerateError(t, fmt.Sprintf("Certificates length %d not corresponding to received %d", 0, len(config.Certificates)))
+		t.Errorf("Certificates length %d not corresponding to received %d", 0, len(config.Certificates))
 	}
 }
 
@@ -66,7 +64,7 @@ func TestCommonProvider_LoadFromConfigFile3(t *testing.T) {
 	}
 
 	if 0 != len(config.Certificates) {
-		errors.GenerateError(t, fmt.Sprintf("Certificates length %d not corresponding to received %d", 0, len(config.Certificates)))
+		t.Errorf("Certificates length %d not corresponding to received %d", 0, len(config.Certificates))
 	}
 }
 
@@ -84,6 +82,6 @@ func TestCommonProvider_LoadFromConfigFile4(t *testing.T) {
 	}
 
 	if 1 != len(config.Certificates) {
-		errors.GenerateError(t, fmt.Sprintf("Certificates length %d not corresponding to received %d", 1, len(config.Certificates)))
+		t.Errorf("Certificates length %d not corresponding to received %d", 1, len(config.Certificates))
 	}
 }

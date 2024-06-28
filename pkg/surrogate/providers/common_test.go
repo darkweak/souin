@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/darkweak/souin/configurationtypes"
-	"github.com/darkweak/souin/errors"
 	"github.com/darkweak/souin/pkg/storage"
 	"github.com/darkweak/souin/tests"
 	"go.uber.org/zap"
@@ -46,13 +45,13 @@ func TestBaseStorage_ParseHeaders(t *testing.T) {
 	fields := bs.ParseHeaders(baseHeaderValue)
 
 	if len(fields) != 5 {
-		errors.GenerateError(t, fmt.Sprintf("The fields length should be 5, %d given.", len(fields)))
+		t.Errorf("The fields length should be 5, %d given.", len(fields))
 	}
 
 	for i := 0; i < len(fields); i++ {
 		expected := fmt.Sprintf("test%d", i)
 		if fields[i] != expected {
-			errors.GenerateError(t, fmt.Sprintf("The field number %d should be equal to %s, %s given.", i, expected, fields[i]))
+			t.Errorf("The field number %d should be equal to %s, %s given.", i, expected, fields[i])
 		}
 	}
 }
@@ -64,20 +63,20 @@ func TestBaseStorage_Purge(t *testing.T) {
 
 	tags, surrogates := bs.Purge(headerMock)
 	if len(tags) != 0 {
-		errors.GenerateError(t, "The tags length should be empty.")
+		t.Error("The tags length should be empty.")
 	}
 	if len(surrogates) != 5 {
-		errors.GenerateError(t, "The surrogates length should be equal to 5.")
+		t.Error("The surrogates length should be equal to 5.")
 	}
 
 	headerMock.Set(surrogateKey, emptyHeaderValue)
 
 	tags, surrogates = bs.Purge(headerMock)
 	if len(tags) != 0 {
-		errors.GenerateError(t, "The tags length should be empty.")
+		t.Error("The tags length should be empty.")
 	}
 	if len(surrogates) != 1 {
-		errors.GenerateError(t, "The surrogates length should be equal to 0.")
+		t.Error("The surrogates length should be equal to 0.")
 	}
 
 	_ = bs.Storage.Set(surrogatePrefix+"test0", []byte("first,second"), configurationtypes.URL{}, storageToInfiniteTTLMap[bs.Storage.Name()])
@@ -90,10 +89,10 @@ func TestBaseStorage_Purge(t *testing.T) {
 	tags, surrogates = bs.Purge(headerMock)
 
 	if len(tags) != 4 {
-		errors.GenerateError(t, "The tags length should be equal to 4.")
+		t.Error("The tags length should be equal to 4.")
 	}
 	if len(surrogates) != 5 {
-		errors.GenerateError(t, "The surrogates length should be equal to 5.")
+		t.Error("The surrogates length should be equal to 5.")
 	}
 }
 
@@ -108,7 +107,7 @@ func TestBaseStorage_Store(t *testing.T) {
 
 	e := bs.Store(&res, "((((invalid_key_but_escaped")
 	if e != nil {
-		errors.GenerateError(t, "It shouldn't throw an error with a valid key.")
+		t.Error("It shouldn't throw an error with a valid key.")
 	}
 
 	_ = bs.Storage.Set("test0", []byte("first,second"), configurationtypes.URL{}, storageToInfiniteTTLMap[bs.Storage.Name()])
@@ -117,19 +116,19 @@ func TestBaseStorage_Store(t *testing.T) {
 	_ = bs.Storage.Set("testInvalid", []byte("invalid"), configurationtypes.URL{}, storageToInfiniteTTLMap[bs.Storage.Name()])
 
 	if e = bs.Store(&res, "stored"); e != nil {
-		errors.GenerateError(t, "It shouldn't throw an error with a valid key.")
+		t.Error("It shouldn't throw an error with a valid key.")
 	}
 
 	for i := 0; i < 5; i++ {
 		value := bs.Storage.Get(fmt.Sprintf(surrogatePrefix+"test%d", i))
 		if !strings.Contains(string(value), "stored") {
-			errors.GenerateError(t, fmt.Sprintf("The key %stest%d must include stored, %s given.", surrogatePrefix, i, string(value)))
+			t.Errorf("The key %stest%d must include stored, %s given.", surrogatePrefix, i, string(value))
 		}
 	}
 
 	value := bs.Storage.Get("testInvalid")
 	if strings.Contains(string(value), "stored") {
-		errors.GenerateError(t, "The surrogate storage should not contain stored.")
+		t.Error("The surrogate storage should not contain stored.")
 	}
 
 	res.Header.Set(surrogateKey, "something")
@@ -140,12 +139,12 @@ func TestBaseStorage_Store(t *testing.T) {
 
 	storageSize := len(bs.Storage.MapKeys(surrogatePrefix))
 	if storageSize != 9 {
-		errors.GenerateError(t, fmt.Sprintf("The surrogate storage should contain 9 stored elements, %v given: %#v.\n", storageSize, bs.Storage.ListKeys()))
+		t.Errorf("The surrogate storage should contain 9 stored elements, %v given: %#v.\n", storageSize, bs.Storage.ListKeys())
 	}
 
 	value = bs.Storage.Get(surrogatePrefix + "something")
 	if string(value) != ",%2Fsomething,%2Fsome" {
-		errors.GenerateError(t, "The something surrogate storage entry must contain 2 elements ,%2Fsomething,%2Fsome.")
+		t.Errorf("The something surrogate storage entry must contain 2 elements %s.", ",%2Fsomething,%2Fsome")
 	}
 }
 
@@ -169,6 +168,6 @@ func TestBaseStorage_Store_Load(t *testing.T) {
 	v := bs.Storage.Get(surrogatePrefix)
 
 	if len(strings.Split(string(v), ",")) != length+1 {
-		errors.GenerateError(t, fmt.Sprintf("The surrogate storage should contain %d stored elements, %d given.", length+1, len(strings.Split(string(v), ","))))
+		t.Errorf("The surrogate storage should contain %d stored elements, %d given.", length+1, len(strings.Split(string(v), ",")))
 	}
 }

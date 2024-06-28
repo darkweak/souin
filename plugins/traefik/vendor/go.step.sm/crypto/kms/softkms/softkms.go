@@ -122,12 +122,14 @@ func (k *SoftKMS) CreateKey(req *apiv1.CreateKeyRequest) (*apiv1.CreateKeyRespon
 		return nil, errors.Errorf("softKMS createKey result is not a crypto.Signer: type %T", priv)
 	}
 
+	name := filename(req.Name)
 	return &apiv1.CreateKeyResponse{
-		Name:       filename(req.Name),
+		Name:       name,
 		PublicKey:  pub,
 		PrivateKey: priv,
 		CreateSignerRequest: apiv1.CreateSignerRequest{
-			Signer: signer,
+			Signer:     signer,
+			SigningKey: name,
 		},
 	}, nil
 }

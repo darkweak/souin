@@ -125,10 +125,7 @@ func (cs *CtxState) Init() error {
 	if err := cs.initCurrent(); err != nil {
 		return err
 	}
-	if err := cs.load(); err != nil {
-		return err
-	}
-	return nil
+	return cs.load()
 }
 
 func (cs *CtxState) initMap() error {
@@ -171,9 +168,17 @@ func (cs *CtxState) initCurrent() error {
 
 func (cs *CtxState) load() error {
 	if cs.Enabled() && cs.GetCurrent() != nil {
-		return cs.GetCurrent().Load()
+		if err := cs.GetCurrent().Load(); err != nil {
+			return fmt.Errorf("failed loading current context configuration: %w", err)
+		}
+
+		return nil
 	}
-	cs.LoadVintage("")
+
+	if err := cs.LoadVintage(""); err != nil {
+		return fmt.Errorf("failed loading context configuration: %w", err)
+	}
+
 	return nil
 }
 
@@ -333,7 +338,7 @@ func (cs *CtxState) Remove(name string) error {
 	}
 
 	if err := os.WriteFile(ContextsFile(), b, 0600); err != nil {
-		return err
+		return fmt.Errorf("error writing file: %w", err)
 	}
 	return nil
 }
@@ -552,7 +557,7 @@ func getConfigVars(ctx *cli.Context) (err error) {
 	}
 
 	if err := cs.Apply(ctx); err != nil {
-		return err
+		return fmt.Errorf("error applying contexts: %w", err)
 	}
 
 	return nil

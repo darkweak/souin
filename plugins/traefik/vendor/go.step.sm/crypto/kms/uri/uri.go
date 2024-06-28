@@ -3,6 +3,7 @@ package uri
 import (
 	"bytes"
 	"encoding/hex"
+	"fmt"
 	"net/url"
 	"os"
 	"strconv"
@@ -96,6 +97,14 @@ func ParseWithScheme(scheme, rawuri string) (*URI, error) {
 	return u, nil
 }
 
+// String returns the string representation of the URI.
+func (u *URI) String() string {
+	if len(u.Values) > 0 {
+		u.URL.Opaque = strings.ReplaceAll(u.Values.Encode(), "&", ";")
+	}
+	return u.URL.String()
+}
+
 // Get returns the first value in the uri with the given key, it will return
 // empty string if that field is not present.
 func (u *URI) Get(key string) string {
@@ -142,11 +151,28 @@ func (u *URI) GetEncoded(key string) []byte {
 		return nil
 	}
 	if len(v)%2 == 0 {
-		if b, err := hex.DecodeString(v); err == nil {
+		if b, err := hex.DecodeString(strings.TrimPrefix(v, "0x")); err == nil {
 			return b
 		}
 	}
 	return []byte(v)
+}
+
+// GetHexEncoded returns the first value in the uri with the given key. It
+// returns nil if the field is not present or is empty. It will return an
+// error if the the value is not properly hex encoded.
+func (u *URI) GetHexEncoded(key string) ([]byte, error) {
+	v := u.Get(key)
+	if v == "" {
+		return nil, nil
+	}
+
+	b, err := hex.DecodeString(strings.TrimPrefix(v, "0x"))
+	if err != nil {
+		return nil, fmt.Errorf("failed decoding %q: %w", v, err)
+	}
+
+	return b, nil
 }
 
 // Pin returns the pin encoded in the url. It will read the pin from the

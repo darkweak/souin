@@ -311,7 +311,7 @@ func wrapRoute(route Route) Middleware {
 // we need to pull this particular MiddlewareHandler
 // pointer into its own stack frame to preserve it so it
 // won't be overwritten in future loop iterations.
-func wrapMiddleware(ctx caddy.Context, mh MiddlewareHandler, metrics *Metrics) Middleware {
+func wrapMiddleware(_ caddy.Context, mh MiddlewareHandler, metrics *Metrics) Middleware {
 	handlerToUse := mh
 	if metrics != nil {
 		// wrap the middleware with metrics instrumentation
@@ -326,8 +326,10 @@ func wrapMiddleware(ctx caddy.Context, mh MiddlewareHandler, metrics *Metrics) M
 		nextCopy := next
 
 		return HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
-			// TODO: This is where request tracing could be implemented
-			// TODO: see what the std lib gives us in terms of stack tracing too
+			// EXPERIMENTAL: Trace each module that gets invoked
+			if server, ok := r.Context().Value(ServerCtxKey).(*Server); ok && server != nil {
+				server.logTrace(handlerToUse)
+			}
 			return handlerToUse.ServeHTTP(w, r, nextCopy)
 		})
 	}

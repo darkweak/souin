@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/darkweak/souin/pkg/storage/types"
@@ -10,7 +9,6 @@ import (
 	"time"
 
 	"github.com/darkweak/souin/configurationtypes"
-	"github.com/darkweak/souin/errors"
 )
 
 func getNutsClientAndMatchedURL(key string) (types.Storer, configurationtypes.URL) {
@@ -33,15 +31,15 @@ func TestNutsConnectionFactory(t *testing.T) {
 	r, err := NutsConnectionFactory(c)
 
 	if nil != err {
-		errors.GenerateError(t, "Shouldn't have panic")
+		t.Error("Shouldn't have panic")
 	}
 
 	if nil == r {
-		errors.GenerateError(t, "Nuts should be instanciated")
+		t.Error("Nuts should be instanciated")
 	}
 
 	if nil == r.(*Nuts).DB {
-		errors.GenerateError(t, "Nuts database should be accesible")
+		t.Error("Nuts database should be accesible")
 	}
 }
 
@@ -53,10 +51,10 @@ func TestIShouldBeAbleToReadAndWriteDataInNuts(t *testing.T) {
 
 	res := client.Get("Test")
 	if res == nil || len(res) <= 0 {
-		errors.GenerateError(t, fmt.Sprintf("Key %s should exist", BASE_VALUE))
+		t.Errorf("Key %s should exist", BASE_VALUE)
 	}
 	if BASE_VALUE != string(res) {
-		errors.GenerateError(t, fmt.Sprintf("%s not corresponding to %s", string(res), BASE_VALUE))
+		t.Errorf("%s not corresponding to %s", string(res), BASE_VALUE)
 	}
 }
 
@@ -65,7 +63,7 @@ func TestNuts_GetRequestInCache(t *testing.T) {
 	client, _ := NutsConnectionFactory(c)
 	res := client.Get(NONEXISTENTKEY)
 	if 0 < len(res) {
-		errors.GenerateError(t, fmt.Sprintf("Key %s should not exist", NONEXISTENTKEY))
+		t.Errorf("Key %s should not exist", NONEXISTENTKEY)
 	}
 }
 
@@ -76,11 +74,11 @@ func TestNuts_GetSetRequestInCache_OneByte(t *testing.T) {
 
 	res := client.Get(BYTEKEY)
 	if len(res) == 0 {
-		errors.GenerateError(t, fmt.Sprintf("Key %s should exist", BYTEKEY))
+		t.Errorf("Key %s should exist", BYTEKEY)
 	}
 
 	if string(res) != "A" {
-		errors.GenerateError(t, fmt.Sprintf("%s not corresponding to %v", res, 65))
+		t.Errorf("%s not corresponding to %v", res, 65)
 	}
 }
 
@@ -96,7 +94,7 @@ func TestNuts_DeleteRequestInCache(t *testing.T) {
 	client.Delete(BYTEKEY)
 	time.Sleep(1 * time.Second)
 	if 0 < len(client.Get(BYTEKEY)) {
-		errors.GenerateError(t, fmt.Sprintf("Key %s should not exist", BYTEKEY))
+		t.Errorf("Key %s should not exist", BYTEKEY)
 	}
 }
 
@@ -105,6 +103,6 @@ func TestNuts_Init(t *testing.T) {
 	err := client.Init()
 
 	if nil != err {
-		errors.GenerateError(t, "Impossible to init Nuts provider")
+		t.Error("Impossible to init Nuts provider")
 	}
 }

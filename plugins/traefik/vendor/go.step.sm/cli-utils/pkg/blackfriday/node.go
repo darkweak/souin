@@ -1,3 +1,4 @@
+//nolint:gocritic,unused // ignore blackfriday
 package blackfriday
 
 import (

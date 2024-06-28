@@ -12,7 +12,7 @@ import (
 const (
 	// maxDatagramSize is the default maximum packet size used in the Linux TCP implementation.
 	// Used in QUIC for congestion window computations in bytes.
-	initialMaxDatagramSize     = protocol.ByteCount(protocol.InitialPacketSizeIPv4)
+	initialMaxDatagramSize     = protocol.ByteCount(protocol.InitialPacketSize)
 	maxBurstPackets            = 3
 	renoBeta                   = 0.7 // Reno backoff factor.
 	minCongestionWindowPackets = 2
@@ -178,7 +178,7 @@ func (c *cubicSender) OnPacketAcked(
 	priorInFlight protocol.ByteCount,
 	eventTime time.Time,
 ) {
-	c.largestAckedPacketNumber = utils.Max(ackedPacketNumber, c.largestAckedPacketNumber)
+	c.largestAckedPacketNumber = max(ackedPacketNumber, c.largestAckedPacketNumber)
 	if c.InRecovery() {
 		return
 	}
@@ -246,7 +246,7 @@ func (c *cubicSender) maybeIncreaseCwnd(
 			c.numAckedPackets = 0
 		}
 	} else {
-		c.congestionWindow = utils.Min(c.maxCongestionWindow(), c.cubic.CongestionWindowAfterAck(ackedBytes, c.congestionWindow, c.rttStats.MinRTT(), eventTime))
+		c.congestionWindow = min(c.maxCongestionWindow(), c.cubic.CongestionWindowAfterAck(ackedBytes, c.congestionWindow, c.rttStats.MinRTT(), eventTime))
 	}
 }
 
