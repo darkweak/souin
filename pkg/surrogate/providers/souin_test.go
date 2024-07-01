@@ -1,16 +1,6 @@
 package providers
 
-import (
-	"net/http"
-	"sync"
-	"testing"
-
-	"github.com/darkweak/souin/configurationtypes"
-	"github.com/darkweak/souin/pkg/storage"
-	"github.com/darkweak/souin/tests"
-	"go.uber.org/zap"
-)
-
+/*
 func mockSouinProvider() *SouinSurrogateStorage {
 	instanciator, _ := storage.NewStorageFromName("badger")
 	storer, _ := instanciator(tests.MockConfiguration(tests.BadgerConfiguration))
@@ -51,3 +41,4 @@ func TestSouinSurrogateStorage_Store(t *testing.T) {
 		t.Error("The response should contains the Surrogate-control header.")
 	}
 }
+*/

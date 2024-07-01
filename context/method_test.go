@@ -6,14 +6,13 @@ import (
 	"testing"
 
 	"github.com/darkweak/souin/configurationtypes"
-	"github.com/darkweak/souin/plugins/souin/configuration"
 	"go.uber.org/zap"
 )
 
 func Test_MethodContext_SetupContext(t *testing.T) {
 	dc := configurationtypes.DefaultCache{}
-	c := configuration.Configuration{
-		DefaultCache: &dc,
+	c := testConfiguration{
+		defaultCache: &dc,
 	}
 	c.SetLogger(zap.NewNop())
 	ctx := methodContext{}
@@ -23,7 +22,7 @@ func Test_MethodContext_SetupContext(t *testing.T) {
 		t.Error("The context must not be custom if no allowed HTTP verbs are set in the configuration.")
 	}
 
-	c.DefaultCache.AllowedHTTPVerbs = []string{http.MethodGet}
+	c.defaultCache.AllowedHTTPVerbs = []string{http.MethodGet}
 	ctx.SetupContext(&c)
 	if !ctx.custom {
 		t.Error("The context must be custom if at least one allowed HTTP verb is set in the configuration.")
@@ -32,12 +31,12 @@ func Test_MethodContext_SetupContext(t *testing.T) {
 
 func Test_MethodContext_SetContext(t *testing.T) {
 	dc := configurationtypes.DefaultCache{}
-	c := configuration.Configuration{
-		DefaultCache: &dc,
+	c := testConfiguration{
+		defaultCache: &dc,
 	}
 	c.SetLogger(zap.NewNop())
 	ctx := methodContext{}
-	c.DefaultCache.AllowedHTTPVerbs = []string{http.MethodGet, http.MethodHead}
+	c.defaultCache.AllowedHTTPVerbs = []string{http.MethodGet, http.MethodHead}
 	ctx.SetupContext(&c)
 
 	req := httptest.NewRequest(http.MethodGet, "http://domain.com", nil)

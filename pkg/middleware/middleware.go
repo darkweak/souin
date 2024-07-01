@@ -25,6 +25,7 @@ import (
 	"github.com/darkweak/souin/pkg/storage/types"
 	"github.com/darkweak/souin/pkg/surrogate"
 	"github.com/darkweak/souin/pkg/surrogate/providers"
+	"github.com/darkweak/storages/core"
 	"github.com/google/uuid"
 	"github.com/pquerna/cachecontrol/cacheobject"
 	"go.uber.org/zap"
@@ -62,9 +63,17 @@ func NewHTTPCacheHandler(c configurationtypes.AbstractConfigurationInterface) *S
 		c.SetLogger(logger)
 	}
 
-	storers, err := storage.NewStorages(c)
-	if err != nil {
-		panic(err)
+	storedStorers := core.GetRegisteredStorers()
+	fmt.Printf("%#v\n\n", storedStorers)
+	storers := make([]types.Storer, len(storedStorers))
+	if len(storedStorers) == 0 {
+		memoryStorer, _ := storage.Factory(c)
+		core.RegisterStorage(memoryStorer)
+		storers = append(storers, memoryStorer)
+	} else {
+		for id, storer := range storedStorers {
+			storers[id] = storer.(types.Storer)
+		}
 	}
 	c.GetLogger().Debug("Storer initialized.")
 	regexpUrls := helpers.InitializeRegexp(c)
@@ -355,8 +364,9 @@ func (s *SouinBaseHandler) Upstream(
 		// In case of "http.ErrAbortHandler" panic,
 		// prevent singleflight from wrapping it into "singleflight.panicError".
 		if r := recover(); r != nil {
-			err := r.(error)
-			if errors.Is(err, http.ErrAbortHandler) {
+			err, ok := r.(error)
+			// Sometimes, the error is a string.
+			if !ok || errors.Is(err, http.ErrAbortHandler) {
 				recoveredFromErr = http.ErrAbortHandler
 			} else {
 				panic(err)
@@ -432,7 +442,7 @@ func (s *SouinBaseHandler) Upstream(
 	return nil
 }
 
-func (s *SouinBaseHandler) Revalidate(validator *rfc.Revalidator, next handlerFunc, customWriter *CustomWriter, rq *http.Request, requestCc *cacheobject.RequestCacheDirectives, cachedKey string) error {
+func (s *SouinBaseHandler) Revalidate(validator *core.Revalidator, next handlerFunc, customWriter *CustomWriter, rq *http.Request, requestCc *cacheobject.RequestCacheDirectives, cachedKey string) error {
 	s.Configuration.GetLogger().Sugar().Debug("Revalidate the request with the upstream server")
 	prometheus.Increment(prometheus.RequestRevalidationCounter)
 
@@ -544,7 +554,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 			req.Method = http.MethodGet
 			keyname := s.context.SetContext(req, rq).Context().Value(context.Key).(string)
 			for _, storer := range s.Storers {
-				storer.Delete(storage.MappingKeyPrefix + keyname)
+				storer.Delete(core.MappingKeyPrefix + keyname)
 			}
 		}
 
@@ -667,7 +677,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 					_, _ = io.Copy(customWriter.Buf, response.Body)
 					_, err := customWriter.Send()
 					customWriter = NewCustomWriter(req, rw, bufPool)
-					go func(v *rfc.Revalidator, goCw *CustomWriter, goRq *http.Request, goNext func(http.ResponseWriter, *http.Request) error, goCc *cacheobject.RequestCacheDirectives, goCk string) {
+					go func(v *core.Revalidator, goCw *CustomWriter, goRq *http.Request, goNext func(http.ResponseWriter, *http.Request) error, goCc *cacheobject.RequestCacheDirectives, goCk string) {
 						_ = s.Revalidate(v, goNext, goCw, goRq, goCc, goCk)
 					}(validator, customWriter, req, next, requestCc, cachedKey)
 					buf := s.bufPool.Get().(*bytes.Buffer)

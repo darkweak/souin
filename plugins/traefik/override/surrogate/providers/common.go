@@ -126,7 +126,7 @@ func (s *baseStorage) storeTag(tag string, cacheKey string, re *regexp.Regexp) {
 	currentValue := string(s.Storage.Get(surrogatePrefix + tag))
 	if !re.MatchString(currentValue) {
 		fmt.Printf("Store the tag %s", tag)
-		_ = s.Storage.Set(surrogatePrefix+tag, []byte(currentValue+souinStorageSeparator+cacheKey), configurationtypes.URL{}, -1)
+		_ = s.Storage.Set(surrogatePrefix+tag, []byte(currentValue+souinStorageSeparator+cacheKey), -1)
 	}
 }
 

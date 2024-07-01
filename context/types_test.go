@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/darkweak/souin/configurationtypes"
-	"github.com/darkweak/souin/plugins/souin/configuration"
 	"go.uber.org/zap"
 )
 
@@ -18,8 +17,8 @@ func Test_GetContext(t *testing.T) {
 
 func Test_Context_Init(t *testing.T) {
 	dc := configurationtypes.DefaultCache{}
-	c := configuration.Configuration{
-		DefaultCache: &dc,
+	c := testConfiguration{
+		defaultCache: &dc,
 	}
 	c.SetLogger(zap.NewNop())
 	co := GetContext()
@@ -29,8 +28,8 @@ func Test_Context_Init(t *testing.T) {
 
 func Test_Context_SetContext(t *testing.T) {
 	dc := configurationtypes.DefaultCache{}
-	c := configuration.Configuration{
-		DefaultCache: &dc,
+	c := testConfiguration{
+		defaultCache: &dc,
 	}
 	c.SetLogger(zap.NewNop())
 	co := GetContext()
@@ -56,8 +55,8 @@ func Test_Context_SetBaseContext(t *testing.T) {
 	dc := configurationtypes.DefaultCache{
 		CacheName: "Dummy",
 	}
-	c := configuration.Configuration{
-		DefaultCache: &dc,
+	c := testConfiguration{
+		defaultCache: &dc,
 	}
 	c.SetLogger(zap.NewNop())
 	co := GetContext()

@@ -1,11 +1,10 @@
 package httpcache
 
 import (
-	"fmt"
+	"encoding/json"
 	"net/http"
 	"time"
 
-	"github.com/buraksezer/olric/config"
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
@@ -13,9 +12,8 @@ import (
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/middleware"
-	"github.com/darkweak/souin/pkg/storage"
-	"github.com/darkweak/souin/pkg/storage/types"
 	surrogates_providers "github.com/darkweak/souin/pkg/surrogate/providers"
+	"github.com/darkweak/storages/core"
 	"go.uber.org/zap"
 )
 
@@ -202,25 +200,13 @@ func (s *SouinCaddyMiddleware) FromApp(app *SouinApp) error {
 	if dc.CacheName == "" {
 		s.Configuration.DefaultCache.CacheName = appDc.CacheName
 	}
-	if dc.Etcd.Configuration == nil && dc.Redis.URL == "" && dc.Redis.Path == "" && dc.Redis.Configuration == nil && dc.Olric.URL == "" && dc.Olric.Path == "" && dc.Olric.Configuration == nil {
+	if !s.Configuration.DefaultCache.Distributed && !dc.Olric.Found && !dc.Redis.Found && !dc.Etcd.Found && !dc.Badger.Found && !dc.Nuts.Found && !dc.Otter.Found {
 		s.Configuration.DefaultCache.Distributed = appDc.Distributed
-	}
-	if dc.Olric.URL == "" && dc.Olric.Path == "" && dc.Olric.Configuration == nil {
 		s.Configuration.DefaultCache.Olric = appDc.Olric
-	}
-	if dc.Redis.URL == "" && dc.Redis.Path == "" && dc.Redis.Configuration == nil {
 		s.Configuration.DefaultCache.Redis = appDc.Redis
-	}
-	if dc.Etcd.Configuration == nil {
 		s.Configuration.DefaultCache.Etcd = appDc.Etcd
-	}
-	if dc.Badger.Path == "" || dc.Badger.Configuration == nil {
 		s.Configuration.DefaultCache.Badger = appDc.Badger
-	}
-	if dc.Nuts.Path == "" && dc.Nuts.Configuration == nil {
 		s.Configuration.DefaultCache.Nuts = appDc.Nuts
-	}
-	if dc.Otter.Path == "" && dc.Otter.Configuration == nil {
 		s.Configuration.DefaultCache.Otter = appDc.Otter
 	}
 	if dc.Regex.Exclude == "" {
@@ -228,6 +214,20 @@ func (s *SouinCaddyMiddleware) FromApp(app *SouinApp) error {
 	}
 
 	return nil
+}
+
+func dispatchStorage(ctx caddy.Context, name string, provider configurationtypes.CacheProvider, stale time.Duration) error {
+	b, _ := json.Marshal(core.Configuration{
+		Provider: core.CacheProvider{
+			Path:          provider.Path,
+			Configuration: provider.Configuration,
+			URL:           provider.URL,
+		},
+		Stale: stale,
+	})
+	_, e := ctx.LoadModuleByID("storages.cache."+name, b)
+
+	return e
 }
 
 // Provision to do the provisioning part.
@@ -252,44 +252,44 @@ func (s *SouinCaddyMiddleware) Provision(ctx caddy.Context) error {
 		bh.SurrogateKeyStorer = surrogates.(surrogates_providers.SurrogateInterface)
 	}
 
-	s.SouinBaseHandler = bh
-	dc := s.SouinBaseHandler.Configuration.GetDefaultCache()
-	if dc.GetDistributed() {
-		for _, currentStorer := range s.SouinBaseHandler.Storers {
-			if eo, ok := currentStorer.(*storage.EmbeddedOlric); ok {
-				name := fmt.Sprintf("0.0.0.0:%d", config.DefaultPort)
-				if dc.GetOlric().Configuration != nil {
-					oc := dc.GetOlric().Configuration.(*config.Config)
-					name = fmt.Sprintf("%s:%d", oc.BindAddr, oc.BindPort)
-				} else if dc.GetOlric().Path != "" {
-					name = dc.GetOlric().Path
-				}
-
-				key := "Embedded-" + name
-				v, _ := up.LoadOrStore(stored_providers_key, newStorageProvider())
-				v.(*storage_providers).Add(key)
-
-				if eo.GetDM() == nil {
-					v, l, e := up.LoadOrNew(key, func() (caddy.Destructor, error) {
-						s.logger.Sugar().Debug("Create a new olric instance.")
-						eo, err := storage.EmbeddedOlricConnectionFactory(&s.Configuration)
-						if eo != nil {
-							return eo.(*storage.EmbeddedOlric), err
-						}
-						return nil, err
-					})
-
-					if l && e == nil {
-						s.SouinBaseHandler.Storers = append(s.SouinBaseHandler.Storers, v.(types.Storer))
-					}
-				} else {
-					s.logger.Sugar().Debug("Store the olric instance.")
-					_, _ = up.LoadOrStore(key, s.SouinBaseHandler.SurrogateKeyStorer)
-				}
-			}
+	if s.Configuration.DefaultCache.Badger.Found {
+		e := dispatchStorage(ctx, "badger", s.Configuration.DefaultCache.Badger, s.Configuration.DefaultCache.GetStale())
+		if e != nil {
+			s.logger.Sugar().Errorf("Error during Badger init, did you include the Badger storage (--with github.com/darkweak/storages/badger/caddy)? %v", e)
+		}
+	}
+	if s.Configuration.DefaultCache.Etcd.Found {
+		e := dispatchStorage(ctx, "etcd", s.Configuration.DefaultCache.Etcd, s.Configuration.DefaultCache.GetStale())
+		if e != nil {
+			s.logger.Sugar().Errorf("Error during Etcd init, did you include the Etcd storage (--with github.com/darkweak/storages/etcd/caddy)? %v", e)
+		}
+	}
+	if s.Configuration.DefaultCache.Nuts.Found {
+		e := dispatchStorage(ctx, "nuts", s.Configuration.DefaultCache.Nuts, s.Configuration.DefaultCache.GetStale())
+		if e != nil {
+			s.logger.Sugar().Errorf("Error during Nuts init, did you include the Nuts storage (--with github.com/darkweak/storages/nuts/caddy)? %v", e)
+		}
+	}
+	if s.Configuration.DefaultCache.Olric.Found {
+		e := dispatchStorage(ctx, "olric", s.Configuration.DefaultCache.Olric, s.Configuration.DefaultCache.GetStale())
+		if e != nil {
+			s.logger.Sugar().Errorf("Error during Olric init, did you include the Olric storage (--with github.com/darkweak/storages/olric/caddy)? %v", e)
+		}
+	}
+	if s.Configuration.DefaultCache.Otter.Found {
+		e := dispatchStorage(ctx, "otter", s.Configuration.DefaultCache.Otter, s.Configuration.DefaultCache.GetStale())
+		if e != nil {
+			s.logger.Sugar().Errorf("Error during Otter init, did you include the Otter storage (--with github.com/darkweak/storages/otter/caddy)? %v", e)
+		}
+	}
+	if s.Configuration.DefaultCache.Redis.Found {
+		e := dispatchStorage(ctx, "redis", s.Configuration.DefaultCache.Redis, s.Configuration.DefaultCache.GetStale())
+		if e != nil {
+			s.logger.Sugar().Errorf("Error during Redis init, did you include the Redis storage (--with github.com/darkweak/storages/redis/caddy)? %v", e)
 		}
 	}
 
+	s.SouinBaseHandler = bh
 	if len(app.Storers) == 0 {
 		app.Storers = s.SouinBaseHandler.Storers
 	}

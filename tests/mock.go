@@ -5,9 +5,10 @@ import (
 	"log"
 	"os"
 
-	"github.com/darkweak/souin/plugins/souin/configuration"
+	"github.com/darkweak/souin/configurationtypes"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"gopkg.in/yaml.v3"
 )
 
 // DOMAIN is the domain constant
@@ -15,6 +16,82 @@ const DOMAIN = "domain.com"
 
 // PATH is the path constant
 const PATH = "/testing"
+
+type testConfiguration struct {
+	DefaultCache    *configurationtypes.DefaultCache  `yaml:"default_cache"`
+	CacheKeys       configurationtypes.CacheKeys      `yaml:"cache_keys"`
+	API             configurationtypes.API            `yaml:"api"`
+	ReverseProxyURL string                            `yaml:"reverse_proxy_url"`
+	SSLProviders    []string                          `yaml:"ssl_providers"`
+	URLs            map[string]configurationtypes.URL `yaml:"urls"`
+	LogLevel        string                            `yaml:"log_level"`
+	logger          *zap.Logger
+	PluginName      string
+	Ykeys           map[string]configurationtypes.SurrogateKeys `yaml:"ykeys"`
+	SurrogateKeys   map[string]configurationtypes.SurrogateKeys `yaml:"surrogate_keys"`
+}
+
+// GetUrls get the urls list in the configuration
+func (c *testConfiguration) GetUrls() map[string]configurationtypes.URL {
+	return c.URLs
+}
+
+// GetReverseProxyURL get the reverse proxy url
+func (c *testConfiguration) GetReverseProxyURL() string {
+	return c.ReverseProxyURL
+}
+
+// GetSSLProviders get the ssl providers
+func (c *testConfiguration) GetSSLProviders() []string {
+	return c.SSLProviders
+}
+
+// GetPluginName get the plugin name
+func (c *testConfiguration) GetPluginName() string {
+	return c.PluginName
+}
+
+// GetDefaultCache get the default cache
+func (c *testConfiguration) GetDefaultCache() configurationtypes.DefaultCacheInterface {
+	return c.DefaultCache
+}
+
+// GetAPI get the default cache
+func (c *testConfiguration) GetAPI() configurationtypes.API {
+	return c.API
+}
+
+// GetLogLevel get the log level
+func (c *testConfiguration) GetLogLevel() string {
+	return c.LogLevel
+}
+
+// GetLogger get the logger
+func (c *testConfiguration) GetLogger() *zap.Logger {
+	return c.logger
+}
+
+// SetLogger set the logger
+func (c *testConfiguration) SetLogger(l *zap.Logger) {
+	c.logger = l
+}
+
+// GetYkeys get the ykeys list
+func (c *testConfiguration) GetYkeys() map[string]configurationtypes.SurrogateKeys {
+	return c.Ykeys
+}
+
+// GetSurrogateKeys get the surrogate keys list
+func (c *testConfiguration) GetSurrogateKeys() map[string]configurationtypes.SurrogateKeys {
+	return c.SurrogateKeys
+}
+
+// GetCacheKeys get the cache keys rules to override
+func (c *testConfiguration) GetCacheKeys() configurationtypes.CacheKeys {
+	return c.CacheKeys
+}
+
+var _ configurationtypes.AbstractConfigurationInterface = (*testConfiguration)(nil)
 
 // BaseConfiguration is the legacy configuration
 func BaseConfiguration() string {
@@ -415,10 +492,9 @@ storageEngines:
 }
 
 // MockConfiguration is an helper to mock the configuration
-func MockConfiguration(configurationToLoad func() string) *configuration.Configuration {
-	var config configuration.Configuration
-	e := config.Parse([]byte(configurationToLoad()))
-	if e != nil {
+func MockConfiguration(configurationToLoad func() string) *testConfiguration {
+	var config testConfiguration
+	if e := yaml.Unmarshal([]byte(configurationToLoad()), &config); e != nil {
 		log.Fatal(e)
 	}
 	cfg := zap.Config{

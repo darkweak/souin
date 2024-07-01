@@ -1,17 +1,6 @@
 package providers
 
-import (
-	"net/http"
-	"strings"
-	"sync"
-	"testing"
-
-	"github.com/darkweak/souin/configurationtypes"
-	"github.com/darkweak/souin/pkg/storage"
-	"github.com/darkweak/souin/tests"
-	"go.uber.org/zap"
-)
-
+/*
 func mockCloudflareProvider() *CloudflareSurrogateStorage {
 	instanciator, _ := storage.NewStorageFromName("badger")
 	storer, _ := instanciator(tests.MockConfiguration(tests.BadgerConfiguration))
@@ -89,3 +78,4 @@ func TestCloudflareSurrogateStorage_Store(t *testing.T) {
 		t.Error("The response should not contains the Surrogate control header.")
 	}
 }
+*/

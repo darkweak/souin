@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/darkweak/souin/configurationtypes"
-	"github.com/darkweak/souin/pkg/storage"
 	"github.com/darkweak/souin/pkg/storage/types"
+	"github.com/darkweak/storages/core"
 	"go.uber.org/zap"
 )
 
@@ -101,22 +101,19 @@ type baseStorage struct {
 
 func (s *baseStorage) init(config configurationtypes.AbstractConfigurationInterface, defaultStorerName string) {
 	if configuration, ok := config.GetSurrogateKeys()["_configuration"]; ok {
-		instanciator, err := storage.NewStorageFromName(configuration.SurrogateConfiguration.Storer)
-		if err != nil {
-			instanciator, _ = storage.NewStorageFromName("nuts")
-		}
-
-		storer, err := instanciator(config)
-		if err != nil {
-			s.logger.Sugar().Errorf("Impossible to instanciate the storer for the surrogate-keys: %v", err)
+		storer := core.GetRegisteredStorer(configuration.SurrogateConfiguration.Storer)
+		if storer == nil {
+			storer = core.GetRegisteredStorer("DEFAULT")
+			if storer == nil {
+				config.GetLogger().Sugar().Errorf("Impossible to retrieve the storers %s, nuts neither for the surrogate-keys", configuration.SurrogateConfiguration.Storer)
+			}
 		}
 
 		s.Storage = storer
 	} else {
-		instanciator, _ := storage.NewStorageFromName(strings.ToLower(defaultStorerName))
-		storer, err := instanciator(config)
-		if err != nil {
-			s.logger.Sugar().Errorf("Impossible to instanciate the storer %s for the surrogate-keys: %v", defaultStorerName, err)
+		storer := core.GetRegisteredStorer(strings.ToUpper(defaultStorerName))
+		if storer == nil {
+			config.GetLogger().Sugar().Errorf("Impossible to retrieve the storers %s for the surrogate-keys", defaultStorerName)
 		}
 
 		s.Storage = storer
@@ -158,7 +155,7 @@ func (s *baseStorage) storeTag(tag string, cacheKey string, re *regexp.Regexp) {
 	currentValue := string(s.Storage.Get(surrogatePrefix + tag))
 	if !re.MatchString(currentValue) {
 		s.logger.Sugar().Debugf("Store the tag %s", tag)
-		_ = s.Storage.Set(surrogatePrefix+tag, []byte(currentValue+souinStorageSeparator+cacheKey), configurationtypes.URL{}, s.duration)
+		_ = s.Storage.Set(surrogatePrefix+tag, []byte(currentValue+souinStorageSeparator+cacheKey), s.duration)
 	}
 }
 

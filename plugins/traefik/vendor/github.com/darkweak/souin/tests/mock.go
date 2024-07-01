@@ -3,15 +3,12 @@ package tests
 import (
 	"fmt"
 	"log"
-	"net/http"
 	"os"
-	"regexp"
 
 	"github.com/darkweak/souin/configurationtypes"
-	"github.com/darkweak/souin/pkg/storage/types"
-	"github.com/darkweak/souin/plugins/souin/configuration"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"gopkg.in/yaml.v3"
 )
 
 // DOMAIN is the domain constant
@@ -19,6 +16,82 @@ const DOMAIN = "domain.com"
 
 // PATH is the path constant
 const PATH = "/testing"
+
+type testConfiguration struct {
+	DefaultCache    *configurationtypes.DefaultCache  `yaml:"default_cache"`
+	CacheKeys       configurationtypes.CacheKeys      `yaml:"cache_keys"`
+	API             configurationtypes.API            `yaml:"api"`
+	ReverseProxyURL string                            `yaml:"reverse_proxy_url"`
+	SSLProviders    []string                          `yaml:"ssl_providers"`
+	URLs            map[string]configurationtypes.URL `yaml:"urls"`
+	LogLevel        string                            `yaml:"log_level"`
+	logger          *zap.Logger
+	PluginName      string
+	Ykeys           map[string]configurationtypes.SurrogateKeys `yaml:"ykeys"`
+	SurrogateKeys   map[string]configurationtypes.SurrogateKeys `yaml:"surrogate_keys"`
+}
+
+// GetUrls get the urls list in the configuration
+func (c *testConfiguration) GetUrls() map[string]configurationtypes.URL {
+	return c.URLs
+}
+
+// GetReverseProxyURL get the reverse proxy url
+func (c *testConfiguration) GetReverseProxyURL() string {
+	return c.ReverseProxyURL
+}
+
+// GetSSLProviders get the ssl providers
+func (c *testConfiguration) GetSSLProviders() []string {
+	return c.SSLProviders
+}
+
+// GetPluginName get the plugin name
+func (c *testConfiguration) GetPluginName() string {
+	return c.PluginName
+}
+
+// GetDefaultCache get the default cache
+func (c *testConfiguration) GetDefaultCache() configurationtypes.DefaultCacheInterface {
+	return c.DefaultCache
+}
+
+// GetAPI get the default cache
+func (c *testConfiguration) GetAPI() configurationtypes.API {
+	return c.API
+}
+
+// GetLogLevel get the log level
+func (c *testConfiguration) GetLogLevel() string {
+	return c.LogLevel
+}
+
+// GetLogger get the logger
+func (c *testConfiguration) GetLogger() *zap.Logger {
+	return c.logger
+}
+
+// SetLogger set the logger
+func (c *testConfiguration) SetLogger(l *zap.Logger) {
+	c.logger = l
+}
+
+// GetYkeys get the ykeys list
+func (c *testConfiguration) GetYkeys() map[string]configurationtypes.SurrogateKeys {
+	return c.Ykeys
+}
+
+// GetSurrogateKeys get the surrogate keys list
+func (c *testConfiguration) GetSurrogateKeys() map[string]configurationtypes.SurrogateKeys {
+	return c.SurrogateKeys
+}
+
+// GetCacheKeys get the cache keys rules to override
+func (c *testConfiguration) GetCacheKeys() configurationtypes.CacheKeys {
+	return c.CacheKeys
+}
+
+var _ configurationtypes.AbstractConfigurationInterface = (*testConfiguration)(nil)
 
 // BaseConfiguration is the legacy configuration
 func BaseConfiguration() string {
@@ -419,10 +492,9 @@ storageEngines:
 }
 
 // MockConfiguration is an helper to mock the configuration
-func MockConfiguration(configurationToLoad func() string) *configuration.Configuration {
-	var config configuration.Configuration
-	e := config.Parse([]byte(configurationToLoad()))
-	if e != nil {
+func MockConfiguration(configurationToLoad func() string) *testConfiguration {
+	var config testConfiguration
+	if e := yaml.Unmarshal([]byte(configurationToLoad()), &config); e != nil {
 		log.Fatal(e)
 	}
 	cfg := zap.Config{
@@ -447,48 +519,4 @@ func MockConfiguration(configurationToLoad func() string) *configuration.Configu
 	config.SetLogger(logger)
 
 	return &config
-}
-
-// MockInitializeRegexp is an helper to mock the regexp initialization
-func MockInitializeRegexp(configurationInstance configurationtypes.AbstractConfigurationInterface) regexp.Regexp {
-	u := ""
-	for k := range configurationInstance.GetUrls() {
-		if "" != u {
-			u += "|"
-		}
-		u += "(" + k + ")"
-	}
-
-	return *regexp.MustCompile(u)
-}
-
-// GetTokenName returns the token name
-func GetTokenName() string {
-	return "souin-authorization-token"
-}
-
-// GetValidToken returns a valid token
-func GetValidToken() *http.Cookie {
-	return &http.Cookie{
-		Name:  GetTokenName(),
-		Value: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6InVzZXIxIiwiZXhwIjoxNjE0MTI0Nzk5OX0.7blW8hKWls2UgHLU8KOzwTG13uNoJR3UhLgoVdyCzx0",
-		Path:  "/",
-	}
-}
-
-// GetCacheProviderClientAndMatchedURL will work as a factory to build providers from configuration and get the URL from the key passed in parameter
-func GetCacheProviderClientAndMatchedURL(key string, configurationMocker func() configurationtypes.AbstractConfigurationInterface, factory func(configurationInterface configurationtypes.AbstractConfigurationInterface) (types.Storer, error)) (types.Storer, configurationtypes.URL) {
-	config := configurationMocker()
-	client, _ := factory(config)
-	regexpUrls := MockInitializeRegexp(config)
-	regexpURL := regexpUrls.FindString(key)
-	matchedURL := configurationtypes.URL{
-		TTL:     configurationtypes.Duration{Duration: config.GetDefaultCache().GetTTL()},
-		Headers: config.GetDefaultCache().GetHeaders(),
-	}
-	if "" != regexpURL {
-		matchedURL = config.GetUrls()[regexpURL]
-	}
-
-	return client, matchedURL
 }
