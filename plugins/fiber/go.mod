@@ -6,7 +6,7 @@ toolchain go1.22.1
 
 require (
 	github.com/darkweak/souin v1.6.49
-	github.com/gofiber/fiber/v2 v2.52.1
+	github.com/gofiber/fiber/v2 v2.52.5
 	github.com/valyala/fasthttp v1.51.0
 )
 
