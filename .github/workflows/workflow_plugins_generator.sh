@@ -53,7 +53,7 @@ jobs:
         run: go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest
       -
         name: Build Souin as caddy module
-        run: cd plugins/caddy && xcaddy build --with github.com/darkweak/souin/plugins/caddy=./ --with github.com/darkweak/souin=../..
+        run: cd plugins/caddy && xcaddy build --with github.com/darkweak/souin/plugins/caddy=./ --with github.com/darkweak/souin=../.. --with github.com/darkweak/storages/badger/caddy --with github.com/darkweak/storages/etcd/caddy --with github.com/darkweak/storages/nuts/caddy --with github.com/darkweak/storages/olric/caddy --with github.com/darkweak/storages/otter/caddy --with github.com/darkweak/storages/redis/caddy
       -
         name: Run Caddy tests
         run: cd plugins/caddy && go test -v ./...
@@ -121,7 +121,7 @@ jobs:
         run: go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest
       -
         name: Build Souin as caddy module for current commit
-        run: cd souin/plugins/caddy && xcaddy build --with github.com/darkweak/souin/plugins/caddy=./ --with github.com/darkweak/souin=../..
+        run: cd souin/plugins/caddy && xcaddy build --with github.com/darkweak/souin/plugins/caddy=./ --with github.com/darkweak/souin=../.. --with github.com/darkweak/storages/badger/caddy --with github.com/darkweak/storages/etcd/caddy --with github.com/darkweak/storages/nuts/caddy --with github.com/darkweak/storages/olric/caddy --with github.com/darkweak/storages/otter/caddy --with github.com/darkweak/storages/redis/caddy
       -
         name: Run detached caddy
         run: cd souin/plugins/caddy && ./caddy run --config ../../docs/cache-tests/cache-tests-caddyfile --adapter caddyfile &

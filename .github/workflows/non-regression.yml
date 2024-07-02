@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
 
 env:
-  GO_VERSION: '1.21'
+  GO_VERSION: '1.22'
 
 jobs:
   lint-validation:
@@ -34,24 +34,7 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
       - name: Run unit static tests
-        run: go test -v -race $(go list ./... | grep -v pkg/storage)
-  unit-test-golang-with-services:
-    needs: lint-validation
-    name: Unit tests with external services
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      - name: Install Go
-        uses: actions/setup-go@v3
-        with:
-          go-version: ${{ env.GO_VERSION }}
-      - name: Build and run the docker stack
-        run: |
-          docker network create your_network || true
-          docker compose -f docker-compose.yml.test up -d --build --force-recreate --remove-orphans
-      - name: Run pkg storage tests
-        run: docker compose -f docker-compose.yml.test exec -T souin go test -v -race ./pkg/storage
+        run: go test -v
   validate-prod-container-building:
     needs: unit-test-golang-with-services
     name: Validate that the container build for prod

@@ -1,19 +1,32 @@
 package providers
 
-// const (
-// 	baseHeaderValue  = "test0, test1,   test2,  test3, test4"
-// 	emptyHeaderValue = ""
-// )
+import (
+	"fmt"
+	"net/http"
+	"strings"
+	"sync"
+	"testing"
 
-/*
-func mockCommonProvider() *baseStorage /*, func() error {
-	instanciator, _ := storage.NewStorageFromName("nuts")
+	"github.com/darkweak/souin/configurationtypes"
+	"github.com/darkweak/souin/pkg/storage"
+	"github.com/darkweak/souin/tests"
+	"github.com/darkweak/storages/core"
+	"go.uber.org/zap"
+)
+
+const (
+	baseHeaderValue  = "test0, test1,   test2,  test3, test4"
+	emptyHeaderValue = ""
+)
+
+func mockCommonProvider() *baseStorage {
+	memoryStorer, _ := storage.Factory(mockConfiguration(tests.BaseConfiguration))
+	core.RegisterStorage(memoryStorer)
 	config := tests.MockConfiguration(tests.NutsConfiguration)
 	config.DefaultCache.Badger.Configuration = nil
-	storer, _ := instanciator(config)
 	sss := &SouinSurrogateStorage{
 		baseStorage: &baseStorage{
-			Storage:    storer,
+			Storage:    memoryStorer,
 			Keys:       make(map[string]configurationtypes.SurrogateKeys),
 			keysRegexp: make(map[string]keysRegexpInner),
 			dynamic:    true,
@@ -24,7 +37,7 @@ func mockCommonProvider() *baseStorage /*, func() error {
 
 	sss.baseStorage.parent = sss
 
-	return sss.baseStorage /*, storer.Close
+	return sss.baseStorage
 }
 
 func TestBaseStorage_ParseHeaders(t *testing.T) {
@@ -126,8 +139,8 @@ func TestBaseStorage_Store(t *testing.T) {
 	_ = bs.Store(&res, "/some")
 
 	storageSize := len(bs.Storage.MapKeys(surrogatePrefix))
-	if storageSize != 9 {
-		t.Errorf("The surrogate storage should contain 9 stored elements, %v given: %#v.\n", storageSize, bs.Storage.ListKeys())
+	if storageSize != 6 {
+		t.Errorf("The surrogate storage should contain 6 stored elements, %v given: %#v.\n", storageSize, bs.Storage.MapKeys(""))
 	}
 
 	value = bs.Storage.Get(surrogatePrefix + "something")
@@ -159,4 +172,3 @@ func TestBaseStorage_Store_Load(t *testing.T) {
 		t.Errorf("The surrogate storage should contain %d stored elements, %d given.", length+1, len(strings.Split(string(v), ",")))
 	}
 }
-*/

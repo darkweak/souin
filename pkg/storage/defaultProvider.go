@@ -29,7 +29,7 @@ func Factory(c configurationtypes.AbstractConfigurationInterface) (types.Storer,
 
 // Name returns the storer name
 func (provider *Default) Name() string {
-	return "DEFAULT"
+	return types.DefaultStorageName
 }
 
 // MapKeys method returns a map with the key and value

@@ -62,7 +62,15 @@ build-caddy: ## Build caddy binary
 	cd plugins/caddy && \
 	go mod tidy && \
 	go mod download && \
-	XCADDY_RACE_DETECTOR=1 XCADDY_DEBUG=1 xcaddy build --with github.com/darkweak/souin/plugins/caddy=./ --with github.com/darkweak/souin=../..
+	XCADDY_RACE_DETECTOR=1 XCADDY_DEBUG=1 xcaddy build \
+		--with github.com/darkweak/souin/plugins/caddy=./ \
+		--with github.com/darkweak/souin=../.. \
+		--with github.com/darkweak/storages/badger/caddy \
+		--with github.com/darkweak/storages/etcd/caddy \
+		--with github.com/darkweak/storages/nuts/caddy \
+		--with github.com/darkweak/storages/olric/caddy \
+		--with github.com/darkweak/storages/otter/caddy \
+		--with github.com/darkweak/storages/redis/caddy
 
 build-dev: env-dev ## Build containers with dev env vars
 	$(DC_BUILD) souin

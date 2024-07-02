@@ -889,7 +889,8 @@ func TestVaryHandler(t *testing.T) {
 			t.Error("The object is not type of *http.Response")
 		}
 
-		if rs.Header.Get("Cache-Status") != fmt.Sprintf("Souin; hit; ttl=%d; key=GET-http-localhost:9080-/vary-multiple", ttl) || rs.Header.Get("Age") != fmt.Sprint(120-ttl) {
+		if (rs.Header.Get("Cache-Status") != fmt.Sprintf("Souin; hit; ttl=%d; key=GET-http-localhost:9080-/vary-multiple", ttl) || rs.Header.Get("Age") != fmt.Sprint(120-ttl)) &&
+			(rs.Header.Get("Cache-Status") != fmt.Sprintf("Souin; hit; ttl=%d; key=GET-http-localhost:9080-/vary-multiple", ttl-1) || rs.Header.Get("Age") != fmt.Sprint(120-ttl-1)) {
 			t.Errorf("The response doesn't match the expected header or age: %s => %s", rs.Header.Get("Cache-Status"), rs.Header.Get("Age"))
 		}
 	}

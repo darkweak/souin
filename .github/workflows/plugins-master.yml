@@ -30,4 +30,4 @@ jobs:
         run: go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest
       -
         name: Build current Souin as caddy module with referenced Souin core version when merge on master
-        run: cd plugins/caddy && xcaddy build --with github.com/${{ github.repository }}/plugins/caddy@$(git rev-parse --short "$GITHUB_SHA")
+        run: cd plugins/caddy && xcaddy build --with github.com/${{ github.repository }}/plugins/caddy@$(git rev-parse --short "$GITHUB_SHA") --with github.com/darkweak/storages/badger/caddy --with github.com/darkweak/storages/etcd/caddy --with github.com/darkweak/storages/nuts/caddy --with github.com/darkweak/storages/olric/caddy --with github.com/darkweak/storages/otter/caddy --with github.com/darkweak/storages/redis/caddy

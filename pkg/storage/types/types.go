@@ -7,6 +7,8 @@ import (
 	"github.com/darkweak/storages/core"
 )
 
+const DefaultStorageName = "DEFAULT"
+
 type Storer interface {
 	MapKeys(prefix string) map[string]string
 	ListKeys() []string

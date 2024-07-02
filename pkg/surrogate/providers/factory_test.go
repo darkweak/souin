@@ -4,6 +4,9 @@ import (
 	"testing"
 
 	"github.com/darkweak/souin/configurationtypes"
+	"github.com/darkweak/souin/pkg/storage"
+	"github.com/darkweak/souin/pkg/storage/types"
+	"github.com/darkweak/storages/core"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	yaml "gopkg.in/yaml.v3"
@@ -40,7 +43,7 @@ default_cache:
 }
 
 type testConfiguration struct {
-	defaultCache *configurationtypes.DefaultCache `yaml:"default_cache"`
+	DefaultCache *configurationtypes.DefaultCache `yaml:"default_cache"`
 }
 
 func (*testConfiguration) GetUrls() map[string]configurationtypes.URL {
@@ -50,7 +53,7 @@ func (*testConfiguration) GetPluginName() string {
 	return ""
 }
 func (t *testConfiguration) GetDefaultCache() configurationtypes.DefaultCacheInterface {
-	return t.defaultCache
+	return t.DefaultCache
 }
 func (*testConfiguration) GetAPI() configurationtypes.API {
 	return configurationtypes.API{}
@@ -106,10 +109,12 @@ func TestSurrogateFactory(t *testing.T) {
 	akamaiConfiguration := mockConfiguration(cdnConfigurationAkamai)
 	fastlyConfiguration := mockConfiguration(cdnConfigurationFastly)
 	souinConfiguration := mockConfiguration(cdnConfigurationSouin)
+	memoryStorer, _ := storage.Factory(souinConfiguration)
+	core.RegisterStorage(memoryStorer)
 
-	akamaiProvider := SurrogateFactory(akamaiConfiguration, "nuts")
-	fastlyProvider := SurrogateFactory(fastlyConfiguration, "nuts")
-	souinProvider := SurrogateFactory(souinConfiguration, "nuts")
+	akamaiProvider := SurrogateFactory(akamaiConfiguration, types.DefaultStorageName)
+	fastlyProvider := SurrogateFactory(fastlyConfiguration, types.DefaultStorageName)
+	souinProvider := SurrogateFactory(souinConfiguration, types.DefaultStorageName)
 
 	if akamaiProvider == nil {
 		t.Error("Impossible to create the Akamai surrogate provider instance")
