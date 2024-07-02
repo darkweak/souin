@@ -64,7 +64,6 @@ func NewHTTPCacheHandler(c configurationtypes.AbstractConfigurationInterface) *S
 	}
 
 	storedStorers := core.GetRegisteredStorers()
-	fmt.Printf("%#v\n\n", storedStorers)
 	storers := make([]types.Storer, len(storedStorers))
 	if len(storedStorers) == 0 {
 		memoryStorer, _ := storage.Factory(c)

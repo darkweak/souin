@@ -243,8 +243,8 @@ github.com/cyberdelia/templates v0.0.0-20141128023046-ca7fffd4298c/go.mod h1:GyV
 github.com/cyphar/filepath-securejoin v0.2.3/go.mod h1:aPGpWjXOXUn2NCNjFvBE6aRxGGx79pTxQpKOJNYHHl4=
 github.com/darkweak/go-esi v0.0.5 h1:b9LHI8Tz46R+i6p8avKPHAIBRQUCZDebNmKm5w/Zrns=
 github.com/darkweak/go-esi v0.0.5/go.mod h1:koCJqwum1u6mslyZuq/Phm6hfG1K3ZK5Y7jrUBTH654=
-github.com/darkweak/storages/core v0.0.1 h1:ZS7asd3nChkxINvn4/8sMi1ahE/bIUNKbcmfWMH8TFI=
-github.com/darkweak/storages/core v0.0.1/go.mod h1:wLp1cOAB4WUd46BBOtV4Lwot4GD+8fZbtIw6QM7fYuc=
+github.com/darkweak/storages/core v0.0.2 h1:+265yc/GdvisZuqehl7E/7awWU6f17wL9jnF2B6kKAc=
+github.com/darkweak/storages/core v0.0.2/go.mod h1:wLp1cOAB4WUd46BBOtV4Lwot4GD+8fZbtIw6QM7fYuc=
 github.com/dave/jennifer v1.2.0/go.mod h1:fIb+770HOpJ2fmN9EPPKOqm1vMGhB+TwXKMZhrIygKg=
 github.com/dave/jennifer v1.4.0/go.mod h1:fIb+770HOpJ2fmN9EPPKOqm1vMGhB+TwXKMZhrIygKg=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

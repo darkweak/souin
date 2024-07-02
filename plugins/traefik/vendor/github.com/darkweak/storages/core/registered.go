@@ -19,6 +19,16 @@ func GetRegisteredStorer(name string) Storer {
 	return nil
 }
 
+func ResetRegisteredStorages() {
+	registered.Range(func(key, _ any) bool {
+		registered.Delete(key)
+
+		return true
+	})
+
+	registered = sync.Map{}
+}
+
 func GetRegisteredStorers() []Storer {
 	storers := make([]Storer, 0)
 
