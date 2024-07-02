@@ -36,7 +36,7 @@ jobs:
         name: Install Go
         uses: actions/setup-go@v3
         with:
-          go-version: '1.21'
+          go-version: '1.22'
       -
         name: Checkout code
         uses: actions/checkout@v4
@@ -85,7 +85,7 @@ jobs:
         name: Install Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
+          go-version: '1.22'
 
       - name: Install Node.js
         uses: actions/setup-node@v4
@@ -158,74 +158,74 @@ jobs:
     with:
       CAPITALIZED_NAME: Beego
       LOWER_NAME: beego
-      GO_VERSION: '1.21'
+      GO_VERSION: '1.22'
   build-chi-validator:
     uses: ./.github/workflows/plugin_template.yml
     secrets: inherit
     with:
       CAPITALIZED_NAME: Chi
       LOWER_NAME: chi
-      GO_VERSION: '1.21'
+      GO_VERSION: '1.22'
   build-dotweb-validator:
     uses: ./.github/workflows/plugin_template.yml
     secrets: inherit
     with:
       CAPITALIZED_NAME: Dotweb
       LOWER_NAME: dotweb
-      GO_VERSION: '1.21'
+      GO_VERSION: '1.22'
   build-echo-validator:
     uses: ./.github/workflows/plugin_template.yml
     secrets: inherit
     with:
       CAPITALIZED_NAME: Echo
       LOWER_NAME: echo
-      GO_VERSION: '1.21'
+      GO_VERSION: '1.22'
   build-fiber-validator:
     uses: ./.github/workflows/plugin_template.yml
     secrets: inherit
     with:
       CAPITALIZED_NAME: Fiber
       LOWER_NAME: fiber
-      GO_VERSION: '1.21'
+      GO_VERSION: '1.22'
   build-gin-validator:
     uses: ./.github/workflows/plugin_template.yml
     secrets: inherit
     with:
       CAPITALIZED_NAME: Gin
       LOWER_NAME: gin
-      GO_VERSION: '1.21'
+      GO_VERSION: '1.22'
   build-goa-validator:
     uses: ./.github/workflows/plugin_template.yml
     secrets: inherit
     with:
       CAPITALIZED_NAME: Goa
       LOWER_NAME: goa
-      GO_VERSION: '1.21'
+      GO_VERSION: '1.22'
   build-kratos-validator:
     uses: ./.github/workflows/plugin_template.yml
     secrets: inherit
     with:
       CAPITALIZED_NAME: Kratos
       LOWER_NAME: kratos
-      GO_VERSION: '1.21'
+      GO_VERSION: '1.22'
   build-souin-validator:
     uses: ./.github/workflows/plugin_template.yml
     secrets: inherit
     with:
       CAPITALIZED_NAME: Souin
       LOWER_NAME: souin
-      GO_VERSION: '1.21'
+      GO_VERSION: '1.22'
   build-traefik-validator:
     uses: ./.github/workflows/plugin_template.yml
     secrets: inherit
     with:
       CAPITALIZED_NAME: Traefik
       LOWER_NAME: traefik
-      GO_VERSION: '1.21'
+      GO_VERSION: '1.22'
   build-webgo-validator:
     uses: ./.github/workflows/plugin_template.yml
     secrets: inherit
     with:
       CAPITALIZED_NAME: Webgo
       LOWER_NAME: webgo
-      GO_VERSION: '1.21'
+      GO_VERSION: '1.22'

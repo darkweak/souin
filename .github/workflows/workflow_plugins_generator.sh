@@ -3,7 +3,7 @@
 # Disabled go-zero and hertz temporary
 # plugins=("beego"  "chi"  "dotweb"  "echo"  "fiber"  "gin"  "goa"  "go-zero"  "hertz"  "kratos"  "roadrunner"  "souin"  "traefik"  "tyk"  "webgo")
 plugins=("beego"  "chi"  "dotweb"  "echo"  "fiber"  "gin"  "goa"  "kratos"  "souin"  "traefik"  "webgo")
-go_version=1.21
+go_version=1.22
 
 IFS= read -r -d '' tpl <<EOF
 name: Build and validate Souin as plugins
@@ -93,7 +93,7 @@ jobs:
         name: Install Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
+          go-version: '1.22'
 
       - name: Install Node.js
         uses: actions/setup-node@v4
