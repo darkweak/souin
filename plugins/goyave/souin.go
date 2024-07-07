@@ -6,6 +6,7 @@ import (
 
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/middleware"
+	"github.com/darkweak/souin/plugins/souin/storages"
 	"goyave.dev/goyave/v4"
 )
 
@@ -46,6 +47,7 @@ type SouinGoyaveMiddleware struct {
 }
 
 func NewHTTPCache(c middleware.BaseConfiguration) *SouinGoyaveMiddleware {
+	storages.InitFromConfiguration(&c)
 	return &SouinGoyaveMiddleware{
 		SouinBaseHandler: middleware.NewHTTPCacheHandler(&c),
 	}

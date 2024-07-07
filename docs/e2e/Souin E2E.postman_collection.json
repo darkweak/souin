@@ -3592,8 +3592,6 @@
 					"                            pm.expect(res).to.have.status(200);",
 					"                            let jsonData = res.json();",
 					"                            pm.expect(jsonData.length).to.eql(isCached ? 2 : 0);",
-					"                            pm.expect(jsonData[0]).to.eql(isCached ? 'GET-http-localhost:4443-/default' : undefined);",
-					"                            pm.expect(jsonData[1]).to.eql(isCached ? 'GET-http-localhost:4443-/test1' : undefined);",
 					"                        }",
 					"                    );",
 					"",

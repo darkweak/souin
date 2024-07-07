@@ -6,6 +6,7 @@ import (
 
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/middleware"
+	"github.com/darkweak/souin/plugins/souin/storages"
 	"github.com/devfeel/dotweb"
 )
 
@@ -47,6 +48,7 @@ type SouinDotwebMiddleware struct {
 }
 
 func NewHTTPCache(c middleware.BaseConfiguration) *SouinDotwebMiddleware {
+	storages.InitFromConfiguration(&c)
 	return &SouinDotwebMiddleware{
 		SouinBaseHandler: middleware.NewHTTPCacheHandler(&c),
 	}
