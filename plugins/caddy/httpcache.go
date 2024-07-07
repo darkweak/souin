@@ -246,12 +246,6 @@ func (s *SouinCaddyMiddleware) Provision(ctx caddy.Context) error {
 		return err
 	}
 
-	bh := middleware.NewHTTPCacheHandler(&s.Configuration)
-	surrogates, ok := up.LoadOrStore(surrogate_key, bh.SurrogateKeyStorer)
-	if ok {
-		bh.SurrogateKeyStorer = surrogates.(surrogates_providers.SurrogateInterface)
-	}
-
 	if s.Configuration.DefaultCache.Badger.Found {
 		e := dispatchStorage(ctx, "badger", s.Configuration.DefaultCache.Badger, s.Configuration.DefaultCache.GetStale())
 		if e != nil {
@@ -287,6 +281,12 @@ func (s *SouinCaddyMiddleware) Provision(ctx caddy.Context) error {
 		if e != nil {
 			s.logger.Sugar().Errorf("Error during Redis init, did you include the Redis storage (--with github.com/darkweak/storages/redis/caddy)? %v", e)
 		}
+	}
+
+	bh := middleware.NewHTTPCacheHandler(&s.Configuration)
+	surrogates, ok := up.LoadOrStore(surrogate_key, bh.SurrogateKeyStorer)
+	if ok {
+		bh.SurrogateKeyStorer = surrogates.(surrogates_providers.SurrogateInterface)
 	}
 
 	s.SouinBaseHandler = bh
