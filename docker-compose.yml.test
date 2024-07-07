@@ -55,6 +55,13 @@ services:
     command: redis-server
     <<: *networks
 
+  redis-insight:
+    image: redis/redisinsight:latest
+    volumes:
+      - ./redis-data:/data
+    ports:
+      - 5540:5540
+
   traefik:
     image: traefik:latest
     command: --providers.docker

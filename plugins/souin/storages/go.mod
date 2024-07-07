@@ -4,13 +4,13 @@ go 1.22.1
 
 require (
 	github.com/darkweak/souin v1.6.49
-	github.com/darkweak/storages/badger v0.0.3
-	github.com/darkweak/storages/core v0.0.3
-	github.com/darkweak/storages/etcd v0.0.3
-	github.com/darkweak/storages/nuts v0.0.3
-	github.com/darkweak/storages/olric v0.0.3
-	github.com/darkweak/storages/otter v0.0.3
-	github.com/darkweak/storages/redis v0.0.3
+	github.com/darkweak/storages/badger v0.0.4
+	github.com/darkweak/storages/core v0.0.4
+	github.com/darkweak/storages/etcd v0.0.4
+	github.com/darkweak/storages/nuts v0.0.4
+	github.com/darkweak/storages/olric v0.0.4
+	github.com/darkweak/storages/otter v0.0.4
+	github.com/darkweak/storages/redis v0.0.4
 	go.uber.org/zap v1.27.0
 )
 

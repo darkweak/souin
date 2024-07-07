@@ -184,6 +184,8 @@ type URL struct {
 
 // CacheProvider config
 type CacheProvider struct {
+	// Uuid to identify a unique instance.
+	Uuid string
 	// Found to determine if we can use that storage.
 	Found bool `json:"found" yaml:"found"`
 	// URL to connect to the storage system.

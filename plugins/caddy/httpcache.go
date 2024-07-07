@@ -246,42 +246,7 @@ func (s *SouinCaddyMiddleware) Provision(ctx caddy.Context) error {
 		return err
 	}
 
-	if s.Configuration.DefaultCache.Badger.Found {
-		e := dispatchStorage(ctx, "badger", s.Configuration.DefaultCache.Badger, s.Configuration.DefaultCache.GetStale())
-		if e != nil {
-			s.logger.Sugar().Errorf("Error during Badger init, did you include the Badger storage (--with github.com/darkweak/storages/badger/caddy)? %v", e)
-		}
-	}
-	if s.Configuration.DefaultCache.Etcd.Found {
-		e := dispatchStorage(ctx, "etcd", s.Configuration.DefaultCache.Etcd, s.Configuration.DefaultCache.GetStale())
-		if e != nil {
-			s.logger.Sugar().Errorf("Error during Etcd init, did you include the Etcd storage (--with github.com/darkweak/storages/etcd/caddy)? %v", e)
-		}
-	}
-	if s.Configuration.DefaultCache.Nuts.Found {
-		e := dispatchStorage(ctx, "nuts", s.Configuration.DefaultCache.Nuts, s.Configuration.DefaultCache.GetStale())
-		if e != nil {
-			s.logger.Sugar().Errorf("Error during Nuts init, did you include the Nuts storage (--with github.com/darkweak/storages/nuts/caddy)? %v", e)
-		}
-	}
-	if s.Configuration.DefaultCache.Olric.Found {
-		e := dispatchStorage(ctx, "olric", s.Configuration.DefaultCache.Olric, s.Configuration.DefaultCache.GetStale())
-		if e != nil {
-			s.logger.Sugar().Errorf("Error during Olric init, did you include the Olric storage (--with github.com/darkweak/storages/olric/caddy)? %v", e)
-		}
-	}
-	if s.Configuration.DefaultCache.Otter.Found {
-		e := dispatchStorage(ctx, "otter", s.Configuration.DefaultCache.Otter, s.Configuration.DefaultCache.GetStale())
-		if e != nil {
-			s.logger.Sugar().Errorf("Error during Otter init, did you include the Otter storage (--with github.com/darkweak/storages/otter/caddy)? %v", e)
-		}
-	}
-	if s.Configuration.DefaultCache.Redis.Found {
-		e := dispatchStorage(ctx, "redis", s.Configuration.DefaultCache.Redis, s.Configuration.DefaultCache.GetStale())
-		if e != nil {
-			s.logger.Sugar().Errorf("Error during Redis init, did you include the Redis storage (--with github.com/darkweak/storages/redis/caddy)? %v", e)
-		}
-	}
+	s.parseStorages(ctx)
 
 	bh := middleware.NewHTTPCacheHandler(&s.Configuration)
 	surrogates, ok := up.LoadOrStore(surrogate_key, bh.SurrogateKeyStorer)

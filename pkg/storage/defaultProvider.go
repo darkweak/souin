@@ -22,6 +22,11 @@ type Default struct {
 	logger *zap.Logger
 }
 
+type item struct {
+	invalidAt time.Time
+	value     []byte
+}
+
 // Factory function create new Default instance
 func Factory(c configurationtypes.AbstractConfigurationInterface) (types.Storer, error) {
 	return &Default{m: &sync.Map{}, logger: c.GetLogger(), stale: c.GetDefaultCache().GetStale()}, nil
@@ -30,6 +35,11 @@ func Factory(c configurationtypes.AbstractConfigurationInterface) (types.Storer,
 // Name returns the storer name
 func (provider *Default) Name() string {
 	return types.DefaultStorageName
+}
+
+// Uuid returns an unique identifier
+func (provider *Default) Uuid() string {
+	return ""
 }
 
 // MapKeys method returns a map with the key and value
@@ -50,6 +60,7 @@ func (provider *Default) MapKeys(prefix string) map[string]string {
 
 // ListKeys method returns the list of existing keys
 func (provider *Default) ListKeys() []string {
+	now := time.Now()
 	keys := []string{}
 
 	provider.m.Range(func(key, value any) bool {
@@ -57,7 +68,11 @@ func (provider *Default) ListKeys() []string {
 			mapping, err := core.DecodeMapping(value.([]byte))
 			if err == nil {
 				for _, v := range mapping.Mapping {
-					keys = append(keys, v.RealKey)
+					if v.StaleTime.After(now) {
+						keys = append(keys, v.RealKey)
+					} else {
+						provider.m.Delete(v.RealKey)
+					}
 				}
 			}
 		}
@@ -70,12 +85,21 @@ func (provider *Default) ListKeys() []string {
 
 // Get method returns the populated response if exists, empty response then
 func (provider *Default) Get(key string) []byte {
-	result, _ := provider.m.Load(key)
-	if result == nil {
+	result, ok := provider.m.Load(key)
+	if !ok || result == nil {
 		return nil
 	}
 
-	return result.([]byte)
+	res, ok := result.(item)
+	if !ok {
+		return nil
+	}
+
+	if res.invalidAt.After(time.Now()) {
+		return res.value
+	}
+
+	return nil
 }
 
 // GetMultiLevel tries to load the key and check if one of linked keys is a fresh/stale candidate.
@@ -101,7 +125,10 @@ func (provider *Default) SetMultiLevel(baseKey, variedKey string, value []byte, 
 		return e
 	}
 
-	provider.m.Store(variedKey, compressed.Bytes())
+	provider.m.Store(variedKey, item{
+		invalidAt: now.Add(duration + provider.stale),
+		value:     compressed.Bytes(),
+	})
 
 	mappingKey := core.MappingKeyPrefix + baseKey
 	item, ok := provider.m.Load(mappingKey)
@@ -121,8 +148,11 @@ func (provider *Default) SetMultiLevel(baseKey, variedKey string, value []byte, 
 }
 
 // Set method will store the response in Badger provider
-func (provider *Default) Set(key string, value []byte, _ time.Duration) error {
-	provider.m.Store(key, value)
+func (provider *Default) Set(key string, value []byte, duration time.Duration) error {
+	provider.m.Store(key, item{
+		invalidAt: time.Now().Add(duration),
+		value:     value,
+	})
 
 	return nil
 }

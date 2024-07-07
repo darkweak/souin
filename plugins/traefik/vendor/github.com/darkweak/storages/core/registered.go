@@ -1,11 +1,14 @@
 package core
 
-import "sync"
+import (
+	"fmt"
+	"sync"
+)
 
 var registered = sync.Map{}
 
 func RegisterStorage(s Storer) {
-	registered.Store(s.Name(), s)
+	registered.Store(fmt.Sprintf("%s-%s", s.Name(), s.Uuid()), s)
 }
 
 func GetRegisteredStorer(name string) Storer {

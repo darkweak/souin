@@ -72,6 +72,28 @@ build-caddy: ## Build caddy binary
 		--with github.com/darkweak/storages/otter/caddy \
 		--with github.com/darkweak/storages/redis/caddy
 
+build-caddy-dev: ## Build caddy binary
+	cd plugins/caddy && \
+	go mod tidy && \
+	go mod download && \
+	XCADDY_RACE_DETECTOR=1 XCADDY_DEBUG=1 xcaddy build \
+		--with github.com/darkweak/souin/plugins/caddy=./ \
+		--with github.com/darkweak/souin=../.. \
+		--with github.com/darkweak/storages/badger/caddy=../../../storages/badger/caddy \
+		--with github.com/darkweak/storages/etcd/caddy=../../../storages/etcd/caddy \
+		--with github.com/darkweak/storages/nuts/caddy=../../../storages/nuts/caddy \
+		--with github.com/darkweak/storages/olric/caddy=../../../storages/olric/caddy \
+		--with github.com/darkweak/storages/otter/caddy=../../../storages/otter/caddy \
+		--with github.com/darkweak/storages/redis/caddy=../../../storages/redis/caddy \
+		--with github.com/darkweak/storages/badger=../../../storages/badger \
+		--with github.com/darkweak/storages/etcd=../../../storages/etcd \
+		--with github.com/darkweak/storages/nuts=../../../storages/nuts \
+		--with github.com/darkweak/storages/olric=../../../storages/olric \
+		--with github.com/darkweak/storages/otter=../../../storages/otter \
+		--with github.com/darkweak/storages/redis=../../../storages/redis \
+		--with github.com/darkweak/storages/core=../../../storages/core
+	cd plugins/caddy && ./caddy run
+
 build-dev: env-dev ## Build containers with dev env vars
 	$(DC_BUILD) souin
 	$(MAKE) up

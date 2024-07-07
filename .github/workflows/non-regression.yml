@@ -36,7 +36,7 @@ jobs:
       - name: Run unit static tests
         run: go test -v
   validate-prod-container-building:
-    needs: unit-test-golang-with-services
+    needs: unit-test-golang
     name: Validate that the container build for prod
     runs-on: ubuntu-latest
     steps:

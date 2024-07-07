@@ -32,12 +32,13 @@ const (
 )
 
 var storageToInfiniteTTLMap = map[string]time.Duration{
-	"BADGER": 365 * 24 * time.Hour,
-	"ETCD":   365 * 24 * time.Hour,
-	"NUTS":   0,
-	"OLRIC":  365 * 24 * time.Hour,
-	"OTTER":  365 * 24 * time.Hour,
-	"REDIS":  -1,
+	"BADGER":                 365 * 24 * time.Hour,
+	"ETCD":                   365 * 24 * time.Hour,
+	"NUTS":                   0,
+	"OLRIC":                  365 * 24 * time.Hour,
+	"OTTER":                  365 * 24 * time.Hour,
+	"REDIS":                  -1,
+	types.DefaultStorageName: -1,
 }
 
 func (s *baseStorage) ParseHeaders(value string) []string {
@@ -103,15 +104,15 @@ func (s *baseStorage) init(config configurationtypes.AbstractConfigurationInterf
 	if configuration, ok := config.GetSurrogateKeys()["_configuration"]; ok {
 		storer := core.GetRegisteredStorer(configuration.SurrogateConfiguration.Storer)
 		if storer == nil {
-			storer = core.GetRegisteredStorer(types.DefaultStorageName)
+			storer = core.GetRegisteredStorer(types.DefaultStorageName + "-")
 			if storer == nil {
-				config.GetLogger().Sugar().Errorf("Impossible to retrieve the storers %s, nuts neither for the surrogate-keys", configuration.SurrogateConfiguration.Storer)
+				config.GetLogger().Sugar().Errorf("Impossible to retrieve the storers %s for the surrogate-keys from it's configuration", configuration.SurrogateConfiguration.Storer)
 			}
 		}
 
 		s.Storage = storer
 	} else {
-		storer := core.GetRegisteredStorer(strings.ToUpper(defaultStorerName))
+		storer := core.GetRegisteredStorer(defaultStorerName)
 		if storer == nil {
 			config.GetLogger().Sugar().Errorf("Impossible to retrieve the storers %s for the surrogate-keys", defaultStorerName)
 		}

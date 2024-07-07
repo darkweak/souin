@@ -18,6 +18,7 @@ type Storer interface {
 	DeleteMany(key string)
 	Init() error
 	Name() string
+	Uuid() string
 	Reset() error
 
 	// Multi level storer to handle fresh/stale at once

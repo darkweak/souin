@@ -64,20 +64,27 @@ func NewHTTPCacheHandler(c configurationtypes.AbstractConfigurationInterface) *S
 	}
 
 	storedStorers := core.GetRegisteredStorers()
-	storers := make([]types.Storer, len(storedStorers))
-	if len(storedStorers) == 0 {
+	storers := []types.Storer{}
+	if len(storedStorers) != 0 {
+		dc := c.GetDefaultCache()
+		for _, s := range []string{dc.GetBadger().Uuid, dc.GetEtcd().Uuid, dc.GetNuts().Uuid, dc.GetOlric().Uuid, dc.GetOtter().Uuid, dc.GetRedis().Uuid} {
+			if s != "" {
+				if st := core.GetRegisteredStorer(s); st != nil {
+					storers = append(storers, st.(types.Storer))
+				}
+			}
+		}
+	}
+	if len(storers) == 0 {
 		c.GetLogger().Warn("You're running Souin with the default storage that is not optimized and for development purpose. We recommend to use at least one of the storages from https://github.com/darkweak/storages")
 		memoryStorer, _ := storage.Factory(c)
 		core.RegisterStorage(memoryStorer)
 		storers = append(storers, memoryStorer)
-	} else {
-		for id, storer := range storedStorers {
-			storers[id] = storer.(types.Storer)
-		}
 	}
-	c.GetLogger().Debug("Storer initialized.")
+
+	c.GetLogger().Sugar().Debugf("Storer initialized: %#v.", storers)
 	regexpUrls := helpers.InitializeRegexp(c)
-	surrogateStorage := surrogate.InitializeSurrogate(c, storers[0].Name())
+	surrogateStorage := surrogate.InitializeSurrogate(c, fmt.Sprintf("%s-%s", storers[0].Name(), storers[0].Uuid()))
 	c.GetLogger().Debug("Surrogate storage initialized.")
 	var excludedRegexp *regexp.Regexp = nil
 	if c.GetDefaultCache().GetRegex().Exclude != "" {
