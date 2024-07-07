@@ -4,6 +4,7 @@ go 1.22.1
 
 require (
 	github.com/darkweak/souin v1.6.49
+	github.com/darkweak/storages/core v0.0.3
 	github.com/labstack/echo/v4 v4.11.1
 )
 
@@ -25,7 +26,6 @@ require (
 	github.com/chzyer/readline v1.5.1 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.3 // indirect
 	github.com/darkweak/go-esi v0.0.6 // indirect
-	github.com/darkweak/storages/core v0.0.2 // indirect
 	github.com/dgraph-io/badger v1.6.2 // indirect
 	github.com/dgraph-io/badger/v2 v2.2007.4 // indirect
 	github.com/dgraph-io/ristretto v0.1.1 // indirect

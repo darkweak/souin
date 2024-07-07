@@ -13,9 +13,6 @@ import (
 )
 
 type storageContext string
-
-const StorageConfigurationContextBadger storageContext = "STORAGE_CONFIGURATION_CONTEXT_BADGER"
-
 type keyIndex struct {
 	StoredAt      time.Time   `json:"stored"`
 	FreshTime     time.Time   `json:"fresh"`
