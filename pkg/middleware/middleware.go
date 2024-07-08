@@ -77,8 +77,13 @@ func NewHTTPCacheHandler(c configurationtypes.AbstractConfigurationInterface) *S
 	}
 	if len(storers) == 0 {
 		c.GetLogger().Warn("You're running Souin with the default storage that is not optimized and for development purpose. We recommend to use at least one of the storages from https://github.com/darkweak/storages")
+
 		memoryStorer, _ := storage.Factory(c)
-		core.RegisterStorage(memoryStorer)
+		if st := core.GetRegisteredStorer(types.DefaultStorageName + "-"); st != nil {
+			memoryStorer = st.(types.Storer)
+		} else {
+			core.RegisterStorage(memoryStorer)
+		}
 		storers = append(storers, memoryStorer)
 	}
 
