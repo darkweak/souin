@@ -44,12 +44,26 @@ func (provider *Default) Uuid() string {
 
 // MapKeys method returns a map with the key and value
 func (provider *Default) MapKeys(prefix string) map[string]string {
+	now := time.Now()
 	keys := map[string]string{}
 
 	provider.m.Range(func(key, value any) bool {
 		if strings.HasPrefix(key.(string), prefix) {
 			k, _ := strings.CutPrefix(key.(string), prefix)
-			keys[k] = string(value.([]byte))
+			if v, ok := value.(item); ok {
+				if v.invalidAt.After(now) {
+					keys[k] = string(v.value)
+				}
+
+				return true
+			}
+			if v, ok := value.(core.StorageMapper); ok {
+				for _, v := range v.Mapping {
+					if v.StaleTime.After(now) {
+						keys[v.RealKey] = string(provider.Get(v.RealKey))
+					}
+				}
+			}
 		}
 
 		return true

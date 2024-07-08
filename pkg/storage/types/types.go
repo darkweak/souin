@@ -8,6 +8,7 @@ import (
 )
 
 const DefaultStorageName = "DEFAULT"
+const OneYearDuration = 365 * 24 * time.Hour
 
 type Storer interface {
 	MapKeys(prefix string) map[string]string
