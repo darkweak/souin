@@ -74,6 +74,14 @@ func NewHTTPCacheHandler(c configurationtypes.AbstractConfigurationInterface) *S
 				}
 			}
 		}
+
+		if len(storers) > 0 {
+			names := []string{}
+			for _, storer := range storers {
+				names = append(names, storer.Name())
+			}
+			c.GetLogger().Sugar().Debugf("You're running Souin with the following storages %s", strings.Join(names, ", "))
+		}
 	}
 	if len(storers) == 0 {
 		c.GetLogger().Warn("You're running Souin with the default storage that is not optimized and for development purpose. We recommend to use at least one of the storages from https://github.com/darkweak/storages")
