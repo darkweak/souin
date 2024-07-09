@@ -6,6 +6,7 @@ import (
 
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/middleware"
+	"github.com/darkweak/souin/plugins/souin/storages"
 )
 
 var (
@@ -51,6 +52,7 @@ type SouinChiMiddleware struct {
 }
 
 func NewHTTPCache(c middleware.BaseConfiguration) *SouinChiMiddleware {
+	storages.InitFromConfiguration(&c)
 	return &SouinChiMiddleware{
 		SouinBaseHandler: middleware.NewHTTPCacheHandler(&c),
 	}

@@ -3,7 +3,7 @@
 # Disabled go-zero and hertz temporary
 # plugins=("beego"  "chi"  "dotweb"  "echo"  "fiber"  "gin"  "goa"  "go-zero"  "hertz"  "kratos"  "roadrunner"  "souin"  "traefik"  "tyk"  "webgo")
 plugins=("beego"  "chi"  "dotweb"  "echo"  "fiber"  "gin"  "goa"  "kratos"  "souin"  "traefik"  "webgo")
-go_version=1.21
+go_version=1.22
 
 IFS= read -r -d '' tpl <<EOF
 name: Build and validate Souin as plugins
@@ -53,7 +53,7 @@ jobs:
         run: go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest
       -
         name: Build Souin as caddy module
-        run: cd plugins/caddy && xcaddy build --with github.com/darkweak/souin/plugins/caddy=./ --with github.com/darkweak/souin=../..
+        run: cd plugins/caddy && xcaddy build --with github.com/darkweak/souin/plugins/caddy=./ --with github.com/darkweak/souin=../.. --with github.com/darkweak/storages/badger/caddy --with github.com/darkweak/storages/etcd/caddy --with github.com/darkweak/storages/nuts/caddy --with github.com/darkweak/storages/olric/caddy --with github.com/darkweak/storages/otter/caddy --with github.com/darkweak/storages/redis/caddy
       -
         name: Run Caddy tests
         run: cd plugins/caddy && go test -v ./...
@@ -93,7 +93,7 @@ jobs:
         name: Install Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
+          go-version: '1.22'
 
       - name: Install Node.js
         uses: actions/setup-node@v4
@@ -121,7 +121,7 @@ jobs:
         run: go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest
       -
         name: Build Souin as caddy module for current commit
-        run: cd souin/plugins/caddy && xcaddy build --with github.com/darkweak/souin/plugins/caddy=./ --with github.com/darkweak/souin=../..
+        run: cd souin/plugins/caddy && xcaddy build --with github.com/darkweak/souin/plugins/caddy=./ --with github.com/darkweak/souin=../.. --with github.com/darkweak/storages/badger/caddy --with github.com/darkweak/storages/etcd/caddy --with github.com/darkweak/storages/nuts/caddy --with github.com/darkweak/storages/olric/caddy --with github.com/darkweak/storages/otter/caddy --with github.com/darkweak/storages/redis/caddy
       -
         name: Run detached caddy
         run: cd souin/plugins/caddy && ./caddy run --config ../../docs/cache-tests/cache-tests-caddyfile --adapter caddyfile &

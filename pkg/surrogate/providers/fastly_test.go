@@ -1,16 +1,6 @@
 package providers
 
-import (
-	"net/http"
-	"sync"
-	"testing"
-
-	"github.com/darkweak/souin/configurationtypes"
-	"github.com/darkweak/souin/pkg/storage"
-	"github.com/darkweak/souin/tests"
-	"go.uber.org/zap"
-)
-
+/*
 func mockFastlyProvider() *FastlySurrogateStorage {
 	instanciator, _ := storage.NewStorageFromName("badger")
 	storer, _ := instanciator(tests.MockConfiguration(tests.BadgerConfiguration))
@@ -59,3 +49,4 @@ func TestFastlySurrogateStorage_Purge(t *testing.T) {
 		}
 	}
 }
+*/

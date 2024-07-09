@@ -3,9 +3,13 @@ package providers
 import (
 	"testing"
 
-	"github.com/darkweak/souin/plugins/souin/configuration"
+	"github.com/darkweak/souin/configurationtypes"
+	"github.com/darkweak/souin/pkg/storage"
+	"github.com/darkweak/souin/pkg/storage/types"
+	"github.com/darkweak/storages/core"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	yaml "gopkg.in/yaml.v3"
 )
 
 func cdnConfigurationAkamai() string {
@@ -38,9 +42,45 @@ default_cache:
 `
 }
 
-func mockConfiguration(configurationToLoad func() string) *configuration.Configuration {
-	var config configuration.Configuration
-	_ = config.Parse([]byte(configurationToLoad()))
+type testConfiguration struct {
+	DefaultCache *configurationtypes.DefaultCache `yaml:"default_cache"`
+}
+
+func (*testConfiguration) GetUrls() map[string]configurationtypes.URL {
+	return nil
+}
+func (*testConfiguration) GetPluginName() string {
+	return ""
+}
+func (t *testConfiguration) GetDefaultCache() configurationtypes.DefaultCacheInterface {
+	return t.DefaultCache
+}
+func (*testConfiguration) GetAPI() configurationtypes.API {
+	return configurationtypes.API{}
+}
+func (*testConfiguration) GetLogLevel() string {
+	return ""
+}
+func (*testConfiguration) GetLogger() *zap.Logger {
+	return zap.NewNop()
+}
+func (*testConfiguration) SetLogger(*zap.Logger) {
+}
+func (*testConfiguration) GetYkeys() map[string]configurationtypes.SurrogateKeys {
+	return nil
+}
+func (*testConfiguration) GetSurrogateKeys() map[string]configurationtypes.SurrogateKeys {
+	return nil
+}
+func (t *testConfiguration) GetCacheKeys() configurationtypes.CacheKeys {
+	return nil
+}
+
+func mockConfiguration(configurationToLoad func() string) *testConfiguration {
+	var config testConfiguration
+	if err := yaml.Unmarshal([]byte(configurationToLoad()), &config); err != nil {
+		return nil
+	}
 	cfg := zap.Config{
 		Encoding:         "json",
 		Level:            zap.NewAtomicLevelAt(zapcore.DebugLevel),
@@ -69,10 +109,12 @@ func TestSurrogateFactory(t *testing.T) {
 	akamaiConfiguration := mockConfiguration(cdnConfigurationAkamai)
 	fastlyConfiguration := mockConfiguration(cdnConfigurationFastly)
 	souinConfiguration := mockConfiguration(cdnConfigurationSouin)
+	memoryStorer, _ := storage.Factory(souinConfiguration)
+	core.RegisterStorage(memoryStorer)
 
-	akamaiProvider := SurrogateFactory(akamaiConfiguration, "nuts")
-	fastlyProvider := SurrogateFactory(fastlyConfiguration, "nuts")
-	souinProvider := SurrogateFactory(souinConfiguration, "nuts")
+	akamaiProvider := SurrogateFactory(akamaiConfiguration, types.DefaultStorageName)
+	fastlyProvider := SurrogateFactory(fastlyConfiguration, types.DefaultStorageName)
+	souinProvider := SurrogateFactory(souinConfiguration, types.DefaultStorageName)
 
 	if akamaiProvider == nil {
 		t.Error("Impossible to create the Akamai surrogate provider instance")

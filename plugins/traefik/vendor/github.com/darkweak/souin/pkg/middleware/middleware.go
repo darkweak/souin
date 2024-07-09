@@ -220,7 +220,7 @@ func (s *SouinBaseHandler) Store(
 						wg.Add(1)
 						go func(currentStorer types.Storer) {
 							defer wg.Done()
-							if currentStorer.Set(cachedKey, response, currentMatchedURL, ma) != nil {
+							if currentStorer.Set(cachedKey, response, ma) != nil {
 								mu.Lock()
 								fails = append(fails, fmt.Sprintf("; detail=%s-INSERTION-ERROR", currentStorer.Name()))
 								mu.Unlock()

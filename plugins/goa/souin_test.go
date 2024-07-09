@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/darkweak/souin/pkg/middleware"
+	"github.com/darkweak/storages/core"
 )
 
 func Test_NewHTTPCache(t *testing.T) {
@@ -86,6 +87,7 @@ func Test_SouinGoaPlugin_Middleware_CannotHandle(t *testing.T) {
 }
 
 func Test_SouinGoaPlugin_Middleware_APIHandle(t *testing.T) {
+	core.ResetRegisteredStorages()
 	time.Sleep(DevDefaultConfiguration.DefaultCache.GetTTL() + DevDefaultConfiguration.GetDefaultCache().GetStale())
 	res, res2, handler := prepare()
 	req := httptest.NewRequest(http.MethodGet, "/souin-api/souin", nil)
@@ -97,7 +99,7 @@ func Test_SouinGoaPlugin_Middleware_APIHandle(t *testing.T) {
 	}
 	b, _ := io.ReadAll(res.Result().Body)
 	res.Result().Body.Close()
-	if string(b) != "[\"GET-http-example.com-/handled\",\"GET-http-example.com-/not-handled\"]" {
+	if string(b) != "[]" {
 		t.Error("The response body must be an empty array because no request has been stored")
 	}
 	handler.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/handled", nil))
@@ -109,10 +111,10 @@ func Test_SouinGoaPlugin_Middleware_APIHandle(t *testing.T) {
 	res2.Result().Body.Close()
 	var payload []string
 	_ = json.Unmarshal(b, &payload)
-	if len(payload) != 2 {
-		t.Error("The system must store 2 items, excluding the mapping")
+	if len(payload) != 1 {
+		t.Error("The system must store 1 item")
 	}
-	if payload[0] != "GET-http-example.com-/handled" || payload[1] != "GET-http-example.com-/not-handled" {
+	if payload[0] != "GET-http-example.com-/handled" {
 		t.Error("The payload items mismatch from the expectations.")
 	}
 }

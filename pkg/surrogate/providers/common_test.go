@@ -10,6 +10,7 @@ import (
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/storage"
 	"github.com/darkweak/souin/tests"
+	"github.com/darkweak/storages/core"
 	"go.uber.org/zap"
 )
 
@@ -18,14 +19,14 @@ const (
 	emptyHeaderValue = ""
 )
 
-func mockCommonProvider() (*baseStorage, func() error) {
-	instanciator, _ := storage.NewStorageFromName("nuts")
+func mockCommonProvider() *baseStorage {
+	memoryStorer, _ := storage.Factory(mockConfiguration(tests.BaseConfiguration))
+	core.RegisterStorage(memoryStorer)
 	config := tests.MockConfiguration(tests.NutsConfiguration)
 	config.DefaultCache.Badger.Configuration = nil
-	storer, _ := instanciator(config)
 	sss := &SouinSurrogateStorage{
 		baseStorage: &baseStorage{
-			Storage:    storer,
+			Storage:    memoryStorer,
 			Keys:       make(map[string]configurationtypes.SurrogateKeys),
 			keysRegexp: make(map[string]keysRegexpInner),
 			dynamic:    true,
@@ -36,11 +37,11 @@ func mockCommonProvider() (*baseStorage, func() error) {
 
 	sss.baseStorage.parent = sss
 
-	return sss.baseStorage, storer.(*storage.Nuts).Close
+	return sss.baseStorage
 }
 
 func TestBaseStorage_ParseHeaders(t *testing.T) {
-	bs, _ := mockCommonProvider()
+	bs := mockCommonProvider()
 
 	fields := bs.ParseHeaders(baseHeaderValue)
 
@@ -57,7 +58,7 @@ func TestBaseStorage_ParseHeaders(t *testing.T) {
 }
 
 func TestBaseStorage_Purge(t *testing.T) {
-	bs, _ := mockCommonProvider()
+	bs := mockCommonProvider()
 	headerMock := http.Header{}
 	headerMock.Set(surrogateKey, baseHeaderValue)
 
@@ -79,11 +80,11 @@ func TestBaseStorage_Purge(t *testing.T) {
 		t.Error("The surrogates length should be equal to 0.")
 	}
 
-	_ = bs.Storage.Set(surrogatePrefix+"test0", []byte("first,second"), configurationtypes.URL{}, storageToInfiniteTTLMap[bs.Storage.Name()])
-	_ = bs.Storage.Set(surrogatePrefix+"STALE_test0", []byte("STALE_first,STALE_second"), configurationtypes.URL{}, storageToInfiniteTTLMap[bs.Storage.Name()])
-	_ = bs.Storage.Set(surrogatePrefix+"test2", []byte("third,fourth"), configurationtypes.URL{}, storageToInfiniteTTLMap[bs.Storage.Name()])
-	_ = bs.Storage.Set(surrogatePrefix+"test5", []byte("first,second,fifth"), configurationtypes.URL{}, storageToInfiniteTTLMap[bs.Storage.Name()])
-	_ = bs.Storage.Set(surrogatePrefix+"testInvalid", []byte("invalid"), configurationtypes.URL{}, storageToInfiniteTTLMap[bs.Storage.Name()])
+	_ = bs.Storage.Set(surrogatePrefix+"test0", []byte("first,second"), storageToInfiniteTTLMap[bs.Storage.Name()])
+	_ = bs.Storage.Set(surrogatePrefix+"STALE_test0", []byte("STALE_first,STALE_second"), storageToInfiniteTTLMap[bs.Storage.Name()])
+	_ = bs.Storage.Set(surrogatePrefix+"test2", []byte("third,fourth"), storageToInfiniteTTLMap[bs.Storage.Name()])
+	_ = bs.Storage.Set(surrogatePrefix+"test5", []byte("first,second,fifth"), storageToInfiniteTTLMap[bs.Storage.Name()])
+	_ = bs.Storage.Set(surrogatePrefix+"testInvalid", []byte("invalid"), storageToInfiniteTTLMap[bs.Storage.Name()])
 
 	headerMock.Set(surrogateKey, baseHeaderValue)
 	tags, surrogates = bs.Purge(headerMock)
@@ -103,17 +104,17 @@ func TestBaseStorage_Store(t *testing.T) {
 
 	res.Header.Set(surrogateKey, baseHeaderValue)
 
-	bs, _ := mockCommonProvider()
+	bs := mockCommonProvider()
 
 	e := bs.Store(&res, "((((invalid_key_but_escaped")
 	if e != nil {
 		t.Error("It shouldn't throw an error with a valid key.")
 	}
 
-	_ = bs.Storage.Set("test0", []byte("first,second"), configurationtypes.URL{}, storageToInfiniteTTLMap[bs.Storage.Name()])
-	_ = bs.Storage.Set("test2", []byte("third,fourth"), configurationtypes.URL{}, storageToInfiniteTTLMap[bs.Storage.Name()])
-	_ = bs.Storage.Set("test5", []byte("first,second,fifth"), configurationtypes.URL{}, storageToInfiniteTTLMap[bs.Storage.Name()])
-	_ = bs.Storage.Set("testInvalid", []byte("invalid"), configurationtypes.URL{}, storageToInfiniteTTLMap[bs.Storage.Name()])
+	_ = bs.Storage.Set("test0", []byte("first,second"), storageToInfiniteTTLMap[bs.Storage.Name()])
+	_ = bs.Storage.Set("test2", []byte("third,fourth"), storageToInfiniteTTLMap[bs.Storage.Name()])
+	_ = bs.Storage.Set("test5", []byte("first,second,fifth"), storageToInfiniteTTLMap[bs.Storage.Name()])
+	_ = bs.Storage.Set("testInvalid", []byte("invalid"), storageToInfiniteTTLMap[bs.Storage.Name()])
 
 	if e = bs.Store(&res, "stored"); e != nil {
 		t.Error("It shouldn't throw an error with a valid key.")
@@ -138,8 +139,8 @@ func TestBaseStorage_Store(t *testing.T) {
 	_ = bs.Store(&res, "/some")
 
 	storageSize := len(bs.Storage.MapKeys(surrogatePrefix))
-	if storageSize != 9 {
-		t.Errorf("The surrogate storage should contain 9 stored elements, %v given: %#v.\n", storageSize, bs.Storage.ListKeys())
+	if storageSize != 6 {
+		t.Errorf("The surrogate storage should contain 6 stored elements, %v given: %#v.\n", storageSize, bs.Storage.MapKeys(""))
 	}
 
 	value = bs.Storage.Get(surrogatePrefix + "something")
@@ -153,7 +154,7 @@ func TestBaseStorage_Store_Load(t *testing.T) {
 	res := http.Response{
 		Header: http.Header{},
 	}
-	bs, _ := mockCommonProvider()
+	bs := mockCommonProvider()
 
 	length := 3000
 	for i := 0; i < length; i++ {

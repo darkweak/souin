@@ -6,6 +6,7 @@ import (
 
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/middleware"
+	"github.com/darkweak/souin/plugins/souin/storages"
 	"github.com/labstack/echo/v4"
 )
 
@@ -53,6 +54,7 @@ type SouinEchoMiddleware struct {
 }
 
 func NewMiddleware(c middleware.BaseConfiguration) *SouinEchoMiddleware {
+	storages.InitFromConfiguration(&c)
 	return &SouinEchoMiddleware{
 		SouinBaseHandler: middleware.NewHTTPCacheHandler(&c),
 	}

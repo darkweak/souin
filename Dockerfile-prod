@@ -21,8 +21,11 @@ ADD ./plugins /app/src/github.com/darkweak/souin/plugins
 WORKDIR /app/src/github.com/darkweak/souin
 RUN go mod download
 
+WORKDIR /app/src/github.com/darkweak/souin/plugins/souin
+RUN go mod download
+
 RUN CGO_ENABLED=0 go build -a \
-  -tags netgo -ldflags '-w -extldflags "-static"' -o /app/cmd/souin ./plugins/souin
+  -tags netgo -ldflags '-w -extldflags "-static"' -o /app/cmd/souin .
 
 EXPOSE 80
 

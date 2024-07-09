@@ -11,9 +11,9 @@ import (
 	"time"
 
 	"github.com/darkweak/souin/configurationtypes"
-	"github.com/darkweak/souin/pkg/storage"
 	"github.com/darkweak/souin/pkg/storage/types"
 	"github.com/darkweak/souin/pkg/surrogate/providers"
+	"github.com/darkweak/storages/core"
 )
 
 // SouinAPI object contains informations related to the endpoints
@@ -67,10 +67,10 @@ func initializeSouin(
 
 // BulkDelete allow user to delete multiple items with regexp
 func (s *SouinAPI) BulkDelete(key string, purge bool) {
-	key, _ = strings.CutPrefix(key, storage.MappingKeyPrefix)
+	key, _ = strings.CutPrefix(key, core.MappingKeyPrefix)
 	for _, current := range s.storers {
-		if b := current.Get(storage.MappingKeyPrefix + key); len(b) > 0 {
-			var mapping types.StorageMapper
+		if b := current.Get(core.MappingKeyPrefix + key); len(b) > 0 {
+			var mapping core.StorageMapper
 			if e := gob.NewDecoder(bytes.NewBuffer(b)).Decode(&mapping); e == nil {
 				for k := range mapping.Mapping {
 					current.Delete(k)
@@ -78,7 +78,7 @@ func (s *SouinAPI) BulkDelete(key string, purge bool) {
 			}
 
 			if purge {
-				current.Delete(storage.MappingKeyPrefix + key)
+				current.Delete(core.MappingKeyPrefix + key)
 			} else {
 				newFreshTime := time.Now()
 				for k, v := range mapping.Mapping {
@@ -141,24 +141,25 @@ func (s *SouinAPI) listKeys(search string) []string {
 }
 
 var storageToInfiniteTTLMap = map[string]time.Duration{
-	"BADGER": 365 * 24 * time.Hour,
-	"ETCD":   365 * 24 * time.Hour,
-	"NUTS":   0,
-	"OLRIC":  365 * 24 * time.Hour,
-	"OTTER":  365 * 24 * time.Hour,
-	"REDIS":  -1,
+	"BADGER":                 types.OneYearDuration,
+	"ETCD":                   types.OneYearDuration,
+	"NUTS":                   0,
+	"OLRIC":                  types.OneYearDuration,
+	"OTTER":                  types.OneYearDuration,
+	"REDIS":                  -1,
+	types.DefaultStorageName: types.OneYearDuration,
 }
 
 func (s *SouinAPI) purgeMapping() {
 	now := time.Now()
 	for _, current := range s.storers {
 		infiniteStoreDuration := storageToInfiniteTTLMap[current.Name()]
-		values := current.MapKeys(storage.MappingKeyPrefix)
+		values := current.MapKeys(core.MappingKeyPrefix)
 		for k, v := range values {
-			var mapping types.StorageMapper
+			var mapping core.StorageMapper
 			e := gob.NewDecoder(bytes.NewBuffer([]byte(v))).Decode(&mapping)
 			if e != nil {
-				current.Delete(storage.MappingKeyPrefix + k)
+				current.Delete(core.MappingKeyPrefix + k)
 				continue
 			}
 
@@ -174,10 +175,10 @@ func (s *SouinAPI) purgeMapping() {
 				buf := new(bytes.Buffer)
 				e = gob.NewEncoder(buf).Encode(mapping)
 				if e != nil {
-					fmt.Println("Impossible to re-encode the mapping", storage.MappingKeyPrefix+k)
-					current.Delete(storage.MappingKeyPrefix + k)
+					fmt.Println("Impossible to re-encode the mapping", core.MappingKeyPrefix+k)
+					current.Delete(core.MappingKeyPrefix + k)
 				}
-				_ = current.Set(storage.MappingKeyPrefix+k, buf.Bytes(), configurationtypes.URL{}, infiniteStoreDuration)
+				_ = current.Set(core.MappingKeyPrefix+k, buf.Bytes(), infiniteStoreDuration)
 			}
 		}
 	}

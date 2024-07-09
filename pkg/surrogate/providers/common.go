@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/darkweak/souin/configurationtypes"
-	"github.com/darkweak/souin/pkg/storage"
 	"github.com/darkweak/souin/pkg/storage/types"
+	"github.com/darkweak/storages/core"
 	"go.uber.org/zap"
 )
 
@@ -32,12 +32,13 @@ const (
 )
 
 var storageToInfiniteTTLMap = map[string]time.Duration{
-	"BADGER": 365 * 24 * time.Hour,
-	"ETCD":   365 * 24 * time.Hour,
-	"NUTS":   0,
-	"OLRIC":  365 * 24 * time.Hour,
-	"OTTER":  365 * 24 * time.Hour,
-	"REDIS":  -1,
+	"BADGER":                 types.OneYearDuration,
+	"ETCD":                   types.OneYearDuration,
+	"NUTS":                   0,
+	"OLRIC":                  types.OneYearDuration,
+	"OTTER":                  types.OneYearDuration,
+	"REDIS":                  -1,
+	types.DefaultStorageName: types.OneYearDuration,
 }
 
 func (s *baseStorage) ParseHeaders(value string) []string {
@@ -101,22 +102,19 @@ type baseStorage struct {
 
 func (s *baseStorage) init(config configurationtypes.AbstractConfigurationInterface, defaultStorerName string) {
 	if configuration, ok := config.GetSurrogateKeys()["_configuration"]; ok {
-		instanciator, err := storage.NewStorageFromName(configuration.SurrogateConfiguration.Storer)
-		if err != nil {
-			instanciator, _ = storage.NewStorageFromName("nuts")
-		}
-
-		storer, err := instanciator(config)
-		if err != nil {
-			s.logger.Sugar().Errorf("Impossible to instanciate the storer for the surrogate-keys: %v", err)
+		storer := core.GetRegisteredStorer(configuration.SurrogateConfiguration.Storer)
+		if storer == nil {
+			storer = core.GetRegisteredStorer(types.DefaultStorageName + "-")
+			if storer == nil {
+				config.GetLogger().Sugar().Errorf("Impossible to retrieve the storers %s for the surrogate-keys from it's configuration", configuration.SurrogateConfiguration.Storer)
+			}
 		}
 
 		s.Storage = storer
 	} else {
-		instanciator, _ := storage.NewStorageFromName(strings.ToLower(defaultStorerName))
-		storer, err := instanciator(config)
-		if err != nil {
-			s.logger.Sugar().Errorf("Impossible to instanciate the storer %s for the surrogate-keys: %v", defaultStorerName, err)
+		storer := core.GetRegisteredStorer(defaultStorerName)
+		if storer == nil {
+			config.GetLogger().Sugar().Errorf("Impossible to retrieve the storers %s for the surrogate-keys", defaultStorerName)
 		}
 
 		s.Storage = storer
@@ -158,7 +156,7 @@ func (s *baseStorage) storeTag(tag string, cacheKey string, re *regexp.Regexp) {
 	currentValue := string(s.Storage.Get(surrogatePrefix + tag))
 	if !re.MatchString(currentValue) {
 		s.logger.Sugar().Debugf("Store the tag %s", tag)
-		_ = s.Storage.Set(surrogatePrefix+tag, []byte(currentValue+souinStorageSeparator+cacheKey), configurationtypes.URL{}, s.duration)
+		_ = s.Storage.Set(surrogatePrefix+tag, []byte(currentValue+souinStorageSeparator+cacheKey), s.duration)
 	}
 }
 

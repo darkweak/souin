@@ -1,15 +1,15 @@
 module github.com/darkweak/souin/plugins/skipper
 
-go 1.21.0
-
-toolchain go1.22.1
+go 1.22.1
 
 require (
 	github.com/darkweak/souin v1.6.49
+	github.com/darkweak/souin/plugins/souin/storages v0.0.0-00010101000000-000000000000
 	github.com/zalando/skipper v0.16.145
 )
 
 require (
+	dario.cat/mergo v1.0.0 // indirect
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/AndreasBriese/bbloom v0.0.0-20190825152654-46b345b51c96 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
@@ -18,7 +18,7 @@ require (
 	github.com/MicahParks/keyfunc v1.9.0 // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
 	github.com/OneOfOne/xxhash v1.2.8 // indirect
-	github.com/RoaringBitmap/roaring v1.3.0 // indirect
+	github.com/RoaringBitmap/roaring v1.2.3 // indirect
 	github.com/abbot/go-http-auth v0.4.0 // indirect
 	github.com/andybalholm/brotli v1.0.5 // indirect
 	github.com/antlabs/stl v0.0.1 // indirect
@@ -28,9 +28,9 @@ require (
 	github.com/aryann/difflib v0.0.0-20210328193216-ff5ff6dc229b // indirect
 	github.com/aryszka/jobqueue v0.0.2 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/bits-and-blooms/bitset v1.8.0 // indirect
+	github.com/bits-and-blooms/bitset v1.5.0 // indirect
 	github.com/buraksezer/consistent v0.10.0 // indirect
-	github.com/buraksezer/olric v0.5.4 // indirect
+	github.com/buraksezer/olric v0.5.6 // indirect
 	github.com/bwmarrin/snowflake v0.3.0 // indirect
 	github.com/caddyserver/caddy/v2 v2.8.4 // indirect
 	github.com/caddyserver/certmagic v0.21.3 // indirect
@@ -47,6 +47,13 @@ require (
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.3 // indirect
 	github.com/darkweak/go-esi v0.0.6 // indirect
+	github.com/darkweak/storages/badger v0.0.4 // indirect
+	github.com/darkweak/storages/core v0.0.4 // indirect
+	github.com/darkweak/storages/etcd v0.0.4 // indirect
+	github.com/darkweak/storages/nuts v0.0.4 // indirect
+	github.com/darkweak/storages/olric v0.0.4 // indirect
+	github.com/darkweak/storages/otter v0.0.4 // indirect
+	github.com/darkweak/storages/redis v0.0.4 // indirect
 	github.com/dchest/siphash v1.2.3 // indirect
 	github.com/dgraph-io/badger v1.6.2 // indirect
 	github.com/dgraph-io/badger/v2 v2.2007.4 // indirect
@@ -58,7 +65,6 @@ require (
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/dimfeld/httppath v0.0.0-20170720192232-ee938bf73598 // indirect
 	github.com/dolthub/maphash v0.1.0 // indirect
-	github.com/dolthub/swiss v0.2.1 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/gammazero/deque v0.2.1 // indirect
 	github.com/go-jose/go-jose/v3 v3.0.3 // indirect
@@ -77,7 +83,7 @@ require (
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/btree v1.1.2 // indirect
 	github.com/google/cel-go v0.20.1 // indirect
-	github.com/google/flatbuffers v23.5.26+incompatible // indirect
+	github.com/google/flatbuffers v23.1.21+incompatible // indirect
 	github.com/google/pprof v0.0.0-20231212022811-ec68065c825e // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
@@ -109,7 +115,7 @@ require (
 	github.com/manifoldco/promptui v0.9.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
-	github.com/maypok86/otter v1.1.1 // indirect
+	github.com/maypok86/otter v1.2.1 // indirect
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
 	github.com/mholt/acmez/v2 v2.0.1 // indirect
 	github.com/miekg/dns v1.1.59 // indirect
@@ -119,7 +125,7 @@ require (
 	github.com/mschoch/smat v0.2.0 // indirect
 	github.com/nutsdb/nutsdb v1.0.4 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
-	github.com/onsi/ginkgo/v2 v2.13.2 // indirect
+	github.com/onsi/ginkgo/v2 v2.15.0 // indirect
 	github.com/opencontainers/image-spec v1.1.0-rc4 // indirect
 	github.com/opentracing/basictracer-go v1.1.0 // indirect
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
@@ -134,7 +140,7 @@ require (
 	github.com/quic-go/quic-go v0.44.0 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475 // indirect
 	github.com/redis/go-redis/v9 v9.1.0 // indirect
-	github.com/redis/rueidis v1.0.31 // indirect
+	github.com/redis/rueidis v1.0.39 // indirect
 	github.com/rs/xid v1.5.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/sarslanhan/cronmask v0.0.0-20230801193303-54e29300a091 // indirect
@@ -171,9 +177,9 @@ require (
 	github.com/yuin/gopher-lua v1.1.0 // indirect
 	github.com/zeebo/blake3 v0.2.3 // indirect
 	go.etcd.io/bbolt v1.3.9 // indirect
-	go.etcd.io/etcd/api/v3 v3.5.12 // indirect
-	go.etcd.io/etcd/client/pkg/v3 v3.5.12 // indirect
-	go.etcd.io/etcd/client/v3 v3.5.12 // indirect
+	go.etcd.io/etcd/api/v3 v3.5.14 // indirect
+	go.etcd.io/etcd/client/pkg/v3 v3.5.14 // indirect
+	go.etcd.io/etcd/client/v3 v3.5.14 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.step.sm/cli-utils v0.9.0 // indirect
 	go.step.sm/crypto v0.45.0 // indirect
@@ -199,7 +205,7 @@ require (
 	golang.org/x/tools v0.21.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240506185236-b8a5c65736ae // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240429193739-8cf5692501f6 // indirect
-	google.golang.org/grpc v1.63.2 // indirect
+	google.golang.org/grpc v1.64.0 // indirect
 	google.golang.org/protobuf v1.34.1 // indirect
 	gopkg.in/square/go-jose.v2 v2.6.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
@@ -208,4 +214,7 @@ require (
 	layeh.com/gopher-json v0.0.0-20201124131017-552bb3c4c3bf // indirect
 )
 
-replace github.com/darkweak/souin v1.6.49 => ../..
+replace (
+	github.com/darkweak/souin v1.6.49 => ../..
+	github.com/darkweak/souin/plugins/souin/storages => ../souin/storages
+)

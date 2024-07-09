@@ -8,14 +8,13 @@ import (
 	"time"
 
 	"github.com/darkweak/souin/configurationtypes"
-	"github.com/darkweak/souin/plugins/souin/configuration"
 	"go.uber.org/zap"
 )
 
 func Test_TimeoutContext_SetupContext(t *testing.T) {
 	dc := configurationtypes.DefaultCache{}
-	c := configuration.Configuration{
-		DefaultCache: &dc,
+	c := testConfiguration{
+		defaultCache: &dc,
 	}
 	c.SetLogger(zap.NewNop())
 	ctx := timeoutContext{}
@@ -28,7 +27,7 @@ func Test_TimeoutContext_SetupContext(t *testing.T) {
 		t.Error("The timeout cache must be equal to the default timeout cache when no directives are given.")
 	}
 
-	c.DefaultCache.Timeout.Backend = configurationtypes.Duration{Duration: time.Second}
+	c.defaultCache.Timeout.Backend = configurationtypes.Duration{Duration: time.Second}
 	ctx.SetupContext(&c)
 	if ctx.timeoutBackend != time.Second {
 		t.Error("The timeout backend must be equal to one second when a directive is given.")
@@ -37,8 +36,8 @@ func Test_TimeoutContext_SetupContext(t *testing.T) {
 		t.Error("The timeout cache must be equal to the default timeout cache when no directives are given.")
 	}
 
-	c.DefaultCache.Timeout = configurationtypes.Timeout{}
-	c.DefaultCache.Timeout.Cache = configurationtypes.Duration{Duration: time.Second}
+	c.defaultCache.Timeout = configurationtypes.Timeout{}
+	c.defaultCache.Timeout.Cache = configurationtypes.Duration{Duration: time.Second}
 	ctx.SetupContext(&c)
 	if ctx.timeoutBackend != defaultTimeoutBackend {
 		t.Error("The timeout backend must be equal to 10 seconds when no directives are given.")
@@ -59,8 +58,8 @@ func Test_TimeoutContext_SetContext(t *testing.T) {
 			},
 		},
 	}
-	c := configuration.Configuration{
-		DefaultCache: &dc,
+	c := testConfiguration{
+		defaultCache: &dc,
 	}
 	c.SetLogger(zap.NewNop())
 	ctx := timeoutContext{}
