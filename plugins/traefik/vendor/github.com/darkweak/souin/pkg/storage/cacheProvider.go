@@ -85,7 +85,7 @@ func (provider *Cache) Prefix(key string, req *http.Request, validator *rfc.Reva
 
 		if k == key || varyVoter(key, req, k.(string)) {
 			if res, err := http.ReadResponse(bufio.NewReader(bytes.NewBuffer(v.([]byte))), req); err == nil {
-				rfc.ValidateETag(res, validator)
+				rfc.ValidateETagFromHeader(res.Header.Get("etag"), validator)
 				if validator.Matched {
 					result = res
 					return false
@@ -101,11 +101,7 @@ func (provider *Cache) Prefix(key string, req *http.Request, validator *rfc.Reva
 }
 
 // Set method will store the response in Cache provider
-func (provider *Cache) Set(key string, value []byte, url t.URL, duration time.Duration) error {
-	if duration == 0 {
-		duration = url.TTL.Duration
-	}
-
+func (provider *Cache) Set(key string, value []byte, duration time.Duration) error {
 	provider.Cache.Set(key, value, duration)
 	provider.Cache.Set(StalePrefix+key, value, provider.stale+duration)
 

@@ -8,6 +8,7 @@ import (
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/middleware"
 	"github.com/darkweak/souin/plugins/souin/agnostic"
+	"github.com/darkweak/souin/plugins/souin/storages"
 
 	"github.com/beego/beego/v2/server/web"
 	beegoCtx "github.com/beego/beego/v2/server/web/context"
@@ -50,6 +51,7 @@ type SouinBeegoMiddleware struct {
 }
 
 func NewHTTPCache(c middleware.BaseConfiguration) *SouinBeegoMiddleware {
+	storages.InitFromConfiguration(&c)
 	return &SouinBeegoMiddleware{
 		SouinBaseHandler: middleware.NewHTTPCacheHandler(&c),
 	}

@@ -10,6 +10,7 @@ import (
 
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/middleware"
+	"github.com/darkweak/souin/plugins/souin/storages"
 
 	"github.com/cloudwego/hertz/pkg/app"
 )
@@ -51,6 +52,7 @@ type SouinHertzMiddleware struct {
 }
 
 func NewHTTPCache(c middleware.BaseConfiguration) app.HandlerFunc {
+	storages.InitFromConfiguration(&c)
 	httpcache := &SouinHertzMiddleware{
 		SouinBaseHandler: middleware.NewHTTPCacheHandler(&c),
 	}

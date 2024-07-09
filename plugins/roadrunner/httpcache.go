@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/darkweak/souin/pkg/middleware"
+	"github.com/darkweak/souin/plugins/souin/storages"
 	"github.com/roadrunner-server/errors"
 	"go.uber.org/zap"
 )
@@ -48,6 +49,7 @@ func (m *Plugin) Init(cfg Configurer, log Logger) error {
 	c := parseConfiguration(cfg)
 	c.SetLogger(log.NamedLogger(pluginName))
 
+	storages.InitFromConfiguration(&c)
 	m.SouinBaseHandler = middleware.NewHTTPCacheHandler(&c)
 
 	return nil

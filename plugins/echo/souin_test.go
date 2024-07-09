@@ -10,6 +10,7 @@ import (
 
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/middleware"
+	"github.com/darkweak/storages/core"
 	"github.com/labstack/echo/v4"
 )
 
@@ -91,6 +92,7 @@ func Test_SouinEchoPlugin_Process_CannotHandle(t *testing.T) {
 }
 
 func Test_SouinEchoPlugin_Process_APIHandle(t *testing.T) {
+	core.ResetRegisteredStorages()
 	req := httptest.NewRequest(http.MethodGet, "/souin-api/souin", nil)
 	req.Header = http.Header{}
 	res := httptest.NewRecorder()

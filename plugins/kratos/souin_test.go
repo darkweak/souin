@@ -137,7 +137,7 @@ func Test_HttpcacheKratosPlugin_NewHTTPCacheFilter_API(t *testing.T) {
 	}
 	b, _ := io.ReadAll(rs.Body)
 	res.Result().Body.Close()
-	if string(b) != "[\"GET-http-example.com-/handled\"]" {
+	if string(b) != "[]" {
 		t.Error("The response body must be an empty array because no request has been stored")
 	}
 	req2 := httptest.NewRequest(http.MethodGet, "/handled", nil)

@@ -16,6 +16,7 @@ import (
 	"github.com/darkweak/souin/pkg/middleware"
 	"github.com/darkweak/souin/plugins/souin/configuration"
 	"github.com/darkweak/souin/plugins/souin/providers"
+	"github.com/darkweak/souin/plugins/souin/storages"
 )
 
 type canceledRequestContextError struct{}
@@ -57,6 +58,7 @@ func main() {
 		providers.InitProviders(tlsConfig, &configChannel, c)
 	}()
 
+	storages.InitFromConfiguration(c)
 	httpCache := middleware.NewHTTPCacheHandler(c)
 	reverseProxyURL, err := url.Parse(c.GetReverseProxyURL())
 	if err != nil {

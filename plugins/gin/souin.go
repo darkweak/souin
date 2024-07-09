@@ -6,6 +6,7 @@ import (
 
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/middleware"
+	"github.com/darkweak/souin/plugins/souin/storages"
 	"github.com/gin-gonic/gin"
 )
 
@@ -46,6 +47,7 @@ type SouinGinMiddleware struct {
 }
 
 func New(c middleware.BaseConfiguration) *SouinGinMiddleware {
+	storages.InitFromConfiguration(&c)
 	return &SouinGinMiddleware{
 		SouinBaseHandler: middleware.NewHTTPCacheHandler(&c),
 	}

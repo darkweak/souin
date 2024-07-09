@@ -6,6 +6,7 @@ import (
 
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/middleware"
+	"github.com/darkweak/souin/plugins/souin/storages"
 	"github.com/gofiber/fiber/v2"
 	"github.com/valyala/fasthttp/fasthttpadaptor"
 )
@@ -47,6 +48,7 @@ type SouinFiberMiddleware struct {
 }
 
 func NewHTTPCache(c middleware.BaseConfiguration) *SouinFiberMiddleware {
+	storages.InitFromConfiguration(&c)
 	return &SouinFiberMiddleware{
 		SouinBaseHandler: middleware.NewHTTPCacheHandler(&c),
 	}

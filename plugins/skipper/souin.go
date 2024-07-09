@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/darkweak/souin/pkg/middleware"
+	"github.com/darkweak/souin/plugins/souin/storages"
 	"github.com/zalando/skipper/filters"
 )
 
@@ -31,6 +32,7 @@ func (s *httpcacheMiddleware) CreateFilter(config []interface{}) (filters.Filter
 		return nil, filters.ErrInvalidFilterParameters
 	}
 
+	storages.InitFromConfiguration(&c)
 	return &httpcacheMiddleware{
 		SouinBaseHandler: middleware.NewHTTPCacheHandler(&c),
 	}, nil

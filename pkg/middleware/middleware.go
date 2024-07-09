@@ -25,6 +25,7 @@ import (
 	"github.com/darkweak/souin/pkg/storage/types"
 	"github.com/darkweak/souin/pkg/surrogate"
 	"github.com/darkweak/souin/pkg/surrogate/providers"
+	"github.com/darkweak/storages/core"
 	"github.com/google/uuid"
 	"github.com/pquerna/cachecontrol/cacheobject"
 	"go.uber.org/zap"
@@ -62,13 +63,41 @@ func NewHTTPCacheHandler(c configurationtypes.AbstractConfigurationInterface) *S
 		c.SetLogger(logger)
 	}
 
-	storers, err := storage.NewStorages(c)
-	if err != nil {
-		panic(err)
+	storedStorers := core.GetRegisteredStorers()
+	storers := []types.Storer{}
+	if len(storedStorers) != 0 {
+		dc := c.GetDefaultCache()
+		for _, s := range []string{dc.GetBadger().Uuid, dc.GetEtcd().Uuid, dc.GetNuts().Uuid, dc.GetOlric().Uuid, dc.GetOtter().Uuid, dc.GetRedis().Uuid} {
+			if s != "" {
+				if st := core.GetRegisteredStorer(s); st != nil {
+					storers = append(storers, st.(types.Storer))
+				}
+			}
+		}
+
+		if len(storers) > 0 {
+			names := []string{}
+			for _, storer := range storers {
+				names = append(names, storer.Name())
+			}
+			c.GetLogger().Sugar().Debugf("You're running Souin with the following storages %s", strings.Join(names, ", "))
+		}
 	}
-	c.GetLogger().Debug("Storer initialized.")
+	if len(storers) == 0 {
+		c.GetLogger().Warn("You're running Souin with the default storage that is not optimized and for development purpose. We recommend to use at least one of the storages from https://github.com/darkweak/storages")
+
+		memoryStorer, _ := storage.Factory(c)
+		if st := core.GetRegisteredStorer(types.DefaultStorageName + "-"); st != nil {
+			memoryStorer = st.(types.Storer)
+		} else {
+			core.RegisterStorage(memoryStorer)
+		}
+		storers = append(storers, memoryStorer)
+	}
+
+	c.GetLogger().Sugar().Debugf("Storer initialized: %#v.", storers)
 	regexpUrls := helpers.InitializeRegexp(c)
-	surrogateStorage := surrogate.InitializeSurrogate(c, storers[0].Name())
+	surrogateStorage := surrogate.InitializeSurrogate(c, fmt.Sprintf("%s-%s", storers[0].Name(), storers[0].Uuid()))
 	c.GetLogger().Debug("Surrogate storage initialized.")
 	var excludedRegexp *regexp.Regexp = nil
 	if c.GetDefaultCache().GetRegex().Exclude != "" {
@@ -355,8 +384,9 @@ func (s *SouinBaseHandler) Upstream(
 		// In case of "http.ErrAbortHandler" panic,
 		// prevent singleflight from wrapping it into "singleflight.panicError".
 		if r := recover(); r != nil {
-			err := r.(error)
-			if errors.Is(err, http.ErrAbortHandler) {
+			err, ok := r.(error)
+			// Sometimes, the error is a string.
+			if !ok || errors.Is(err, http.ErrAbortHandler) {
 				recoveredFromErr = http.ErrAbortHandler
 			} else {
 				panic(err)
@@ -432,7 +462,7 @@ func (s *SouinBaseHandler) Upstream(
 	return nil
 }
 
-func (s *SouinBaseHandler) Revalidate(validator *rfc.Revalidator, next handlerFunc, customWriter *CustomWriter, rq *http.Request, requestCc *cacheobject.RequestCacheDirectives, cachedKey string) error {
+func (s *SouinBaseHandler) Revalidate(validator *core.Revalidator, next handlerFunc, customWriter *CustomWriter, rq *http.Request, requestCc *cacheobject.RequestCacheDirectives, cachedKey string) error {
 	s.Configuration.GetLogger().Sugar().Debug("Revalidate the request with the upstream server")
 	prometheus.Increment(prometheus.RequestRevalidationCounter)
 
@@ -544,7 +574,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 			req.Method = http.MethodGet
 			keyname := s.context.SetContext(req, rq).Context().Value(context.Key).(string)
 			for _, storer := range s.Storers {
-				storer.Delete(storage.MappingKeyPrefix + keyname)
+				storer.Delete(core.MappingKeyPrefix + keyname)
 			}
 		}
 
@@ -667,7 +697,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 					_, _ = io.Copy(customWriter.Buf, response.Body)
 					_, err := customWriter.Send()
 					customWriter = NewCustomWriter(req, rw, bufPool)
-					go func(v *rfc.Revalidator, goCw *CustomWriter, goRq *http.Request, goNext func(http.ResponseWriter, *http.Request) error, goCc *cacheobject.RequestCacheDirectives, goCk string) {
+					go func(v *core.Revalidator, goCw *CustomWriter, goRq *http.Request, goNext func(http.ResponseWriter, *http.Request) error, goCc *cacheobject.RequestCacheDirectives, goCk string) {
 						_ = s.Revalidate(v, goNext, goCw, goRq, goCc, goCk)
 					}(validator, customWriter, req, next, requestCc, cachedKey)
 					buf := s.bufPool.Get().(*bytes.Buffer)
