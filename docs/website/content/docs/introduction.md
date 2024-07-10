@@ -19,6 +19,17 @@ Souin is a powerful HTTP cache system written in go and implements the following
 
 
 ## Multiple backend storages
+
+{{% alert context="warning" %}}
+Since `v1.7.0` Souin implements only one storage, if you need a specific storage you have to take it from [the storages repository](https://github.com/darkweak/storages) and add it either in your code, during the build otherwise.  
+(e.g. with otter using caddy) You have to build your caddy module with the desired storage 
+```shell
+xcaddy build --with github.com/darkweak/souin/plugins/caddy --with github.com/darkweak/storages/otter/caddy
+```
+and configure otter in your Caddyfile/JSON configuration file.  
+See the [storages page]({{% relref "/docs/storages" %}}) to learn more about each supported storage.
+{{% /alert %}}
+
 ### Local in-memory or filesystem
 * [Badger]({{% relref "/docs/storages/badger" %}})
 * [Nuts]({{% relref "/docs/storages/nuts" %}})

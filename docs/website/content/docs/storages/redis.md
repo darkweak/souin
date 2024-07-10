@@ -16,6 +16,27 @@ Redis is often referred to as a data structures server. What this means is that 
 ## Github repository
 [https://github.com/redis/rueidis](https://github.com/redis/rueidis)
 
+## Use Redis
+### With Caddy
+You have to build your caddy instance including `Souin` and `Redis` using `xcaddy` ([refer to the build caddy section]({{% relref "/docs/middlewares/caddy#build-your-caddy-binary" %}})).
+```shell
+xcaddy build --with github.com/darkweak/souin/plugins/caddy --with github.com/darkweak/storages/redis/caddy
+```
+You will be able to use redis in your Caddyfile or JSON configuration file.
+```caddyfile
+{
+    cache {
+        ttl 1h
+        redis
+    }
+}
+
+route {
+    cache
+    respond "Hello HTTP cache"
+}
+```
+
 ## Configuration
 You can find the configuration for Redis [here](https://github.com/redis/rueidis/blob/master/options.go#L31) or check the values table below.
 

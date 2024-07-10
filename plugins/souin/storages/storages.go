@@ -15,7 +15,7 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-type factory func(badgerConfiguration core.CacheProvider, logger *zap.Logger, stale time.Duration) (core.Storer, error)
+type factory func(providerConfiguration core.CacheProvider, logger *zap.Logger, stale time.Duration) (core.Storer, error)
 
 func isProviderEmpty(p configurationtypes.CacheProvider) bool {
 	return p.Configuration == nil && p.Path == "" && p.URL == ""

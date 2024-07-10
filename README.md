@@ -7,16 +7,15 @@
     2.1.1. [Souin as plugin](#souin-as-plugin)  
     2.1.2. [Souin out-of-the-box](#souin-out-of-the-box)  
   2.2. [Optional configuration](#optional-configuration)
-3. [APIs](#apis)  
-  3.1. [Prometheus API](#prometheus-api)  
-  3.2. [Souin API](#souin-api)  
-  3.3. [Security API](#security-api)
-4. [Diagrams](#diagrams)  
-  4.1. [Sequence diagram](#sequence-diagram)
-5. [Cache systems](#cache-systems)
-6. [GraphQL](#graphql)  
-7. [Examples](#examples)  
-  7.1. [Træfik container](#træfik-container)
+3. [Storages](#storages)  
+4. [APIs](#apis)  
+  4.1. [Prometheus API](#prometheus-api)  
+  4.2. [Souin API](#souin-api)  
+  4.3. [Security API](#security-api)
+5. [Diagrams](#diagrams)  
+  5.1. [Sequence diagram](#sequence-diagram)
+6. [Cache systems](#cache-systems)
+7. [GraphQL](#graphql)  
 8. [Plugins](#plugins)  
   8.1. [Beego filter](#beego-filter)  
   8.2. [Caddy module](#caddy-module)  
@@ -35,8 +34,6 @@
   8.15. [Træfik plugin](#træfik-plugin)  
   8.16. [Tyk plugin](#tyk-plugin)  
   8.17. [Webgo middleware](#webgo-middleware)  
-  8.18. [Prestashop plugin](#prestashop-plugin)  
-  8.19. [Wordpress plugin](#wordpress-plugin)  
 9. [Credits](#credits)
 
 # Souin HTTP cache
@@ -46,8 +43,13 @@ Souin is a new HTTP cache system suitable for every reverse-proxy. It can be eit
 Since it's written in go, it can be deployed on any server and thanks to the docker integration, it will be easy to install on top of a Swarm, or a kubernetes instance.  
 It's RFC compatible, supporting Vary, request coalescing, stale cache-control and other specifications related to the [RFC-7234](https://tools.ietf.org/html/rfc7234).  
 It supports the newly written RFCs (currently in draft) [http-cache-groups](https://datatracker.ietf.org/doc/draft-nottingham-http-cache-groups/) and [http-invalidation](https://datatracker.ietf.org/doc/draft-nottingham-http-invalidation/).  
-It also supports the [Cache-Status HTTP response header](https://www.rfc-editor.org/rfc/rfc9211) and the YKey group such as Varnish.  
+It also supports the [Cache-Status HTTP response header](https://www.rfc-editor.org/rfc/rfc9211), the YKey group such as Varnish, the [Targeted HTTP Cache Control RFC](https://www.rfc-editor.org/rfc/rfc9213), .  
 It supports the ESI tags, thanks to the [go-esi package](https://github.com/darkweak/go-esi).
+
+> [!WARNING]
+> Since `v1.7.0` Souin implements only one storage. If you need a specific storage you have to take it from [the storages repository](https://github.com/darkweak/storages) and add it either in your code, during the build otherwise.  
+(e.g. with otter using caddy) You have to build your caddy module with the desired storage `xcaddy build --with github.com/darkweak/souin/plugins/caddy --with github.com/darkweak/storages/otter/caddy` and configure otter in your Caddyfile/JSON configuration file.  
+See the [storages section](#storages) or the [documentation website about the storages](https://docs.souin.io/docs/storages).
 
 ## Configuration
 The configuration file is store at `/anywhere/configuration.yml`. You can supply your own as long as you use one of the minimal configurations below.
@@ -93,6 +95,7 @@ cache_keys:
     headers: # Add headers to the key
       - Authorization # Add the header value in the key
       - Content-Type # Add the header value in the key
+    template: "{http.request.method}-{http.request.host}-{http.request.path}" # Use caddy placeholders to create the key (when this option is enabled, disable_* directives are skipped)
 cdn: # If Souin is set after a CDN fill these informations
   api_key: XXXX # Your provider API key if mandatory
   provider: fastly # The provider placed before Souin (e.g. fastly, cloudflare, akamai, varnish)
@@ -211,7 +214,7 @@ surrogate_keys:
 | `default_cache.key.headers`                       | Add headers to the key matching the regexp                                                                                                  | `- Authorization`<br/><br/>`- Content-Type`<br/><br/>`- X-Additional-Header`                                              |
 | `default_cache.key.hide`                          | Prevent the key from being exposed in the `Cache-Status` HTTP response header                                                               | `true`<br/><br/>`(default: false)`                                                                                        |
 | `default_cache.key.template`                      | Use caddy placeholders to create the key (when this option is enabled, disable_* directives are skipped)                                    | [Placeholders documentation](https://caddyserver.com/docs/caddyfile/concepts#placeholders)                                |
-| `default_cache.max_cacheable_body_bytes`           | Set the maximum size (in bytes) for a response body to be cached (unlimited if omited)                                                      | `1048576` (1MB)                                                                                                           |
+| `default_cache.max_cacheable_body_bytes`          | Set the maximum size (in bytes) for a response body to be cached (unlimited if omited)                                                      | `1048576` (1MB)                                                                                                           |
 | `default_cache.mode`                              | RFC respect tweaking                                                                                                                        | One of `bypass` `bypass_request` `bypass_response` `strict` (default `strict`)                                            |
 | `default_cache.nuts`                              | Configure the Nuts cache storage                                                                                                            |                                                                                                                           |
 | `default_cache.nuts.path`                         | Set the Nuts file path storage                                                                                                              | `/anywhere/nuts/storage`                                                                                                  |
@@ -379,60 +382,6 @@ The cache invalidation is built for CRUD requests, if you're doing a GET HTTP re
 If you're doing a POST, PUT, PATCH or DELETE HTTP request, the related cache GET request, and the list endpoint will be dropped.  
 It also supports invalidation via [Souin API](#souin-api) to invalidate the cache programmatically.
 
-## Examples
-
-### Træfik container
-[Træfik](https://traefik.io) is a modern reverse-proxy which helps you to manage full container architecture projects.
-
-```yaml
-# your-traefik-instance/docker-compose.yml
-version: '3.7'
-
-x-networks: &networks
-  networks:
-    - your_network
-
-services:
-  traefik:
-    image: traefik:v2.5.6
-    command: --providers.docker
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - /anywhere/traefik.json:/acme.json
-    <<: *networks
-
-  # your other services here...
-
-networks:
-  your_network:
-    external: true
-```
-
-```yaml
-# your-souin-instance/docker-compose.yml
-version: '3.7'
-
-x-networks: &networks
-  networks:
-    - your_network
-
-services:
-  souin:
-    image: darkweak/souin:latest
-    ports:
-      - 80:80
-      - 443:443
-    environment:
-      GOPATH: /app
-    volumes:
-      - /anywhere/traefik.json:/ssl/traefik.json
-      - /anywhere/configuration.yml:/configuration/configuration.yml
-    <<: *networks
-
-networks:
-  your_network:
-    external: true
-```
 
 ## Plugins
 
@@ -1158,17 +1107,14 @@ func main(){
 }
 ```
 
-### Prestashop plugin
-A repository called [prestashop-souin](https://github.com/lucmichalski/prestashop-souin) has been started by [lucmichalski](https://github.com/lucmichalski). You can manage your Souin instance through the admin panel UI.
-
-### Wordpress plugin
-A repository called [wordpress-souin](https://github.com/Darkweak/wordpress-souin) to be able to manage your Souin instance through the admin panel UI.
-
 ## Credits
 
 Thanks to these users for contributing or helping this project in any way  
 * [Oxodao](https://github.com/oxodao)
 * [Deuchnord](https://github.com/deuchnord)
+* [Vincent Jordan](https://github.com/vejipe)
+* [Mohammed Al Sahaf](https://github.com/mohammed90)
+* [Hussam Almarzooq](https://github.com/hussam-almarzoq)
 * [Sata51](https://github.com/sata51)
 * [Pierre Diancourt](https://github.com/pierrediancourt)
 * [Burak Sezer](https://github.com/buraksezer)
@@ -1192,3 +1138,7 @@ Thanks to these users for contributing or helping this project in any way
 * [JacquesDurand](https://github.com/jacquesdurand)
 * [Frederic Houle](https://github.com/frederichoule)
 * [Valery Piashchynski](https://github.com/rustatian)
+* [Ivan Derda](https://github.com/HobMartin)
+* [p0358](https://github.com/p0358)
+* [Alberto Tablado](https://github.com/aluki)
+* [Yong Zhang](https://github.com/yongzhang)
