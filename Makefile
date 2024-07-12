@@ -135,6 +135,9 @@ gatling: ## Launch gatling scenarios
 generate-plantUML: ## Generate plantUML diagrams
 	cd ./docs/plantUML && sh generate.sh && cd ../..
 
+generate-release-plugins: ## Generate plugin workflow
+	bash .github/workflows/generate_release.sh
+
 generate-workflow: ## Generate plugin workflow
 	bash .github/workflows/workflow_plugins_generator.sh
 
