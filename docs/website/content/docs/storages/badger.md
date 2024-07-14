@@ -12,6 +12,27 @@ BadgerDB is an embeddable, persistent and fast key-value (KV) database written i
 ## Github repository
 [https://github.com/dgraph-io/badger](https://github.com/dgraph-io/badger)
 
+## Use Badger
+### With Caddy
+You have to build your caddy instance including `Souin` and `Badger` using `xcaddy` ([refer to the build caddy section]({{% relref "/docs/middlewares/caddy#build-your-caddy-binary" %}})).
+```shell
+xcaddy build --with github.com/darkweak/souin/plugins/caddy --with github.com/darkweak/storages/badger/caddy
+```
+You will be able to use badger in your Caddyfile or JSON configuration file.
+```caddyfile
+{
+    cache {
+        ttl 1h
+        badger
+    }
+}
+
+route {
+    cache
+    respond "Hello HTTP cache"
+}
+```
+
 ## Configuration
 You can find the configuration for Badger [here](https://github.com/dgraph-io/badger/blob/main/options.go#L44) or check the values table below.
 

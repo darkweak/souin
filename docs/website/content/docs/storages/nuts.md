@@ -14,6 +14,27 @@ It supports fully serializable transactions and many data structures such as lis
 ## Github repository
 [https://github.com/nutsdb/nutsdb](https://github.com/nutsdb/nutsdb)
 
+## Use Nuts
+### With Caddy
+You have to build your caddy instance including `Souin` and `Nuts` using `xcaddy` ([refer to the build caddy section]({{% relref "/docs/middlewares/caddy#build-your-caddy-binary" %}})).
+```shell
+xcaddy build --with github.com/darkweak/souin/plugins/caddy --with github.com/darkweak/storages/nuts/caddy
+```
+You will be able to use nuts in your Caddyfile or JSON configuration file.
+```caddyfile
+{
+    cache {
+        ttl 1h
+        nuts
+    }
+}
+
+route {
+    cache
+    respond "Hello HTTP cache"
+}
+```
+
 ## Configuration
 You can find the configuration for Nuts [here](https://github.com/nutsdb/nutsdb/blob/master/options.go#L55) or check the values table below.
 

@@ -48,9 +48,13 @@ cache_keys:
         disable_host: true
         disable_method: true
         disable_query: true
+        disable_scheme: true
+        hash: true
         headers:
             - Authorization
             - Content-Type
+        hide: true
+        template: "{http.request.method}-{http.request.host}-{http.request.path}"
 ```
 {{% /alert %}}
 
@@ -76,6 +80,8 @@ default: `false`
 
 * **hide**: Prevent the key from being exposed in the `Cache-Status` HTTP response header.  
 default: `false`
+
+* **template**: Customize the key with the given template. It uses the caddy placeholders to create the key (when this option is enabled, disable_* directives are skipped).  
 
 
 ### CDN
@@ -163,6 +169,8 @@ default: `false`
 
 * **hide**: Prevent the key from being exposed in the `Cache-Status` HTTP response header.  
 default: `false`
+
+* **template**: Customize the key with the given template. It uses the caddy placeholders to create the key (when this option is enabled, disable_* directives are skipped).  
 
 #### Max cacheable body bytes
 Limit to define if the body size is allowed to be cached. (e.g. `1048576` (1MB)).  

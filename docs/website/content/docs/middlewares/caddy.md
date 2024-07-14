@@ -28,7 +28,6 @@ We need to tell caddy that it must use the HTTP cache with the `cache` global an
 ```caddyfile
 {
     debug
-    cache order before rewrite
     cache {
         ttl 1h
     }
@@ -83,6 +82,32 @@ If we go on [https://localhost/souin-api/debug/](https://localhost/souin-api/deb
 ### Complex configuration
 
 #### Storages
+{{% alert context="warning" %}}
+Since `v1.7.0` Souin implements only an in-memory storage, if you need a specific storage you have to take it from [the storages repository](https://github.com/darkweak/storages) and add to your build command.  
+(e.g. with otter using caddy) You have to build your caddy module with the desired storage 
+```shell
+xcaddy build --with github.com/darkweak/souin/plugins/caddy --with github.com/darkweak/storages/otter/caddy
+```
+and configure otter in your Caddyfile/JSON configuration file.  
+See the [storages page]({{% relref "/docs/storages" %}}) to learn more about each supported storage.
+{{% /alert %}}
+
+First you have to build Caddy with Souin and a storage using the following template.
+```
+xcaddy build \
+    --with github.com/darkweak/souin/plugins/caddy \
+    --with github.com/darkweak/storages/{your_storage_name}/caddy
+```
+
+You can also use as many storages you want.
+```
+xcaddy build \
+    --with github.com/darkweak/souin/plugins/caddy \
+    --with github.com/darkweak/storages/redis/caddy
+    --with github.com/darkweak/storages/nuts/caddy
+    --with github.com/darkweak/storages/otter/caddy
+```
+
 We can define multiple storages to use to store the response from the upstream server and specify the order.
 Here, we define 3 storages `badger`, `nuts` and `redis` and `nuts` will be accessed first, `badger` the second and `redis` the third only if the previous doesn't return suitable data.
 

@@ -73,13 +73,29 @@ $code-block-padding-top: {{ if eq .Site.Params.docs.prism true -}}0{{ else }}1.2
 @import "custom/plugins/mermaid/mermaid";
 
 h1 {
-    padding-top: 1em;
-    padding-bottom: 1em;
+    margin-top: .5em;
+    font-weight: 900 !important;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 0.1em 0.4em;
+    border-radius: 0.8em 0.3em;
+    background: transparent;
+    background-image: linear-gradient(
+        to right,
+        hsla(226, 66, 51, 0.3),
+        hsla(226, 66, 51, 0.1)
+    );
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
 }
 
 h2 {
-    padding-top: 0.5em;
+    padding-top: 1.5em;
     padding-bottom: 0.5em;
+}
+
+h4 {
+    padding-top: 0.75em;
 }
 
 div.code-toolbar {
@@ -115,4 +131,8 @@ div.code-toolbar {
             display: flex;
         }
     }
+}
+
+.alert > .w-100 {
+    overflow: hidden
 }
