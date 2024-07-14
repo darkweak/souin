@@ -18,6 +18,27 @@ Olric is highly scalable and available. Distributed applications can use it for 
 ## Github repository
 [https://github.com/buraksezer/olric](https://github.com/buraksezer/olric)
 
+## Use Embedded Olric
+### With Caddy
+You have to build your caddy instance including `Souin` and `Embedded Olric` using `xcaddy` ([refer to the build caddy section]({{% relref "/docs/middlewares/caddy#build-your-caddy-binary" %}})).
+```shell
+xcaddy build --with github.com/darkweak/souin/plugins/caddy --with github.com/darkweak/storages/olric/caddy
+```
+You will be able to use olric in your Caddyfile or JSON configuration file.
+```caddyfile
+{
+    cache {
+        ttl 1h
+        olric
+    }
+}
+
+route {
+    cache
+    respond "Hello HTTP cache"
+}
+```
+
 ## Configuration
 You can find the configuration for the Embedded Olric [here](https://github.com/buraksezer/olric/blob/master/config/config.go#L167) or check the values table below.
 

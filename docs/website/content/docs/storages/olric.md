@@ -21,6 +21,27 @@ Olric is highly scalable and available. Distributed applications can use it for 
 ## Github repository
 [https://github.com/buraksezer/olric](https://github.com/buraksezer/olric)
 
+## Use Olric
+### With Caddy
+You have to build your caddy instance including `Souin` and `Olric` using `xcaddy` ([refer to the build caddy section]({{% relref "/docs/middlewares/caddy#build-your-caddy-binary" %}})).
+```shell
+xcaddy build --with github.com/darkweak/souin/plugins/caddy --with github.com/darkweak/storages/olric/caddy
+```
+You will be able to use olric in your Caddyfile or JSON configuration file.
+```caddyfile
+{
+    cache {
+        ttl 1h
+        olric
+    }
+}
+
+route {
+    cache
+    respond "Hello HTTP cache"
+}
+```
+
 ## Configuration
 {{% alert context="warning" %}}
 You can't configure in Souin the Olric server instance.

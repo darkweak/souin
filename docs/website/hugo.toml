@@ -13,12 +13,17 @@ disable = false
 [params.footer]
 copyright = "2024"
 
+[params.social]
+github = "darkweak/souin"
+twitter = "darkweak_dev"
+
 [params.docs]
 intLinkTooltip = true
 darkMode = true
 sidebarIcons = true
 prism = true
 scrollSpy = true
+title = "Souin's documentation"
 
 [markup.goldmark.renderer]
 unsafe = true
