@@ -41,8 +41,9 @@ require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.3 // indirect
 	github.com/darkweak/go-esi v0.0.5 // indirect
 	github.com/darkweak/storages/badger v0.0.4 // indirect
-	github.com/darkweak/storages/core v0.0.4 // indirect
+	github.com/darkweak/storages/core v0.0.5 // indirect
 	github.com/darkweak/storages/etcd v0.0.4 // indirect
+	github.com/darkweak/storages/nats v0.0.5 // indirect
 	github.com/darkweak/storages/nuts v0.0.4 // indirect
 	github.com/darkweak/storages/olric v0.0.4 // indirect
 	github.com/darkweak/storages/otter v0.0.4 // indirect
@@ -108,6 +109,9 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/mschoch/smat v0.2.0 // indirect
+	github.com/nats-io/nats.go v1.36.0 // indirect
+	github.com/nats-io/nkeys v0.4.7 // indirect
+	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/nutsdb/nutsdb v1.0.4 // indirect
 	github.com/onsi/ginkgo/v2 v2.15.0 // indirect
 	github.com/pierrec/lz4/v4 v4.1.21 // indirect

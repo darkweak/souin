@@ -1,5 +1,5 @@
 +++
-weight = 408
+weight = 410
 title = "Add your own storage"
 icon = "home_storage"
 description = "Badger is an in-memory storage system"

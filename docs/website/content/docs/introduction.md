@@ -39,8 +39,10 @@ See the [storages page]({{% relref "/docs/storages" %}}) to learn more about eac
 * [Embedded Olric]({{% relref "/docs/storages/embedded-olric" %}})
 
 ### Distributed external services
+* [Go-redis]({{% relref "/docs/storages/go-redis" %}})
 * [Redis]({{% relref "/docs/storages/redis" %}})
 * [Etcd]({{% relref "/docs/storages/etcd" %}})
+* [Nats]({{% relref "/docs/storages/nats" %}})
 * [Olric]({{% relref "/docs/storages/olric" %}})
 
 

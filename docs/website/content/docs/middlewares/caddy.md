@@ -103,8 +103,8 @@ You can also use as many storages you want.
 ```
 xcaddy build \
     --with github.com/darkweak/souin/plugins/caddy \
-    --with github.com/darkweak/storages/redis/caddy
-    --with github.com/darkweak/storages/nuts/caddy
+    --with github.com/darkweak/storages/redis/caddy \
+    --with github.com/darkweak/storages/nuts/caddy \
     --with github.com/darkweak/storages/otter/caddy
 ```
 

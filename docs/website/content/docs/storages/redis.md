@@ -1,5 +1,5 @@
 +++
-weight = 407
+weight = 409
 title = "Redis"
 icon = "home_storage"
 description = "Redis is an in-memory database that persists on disk"
@@ -38,7 +38,7 @@ route {
 ```
 
 ## Configuration
-You can find the configuration for Redis [here](https://github.com/redis/rueidis/blob/master/options.go#L31) or check the values table below.
+You can find the configuration for Redis [here](https://github.com/redis/rueidis/blob/master/rueidis.go#56) or check the values table below.
 
 ### Values
 {{< table "table-hover" >}}
