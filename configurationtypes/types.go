@@ -239,6 +239,7 @@ type DefaultCache struct {
 	Key                 Key           `json:"key" yaml:"key"`
 	Etcd                CacheProvider `json:"etcd" yaml:"etcd"`
 	Mode                string        `json:"mode" yaml:"mode"`
+	Nats                CacheProvider `json:"nats" yaml:"nats"`
 	Nuts                CacheProvider `json:"nuts" yaml:"nuts"`
 	Olric               CacheProvider `json:"olric" yaml:"olric"`
 	Otter               CacheProvider `json:"otter" yaml:"otter"`
@@ -297,6 +298,11 @@ func (d *DefaultCache) GetEtcd() CacheProvider {
 // GetMode returns mode configuration
 func (d *DefaultCache) GetMode() string {
 	return d.Mode
+}
+
+// GetNats returns nuts configuration
+func (d *DefaultCache) GetNats() CacheProvider {
+	return d.Nats
 }
 
 // GetNuts returns nuts configuration
@@ -369,6 +375,7 @@ type DefaultCacheInterface interface {
 	GetEtcd() CacheProvider
 	GetMode() string
 	GetOtter() CacheProvider
+	GetNats() CacheProvider
 	GetNuts() CacheProvider
 	GetOlric() CacheProvider
 	GetRedis() CacheProvider

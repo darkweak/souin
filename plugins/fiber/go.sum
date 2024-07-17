@@ -143,10 +143,12 @@ github.com/darkweak/go-esi v0.0.6 h1:eVHCJfqrZwOHPfRK7JTlSYG9F8lfpX/d4lz/41RQkd8
 github.com/darkweak/go-esi v0.0.6/go.mod h1:IJSayeQZDUh5R5ayyDC3wUEBykti12aUa0eUxZZeodk=
 github.com/darkweak/storages/badger v0.0.4 h1:m6VSwrsKQ17+7/ZDOiEuQT8IHmr+WW5Y6ZfgTKFxIxM=
 github.com/darkweak/storages/badger v0.0.4/go.mod h1:v/U7iLG6qYT0qp9IKLmr/m6doBaQNcSJxvB3UlfsIbU=
-github.com/darkweak/storages/core v0.0.4 h1:rpFTiN+CHwdlXThS28mRpvsSfuMVqWcOe/xtC5A2AQg=
-github.com/darkweak/storages/core v0.0.4/go.mod h1:wLp1cOAB4WUd46BBOtV4Lwot4GD+8fZbtIw6QM7fYuc=
+github.com/darkweak/storages/core v0.0.5 h1:pRkzBvVjVVgEXTdUIfqq10ihPMfYveWfqRc2C9OGTwI=
+github.com/darkweak/storages/core v0.0.5/go.mod h1:wLp1cOAB4WUd46BBOtV4Lwot4GD+8fZbtIw6QM7fYuc=
 github.com/darkweak/storages/etcd v0.0.4 h1:IdghlFAP+uv2sErKgtDfccPWQmVrlqk3GlvFVuRvdz4=
 github.com/darkweak/storages/etcd v0.0.4/go.mod h1:kBMLaPQDZBrxPQqS1u+oooNwWfP6Y3qUHnNCLnfLcIA=
+github.com/darkweak/storages/nats v0.0.5 h1:IKTx6teTIFSMvv7kRXz1jbSDeaJjE0BmB0GKe1XW3Mw=
+github.com/darkweak/storages/nats v0.0.5/go.mod h1:xkl78riMrVT63uiKVzvuiwAMdonJUBvepMu6Ef+7Ijg=
 github.com/darkweak/storages/nuts v0.0.4 h1:8bLgqCfNauvdFvlXQRPglL2uDThJdJgXOMXLO7HiZq4=
 github.com/darkweak/storages/nuts v0.0.4/go.mod h1:h+Z0LPTR7X6Ctuy7lUoDaoexqRGNRBAPHaovkULSS8o=
 github.com/darkweak/storages/olric v0.0.4 h1:8gWvxKMoNXeXpJvFkQ9QDMVunQx2WsGs08cONMtuW/U=
@@ -459,6 +461,12 @@ github.com/modern-go/reflect2 v1.0.1/go.mod h1:bx2lNnkwVCuqBIxFjflWJWanXIb3Rllmb
 github.com/mschoch/smat v0.2.0 h1:8imxQsjDm8yFEAVBe7azKmKSgzSkZXDuKkSq9374khM=
 github.com/mschoch/smat v0.2.0/go.mod h1:kc9mz7DoBKqDyiRL7VZN8KvXQMWeTaVnttLRXOlotKw=
 github.com/mwitkow/go-conntrack v0.0.0-20161129095857-cc309e4a2223/go.mod h1:qRWi+5nqEBWmkhHvq77mSJWrCKwh8bxhgT7d/eI7P4U=
+github.com/nats-io/nats.go v1.36.0 h1:suEUPuWzTSse/XhESwqLxXGuj8vGRuPRoG7MoRN/qyU=
+github.com/nats-io/nats.go v1.36.0/go.mod h1:Ubdu4Nh9exXdSz0RVWRFBbRfrbSxOYd26oF0wkWclB8=
+github.com/nats-io/nkeys v0.4.7 h1:RwNJbbIdYCoClSDNY7QVKZlyb/wfT6ugvFCiKy6vDvI=
+github.com/nats-io/nkeys v0.4.7/go.mod h1:kqXRgRDPlGy7nGaEDMuYzmiJCIAAWDK0IMBtDmGD0nc=
+github.com/nats-io/nuid v1.0.1 h1:5iA8DT8V7q8WK2EScv2padNa/rTESc1KdnPw4TC2paw=
+github.com/nats-io/nuid v1.0.1/go.mod h1:19wcPz3Ph3q0Jbyiqsd0kePYG7A95tJPxeL+1OSON2c=
 github.com/nutsdb/nutsdb v1.0.4 h1:BurzkxijXJY1/AkIXe1ek+U1ta3WGi6nJt4nCLqkxQ8=
 github.com/nutsdb/nutsdb v1.0.4/go.mod h1:jIbbpBXajzTMZ0o33Yn5zoYIo3v0Dz4WstkVce+sYuQ=
 github.com/nxadm/tail v1.4.4/go.mod h1:kenIhsEOeOJmVchQTgglprH7qJGnHDVpk1VPCcaMI8A=

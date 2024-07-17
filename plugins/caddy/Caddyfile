@@ -103,6 +103,28 @@ route /etcd-configuration {
     respond "Hello etcd"
 }
 
+route /nats {
+    cache {
+        ttl 5s
+        nats {
+            url nats://127.0.0.1:4222
+        }
+    }
+    respond "Hello nats"
+}
+
+route /nats-configuration {
+    cache {
+        ttl 5s
+        nats {
+            configuration {
+                Servers nats://127.0.0.1:4222
+            }
+        }
+    }
+    respond "Hello nats"
+}
+
 route /nuts-configuration {
     cache {
         ttl 15s

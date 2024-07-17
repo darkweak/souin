@@ -68,6 +68,14 @@ func (s *SouinCaddyMiddleware) parseStorages(ctx caddy.Context) {
 			)
 		}
 	}
+	if s.Configuration.DefaultCache.Nats.Found {
+		e := dispatchStorage(ctx, "nats", s.Configuration.DefaultCache.Nats, s.Configuration.DefaultCache.GetStale())
+		if e != nil {
+			s.logger.Sugar().Errorf("Error during Nats init, did you include the Nats storage (--with github.com/darkweak/storages/nats/caddy)? %v", e)
+		} else {
+			s.Configuration.DefaultCache.Nuts.Uuid = fmt.Sprintf("NATS-%s-%s", s.Configuration.DefaultCache.Nats.URL, s.Configuration.DefaultCache.GetStale())
+		}
+	}
 	if s.Configuration.DefaultCache.Nuts.Found {
 		e := dispatchStorage(ctx, "nuts", s.Configuration.DefaultCache.Nuts, s.Configuration.DefaultCache.GetStale())
 		if e != nil {
@@ -107,7 +115,7 @@ func (s *SouinCaddyMiddleware) parseStorages(ctx caddy.Context) {
 	if s.Configuration.DefaultCache.Redis.Found {
 		e := dispatchStorage(ctx, "redis", s.Configuration.DefaultCache.Redis, s.Configuration.DefaultCache.GetStale())
 		if e != nil {
-			s.logger.Sugar().Errorf("Error during Redis init, did you include the Redis storage (--with github.com/darkweak/storages/redis/caddy)? %v", e)
+			s.logger.Sugar().Errorf("Error during Redis init, did you include the Redis storage (--with github.com/darkweak/storages/redis/caddy or github.com/darkweak/storages/go-redis/caddy)? %v", e)
 		} else {
 			redis := s.Configuration.DefaultCache.Redis
 			address := redis.URL
@@ -123,6 +131,12 @@ func (s *SouinCaddyMiddleware) parseStorages(ctx caddy.Context) {
 						address = fmt.Sprint(d)
 					}
 					if d, ok := p["SelectDB"]; ok {
+						dbname, _ = strconv.Atoi(fmt.Sprint(d))
+					}
+					if d, ok := p["Addrs"]; ok {
+						address = fmt.Sprint(d)
+					}
+					if d, ok := p["DB"]; ok {
 						dbname, _ = strconv.Atoi(fmt.Sprint(d))
 					}
 				}

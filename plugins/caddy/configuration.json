@@ -42,6 +42,7 @@
                 "strategy": "hard"
             },
             "default_cache_control": "public",
+            "disable_coalescing": false,
             "distributed": false,
             "etcd": {
                 "configuration": null,
@@ -51,12 +52,22 @@
             "headers": [],
             "key": {},
             "mode": "",
+            "nats": {
+                "configuration": null,
+                "path": "",
+                "url": ""
+            },
             "nuts": {
                 "configuration": null,
                 "path": "",
                 "url": ""
             },
             "olric": {
+                "configuration": null,
+                "path": "",
+                "url": ""
+            },
+            "otter": {
                 "configuration": null,
                 "path": "",
                 "url": ""
@@ -122,6 +133,7 @@
                                             "cache_name": "",
                                             "cdn": {},
                                             "default_cache_control": "",
+                                            "disable_coalescing": false,
                                             "distributed": false,
                                             "etcd": {
                                                 "configuration": null,
@@ -131,12 +143,22 @@
                                             "headers": null,
                                             "key": {},
                                             "mode": "",
+                                            "nats": {
+                                                "configuration": null,
+                                                "path": "",
+                                                "url": ""
+                                            },
                                             "nuts": {
                                                 "configuration": null,
                                                 "path": "",
                                                 "url": ""
                                             },
                                             "olric": {
+                                                "configuration": null,
+                                                "path": "",
+                                                "url": ""
+                                            },
+                                            "otter": {
                                                 "configuration": null,
                                                 "path": "",
                                                 "url": ""
@@ -180,6 +202,11 @@
                                         "url": ""
                                     },
                                     "olric": {
+                                        "configuration": null,
+                                        "path": "",
+                                        "url": ""
+                                    },
+                                    "otter": {
                                         "configuration": null,
                                         "path": "",
                                         "url": ""
@@ -243,6 +270,7 @@
                                             "cache_name": "",
                                             "cdn": {},
                                             "default_cache_control": "",
+                                            "disable_coalescing": false,
                                             "distributed": false,
                                             "etcd": {
                                                 "configuration": null,
@@ -252,12 +280,22 @@
                                             "headers": null,
                                             "key": {},
                                             "mode": "",
+                                            "nats": {
+                                                "configuration": null,
+                                                "path": "",
+                                                "url": ""
+                                            },
                                             "nuts": {
                                                 "configuration": null,
                                                 "path": "",
                                                 "url": ""
                                             },
                                             "olric": {
+                                                "configuration": null,
+                                                "path": "",
+                                                "url": ""
+                                            },
+                                            "otter": {
                                                 "configuration": null,
                                                 "path": "",
                                                 "url": ""
@@ -301,6 +339,11 @@
                                         "url": ""
                                     },
                                     "olric": {
+                                        "configuration": null,
+                                        "path": "",
+                                        "url": ""
+                                    },
+                                    "otter": {
                                         "configuration": null,
                                         "path": "",
                                         "url": ""
@@ -364,6 +407,7 @@
                                             "cache_name": "",
                                             "cdn": {},
                                             "default_cache_control": "",
+                                            "disable_coalescing": false,
                                             "distributed": false,
                                             "etcd": {
                                                 "configuration": null,
@@ -373,12 +417,22 @@
                                             "headers": null,
                                             "key": {},
                                             "mode": "",
+                                            "nats": {
+                                                "configuration": null,
+                                                "path": "",
+                                                "url": ""
+                                            },
                                             "nuts": {
                                                 "configuration": null,
                                                 "path": "",
                                                 "url": ""
                                             },
                                             "olric": {
+                                                "configuration": null,
+                                                "path": "",
+                                                "url": ""
+                                            },
+                                            "otter": {
                                                 "configuration": null,
                                                 "path": "",
                                                 "url": ""
@@ -422,6 +476,11 @@
                                         "url": ""
                                     },
                                     "olric": {
+                                        "configuration": null,
+                                        "path": "",
+                                        "url": ""
+                                    },
+                                    "otter": {
                                         "configuration": null,
                                         "path": "",
                                         "url": ""
@@ -485,6 +544,7 @@
                                             "cache_name": "",
                                             "cdn": {},
                                             "default_cache_control": "",
+                                            "disable_coalescing": false,
                                             "distributed": false,
                                             "etcd": {
                                                 "configuration": null,
@@ -494,12 +554,22 @@
                                             "headers": null,
                                             "key": {},
                                             "mode": "",
+                                            "nats": {
+                                                "configuration": null,
+                                                "path": "",
+                                                "url": ""
+                                            },
                                             "nuts": {
                                                 "configuration": null,
                                                 "path": "",
                                                 "url": ""
                                             },
                                             "olric": {
+                                                "configuration": null,
+                                                "path": "",
+                                                "url": ""
+                                            },
+                                            "otter": {
                                                 "configuration": null,
                                                 "path": "",
                                                 "url": ""
@@ -543,6 +613,11 @@
                                         "url": ""
                                     },
                                     "olric": {
+                                        "configuration": null,
+                                        "path": "",
+                                        "url": ""
+                                    },
+                                    "otter": {
                                         "configuration": null,
                                         "path": "",
                                         "url": ""
@@ -611,6 +686,7 @@
                                                             "cache_name": "Another",
                                                             "cdn": {},
                                                             "default_cache_control": "",
+                                                            "disable_coalescing": false,
                                                             "distributed": false,
                                                             "etcd": {
                                                                 "configuration": null,
@@ -620,12 +696,22 @@
                                                             "headers": null,
                                                             "key": {},
                                                             "mode": "",
+                                                            "nats": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
                                                             "nuts": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
                                                             },
                                                             "olric": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "otter": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
@@ -669,6 +755,11 @@
                                                         "url": ""
                                                     },
                                                     "olric": {
+                                                        "configuration": null,
+                                                        "path": "",
+                                                        "url": ""
+                                                    },
+                                                    "otter": {
                                                         "configuration": null,
                                                         "path": "",
                                                         "url": ""
@@ -747,6 +838,7 @@
                                                             "cache_name": "",
                                                             "cdn": {},
                                                             "default_cache_control": "",
+                                                            "disable_coalescing": false,
                                                             "distributed": false,
                                                             "etcd": {
                                                                 "configuration": null,
@@ -756,12 +848,22 @@
                                                             "headers": null,
                                                             "key": {},
                                                             "mode": "",
+                                                            "nats": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
                                                             "nuts": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
                                                             },
                                                             "olric": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "otter": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
@@ -805,6 +907,11 @@
                                                         "url": ""
                                                     },
                                                     "olric": {
+                                                        "configuration": null,
+                                                        "path": "",
+                                                        "url": ""
+                                                    },
+                                                    "otter": {
                                                         "configuration": null,
                                                         "path": "",
                                                         "url": ""
@@ -881,6 +988,7 @@
                                                             "cache_name": "",
                                                             "cdn": {},
                                                             "default_cache_control": "",
+                                                            "disable_coalescing": false,
                                                             "distributed": false,
                                                             "etcd": {
                                                                 "configuration": null,
@@ -890,12 +998,22 @@
                                                             "headers": null,
                                                             "key": {},
                                                             "mode": "",
+                                                            "nats": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
                                                             "nuts": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
                                                             },
                                                             "olric": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "otter": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
@@ -955,6 +1073,11 @@
                                                         "url": ""
                                                     },
                                                     "olric": {
+                                                        "configuration": null,
+                                                        "path": "",
+                                                        "url": ""
+                                                    },
+                                                    "otter": {
                                                         "configuration": null,
                                                         "path": "",
                                                         "url": ""
@@ -1031,6 +1154,7 @@
                                                             "cache_name": "",
                                                             "cdn": {},
                                                             "default_cache_control": "",
+                                                            "disable_coalescing": false,
                                                             "distributed": true,
                                                             "etcd": {
                                                                 "configuration": null,
@@ -1040,12 +1164,22 @@
                                                             "headers": null,
                                                             "key": {},
                                                             "mode": "",
+                                                            "nats": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
                                                             "nuts": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
                                                             },
                                                             "olric": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "otter": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
@@ -1095,6 +1229,11 @@
                                                         "url": ""
                                                     },
                                                     "olric": {
+                                                        "configuration": null,
+                                                        "path": "",
+                                                        "url": ""
+                                                    },
+                                                    "otter": {
                                                         "configuration": null,
                                                         "path": "",
                                                         "url": ""
@@ -1171,6 +1310,7 @@
                                                             "cache_name": "",
                                                             "cdn": {},
                                                             "default_cache_control": "",
+                                                            "disable_coalescing": false,
                                                             "distributed": false,
                                                             "etcd": {
                                                                 "configuration": null,
@@ -1180,12 +1320,22 @@
                                                             "headers": null,
                                                             "key": {},
                                                             "mode": "",
+                                                            "nats": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
                                                             "nuts": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
                                                             },
                                                             "olric": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "otter": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
@@ -1235,6 +1385,11 @@
                                                         "url": ""
                                                     },
                                                     "olric": {
+                                                        "configuration": null,
+                                                        "path": "",
+                                                        "url": ""
+                                                    },
+                                                    "otter": {
                                                         "configuration": null,
                                                         "path": "",
                                                         "url": ""
@@ -1321,6 +1476,7 @@
                                                             "cache_name": "",
                                                             "cdn": {},
                                                             "default_cache_control": "",
+                                                            "disable_coalescing": false,
                                                             "distributed": true,
                                                             "etcd": {
                                                                 "configuration": {
@@ -1343,12 +1499,22 @@
                                                             "headers": null,
                                                             "key": {},
                                                             "mode": "",
+                                                            "nats": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
                                                             "nuts": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
                                                             },
                                                             "olric": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "otter": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
@@ -1392,6 +1558,11 @@
                                                         "url": ""
                                                     },
                                                     "olric": {
+                                                        "configuration": null,
+                                                        "path": "",
+                                                        "url": ""
+                                                    },
+                                                    "otter": {
                                                         "configuration": null,
                                                         "path": "",
                                                         "url": ""
@@ -1468,6 +1639,7 @@
                                                             "cache_name": "",
                                                             "cdn": {},
                                                             "default_cache_control": "",
+                                                            "disable_coalescing": false,
                                                             "distributed": false,
                                                             "etcd": {
                                                                 "configuration": null,
@@ -1477,6 +1649,163 @@
                                                             "headers": null,
                                                             "key": {},
                                                             "mode": "",
+                                                            "nats": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "nuts": {
+                                                                "configuration": {
+                                                                    "Servers": "nats://127.0.0.1:4222"
+                                                                },
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "olric": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "otter": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "redis": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "regex": {
+                                                                "exclude": ""
+                                                            },
+                                                            "stale": "0s",
+                                                            "storers": null,
+                                                            "timeout": {
+                                                                "backend": "0s",
+                                                                "cache": "0s"
+                                                            },
+                                                            "ttl": "5s"
+                                                        },
+                                                        "LogLevel": "",
+                                                        "SurrogateKeys": null,
+                                                        "URLs": null,
+                                                        "cache_keys": {}
+                                                    },
+                                                    "badger": {
+                                                        "configuration": null,
+                                                        "path": "",
+                                                        "url": ""
+                                                    },
+                                                    "etcd": {
+                                                        "configuration": null,
+                                                        "path": "",
+                                                        "url": ""
+                                                    },
+                                                    "handler": "cache",
+                                                    "key": {},
+                                                    "nuts": {
+                                                        "configuration": null,
+                                                        "path": "",
+                                                        "url": ""
+                                                    },
+                                                    "olric": {
+                                                        "configuration": null,
+                                                        "path": "",
+                                                        "url": ""
+                                                    },
+                                                    "otter": {
+                                                        "configuration": null,
+                                                        "path": "",
+                                                        "url": ""
+                                                    },
+                                                    "redis": {
+                                                        "configuration": null,
+                                                        "path": "",
+                                                        "url": ""
+                                                    },
+                                                    "stale": "0s",
+                                                    "timeout": {
+                                                        "backend": "0s",
+                                                        "cache": "0s"
+                                                    },
+                                                    "ttl": "0s"
+                                                },
+                                                {
+                                                    "body": "Hello nats",
+                                                    "handler": "static_response"
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ],
+                            "match": [
+                                {
+                                    "path": [
+                                        "/nats-configuration"
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "handle": [
+                                {
+                                    "handler": "subroute",
+                                    "routes": [
+                                        {
+                                            "handle": [
+                                                {
+                                                    "Configuration": {
+                                                        "API": {
+                                                            "basepath": "",
+                                                            "debug": {
+                                                                "basepath": "",
+                                                                "enable": false,
+                                                                "security": false
+                                                            },
+                                                            "prometheus": {
+                                                                "basepath": "",
+                                                                "enable": false,
+                                                                "security": false
+                                                            },
+                                                            "security": {
+                                                                "basepath": "",
+                                                                "enable": false,
+                                                                "secret": "",
+                                                                "users": null
+                                                            },
+                                                            "souin": {
+                                                                "basepath": "",
+                                                                "enable": false,
+                                                                "security": false
+                                                            }
+                                                        },
+                                                        "DefaultCache": {
+                                                            "allowed_http_verbs": [],
+                                                            "badger": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "cache_name": "",
+                                                            "cdn": {},
+                                                            "default_cache_control": "",
+                                                            "disable_coalescing": false,
+                                                            "distributed": false,
+                                                            "etcd": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "headers": null,
+                                                            "key": {},
+                                                            "mode": "",
+                                                            "nats": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
                                                             "nuts": {
                                                                 "configuration": {
                                                                     "Dir": "/tmp/nuts-configuration",
@@ -1491,6 +1820,11 @@
                                                                 "url": ""
                                                             },
                                                             "olric": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "otter": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
@@ -1534,6 +1868,11 @@
                                                         "url": ""
                                                     },
                                                     "olric": {
+                                                        "configuration": null,
+                                                        "path": "",
+                                                        "url": ""
+                                                    },
+                                                    "otter": {
                                                         "configuration": null,
                                                         "path": "",
                                                         "url": ""
@@ -1610,6 +1949,7 @@
                                                             "cache_name": "",
                                                             "cdn": {},
                                                             "default_cache_control": "",
+                                                            "disable_coalescing": false,
                                                             "distributed": false,
                                                             "etcd": {
                                                                 "configuration": null,
@@ -1619,12 +1959,22 @@
                                                             "headers": null,
                                                             "key": {},
                                                             "mode": "",
+                                                            "nats": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
                                                             "nuts": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
                                                             },
                                                             "olric": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "otter": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
@@ -1668,6 +2018,11 @@
                                                         "url": ""
                                                     },
                                                     "olric": {
+                                                        "configuration": null,
+                                                        "path": "",
+                                                        "url": ""
+                                                    },
+                                                    "otter": {
                                                         "configuration": null,
                                                         "path": "",
                                                         "url": ""
@@ -1748,6 +2103,7 @@
                                                             "cache_name": "",
                                                             "cdn": {},
                                                             "default_cache_control": "",
+                                                            "disable_coalescing": false,
                                                             "distributed": false,
                                                             "etcd": {
                                                                 "configuration": null,
@@ -1757,12 +2113,22 @@
                                                             "headers": null,
                                                             "key": {},
                                                             "mode": "",
+                                                            "nats": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
                                                             "nuts": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
                                                             },
                                                             "olric": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "otter": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
@@ -1806,6 +2172,11 @@
                                                         "url": ""
                                                     },
                                                     "olric": {
+                                                        "configuration": null,
+                                                        "path": "",
+                                                        "url": ""
+                                                    },
+                                                    "otter": {
                                                         "configuration": null,
                                                         "path": "",
                                                         "url": ""
@@ -1886,6 +2257,7 @@
                                                             "cache_name": "",
                                                             "cdn": {},
                                                             "default_cache_control": "",
+                                                            "disable_coalescing": false,
                                                             "distributed": false,
                                                             "etcd": {
                                                                 "configuration": null,
@@ -1895,12 +2267,22 @@
                                                             "headers": null,
                                                             "key": {},
                                                             "mode": "",
+                                                            "nats": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
                                                             "nuts": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
                                                             },
                                                             "olric": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "otter": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
@@ -1944,6 +2326,11 @@
                                                         "url": ""
                                                     },
                                                     "olric": {
+                                                        "configuration": null,
+                                                        "path": "",
+                                                        "url": ""
+                                                    },
+                                                    "otter": {
                                                         "configuration": null,
                                                         "path": "",
                                                         "url": ""
@@ -2034,6 +2421,7 @@
                                                             "cache_name": "",
                                                             "cdn": {},
                                                             "default_cache_control": "",
+                                                            "disable_coalescing": false,
                                                             "distributed": false,
                                                             "etcd": {
                                                                 "configuration": null,
@@ -2043,12 +2431,22 @@
                                                             "headers": null,
                                                             "key": {},
                                                             "mode": "bypass_response",
+                                                            "nats": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
                                                             "nuts": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
                                                             },
                                                             "olric": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "otter": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
@@ -2092,6 +2490,11 @@
                                                         "url": ""
                                                     },
                                                     "olric": {
+                                                        "configuration": null,
+                                                        "path": "",
+                                                        "url": ""
+                                                    },
+                                                    "otter": {
                                                         "configuration": null,
                                                         "path": "",
                                                         "url": ""
@@ -2178,6 +2581,7 @@
                                                             "cache_name": "",
                                                             "cdn": {},
                                                             "default_cache_control": "",
+                                                            "disable_coalescing": false,
                                                             "distributed": false,
                                                             "etcd": {
                                                                 "configuration": null,
@@ -2187,12 +2591,22 @@
                                                             "headers": null,
                                                             "key": {},
                                                             "mode": "strict",
+                                                            "nats": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
                                                             "nuts": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
                                                             },
                                                             "olric": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "otter": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
@@ -2236,6 +2650,11 @@
                                                         "url": ""
                                                     },
                                                     "olric": {
+                                                        "configuration": null,
+                                                        "path": "",
+                                                        "url": ""
+                                                    },
+                                                    "otter": {
                                                         "configuration": null,
                                                         "path": "",
                                                         "url": ""
@@ -2322,6 +2741,7 @@
                                                             "cache_name": "",
                                                             "cdn": {},
                                                             "default_cache_control": "",
+                                                            "disable_coalescing": false,
                                                             "distributed": false,
                                                             "etcd": {
                                                                 "configuration": null,
@@ -2331,12 +2751,22 @@
                                                             "headers": null,
                                                             "key": {},
                                                             "mode": "",
+                                                            "nats": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
                                                             "nuts": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
                                                             },
                                                             "olric": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "otter": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
@@ -2380,6 +2810,11 @@
                                                         "url": ""
                                                     },
                                                     "olric": {
+                                                        "configuration": null,
+                                                        "path": "",
+                                                        "url": ""
+                                                    },
+                                                    "otter": {
                                                         "configuration": null,
                                                         "path": "",
                                                         "url": ""
@@ -2466,6 +2901,7 @@
                                                             "cache_name": "",
                                                             "cdn": {},
                                                             "default_cache_control": "",
+                                                            "disable_coalescing": false,
                                                             "distributed": false,
                                                             "etcd": {
                                                                 "configuration": null,
@@ -2475,12 +2911,22 @@
                                                             "headers": null,
                                                             "key": {},
                                                             "mode": "",
+                                                            "nats": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
                                                             "nuts": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
                                                             },
                                                             "olric": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "otter": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
@@ -2524,6 +2970,11 @@
                                                         "url": ""
                                                     },
                                                     "olric": {
+                                                        "configuration": null,
+                                                        "path": "",
+                                                        "url": ""
+                                                    },
+                                                    "otter": {
                                                         "configuration": null,
                                                         "path": "",
                                                         "url": ""
@@ -2610,6 +3061,7 @@
                                                             "cache_name": "",
                                                             "cdn": {},
                                                             "default_cache_control": "",
+                                                            "disable_coalescing": false,
                                                             "distributed": false,
                                                             "etcd": {
                                                                 "configuration": null,
@@ -2619,12 +3071,22 @@
                                                             "headers": null,
                                                             "key": {},
                                                             "mode": "",
+                                                            "nats": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
                                                             "nuts": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
                                                             },
                                                             "olric": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "otter": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
@@ -2668,6 +3130,11 @@
                                                         "url": ""
                                                     },
                                                     "olric": {
+                                                        "configuration": null,
+                                                        "path": "",
+                                                        "url": ""
+                                                    },
+                                                    "otter": {
                                                         "configuration": null,
                                                         "path": "",
                                                         "url": ""
@@ -2754,6 +3221,7 @@
                                                             "cache_name": "",
                                                             "cdn": {},
                                                             "default_cache_control": "",
+                                                            "disable_coalescing": false,
                                                             "distributed": false,
                                                             "etcd": {
                                                                 "configuration": null,
@@ -2763,12 +3231,22 @@
                                                             "headers": null,
                                                             "key": {},
                                                             "mode": "",
+                                                            "nats": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
                                                             "nuts": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
                                                             },
                                                             "olric": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "otter": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
@@ -2812,6 +3290,11 @@
                                                         "url": ""
                                                     },
                                                     "olric": {
+                                                        "configuration": null,
+                                                        "path": "",
+                                                        "url": ""
+                                                    },
+                                                    "otter": {
                                                         "configuration": null,
                                                         "path": "",
                                                         "url": ""
@@ -2908,6 +3391,7 @@
                                                             "cache_name": "",
                                                             "cdn": {},
                                                             "default_cache_control": "",
+                                                            "disable_coalescing": false,
                                                             "distributed": false,
                                                             "etcd": {
                                                                 "configuration": null,
@@ -2917,12 +3401,22 @@
                                                             "headers": null,
                                                             "key": {},
                                                             "mode": "bypass_request",
+                                                            "nats": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
                                                             "nuts": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
                                                             },
                                                             "olric": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "otter": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
@@ -2966,6 +3460,11 @@
                                                         "url": ""
                                                     },
                                                     "olric": {
+                                                        "configuration": null,
+                                                        "path": "",
+                                                        "url": ""
+                                                    },
+                                                    "otter": {
                                                         "configuration": null,
                                                         "path": "",
                                                         "url": ""
@@ -3042,6 +3541,7 @@
                                                             "cache_name": "",
                                                             "cdn": {},
                                                             "default_cache_control": "",
+                                                            "disable_coalescing": false,
                                                             "distributed": false,
                                                             "etcd": {
                                                                 "configuration": null,
@@ -3051,12 +3551,22 @@
                                                             "headers": null,
                                                             "key": {},
                                                             "mode": "strict",
+                                                            "nats": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
                                                             "nuts": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
                                                             },
                                                             "olric": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "otter": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
@@ -3100,6 +3610,11 @@
                                                         "url": ""
                                                     },
                                                     "olric": {
+                                                        "configuration": null,
+                                                        "path": "",
+                                                        "url": ""
+                                                    },
+                                                    "otter": {
                                                         "configuration": null,
                                                         "path": "",
                                                         "url": ""
@@ -3176,6 +3691,7 @@
                                                             "cache_name": "",
                                                             "cdn": {},
                                                             "default_cache_control": "",
+                                                            "disable_coalescing": false,
                                                             "distributed": false,
                                                             "etcd": {
                                                                 "configuration": null,
@@ -3185,12 +3701,22 @@
                                                             "headers": null,
                                                             "key": {},
                                                             "mode": "",
+                                                            "nats": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
                                                             "nuts": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
                                                             },
                                                             "olric": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "otter": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
@@ -3234,6 +3760,11 @@
                                                         "url": ""
                                                     },
                                                     "olric": {
+                                                        "configuration": null,
+                                                        "path": "",
+                                                        "url": ""
+                                                    },
+                                                    "otter": {
                                                         "configuration": null,
                                                         "path": "",
                                                         "url": ""
@@ -3320,6 +3851,7 @@
                                                             "cache_name": "",
                                                             "cdn": {},
                                                             "default_cache_control": "",
+                                                            "disable_coalescing": false,
                                                             "distributed": false,
                                                             "etcd": {
                                                                 "configuration": null,
@@ -3329,12 +3861,22 @@
                                                             "headers": null,
                                                             "key": {},
                                                             "mode": "",
+                                                            "nats": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
                                                             "nuts": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
                                                             },
                                                             "olric": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "otter": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
@@ -3378,6 +3920,11 @@
                                                         "url": ""
                                                     },
                                                     "olric": {
+                                                        "configuration": null,
+                                                        "path": "",
+                                                        "url": ""
+                                                    },
+                                                    "otter": {
                                                         "configuration": null,
                                                         "path": "",
                                                         "url": ""
@@ -3458,6 +4005,7 @@
                                                             "cache_name": "",
                                                             "cdn": {},
                                                             "default_cache_control": "",
+                                                            "disable_coalescing": false,
                                                             "distributed": false,
                                                             "etcd": {
                                                                 "configuration": null,
@@ -3467,12 +4015,22 @@
                                                             "headers": null,
                                                             "key": {},
                                                             "mode": "",
+                                                            "nats": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
                                                             "nuts": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
                                                             },
                                                             "olric": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "otter": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
@@ -3516,6 +4074,11 @@
                                                         "url": ""
                                                     },
                                                     "olric": {
+                                                        "configuration": null,
+                                                        "path": "",
+                                                        "url": ""
+                                                    },
+                                                    "otter": {
                                                         "configuration": null,
                                                         "path": "",
                                                         "url": ""
@@ -3602,6 +4165,7 @@
                                                             "cache_name": "",
                                                             "cdn": {},
                                                             "default_cache_control": "",
+                                                            "disable_coalescing": false,
                                                             "distributed": true,
                                                             "etcd": {
                                                                 "configuration": null,
@@ -3611,12 +4175,22 @@
                                                             "headers": null,
                                                             "key": {},
                                                             "mode": "",
+                                                            "nats": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
                                                             "nuts": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
                                                             },
                                                             "olric": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "otter": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
@@ -3660,6 +4234,11 @@
                                                         "url": ""
                                                     },
                                                     "olric": {
+                                                        "configuration": null,
+                                                        "path": "",
+                                                        "url": ""
+                                                    },
+                                                    "otter": {
                                                         "configuration": null,
                                                         "path": "",
                                                         "url": ""
@@ -3736,6 +4315,7 @@
                                                             "cache_name": "",
                                                             "cdn": {},
                                                             "default_cache_control": "",
+                                                            "disable_coalescing": false,
                                                             "distributed": false,
                                                             "etcd": {
                                                                 "configuration": null,
@@ -3745,12 +4325,22 @@
                                                             "headers": null,
                                                             "key": {},
                                                             "mode": "",
+                                                            "nats": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
                                                             "nuts": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
                                                             },
                                                             "olric": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "otter": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
@@ -3794,6 +4384,11 @@
                                                         "url": ""
                                                     },
                                                     "olric": {
+                                                        "configuration": null,
+                                                        "path": "",
+                                                        "url": ""
+                                                    },
+                                                    "otter": {
                                                         "configuration": null,
                                                         "path": "",
                                                         "url": ""
@@ -3874,6 +4469,7 @@
                                                             "cache_name": "",
                                                             "cdn": {},
                                                             "default_cache_control": "",
+                                                            "disable_coalescing": false,
                                                             "distributed": false,
                                                             "etcd": {
                                                                 "configuration": null,
@@ -3883,12 +4479,22 @@
                                                             "headers": null,
                                                             "key": {},
                                                             "mode": "bypass",
+                                                            "nats": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
                                                             "nuts": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
                                                             },
                                                             "olric": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "otter": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
@@ -3932,6 +4538,11 @@
                                                         "url": ""
                                                     },
                                                     "olric": {
+                                                        "configuration": null,
+                                                        "path": "",
+                                                        "url": ""
+                                                    },
+                                                    "otter": {
                                                         "configuration": null,
                                                         "path": "",
                                                         "url": ""
@@ -4018,6 +4629,7 @@
                                                             "cache_name": "",
                                                             "cdn": {},
                                                             "default_cache_control": "",
+                                                            "disable_coalescing": false,
                                                             "distributed": true,
                                                             "etcd": {
                                                                 "configuration": null,
@@ -4027,12 +4639,22 @@
                                                             "headers": null,
                                                             "key": {},
                                                             "mode": "",
+                                                            "nats": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
                                                             "nuts": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
                                                             },
                                                             "olric": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "otter": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
@@ -4082,6 +4704,11 @@
                                                         "url": ""
                                                     },
                                                     "olric": {
+                                                        "configuration": null,
+                                                        "path": "",
+                                                        "url": ""
+                                                    },
+                                                    "otter": {
                                                         "configuration": null,
                                                         "path": "",
                                                         "url": ""
@@ -4158,6 +4785,7 @@
                                                             "cache_name": "",
                                                             "cdn": {},
                                                             "default_cache_control": "",
+                                                            "disable_coalescing": false,
                                                             "distributed": true,
                                                             "etcd": {
                                                                 "configuration": {
@@ -4183,12 +4811,22 @@
                                                             "headers": null,
                                                             "key": {},
                                                             "mode": "",
+                                                            "nats": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
                                                             "nuts": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
                                                             },
                                                             "olric": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "otter": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
@@ -4232,6 +4870,11 @@
                                                         "url": ""
                                                     },
                                                     "olric": {
+                                                        "configuration": null,
+                                                        "path": "",
+                                                        "url": ""
+                                                    },
+                                                    "otter": {
                                                         "configuration": null,
                                                         "path": "",
                                                         "url": ""
@@ -4308,6 +4951,7 @@
                                                             "cache_name": "",
                                                             "cdn": {},
                                                             "default_cache_control": "",
+                                                            "disable_coalescing": false,
                                                             "distributed": false,
                                                             "etcd": {
                                                                 "configuration": null,
@@ -4317,12 +4961,172 @@
                                                             "headers": null,
                                                             "key": {},
                                                             "mode": "",
+                                                            "nats": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "nuts": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": "nats://127.0.0.1:4222"
+                                                            },
+                                                            "olric": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "otter": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "redis": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "regex": {
+                                                                "exclude": ""
+                                                            },
+                                                            "stale": "0s",
+                                                            "storers": null,
+                                                            "timeout": {
+                                                                "backend": "0s",
+                                                                "cache": "0s"
+                                                            },
+                                                            "ttl": "5s"
+                                                        },
+                                                        "LogLevel": "",
+                                                        "SurrogateKeys": null,
+                                                        "URLs": null,
+                                                        "cache_keys": {}
+                                                    },
+                                                    "badger": {
+                                                        "configuration": null,
+                                                        "path": "",
+                                                        "url": ""
+                                                    },
+                                                    "etcd": {
+                                                        "configuration": null,
+                                                        "path": "",
+                                                        "url": ""
+                                                    },
+                                                    "handler": "cache",
+                                                    "key": {},
+                                                    "nuts": {
+                                                        "configuration": null,
+                                                        "path": "",
+                                                        "url": ""
+                                                    },
+                                                    "olric": {
+                                                        "configuration": null,
+                                                        "path": "",
+                                                        "url": ""
+                                                    },
+                                                    "otter": {
+                                                        "configuration": null,
+                                                        "path": "",
+                                                        "url": ""
+                                                    },
+                                                    "redis": {
+                                                        "configuration": null,
+                                                        "path": "",
+                                                        "url": ""
+                                                    },
+                                                    "stale": "0s",
+                                                    "timeout": {
+                                                        "backend": "0s",
+                                                        "cache": "0s"
+                                                    },
+                                                    "ttl": "0s"
+                                                },
+                                                {
+                                                    "body": "Hello nats",
+                                                    "handler": "static_response"
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ],
+                            "match": [
+                                {
+                                    "path": [
+                                        "/nats"
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "handle": [
+                                {
+                                    "handler": "subroute",
+                                    "routes": [
+                                        {
+                                            "handle": [
+                                                {
+                                                    "Configuration": {
+                                                        "API": {
+                                                            "basepath": "",
+                                                            "debug": {
+                                                                "basepath": "",
+                                                                "enable": false,
+                                                                "security": false
+                                                            },
+                                                            "prometheus": {
+                                                                "basepath": "",
+                                                                "enable": false,
+                                                                "security": false
+                                                            },
+                                                            "security": {
+                                                                "basepath": "",
+                                                                "enable": false,
+                                                                "secret": "",
+                                                                "users": null
+                                                            },
+                                                            "souin": {
+                                                                "basepath": "",
+                                                                "enable": false,
+                                                                "security": false
+                                                            }
+                                                        },
+                                                        "DefaultCache": {
+                                                            "allowed_http_verbs": [],
+                                                            "badger": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "cache_name": "",
+                                                            "cdn": {},
+                                                            "default_cache_control": "",
+                                                            "disable_coalescing": false,
+                                                            "distributed": false,
+                                                            "etcd": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "headers": null,
+                                                            "key": {},
+                                                            "mode": "",
+                                                            "nats": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
                                                             "nuts": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
                                                             },
                                                             "olric": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "otter": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
@@ -4366,6 +5170,11 @@
                                                         "url": ""
                                                     },
                                                     "olric": {
+                                                        "configuration": null,
+                                                        "path": "",
+                                                        "url": ""
+                                                    },
+                                                    "otter": {
                                                         "configuration": null,
                                                         "path": "",
                                                         "url": ""
@@ -4452,6 +5261,7 @@
                                                             "cache_name": "",
                                                             "cdn": {},
                                                             "default_cache_control": "",
+                                                            "disable_coalescing": false,
                                                             "distributed": false,
                                                             "etcd": {
                                                                 "configuration": null,
@@ -4461,12 +5271,22 @@
                                                             "headers": null,
                                                             "key": {},
                                                             "mode": "",
+                                                            "nats": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
                                                             "nuts": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
                                                             },
                                                             "olric": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "otter": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
@@ -4510,6 +5330,11 @@
                                                         "url": ""
                                                     },
                                                     "olric": {
+                                                        "configuration": null,
+                                                        "path": "",
+                                                        "url": ""
+                                                    },
+                                                    "otter": {
                                                         "configuration": null,
                                                         "path": "",
                                                         "url": ""
@@ -4606,6 +5431,7 @@
                                                             "cache_name": "",
                                                             "cdn": {},
                                                             "default_cache_control": "",
+                                                            "disable_coalescing": false,
                                                             "distributed": false,
                                                             "etcd": {
                                                                 "configuration": null,
@@ -4615,12 +5441,22 @@
                                                             "headers": null,
                                                             "key": {},
                                                             "mode": "",
+                                                            "nats": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
                                                             "nuts": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
                                                             },
                                                             "olric": {
+                                                                "configuration": null,
+                                                                "path": "",
+                                                                "url": ""
+                                                            },
+                                                            "otter": {
                                                                 "configuration": null,
                                                                 "path": "",
                                                                 "url": ""
@@ -4664,6 +5500,11 @@
                                                         "url": ""
                                                     },
                                                     "olric": {
+                                                        "configuration": null,
+                                                        "path": "",
+                                                        "url": ""
+                                                    },
+                                                    "otter": {
                                                         "configuration": null,
                                                         "path": "",
                                                         "url": ""

@@ -1,5 +1,5 @@
 +++
-weight = 405
+weight = 407
 title = "Olric"
 icon = "home_storage"
 description = "Olric is a distributed in-memory storage system"

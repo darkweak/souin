@@ -5,7 +5,7 @@ go 1.22.1
 require (
 	github.com/darkweak/souin v1.6.49
 	github.com/darkweak/souin/plugins/souin/storages v0.0.0-00010101000000-000000000000
-	github.com/darkweak/storages/core v0.0.4
+	github.com/darkweak/storages/core v0.0.5
 	github.com/labstack/echo/v4 v4.11.1
 )
 
@@ -40,6 +40,7 @@ require (
 	github.com/darkweak/go-esi v0.0.6 // indirect
 	github.com/darkweak/storages/badger v0.0.4 // indirect
 	github.com/darkweak/storages/etcd v0.0.4 // indirect
+	github.com/darkweak/storages/nats v0.0.5 // indirect
 	github.com/darkweak/storages/nuts v0.0.4 // indirect
 	github.com/darkweak/storages/olric v0.0.4 // indirect
 	github.com/darkweak/storages/otter v0.0.4 // indirect
@@ -105,6 +106,9 @@ require (
 	github.com/mitchellh/go-ps v1.0.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/mschoch/smat v0.2.0 // indirect
+	github.com/nats-io/nats.go v1.36.0 // indirect
+	github.com/nats-io/nkeys v0.4.7 // indirect
+	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/nutsdb/nutsdb v1.0.4 // indirect
 	github.com/onsi/ginkgo/v2 v2.15.0 // indirect
 	github.com/pierrec/lz4/v4 v4.1.21 // indirect

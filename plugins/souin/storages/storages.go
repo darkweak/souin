@@ -7,6 +7,7 @@ import (
 	"github.com/darkweak/storages/badger"
 	"github.com/darkweak/storages/core"
 	"github.com/darkweak/storages/etcd"
+	"github.com/darkweak/storages/nats"
 	"github.com/darkweak/storages/nuts"
 	"github.com/darkweak/storages/olric"
 	"github.com/darkweak/storages/otter"
@@ -68,6 +69,7 @@ func InitFromConfiguration(configuration configurationtypes.AbstractConfiguratio
 	stale := configuration.GetDefaultCache().GetStale()
 	tryToRegisterStorage(configuration.GetDefaultCache().GetBadger(), badger.Factory, logger, stale)
 	tryToRegisterStorage(configuration.GetDefaultCache().GetEtcd(), etcd.Factory, logger, stale)
+	tryToRegisterStorage(configuration.GetDefaultCache().GetNats(), nats.Factory, logger, stale)
 	tryToRegisterStorage(configuration.GetDefaultCache().GetNuts(), nuts.Factory, logger, stale)
 	tryToRegisterStorage(configuration.GetDefaultCache().GetOlric(), olric.Factory, logger, stale)
 	tryToRegisterStorage(configuration.GetDefaultCache().GetOtter(), otter.Factory, logger, stale)

@@ -213,6 +213,21 @@ func parseDefaultCache(dcConfiguration map[string]config.Value) *configurationty
 				h, _ := header.String()
 				dc.Headers = append(dc.Headers, h)
 			}
+		case "nats":
+			provider := configurationtypes.CacheProvider{}
+			natsConfiguration, _ := defaultCacheV.Map()
+			for natsConfigurationK, natsConfigurationV := range natsConfiguration {
+				switch natsConfigurationK {
+				case url:
+					provider.URL, _ = natsConfigurationV.String()
+				case configurationPK:
+					configMap, e := natsConfigurationV.Map()
+					if e == nil {
+						provider.Configuration = parseRecursively(configMap)
+					}
+				}
+			}
+			dc.Nats = provider
 		case "nuts":
 			provider := configurationtypes.CacheProvider{}
 			nutsConfiguration, _ := defaultCacheV.Map()

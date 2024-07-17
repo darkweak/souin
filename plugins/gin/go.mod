@@ -41,8 +41,9 @@ require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.3 // indirect
 	github.com/darkweak/go-esi v0.0.6 // indirect
 	github.com/darkweak/storages/badger v0.0.4 // indirect
-	github.com/darkweak/storages/core v0.0.4 // indirect
+	github.com/darkweak/storages/core v0.0.5 // indirect
 	github.com/darkweak/storages/etcd v0.0.4 // indirect
+	github.com/darkweak/storages/nats v0.0.5 // indirect
 	github.com/darkweak/storages/nuts v0.0.4 // indirect
 	github.com/darkweak/storages/olric v0.0.4 // indirect
 	github.com/darkweak/storages/otter v0.0.4 // indirect
@@ -117,6 +118,9 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/mschoch/smat v0.2.0 // indirect
+	github.com/nats-io/nats.go v1.36.0 // indirect
+	github.com/nats-io/nkeys v0.4.7 // indirect
+	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/nutsdb/nutsdb v1.0.4 // indirect
 	github.com/onsi/ginkgo/v2 v2.15.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.9 // indirect

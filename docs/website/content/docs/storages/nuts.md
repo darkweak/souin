@@ -1,5 +1,5 @@
 +++
-weight = 404
+weight = 406
 title = "Nuts"
 icon = "home_storage"
 description = "Nuts is an in-memory/filesystem storage system"
