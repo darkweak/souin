@@ -511,6 +511,21 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isGlobal boo
 					return h.Errf("mode must contains only one arg: %s given", args)
 				}
 				cfg.DefaultCache.Mode = args[0]
+			case "nats":
+				provider := configurationtypes.CacheProvider{Found: true}
+				for nesting := h.Nesting(); h.NextBlock(nesting); {
+					directive := h.Val()
+					switch directive {
+					case "url":
+						urlArgs := h.RemainingArgs()
+						provider.URL = urlArgs[0]
+					case "configuration":
+						provider.Configuration = parseCaddyfileRecursively(h)
+					default:
+						return h.Errf("unsupported nats directive: %s", directive)
+					}
+				}
+				cfg.DefaultCache.Nuts = provider
 			case "nuts":
 				provider := configurationtypes.CacheProvider{Found: true}
 				for nesting := h.Nesting(); h.NextBlock(nesting); {
