@@ -67,6 +67,7 @@ build-caddy: ## Build caddy binary
 		--with github.com/darkweak/souin=../.. \
 		--with github.com/darkweak/storages/badger/caddy \
 		--with github.com/darkweak/storages/etcd/caddy \
+		--with github.com/darkweak/storages/nats/caddy \
 		--with github.com/darkweak/storages/nuts/caddy \
 		--with github.com/darkweak/storages/olric/caddy \
 		--with github.com/darkweak/storages/otter/caddy \
@@ -87,6 +88,7 @@ build-caddy-dev: ## Build caddy binary
 		--with github.com/darkweak/storages/redis/caddy=../../../storages/redis/caddy \
 		--with github.com/darkweak/storages/badger=../../../storages/badger \
 		--with github.com/darkweak/storages/etcd=../../../storages/etcd \
+		--with github.com/darkweak/storages/nats=../../../storages/nats \
 		--with github.com/darkweak/storages/nuts=../../../storages/nuts \
 		--with github.com/darkweak/storages/olric=../../../storages/olric \
 		--with github.com/darkweak/storages/otter=../../../storages/otter \

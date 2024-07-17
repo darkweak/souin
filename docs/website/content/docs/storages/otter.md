@@ -1,5 +1,5 @@
 +++
-weight = 406
+weight = 408
 title = "Otter"
 icon = "home_storage"
 description = "Otter is an in-memory/filesystem storage system"

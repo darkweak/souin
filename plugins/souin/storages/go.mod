@@ -2,11 +2,14 @@ module github.com/darkweak/souin/plugins/souin/storages
 
 go 1.22.1
 
+replace github.com/darkweak/souin => ../../..
+
 require (
 	github.com/darkweak/souin v1.6.49
 	github.com/darkweak/storages/badger v0.0.4
-	github.com/darkweak/storages/core v0.0.4
+	github.com/darkweak/storages/core v0.0.5
 	github.com/darkweak/storages/etcd v0.0.4
+	github.com/darkweak/storages/nats v0.0.5
 	github.com/darkweak/storages/nuts v0.0.4
 	github.com/darkweak/storages/olric v0.0.4
 	github.com/darkweak/storages/otter v0.0.4
@@ -55,6 +58,9 @@ require (
 	github.com/maypok86/otter v1.2.1 // indirect
 	github.com/miekg/dns v1.1.59 // indirect
 	github.com/mschoch/smat v0.2.0 // indirect
+	github.com/nats-io/nats.go v1.36.0 // indirect
+	github.com/nats-io/nkeys v0.4.7 // indirect
+	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/nutsdb/nutsdb v1.0.4 // indirect
 	github.com/pierrec/lz4/v4 v4.1.21 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
@@ -72,6 +78,7 @@ require (
 	go.etcd.io/etcd/client/v3 v3.5.14 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
+	golang.org/x/crypto v0.23.0 // indirect
 	golang.org/x/mod v0.17.0 // indirect
 	golang.org/x/net v0.25.0 // indirect
 	golang.org/x/sync v0.7.0 // indirect
