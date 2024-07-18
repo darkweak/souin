@@ -239,9 +239,15 @@ func (s *SouinBaseHandler) Store(
 
 	ma := currentMatchedURL.TTL.Duration
 	if responseCc.SMaxAge >= 0 {
-		ma = time.Duration(responseCc.SMaxAge) * time.Second
+		current := time.Duration(responseCc.SMaxAge) * time.Second
+		if ma > current {
+			ma = time.Duration(responseCc.SMaxAge) * time.Second
+		}
 	} else if responseCc.MaxAge >= 0 {
-		ma = time.Duration(responseCc.MaxAge) * time.Second
+		current := time.Duration(responseCc.MaxAge) * time.Second
+		if ma > current {
+			ma = time.Duration(responseCc.MaxAge) * time.Second
+		}
 	}
 
 	now := rq.Context().Value(context.Now).(time.Time)
