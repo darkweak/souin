@@ -43,9 +43,11 @@ type CustomWriter struct {
 func (r *CustomWriter) Header() http.Header {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
-	if r.headersSent {
+
+	if r.headersSent || r.Req.Context().Err() != nil {
 		return http.Header{}
 	}
+
 	return r.Rw.Header()
 }
 
