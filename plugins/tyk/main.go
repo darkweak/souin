@@ -190,6 +190,7 @@ func SouinRequestHandler(rw http.ResponseWriter, baseRq *http.Request) {
 	defer s.bufPool.Put(bufPool)
 	if !requestCc.NoCache {
 		validator := rfc.ParseRequest(rq)
+		var storerName string
 		var fresh, stale *http.Response
 		finalKey := cachedKey
 		if rq.Context().Value(context.Hashed).(bool) {
@@ -199,6 +200,7 @@ func SouinRequestHandler(rw http.ResponseWriter, baseRq *http.Request) {
 			fresh, stale = currentStorer.GetMultiLevel(finalKey, rq, validator)
 
 			if fresh != nil || stale != nil {
+				storerName = currentStorer.Name()
 				fmt.Printf("Found at least one valid response in the %s storage\n", currentStorer.Name())
 				break
 			}
@@ -206,7 +208,7 @@ func SouinRequestHandler(rw http.ResponseWriter, baseRq *http.Request) {
 
 		if fresh != nil && (!modeContext.Strict || rfc.ValidateCacheControl(fresh, requestCc)) {
 			response := fresh
-			rfc.SetCacheStatusHeader(response)
+			rfc.SetCacheStatusHeader(response, storerName)
 			if rfc.ValidateMaxAgeCachedResponse(requestCc, response) != nil {
 				for hn, hv := range response.Header {
 					rw.Header().Set(hn, strings.Join(hv, ", "))
@@ -220,7 +222,7 @@ func SouinRequestHandler(rw http.ResponseWriter, baseRq *http.Request) {
 
 			if nil != response && rfc.ValidateCacheControl(response, requestCc) {
 				addTime, _ := time.ParseDuration(response.Header.Get(rfc.StoredTTLHeader))
-				rfc.SetCacheStatusHeader(response)
+				rfc.SetCacheStatusHeader(response, storerName)
 
 				responseCc, _ := cacheobject.ParseResponseCacheControl(response.Header.Get("Cache-Control"))
 				if responseCc.StaleIfError > 0 {

@@ -57,7 +57,7 @@ func Test_SouinBeegoPlugin_Middleware(t *testing.T) {
 	req.Header = http.Header{}
 	web.BeeApp.Handlers.ServeHTTP(res, req)
 
-	if res.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-http-example.com-/handled; detail=DEFAULT" {
+	if res.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-http-example.com-/handled" {
 		t.Error("The response must contain a Cache-Status header with the stored directive.")
 	}
 

@@ -429,9 +429,9 @@ func (s *SouinBaseHandler) Upstream(
 			}
 		}
 
-		_, cacheControl := s.SurrogateKeyStorer.GetSurrogateControl(customWriter.Header())
+		headerName, cacheControl := s.SurrogateKeyStorer.GetSurrogateControl(customWriter.Header())
 		if cacheControl == "" {
-			// customWriter.Header().Set(headerName, s.DefaultMatchedUrl.DefaultCacheControl)
+			customWriter.Header().Set(headerName, s.DefaultMatchedUrl.DefaultCacheControl)
 		}
 
 		err := s.Store(customWriter, rq, requestCc, cachedKey)
