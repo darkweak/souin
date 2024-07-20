@@ -40,7 +40,7 @@ func TestGetDefaultRequest(t *testing.T) {
 	}
 
 	rr2 := ut.PerformRequest(engine, http.MethodGet, "http://domain.com/default", nil)
-	if rr2.Result().Header.Get("Cache-Status") != "Souin; hit; ttl=4; key=GET-http-domain.com-/default" {
+	if rr2.Result().Header.Get("Cache-Status") != "Souin; hit; ttl=4; key=GET-http-domain.com-/default; detail=DEFAULT" {
 		t.Errorf("The Cache-Status header response mismatched the expectations, %s given.", rr2.Result().Header.Get("Cache-Status"))
 	}
 	if rr2.Result().Header.Get("Age") != "1" {
@@ -84,7 +84,7 @@ func TestGetDefaultRequest(t *testing.T) {
 		Key:   "Cache-Control",
 		Value: "no-store",
 	})
-	if rr1.Result().Header.Get("Cache-Status") != "Souin; hit; ttl=4; key=GET-http-domain.com-/default" {
+	if rr1.Result().Header.Get("Cache-Status") != "Souin; hit; ttl=4; key=GET-http-domain.com-/default; detail=DEFAULT" {
 		t.Errorf("The Cache-Status header response mismatched the expectations, %s given.", rr1.Result().Header.Get("Cache-Status"))
 	}
 	if rr1.Result().Header.Get("Age") != "1" {
@@ -150,7 +150,7 @@ func validateStoreAllowedMethods(t *testing.T, engine *route.Engine, method stri
 	}
 
 	rr2 := ut.PerformRequest(engine, method, "http://domain.com/allowed_methods", nil)
-	if rr2.Result().Header.Get("Cache-Status") != fmt.Sprintf("Souin; hit; ttl=4; key=%s-http-domain.com-/allowed_methods", method) {
+	if rr2.Result().Header.Get("Cache-Status") != fmt.Sprintf("Souin; hit; ttl=4; key=%s-http-domain.com-/allowed_methods; detail=DEFAULT", method) {
 		t.Errorf("The Cache-Status header response mismatched the expectations, %s given.", rr2.Result().Header.Get("Cache-Status"))
 	}
 	if rr2.Result().Header.Get("Age") != "1" {
