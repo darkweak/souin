@@ -144,6 +144,7 @@ func (s *SouinAPI) listKeys(search string) []string {
 var storageToInfiniteTTLMap = map[string]time.Duration{
 	"BADGER":                 types.OneYearDuration,
 	"ETCD":                   types.OneYearDuration,
+	"GO-REDIS":               0,
 	"NUTS":                   0,
 	"OLRIC":                  types.OneYearDuration,
 	"OTTER":                  types.OneYearDuration,

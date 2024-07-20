@@ -411,7 +411,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 
 		if response != nil && (!modeContext.Strict || rfc.ValidateCacheControl(response, requestCc)) {
 			if validator.ResponseETag != "" && validator.Matched {
-				rfc.SetCacheStatusHeader(response)
+				rfc.SetCacheStatusHeader(response, "DEFAULT")
 				customWriter.Headers = response.Header
 				if validator.NotModified {
 					customWriter.statusCode = http.StatusNotModified
@@ -440,7 +440,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 
 				return err
 			}
-			rfc.SetCacheStatusHeader(response)
+			rfc.SetCacheStatusHeader(response, "DEFAULT")
 			if !modeContext.Strict || rfc.ValidateMaxAgeCachedResponse(requestCc, response) != nil {
 				customWriter.Headers = response.Header
 				customWriter.statusCode = response.StatusCode
@@ -458,7 +458,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 			}
 			if nil != response && (!modeContext.Strict || rfc.ValidateCacheControl(response, requestCc)) {
 				addTime, _ := time.ParseDuration(response.Header.Get(rfc.StoredTTLHeader))
-				rfc.SetCacheStatusHeader(response)
+				rfc.SetCacheStatusHeader(response, "DEFAULT")
 
 				responseCc, _ := cacheobject.ParseResponseCacheControl(response.Header.Get("Cache-Control"))
 				if responseCc.StaleWhileRevalidate > 0 {
@@ -502,7 +502,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 
 					if customWriter.statusCode == http.StatusNotModified {
 						if !validator.Matched {
-							rfc.SetCacheStatusHeader(response)
+							rfc.SetCacheStatusHeader(response, "DEFAULT")
 							customWriter.statusCode = response.StatusCode
 							customWriter.Headers = response.Header
 							_, _ = io.Copy(customWriter.Buf, response.Body)

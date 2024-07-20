@@ -810,8 +810,9 @@ func TestVaryHandler(t *testing.T) {
 			t.Error("The object is not type of *http.Response")
 		}
 
+		nextTTL := ttl - 1
 		if (rs.Header.Get("Cache-Status") != fmt.Sprintf("Souin; hit; ttl=%d; key=GET-http-localhost:9080-/vary-multiple; detail=DEFAULT", ttl) || rs.Header.Get("Age") != fmt.Sprint(120-ttl)) &&
-			(rs.Header.Get("Cache-Status") != fmt.Sprintf("Souin; hit; ttl=%d; key=GET-http-localhost:9080-/vary-multiple; detail=DEFAULT", ttl-1) || rs.Header.Get("Age") != fmt.Sprint(120-ttl-1)) {
+			(rs.Header.Get("Cache-Status") != fmt.Sprintf("Souin; hit; ttl=%d; key=GET-http-localhost:9080-/vary-multiple; detail=DEFAULT", nextTTL) || rs.Header.Get("Age") != fmt.Sprint(120-nextTTL)) {
 			t.Errorf("The response doesn't match the expected header or age: %s => %s", rs.Header.Get("Cache-Status"), rs.Header.Get("Age"))
 		}
 	}
@@ -1036,4 +1037,12 @@ func TestExpires(t *testing.T) {
 	cacheChecker(caddyTester, "/expires-only", "Hello, expires-only!", int(expiresValue.Sub(time.Now()).Seconds())-1)
 	cacheChecker(caddyTester, "/expires-with-max-age", "Hello, expires-with-max-age!", 59)
 	cacheChecker(caddyTester, "/expires-with-s-maxage", "Hello, expires-with-s-maxage!", 4)
+}
+
+type testCancelHandler struct{}
+
+func (t *testCancelHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Request")
+	time.Sleep(time.Second)
+	_, _ = w.Write([]byte("Hello, cancel-handler!"))
 }
