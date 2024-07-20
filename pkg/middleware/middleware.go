@@ -237,17 +237,30 @@ func (s *SouinBaseHandler) Store(
 		}
 	}
 
+	hasFreshness := false
 	ma := currentMatchedURL.TTL.Duration
 	if responseCc.SMaxAge >= 0 {
-		current := time.Duration(responseCc.SMaxAge) * time.Second
-		if ma > current {
-			ma = time.Duration(responseCc.SMaxAge) * time.Second
-		}
+		ma = time.Duration(responseCc.SMaxAge) * time.Second
 	} else if responseCc.MaxAge >= 0 {
-		current := time.Duration(responseCc.MaxAge) * time.Second
-		if ma > current {
-			ma = time.Duration(responseCc.MaxAge) * time.Second
+		ma = time.Duration(responseCc.MaxAge) * time.Second
+	} else if customWriter.Header().Get("Expires") != "" {
+		exp, err := time.Parse(time.RFC1123, customWriter.Header().Get("Expires"))
+		if err != nil {
+			return nil
 		}
+
+		duration := time.Until(exp)
+		if duration <= 0 || duration > 10*types.OneYearDuration {
+			return nil
+		}
+
+		date, _ := time.Parse(time.RFC1123, customWriter.Header().Get("Date"))
+		if date.Sub(exp) > 0 {
+			return nil
+		}
+
+		ma = duration
+		hasFreshness = true
 	}
 
 	now := rq.Context().Value(context.Now).(time.Time)
@@ -255,16 +268,9 @@ func (s *SouinBaseHandler) Store(
 	customWriter.Header().Set(rfc.StoredTTLHeader, ma.String())
 	ma = ma - time.Since(date)
 
-	if exp := customWriter.Header().Get("Expires"); exp != "" {
-		delta, _ := time.Parse(exp, time.RFC1123)
-		if sub := delta.Sub(now); sub > 0 {
-			ma = sub
-		}
-	}
-
 	status := fmt.Sprintf("%s; fwd=uri-miss", rq.Context().Value(context.CacheName))
 	if (modeContext.Bypass_request || !requestCc.NoStore) &&
-		(modeContext.Bypass_response || !responseCc.NoStore) {
+		(modeContext.Bypass_response || !responseCc.NoStore || hasFreshness) {
 		headers := customWriter.Header().Clone()
 		for hname, shouldDelete := range responseCc.NoCache {
 			if shouldDelete {
@@ -423,9 +429,9 @@ func (s *SouinBaseHandler) Upstream(
 			}
 		}
 
-		headerName, cacheControl := s.SurrogateKeyStorer.GetSurrogateControl(customWriter.Header())
+		_, cacheControl := s.SurrogateKeyStorer.GetSurrogateControl(customWriter.Header())
 		if cacheControl == "" {
-			customWriter.Header().Set(headerName, s.DefaultMatchedUrl.DefaultCacheControl)
+			// customWriter.Header().Set(headerName, s.DefaultMatchedUrl.DefaultCacheControl)
 		}
 
 		err := s.Store(customWriter, rq, requestCc, cachedKey)
@@ -624,6 +630,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 	if modeContext.Bypass_request || !requestCc.NoCache {
 		validator := rfc.ParseRequest(req)
 		var fresh, stale *http.Response
+		var storerName string
 		finalKey := cachedKey
 		if req.Context().Value(context.Hashed).(bool) {
 			finalKey = fmt.Sprint(xxhash.Sum64String(finalKey))
@@ -641,7 +648,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 		if fresh != nil && (!modeContext.Strict || rfc.ValidateCacheControl(fresh, requestCc)) {
 			response := fresh
 			if validator.ResponseETag != "" && validator.Matched {
-				rfc.SetCacheStatusHeader(response)
+				rfc.SetCacheStatusHeader(response, storerName)
 				for h, v := range response.Header {
 					customWriter.Header()[h] = v
 				}
@@ -673,7 +680,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 
 				return err
 			}
-			rfc.SetCacheStatusHeader(response)
+			rfc.SetCacheStatusHeader(response, storerName)
 			if !modeContext.Strict || rfc.ValidateMaxAgeCachedResponse(requestCc, response) != nil {
 				for h, v := range response.Header {
 					customWriter.Header()[h] = v
@@ -691,7 +698,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 
 			if nil != response && (!modeContext.Strict || rfc.ValidateCacheControl(response, requestCc)) {
 				addTime, _ := time.ParseDuration(response.Header.Get(rfc.StoredTTLHeader))
-				rfc.SetCacheStatusHeader(response)
+				rfc.SetCacheStatusHeader(response, storerName)
 
 				responseCc, _ := cacheobject.ParseResponseCacheControl(rfc.HeaderAllCommaSepValuesString(response.Header, "Cache-Control"))
 				if responseCc.StaleWhileRevalidate > 0 {
@@ -738,7 +745,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 
 					if statusCode == http.StatusNotModified {
 						if !validator.Matched {
-							rfc.SetCacheStatusHeader(response)
+							rfc.SetCacheStatusHeader(response, storerName)
 							customWriter.WriteHeader(response.StatusCode)
 							maps.Copy(customWriter.Header(), response.Header)
 							_, _ = io.Copy(customWriter.Buf, response.Body)

@@ -71,7 +71,7 @@ func Test_HttpcacheKratosPlugin_NewHTTPCacheFilter(t *testing.T) {
 	handler.ServeHTTP(res2, req)
 	rs = res2.Result()
 	rs.Body.Close()
-	if rs.Header.Get("Cache-Status") != "Souin; hit; ttl=4; key=GET-http-example.com-/handled" {
+	if rs.Header.Get("Cache-Status") != "Souin; hit; ttl=4; key=GET-http-example.com-/handled; detail=DEFAULT" {
 		t.Error("The response must contain a Cache-Status header with the hit and ttl directives.")
 	}
 	if rs.Header.Get("Age") != "1" {

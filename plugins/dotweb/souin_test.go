@@ -61,7 +61,7 @@ func Test_SouinDotwebPlugin_Middleware(t *testing.T) {
 
 	router.HttpServer.ServeHTTP(res2, req)
 
-	if res2.Result().Header.Get("Cache-Status") != "Souin; hit; ttl=4; key=GET-http-example.com-/handled" {
+	if res2.Result().Header.Get("Cache-Status") != "Souin; hit; ttl=4; key=GET-http-example.com-/handled; detail=DEFAULT" {
 		t.Error("The response must contain a Cache-Status header with the hit and ttl directives.")
 	}
 	if res2.Result().Header.Get("Age") != "1" {
