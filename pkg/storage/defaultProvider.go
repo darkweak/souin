@@ -57,9 +57,9 @@ func (provider *Default) MapKeys(prefix string) map[string]string {
 
 				return true
 			}
-			if v, ok := value.(core.StorageMapper); ok {
+			if v, ok := value.(*core.StorageMapper); ok {
 				for _, v := range v.Mapping {
-					if v.StaleTime.After(now) {
+					if v.StaleTime.AsTime().After(now) {
 						keys[v.RealKey] = string(provider.Get(v.RealKey))
 					}
 				}
@@ -82,7 +82,7 @@ func (provider *Default) ListKeys() []string {
 			mapping, err := core.DecodeMapping(value.([]byte))
 			if err == nil {
 				for _, v := range mapping.Mapping {
-					if v.StaleTime.After(now) {
+					if v.StaleTime.AsTime().After(now) {
 						keys = append(keys, v.RealKey)
 					} else {
 						provider.m.Delete(v.RealKey)
