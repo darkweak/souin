@@ -141,8 +141,6 @@ github.com/darkweak/go-esi v0.0.5 h1:b9LHI8Tz46R+i6p8avKPHAIBRQUCZDebNmKm5w/Zrns
 github.com/darkweak/go-esi v0.0.5/go.mod h1:koCJqwum1u6mslyZuq/Phm6hfG1K3ZK5Y7jrUBTH654=
 github.com/darkweak/storages/badger v0.0.4 h1:m6VSwrsKQ17+7/ZDOiEuQT8IHmr+WW5Y6ZfgTKFxIxM=
 github.com/darkweak/storages/badger v0.0.4/go.mod h1:v/U7iLG6qYT0qp9IKLmr/m6doBaQNcSJxvB3UlfsIbU=
-github.com/darkweak/storages/core v0.0.5 h1:pRkzBvVjVVgEXTdUIfqq10ihPMfYveWfqRc2C9OGTwI=
-github.com/darkweak/storages/core v0.0.5/go.mod h1:wLp1cOAB4WUd46BBOtV4Lwot4GD+8fZbtIw6QM7fYuc=
 github.com/darkweak/storages/etcd v0.0.4 h1:IdghlFAP+uv2sErKgtDfccPWQmVrlqk3GlvFVuRvdz4=
 github.com/darkweak/storages/etcd v0.0.4/go.mod h1:kBMLaPQDZBrxPQqS1u+oooNwWfP6Y3qUHnNCLnfLcIA=
 github.com/darkweak/storages/nats v0.0.5 h1:IKTx6teTIFSMvv7kRXz1jbSDeaJjE0BmB0GKe1XW3Mw=

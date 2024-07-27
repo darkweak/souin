@@ -1,4 +1,4 @@
-//go:build !wasi && !wasm
+//go:build wasi || wasm
 
 package storage
 
@@ -18,9 +18,8 @@ import (
 
 // Default provider type
 type Default struct {
-	m      *sync.Map
-	stale  time.Duration
-	logger core.Logger
+	m     *sync.Map
+	stale time.Duration
 }
 
 type item struct {
@@ -30,7 +29,7 @@ type item struct {
 
 // Factory function create new Default instance
 func Factory(c configurationtypes.AbstractConfigurationInterface) (types.Storer, error) {
-	return &Default{m: &sync.Map{}, logger: c.GetLogger(), stale: c.GetDefaultCache().GetStale()}, nil
+	return &Default{m: &sync.Map{}, stale: c.GetDefaultCache().GetStale()}, nil
 }
 
 // Name returns the storer name
@@ -124,7 +123,7 @@ func (provider *Default) GetMultiLevel(key string, req *http.Request, validator 
 		return
 	}
 
-	fresh, stale, _ = core.MappingElection(provider, result.([]byte), req, validator, provider.logger)
+	fresh, stale, _ = core.MappingElection(provider, result.([]byte), req, validator, nil)
 
 	return
 }
@@ -136,7 +135,6 @@ func (provider *Default) SetMultiLevel(baseKey, variedKey string, value []byte, 
 	var e error
 	compressed := new(bytes.Buffer)
 	if _, e = lz4.NewWriter(compressed).ReadFrom(bytes.NewReader(value)); e != nil {
-		provider.logger.Errorf("Impossible to compress the key %s into Badger, %v", variedKey, e)
 		return e
 	}
 
@@ -152,12 +150,11 @@ func (provider *Default) SetMultiLevel(baseKey, variedKey string, value []byte, 
 		val = item.([]byte)
 	}
 
-	val, e = core.MappingUpdater(variedKey, val, provider.logger, now, now.Add(duration), now.Add(duration+provider.stale), variedHeaders, etag, realKey)
+	val, e = core.MappingUpdater(variedKey, val, nil, now, now.Add(duration), now.Add(duration+provider.stale), variedHeaders, etag, realKey)
 	if e != nil {
 		return e
 	}
 
-	provider.logger.Debugf("Store the new mapping for the key %s in Default", variedKey)
 	provider.m.Store(mappingKey, val)
 	return nil
 }

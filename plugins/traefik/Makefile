@@ -1,11 +1,11 @@
-.PHONY: copy-file-to copy-to load-checker prepare replace vendor
+.PHONY: copy-file-to copy-to load-checker prepare replace vendor wasm
 
 SOUIN=vendor/github.com/darkweak/souin
 PKG=$(SOUIN)/pkg
 API=$(SOUIN)/api
 PKG_API=$(PKG)/api
 CACHE=$(SOUIN)/cache
-DC=docker compose -f docker-compose.yml.test
+DC=docker compose -f docker-compose.test.yml
 
 copy-to: ## Copy from to
 	rm -rf $(base)/$(target)
@@ -18,9 +18,9 @@ copy-file-to: ## Copy file from to
 load-checker: ## Ensure Souin is running
 	echo "MIDDLEWARE_RESULT=$$($(DC) logs traefik | grep 'Souin configuration' | tail -n 1)"
 
-prepare: vendor ## Prepare traefik plugin
+prepare: wasm ## Prepare traefik plugin
 	$(DC) down --remove-orphans
-	$(DC) up -d
+	$(DC) up
 
 # TODO find another way to do that
 replace: ## Replace sources in the vendor folder deeper than the go mod replace
@@ -36,5 +36,10 @@ replace: ## Replace sources in the vendor folder deeper than the go mod replace
 vendor: ## Generate vendors for the plugin
 	go mod tidy
 	go mod download
-	go mod vendor
-	$(MAKE) replace
+#	go mod vendor
+#	$(MAKE) replace
+
+wasm: ## Build the wasm plugin
+	cd wasm && go mod tidy
+	cd wasm && tinygo build -o plugin.wasm -scheduler=asyncify --no-debug -target=wasi ./...
+	cd wazero && go run wazero.go

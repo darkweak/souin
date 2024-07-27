@@ -26,7 +26,7 @@ func (m *methodContext) SetupContext(c configurationtypes.AbstractConfigurationI
 		m.allowedVerbs = c.GetDefaultCache().GetAllowedHTTPVerbs()
 		m.custom = true
 	}
-	c.GetLogger().Sugar().Debugf("Allow %d method(s). %v.", len(m.allowedVerbs), m.allowedVerbs)
+	// c.GetLogger().Debugf("Allow %d method(s). %v.", len(m.allowedVerbs), m.allowedVerbs)
 }
 
 func (m *methodContext) SetContext(req *http.Request) *http.Request {

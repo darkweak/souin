@@ -1,4 +1,4 @@
-//go:build !wasi && !wasm
+//go:build wasi || wasm
 
 package context
 
@@ -7,8 +7,6 @@ import (
 	"net/http"
 	"regexp"
 
-	"github.com/caddyserver/caddy/v2"
-	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
 	"github.com/darkweak/souin/configurationtypes"
 )
 
@@ -68,17 +66,8 @@ func (g *keyContext) SetupContext(c configurationtypes.AbstractConfigurationInte
 		}
 	}
 
-	switch c.GetPluginName() {
-	case "caddy":
-		g.initializer = func(r *http.Request) *http.Request {
-			return r
-		}
-	default:
-		g.initializer = func(r *http.Request) *http.Request {
-			repl := caddy.NewReplacer()
-
-			return caddyhttp.PrepareRequest(r, repl, nil, nil)
-		}
+	g.initializer = func(r *http.Request) *http.Request {
+		return r
 	}
 }
 
@@ -118,9 +107,6 @@ func parseKeyInformations(req *http.Request, kCtx keyContext) (query, body, host
 }
 
 func (g *keyContext) computeKey(req *http.Request) (key string, headers []string, hash, displayable bool) {
-	if g.template != "" {
-		return req.Context().Value(caddy.ReplacerCtxKey).(*caddy.Replacer).ReplaceAll(g.template, ""), g.headers, g.hash, g.displayable
-	}
 	key = req.URL.Path
 	query, body, host, scheme, method, headerValues, headers, displayable, hash := parseKeyInformations(req, *g)
 
@@ -128,9 +114,6 @@ func (g *keyContext) computeKey(req *http.Request) (key string, headers []string
 	for _, current := range g.overrides {
 		for k, v := range current {
 			if k.MatchString(req.RequestURI) {
-				if v.template != "" {
-					return req.Context().Value(caddy.ReplacerCtxKey).(*caddy.Replacer).ReplaceAll(v.template, ""), v.headers, v.hash, v.displayable
-				}
 				query, body, host, scheme, method, headerValues, headers, displayable, hash = parseKeyInformations(req, v)
 				hasOverride = true
 				break

@@ -1,4 +1,4 @@
-//go:build !wasi && !wasm
+//go:build wasi || wasm
 
 package middleware
 
@@ -10,7 +10,6 @@ import (
 	"io"
 	"maps"
 	"net/http"
-	"net/http/httputil"
 	"regexp"
 	"strings"
 	"sync"
@@ -30,41 +29,10 @@ import (
 	"github.com/darkweak/storages/core"
 	"github.com/google/uuid"
 	"github.com/pquerna/cachecontrol/cacheobject"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 	"golang.org/x/sync/singleflight"
 )
 
 func NewHTTPCacheHandler(c configurationtypes.AbstractConfigurationInterface) *SouinBaseHandler {
-	if c.GetLogger() == nil {
-		var logLevel zapcore.Level
-		if c.GetLogLevel() == "" {
-			logLevel = zapcore.FatalLevel
-		} else if err := logLevel.UnmarshalText([]byte(c.GetLogLevel())); err != nil {
-			logLevel = zapcore.FatalLevel
-		}
-		cfg := zap.Config{
-			Encoding:         "json",
-			Level:            zap.NewAtomicLevelAt(logLevel),
-			OutputPaths:      []string{"stderr"},
-			ErrorOutputPaths: []string{"stderr"},
-			EncoderConfig: zapcore.EncoderConfig{
-				MessageKey: "message",
-
-				LevelKey:    "level",
-				EncodeLevel: zapcore.CapitalLevelEncoder,
-
-				TimeKey:    "time",
-				EncodeTime: zapcore.ISO8601TimeEncoder,
-
-				CallerKey:    "caller",
-				EncodeCaller: zapcore.ShortCallerEncoder,
-			},
-		}
-		logger, _ := cfg.Build()
-		c.SetLogger(logger.Sugar())
-	}
-
 	storedStorers := core.GetRegisteredStorers()
 	storers := []types.Storer{}
 	if len(storedStorers) != 0 {
@@ -99,6 +67,7 @@ func NewHTTPCacheHandler(c configurationtypes.AbstractConfigurationInterface) *S
 
 	c.GetLogger().Debugf("Storer initialized: %#v.", storers)
 	regexpUrls := helpers.InitializeRegexp(c)
+	c.GetLogger().Debugf("You're running Souin with the following storages %v", storers)
 	surrogateStorage := surrogate.InitializeSurrogate(c, fmt.Sprintf("%s-%s", storers[0].Name(), storers[0].Uuid()))
 	c.GetLogger().Debug("Surrogate storage initialized.")
 	var excludedRegexp *regexp.Regexp = nil
@@ -119,7 +88,8 @@ func NewHTTPCacheHandler(c configurationtypes.AbstractConfigurationInterface) *S
 		Headers:             c.GetDefaultCache().GetHeaders(),
 		DefaultCacheControl: c.GetDefaultCache().GetDefaultCacheControl(),
 	}
-	c.GetLogger().Info("Souin configuration is now loaded.")
+	c.GetLogger().Info("Souin configuration is now loaded.", bufPool, defaultMatchedUrl)
+	c.GetLogger().Infof("GenerateHM => %#v", api.GenerateHandlerMap(c, storers, surrogateStorage))
 
 	return &SouinBaseHandler{
 		Configuration:            c,
@@ -187,6 +157,62 @@ func canBypassAuthorizationRestriction(headers http.Header, bypassed []string) b
 	return strings.Contains(strings.ToLower(headers.Get("Vary")), "authorization")
 }
 
+var errNoBody = errors.New("sentinel error value")
+var emptyBody = io.NopCloser(strings.NewReader(""))
+
+type failureToReadBody struct{}
+
+func drainBody(b io.ReadCloser) (r1, r2 io.ReadCloser, err error) {
+	if b == nil || b == http.NoBody {
+		// No copying needed. Preserve the magic sentinel meaning of NoBody.
+		return http.NoBody, http.NoBody, nil
+	}
+	var buf bytes.Buffer
+	if _, err = buf.ReadFrom(b); err != nil {
+		return nil, b, err
+	}
+	if err = b.Close(); err != nil {
+		return nil, b, err
+	}
+	return io.NopCloser(&buf), io.NopCloser(bytes.NewReader(buf.Bytes())), nil
+}
+
+func (failureToReadBody) Read([]byte) (int, error) { return 0, errNoBody }
+func (failureToReadBody) Close() error             { return nil }
+func dumpResponse(resp *http.Response, body bool) ([]byte, error) {
+	var b bytes.Buffer
+	var err error
+	save := resp.Body
+	savecl := resp.ContentLength
+
+	if !body {
+		// For content length of zero. Make sure the body is an empty
+		// reader, instead of returning error through failureToReadBody{}.
+		if resp.ContentLength == 0 {
+			resp.Body = emptyBody
+		} else {
+			resp.Body = failureToReadBody{}
+		}
+	} else if resp.Body == nil {
+		resp.Body = emptyBody
+	} else {
+		save, resp.Body, err = drainBody(resp.Body)
+		if err != nil {
+			return nil, err
+		}
+	}
+	err = resp.Write(&b)
+	if err == errNoBody {
+		err = nil
+	}
+	resp.Body = save
+	resp.ContentLength = savecl
+	if err != nil {
+		return nil, err
+	}
+	return b.Bytes(), nil
+}
+
 func (s *SouinBaseHandler) Store(
 	customWriter *CustomWriter,
 	rq *http.Request,
@@ -215,7 +241,7 @@ func (s *SouinBaseHandler) Store(
 		customWriter.Header().Set(headerName, s.DefaultMatchedUrl.DefaultCacheControl)
 	}
 
-	responseCc, _ := cacheobject.ParseResponseCacheControl(rfc.HeaderAllCommaSepValuesString(customWriter.Header(), headerName))
+	responseCc, _ := cacheobject.ParseResponseCacheControl(rfc.HeaderAllCommaSepValuesString(customWriter.Header(), "headerName"))
 	s.Configuration.GetLogger().Debugf("Response cache-control %+v", responseCc)
 	if responseCc == nil {
 		customWriter.Header().Set("Cache-Status", fmt.Sprintf("%s; fwd=uri-miss; key=%s; detail=INVALID-RESPONSE-CACHE-CONTROL", rq.Context().Value(context.CacheName), rfc.GetCacheKeyFromCtx(rq.Context())))
@@ -234,13 +260,13 @@ func (s *SouinBaseHandler) Store(
 		if u.TTL.Duration != 0 {
 			currentMatchedURL.TTL = u.TTL
 		}
-		// if len(u.Headers) != 0 {
-		// 	currentMatchedURL.Headers = u.Headers
-		// }
+		if len(u.Headers) != 0 {
+			currentMatchedURL.Headers = u.Headers
+		}
 	}
 
 	hasFreshness := false
-	ma := currentMatchedURL.TTL.Duration
+	ma := time.Second
 	if responseCc.SMaxAge >= 0 {
 		ma = time.Duration(responseCc.SMaxAge) * time.Second
 	} else if responseCc.MaxAge >= 0 {
@@ -304,7 +330,7 @@ func (s *SouinBaseHandler) Store(
 			return nil
 		}
 		res.Header.Set(rfc.StoredLengthHeader, res.Header.Get("Content-Length"))
-		response, err := httputil.DumpResponse(&res, true)
+		response, err := dumpResponse(&res, true)
 		if err == nil && (bLen > 0 || canStatusCodeEmptyContent(statusCode)) {
 			variedHeaders, isVaryStar := rfc.VariedHeaderAllCommaSepValues(res.Header)
 			if isVaryStar {
@@ -391,7 +417,6 @@ func (s *SouinBaseHandler) Upstream(
 	cachedKey string,
 ) error {
 	s.Configuration.GetLogger().Debug("Request the upstream server")
-	prometheus.Increment(prometheus.RequestCounter)
 
 	var recoveredFromErr error = nil
 	defer func() {
@@ -403,7 +428,7 @@ func (s *SouinBaseHandler) Upstream(
 			if !ok || errors.Is(err, http.ErrAbortHandler) {
 				recoveredFromErr = http.ErrAbortHandler
 			} else {
-				// panic(err)
+				panic(err)
 			}
 		}
 	}()
@@ -447,7 +472,7 @@ func (s *SouinBaseHandler) Upstream(
 		}, err
 	})
 	if recoveredFromErr != nil {
-		// panic(recoveredFromErr)
+		panic(recoveredFromErr)
 	}
 	if err != nil {
 		return err
@@ -533,8 +558,10 @@ func (s *SouinBaseHandler) Revalidate(validator *core.Revalidator, next handlerF
 }
 
 func (s *SouinBaseHandler) HandleInternally(r *http.Request) (bool, http.HandlerFunc) {
+	s.Configuration.GetLogger().Debugf("Handle internally %#v => %#v", r, s.InternalEndpointHandlers)
 	if s.InternalEndpointHandlers != nil {
 		for k, handler := range *s.InternalEndpointHandlers.Handlers {
+			s.Configuration.GetLogger().Debugf("strings.Contains(r.RequestURI, k) %#v => %#v => %#v", r.RequestURI, k, strings.Contains(r.RequestURI, k))
 			if strings.Contains(r.RequestURI, k) {
 				return true, handler
 			}

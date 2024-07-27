@@ -16,7 +16,7 @@ func Test_TimeoutContext_SetupContext(t *testing.T) {
 	c := testConfiguration{
 		defaultCache: &dc,
 	}
-	c.SetLogger(zap.NewNop())
+	c.SetLogger(zap.NewNop().Sugar())
 	ctx := timeoutContext{}
 
 	ctx.SetupContext(&c)
@@ -61,7 +61,7 @@ func Test_TimeoutContext_SetContext(t *testing.T) {
 	c := testConfiguration{
 		defaultCache: &dc,
 	}
-	c.SetLogger(zap.NewNop())
+	c.SetLogger(zap.NewNop().Sugar())
 	ctx := timeoutContext{}
 	ctx.SetupContext(&c)
 

@@ -1,10 +1,9 @@
-//go:build !wasi && !wasm
+//go:build wasi || wasm
 
 package api
 
 import (
 	"bytes"
-	"encoding/gob"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -73,7 +72,7 @@ func (s *SouinAPI) BulkDelete(key string, purge bool) {
 	for _, current := range s.storers {
 		if b := current.Get(core.MappingKeyPrefix + key); len(b) > 0 {
 			var mapping core.StorageMapper
-			if e := gob.NewDecoder(bytes.NewBuffer(b)).Decode(&mapping); e == nil {
+			if e := json.NewDecoder(bytes.NewBuffer(b)).Decode(&mapping); e == nil {
 				for k := range mapping.Mapping {
 					current.Delete(k)
 				}
@@ -160,7 +159,7 @@ func (s *SouinAPI) purgeMapping() {
 		values := current.MapKeys(core.MappingKeyPrefix)
 		for k, v := range values {
 			var mapping core.StorageMapper
-			e := gob.NewDecoder(bytes.NewBuffer([]byte(v))).Decode(&mapping)
+			e := json.NewDecoder(bytes.NewBuffer([]byte(v))).Decode(&mapping)
 			if e != nil {
 				current.Delete(core.MappingKeyPrefix + k)
 				continue
@@ -176,7 +175,7 @@ func (s *SouinAPI) purgeMapping() {
 
 			if updated {
 				buf := new(bytes.Buffer)
-				e = gob.NewEncoder(buf).Encode(mapping)
+				e = json.NewEncoder(buf).Encode(mapping)
 				if e != nil {
 					fmt.Println("Impossible to re-encode the mapping", core.MappingKeyPrefix+k)
 					current.Delete(core.MappingKeyPrefix + k)

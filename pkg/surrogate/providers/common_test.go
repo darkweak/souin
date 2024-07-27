@@ -31,7 +31,7 @@ func mockCommonProvider() *baseStorage {
 			keysRegexp: make(map[string]keysRegexpInner),
 			dynamic:    true,
 			mu:         &sync.Mutex{},
-			logger:     zap.NewNop(),
+			logger:     zap.NewNop().Sugar(),
 		},
 	}
 

@@ -1,6 +1,6 @@
 providers:
   file:
-    filename: /souin-configuration.yaml
+    filename: ./souin-configuration.yaml
     watch: true
 
 api:
@@ -14,7 +14,7 @@ pilot:
 experimental:
   localPlugins:
     souin:
-      moduleName: github.com/darkweak/souin
+      moduleName: github.com/darkweak/souin/plugins/traefik/wasm
 
 log:
   level: DEBUG
