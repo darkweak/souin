@@ -305,6 +305,7 @@ func (s *SouinBaseHandler) Store(
 		}
 		res.Header.Set(rfc.StoredLengthHeader, res.Header.Get("Content-Length"))
 		response, err := httputil.DumpResponse(&res, true)
+		s.Configuration.GetLogger().Debugf("Debug => %#v", err)
 		if err == nil && (bLen > 0 || canStatusCodeEmptyContent(statusCode)) {
 			variedHeaders, isVaryStar := rfc.VariedHeaderAllCommaSepValues(res.Header)
 			if isVaryStar {

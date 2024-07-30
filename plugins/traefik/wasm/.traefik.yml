@@ -16,7 +16,7 @@ testData:
     regex:
       exclude: 'ARegexHere'
     ttl: 10s
-  log_level: debug
+  log_level: info
   urls:
     'domain.com/testing':
       ttl: 2s

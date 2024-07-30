@@ -21,6 +21,9 @@ func newWriter(resp api.Response) *writer {
 	}
 }
 
+func (w *writer) setStatus(status headerStatus) {
+	w.headers.Set(REQUEST_HEADER_NAME, string(status))
+}
 func (w *writer) syncHeaders() {
 	for hname, hvalue := range w.headers {
 		w.Response.Headers().Set(hname, strings.Join(hvalue, ", "))

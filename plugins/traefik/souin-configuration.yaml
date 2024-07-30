@@ -20,4 +20,4 @@ http:
       plugin:
         souin:
           default_cache:
-            ttl: 5s
+            ttl: 120s

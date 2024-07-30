@@ -266,7 +266,7 @@ func (s *SouinBaseHandler) Store(
 	}
 
 	hasFreshness := false
-	ma := time.Second
+	ma := currentMatchedURL.TTL.Duration
 	if responseCc.SMaxAge >= 0 {
 		ma = time.Duration(responseCc.SMaxAge) * time.Second
 	} else if responseCc.MaxAge >= 0 {
@@ -344,8 +344,7 @@ func (s *SouinBaseHandler) Store(
 				}
 				s.Configuration.GetLogger().Debugf("Store the response for %s with duration %v", variedKey, ma)
 
-				var wg sync.WaitGroup
-				mu := sync.Mutex{}
+				// mu := sync.Mutex{}
 				fails := []string{}
 				select {
 				case <-rq.Context().Done():
@@ -357,27 +356,23 @@ func (s *SouinBaseHandler) Store(
 						vhs.Set(hn[0], rq.Header.Get(hn[0]))
 					}
 					for _, storer := range s.Storers {
-						wg.Add(1)
-						go func(currentStorer types.Storer) {
-							defer wg.Done()
-							if currentStorer.SetMultiLevel(
-								cachedKey,
-								variedKey,
-								response,
-								vhs,
-								res.Header.Get("Etag"), ma,
-								variedKey,
-							) == nil {
-								s.Configuration.GetLogger().Debugf("Stored the key %s in the %s provider", variedKey, currentStorer.Name())
-							} else {
-								mu.Lock()
-								fails = append(fails, fmt.Sprintf("; detail=%s-INSERTION-ERROR", currentStorer.Name()))
-								mu.Unlock()
-							}
-						}(storer)
+						if storer.SetMultiLevel(
+							cachedKey,
+							variedKey,
+							response,
+							vhs,
+							res.Header.Get("Etag"),
+							ma,
+							variedKey,
+						) == nil {
+							s.Configuration.GetLogger().Debugf("Stored the key %s in the %s provider for %v duration", variedKey, storer.Name(), ma)
+						} else {
+							// mu.Lock()
+							fails = append(fails, fmt.Sprintf("; detail=%s-INSERTION-ERROR", storer.Name()))
+							// mu.Unlock()
+						}
 					}
 
-					wg.Wait()
 					if len(fails) < s.storersLen {
 						go func(rs http.Response, key string) {
 							_ = s.SurrogateKeyStorer.Store(&rs, key)
@@ -392,6 +387,7 @@ func (s *SouinBaseHandler) Store(
 			}
 
 		} else {
+			s.Configuration.GetLogger().Debugf("Debug => %#v => %#v => %#v", err == nil, bLen > 0, canStatusCodeEmptyContent(statusCode))
 			status += "; detail=UPSTREAM-ERROR-OR-EMPTY-RESPONSE"
 		}
 	} else {
@@ -558,10 +554,8 @@ func (s *SouinBaseHandler) Revalidate(validator *core.Revalidator, next handlerF
 }
 
 func (s *SouinBaseHandler) HandleInternally(r *http.Request) (bool, http.HandlerFunc) {
-	s.Configuration.GetLogger().Debugf("Handle internally %#v => %#v", r, s.InternalEndpointHandlers)
 	if s.InternalEndpointHandlers != nil {
 		for k, handler := range *s.InternalEndpointHandlers.Handlers {
-			s.Configuration.GetLogger().Debugf("strings.Contains(r.RequestURI, k) %#v => %#v => %#v", r.RequestURI, k, strings.Contains(r.RequestURI, k))
 			if strings.Contains(r.RequestURI, k) {
 				return true, handler
 			}
