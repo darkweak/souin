@@ -6,10 +6,14 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/storage/types"
 	"github.com/darkweak/souin/pkg/surrogate/providers"
+	"github.com/darkweak/storages/core"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // SouinAPI object contains informations related to the endpoints
@@ -62,16 +66,43 @@ func initializeSouin(
 }
 
 // BulkDelete allow user to delete multiple items with regexp
-func (s *SouinAPI) BulkDelete(key string) {
+func (s *SouinAPI) BulkDelete(key string, purge bool) {
+	key, _ = strings.CutPrefix(key, core.MappingKeyPrefix)
 	for _, current := range s.storers {
-		current.DeleteMany(key)
+		if b := current.Get(core.MappingKeyPrefix + key); len(b) > 0 {
+			var mapping core.StorageMapper
+
+			if e := proto.Unmarshal(b, &mapping); e == nil {
+				for k := range mapping.GetMapping() {
+					current.Delete(k)
+				}
+			}
+
+			if purge {
+				current.Delete(core.MappingKeyPrefix + key)
+			} else {
+				newFreshTime := time.Now()
+				for k, v := range mapping.Mapping {
+					v.FreshTime = timestamppb.New(newFreshTime)
+					mapping.Mapping[k] = v
+				}
+			}
+		}
 	}
+
+	s.Delete(key)
 }
 
 // Delete will delete a record into the provider cache system and will update the Souin API if enabled
+// The key can be a regexp to delete multiple items
 func (s *SouinAPI) Delete(key string) {
+	_, err := regexp.Compile(key)
 	for _, current := range s.storers {
-		current.Delete(key)
+		if err != nil {
+			current.DeleteMany(key)
+		} else {
+			current.Delete(key)
+		}
 	}
 }
 
@@ -110,6 +141,52 @@ func (s *SouinAPI) listKeys(search string) []string {
 	return res
 }
 
+var storageToInfiniteTTLMap = map[string]time.Duration{
+	"BADGER":                 types.OneYearDuration,
+	"ETCD":                   types.OneYearDuration,
+	"NUTS":                   0,
+	"OLRIC":                  types.OneYearDuration,
+	"OTTER":                  types.OneYearDuration,
+	"REDIS":                  -1,
+	types.DefaultStorageName: types.OneYearDuration,
+}
+
+func (s *SouinAPI) purgeMapping() {
+	now := time.Now()
+	for _, current := range s.storers {
+		infiniteStoreDuration := storageToInfiniteTTLMap[current.Name()]
+		values := current.MapKeys(core.MappingKeyPrefix)
+		for k, v := range values {
+			mapping := &core.StorageMapper{}
+
+			e := proto.Unmarshal([]byte(v), mapping)
+			if e != nil {
+				current.Delete(core.MappingKeyPrefix + k)
+				continue
+			}
+
+			updated := false
+			for key, val := range mapping.GetMapping() {
+				if now.Sub(val.FreshTime.AsTime()) > 0 && now.Sub(val.StaleTime.AsTime()) > 0 {
+					delete(mapping.GetMapping(), key)
+					updated = true
+				}
+			}
+
+			if updated {
+				v, e := proto.Marshal(mapping)
+				if e != nil {
+					fmt.Println("Impossible to re-encode the mapping", core.MappingKeyPrefix+k)
+					current.Delete(core.MappingKeyPrefix + k)
+				}
+				_ = current.Set(core.MappingKeyPrefix+k, v, infiniteStoreDuration)
+			}
+		}
+	}
+
+	fmt.Println("Successfully clear the mappings.")
+}
+
 // HandleRequest will handle the request
 func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 	res := []byte{}
@@ -130,6 +207,7 @@ func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 	case http.MethodPost:
 		var invalidator invalidation
+		defer r.Body.Close()
 		err := json.NewDecoder(r.Body).Decode(&invalidator)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
@@ -195,15 +273,14 @@ func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 		}
 
 		for _, k := range keysToInvalidate {
-			for _, current := range s.storers {
-				current.Delete(k)
-			}
+			s.BulkDelete(k, invalidator.Purge)
 		}
 		w.WriteHeader(http.StatusOK)
 	case "PURGE":
 		if compile {
 			keysRg := regexp.MustCompile(s.GetBasePath() + "/(.+)")
 			flushRg := regexp.MustCompile(s.GetBasePath() + "/flush$")
+			mappingRg := regexp.MustCompile(s.GetBasePath() + "/mapping$")
 
 			if flushRg.FindString(r.RequestURI) != "" {
 				for _, current := range s.storers {
@@ -214,16 +291,16 @@ func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 					fmt.Printf("Error while purging the surrogate keys: %+v.", e)
 				}
 				fmt.Println("Successfully clear the cache and the surrogate keys storage.")
+			} else if mappingRg.FindString(r.RequestURI) != "" {
+				s.purgeMapping()
 			} else {
 				submatch := keysRg.FindAllStringSubmatch(r.RequestURI, -1)[0][1]
-				s.BulkDelete(submatch)
+				s.BulkDelete(submatch, true)
 			}
 		} else {
 			ck, _ := s.surrogateStorage.Purge(r.Header)
 			for _, k := range ck {
-				for _, current := range s.storers {
-					current.Delete(k)
-				}
+				s.BulkDelete(k, true)
 			}
 		}
 		w.WriteHeader(http.StatusNoContent)

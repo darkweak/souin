@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package darkweak.storages;
+option go_package = "./core";
+
+import "google/protobuf/timestamp.proto";
+
+message KeyIndex {
+	message stringList {
+		repeated string header_value = 1;
+	}
+	google.protobuf.Timestamp stored_at = 1;
+	google.protobuf.Timestamp fresh_time = 2;
+	google.protobuf.Timestamp stale_time = 3;
+	map<string, stringList> varied_headers = 4;
+	string etag = 5;
+	string real_key = 6;
+}
+
+message StorageMapper {
+	map<string,KeyIndex> mapping = 1;
+}
