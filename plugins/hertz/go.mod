@@ -33,7 +33,7 @@ require (
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.3 // indirect
 	github.com/darkweak/storages/badger v0.0.4 // indirect
-	github.com/darkweak/storages/core v0.0.5 // indirect
+	github.com/darkweak/storages/core v0.0.6-0.20240731100357-2a602dafc881 // indirect
 	github.com/darkweak/storages/etcd v0.0.4 // indirect
 	github.com/darkweak/storages/nats v0.0.5 // indirect
 	github.com/darkweak/storages/nuts v0.0.4 // indirect
@@ -190,7 +190,7 @@ require (
 	golang.org/x/text v0.15.0 // indirect
 	golang.org/x/tools v0.21.0 // indirect
 	google.golang.org/grpc v1.64.0 // indirect
-	google.golang.org/protobuf v1.34.1 // indirect
+	google.golang.org/protobuf v1.34.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 

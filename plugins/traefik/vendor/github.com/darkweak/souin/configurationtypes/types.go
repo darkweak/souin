@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"go.uber.org/zap"
 	yaml "gopkg.in/yaml.v3"
 )
 
@@ -183,6 +184,10 @@ type URL struct {
 
 // CacheProvider config
 type CacheProvider struct {
+	// Uuid to identify a unique instance.
+	Uuid string
+	// Found to determine if we can use that storage.
+	Found bool `json:"found" yaml:"found"`
 	// URL to connect to the storage system.
 	URL string `json:"url" yaml:"url"`
 	// Path to the configuration file.
@@ -246,7 +251,7 @@ type DefaultCache struct {
 	Timeout             Timeout       `json:"timeout" yaml:"timeout"`
 	TTL                 Duration      `json:"ttl" yaml:"ttl"`
 	DefaultCacheControl string        `json:"default_cache_control" yaml:"default_cache_control"`
-	MaxBodyBytes        uint64        `json:"max_cachable_body_bytes" yaml:"max_cachable_body_bytes"`
+	MaxBodyBytes        uint64        `json:"max_cacheable_body_bytes" yaml:"max_cacheable_body_bytes"`
 	DisableCoalescing   bool          `json:"disable_coalescing" yaml:"disable_coalescing"`
 }
 
@@ -370,6 +375,7 @@ type DefaultCacheInterface interface {
 	GetEtcd() CacheProvider
 	GetMode() string
 	GetOtter() CacheProvider
+	GetNats() CacheProvider
 	GetNuts() CacheProvider
 	GetOlric() CacheProvider
 	GetRedis() CacheProvider
@@ -382,6 +388,7 @@ type DefaultCacheInterface interface {
 	GetTTL() time.Duration
 	GetDefaultCacheControl() string
 	GetMaxBodyBytes() uint64
+	IsCoalescingDisable() bool
 }
 
 // APIEndpoint is the minimal structure to define an endpoint
@@ -432,6 +439,8 @@ type AbstractConfigurationInterface interface {
 	GetDefaultCache() DefaultCacheInterface
 	GetAPI() API
 	GetLogLevel() string
+	GetLogger() *zap.Logger
+	SetLogger(*zap.Logger)
 	GetYkeys() map[string]SurrogateKeys
 	GetSurrogateKeys() map[string]SurrogateKeys
 	GetCacheKeys() CacheKeys
