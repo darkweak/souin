@@ -77,15 +77,22 @@ func (s *SouinAPI) BulkDelete(key string, purge bool) {
 				}
 			}
 
-			if purge {
-				current.Delete(core.MappingKeyPrefix + key)
-			} else {
+			if !purge {
 				newFreshTime := time.Now()
 				for k, v := range mapping.Mapping {
 					v.FreshTime = newFreshTime
 					mapping.Mapping[k] = v
 				}
+
+				buf := bytes.NewBuffer([]byte{})
+				if gob.NewEncoder(buf).Encode(mapping) == nil {
+					_ = current.Set(core.MappingKeyPrefix+key, buf.Bytes(), 0)
+				}
 			}
+		}
+
+		if purge {
+			current.Delete(core.MappingKeyPrefix + key)
 		}
 	}
 
@@ -95,13 +102,8 @@ func (s *SouinAPI) BulkDelete(key string, purge bool) {
 // Delete will delete a record into the provider cache system and will update the Souin API if enabled
 // The key can be a regexp to delete multiple items
 func (s *SouinAPI) Delete(key string) {
-	_, err := regexp.Compile(key)
 	for _, current := range s.storers {
-		if err != nil {
-			current.DeleteMany(key)
-		} else {
-			current.Delete(key)
-		}
+		current.Delete(key)
 	}
 }
 
@@ -143,6 +145,7 @@ func (s *SouinAPI) listKeys(search string) []string {
 var storageToInfiniteTTLMap = map[string]time.Duration{
 	"BADGER":                 types.OneYearDuration,
 	"ETCD":                   types.OneYearDuration,
+	"GO-REDIS":               0,
 	"NUTS":                   0,
 	"OLRIC":                  types.OneYearDuration,
 	"OTTER":                  types.OneYearDuration,

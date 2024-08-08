@@ -7,7 +7,7 @@ tags = ["Beginners", "Advanced"]
 +++
 
 ## Build the roadrunner binary
-First you need to build your roadrunner instance with the cache dependency. You should use [velox](github.com/roadrunner-server/velox) for that.
+First you need to build your roadrunner instance with the cache dependency. You should use [velox](https://github.com/roadrunner-server/velox) for that.
 
 Define a `configuration.toml` file to tell velox what and how it must build.
 ```toml
