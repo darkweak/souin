@@ -1046,4 +1046,3 @@ func (t *testCancelHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	time.Sleep(time.Second)
 	_, _ = w.Write([]byte("Hello, cancel-handler!"))
 }
-*/
