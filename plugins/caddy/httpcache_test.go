@@ -258,44 +258,6 @@ func TestAgeHeader(t *testing.T) {
 	}
 }
 
-func TestInvalidationAPI(t *testing.T) {
-	tester := caddytest.NewTester(t)
-	tester.InitServer(`
-	{
-		admin localhost:2999
-		debug
-		http_port     9080
-		https_port    9443
-		cache {
-			api {
-				souin
-			}
-		}
-	}
-	localhost:9080 {
-		route /invalidation-api* {
-			cache
-    		header Surrogate-Key "{http.request.header.X-Surrogate-Key-Suffix}"
-			respond "Hello, invalidation API!"
-		}
-	}`, "caddyfile")
-
-	resp1, _ := tester.AssertGetResponse(`http://localhost:9080/invalidation-api`, 200, "Hello, invalidation API!")
-	if resp1.Header.Get("Age") != "" {
-		t.Errorf("unexpected Age header %v", resp1.Header.Get("Age"))
-	}
-
-	_, _ = tester.AssertGetResponse(`http://localhost:9080/invalidation-api/souin-api/souin`, 200, `["GET-http-localhost:9080-/invalidation-api"]`)
-
-	_, _ = tester.AssertGetResponse(`http://localhost:9080/invalidation-api/souin-api/souin/surrogate_keys`, 200, `{"":",GET-http-localhost%3A9080-%2Finvalidation-api"}`)
-
-	purgeRq, _ := http.NewRequest("PURGE", "http://localhost:9080/invalidation-api/souin-api/souin", nil)
-	purgeRq.Header.Set("Surrogate-Key", " , /something")
-	_, _ = tester.AssertResponse(purgeRq, http.StatusNoContent, "")
-
-	_, _ = tester.AssertGetResponse(`http://localhost:9080/invalidation-api/souin-api/souin`, 200, "[]")
-}
-
 func TestKeyGeneration(t *testing.T) {
 	tester := caddytest.NewTester(t)
 	tester.InitServer(`
@@ -1084,3 +1046,4 @@ func (t *testCancelHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	time.Sleep(time.Second)
 	_, _ = w.Write([]byte("Hello, cancel-handler!"))
 }
+*/

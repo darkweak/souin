@@ -83,6 +83,11 @@ func (s *SouinAPI) BulkDelete(key string, purge bool) {
 					v.FreshTime = newFreshTime
 					mapping.Mapping[k] = v
 				}
+
+				buf := bytes.NewBuffer([]byte{})
+				if gob.NewEncoder(buf).Encode(mapping) == nil {
+					_ = current.Set(core.MappingKeyPrefix+key, buf.Bytes(), 0)
+				}
 			}
 		}
 
