@@ -114,7 +114,11 @@ func (s *baseStorage) init(config configurationtypes.AbstractConfigurationInterf
 	} else {
 		storer := core.GetRegisteredStorer(defaultStorerName)
 		if storer == nil {
-			config.GetLogger().Sugar().Errorf("Impossible to retrieve the storers %s for the surrogate-keys", defaultStorerName)
+			config.GetLogger().Sugar().Errorf("Impossible to retrieve the storers %s for the surrogate-keys fallback to the default storage", configuration.SurrogateConfiguration.Storer)
+			storer = core.GetRegisteredStorer(types.DefaultStorageName + "-")
+			if storer == nil {
+				config.GetLogger().Sugar().Error("Impossible to retrieve the default storer")
+			}
 		}
 
 		s.Storage = storer
