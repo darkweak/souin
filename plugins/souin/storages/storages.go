@@ -16,7 +16,7 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-type factory func(providerConfiguration core.CacheProvider, logger *zap.Logger, stale time.Duration) (core.Storer, error)
+type factory func(providerConfiguration core.CacheProvider, logger core.Logger, stale time.Duration) (core.Storer, error)
 
 func isProviderEmpty(p configurationtypes.CacheProvider) bool {
 	return p.Configuration == nil && p.Path == "" && p.URL == ""
@@ -28,7 +28,7 @@ func toCoreCacheProvider(p configurationtypes.CacheProvider) core.CacheProvider 
 		URL:           p.URL,
 	}
 }
-func tryToRegisterStorage(p configurationtypes.CacheProvider, f factory, logger *zap.Logger, stale time.Duration) {
+func tryToRegisterStorage(p configurationtypes.CacheProvider, f factory, logger core.Logger, stale time.Duration) {
 	if !isProviderEmpty(p) {
 		if s, err := f(toCoreCacheProvider(p), logger, stale); err == nil {
 			core.RegisterStorage(s)
@@ -63,7 +63,7 @@ func InitFromConfiguration(configuration configurationtypes.AbstractConfiguratio
 			},
 		}
 		logger, _ := cfg.Build()
-		configuration.SetLogger(logger)
+		configuration.SetLogger(logger.Sugar())
 	}
 	logger := configuration.GetLogger()
 	stale := configuration.GetDefaultCache().GetStale()

@@ -5,8 +5,7 @@ go 1.22.1
 require (
 	github.com/caddyserver/caddy/v2 v2.8.4
 	github.com/darkweak/souin v1.6.49
-	github.com/darkweak/storages/core v0.0.6-0.20240731100357-2a602dafc881
-	go.uber.org/zap v1.27.0
+	github.com/darkweak/storages/core v0.0.6
 )
 
 require (
@@ -132,6 +131,7 @@ require (
 	go.uber.org/automaxprocs v1.5.3 // indirect
 	go.uber.org/mock v0.4.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
+	go.uber.org/zap v1.27.0 // indirect
 	go.uber.org/zap/exp v0.2.0 // indirect
 	golang.org/x/crypto v0.23.0 // indirect
 	golang.org/x/crypto/x509roots/fallback v0.0.0-20240507223354-67b13616a595 // indirect

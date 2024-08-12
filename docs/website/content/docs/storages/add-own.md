@@ -12,7 +12,7 @@ Your `struct` must implement it to be a valid storer and be registered in the st
 
 By convention we declare a `Factory` function that respects this signature:
 ```go
-func(providerConfiguration core.CacheProvider, logger *zap.Logger, stale time.Duration) (core.Storer, error)
+func(providerConfiguration core.CacheProvider, logger core.Logger, stale time.Duration) (core.Storer, error)
 ```
 
 And the `Storer` interface is the following:
@@ -47,18 +47,17 @@ import (
 
 	"github.com/darkweak/souin/pkg/storage/types"
 	"github.com/darkweak/storages/core"
-	"go.uber.org/zap"
 )
 
 // custom storage provider type
 type customStorage struct {
 	m      *sync.Map
 	stale  time.Duration
-	logger *zap.Logger
+	logger core.Logger
 }
 
 // Factory function create new custom storage instance
-func Factory(_ core.CacheProvider, logger *zap.Logger, stale time.Duration) (types.Storer, error) {
+func Factory(_ core.CacheProvider, logger core.Logger, stale time.Duration) (types.Storer, error) {
 	return &customStorage{m: &sync.Map{}, logger: logger, stale: stale}, nil
 }
 ```
@@ -164,7 +163,7 @@ func (provider *customStorage) SetMultiLevel(baseKey, variedKey string, value []
 	var e error
 	compressed := new(bytes.Buffer)
 	if _, e = lz4.NewWriter(compressed).ReadFrom(bytes.NewReader(value)); e != nil {
-		provider.logger.Sugar().Errorf("Impossible to compress the key %s into Badger, %v", variedKey, e)
+		provider.logger.Errorf("Impossible to compress the key %s into Badger, %v", variedKey, e)
 		return e
 	}
 
@@ -182,7 +181,7 @@ func (provider *customStorage) SetMultiLevel(baseKey, variedKey string, value []
 		return e
 	}
 
-	provider.logger.Sugar().Debugf("Store the new mapping for the key %s in customStorage", variedKey)
+	provider.logger.Debugf("Store the new mapping for the key %s in customStorage", variedKey)
 	provider.m.Store(mappingKey, val)
 	return nil
 }
@@ -233,7 +232,7 @@ After that you'll be able to register your storage using
 // anywhere.go
 ...
 logger, _ := zap.NewProduction()
-customStorage, _ := your_package.Factory(core.CacheProvider{}, logger, time.Hour)
+customStorage, _ := your_package.Factory(core.CacheProvider{}, logger.Sugar(), time.Hour)
 // It will register as `YOUR_CUSTOM_STORAGE-THE_UUID`.
 core.RegisterStorage(customStorage)
 

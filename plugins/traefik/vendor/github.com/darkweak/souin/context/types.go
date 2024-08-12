@@ -12,7 +12,6 @@ type (
 	ctx interface {
 		SetupContext(c configurationtypes.AbstractConfigurationInterface)
 		SetContext(req *http.Request) *http.Request
-		SetContextWithBaseRequest(req *http.Request, baseRq *http.Request) *http.Request
 	}
 
 	Context struct {
@@ -54,6 +53,6 @@ func (c *Context) SetBaseContext(req *http.Request) *http.Request {
 	return c.Mode.SetContext(c.Timeout.SetContext(c.Method.SetContext(c.CacheName.SetContext(c.Now.SetContext(req)))))
 }
 
-func (c *Context) SetContext(req *http.Request, baseRq *http.Request) *http.Request {
-	return c.Key.SetContext(c.GraphQL.SetContextWithBaseRequest(req, baseRq))
+func (c *Context) SetContext(req *http.Request) *http.Request {
+	return c.Key.SetContext(c.GraphQL.SetContext(req))
 }

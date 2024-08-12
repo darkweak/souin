@@ -5,7 +5,7 @@ go 1.22.1
 require (
 	github.com/caddyserver/caddy/v2 v2.8.4
 	github.com/cespare/xxhash/v2 v2.2.0
-	github.com/darkweak/storages/core v0.0.6-0.20240731100357-2a602dafc881
+	github.com/darkweak/storages/core v0.0.6
 	github.com/google/uuid v1.6.0
 	github.com/pierrec/lz4/v4 v4.1.21
 	github.com/pquerna/cachecontrol v0.2.0

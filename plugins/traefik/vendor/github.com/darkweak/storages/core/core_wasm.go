@@ -1,4 +1,4 @@
-//go:build !wasi && !wasm
+//go:build wasi || wasm
 
 package core
 

@@ -28,7 +28,7 @@ func (s *storage_providers) Add(key interface{}) {
 }
 
 func (s *SouinCaddyMiddleware) Cleanup() error {
-	s.logger.Sugar().Debug("Cleanup...")
+	s.logger.Debug("Cleanup...")
 	td := []interface{}{}
 	sp, _ := up.LoadOrStore(stored_providers_key, newStorageProvider())
 	stored_providers := sp.(*storage_providers)
@@ -43,7 +43,7 @@ func (s *SouinCaddyMiddleware) Cleanup() error {
 	})
 
 	for _, v := range td {
-		s.logger.Sugar().Debugf("Cleaning %v\n", v)
+		s.logger.Debugf("Cleaning %v\n", v)
 		_, _ = up.Delete(v)
 	}
 

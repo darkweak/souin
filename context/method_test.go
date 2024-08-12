@@ -14,7 +14,7 @@ func Test_MethodContext_SetupContext(t *testing.T) {
 	c := testConfiguration{
 		defaultCache: &dc,
 	}
-	c.SetLogger(zap.NewNop())
+	c.SetLogger(zap.NewNop().Sugar())
 	ctx := methodContext{}
 
 	ctx.SetupContext(&c)
@@ -34,7 +34,7 @@ func Test_MethodContext_SetContext(t *testing.T) {
 	c := testConfiguration{
 		defaultCache: &dc,
 	}
-	c.SetLogger(zap.NewNop())
+	c.SetLogger(zap.NewNop().Sugar())
 	ctx := methodContext{}
 	c.defaultCache.AllowedHTTPVerbs = []string{http.MethodGet, http.MethodHead}
 	ctx.SetupContext(&c)

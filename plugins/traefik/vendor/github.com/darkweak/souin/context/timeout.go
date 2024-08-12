@@ -22,10 +22,6 @@ type timeoutContext struct {
 	timeoutCache, timeoutBackend time.Duration
 }
 
-func (*timeoutContext) SetContextWithBaseRequest(req *http.Request, _ *http.Request) *http.Request {
-	return req
-}
-
 func (t *timeoutContext) SetupContext(c configurationtypes.AbstractConfigurationInterface) {
 	t.timeoutBackend = defaultTimeoutBackend
 	t.timeoutCache = defaultTimeoutCache
@@ -35,8 +31,6 @@ func (t *timeoutContext) SetupContext(c configurationtypes.AbstractConfiguration
 	if c.GetDefaultCache().GetTimeout().Backend.Duration != 0 {
 		t.timeoutBackend = c.GetDefaultCache().GetTimeout().Backend.Duration
 	}
-	c.GetLogger().Sugar().Infof("Set backend timeout to %v", t.timeoutBackend)
-	c.GetLogger().Sugar().Infof("Set cache timeout to %v", t.timeoutBackend)
 }
 
 func (t *timeoutContext) SetContext(req *http.Request) *http.Request {
@@ -44,4 +38,4 @@ func (t *timeoutContext) SetContext(req *http.Request) *http.Request {
 	return req.WithContext(context.WithValue(context.WithValue(ctx, TimeoutCancel, cancel), TimeoutCache, t.timeoutCache))
 }
 
-var _ ctx = (*timeoutContext)(nil)
+var _ ctx = (*cacheContext)(nil)

@@ -81,7 +81,7 @@ github.com/darkweak/souin/pkg/storage/types
 github.com/darkweak/souin/pkg/surrogate
 github.com/darkweak/souin/pkg/surrogate/providers
 github.com/darkweak/souin/tests
-# github.com/darkweak/storages/core v0.0.6-0.20240731100357-2a602dafc881
+# github.com/darkweak/storages/core v0.0.6
 ## explicit; go 1.22.1
 github.com/darkweak/storages/core
 # github.com/dgraph-io/badger v1.6.2

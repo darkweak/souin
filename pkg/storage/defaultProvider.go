@@ -12,14 +12,13 @@ import (
 	"github.com/darkweak/souin/pkg/storage/types"
 	"github.com/darkweak/storages/core"
 	"github.com/pierrec/lz4/v4"
-	"go.uber.org/zap"
 )
 
 // Default provider type
 type Default struct {
 	m      *sync.Map
 	stale  time.Duration
-	logger *zap.Logger
+	logger core.Logger
 }
 
 type item struct {
@@ -135,7 +134,7 @@ func (provider *Default) SetMultiLevel(baseKey, variedKey string, value []byte, 
 	var e error
 	compressed := new(bytes.Buffer)
 	if _, e = lz4.NewWriter(compressed).ReadFrom(bytes.NewReader(value)); e != nil {
-		provider.logger.Sugar().Errorf("Impossible to compress the key %s into Badger, %v", variedKey, e)
+		provider.logger.Errorf("Impossible to compress the key %s into Badger, %v", variedKey, e)
 		return e
 	}
 
@@ -156,7 +155,7 @@ func (provider *Default) SetMultiLevel(baseKey, variedKey string, value []byte, 
 		return e
 	}
 
-	provider.logger.Sugar().Debugf("Store the new mapping for the key %s in Default", variedKey)
+	provider.logger.Debugf("Store the new mapping for the key %s in Default", variedKey)
 	provider.m.Store(mappingKey, val)
 	return nil
 }

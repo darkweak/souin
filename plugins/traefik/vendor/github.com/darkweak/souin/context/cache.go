@@ -19,16 +19,11 @@ type cacheContext struct {
 	cacheName string
 }
 
-func (*cacheContext) SetContextWithBaseRequest(req *http.Request, _ *http.Request) *http.Request {
-	return req
-}
-
 func (cc *cacheContext) SetupContext(c configurationtypes.AbstractConfigurationInterface) {
 	cc.cacheName = defaultCacheName
 	if c.GetDefaultCache().GetCacheName() != "" {
 		cc.cacheName = c.GetDefaultCache().GetCacheName()
 	}
-	c.GetLogger().Sugar().Debugf("Set %s as Cache-Status name", cc.cacheName)
 }
 
 func (cc *cacheContext) SetContext(req *http.Request) *http.Request {

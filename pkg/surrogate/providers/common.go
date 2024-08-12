@@ -11,7 +11,6 @@ import (
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/storage/types"
 	"github.com/darkweak/storages/core"
-	"go.uber.org/zap"
 )
 
 const (
@@ -95,7 +94,7 @@ type baseStorage struct {
 	keysRegexp map[string]keysRegexpInner
 	dynamic    bool
 	keepStale  bool
-	logger     *zap.Logger
+	logger     core.Logger
 	mu         *sync.Mutex
 	duration   time.Duration
 }
@@ -106,7 +105,7 @@ func (s *baseStorage) init(config configurationtypes.AbstractConfigurationInterf
 		if storer == nil {
 			storer = core.GetRegisteredStorer(types.DefaultStorageName + "-")
 			if storer == nil {
-				config.GetLogger().Sugar().Errorf("Impossible to retrieve the storers %s for the surrogate-keys from it's configuration", configuration.SurrogateConfiguration.Storer)
+				config.GetLogger().Errorf("Impossible to retrieve the storers %s for the surrogate-keys from it's configuration", configuration.SurrogateConfiguration.Storer)
 			}
 		}
 
@@ -114,10 +113,10 @@ func (s *baseStorage) init(config configurationtypes.AbstractConfigurationInterf
 	} else {
 		storer := core.GetRegisteredStorer(defaultStorerName)
 		if storer == nil {
-			config.GetLogger().Sugar().Errorf("Impossible to retrieve the storers %s for the surrogate-keys fallback to the default storage", configuration.SurrogateConfiguration.Storer)
+			config.GetLogger().Errorf("Impossible to retrieve the storers %s for the surrogate-keys fallback to the default storage", configuration.SurrogateConfiguration.Storer)
 			storer = core.GetRegisteredStorer(types.DefaultStorageName + "-")
 			if storer == nil {
-				config.GetLogger().Sugar().Error("Impossible to retrieve the default storer")
+				config.GetLogger().Error("Impossible to retrieve the default storer")
 			}
 		}
 
@@ -159,7 +158,7 @@ func (s *baseStorage) storeTag(tag string, cacheKey string, re *regexp.Regexp) {
 	s.mu.Lock()
 	currentValue := string(s.Storage.Get(surrogatePrefix + tag))
 	if !re.MatchString(currentValue) {
-		s.logger.Sugar().Debugf("Store the tag %s", tag)
+		s.logger.Debugf("Store the tag %s", tag)
 		_ = s.Storage.Set(surrogatePrefix+tag, []byte(currentValue+souinStorageSeparator+cacheKey), s.duration)
 	}
 }
@@ -200,7 +199,7 @@ func (s *baseStorage) getSurrogateKey(header http.Header) string {
 
 func (s *baseStorage) purgeTag(tag string) []string {
 	toInvalidate := string(s.Storage.Get(surrogatePrefix + tag))
-	s.logger.Sugar().Debugf("Purge the tag %s", tag)
+	s.logger.Debugf("Purge the tag %s", tag)
 	if !s.keepStale {
 		s.Storage.Delete(surrogatePrefix + tag)
 	}
@@ -246,7 +245,7 @@ func (s *baseStorage) Purge(header http.Header) (cacheKeys []string, surrogateKe
 		toInvalidate = append(toInvalidate, s.purgeTag(su)...)
 	}
 
-	s.logger.Sugar().Debugf("Purge the following tags: %+v", toInvalidate)
+	s.logger.Debugf("Purge the following tags: %+v", toInvalidate)
 
 	return uniqueTag(toInvalidate), surrogates
 }
