@@ -11,7 +11,7 @@ func (s *SouinCaddyMiddleware) parseStorages(ctx caddy.Context) {
 	if s.Configuration.DefaultCache.Badger.Found {
 		e := dispatchStorage(ctx, "badger", s.Configuration.DefaultCache.Badger, s.Configuration.DefaultCache.GetStale())
 		if e != nil {
-			s.logger.Sugar().Errorf("Error during Badger init, did you include the Badger storage (--with github.com/darkweak/storages/badger/caddy)? %v", e)
+			s.logger.Errorf("Error during Badger init, did you include the Badger storage (--with github.com/darkweak/storages/badger/caddy)? %v", e)
 		} else {
 			badger := s.Configuration.DefaultCache.Badger
 			dir := ""
@@ -39,7 +39,7 @@ func (s *SouinCaddyMiddleware) parseStorages(ctx caddy.Context) {
 	if s.Configuration.DefaultCache.Etcd.Found {
 		e := dispatchStorage(ctx, "etcd", s.Configuration.DefaultCache.Etcd, s.Configuration.DefaultCache.GetStale())
 		if e != nil {
-			s.logger.Sugar().Errorf("Error during Etcd init, did you include the Etcd storage (--with github.com/darkweak/storages/etcd/caddy)? %v", e)
+			s.logger.Errorf("Error during Etcd init, did you include the Etcd storage (--with github.com/darkweak/storages/etcd/caddy)? %v", e)
 		} else {
 			etcd := s.Configuration.DefaultCache.Etcd
 			endpoints := etcd.URL
@@ -71,7 +71,7 @@ func (s *SouinCaddyMiddleware) parseStorages(ctx caddy.Context) {
 	if s.Configuration.DefaultCache.Nats.Found {
 		e := dispatchStorage(ctx, "nats", s.Configuration.DefaultCache.Nats, s.Configuration.DefaultCache.GetStale())
 		if e != nil {
-			s.logger.Sugar().Errorf("Error during Nats init, did you include the Nats storage (--with github.com/darkweak/storages/nats/caddy)? %v", e)
+			s.logger.Errorf("Error during Nats init, did you include the Nats storage (--with github.com/darkweak/storages/nats/caddy)? %v", e)
 		} else {
 			s.Configuration.DefaultCache.Nuts.Uuid = fmt.Sprintf("NATS-%s-%s", s.Configuration.DefaultCache.Nats.URL, s.Configuration.DefaultCache.GetStale())
 		}
@@ -79,7 +79,7 @@ func (s *SouinCaddyMiddleware) parseStorages(ctx caddy.Context) {
 	if s.Configuration.DefaultCache.Nuts.Found {
 		e := dispatchStorage(ctx, "nuts", s.Configuration.DefaultCache.Nuts, s.Configuration.DefaultCache.GetStale())
 		if e != nil {
-			s.logger.Sugar().Errorf("Error during Nuts init, did you include the Nuts storage (--with github.com/darkweak/storages/nuts/caddy)? %v", e)
+			s.logger.Errorf("Error during Nuts init, did you include the Nuts storage (--with github.com/darkweak/storages/nuts/caddy)? %v", e)
 		} else {
 			nuts := s.Configuration.DefaultCache.Nuts
 			dir := "/tmp/souin-nuts"
@@ -99,7 +99,7 @@ func (s *SouinCaddyMiddleware) parseStorages(ctx caddy.Context) {
 	if s.Configuration.DefaultCache.Olric.Found {
 		e := dispatchStorage(ctx, "olric", s.Configuration.DefaultCache.Olric, s.Configuration.DefaultCache.GetStale())
 		if e != nil {
-			s.logger.Sugar().Errorf("Error during Olric init, did you include the Olric storage (--with github.com/darkweak/storages/olric/caddy)? %v", e)
+			s.logger.Errorf("Error during Olric init, did you include the Olric storage (--with github.com/darkweak/storages/olric/caddy)? %v", e)
 		} else {
 			s.Configuration.DefaultCache.Nuts.Uuid = fmt.Sprintf("OLRIC-%s-%s", s.Configuration.DefaultCache.Olric.URL, s.Configuration.DefaultCache.GetStale())
 		}
@@ -107,7 +107,7 @@ func (s *SouinCaddyMiddleware) parseStorages(ctx caddy.Context) {
 	if s.Configuration.DefaultCache.Otter.Found {
 		e := dispatchStorage(ctx, "otter", s.Configuration.DefaultCache.Otter, s.Configuration.DefaultCache.GetStale())
 		if e != nil {
-			s.logger.Sugar().Errorf("Error during Otter init, did you include the Otter storage (--with github.com/darkweak/storages/otter/caddy)? %v", e)
+			s.logger.Errorf("Error during Otter init, did you include the Otter storage (--with github.com/darkweak/storages/otter/caddy)? %v", e)
 		} else {
 			s.Configuration.DefaultCache.Otter.Uuid = fmt.Sprintf("OTTER-%s", s.Configuration.DefaultCache.GetStale())
 		}
@@ -115,7 +115,7 @@ func (s *SouinCaddyMiddleware) parseStorages(ctx caddy.Context) {
 	if s.Configuration.DefaultCache.Redis.Found {
 		e := dispatchStorage(ctx, "redis", s.Configuration.DefaultCache.Redis, s.Configuration.DefaultCache.GetStale())
 		if e != nil {
-			s.logger.Sugar().Errorf("Error during Redis init, did you include the Redis storage (--with github.com/darkweak/storages/redis/caddy or github.com/darkweak/storages/go-redis/caddy)? %v", e)
+			s.logger.Errorf("Error during Redis init, did you include the Redis storage (--with github.com/darkweak/storages/redis/caddy or github.com/darkweak/storages/go-redis/caddy)? %v", e)
 		} else {
 			redis := s.Configuration.DefaultCache.Redis
 			address := redis.URL

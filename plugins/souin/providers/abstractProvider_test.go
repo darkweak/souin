@@ -36,7 +36,7 @@ func mockConfiguration(configurationToLoad func() string) *configuration.Configu
 		},
 	}
 	logger, _ := cfg.Build()
-	config.SetLogger(logger)
+	config.SetLogger(logger.Sugar())
 
 	return &config
 }

@@ -100,11 +100,11 @@ func mappingElection(provider types.Storer, item []byte, req *http.Request, vali
 				response := provider.Get(keyName)
 				if response != nil {
 					if resultFresh, e = http.ReadResponse(bufio.NewReader(bytes.NewBuffer(response)), req); e != nil {
-						logger.Sugar().Errorf("An error occured while reading response for the key %s: %v", string(keyName), e)
+						logger.Errorf("An error occured while reading response for the key %s: %v", string(keyName), e)
 						return
 					}
 
-					logger.Sugar().Debugf("The stored key %s matched the current iteration key ETag %+v", string(keyName), validator)
+					logger.Debugf("The stored key %s matched the current iteration key ETag %+v", string(keyName), validator)
 					return
 				}
 			}
@@ -114,15 +114,15 @@ func mappingElection(provider types.Storer, item []byte, req *http.Request, vali
 				response := provider.Get(keyName)
 				if response != nil {
 					if resultStale, e = http.ReadResponse(bufio.NewReader(bytes.NewBuffer(response)), req); e != nil {
-						logger.Sugar().Errorf("An error occured while reading response for the key %s: %v", string(keyName), e)
+						logger.Errorf("An error occured while reading response for the key %s: %v", string(keyName), e)
 						return
 					}
 
-					logger.Sugar().Debugf("The stored key %s matched the current iteration key ETag %+v as stale", string(keyName), validator)
+					logger.Debugf("The stored key %s matched the current iteration key ETag %+v as stale", string(keyName), validator)
 				}
 			}
 		} else {
-			logger.Sugar().Debugf("The stored key %s didn't match the current iteration key ETag %+v", string(keyName), validator)
+			logger.Debugf("The stored key %s didn't match the current iteration key ETag %+v", string(keyName), validator)
 		}
 	}
 
@@ -136,7 +136,7 @@ func mappingUpdater(key string, item []byte, logger *zap.Logger, now, freshTime,
 	} else {
 		e = gob.NewDecoder(bytes.NewBuffer(item)).Decode(&mapping)
 		if e != nil {
-			logger.Sugar().Errorf("Impossible to decode the key %s, %v", key, e)
+			logger.Errorf("Impossible to decode the key %s, %v", key, e)
 			return nil, e
 		}
 	}
@@ -157,7 +157,7 @@ func mappingUpdater(key string, item []byte, logger *zap.Logger, now, freshTime,
 	buf := new(bytes.Buffer)
 	e = gob.NewEncoder(buf).Encode(mapping)
 	if e != nil {
-		logger.Sugar().Errorf("Impossible to encode the mapping value for the key %s, %v", key, e)
+		logger.Errorf("Impossible to encode the mapping value for the key %s, %v", key, e)
 		return nil, e
 	}
 

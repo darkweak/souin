@@ -8,7 +8,7 @@ import (
 
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
 	"github.com/darkweak/souin/configurationtypes"
-	"go.uber.org/zap"
+	"github.com/darkweak/storages/core"
 )
 
 // DefaultCache the struct
@@ -182,7 +182,7 @@ type Configuration struct {
 	LogLevel string
 	// SurrogateKeys contains the surrogate keys to use with a predefined mapping
 	SurrogateKeys map[string]configurationtypes.SurrogateKeys
-	logger        *zap.Logger
+	logger        core.Logger
 }
 
 // GetUrls get the urls list in the configuration
@@ -211,12 +211,12 @@ func (c *Configuration) GetLogLevel() string {
 }
 
 // GetLogger get the logger
-func (c *Configuration) GetLogger() *zap.Logger {
+func (c *Configuration) GetLogger() core.Logger {
 	return c.logger
 }
 
 // SetLogger set the logger
-func (c *Configuration) SetLogger(l *zap.Logger) {
+func (c *Configuration) SetLogger(l core.Logger) {
 	c.logger = l
 }
 

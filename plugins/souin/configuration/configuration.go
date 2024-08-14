@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/darkweak/souin/configurationtypes"
-	"go.uber.org/zap"
+	"github.com/darkweak/storages/core"
 	yaml "gopkg.in/yaml.v3"
 )
 
@@ -18,7 +18,7 @@ type Configuration struct {
 	SSLProviders    []string                          `yaml:"ssl_providers"`
 	URLs            map[string]configurationtypes.URL `yaml:"urls"`
 	LogLevel        string                            `yaml:"log_level"`
-	logger          *zap.Logger
+	logger          core.Logger
 	PluginName      string
 	Ykeys           map[string]configurationtypes.SurrogateKeys `yaml:"ykeys"`
 	SurrogateKeys   map[string]configurationtypes.SurrogateKeys `yaml:"surrogate_keys"`
@@ -76,12 +76,12 @@ func (c *Configuration) GetLogLevel() string {
 }
 
 // GetLogger get the logger
-func (c *Configuration) GetLogger() *zap.Logger {
+func (c *Configuration) GetLogger() core.Logger {
 	return c.logger
 }
 
 // SetLogger set the logger
-func (c *Configuration) SetLogger(l *zap.Logger) {
+func (c *Configuration) SetLogger(l core.Logger) {
 	c.logger = l
 }
 

@@ -12,7 +12,7 @@ func Test_ModeContext_SetupContext(t *testing.T) {
 	c := testConfiguration{
 		defaultCache: &dc,
 	}
-	c.SetLogger(zap.NewNop())
+	c.SetLogger(zap.NewNop().Sugar())
 	ctx := ModeContext{}
 
 	ctx.SetupContext(&c)

@@ -28,7 +28,7 @@ func (cc *cacheContext) SetupContext(c configurationtypes.AbstractConfigurationI
 	if c.GetDefaultCache().GetCacheName() != "" {
 		cc.cacheName = c.GetDefaultCache().GetCacheName()
 	}
-	c.GetLogger().Sugar().Debugf("Set %s as Cache-Status name", cc.cacheName)
+	c.GetLogger().Debugf("Set %s as Cache-Status name", cc.cacheName)
 }
 
 func (cc *cacheContext) SetContext(req *http.Request) *http.Request {
