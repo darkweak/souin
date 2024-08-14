@@ -1034,15 +1034,7 @@ func TestExpires(t *testing.T) {
 		}
 	}
 
-	cacheChecker(caddyTester, "/expires-only", "Hello, expires-only!", int(expiresValue.Sub(time.Now()).Seconds())-1)
+	cacheChecker(caddyTester, "/expires-only", "Hello, expires-only!", int(time.Until(expiresValue)-1))
 	cacheChecker(caddyTester, "/expires-with-max-age", "Hello, expires-with-max-age!", 59)
 	cacheChecker(caddyTester, "/expires-with-s-maxage", "Hello, expires-with-s-maxage!", 4)
-}
-
-type testCancelHandler struct{}
-
-func (t *testCancelHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Request")
-	time.Sleep(time.Second)
-	_, _ = w.Write([]byte("Hello, cancel-handler!"))
 }

@@ -85,10 +85,12 @@ func (s *SouinAPI) BulkDelete(key string, purge bool) {
 					mapping.Mapping[k] = v
 				}
 
-				buf := bytes.NewBuffer([]byte{})
-				if gob.NewEncoder(buf).Encode(mapping) == nil {
-					_ = current.Set(core.MappingKeyPrefix+key, buf.Bytes(), 0)
+				v, e := proto.Marshal(&mapping)
+				if e != nil {
+					fmt.Println("Impossible to re-encode the mapping", core.MappingKeyPrefix+key)
+					current.Delete(core.MappingKeyPrefix + key)
 				}
+				_ = current.Set(core.MappingKeyPrefix+key, v, storageToInfiniteTTLMap[current.Name()])
 			}
 		}
 
