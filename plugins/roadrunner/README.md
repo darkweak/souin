@@ -13,11 +13,13 @@ This is a distributed HTTP cache module for Roadrunner based on [Souin](https://
 
 ## Build the roadrunner binary
 ```toml
-[velox]
-build_args = ['-trimpath', '-ldflags', '-s -X github.com/roadrunner-server/roadrunner/v2/internal/meta.version=${VERSION} -X github.com/roadrunner-server/roadrunner/v2/internal/meta.buildTime=${TIME}']
-
 [roadrunner]
+# ref -> reference, tag, commit or branch
 ref = "master"
+
+# the debug option is used to build RR with debug symbols to profile it with pprof
+[debug]
+enabled = false
 
 [github]
     [github.token]
