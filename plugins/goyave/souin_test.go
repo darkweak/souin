@@ -76,7 +76,7 @@ func (suite *HttpCacheMiddlewareTestSuite) Test_SouinFiberPlugin_Middleware() {
 		suite.T().Error("The response body must be equal to Hello, World 👋!.")
 	}
 
-	if res.Header.Get("Cache-Status") != "Souin; hit; ttl=4; key=GET-http-example.com-/handled" {
+	if res.Header.Get("Cache-Status") != "Souin; hit; ttl=4; key=GET-http-example.com-/handled; detail=DEFAULT" {
 		suite.T().Error("The response must contain a Cache-Status header with the hit and ttl directives.")
 	}
 	if res.Header.Get("Age") != "1" {

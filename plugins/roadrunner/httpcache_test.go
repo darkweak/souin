@@ -94,7 +94,7 @@ func Test_Plugin_Middleware(t *testing.T) {
 	if err != nil {
 		t.Error("body close error")
 	}
-	if rs.Header.Get("Cache-Status") != "Souin; hit; ttl=4; key=GET-http-example.com-/handled" {
+	if rs.Header.Get("Cache-Status") != "Souin; hit; ttl=4; key=GET-http-example.com-/handled; detail=DEFAULT" {
 		t.Error("The response must contain a Cache-Status header with the hit and ttl directives.")
 	}
 	if rs.Header.Get("Age") != "1" {
@@ -125,7 +125,7 @@ func Test_Plugin_Middleware_Stale(t *testing.T) {
 		if err != nil {
 			t.Error("body close error")
 		}
-		if rs.Header.Get("Cache-Status") != "Souin; hit; ttl=4; key=GET-http-example.com-/stale-test" {
+		if rs.Header.Get("Cache-Status") != "Souin; hit; ttl=4; key=GET-http-example.com-/stale-test; detail=DEFAULT" {
 			t.Error("The response must contain a Cache-Status header with the hit directive.")
 		}
 		if rs.Header.Get("Age") != "1" {

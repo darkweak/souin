@@ -272,6 +272,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, baseRq *http.Reques
 	customWriter := NewCustomWriter(rq, rw, bufPool)
 	if !requestCc.NoCache {
 		validator := rfc.ParseRequest(rq)
+		var storerName string
 		var response *http.Response
 		var fresh, stale *http.Response
 		finalKey := cachedKey
@@ -279,6 +280,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, baseRq *http.Reques
 			finalKey = fmt.Sprint(xxhash.Sum64String(finalKey))
 		}
 		for _, currentStorer := range s.Storers {
+			storerName = currentStorer.Name()
 			fresh, stale = currentStorer.GetMultiLevel(finalKey, rq, validator)
 
 			if fresh != nil || stale != nil {
@@ -289,7 +291,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, baseRq *http.Reques
 
 		if rfc.ValidateCacheControl(response, requestCc) {
 			response := fresh
-			rfc.SetCacheStatusHeader(response)
+			rfc.SetCacheStatusHeader(response, storerName)
 			if rfc.ValidateMaxAgeCachedResponse(requestCc, response) != nil {
 				customWriter.Headers = response.Header
 				customWriter.statusCode = response.StatusCode
@@ -303,7 +305,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, baseRq *http.Reques
 
 			if nil != response && rfc.ValidateCacheControl(response, requestCc) {
 				addTime, _ := time.ParseDuration(response.Header.Get(rfc.StoredTTLHeader))
-				rfc.SetCacheStatusHeader(response)
+				rfc.SetCacheStatusHeader(response, storerName)
 
 				responseCc, _ := cacheobject.ParseResponseCacheControl(response.Header.Get("Cache-Control"))
 				if responseCc.StaleWhileRevalidate > 0 {

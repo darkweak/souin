@@ -190,6 +190,7 @@ func (s *SouinBaseHandler) Store(
 	rq *http.Request,
 	requestCc *cacheobject.RequestCacheDirectives,
 	cachedKey string,
+	uri string,
 ) error {
 	statusCode := customWriter.GetStatusCode()
 	if !isCacheableCode(statusCode) {
@@ -237,11 +238,30 @@ func (s *SouinBaseHandler) Store(
 		}
 	}
 
+	hasFreshness := false
 	ma := currentMatchedURL.TTL.Duration
 	if responseCc.SMaxAge >= 0 {
 		ma = time.Duration(responseCc.SMaxAge) * time.Second
 	} else if responseCc.MaxAge >= 0 {
 		ma = time.Duration(responseCc.MaxAge) * time.Second
+	} else if customWriter.Header().Get("Expires") != "" {
+		exp, err := time.Parse(time.RFC1123, customWriter.Header().Get("Expires"))
+		if err != nil {
+			return nil
+		}
+
+		duration := time.Until(exp)
+		if duration <= 0 || duration > 10*types.OneYearDuration {
+			return nil
+		}
+
+		date, _ := time.Parse(time.RFC1123, customWriter.Header().Get("Date"))
+		if date.Sub(exp) > 0 {
+			return nil
+		}
+
+		ma = duration
+		hasFreshness = true
 	}
 
 	now := rq.Context().Value(context.Now).(time.Time)
@@ -249,16 +269,9 @@ func (s *SouinBaseHandler) Store(
 	customWriter.Header().Set(rfc.StoredTTLHeader, ma.String())
 	ma = ma - time.Since(date)
 
-	if exp := customWriter.Header().Get("Expires"); exp != "" {
-		delta, _ := time.Parse(exp, time.RFC1123)
-		if sub := delta.Sub(now); sub > 0 {
-			ma = sub
-		}
-	}
-
 	status := fmt.Sprintf("%s; fwd=uri-miss", rq.Context().Value(context.CacheName))
 	if (modeContext.Bypass_request || !requestCc.NoStore) &&
-		(modeContext.Bypass_response || !responseCc.NoStore) {
+		(modeContext.Bypass_response || !responseCc.NoStore || hasFreshness) {
 		headers := customWriter.Header().Clone()
 		for hname, shouldDelete := range responseCc.NoCache {
 			if shouldDelete {
@@ -329,6 +342,7 @@ func (s *SouinBaseHandler) Store(
 								variedKey,
 							) == nil {
 								s.Configuration.GetLogger().Debugf("Stored the key %s in the %s provider", variedKey, currentStorer.Name())
+								res.Request = rq
 							} else {
 								mu.Lock()
 								fails = append(fails, fmt.Sprintf("; detail=%s-INSERTION-ERROR", currentStorer.Name()))
@@ -339,9 +353,9 @@ func (s *SouinBaseHandler) Store(
 
 					wg.Wait()
 					if len(fails) < s.storersLen {
-						go func(rs http.Response, key string) {
-							_ = s.SurrogateKeyStorer.Store(&rs, key)
-						}(res, variedKey)
+						go func(rs http.Response, key string, basekey string) {
+							_ = s.SurrogateKeyStorer.Store(&rs, key, uri, basekey)
+						}(res, variedKey, cachedKey)
 						status += "; stored"
 					}
 
@@ -375,6 +389,7 @@ func (s *SouinBaseHandler) Upstream(
 	next handlerFunc,
 	requestCc *cacheobject.RequestCacheDirectives,
 	cachedKey string,
+	uri string,
 ) error {
 	s.Configuration.GetLogger().Debug("Request the upstream server")
 	prometheus.Increment(prometheus.RequestCounter)
@@ -422,7 +437,7 @@ func (s *SouinBaseHandler) Upstream(
 			customWriter.Header().Set(headerName, s.DefaultMatchedUrl.DefaultCacheControl)
 		}
 
-		err := s.Store(customWriter, rq, requestCc, cachedKey)
+		err := s.Store(customWriter, rq, requestCc, cachedKey, uri)
 		defer customWriter.Buf.Reset()
 
 		return singleflightValue{
@@ -446,7 +461,7 @@ func (s *SouinBaseHandler) Upstream(
 				for _, vh := range variedHeaders {
 					if rq.Header.Get(vh) != sfWriter.requestHeaders.Get(vh) {
 						// cachedKey += rfc.GetVariedCacheKey(rq, variedHeaders)
-						return s.Upstream(customWriter, rq, next, requestCc, cachedKey)
+						return s.Upstream(customWriter, rq, next, requestCc, cachedKey, uri)
 					}
 				}
 			}
@@ -462,7 +477,7 @@ func (s *SouinBaseHandler) Upstream(
 	return nil
 }
 
-func (s *SouinBaseHandler) Revalidate(validator *core.Revalidator, next handlerFunc, customWriter *CustomWriter, rq *http.Request, requestCc *cacheobject.RequestCacheDirectives, cachedKey string) error {
+func (s *SouinBaseHandler) Revalidate(validator *core.Revalidator, next handlerFunc, customWriter *CustomWriter, rq *http.Request, requestCc *cacheobject.RequestCacheDirectives, cachedKey string, uri string) error {
 	s.Configuration.GetLogger().Debug("Revalidate the request with the upstream server")
 	prometheus.Increment(prometheus.RequestRevalidationCounter)
 
@@ -484,7 +499,7 @@ func (s *SouinBaseHandler) Revalidate(validator *core.Revalidator, next handlerF
 			}
 
 			if statusCode != http.StatusNotModified {
-				err = s.Store(customWriter, rq, requestCc, cachedKey)
+				err = s.Store(customWriter, rq, requestCc, cachedKey, uri)
 			}
 		}
 
@@ -604,6 +619,8 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 	}
 	cachedKey := req.Context().Value(context.Key).(string)
 
+	// Need to copy URL path before calling next because it can alter the URI
+	uri := req.URL.Path
 	bufPool := s.bufPool.Get().(*bytes.Buffer)
 	bufPool.Reset()
 	defer s.bufPool.Put(bufPool)
@@ -618,6 +635,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 	if modeContext.Bypass_request || !requestCc.NoCache {
 		validator := rfc.ParseRequest(req)
 		var fresh, stale *http.Response
+		var storerName string
 		finalKey := cachedKey
 		if req.Context().Value(context.Hashed).(bool) {
 			finalKey = fmt.Sprint(xxhash.Sum64String(finalKey))
@@ -626,7 +644,8 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 			fresh, stale = currentStorer.GetMultiLevel(finalKey, req, validator)
 
 			if fresh != nil || stale != nil {
-				s.Configuration.GetLogger().Debugf("Found at least one valid response in the %s storage", currentStorer.Name())
+				storerName = currentStorer.Name()
+				s.Configuration.GetLogger().Debugf("Found at least one valid response in the %s storage", storerName)
 				break
 			}
 		}
@@ -635,7 +654,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 		if fresh != nil && (!modeContext.Strict || rfc.ValidateCacheControl(fresh, requestCc)) {
 			response := fresh
 			if validator.ResponseETag != "" && validator.Matched {
-				rfc.SetCacheStatusHeader(response)
+				rfc.SetCacheStatusHeader(response, storerName)
 				for h, v := range response.Header {
 					customWriter.Header()[h] = v
 				}
@@ -655,19 +674,19 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 			}
 
 			if validator.NeedRevalidation {
-				err := s.Revalidate(validator, next, customWriter, req, requestCc, cachedKey)
+				err := s.Revalidate(validator, next, customWriter, req, requestCc, cachedKey, uri)
 				_, _ = customWriter.Send()
 
 				return err
 			}
 			if resCc, _ := cacheobject.ParseResponseCacheControl(rfc.HeaderAllCommaSepValuesString(response.Header, headerName)); resCc.NoCachePresent {
 				prometheus.Increment(prometheus.NoCachedResponseCounter)
-				err := s.Revalidate(validator, next, customWriter, req, requestCc, cachedKey)
+				err := s.Revalidate(validator, next, customWriter, req, requestCc, cachedKey, uri)
 				_, _ = customWriter.Send()
 
 				return err
 			}
-			rfc.SetCacheStatusHeader(response)
+			rfc.SetCacheStatusHeader(response, storerName)
 			if !modeContext.Strict || rfc.ValidateMaxAgeCachedResponse(requestCc, response) != nil {
 				for h, v := range response.Header {
 					customWriter.Header()[h] = v
@@ -685,7 +704,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 
 			if nil != response && (!modeContext.Strict || rfc.ValidateCacheControl(response, requestCc)) {
 				addTime, _ := time.ParseDuration(response.Header.Get(rfc.StoredTTLHeader))
-				rfc.SetCacheStatusHeader(response)
+				rfc.SetCacheStatusHeader(response, storerName)
 
 				responseCc, _ := cacheobject.ParseResponseCacheControl(rfc.HeaderAllCommaSepValuesString(response.Header, "Cache-Control"))
 				if responseCc.StaleWhileRevalidate > 0 {
@@ -697,9 +716,9 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 					_, _ = io.Copy(customWriter.Buf, response.Body)
 					_, err := customWriter.Send()
 					customWriter = NewCustomWriter(req, rw, bufPool)
-					go func(v *core.Revalidator, goCw *CustomWriter, goRq *http.Request, goNext func(http.ResponseWriter, *http.Request) error, goCc *cacheobject.RequestCacheDirectives, goCk string) {
-						_ = s.Revalidate(v, goNext, goCw, goRq, goCc, goCk)
-					}(validator, customWriter, req, next, requestCc, cachedKey)
+					go func(v *core.Revalidator, goCw *CustomWriter, goRq *http.Request, goNext func(http.ResponseWriter, *http.Request) error, goCc *cacheobject.RequestCacheDirectives, goCk string, goUri string) {
+						_ = s.Revalidate(v, goNext, goCw, goRq, goCc, goCk, goUri)
+					}(validator, customWriter, req, next, requestCc, cachedKey, uri)
 					buf := s.bufPool.Get().(*bytes.Buffer)
 					buf.Reset()
 					defer s.bufPool.Put(buf)
@@ -709,7 +728,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 
 				if responseCc.MustRevalidate || responseCc.NoCachePresent || validator.NeedRevalidation {
 					req.Header["If-None-Match"] = append(req.Header["If-None-Match"], validator.ResponseETag)
-					err := s.Revalidate(validator, next, customWriter, req, requestCc, cachedKey)
+					err := s.Revalidate(validator, next, customWriter, req, requestCc, cachedKey, uri)
 					statusCode := customWriter.GetStatusCode()
 					if err != nil {
 						if responseCc.StaleIfError > -1 || requestCc.StaleIfError > 0 {
@@ -732,7 +751,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 
 					if statusCode == http.StatusNotModified {
 						if !validator.Matched {
-							rfc.SetCacheStatusHeader(response)
+							rfc.SetCacheStatusHeader(response, storerName)
 							customWriter.WriteHeader(response.StatusCode)
 							maps.Copy(customWriter.Header(), response.Header)
 							_, _ = io.Copy(customWriter.Buf, response.Body)
@@ -771,7 +790,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 	errorCacheCh := make(chan error)
 	go func(vr *http.Request, cw *CustomWriter) {
 		prometheus.Increment(prometheus.NoCachedResponseCounter)
-		errorCacheCh <- s.Upstream(cw, vr, next, requestCc, cachedKey)
+		errorCacheCh <- s.Upstream(cw, vr, next, requestCc, cachedKey, uri)
 	}(req, customWriter)
 
 	select {

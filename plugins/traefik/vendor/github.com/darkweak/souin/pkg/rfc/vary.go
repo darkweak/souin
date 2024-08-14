@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 )
 
@@ -32,10 +33,8 @@ func GetVariedCacheKey(rq *http.Request, headers []string) string {
 // or '*' alone when the header contains it.
 func VariedHeaderAllCommaSepValues(headers http.Header) ([]string, bool) {
 	vals := HeaderAllCommaSepValues(headers, "Vary")
-	for _, v := range vals {
-		if v == "*" {
-			return []string{"*"}, true
-		}
+	if slices.Contains(vals, "*") {
+		return []string{"*"}, true
 	}
 	return vals, false
 }
