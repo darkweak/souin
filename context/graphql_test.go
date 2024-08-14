@@ -34,7 +34,7 @@ func Test_GraphQLContext_SetContext(t *testing.T) {
 	c := testConfiguration{
 		defaultCache: &dc,
 	}
-	c.SetLogger(zap.NewNop())
+	c.SetLogger(zap.NewNop().Sugar())
 	ctx := graphQLContext{custom: true}
 
 	req := httptest.NewRequest(http.MethodGet, "http://domain.com", nil)

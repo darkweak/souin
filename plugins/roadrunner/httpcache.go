@@ -47,7 +47,7 @@ func (m *Plugin) Init(cfg Configurer, log Logger) error {
 	}
 
 	c := parseConfiguration(cfg)
-	c.SetLogger(log.NamedLogger(pluginName))
+	c.SetLogger(log.NamedLogger(pluginName).Sugar())
 
 	storages.InitFromConfiguration(&c)
 	m.SouinBaseHandler = middleware.NewHTTPCacheHandler(&c)

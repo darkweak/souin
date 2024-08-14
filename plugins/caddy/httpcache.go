@@ -14,7 +14,6 @@ import (
 	"github.com/darkweak/souin/pkg/middleware"
 	surrogates_providers "github.com/darkweak/souin/pkg/surrogate/providers"
 	"github.com/darkweak/storages/core"
-	"go.uber.org/zap"
 )
 
 const moduleName = "cache"
@@ -34,7 +33,7 @@ func init() {
 // storage, key generation tweaking.
 type SouinCaddyMiddleware struct {
 	*middleware.SouinBaseHandler
-	logger        *zap.Logger
+	logger        core.Logger
 	cacheKeys     configurationtypes.CacheKeys
 	Configuration Configuration
 	// Logger level, fallback on caddy's one when not redefined.
@@ -232,7 +231,7 @@ func dispatchStorage(ctx caddy.Context, name string, provider configurationtypes
 
 // Provision to do the provisioning part.
 func (s *SouinCaddyMiddleware) Provision(ctx caddy.Context) error {
-	s.logger = ctx.Logger(s)
+	s.logger = ctx.Logger(s).Sugar()
 
 	if err := s.configurationPropertyMapper(); err != nil {
 		return err

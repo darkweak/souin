@@ -5,7 +5,7 @@ go 1.22.1
 require (
 	github.com/caddyserver/caddy/v2 v2.8.4
 	github.com/cespare/xxhash/v2 v2.2.0
-	github.com/darkweak/storages/core v0.0.4
+	github.com/darkweak/storages/core v0.0.7
 	github.com/google/uuid v1.6.0
 	github.com/pierrec/lz4/v4 v4.1.21
 	github.com/pquerna/cachecontrol v0.2.0
@@ -13,6 +13,7 @@ require (
 	github.com/prometheus/client_model v0.5.0
 	go.uber.org/zap v1.27.0
 	golang.org/x/sync v0.7.0
+	google.golang.org/protobuf v1.34.2
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -109,7 +110,6 @@ require (
 	golang.org/x/time v0.5.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240506185236-b8a5c65736ae // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240429193739-8cf5692501f6 // indirect
-	google.golang.org/protobuf v1.34.1 // indirect
 	howett.net/plist v1.0.0 // indirect
 )
 

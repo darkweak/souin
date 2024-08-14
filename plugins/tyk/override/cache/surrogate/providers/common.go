@@ -116,7 +116,7 @@ func (s *baseStorage) storeTag(tag string, cacheKey string, re *regexp.Regexp) {
 	}
 	if s.dynamic || b {
 		if !re.MatchString(currentValue.(string)) {
-			s.logger.Sugar().Debugf("Store the tag %s", tag)
+			s.logger.Debugf("Store the tag %s", tag)
 			s.Storage.Store(tag, currentValue.(string)+souinStorageSeparator+cacheKey)
 		}
 	}
@@ -156,7 +156,7 @@ func (s *baseStorage) purgeTag(tag string) []string {
 	if toInvalidate == nil {
 		toInvalidate = ""
 	}
-	s.logger.Sugar().Debugf("Purge the tag %s", tag)
+	s.logger.Debugf("Purge the tag %s", tag)
 	s.Storage.Delete(tag)
 	if !s.keepStale {
 		stale, _ := s.Storage.Load(stalePrefix + tag)
@@ -164,7 +164,7 @@ func (s *baseStorage) purgeTag(tag string) []string {
 			stale = ""
 		}
 		toInvalidate = toInvalidate.(string) + "," + stale.(string)
-		s.logger.Sugar().Debugf("Purge the tag %s", stalePrefix+tag)
+		s.logger.Debugf("Purge the tag %s", stalePrefix+tag)
 		s.Storage.Delete(stalePrefix + tag)
 	}
 	return strings.Split(toInvalidate.(string), souinStorageSeparator)

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/darkweak/souin/configurationtypes"
+	"github.com/darkweak/storages/core"
 	"go.uber.org/zap"
 )
 
@@ -29,10 +30,10 @@ func (*testConfiguration) GetAPI() configurationtypes.API {
 func (*testConfiguration) GetLogLevel() string {
 	return ""
 }
-func (*testConfiguration) GetLogger() *zap.Logger {
-	return zap.NewNop()
+func (*testConfiguration) GetLogger() core.Logger {
+	return zap.NewNop().Sugar()
 }
-func (*testConfiguration) SetLogger(*zap.Logger) {
+func (*testConfiguration) SetLogger(core.Logger) {
 }
 func (*testConfiguration) GetYkeys() map[string]configurationtypes.SurrogateKeys {
 	return nil
@@ -49,7 +50,7 @@ func Test_CacheContext_SetupContext(t *testing.T) {
 	c := testConfiguration{
 		defaultCache: &dc,
 	}
-	c.SetLogger(zap.NewNop())
+	c.SetLogger(zap.NewNop().Sugar())
 	ctx := cacheContext{}
 
 	ctx.SetupContext(&c)

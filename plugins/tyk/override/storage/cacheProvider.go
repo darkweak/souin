@@ -162,7 +162,7 @@ func (provider *Cache) SetMultiLevel(baseKey, variedKey string, value []byte, va
 		return e
 	}
 
-	provider.logger.Sugar().Debugf("Store the new mapping for the key %s in storage", variedKey)
+	provider.logger.Debugf("Store the new mapping for the key %s in storage", variedKey)
 	provider.Cache.Set(mappingKey, val, -1)
 
 	return nil

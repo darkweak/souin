@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"go.uber.org/zap"
+	"github.com/darkweak/storages/core"
 	yaml "gopkg.in/yaml.v3"
 )
 
@@ -439,8 +439,8 @@ type AbstractConfigurationInterface interface {
 	GetDefaultCache() DefaultCacheInterface
 	GetAPI() API
 	GetLogLevel() string
-	GetLogger() *zap.Logger
-	SetLogger(*zap.Logger)
+	GetLogger() core.Logger
+	SetLogger(core.Logger)
 	GetYkeys() map[string]SurrogateKeys
 	GetSurrogateKeys() map[string]SurrogateKeys
 	GetCacheKeys() CacheKeys

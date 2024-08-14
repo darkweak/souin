@@ -26,6 +26,7 @@ func ValidateETagFromHeader(etag string, validator *Revalidator) {
 
 	if len(validator.RequestETags) == 0 {
 		validator.NotModified = false
+
 		return
 	}
 
@@ -35,15 +36,19 @@ func ValidateETagFromHeader(etag string, validator *Revalidator) {
 			// Asrterisk special char to match any of ETag
 			if ifNoneMatch == "*" {
 				validator.Matched = true
+
 				return
 			}
+
 			if ifNoneMatch == validator.ResponseETag {
 				validator.Matched = true
+
 				return
 			}
 		}
 
 		validator.Matched = false
+
 		return
 	}
 
@@ -58,10 +63,13 @@ func ValidateETagFromHeader(etag string, validator *Revalidator) {
 			// Asrterisk special char to match any of ETag
 			if ifMatch == "*" {
 				validator.Matched = true
+
 				return
 			}
+
 			if ifMatch == validator.ResponseETag {
 				validator.Matched = true
+
 				return
 			}
 		}

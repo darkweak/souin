@@ -20,7 +20,7 @@ func Test_Context_Init(t *testing.T) {
 	c := testConfiguration{
 		defaultCache: &dc,
 	}
-	c.SetLogger(zap.NewNop())
+	c.SetLogger(zap.NewNop().Sugar())
 	co := GetContext()
 
 	co.Init(&c)
@@ -31,7 +31,7 @@ func Test_Context_SetContext(t *testing.T) {
 	c := testConfiguration{
 		defaultCache: &dc,
 	}
-	c.SetLogger(zap.NewNop())
+	c.SetLogger(zap.NewNop().Sugar())
 	co := GetContext()
 
 	co.Init(&c)
@@ -58,7 +58,7 @@ func Test_Context_SetBaseContext(t *testing.T) {
 	c := testConfiguration{
 		defaultCache: &dc,
 	}
-	c.SetLogger(zap.NewNop())
+	c.SetLogger(zap.NewNop().Sugar())
 	co := GetContext()
 
 	co.Init(&c)

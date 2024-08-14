@@ -61,10 +61,10 @@ func (*testConfiguration) GetAPI() configurationtypes.API {
 func (*testConfiguration) GetLogLevel() string {
 	return ""
 }
-func (*testConfiguration) GetLogger() *zap.Logger {
-	return zap.NewNop()
+func (*testConfiguration) GetLogger() core.Logger {
+	return zap.NewNop().Sugar()
 }
-func (*testConfiguration) SetLogger(*zap.Logger) {
+func (*testConfiguration) SetLogger(core.Logger) {
 }
 func (*testConfiguration) GetYkeys() map[string]configurationtypes.SurrogateKeys {
 	return nil
@@ -100,7 +100,7 @@ func mockConfiguration(configurationToLoad func() string) *testConfiguration {
 		},
 	}
 	logger, _ := cfg.Build()
-	config.SetLogger(logger)
+	config.SetLogger(logger.Sugar())
 
 	return &config
 }

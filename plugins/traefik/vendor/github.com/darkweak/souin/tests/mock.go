@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/darkweak/souin/configurationtypes"
+	"github.com/darkweak/storages/core"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/yaml.v3"
@@ -25,7 +26,7 @@ type testConfiguration struct {
 	SSLProviders    []string                          `yaml:"ssl_providers"`
 	URLs            map[string]configurationtypes.URL `yaml:"urls"`
 	LogLevel        string                            `yaml:"log_level"`
-	logger          *zap.Logger
+	logger          core.Logger
 	PluginName      string
 	Ykeys           map[string]configurationtypes.SurrogateKeys `yaml:"ykeys"`
 	SurrogateKeys   map[string]configurationtypes.SurrogateKeys `yaml:"surrogate_keys"`
@@ -67,12 +68,12 @@ func (c *testConfiguration) GetLogLevel() string {
 }
 
 // GetLogger get the logger
-func (c *testConfiguration) GetLogger() *zap.Logger {
+func (c *testConfiguration) GetLogger() core.Logger {
 	return c.logger
 }
 
 // SetLogger set the logger
-func (c *testConfiguration) SetLogger(l *zap.Logger) {
+func (c *testConfiguration) SetLogger(l core.Logger) {
 	c.logger = l
 }
 
@@ -516,7 +517,7 @@ func MockConfiguration(configurationToLoad func() string) *testConfiguration {
 		},
 	}
 	logger, _ := cfg.Build()
-	config.SetLogger(logger)
+	config.SetLogger(logger.Sugar())
 
 	return &config
 }

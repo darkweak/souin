@@ -47,14 +47,14 @@ require (
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.3 // indirect
 	github.com/darkweak/go-esi v0.0.6 // indirect
-	github.com/darkweak/storages/badger v0.0.4 // indirect
-	github.com/darkweak/storages/core v0.0.5 // indirect
-	github.com/darkweak/storages/etcd v0.0.4 // indirect
-	github.com/darkweak/storages/nats v0.0.5 // indirect
-	github.com/darkweak/storages/nuts v0.0.4 // indirect
-	github.com/darkweak/storages/olric v0.0.4 // indirect
-	github.com/darkweak/storages/otter v0.0.4 // indirect
-	github.com/darkweak/storages/redis v0.0.4 // indirect
+	github.com/darkweak/storages/badger v0.0.7 // indirect
+	github.com/darkweak/storages/core v0.0.7 // indirect
+	github.com/darkweak/storages/etcd v0.0.7 // indirect
+	github.com/darkweak/storages/nats v0.0.7 // indirect
+	github.com/darkweak/storages/nuts v0.0.7 // indirect
+	github.com/darkweak/storages/olric v0.0.7 // indirect
+	github.com/darkweak/storages/otter v0.0.7 // indirect
+	github.com/darkweak/storages/redis v0.0.7 // indirect
 	github.com/dchest/siphash v1.2.3 // indirect
 	github.com/dgraph-io/badger v1.6.2 // indirect
 	github.com/dgraph-io/badger/v2 v2.2007.4 // indirect
@@ -210,7 +210,7 @@ require (
 	google.golang.org/genproto/googleapis/api v0.0.0-20240506185236-b8a5c65736ae // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240429193739-8cf5692501f6 // indirect
 	google.golang.org/grpc v1.64.0 // indirect
-	google.golang.org/protobuf v1.34.1 // indirect
+	google.golang.org/protobuf v1.34.2 // indirect
 	gopkg.in/square/go-jose.v2 v2.6.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
