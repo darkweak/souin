@@ -644,7 +644,8 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 			fresh, stale = currentStorer.GetMultiLevel(finalKey, req, validator)
 
 			if fresh != nil || stale != nil {
-				s.Configuration.GetLogger().Debugf("Found at least one valid response in the %s storage", currentStorer.Name())
+				storerName = currentStorer.Name()
+				s.Configuration.GetLogger().Debugf("Found at least one valid response in the %s storage", storerName)
 				break
 			}
 		}
