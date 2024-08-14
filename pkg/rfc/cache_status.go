@@ -80,7 +80,7 @@ func HitStaleCache(h *http.Header) {
 	h.Set("Cache-Status", h.Get("Cache-Status")+"; fwd=stale")
 }
 
-func manageAge(h *http.Header, ttl time.Duration, cacheName, key string) {
+func manageAge(h *http.Header, ttl time.Duration, cacheName, key, storerName string) {
 	utc1 := time.Now().UTC()
 	dh := h.Get("Date")
 	if dh == "" {
@@ -119,7 +119,7 @@ func manageAge(h *http.Header, ttl time.Duration, cacheName, key string) {
 	age := strconv.Itoa(oldAge + cage)
 	h.Set("Age", age)
 	ttlValue := strconv.Itoa(int(ttl.Seconds()) - cage)
-	h.Set("Cache-Status", cacheName+"; hit; ttl="+ttlValue+"; key="+key)
+	h.Set("Cache-Status", cacheName+"; hit; ttl="+ttlValue+"; key="+key+"; detail="+storerName)
 }
 
 func setMalformedHeader(headers *http.Header, header, cacheName string) {
@@ -127,11 +127,11 @@ func setMalformedHeader(headers *http.Header, header, cacheName string) {
 }
 
 // SetCacheStatusHeader set the Cache-Status header
-func SetCacheStatusHeader(resp *http.Response) *http.Response {
+func SetCacheStatusHeader(resp *http.Response, storerName string) *http.Response {
 	h := resp.Header
 	cacheName := resp.Request.Context().Value(context.CacheName).(string)
 	validateEmptyHeaders(&h, cacheName)
-	manageAge(&h, 0, cacheName, GetCacheKeyFromCtx(resp.Request.Context()))
+	manageAge(&h, 0, cacheName, GetCacheKeyFromCtx(resp.Request.Context()), storerName)
 
 	resp.Header = h
 	return resp

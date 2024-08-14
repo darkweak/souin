@@ -27,15 +27,11 @@ replace: ## Replace sources in the vendor folder deeper than the go mod replace
 	$(MAKE) copy-to base=$(SOUIN) target=configurationtypes
 	$(MAKE) copy-to base=$(SOUIN) target=context
 	$(MAKE) copy-file-to base=$(PKG) target=surrogate/providers/common.go
-	$(MAKE) copy-to base=$(CACHE) target=ykeys
 	$(MAKE) copy-to base=$(API) target=api
 	$(MAKE) copy-to base=$(PKG) target=api
 	$(MAKE) copy-to base=$(PKG) target=storage
-	$(MAKE) copy-file-to base=$(PKG) target=rfc/vary.go
 	$(MAKE) copy-file-to base=$(PKG) target=rfc/revalidation.go
-	$(MAKE) copy-file-to base=$(PKG) target=middleware/configuration.go
-	$(MAKE) copy-file-to base=$(PKG) target=middleware/middleware.go
-	$(MAKE) copy-file-to base=$(PKG) target=middleware/writer.go
+	$(MAKE) copy-to base=$(PKG) target=middleware
 
 vendor: ## Generate vendors for the plugin
 	go mod tidy
