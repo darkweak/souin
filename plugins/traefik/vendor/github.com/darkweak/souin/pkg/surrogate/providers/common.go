@@ -12,7 +12,6 @@ import (
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/storage"
 	"github.com/darkweak/souin/pkg/storage/types"
-	"github.com/darkweak/souin/pkg/surrogate/providers"
 )
 
 const (
@@ -74,7 +73,7 @@ type keysRegexpInner struct {
 }
 
 type baseStorage struct {
-	parent     providers.SurrogateInterface
+	parent     SurrogateInterface
 	Storage    types.Storer
 	Keys       map[string]configurationtypes.SurrogateKeys
 	keysRegexp map[string]keysRegexpInner

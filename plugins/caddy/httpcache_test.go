@@ -1034,7 +1034,7 @@ func TestExpires(t *testing.T) {
 		}
 	}
 
-	cacheChecker(caddyTester, "/expires-only", "Hello, expires-only!", int(time.Until(expiresValue)-1))
+	cacheChecker(caddyTester, "/expires-only", "Hello, expires-only!", int(time.Until(expiresValue).Seconds())-1)
 	cacheChecker(caddyTester, "/expires-with-max-age", "Hello, expires-with-max-age!", 59)
 	cacheChecker(caddyTester, "/expires-with-s-maxage", "Hello, expires-with-s-maxage!", 4)
 }
