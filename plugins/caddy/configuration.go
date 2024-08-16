@@ -283,7 +283,7 @@ func parseBadgerConfiguration(c map[string]interface{}) map[string]interface{} {
 func parseRedisConfiguration(c map[string]interface{}) map[string]interface{} {
 	for k, v := range c {
 		switch k {
-		case "InitAddress":
+		case "Addrs", "InitAddress":
 			if s, ok := v.(string); ok {
 				c[k] = []string{s}
 			} else {

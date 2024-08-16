@@ -2,7 +2,7 @@ package httpcache
 
 import (
 	"fmt"
-	"strconv"
+	"strings"
 
 	"github.com/caddyserver/caddy/v2"
 )
@@ -119,31 +119,53 @@ func (s *SouinCaddyMiddleware) parseStorages(ctx caddy.Context) {
 		} else {
 			redis := s.Configuration.DefaultCache.Redis
 			address := redis.URL
+			username := ""
 			dbname := 0
-			cname := "souin-redis"
+			cname := ""
 			if c := redis.Configuration; c != nil {
 				p, ok := c.(map[string]interface{})
 				if ok {
+					// shared between go-redis and rueidis
+					if d, ok := p["Username"]; ok {
+						username = fmt.Sprint(d)
+					}
 					if d, ok := p["ClientName"]; ok {
 						cname = fmt.Sprint(d)
 					}
+
+					// rueidis
 					if d, ok := p["InitAddress"]; ok {
-						address = fmt.Sprint(d)
+						elements := make([]string, 0)
+
+						for _, elt := range d.([]interface{}) {
+							elements = append(elements, elt.(string))
+						}
+
+						address = strings.Join(elements, ",")
 					}
 					if d, ok := p["SelectDB"]; ok {
-						dbname, _ = strconv.Atoi(fmt.Sprint(d))
+						dbname = d.(int)
 					}
+
+					// go-redis
 					if d, ok := p["Addrs"]; ok {
-						address = fmt.Sprint(d)
+						elements := make([]string, 0)
+
+						for _, elt := range d.([]interface{}) {
+							elements = append(elements, elt.(string))
+						}
+
+						address = strings.Join(elements, ",")
 					}
 					if d, ok := p["DB"]; ok {
-						dbname, _ = strconv.Atoi(fmt.Sprint(d))
+						dbname = d.(int)
 					}
 				}
 			}
 			s.Configuration.DefaultCache.Redis.Uuid = fmt.Sprintf(
-				"REDIS-%s-%d-%s-%s",
+				"REDIS-%s-%s-%d-%s-%s",
 				address,
+				username,
 				dbname,
 				cname,
 				s.Configuration.DefaultCache.GetStale(),
