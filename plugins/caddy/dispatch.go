@@ -120,7 +120,7 @@ func (s *SouinCaddyMiddleware) parseStorages(ctx caddy.Context) {
 			redis := s.Configuration.DefaultCache.Redis
 			address := redis.URL
 			username := ""
-			dbname := 0
+			dbname := "0"
 			cname := ""
 			if c := redis.Configuration; c != nil {
 				p, ok := c.(map[string]interface{})
@@ -144,7 +144,7 @@ func (s *SouinCaddyMiddleware) parseStorages(ctx caddy.Context) {
 						address = strings.Join(elements, ",")
 					}
 					if d, ok := p["SelectDB"]; ok {
-						dbname = d.(int)
+						dbname = fmt.Sprint(d)
 					}
 
 					// go-redis
@@ -158,12 +158,12 @@ func (s *SouinCaddyMiddleware) parseStorages(ctx caddy.Context) {
 						address = strings.Join(elements, ",")
 					}
 					if d, ok := p["DB"]; ok {
-						dbname = d.(int)
+						dbname = fmt.Sprint(d)
 					}
 				}
 			}
 			s.Configuration.DefaultCache.Redis.Uuid = fmt.Sprintf(
-				"REDIS-%s-%s-%d-%s-%s",
+				"REDIS-%s-%s-%s-%s-%s",
 				address,
 				username,
 				dbname,
