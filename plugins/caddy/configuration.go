@@ -246,7 +246,16 @@ func parseCaddyfileRecursively(h *caddyfile.Dispenser) interface{} {
 		}
 		args := h.RemainingArgs()
 		if len(args) == 1 {
-			input[val] = args[0]
+			arg := args[0]
+			if v, err := strconv.ParseBool(arg); err == nil {
+				input[val] = v
+			} else if v, err := strconv.ParseInt(arg, 10, 0); err == nil {
+				input[val] = v
+			} else if v, err := strconv.ParseFloat(arg, 0); err == nil {
+				input[val] = v
+			} else {
+				input[val] = arg
+			}
 		} else if len(args) > 1 {
 			input[val] = args
 		} else {
@@ -289,13 +298,19 @@ func parseRedisConfiguration(c map[string]interface{}) map[string]interface{} {
 			} else {
 				c[k] = v
 			}
-		case "Username", "Password", "ClientName", "ClientSetInfo", "ClientTrackingOptions":
+		case "Username", "Password", "ClientName", "ClientSetInfo", "ClientTrackingOptions", "SentinelUsername", "SentinelPassword", "MasterName", "IdentitySuffix":
 			c[k] = v
 		case "SendToReplicas", "ShuffleInit", "ClientNoTouch", "DisableRetry", "DisableCache", "AlwaysPipelining", "AlwaysRESP2", "ForceSingleClient", "ReplicaOnly", "ClientNoEvict":
 			c[k] = true
-		case "SelectDB", "CacheSizeEachConn", "RingScaleEachConn", "ReadBufferEachConn", "WriteBufferEachConn", "BlockingPoolSize", "PipelineMultiplex":
-			c[k], _ = strconv.Atoi(v.(string))
-		case "ConnWriteTimeout", "MaxFlushDelay":
+		case "SelectDB", "CacheSizeEachConn", "RingScaleEachConn", "ReadBufferEachConn", "WriteBufferEachConn", "BlockingPoolSize", "PipelineMultiplex", "DB", "Protocol", "MaxRetries", "PoolSize", "MinIdleConns", "MaxIdleConns", "MaxActiveConns", "MaxRedirects":
+			if v == false {
+				c[k] = 0
+			} else if v == true {
+				c[k] = 1
+			} else {
+				c[k], _ = strconv.Atoi(v.(string))
+			}
+		case "ConnWriteTimeout", "MaxFlushDelay", "MinRetryBackoff", "MaxRetryBackoff", "DialTimeout", "ReadTimeout", "WriteTimeout", "PoolTimeout", "ConnMaxIdleTime", "ConnMaxLifetime":
 			c[k], _ = time.ParseDuration(v.(string))
 		}
 	}
