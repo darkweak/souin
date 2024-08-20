@@ -95,12 +95,10 @@ func (s *SouinAPI) BulkDelete(key string, purge bool) {
 		}
 
 		if purge {
-			fmt.Println("PURGE the key", core.MappingKeyPrefix+key)
 			current.Delete(core.MappingKeyPrefix + key)
 		}
 	}
 
-	fmt.Println("PURGE the key", key)
 	s.Delete(key)
 }
 

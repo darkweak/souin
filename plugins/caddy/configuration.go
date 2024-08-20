@@ -246,16 +246,7 @@ func parseCaddyfileRecursively(h *caddyfile.Dispenser) interface{} {
 		}
 		args := h.RemainingArgs()
 		if len(args) == 1 {
-			arg := args[0]
-			if v, err := strconv.ParseBool(arg); err == nil {
-				input[val] = v
-			} else if v, err := strconv.ParseInt(arg, 10, 0); err == nil {
-				input[val] = v
-			} else if v, err := strconv.ParseFloat(arg, 0); err == nil {
-				input[val] = v
-			} else {
-				input[val] = arg
-			}
+			input[val] = args[0]
 		} else if len(args) > 1 {
 			input[val] = args
 		} else {

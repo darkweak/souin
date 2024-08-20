@@ -270,7 +270,7 @@ func (s *baseStorage) Invalidate(method string, headers http.Header) {
 
 // List returns the stored keys associated to resources
 func (s *baseStorage) List() map[string]string {
-	return s.Storage.MapKeys("")
+	return s.Storage.MapKeys(surrogatePrefix)
 }
 
 // Destruct method will shutdown properly the provider

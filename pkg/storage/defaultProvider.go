@@ -2,7 +2,6 @@ package storage
 
 import (
 	"bytes"
-	"fmt"
 	"net/http"
 	"regexp"
 	"strings"
@@ -58,7 +57,6 @@ func (provider *Default) MapKeys(prefix string) map[string]string {
 				return true
 			}
 
-			keys[key.(string)] = fmt.Sprint(value)
 			if v, ok := value.(*core.StorageMapper); ok {
 				for _, v := range v.Mapping {
 					if v.StaleTime.AsTime().After(now) {
