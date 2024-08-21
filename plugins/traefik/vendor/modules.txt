@@ -66,7 +66,7 @@ github.com/cpuguy83/go-md2man/v2/md2man
 # github.com/darkweak/go-esi v0.0.5
 ## explicit; go 1.18
 github.com/darkweak/go-esi/esi
-# github.com/darkweak/souin v1.6.49 => ../..
+# github.com/darkweak/souin v1.6.50 => ../..
 ## explicit; go 1.22.1
 github.com/darkweak/souin/configurationtypes
 github.com/darkweak/souin/context
@@ -80,7 +80,7 @@ github.com/darkweak/souin/pkg/storage
 github.com/darkweak/souin/pkg/storage/types
 github.com/darkweak/souin/pkg/surrogate
 github.com/darkweak/souin/pkg/surrogate/providers
-# github.com/darkweak/storages/core v0.0.7
+# github.com/darkweak/storages/core v0.0.8
 ## explicit; go 1.22.1
 github.com/darkweak/storages/core
 # github.com/dgraph-io/badger v1.6.2

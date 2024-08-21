@@ -56,6 +56,7 @@ func (provider *Default) MapKeys(prefix string) map[string]string {
 
 				return true
 			}
+
 			if v, ok := value.(*core.StorageMapper); ok {
 				for _, v := range v.Mapping {
 					if v.StaleTime.AsTime().After(now) {

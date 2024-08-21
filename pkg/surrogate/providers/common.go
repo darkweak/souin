@@ -74,8 +74,11 @@ func uniqueTag(values []string) []string {
 		}
 		if _, found := tmp[item]; !found {
 			tmp[item] = true
-			i, _ := url.QueryUnescape(item)
-			list = append(list, i)
+
+			if strings.Contains(item, "%3B") || strings.Contains(item, "%3A") {
+				item, _ = url.QueryUnescape(item)
+			}
+			list = append(list, item)
 		}
 	}
 
@@ -237,6 +240,7 @@ func (s *baseStorage) Store(response *http.Response, cacheKey, uri, basekey stri
 
 	urlRegexp = regexp.MustCompile("(^|" + regexp.QuoteMeta(souinStorageSeparator) + ")" + regexp.QuoteMeta(basekey) + "(" + regexp.QuoteMeta(souinStorageSeparator) + "|$)")
 	s.storeTag(uri, basekey, urlRegexp)
+	s.storeTag(uri, cacheKey, urlRegexp)
 
 	return nil
 }

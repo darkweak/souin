@@ -283,19 +283,25 @@ func parseBadgerConfiguration(c map[string]interface{}) map[string]interface{} {
 func parseRedisConfiguration(c map[string]interface{}) map[string]interface{} {
 	for k, v := range c {
 		switch k {
-		case "InitAddress":
+		case "Addrs", "InitAddress":
 			if s, ok := v.(string); ok {
 				c[k] = []string{s}
 			} else {
 				c[k] = v
 			}
-		case "Username", "Password", "ClientName", "ClientSetInfo", "ClientTrackingOptions":
+		case "Username", "Password", "ClientName", "ClientSetInfo", "ClientTrackingOptions", "SentinelUsername", "SentinelPassword", "MasterName", "IdentitySuffix":
 			c[k] = v
 		case "SendToReplicas", "ShuffleInit", "ClientNoTouch", "DisableRetry", "DisableCache", "AlwaysPipelining", "AlwaysRESP2", "ForceSingleClient", "ReplicaOnly", "ClientNoEvict":
 			c[k] = true
-		case "SelectDB", "CacheSizeEachConn", "RingScaleEachConn", "ReadBufferEachConn", "WriteBufferEachConn", "BlockingPoolSize", "PipelineMultiplex":
-			c[k], _ = strconv.Atoi(v.(string))
-		case "ConnWriteTimeout", "MaxFlushDelay":
+		case "SelectDB", "CacheSizeEachConn", "RingScaleEachConn", "ReadBufferEachConn", "WriteBufferEachConn", "BlockingPoolSize", "PipelineMultiplex", "DB", "Protocol", "MaxRetries", "PoolSize", "MinIdleConns", "MaxIdleConns", "MaxActiveConns", "MaxRedirects":
+			if v == false {
+				c[k] = 0
+			} else if v == true {
+				c[k] = 1
+			} else {
+				c[k], _ = strconv.Atoi(v.(string))
+			}
+		case "ConnWriteTimeout", "MaxFlushDelay", "MinRetryBackoff", "MaxRetryBackoff", "DialTimeout", "ReadTimeout", "WriteTimeout", "PoolTimeout", "ConnMaxIdleTime", "ConnMaxLifetime":
 			c[k], _ = time.ParseDuration(v.(string))
 		}
 	}
