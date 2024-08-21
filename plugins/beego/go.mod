@@ -5,7 +5,7 @@ go 1.22.1
 toolchain go1.22.4
 
 require (
-	github.com/beego/beego/v2 v2.1.1
+	github.com/beego/beego/v2 v2.2.1
 	github.com/darkweak/souin v1.6.50
 	github.com/darkweak/souin/plugins/souin v0.0.0-00010101000000-000000000000
 	github.com/darkweak/souin/plugins/souin/storages v0.0.0-00010101000000-000000000000
@@ -62,7 +62,7 @@ require (
 	github.com/go-kit/log v0.2.1 // indirect
 	github.com/go-logfmt/logfmt v0.6.0 // indirect
 	github.com/go-redis/redis/v8 v8.11.5 // indirect
-	github.com/go-sql-driver/mysql v1.7.1 // indirect
+	github.com/go-sql-driver/mysql v1.8.1 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
 	github.com/gofrs/flock v0.8.1 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
