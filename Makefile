@@ -181,3 +181,5 @@ vendor-plugins: ## Generate and prepare vendors for each plugin
 		cd plugins/$$plugin && ($(MAKE) vendor || true) && cd -; \
 	done
 	cd plugins/caddy && go mod tidy && go mod download
+	cd plugins/souin && go mod tidy && go mod download
+	cd plugins/souin/storages && go mod tidy && go mod download

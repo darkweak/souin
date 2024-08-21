@@ -3,7 +3,7 @@ module github.com/darkweak/souin/plugins/dotweb
 go 1.22.1
 
 require (
-	github.com/darkweak/souin v1.6.49
+	github.com/darkweak/souin v1.6.50
 	github.com/darkweak/souin/plugins/souin/storages v0.0.0-00010101000000-000000000000
 	github.com/devfeel/dotweb v1.7.21
 )
@@ -37,14 +37,14 @@ require (
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.3 // indirect
 	github.com/darkweak/go-esi v0.0.6 // indirect
-	github.com/darkweak/storages/badger v0.0.7 // indirect
-	github.com/darkweak/storages/core v0.0.7 // indirect
-	github.com/darkweak/storages/etcd v0.0.7 // indirect
-	github.com/darkweak/storages/nats v0.0.7 // indirect
-	github.com/darkweak/storages/nuts v0.0.7 // indirect
-	github.com/darkweak/storages/olric v0.0.7 // indirect
-	github.com/darkweak/storages/otter v0.0.7 // indirect
-	github.com/darkweak/storages/redis v0.0.7 // indirect
+	github.com/darkweak/storages/badger v0.0.8 // indirect
+	github.com/darkweak/storages/core v0.0.8 // indirect
+	github.com/darkweak/storages/etcd v0.0.8 // indirect
+	github.com/darkweak/storages/nats v0.0.8 // indirect
+	github.com/darkweak/storages/nuts v0.0.8 // indirect
+	github.com/darkweak/storages/olric v0.0.8 // indirect
+	github.com/darkweak/storages/otter v0.0.8 // indirect
+	github.com/darkweak/storages/redis v0.0.8 // indirect
 	github.com/dgraph-io/badger v1.6.2 // indirect
 	github.com/dgraph-io/badger/v2 v2.2007.4 // indirect
 	github.com/dgraph-io/badger/v3 v3.2103.5 // indirect
@@ -180,6 +180,6 @@ require (
 )
 
 replace (
-	github.com/darkweak/souin v1.6.49 => ../..
+	github.com/darkweak/souin v1.6.50 => ../..
 	github.com/darkweak/souin/plugins/souin/storages => ../souin/storages
 )
