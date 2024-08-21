@@ -3,7 +3,7 @@ module github.com/darkweak/souin/plugins/skipper
 go 1.22.1
 
 require (
-	github.com/darkweak/souin v1.6.49
+	github.com/darkweak/souin v1.6.50
 	github.com/darkweak/souin/plugins/souin/storages v0.0.0-00010101000000-000000000000
 	github.com/zalando/skipper v0.16.145
 )
@@ -219,6 +219,6 @@ require (
 )
 
 replace (
-	github.com/darkweak/souin v1.6.49 => ../..
+	github.com/darkweak/souin v1.6.50 => ../..
 	github.com/darkweak/souin/plugins/souin/storages => ../souin/storages
 )
