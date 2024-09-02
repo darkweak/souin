@@ -106,7 +106,7 @@ func TestBaseStorage_Store(t *testing.T) {
 
 	bs := mockCommonProvider()
 
-	e := bs.Store(&res, "((((invalid_key_but_escaped", "", "")
+	e := bs.Store(&res, "((((invalid_key_but_escaped", "")
 	if e != nil {
 		t.Error("It shouldn't throw an error with a valid key.")
 	}
@@ -116,7 +116,7 @@ func TestBaseStorage_Store(t *testing.T) {
 	_ = bs.Storage.Set("test5", []byte("first,second,fifth"), storageToInfiniteTTLMap[bs.Storage.Name()])
 	_ = bs.Storage.Set("testInvalid", []byte("invalid"), storageToInfiniteTTLMap[bs.Storage.Name()])
 
-	if e = bs.Store(&res, "stored", "", ""); e != nil {
+	if e = bs.Store(&res, "stored", ""); e != nil {
 		t.Error("It shouldn't throw an error with a valid key.")
 	}
 
@@ -133,10 +133,10 @@ func TestBaseStorage_Store(t *testing.T) {
 	}
 
 	res.Header.Set(surrogateKey, "something")
-	_ = bs.Store(&res, "/something", "", "")
-	_ = bs.Store(&res, "/something", "", "")
+	_ = bs.Store(&res, "/something", "")
+	_ = bs.Store(&res, "/something", "")
 	res.Header.Set(surrogateKey, "something")
-	_ = bs.Store(&res, "/some", "", "")
+	_ = bs.Store(&res, "/some", "")
 
 	_ = len(bs.Storage.MapKeys(surrogatePrefix))
 	// if storageSize != 6 {
@@ -161,7 +161,7 @@ func TestBaseStorage_Store_Load(t *testing.T) {
 		wg.Add(1)
 		go func(r http.Response, iteration int, group *sync.WaitGroup) {
 			defer wg.Done()
-			_ = bs.Store(&r, fmt.Sprintf("my_dynamic_cache_key_%d", iteration), "", "")
+			_ = bs.Store(&r, fmt.Sprintf("my_dynamic_cache_key_%d", iteration), "")
 		}(res, i, &wg)
 	}
 

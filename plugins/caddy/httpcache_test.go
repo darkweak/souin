@@ -1038,3 +1038,51 @@ func TestExpires(t *testing.T) {
 	cacheChecker(caddyTester, "/expires-with-max-age", "Hello, expires-with-max-age!", 59)
 	cacheChecker(caddyTester, "/expires-with-s-maxage", "Hello, expires-with-s-maxage!", 4)
 }
+
+func TestComplexQuery(t *testing.T) {
+	caddyTester := caddytest.NewTester(t)
+	caddyTester.InitServer(`
+	{
+		admin localhost:2999
+		http_port     9080
+		https_port    9443
+		cache {
+			ttl 10s
+		}
+	}
+	localhost:9080 {
+		route /complex-query {
+			cache
+			respond "Hello, {query}!"
+		}
+	}`, "caddyfile")
+
+	cacheChecker := func(tester *caddytest.Tester, query string, expectedDuration int) {
+		body := fmt.Sprintf("Hello, %s!", query)
+		resp1, _ := tester.AssertGetResponse("http://localhost:9080/complex-query?"+query, 200, body)
+		if resp1.Header.Get("Age") != "" {
+			t.Errorf("unexpected Age header %v", resp1.Header.Get("Age"))
+		}
+
+		if resp1.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-http-localhost:9080-/complex-query?"+query {
+			t.Errorf("unexpected first Cache-Status header %v", resp1.Header.Get("Cache-Status"))
+		}
+
+		resp1, _ = tester.AssertGetResponse("http://localhost:9080/complex-query?"+query, 200, body)
+
+		if resp1.Header.Get("Age") != "1" {
+			t.Errorf("unexpected Age header %v", resp1.Header.Get("Age"))
+		}
+
+		if resp1.Header.Get("Cache-Status") != fmt.Sprintf("Souin; hit; ttl=%d; key=GET-http-localhost:9080-/complex-query?%s; detail=DEFAULT", expectedDuration, query) {
+			t.Errorf(
+				"unexpected second Cache-Status header %v, expected %s",
+				resp1.Header.Get("Cache-Status"),
+				fmt.Sprintf("Souin; hit; ttl=%d; key=GET-http-localhost:9080-/complex-query?%s; detail=DEFAULT", expectedDuration, query),
+			)
+		}
+	}
+
+	cacheChecker(caddyTester, "fields[]=id&pagination=true", 9)
+	cacheChecker(caddyTester, "fields[]=id&pagination=false", 9)
+}

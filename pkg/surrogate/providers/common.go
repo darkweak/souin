@@ -210,7 +210,7 @@ func (s *baseStorage) purgeTag(tag string) []string {
 }
 
 // Store will take the lead to store the cache key for each provided Surrogate-key
-func (s *baseStorage) Store(response *http.Response, cacheKey, uri, basekey string) error {
+func (s *baseStorage) Store(response *http.Response, cacheKey, uri string) error {
 	h := response.Header
 
 	cacheKey = url.QueryEscape(cacheKey)
@@ -238,8 +238,11 @@ func (s *baseStorage) Store(response *http.Response, cacheKey, uri, basekey stri
 		}
 	}
 
-	urlRegexp = regexp.MustCompile("(^|" + regexp.QuoteMeta(souinStorageSeparator) + ")" + regexp.QuoteMeta(basekey) + "(" + regexp.QuoteMeta(souinStorageSeparator) + "|$)")
-	s.storeTag(uri, basekey, urlRegexp)
+	if h.Get("Content-Location") != "" {
+		location := h.Get("Content-Location")
+		urlRegexp = regexp.MustCompile("(^|" + regexp.QuoteMeta(souinStorageSeparator) + ")" + regexp.QuoteMeta(location) + "(" + regexp.QuoteMeta(souinStorageSeparator) + "|$)")
+		s.storeTag(uri, location, urlRegexp)
+	}
 	s.storeTag(uri, cacheKey, urlRegexp)
 
 	return nil
