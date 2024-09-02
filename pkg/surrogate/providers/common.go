@@ -240,10 +240,8 @@ func (s *baseStorage) Store(response *http.Response, cacheKey, uri string) error
 
 	if h.Get("Content-Location") != "" {
 		location := h.Get("Content-Location")
-		urlRegexp = regexp.MustCompile("(^|" + regexp.QuoteMeta(souinStorageSeparator) + ")" + regexp.QuoteMeta(location) + "(" + regexp.QuoteMeta(souinStorageSeparator) + "|$)")
-		s.storeTag(uri, location, urlRegexp)
+		s.storeTag(location, cacheKey, urlRegexp)
 	}
-	s.storeTag(uri, cacheKey, urlRegexp)
 
 	return nil
 }
