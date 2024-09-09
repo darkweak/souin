@@ -353,9 +353,9 @@ func (s *SouinBaseHandler) Store(
 
 					wg.Wait()
 					if len(fails) < s.storersLen {
-						go func(rs http.Response, key string, basekey string) {
-							_ = s.SurrogateKeyStorer.Store(&rs, key, uri, basekey)
-						}(res, variedKey, cachedKey)
+						go func(rs http.Response, key string) {
+							_ = s.SurrogateKeyStorer.Store(&rs, key, uri)
+						}(res, variedKey)
 						status += "; stored"
 					}
 

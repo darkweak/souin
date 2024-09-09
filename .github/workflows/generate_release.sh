@@ -1,6 +1,6 @@
 #!/bin/bash
 
-plugins=("beego" "caddy" "chi" "dotweb" "echo" "fiber" "gin" "go-zero" "goa" "goyave" "hertz" "kratos" "roadrunner" "skipper" "souin" "traefik" "tyk" "webgo")
+plugins=("beego" "caddy" "chi" "dotweb" "echo" "fiber" "gin" "go-zero" "goa" "goyave" "hertz" "kratos" "roadrunner" "skipper" "souin" "souin/storages" "traefik" "tyk" "webgo")
 
 IFS= read -r -d '' tpl <<EOF
 name: Tag submodules on release
