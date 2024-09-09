@@ -189,7 +189,7 @@ func (s *baseStorage) purgeTag(tag string) []string {
 }
 
 // Store will take the lead to store the cache key for each provided Surrogate-key
-func (s *baseStorage) Store(response *http.Response, cacheKey, uri, basekey string) error {
+func (s *baseStorage) Store(response *http.Response, cacheKey, uri string) error {
 	h := response.Header
 
 	cacheKey = url.QueryEscape(cacheKey)

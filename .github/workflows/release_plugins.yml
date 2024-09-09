@@ -178,6 +178,17 @@ jobs:
               sha: context.sha
             })
       -
+        name: Create Souin/storages tag
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.git.createRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: 'refs/tags/plugins/souin/storages/${{ github.ref_name }}',
+              sha: context.sha
+            })
+      -
         name: Create Traefik tag
         uses: actions/github-script@v7
         with:

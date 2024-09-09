@@ -38,12 +38,12 @@ func (*CloudflareSurrogateStorage) getHeaderSeparator() string {
 }
 
 // Store stores the response tags located in the first non empty supported header
-func (c *CloudflareSurrogateStorage) Store(response *http.Response, cacheKey, uri, basekey string) error {
+func (c *CloudflareSurrogateStorage) Store(response *http.Response, cacheKey, uri string) error {
 	defer func() {
 		response.Header.Del(surrogateKey)
 		response.Header.Del(surrogateControl)
 	}()
-	e := c.baseStorage.Store(response, cacheKey, uri, basekey)
+	e := c.baseStorage.Store(response, cacheKey, uri)
 	response.Header.Set(cacheTag, strings.Join(c.ParseHeaders(response.Header.Get(surrogateKey)), c.getHeaderSeparator()))
 
 	return e
