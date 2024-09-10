@@ -3,7 +3,7 @@ module github.com/darkweak/souin/plugins/kratos
 go 1.22.1
 
 require (
-	github.com/darkweak/souin v1.6.50
+	github.com/darkweak/souin v1.7.0
 	github.com/darkweak/souin/plugins/souin/storages v0.0.0-00010101000000-000000000000
 	github.com/go-kratos/kratos/v2 v2.7.0
 	gopkg.in/yaml.v3 v3.0.1
@@ -183,6 +183,6 @@ require (
 )
 
 replace (
-	github.com/darkweak/souin v1.6.50 => ../..
+	github.com/darkweak/souin v1.7.0 => ../..
 	github.com/darkweak/souin/plugins/souin/storages => ../souin/storages
 )
