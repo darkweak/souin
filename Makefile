@@ -107,6 +107,7 @@ bump-version:
 	for plugin in $(PLUGINS_LIST) ; do \
 		sed -i '' 's/github.com\/darkweak\/souin $(from)/github.com\/darkweak\/souin $(to)/' plugins/$$plugin/go.mod ; \
 	done
+	sed -i '' 's/github.com\/darkweak\/souin $(from)/github.com\/darkweak\/souin $(to)/' plugins/souin/storages/go.mod
 
 bump-plugins-deps: ## Bump plugins dependencies
 	for plugin in $(MOD_PLUGINS_LIST) ; do \

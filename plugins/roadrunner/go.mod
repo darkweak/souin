@@ -3,7 +3,7 @@ module github.com/darkweak/souin/plugins/roadrunner
 go 1.22.1
 
 require (
-	github.com/darkweak/souin v1.6.50
+	github.com/darkweak/souin v1.7.0
 	github.com/darkweak/souin/plugins/souin v0.0.0-00010101000000-000000000000
 	github.com/darkweak/souin/plugins/souin/storages v0.0.0-00010101000000-000000000000
 	github.com/roadrunner-server/errors v1.3.0
@@ -180,7 +180,7 @@ require (
 )
 
 replace (
-	github.com/darkweak/souin v1.6.50 => ../..
+	github.com/darkweak/souin v1.7.0 => ../..
 	github.com/darkweak/souin/plugins/souin => ../souin
 	github.com/darkweak/souin/plugins/souin/storages => ../souin/storages
 )
