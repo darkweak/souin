@@ -3,7 +3,7 @@ module github.com/darkweak/souin/plugins/chi
 go 1.22.1
 
 require (
-	github.com/darkweak/souin v1.7.0
+	github.com/darkweak/souin v1.7.1
 	github.com/darkweak/souin/plugins/souin/storages v0.0.0-00010101000000-000000000000
 	github.com/go-chi/chi/v5 v5.0.12
 )
@@ -179,6 +179,6 @@ require (
 )
 
 replace (
-	github.com/darkweak/souin v1.7.0 => ../..
+	github.com/darkweak/souin v1.7.1 => ../..
 	github.com/darkweak/souin/plugins/souin/storages => ../souin/storages
 )

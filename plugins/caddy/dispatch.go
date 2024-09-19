@@ -121,7 +121,7 @@ func (s *SouinCaddyMiddleware) parseStorages(ctx caddy.Context) {
 			address := redis.URL
 			username := ""
 			dbname := "0"
-			cname := ""
+			cname := "souin-redis"
 			if c := redis.Configuration; c != nil {
 				p, ok := c.(map[string]interface{})
 				if ok {

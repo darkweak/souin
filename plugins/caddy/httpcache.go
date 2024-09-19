@@ -116,6 +116,10 @@ func (s *SouinCaddyMiddleware) configurationPropertyMapper() error {
 	return nil
 }
 
+func isProviderEmpty(c configurationtypes.CacheProvider) bool {
+	return c.Configuration == nil && c.Path == "" && c.URL == ""
+}
+
 // FromApp to initialize configuration from App structure.
 func (s *SouinCaddyMiddleware) FromApp(app *SouinApp) error {
 	if s.Configuration.GetDefaultCache() == nil {
@@ -199,7 +203,7 @@ func (s *SouinCaddyMiddleware) FromApp(app *SouinApp) error {
 	if dc.CacheName == "" {
 		s.Configuration.DefaultCache.CacheName = appDc.CacheName
 	}
-	if !s.Configuration.DefaultCache.Distributed && !dc.Olric.Found && !dc.Redis.Found && !dc.Etcd.Found && !dc.Badger.Found && !dc.Nuts.Found && !dc.Otter.Found {
+	if isProviderEmpty(dc.Badger) && isProviderEmpty(dc.Etcd) && isProviderEmpty(dc.Nats) && isProviderEmpty(dc.Nuts) && isProviderEmpty(dc.Olric) && isProviderEmpty(dc.Otter) && isProviderEmpty(dc.Redis) {
 		s.Configuration.DefaultCache.Distributed = appDc.Distributed
 		s.Configuration.DefaultCache.Olric = appDc.Olric
 		s.Configuration.DefaultCache.Redis = appDc.Redis
