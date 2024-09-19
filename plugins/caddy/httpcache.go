@@ -117,7 +117,7 @@ func (s *SouinCaddyMiddleware) configurationPropertyMapper() error {
 }
 
 func isProviderEmpty(c configurationtypes.CacheProvider) bool {
-	return c.Configuration == nil && c.Path == "" && c.URL == ""
+	return !c.Found
 }
 
 // FromApp to initialize configuration from App structure.

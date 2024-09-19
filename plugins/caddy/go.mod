@@ -4,7 +4,7 @@ go 1.22.1
 
 require (
 	github.com/caddyserver/caddy/v2 v2.8.4
-	github.com/darkweak/souin v1.7.1
+	github.com/darkweak/souin v1.7.2
 	github.com/darkweak/storages/core v0.0.8
 )
 
@@ -153,4 +153,4 @@ require (
 	howett.net/plist v1.0.0 // indirect
 )
 
-replace github.com/darkweak/souin v1.7.1 => ../..
+replace github.com/darkweak/souin v1.7.2 => ../..

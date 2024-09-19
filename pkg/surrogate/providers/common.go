@@ -114,6 +114,7 @@ func (s *baseStorage) init(config configurationtypes.AbstractConfigurationInterf
 
 		s.Storage = storer
 	} else {
+		config.GetLogger().Debugf("Try to load the storer %s as surrogate backend", defaultStorerName)
 		storer := core.GetRegisteredStorer(defaultStorerName)
 		if storer == nil {
 			config.GetLogger().Errorf("Impossible to retrieve the storers %s for the surrogate-keys fallback to the default storage", configuration.SurrogateConfiguration.Storer)
@@ -210,7 +211,7 @@ func (s *baseStorage) purgeTag(tag string) []string {
 }
 
 // Store will take the lead to store the cache key for each provided Surrogate-key
-func (s *baseStorage) Store(response *http.Response, cacheKey, uri string) error {
+func (s *baseStorage) Store(response *http.Response, cacheKey, _ string) error {
 	h := response.Header
 
 	cacheKey = url.QueryEscape(cacheKey)
@@ -236,11 +237,6 @@ func (s *baseStorage) Store(response *http.Response, cacheKey, uri string) error
 		} else {
 			s.storeTag(key, cacheKey, urlRegexp)
 		}
-	}
-
-	if h.Get("Content-Location") != "" {
-		location := h.Get("Content-Location")
-		s.storeTag(location, cacheKey, urlRegexp)
 	}
 
 	return nil
