@@ -82,7 +82,10 @@ func (r *CustomWriter) Write(b []byte) (int, error) {
 // Send delays the response to handle Cache-Status
 func (r *CustomWriter) Send() (int, error) {
 	defer r.Buf.Reset()
-	r.Header().Set("Content-Length", r.Header().Get(rfc.StoredLengthHeader))
+	storedLength := r.Header().Get(rfc.StoredLengthHeader)
+	if storedLength != "" {
+		r.Header().Set("Content-Length", storedLength)
+	}
 	b := esi.Parse(r.Buf.Bytes(), r.Req)
 	if len(b) != 0 {
 		r.Header().Set("Content-Length", strconv.Itoa(len(b)))
