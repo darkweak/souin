@@ -21,8 +21,6 @@ func (c *CacheKeys) parseJSON(rootDecoder *json.Decoder) {
 	var err error
 
 	_, _ = rootDecoder.Token()
-	_, _ = rootDecoder.Token()
-	_, _ = rootDecoder.Token()
 
 	for err == nil {
 		token, err = rootDecoder.Token()
