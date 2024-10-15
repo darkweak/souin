@@ -291,7 +291,7 @@ func parseRedisConfiguration(c map[string]interface{}) map[string]interface{} {
 			}
 		case "Username", "Password", "ClientName", "ClientSetInfo", "ClientTrackingOptions", "SentinelUsername", "SentinelPassword", "MasterName", "IdentitySuffix":
 			c[k] = v
-		case "SendToReplicas", "ShuffleInit", "ClientNoTouch", "DisableRetry", "DisableCache", "AlwaysPipelining", "AlwaysRESP2", "ForceSingleClient", "ReplicaOnly", "ClientNoEvict":
+		case "SendToReplicas", "ShuffleInit", "ClientNoTouch", "DisableRetry", "DisableCache", "AlwaysPipelining", "AlwaysRESP2", "ForceSingleClient", "ReplicaOnly", "ClientNoEvict", "ContextTimeoutEnabled", "PoolFIFO", "ReadOnly", "RouteByLatency", "RouteRandomly", "DisableIndentity":
 			c[k] = true
 		case "SelectDB", "CacheSizeEachConn", "RingScaleEachConn", "ReadBufferEachConn", "WriteBufferEachConn", "BlockingPoolSize", "PipelineMultiplex", "DB", "Protocol", "MaxRetries", "PoolSize", "MinIdleConns", "MaxIdleConns", "MaxActiveConns", "MaxRedirects":
 			if v == false {
