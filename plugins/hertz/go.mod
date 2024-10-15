@@ -4,7 +4,7 @@ go 1.22.1
 
 require (
 	github.com/darkweak/souin v1.7.2
-	github.com/darkweak/souin/plugins/souin/storages v0.0.0-00010101000000-000000000000
+	github.com/darkweak/souin/plugins/souin/storages v1.7.2
 )
 
 require (
@@ -33,7 +33,7 @@ require (
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.3 // indirect
 	github.com/darkweak/storages/badger v0.0.8 // indirect
-	github.com/darkweak/storages/core v0.0.8 // indirect
+	github.com/darkweak/storages/core v0.0.9 // indirect
 	github.com/darkweak/storages/etcd v0.0.8 // indirect
 	github.com/darkweak/storages/nats v0.0.8 // indirect
 	github.com/darkweak/storages/nuts v0.0.8 // indirect
@@ -194,7 +194,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace (
-	github.com/darkweak/souin v1.7.2 => ../..
-	github.com/darkweak/souin/plugins/souin/storages => ../souin/storages
-)
+replace github.com/darkweak/souin v1.7.2 => ../..

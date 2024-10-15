@@ -58,8 +58,8 @@ github.com/coreos/go-systemd/v22 v22.5.0/go.mod h1:Y58oyj3AT4RCenI/lSvhwexgC+NSV
 github.com/cpuguy83/go-md2man v1.0.10/go.mod h1:SmD6nW6nTyfqj6ABTjUi3V3JVMnlJmwcJI5acqYI6dE=
 github.com/darkweak/storages/badger v0.0.8 h1:rKVXrasVA74xgiqGRgW0kH11NUIlWwn9HiFyHUok85k=
 github.com/darkweak/storages/badger v0.0.8/go.mod h1:ZmrNmKkFzyu/B3+1nsvVeTvyg2I2mOV5yTpT46mZ06o=
-github.com/darkweak/storages/core v0.0.8 h1:9e7rOxHiJwnvADDVCZ7LFRnUnOHGT+UMpNOFlR8BOiw=
-github.com/darkweak/storages/core v0.0.8/go.mod h1:ajTpB9IFLRIRY0EEFLjM5vtsrcNTh+TJK9yRxgG5/wY=
+github.com/darkweak/storages/core v0.0.9 h1:N8UokJlgDC3QgRtUob9vsqJYJOkmBvjhr5vx2k4L5qU=
+github.com/darkweak/storages/core v0.0.9/go.mod h1:ajTpB9IFLRIRY0EEFLjM5vtsrcNTh+TJK9yRxgG5/wY=
 github.com/darkweak/storages/etcd v0.0.8 h1:Guzv6zgxkQJLjak36KsbtQqkmwMRJoZZI0B7ztZKIik=
 github.com/darkweak/storages/etcd v0.0.8/go.mod h1:Yw9xJramKAzIRoC7tizVMYPSwUBHqxY5BPTh8OgyISY=
 github.com/darkweak/storages/nats v0.0.8 h1:HRS3i2zzzIq1Qb3yoOUWD6MoRQgGV1NbECF1ex4wZjg=
