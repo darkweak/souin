@@ -123,5 +123,3 @@ require (
 	golang.org/x/tools v0.21.0 // indirect
 	google.golang.org/grpc v1.63.2 // indirect
 )
-
-replace github.com/darkweak/storages/core => ../storages/core
