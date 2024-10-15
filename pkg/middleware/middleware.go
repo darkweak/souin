@@ -774,7 +774,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 					return err
 				}
 
-				if rfc.ValidateMaxAgeCachedStaleResponse(requestCc, response, int(addTime.Seconds())) != nil {
+				if !modeContext.Strict || rfc.ValidateMaxAgeCachedStaleResponse(requestCc, response, int(addTime.Seconds())) != nil {
 					customWriter.WriteHeader(response.StatusCode)
 					rfc.HitStaleCache(&response.Header)
 					maps.Copy(customWriter.Header(), response.Header)

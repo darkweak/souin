@@ -236,7 +236,7 @@ func SouinRequestHandler(rw http.ResponseWriter, baseRq *http.Request) {
 					return
 				}
 
-				if rfc.ValidateMaxAgeCachedStaleResponse(requestCc, response, int(addTime.Seconds())) != nil {
+				if !modeContext.Strict || rfc.ValidateMaxAgeCachedStaleResponse(requestCc, response, int(addTime.Seconds())) != nil {
 					h := response.Header
 					rfc.HitStaleCache(&h)
 					for hn, hv := range h {
