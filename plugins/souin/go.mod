@@ -10,7 +10,7 @@ replace (
 require (
 	github.com/darkweak/souin v1.7.2
 	github.com/darkweak/souin/plugins/souin/storages v1.7.2
-	github.com/darkweak/storages/core v0.0.9
+	github.com/darkweak/storages/core v0.0.10
 	github.com/fsnotify/fsnotify v1.7.0
 	go.uber.org/zap v1.27.0
 	gopkg.in/yaml.v3 v3.0.1

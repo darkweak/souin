@@ -33,7 +33,7 @@ require (
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.3 // indirect
 	github.com/darkweak/storages/badger v0.0.8 // indirect
-	github.com/darkweak/storages/core v0.0.9 // indirect
+	github.com/darkweak/storages/core v0.0.10 // indirect
 	github.com/darkweak/storages/etcd v0.0.8 // indirect
 	github.com/darkweak/storages/nats v0.0.8 // indirect
 	github.com/darkweak/storages/nuts v0.0.8 // indirect
