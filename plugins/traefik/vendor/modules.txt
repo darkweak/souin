@@ -80,7 +80,7 @@ github.com/darkweak/souin/pkg/storage
 github.com/darkweak/souin/pkg/storage/types
 github.com/darkweak/souin/pkg/surrogate
 github.com/darkweak/souin/pkg/surrogate/providers
-# github.com/darkweak/storages/core v0.0.9
+# github.com/darkweak/storages/core v0.0.10
 ## explicit; go 1.22.1
 github.com/darkweak/storages/core
 # github.com/dgraph-io/badger v1.6.2

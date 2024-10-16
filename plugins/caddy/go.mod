@@ -5,7 +5,7 @@ go 1.22.1
 require (
 	github.com/caddyserver/caddy/v2 v2.8.4
 	github.com/darkweak/souin v1.7.2
-	github.com/darkweak/storages/core v0.0.9
+	github.com/darkweak/storages/core v0.0.10
 )
 
 require (
