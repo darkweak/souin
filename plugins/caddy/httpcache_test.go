@@ -602,6 +602,106 @@ func TestMustRevalidate(t *testing.T) {
 	}
 }
 
+type staleIfErrorHandler struct {
+	iterator int
+}
+
+func (t *staleIfErrorHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if t.iterator > 0 {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	t.iterator++
+	w.Header().Set("Cache-Control", "stale-if-error=86400")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write([]byte("Hello stale-if-error!"))
+}
+
+func TestStaleIfError(t *testing.T) {
+	tester := caddytest.NewTester(t)
+	tester.InitServer(`
+	{
+		admin localhost:2999
+		http_port     9080
+		cache {
+			ttl 5s
+			stale 5s
+		}
+	}
+	localhost:9080 {
+		route /stale-if-error {
+			cache
+			reverse_proxy localhost:9085
+		}
+	}`, "caddyfile")
+
+	go func() {
+		staleIfErrorHandler := staleIfErrorHandler{}
+		_ = http.ListenAndServe(":9085", &staleIfErrorHandler)
+	}()
+	time.Sleep(time.Second)
+	resp1, _ := tester.AssertGetResponse(`http://localhost:9080/stale-if-error`, http.StatusOK, "Hello stale-if-error!")
+	resp2, _ := tester.AssertGetResponse(`http://localhost:9080/stale-if-error`, http.StatusOK, "Hello stale-if-error!")
+
+	if resp1.Header.Get("Cache-Control") != "stale-if-error=86400" {
+		t.Errorf("unexpected resp1 Cache-Control header %v", resp1.Header.Get("Cache-Control"))
+	}
+	if resp1.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-http-localhost:9080-/stale-if-error" {
+		t.Errorf("unexpected resp1 Cache-Status header %v", resp1.Header.Get("Cache-Status"))
+	}
+	if resp1.Header.Get("Age") != "" {
+		t.Errorf("unexpected resp1 Age header %v", resp1.Header.Get("Age"))
+	}
+
+	if resp2.Header.Get("Cache-Control") != "stale-if-error=86400" {
+		t.Errorf("unexpected resp2 Cache-Control header %v", resp2.Header.Get("Cache-Control"))
+	}
+	if resp2.Header.Get("Cache-Status") != "Souin; hit; ttl=4; key=GET-http-localhost:9080-/stale-if-error; detail=DEFAULT" {
+		t.Errorf("unexpected resp2 Cache-Status header %v", resp2.Header.Get("Cache-Status"))
+	}
+	if resp2.Header.Get("Age") != "1" {
+		t.Errorf("unexpected resp2 Age header %v", resp2.Header.Get("Age"))
+	}
+
+	time.Sleep(6 * time.Second)
+	staleReq, _ := http.NewRequest(http.MethodGet, "http://localhost:9080/stale-if-error", nil)
+	staleReq.Header = http.Header{"Cache-Control": []string{"stale-if-error=86400"}}
+	resp3, _ := tester.AssertResponse(staleReq, http.StatusOK, "Hello stale-if-error!")
+
+	if resp3.Header.Get("Cache-Control") != "stale-if-error=86400" {
+		t.Errorf("unexpected resp3 Cache-Control header %v", resp3.Header.Get("Cache-Control"))
+	}
+	if resp3.Header.Get("Cache-Status") != "Souin; hit; ttl=-2; key=GET-http-localhost:9080-/stale-if-error; detail=DEFAULT; fwd=stale; fwd-status=500" {
+		t.Errorf("unexpected resp3 Cache-Status header %v", resp3.Header.Get("Cache-Status"))
+	}
+	if resp3.Header.Get("Age") != "7" {
+		t.Errorf("unexpected resp3 Age header %v", resp3.Header.Get("Age"))
+	}
+
+	resp4, _ := tester.AssertGetResponse(`http://localhost:9080/stale-if-error`, http.StatusOK, "Hello stale-if-error!")
+
+	if resp4.Header.Get("Cache-Status") != "Souin; hit; ttl=-2; key=GET-http-localhost:9080-/stale-if-error; detail=DEFAULT; fwd=stale; fwd-status=500" &&
+		resp4.Header.Get("Cache-Status") != "Souin; hit; ttl=-3; key=GET-http-localhost:9080-/stale-if-error; detail=DEFAULT; fwd=stale; fwd-status=500" {
+		t.Errorf("unexpected resp4 Cache-Status header %v", resp4.Header.Get("Cache-Status"))
+	}
+
+	if resp4.Header.Get("Age") != "7" && resp4.Header.Get("Age") != "8" {
+		t.Errorf("unexpected resp4 Age header %v", resp4.Header.Get("Age"))
+	}
+
+	time.Sleep(6 * time.Second)
+	resp5, _ := tester.AssertGetResponse(`http://localhost:9080/stale-if-error`, http.StatusInternalServerError, "")
+
+	if resp5.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; key=GET-http-localhost:9080-/stale-if-error; detail=UNCACHEABLE-STATUS-CODE" {
+		t.Errorf("unexpected resp5 Cache-Status header %v", resp5.Header.Get("Cache-Status"))
+	}
+
+	if resp5.Header.Get("Age") != "" {
+		t.Errorf("unexpected resp5 Age header %v", resp5.Header.Get("Age"))
+	}
+}
+
 type testETagsHandler struct{}
 
 const etagValue = "AAA-BBB"
