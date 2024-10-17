@@ -737,6 +737,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 							response.Header.Set("Cache-Status", response.Header.Get("Cache-Status")+code)
 							maps.Copy(customWriter.Header(), response.Header)
 							customWriter.WriteHeader(response.StatusCode)
+							customWriter.Buf.Reset()
 							_, _ = io.Copy(customWriter.Buf, response.Body)
 							_, err := customWriter.Send()
 
@@ -774,7 +775,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 					return err
 				}
 
-				if !modeContext.Strict || rfc.ValidateMaxAgeCachedStaleResponse(requestCc, response, int(addTime.Seconds())) != nil {
+				if !modeContext.Strict || rfc.ValidateMaxAgeCachedStaleResponse(requestCc, responseCc, response, int(addTime.Seconds())) != nil {
 					customWriter.WriteHeader(response.StatusCode)
 					rfc.HitStaleCache(&response.Header)
 					maps.Copy(customWriter.Header(), response.Header)
@@ -783,6 +784,35 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 
 					return err
 				}
+			}
+		} else if stale != nil {
+			response := stale
+			addTime, _ := time.ParseDuration(response.Header.Get(rfc.StoredTTLHeader))
+			responseCc, _ := cacheobject.ParseResponseCacheControl(rfc.HeaderAllCommaSepValuesString(response.Header, "Cache-Control"))
+
+			if !modeContext.Strict || rfc.ValidateMaxAgeCachedStaleResponse(requestCc, responseCc, response, int(addTime.Seconds())) != nil {
+				_, _ = time.ParseDuration(response.Header.Get(rfc.StoredTTLHeader))
+				rfc.SetCacheStatusHeader(response, storerName)
+
+				responseCc, _ := cacheobject.ParseResponseCacheControl(rfc.HeaderAllCommaSepValuesString(response.Header, "Cache-Control"))
+
+				if responseCc.StaleIfError > -1 || requestCc.StaleIfError > 0 {
+					err := s.Revalidate(validator, next, customWriter, req, requestCc, cachedKey, uri)
+					statusCode := customWriter.GetStatusCode()
+					if err != nil {
+						code := fmt.Sprintf("; fwd-status=%d", statusCode)
+						rfc.HitStaleCache(&response.Header)
+						response.Header.Set("Cache-Status", response.Header.Get("Cache-Status")+code)
+						maps.Copy(customWriter.Header(), response.Header)
+						customWriter.WriteHeader(response.StatusCode)
+						customWriter.Buf.Reset()
+						_, _ = io.Copy(customWriter.Buf, response.Body)
+						_, err := customWriter.Send()
+
+						return err
+					}
+				}
+
 			}
 		}
 	}
