@@ -41,7 +41,12 @@ var storageToInfiniteTTLMap = map[string]time.Duration{
 }
 
 func (s *baseStorage) ParseHeaders(value string) []string {
-	return strings.Split(value, s.parent.getHeaderSeparator())
+	res := strings.Split(value, s.parent.getHeaderSeparator())
+	for i, v := range res {
+		res[i] = strings.TrimSpace(v)
+	}
+
+	return res
 }
 
 func getCandidateHeader(header http.Header, getCandidates func() []string) (string, string) {
