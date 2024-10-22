@@ -441,14 +441,20 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isGlobal boo
 						if len(args) > 0 {
 							cdn.Dynamic, _ = strconv.ParseBool(args[0])
 						}
+					case "email":
+						cdn.Email = h.RemainingArgs()[0]
 					case "hostname":
 						cdn.Hostname = h.RemainingArgs()[0]
 					case "network":
 						cdn.Network = h.RemainingArgs()[0]
 					case "provider":
 						cdn.Provider = h.RemainingArgs()[0]
+					case "service_id":
+						cdn.ServiceID = h.RemainingArgs()[0]
 					case "strategy":
 						cdn.Strategy = h.RemainingArgs()[0]
+					case "zone_id":
+						cdn.ZoneID = h.RemainingArgs()[0]
 					default:
 						return h.Errf("unsupported cdn directive: %s", directive)
 					}
