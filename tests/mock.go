@@ -278,7 +278,7 @@ urls:
 `
 }
 
-// EtcdConfiguration simulate the configuration for the Nuts storage
+// EtcdConfiguration simulate the configuration for the Etcd storage
 func EtcdConfiguration() string {
 	return `
 api:
@@ -321,7 +321,7 @@ urls:
 `
 }
 
-// RedisConfiguration simulate the configuration for the Nuts storage
+// RedisConfiguration simulate the configuration for the Redis storage
 func RedisConfiguration() string {
 	return `
 api:
@@ -338,6 +338,46 @@ default_cache:
   redis:
     url: redis:6379
   distributed: true
+  headers:
+    - Authorization
+  port:
+    web: 80
+    tls: 443
+  regex:
+    exclude: 'ARegexHere'
+  ttl: 1000s
+reverse_proxy_url: 'http://domain.com:81'
+ssl_providers:
+  - traefik
+urls:
+  'domain.com/':
+    ttl: 1000s
+    headers:
+      - Authorization
+  'mysubdomain.domain.com':
+    ttl: 50s
+    headers:
+      - Authorization
+      - 'Content-Type'
+`
+}
+
+// SimpleFSConfiguration simulate the configuration for the SimpleFS storage
+func SimpleFSConfiguration() string {
+	return `
+api:
+  basepath: /souin-api
+  security:
+    secret: your_secret_key
+    enable: true
+    users:
+      - username: user1
+        password: test
+  souin:
+    enable: true
+default_cache:
+  simplefs:
+    path: "./simplefs"
   headers:
     - Authorization
   port:

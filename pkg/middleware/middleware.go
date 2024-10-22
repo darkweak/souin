@@ -67,7 +67,7 @@ func NewHTTPCacheHandler(c configurationtypes.AbstractConfigurationInterface) *S
 	storers := []types.Storer{}
 	if len(storedStorers) != 0 {
 		dc := c.GetDefaultCache()
-		for _, s := range []string{dc.GetBadger().Uuid, dc.GetEtcd().Uuid, dc.GetNats().Uuid, dc.GetNuts().Uuid, dc.GetOlric().Uuid, dc.GetOtter().Uuid, dc.GetRedis().Uuid} {
+		for _, s := range []string{dc.GetBadger().Uuid, dc.GetEtcd().Uuid, dc.GetNats().Uuid, dc.GetNuts().Uuid, dc.GetOlric().Uuid, dc.GetOtter().Uuid, dc.GetRedis().Uuid, dc.GetSimpleFS().Uuid} {
 			if s != "" {
 				if st := core.GetRegisteredStorer(s); st != nil {
 					storers = append(storers, st.(types.Storer))

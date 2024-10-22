@@ -4,6 +4,9 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
@@ -1185,4 +1188,69 @@ func TestComplexQuery(t *testing.T) {
 
 	cacheChecker(caddyTester, "fields[]=id&pagination=true", 9)
 	cacheChecker(caddyTester, "fields[]=id&pagination=false", 9)
+}
+
+func TestSimpleFS(t *testing.T) {
+	tester := caddytest.NewTester(t)
+	tester.InitServer(`
+	{
+		admin localhost:2999
+		http_port     9080
+		cache {
+			ttl 5s
+			stale 5s
+			simplefs {
+				configuration {
+					size 10
+					path storage
+				}
+			}
+		}
+	}
+	localhost:9080 {
+		route /simplefs {
+			cache
+			respond "Hello, simplefs storage!"
+		}
+	}`, "caddyfile")
+
+	time.Sleep(time.Second)
+	resp1, _ := tester.AssertGetResponse(`http://localhost:9080/simplefs`, http.StatusOK, "Hello simplefs storage!")
+
+	if resp1.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-http-localhost:9080-/simplefs" {
+		t.Errorf("unexpected resp1 Cache-Status header %v", resp1.Header.Get("Cache-Status"))
+	}
+	if resp1.Header.Get("Age") != "" {
+		t.Errorf("unexpected resp1 Age header %v", resp1.Header.Get("Age"))
+	}
+	if _, err := os.Stat(filepath.Join("storage", url.PathEscape("GET-http-localhost:9080-/simplefs"))); os.IsNotExist(err) {
+		t.Errorf("impossible to check the stored file %v", err)
+	}
+
+	resp2, _ := tester.AssertGetResponse(`http://localhost:9080/simplefs`, http.StatusOK, "Hello simplefs storage!")
+
+	if resp1.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-http-localhost:9080-/simplefs" {
+		t.Errorf("unexpected resp1 Cache-Status header %v", resp1.Header.Get("Cache-Status"))
+	}
+	if resp1.Header.Get("Age") != "" {
+		t.Errorf("unexpected resp1 Age header %v", resp1.Header.Get("Age"))
+	}
+	if _, err := os.Stat(filepath.Join("storage", url.PathEscape("GET-http-localhost:9080-/simplefs"))); os.IsNotExist(err) {
+		t.Errorf("impossible to check the stored file %v", err)
+	}
+
+	if resp2.Header.Get("Cache-Status") != "Souin; hit; ttl=4; key=GET-http-localhost:9080-/simplefs; detail=SIMPLEFS" {
+		t.Errorf("unexpected resp2 Cache-Status header %v", resp2.Header.Get("Cache-Status"))
+	}
+	if resp2.Header.Get("Age") != "1" {
+		t.Errorf("unexpected resp2 Age header %v", resp2.Header.Get("Age"))
+	}
+	if _, err := os.Stat(filepath.Join("storage", url.PathEscape("GET-http-localhost:9080-/simplefs"))); os.IsNotExist(err) {
+		t.Errorf("impossible to check the stored file %v", err)
+	}
+
+	time.Sleep(5 * time.Second)
+	if _, err := os.Stat(filepath.Join("storage", url.PathEscape("GET-http-localhost:9080-/simplefs"))); err == nil {
+		t.Errorf("the stored file %v should be deleted", err)
+	}
 }

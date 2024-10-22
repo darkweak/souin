@@ -142,14 +142,20 @@ func parseDefaultCache(dcConfiguration map[string]interface{}) *configurationtyp
 					cdn.APIKey, _ = cdnConfigurationV.(string)
 				case "dynamic":
 					cdn.Dynamic = cdnConfigurationV.(bool)
+				case "email":
+					cdn.Email, _ = cdnConfigurationV.(string)
 				case "hostname":
 					cdn.Hostname, _ = cdnConfigurationV.(string)
 				case "network":
 					cdn.Network, _ = cdnConfigurationV.(string)
 				case "provider":
 					cdn.Provider, _ = cdnConfigurationV.(string)
+				case "service_id":
+					cdn.ServiceID, _ = cdnConfigurationV.(string)
 				case "strategy":
 					cdn.Strategy, _ = cdnConfigurationV.(string)
+				case "zone_id":
+					cdn.ZoneID, _ = cdnConfigurationV.(string)
 				}
 			}
 			dc.CDN = cdn
@@ -255,6 +261,17 @@ func parseDefaultCache(dcConfiguration map[string]interface{}) *configurationtyp
 					}
 				}
 			}
+		case "simplefs":
+			provider := configurationtypes.CacheProvider{}
+			for simplefsConfigurationK, simplefsConfigurationV := range defaultCacheV.(map[string]interface{}) {
+				switch simplefsConfigurationK {
+				case path:
+					provider.Path, _ = simplefsConfigurationV.(string)
+				case configurationPK:
+					provider.Configuration = simplefsConfigurationV.(map[string]interface{})
+				}
+			}
+			dc.SimpleFS = provider
 		case "timeout":
 			timeout := configurationtypes.Timeout{}
 			for timeoutK, timeoutV := range defaultCacheV.(map[string]interface{}) {

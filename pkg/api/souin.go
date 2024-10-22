@@ -158,6 +158,7 @@ var storageToInfiniteTTLMap = map[string]time.Duration{
 	"OLRIC":                  types.OneYearDuration,
 	"OTTER":                  types.OneYearDuration,
 	"REDIS":                  -1,
+	"SIMPLEFS":               0,
 	types.DefaultStorageName: types.OneYearDuration,
 }
 
