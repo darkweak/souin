@@ -48,6 +48,8 @@ type SouinCaddyMiddleware struct {
 	Key configurationtypes.Key `json:"key,omitempty"`
 	// Override the cache key generation matching the pattern.
 	CacheKeys configurationtypes.CacheKeys `json:"cache_keys,omitempty"`
+	// Configure the Nats cache storage.
+	Nats configurationtypes.CacheProvider `json:"nats,omitempty"`
 	// Configure the Nuts cache storage.
 	Nuts configurationtypes.CacheProvider `json:"nuts,omitempty"`
 	// Configure the Otter cache storage.
@@ -62,6 +64,8 @@ type SouinCaddyMiddleware struct {
 	Timeout configurationtypes.Timeout `json:"timeout,omitempty"`
 	// Time to live for a key, using time.duration.
 	TTL configurationtypes.Duration `json:"ttl,omitempty"`
+	// Configure the SimpleFS cache storage.
+	SimpleFS configurationtypes.CacheProvider `json:"simplefs,omitempty"`
 	// Time to live for a stale key, using time.duration.
 	Stale configurationtypes.Duration `json:"stale,omitempty"`
 	// Storage providers chaining and order.
@@ -91,7 +95,9 @@ func (s *SouinCaddyMiddleware) configurationPropertyMapper() error {
 	if s.Configuration.GetDefaultCache() == nil {
 		defaultCache := DefaultCache{
 			Badger:              s.Badger,
+			Nats:                s.Nats,
 			Nuts:                s.Nuts,
+			SimpleFS:            s.SimpleFS,
 			Otter:               s.Otter,
 			Key:                 s.Key,
 			DefaultCacheControl: s.DefaultCacheControl,
@@ -203,14 +209,16 @@ func (s *SouinCaddyMiddleware) FromApp(app *SouinApp) error {
 	if dc.CacheName == "" {
 		s.Configuration.DefaultCache.CacheName = appDc.CacheName
 	}
-	if isProviderEmpty(dc.Badger) && isProviderEmpty(dc.Etcd) && isProviderEmpty(dc.Nats) && isProviderEmpty(dc.Nuts) && isProviderEmpty(dc.Olric) && isProviderEmpty(dc.Otter) && isProviderEmpty(dc.Redis) {
+	if isProviderEmpty(dc.Badger) && isProviderEmpty(dc.Etcd) && isProviderEmpty(dc.Nats) && isProviderEmpty(dc.Nuts) && isProviderEmpty(dc.Olric) && isProviderEmpty(dc.Otter) && isProviderEmpty(dc.Redis) && isProviderEmpty(dc.SimpleFS) {
 		s.Configuration.DefaultCache.Distributed = appDc.Distributed
 		s.Configuration.DefaultCache.Olric = appDc.Olric
 		s.Configuration.DefaultCache.Redis = appDc.Redis
 		s.Configuration.DefaultCache.Etcd = appDc.Etcd
 		s.Configuration.DefaultCache.Badger = appDc.Badger
+		s.Configuration.DefaultCache.Nats = appDc.Nats
 		s.Configuration.DefaultCache.Nuts = appDc.Nuts
 		s.Configuration.DefaultCache.Otter = appDc.Otter
+		s.Configuration.DefaultCache.SimpleFS = appDc.SimpleFS
 	}
 	if dc.Regex.Exclude == "" {
 		s.Configuration.DefaultCache.Regex.Exclude = appDc.Regex.Exclude

@@ -67,7 +67,7 @@ func NewHTTPCacheHandler(c configurationtypes.AbstractConfigurationInterface) *S
 	storers := []types.Storer{}
 	if len(storedStorers) != 0 {
 		dc := c.GetDefaultCache()
-		for _, s := range []string{dc.GetBadger().Uuid, dc.GetEtcd().Uuid, dc.GetNats().Uuid, dc.GetNuts().Uuid, dc.GetOlric().Uuid, dc.GetOtter().Uuid, dc.GetRedis().Uuid} {
+		for _, s := range []string{dc.GetBadger().Uuid, dc.GetEtcd().Uuid, dc.GetNats().Uuid, dc.GetNuts().Uuid, dc.GetOlric().Uuid, dc.GetOtter().Uuid, dc.GetRedis().Uuid, dc.GetSimpleFS().Uuid} {
 			if s != "" {
 				if st := core.GetRegisteredStorer(s); st != nil {
 					storers = append(storers, st.(types.Storer))
@@ -569,7 +569,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 
 	req := s.context.SetBaseContext(rq)
 	cacheName := req.Context().Value(context.CacheName).(string)
-	if rq.Header.Get("Upgrade") == "websocket" || (s.ExcludeRegex != nil && s.ExcludeRegex.MatchString(rq.RequestURI)) {
+	if rq.Header.Get("Upgrade") == "websocket" || rq.Header.Get("Accept") == "text/event-stream" || (s.ExcludeRegex != nil && s.ExcludeRegex.MatchString(rq.RequestURI)) {
 		rw.Header().Set("Cache-Status", cacheName+"; fwd=bypass; detail=EXCLUDED-REQUEST-URI")
 		return next(rw, req)
 	}
@@ -737,6 +737,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 							response.Header.Set("Cache-Status", response.Header.Get("Cache-Status")+code)
 							maps.Copy(customWriter.Header(), response.Header)
 							customWriter.WriteHeader(response.StatusCode)
+							customWriter.Buf.Reset()
 							_, _ = io.Copy(customWriter.Buf, response.Body)
 							_, err := customWriter.Send()
 
@@ -774,7 +775,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 					return err
 				}
 
-				if rfc.ValidateMaxAgeCachedStaleResponse(requestCc, response, int(addTime.Seconds())) != nil {
+				if !modeContext.Strict || rfc.ValidateMaxAgeCachedStaleResponse(requestCc, responseCc, response, int(addTime.Seconds())) != nil {
 					customWriter.WriteHeader(response.StatusCode)
 					rfc.HitStaleCache(&response.Header)
 					maps.Copy(customWriter.Header(), response.Header)
@@ -783,6 +784,35 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 
 					return err
 				}
+			}
+		} else if stale != nil {
+			response := stale
+			addTime, _ := time.ParseDuration(response.Header.Get(rfc.StoredTTLHeader))
+			responseCc, _ := cacheobject.ParseResponseCacheControl(rfc.HeaderAllCommaSepValuesString(response.Header, "Cache-Control"))
+
+			if !modeContext.Strict || rfc.ValidateMaxAgeCachedStaleResponse(requestCc, responseCc, response, int(addTime.Seconds())) != nil {
+				_, _ = time.ParseDuration(response.Header.Get(rfc.StoredTTLHeader))
+				rfc.SetCacheStatusHeader(response, storerName)
+
+				responseCc, _ := cacheobject.ParseResponseCacheControl(rfc.HeaderAllCommaSepValuesString(response.Header, "Cache-Control"))
+
+				if responseCc.StaleIfError > -1 || requestCc.StaleIfError > 0 {
+					err := s.Revalidate(validator, next, customWriter, req, requestCc, cachedKey, uri)
+					statusCode := customWriter.GetStatusCode()
+					if err != nil {
+						code := fmt.Sprintf("; fwd-status=%d", statusCode)
+						rfc.HitStaleCache(&response.Header)
+						response.Header.Set("Cache-Status", response.Header.Get("Cache-Status")+code)
+						maps.Copy(customWriter.Header(), response.Header)
+						customWriter.WriteHeader(response.StatusCode)
+						customWriter.Buf.Reset()
+						_, _ = io.Copy(customWriter.Buf, response.Body)
+						_, err := customWriter.Send()
+
+						return err
+					}
+				}
+
 			}
 		}
 	}
