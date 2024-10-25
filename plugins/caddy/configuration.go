@@ -310,6 +310,26 @@ func parseRedisConfiguration(c map[string]interface{}) map[string]interface{} {
 			}
 		case "ConnWriteTimeout", "MaxFlushDelay", "MinRetryBackoff", "MaxRetryBackoff", "DialTimeout", "ReadTimeout", "WriteTimeout", "PoolTimeout", "ConnMaxIdleTime", "ConnMaxLifetime":
 			c[k], _ = time.ParseDuration(v.(string))
+		case "MaxVersion", "MinVersion":
+			strV, _ := v.(string)
+			if strings.HasPrefix(strV, "TLS") {
+				strV = strings.Trim(strings.TrimPrefix(strV, "TLS"), " ")
+			}
+
+			switch strV {
+			case "0x0300", "SSLv3":
+				c[k] = 0x0300
+			case "0x0301", "1.0":
+				c[k] = 0x0301
+			case "0x0302", "1.1":
+				c[k] = 0x0302
+			case "0x0303", "1.2":
+				c[k] = 0x0303
+			case "0x0304", "1.3":
+				c[k] = 0x0304
+			}
+		case "TLSConfig":
+			c[k] = parseRedisConfiguration(v.(map[string]interface{}))
 		}
 	}
 
