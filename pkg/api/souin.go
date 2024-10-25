@@ -306,7 +306,9 @@ func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 				s.purgeMapping()
 			} else {
 				submatch := keysRg.FindAllStringSubmatch(r.RequestURI, -1)[0][1]
-				s.BulkDelete(submatch, true)
+				for _, current := range s.storers {
+					current.DeleteMany(submatch)
+				}
 			}
 		} else {
 			ck, _ := s.surrogateStorage.Purge(r.Header)
