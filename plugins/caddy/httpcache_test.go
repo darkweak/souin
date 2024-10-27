@@ -1186,3 +1186,61 @@ func TestComplexQuery(t *testing.T) {
 	cacheChecker(caddyTester, "fields[]=id&pagination=true", 9)
 	cacheChecker(caddyTester, "fields[]=id&pagination=false", 9)
 }
+
+func TestBypassWithExpiresAndRevalidate(t *testing.T) {
+	tester := caddytest.NewTester(t)
+	tester.InitServer(`
+	{
+		debug
+		admin localhost:2999
+		http_port 9080
+		https_port 9443
+		cache {
+			ttl 5s
+			stale 5s
+			mode bypass
+		}
+	}
+	localhost:9080 {
+		route /bypass-with-expires-and-revalidate {
+			cache
+			header Expires 0
+			header Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate"
+			respond "Hello, expires and revalidate!"
+		}
+	}`, "caddyfile")
+
+	respStored1, _ := tester.AssertGetResponse(`http://localhost:9080/bypass-with-expires-and-revalidate`, 200, "Hello, expires and revalidate!")
+	if respStored1.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-http-localhost:9080-/bypass-with-expires-and-revalidate" {
+		t.Errorf("unexpected Cache-Status header value %v", respStored1.Header.Get("Cache-Status"))
+	}
+	if respStored1.Header.Get("Age") != "" {
+		t.Errorf("unexpected Age header %v", respStored1.Header.Get("Age"))
+	}
+
+	respStored2, _ := tester.AssertGetResponse(`http://localhost:9080/bypass-with-expires-and-revalidate`, 200, "Hello, expires and revalidate!")
+	if respStored2.Header.Get("Cache-Status") != "Souin; hit; ttl=4; key=GET-http-localhost:9080-/bypass-with-expires-and-revalidate; detail=DEFAULT" {
+		t.Errorf("unexpected Cache-Status header value %v", respStored2.Header.Get("Cache-Status"))
+	}
+	if respStored2.Header.Get("Age") == "" {
+		t.Error("Age header should be present")
+	}
+
+	time.Sleep(5 * time.Second)
+	respStored3, _ := tester.AssertGetResponse(`http://localhost:9080/bypass-with-expires-and-revalidate`, 200, "Hello, expires and revalidate!")
+	if respStored3.Header.Get("Cache-Status") != "Souin; hit; ttl=-1; key=GET-http-localhost:9080-/bypass-with-expires-and-revalidate; detail=DEFAULT; fwd=stale" {
+		t.Errorf("unexpected Cache-Status header value %v", respStored3.Header.Get("Cache-Status"))
+	}
+	if respStored3.Header.Get("Age") == "" {
+		t.Error("Age header should be present")
+	}
+
+	time.Sleep(5 * time.Second)
+	respStored4, _ := tester.AssertGetResponse(`http://localhost:9080/bypass-with-expires-and-revalidate`, 200, "Hello, expires and revalidate!")
+	if respStored4.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-http-localhost:9080-/bypass-with-expires-and-revalidate" {
+		t.Errorf("unexpected Cache-Status header value %v", respStored4.Header.Get("Cache-Status"))
+	}
+	if respStored4.Header.Get("Age") != "" {
+		t.Errorf("unexpected Age header %v", respStored4.Header.Get("Age"))
+	}
+}

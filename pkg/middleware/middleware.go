@@ -244,7 +244,7 @@ func (s *SouinBaseHandler) Store(
 		ma = time.Duration(responseCc.SMaxAge) * time.Second
 	} else if responseCc.MaxAge >= 0 {
 		ma = time.Duration(responseCc.MaxAge) * time.Second
-	} else if customWriter.Header().Get("Expires") != "" {
+	} else if !modeContext.Bypass_response && customWriter.Header().Get("Expires") != "" {
 		exp, err := time.Parse(time.RFC1123, customWriter.Header().Get("Expires"))
 		if err != nil {
 			return nil
@@ -673,13 +673,13 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 				return nil
 			}
 
-			if validator.NeedRevalidation {
+			if !modeContext.Bypass_request && validator.NeedRevalidation {
 				err := s.Revalidate(validator, next, customWriter, req, requestCc, cachedKey, uri)
 				_, _ = customWriter.Send()
 
 				return err
 			}
-			if resCc, _ := cacheobject.ParseResponseCacheControl(rfc.HeaderAllCommaSepValuesString(response.Header, headerName)); resCc.NoCachePresent {
+			if resCc, _ := cacheobject.ParseResponseCacheControl(rfc.HeaderAllCommaSepValuesString(response.Header, headerName)); !modeContext.Bypass_response && resCc.NoCachePresent {
 				prometheus.Increment(prometheus.NoCachedResponseCounter)
 				err := s.Revalidate(validator, next, customWriter, req, requestCc, cachedKey, uri)
 				_, _ = customWriter.Send()
@@ -726,7 +726,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 					return err
 				}
 
-				if responseCc.MustRevalidate || responseCc.NoCachePresent || validator.NeedRevalidation {
+				if modeContext.Bypass_response || responseCc.MustRevalidate || responseCc.NoCachePresent || validator.NeedRevalidation {
 					req.Header["If-None-Match"] = append(req.Header["If-None-Match"], validator.ResponseETag)
 					err := s.Revalidate(validator, next, customWriter, req, requestCc, cachedKey, uri)
 					statusCode := customWriter.GetStatusCode()
@@ -787,6 +787,18 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 			}
 		} else if stale != nil {
 			response := stale
+
+			if !modeContext.Strict {
+				rfc.SetCacheStatusHeader(response, storerName)
+				customWriter.WriteHeader(response.StatusCode)
+				rfc.HitStaleCache(&response.Header)
+				maps.Copy(customWriter.Header(), response.Header)
+				_, _ = io.Copy(customWriter.Buf, response.Body)
+				_, err := customWriter.Send()
+
+				return err
+			}
+
 			addTime, _ := time.ParseDuration(response.Header.Get(rfc.StoredTTLHeader))
 			responseCc, _ := cacheobject.ParseResponseCacheControl(rfc.HeaderAllCommaSepValuesString(response.Header, "Cache-Control"))
 
