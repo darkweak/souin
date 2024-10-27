@@ -145,8 +145,8 @@ github.com/darkweak/souin/plugins/souin/storages v1.7.2 h1:vA1oFap6sbWO+Ebbq6NGt
 github.com/darkweak/souin/plugins/souin/storages v1.7.2/go.mod h1:VfkwGN+ubAuluSwbjGHqImbUjxdEA0N9xGJUTCcFBV0=
 github.com/darkweak/storages/badger v0.0.8 h1:rKVXrasVA74xgiqGRgW0kH11NUIlWwn9HiFyHUok85k=
 github.com/darkweak/storages/badger v0.0.8/go.mod h1:ZmrNmKkFzyu/B3+1nsvVeTvyg2I2mOV5yTpT46mZ06o=
-github.com/darkweak/storages/core v0.0.10 h1:O2J2kitZCSQ+DuSGWYVtZ+2vOWjMl12vah3ymGgVcDw=
-github.com/darkweak/storages/core v0.0.10/go.mod h1:ajTpB9IFLRIRY0EEFLjM5vtsrcNTh+TJK9yRxgG5/wY=
+github.com/darkweak/storages/core v0.0.11 h1:IwvpAtkhOmxC5pIffJ8opW6erpTnIi5zqPveiAQs8ew=
+github.com/darkweak/storages/core v0.0.11/go.mod h1:ajTpB9IFLRIRY0EEFLjM5vtsrcNTh+TJK9yRxgG5/wY=
 github.com/darkweak/storages/etcd v0.0.8 h1:Guzv6zgxkQJLjak36KsbtQqkmwMRJoZZI0B7ztZKIik=
 github.com/darkweak/storages/etcd v0.0.8/go.mod h1:Yw9xJramKAzIRoC7tizVMYPSwUBHqxY5BPTh8OgyISY=
 github.com/darkweak/storages/nats v0.0.8 h1:HRS3i2zzzIq1Qb3yoOUWD6MoRQgGV1NbECF1ex4wZjg=

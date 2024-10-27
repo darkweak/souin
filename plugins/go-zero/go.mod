@@ -39,7 +39,7 @@ require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.3 // indirect
 	github.com/darkweak/go-esi v0.0.5 // indirect
 	github.com/darkweak/storages/badger v0.0.8 // indirect
-	github.com/darkweak/storages/core v0.0.10 // indirect
+	github.com/darkweak/storages/core v0.0.11 // indirect
 	github.com/darkweak/storages/etcd v0.0.8 // indirect
 	github.com/darkweak/storages/nats v0.0.8 // indirect
 	github.com/darkweak/storages/nuts v0.0.8 // indirect
