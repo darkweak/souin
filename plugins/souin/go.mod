@@ -3,12 +3,12 @@ module github.com/darkweak/souin/plugins/souin
 go 1.22.1
 
 replace (
-	github.com/darkweak/souin v1.7.2 => ../..
+	github.com/darkweak/souin v1.7.3 => ../..
 	github.com/darkweak/souin/plugins/souin/storages => ./storages
 )
 
 require (
-	github.com/darkweak/souin v1.7.2
+	github.com/darkweak/souin v1.7.3
 	github.com/darkweak/souin/plugins/souin/storages v1.7.2
 	github.com/darkweak/storages/core v0.0.11
 	github.com/fsnotify/fsnotify v1.7.0
