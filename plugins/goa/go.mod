@@ -3,8 +3,8 @@ module github.com/darkweak/souin/plugins/goa
 go 1.22.1
 
 require (
-	github.com/darkweak/souin v1.7.3
-	github.com/darkweak/souin/plugins/souin/storages v1.7.2
+	github.com/darkweak/souin v1.7.4
+	github.com/darkweak/souin/plugins/souin/storages v1.7.4
 	github.com/darkweak/storages/core v0.0.11
 	goa.design/goa/v3 v3.12.3
 )
@@ -180,4 +180,7 @@ require (
 	howett.net/plist v1.0.0 // indirect
 )
 
-replace github.com/darkweak/souin v1.7.3 => ../..
+replace (
+	github.com/darkweak/souin v1.7.4 => ../..
+	github.com/darkweak/souin/plugins/souin/storages => ../souin/storages
+)

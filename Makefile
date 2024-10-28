@@ -106,6 +106,8 @@ bump-version:
 	sed -i '' 's/version: $(from)/version: $(to)/' README.md
 	for plugin in $(PLUGINS_LIST) ; do \
 		sed -i '' 's/github.com\/darkweak\/souin $(from)/github.com\/darkweak\/souin $(to)/' plugins/$$plugin/go.mod ; \
+		sed -i '' 's/github.com\/darkweak\/souin\/plugins\/souin $(from)/github.com\/darkweak\/souin\/plugins\/souin $(to)/' plugins/$$plugin/go.mod ; \
+		sed -i '' 's/github.com\/darkweak\/souin\/plugins\/souin\/storages $(from)/github.com\/darkweak\/souin\/plugins\/souin\/storages $(to)/' plugins/$$plugin/go.mod ; \
 	done
 	sed -i '' 's/github.com\/darkweak\/souin $(from)/github.com\/darkweak\/souin $(to)/' plugins/souin/storages/go.mod
 
