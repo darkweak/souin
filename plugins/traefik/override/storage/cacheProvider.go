@@ -22,8 +22,8 @@ type Cache struct {
 
 var sharedCache *Cache
 
-// CacheConnectionFactory function create new Cache instance
-func CacheConnectionFactory(c t.AbstractConfigurationInterface) (types.Storer, error) {
+// Factory function create new Cache instance
+func Factory(c t.AbstractConfigurationInterface) (types.Storer, error) {
 	provider := cache.New(1 * time.Second)
 
 	if sharedCache == nil {
@@ -36,6 +36,11 @@ func CacheConnectionFactory(c t.AbstractConfigurationInterface) (types.Storer, e
 // Name returns the storer name
 func (provider *Cache) Name() string {
 	return "CACHE"
+}
+
+// Uuid returns an unique identifier
+func (provider *Cache) Uuid() string {
+	return ""
 }
 
 // ListKeys method returns the list of existing keys
@@ -74,8 +79,44 @@ func (provider *Cache) Get(key string) []byte {
 	return result.([]byte)
 }
 
+// GetMultiLevel tries to load the key and check if one of linked keys is a fresh/stale candidate.
+func (provider *Cache) GetMultiLevel(key string, req *http.Request, validator *types.Revalidator) (fresh *http.Response, stale *http.Response) {
+	result, found := provider.Cache.Get("IDX_" + key)
+	if !found {
+		return
+	}
+
+	fresh, stale, _ = rfc.MappingElection(provider, result.([]byte), req, validator)
+
+	return
+}
+
+// SetMultiLevel tries to store the key with the given value and update the mapping key to store metadata.
+func (provider *Cache) SetMultiLevel(baseKey, variedKey string, value []byte, variedHeaders http.Header, etag string, duration time.Duration, realKey string) error {
+	now := time.Now()
+
+	var e error
+
+	provider.Cache.Set(variedKey, value, duration)
+
+	mappingKey := "IDX_" + baseKey
+	item, ok := provider.Cache.Get(mappingKey)
+	var val []byte
+	if ok {
+		val = item.([]byte)
+	}
+
+	val, e = rfc.MappingUpdater(variedKey, val, now, now.Add(duration), now.Add(duration+provider.stale), variedHeaders, etag, realKey)
+	if e != nil {
+		return e
+	}
+
+	provider.Cache.Set(mappingKey, val, 0)
+	return nil
+}
+
 // Prefix method returns the populated response if exists, empty response then
-func (provider *Cache) Prefix(key string, req *http.Request, validator *rfc.Revalidator) *http.Response {
+func (provider *Cache) Prefix(key string, req *http.Request, validator *types.Revalidator) *http.Response {
 	var result *http.Response
 
 	provider.Cache.Range(func(k, v interface{}) bool {
@@ -103,7 +144,6 @@ func (provider *Cache) Prefix(key string, req *http.Request, validator *rfc.Reva
 // Set method will store the response in Cache provider
 func (provider *Cache) Set(key string, value []byte, duration time.Duration) error {
 	provider.Cache.Set(key, value, duration)
-	provider.Cache.Set(StalePrefix+key, value, provider.stale+duration)
 
 	return nil
 }

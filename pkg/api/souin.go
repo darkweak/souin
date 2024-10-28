@@ -158,6 +158,7 @@ var storageToInfiniteTTLMap = map[string]time.Duration{
 	"OLRIC":                  types.OneYearDuration,
 	"OTTER":                  types.OneYearDuration,
 	"REDIS":                  -1,
+	"SIMPLEFS":               0,
 	types.DefaultStorageName: types.OneYearDuration,
 }
 
@@ -305,7 +306,9 @@ func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 				s.purgeMapping()
 			} else {
 				submatch := keysRg.FindAllStringSubmatch(r.RequestURI, -1)[0][1]
-				s.BulkDelete(submatch, true)
+				for _, current := range s.storers {
+					current.DeleteMany(submatch)
+				}
 			}
 		} else {
 			ck, _ := s.surrogateStorage.Purge(r.Header)

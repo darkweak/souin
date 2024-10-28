@@ -20,7 +20,7 @@ const (
 type StorerInstanciator func(configurationtypes.AbstractConfigurationInterface) (types.Storer, error)
 
 func NewStorages(configuration configurationtypes.AbstractConfigurationInterface) ([]types.Storer, error) {
-	s, err := CacheConnectionFactory(configuration)
+	s, err := Factory(configuration)
 	return []types.Storer{s}, err
 }
 

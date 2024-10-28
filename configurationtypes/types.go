@@ -246,6 +246,7 @@ type DefaultCache struct {
 	Redis               CacheProvider `json:"redis" yaml:"redis"`
 	Port                Port          `json:"port" yaml:"port"`
 	Regex               Regex         `json:"regex" yaml:"regex"`
+	SimpleFS            CacheProvider `json:"simplefs" yaml:"simplefs"`
 	Stale               Duration      `json:"stale" yaml:"stale"`
 	Storers             []string      `json:"storers" yaml:"storers"`
 	Timeout             Timeout       `json:"timeout" yaml:"timeout"`
@@ -300,7 +301,7 @@ func (d *DefaultCache) GetMode() string {
 	return d.Mode
 }
 
-// GetNats returns nuts configuration
+// GetNats returns nats configuration
 func (d *DefaultCache) GetNats() CacheProvider {
 	return d.Nats
 }
@@ -338,6 +339,11 @@ func (d *DefaultCache) GetTimeout() Timeout {
 // GetTTL returns the default TTL
 func (d *DefaultCache) GetTTL() time.Duration {
 	return d.TTL.Duration
+}
+
+// GetSimpleFS returns simplefs configuration
+func (d *DefaultCache) GetSimpleFS() CacheProvider {
+	return d.SimpleFS
 }
 
 // GetStale returns the stale duration
@@ -382,6 +388,7 @@ type DefaultCacheInterface interface {
 	GetHeaders() []string
 	GetKey() Key
 	GetRegex() Regex
+	GetSimpleFS() CacheProvider
 	GetStale() time.Duration
 	GetStorers() []string
 	GetTimeout() Timeout

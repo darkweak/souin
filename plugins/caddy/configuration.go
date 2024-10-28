@@ -52,6 +52,8 @@ type DefaultCache struct {
 	Timeout configurationtypes.Timeout `json:"timeout"`
 	// Time to live.
 	TTL configurationtypes.Duration `json:"ttl"`
+	// SimpleFS provider configuration.
+	SimpleFS configurationtypes.CacheProvider `json:"simplefs"`
 	// Stale time to live.
 	Stale configurationtypes.Duration `json:"stale"`
 	// Disable the coalescing system.
@@ -103,7 +105,7 @@ func (d *DefaultCache) GetMode() string {
 	return d.Mode
 }
 
-// GetNats returns nuts configuration
+// GetNats returns nats configuration
 func (d *DefaultCache) GetNats() configurationtypes.CacheProvider {
 	return d.Nats
 }
@@ -131,6 +133,11 @@ func (d *DefaultCache) GetRedis() configurationtypes.CacheProvider {
 // GetRegex returns the regex that shouldn't be cached
 func (d *DefaultCache) GetRegex() configurationtypes.Regex {
 	return d.Regex
+}
+
+// GetSimpleFS returns simplefs configuration
+func (d *DefaultCache) GetSimpleFS() configurationtypes.CacheProvider {
+	return d.SimpleFS
 }
 
 // GetStorers returns the chianed storers
@@ -303,6 +310,45 @@ func parseRedisConfiguration(c map[string]interface{}) map[string]interface{} {
 			}
 		case "ConnWriteTimeout", "MaxFlushDelay", "MinRetryBackoff", "MaxRetryBackoff", "DialTimeout", "ReadTimeout", "WriteTimeout", "PoolTimeout", "ConnMaxIdleTime", "ConnMaxLifetime":
 			c[k], _ = time.ParseDuration(v.(string))
+		case "MaxVersion", "MinVersion":
+			strV, _ := v.(string)
+			if strings.HasPrefix(strV, "TLS") {
+				strV = strings.Trim(strings.TrimPrefix(strV, "TLS"), " ")
+			}
+
+			switch strV {
+			case "0x0300", "SSLv3":
+				c[k] = 0x0300
+			case "0x0301", "1.0":
+				c[k] = 0x0301
+			case "0x0302", "1.1":
+				c[k] = 0x0302
+			case "0x0303", "1.2":
+				c[k] = 0x0303
+			case "0x0304", "1.3":
+				c[k] = 0x0304
+			}
+		case "TLSConfig":
+			c[k] = parseRedisConfiguration(v.(map[string]interface{}))
+		}
+	}
+
+	return c
+}
+
+func parseSimpleFSConfiguration(c map[string]interface{}) map[string]interface{} {
+	for k, v := range c {
+		switch k {
+		case "path":
+			c[k] = v
+		case "size":
+			if v == false {
+				c[k] = 0
+			} else if v == true {
+				c[k] = 1
+			} else {
+				c[k], _ = strconv.Atoi(v.(string))
+			}
 		}
 	}
 
@@ -537,7 +583,7 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isGlobal boo
 						return h.Errf("unsupported nats directive: %s", directive)
 					}
 				}
-				cfg.DefaultCache.Nuts = provider
+				cfg.DefaultCache.Nats = provider
 			case "nuts":
 				provider := configurationtypes.CacheProvider{Found: true}
 				for nesting := h.Nesting(); h.NextBlock(nesting); {
@@ -617,6 +663,22 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isGlobal boo
 						return h.Errf("unsupported regex directive: %s", directive)
 					}
 				}
+			case "simplefs":
+				provider := configurationtypes.CacheProvider{Found: true}
+				for nesting := h.Nesting(); h.NextBlock(nesting); {
+					directive := h.Val()
+					switch directive {
+					case "path":
+						urlArgs := h.RemainingArgs()
+						provider.Path = urlArgs[0]
+					case "configuration":
+						provider.Configuration = parseCaddyfileRecursively(h)
+						provider.Configuration = parseSimpleFSConfiguration(provider.Configuration.(map[string]interface{}))
+					default:
+						return h.Errf("unsupported simplefs directive: %s", directive)
+					}
+				}
+				cfg.DefaultCache.SimpleFS = provider
 			case "stale":
 				args := h.RemainingArgs()
 				stale, err := time.ParseDuration(args[0])

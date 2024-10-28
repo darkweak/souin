@@ -178,14 +178,20 @@ func parseDefaultCache(dcConfiguration map[string]config.Value) *configurationty
 					cdn.APIKey, _ = cdnConfigurationV.String()
 				case "dynamic":
 					cdn.Dynamic, _ = cdnConfigurationV.Bool()
+				case "email":
+					cdn.Email, _ = cdnConfigurationV.String()
 				case "hostname":
 					cdn.Hostname, _ = cdnConfigurationV.String()
 				case "network":
 					cdn.Network, _ = cdnConfigurationV.String()
 				case "provider":
 					cdn.Provider, _ = cdnConfigurationV.String()
+				case "service_id":
+					cdn.ServiceID, _ = cdnConfigurationV.String()
 				case "strategy":
 					cdn.Strategy, _ = cdnConfigurationV.String()
+				case "zone_id":
+					cdn.ZoneID, _ = cdnConfigurationV.String()
 				}
 			}
 			dc.CDN = cdn
@@ -300,6 +306,21 @@ func parseDefaultCache(dcConfiguration map[string]config.Value) *configurationty
 			if exclude != "" {
 				dc.Regex = configurationtypes.Regex{Exclude: exclude}
 			}
+		case "simplefs":
+			provider := configurationtypes.CacheProvider{}
+			simplefsConfiguration, _ := defaultCacheV.Map()
+			for simplefsConfigurationK, simplefsConfigurationV := range simplefsConfiguration {
+				switch simplefsConfigurationK {
+				case path:
+					provider.Path, _ = simplefsConfigurationV.String()
+				case configurationPK:
+					configMap, e := simplefsConfigurationV.Map()
+					if e == nil {
+						provider.Configuration = parseRecursively(configMap)
+					}
+				}
+			}
+			dc.SimpleFS = provider
 		case "timeout":
 			timeout := configurationtypes.Timeout{}
 			timeoutConfiguration, _ := defaultCacheV.Map()
