@@ -4,8 +4,8 @@ go 1.22.1
 
 require (
 	github.com/bnkamalesh/webgo/v6 v6.7.0
-	github.com/darkweak/souin v1.7.3
-	github.com/darkweak/souin/plugins/souin/storages v1.7.2
+	github.com/darkweak/souin v1.7.4
+	github.com/darkweak/souin/plugins/souin/storages v1.7.4
 )
 
 require (
@@ -178,4 +178,7 @@ require (
 	howett.net/plist v1.0.0 // indirect
 )
 
-replace github.com/darkweak/souin v1.7.3 => ../..
+replace (
+	github.com/darkweak/souin v1.7.4 => ../..
+	github.com/darkweak/souin/plugins/souin/storages => ../souin/storages
+)
