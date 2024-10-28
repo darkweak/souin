@@ -183,6 +183,10 @@ type URL struct {
 
 // CacheProvider config
 type CacheProvider struct {
+	// Uuid to identify a unique instance.
+	Uuid string
+	// Found to determine if we can use that storage.
+	Found bool `json:"found" yaml:"found"`
 	// URL to connect to the storage system.
 	URL string `json:"url" yaml:"url"`
 	// Path to the configuration file.
@@ -241,12 +245,13 @@ type DefaultCache struct {
 	Redis               CacheProvider `json:"redis" yaml:"redis"`
 	Port                Port          `json:"port" yaml:"port"`
 	Regex               Regex         `json:"regex" yaml:"regex"`
+	SimpleFS            CacheProvider `json:"simplefs" yaml:"simplefs"`
 	Stale               Duration      `json:"stale" yaml:"stale"`
 	Storers             []string      `json:"storers" yaml:"storers"`
 	Timeout             Timeout       `json:"timeout" yaml:"timeout"`
 	TTL                 Duration      `json:"ttl" yaml:"ttl"`
 	DefaultCacheControl string        `json:"default_cache_control" yaml:"default_cache_control"`
-	MaxBodyBytes        uint64        `json:"max_cachable_body_bytes" yaml:"max_cachable_body_bytes"`
+	MaxBodyBytes        uint64        `json:"max_cacheable_body_bytes" yaml:"max_cacheable_body_bytes"`
 	DisableCoalescing   bool          `json:"disable_coalescing" yaml:"disable_coalescing"`
 }
 
@@ -295,7 +300,7 @@ func (d *DefaultCache) GetMode() string {
 	return d.Mode
 }
 
-// GetNats returns nuts configuration
+// GetNats returns nats configuration
 func (d *DefaultCache) GetNats() CacheProvider {
 	return d.Nats
 }
@@ -335,6 +340,11 @@ func (d *DefaultCache) GetTTL() time.Duration {
 	return d.TTL.Duration
 }
 
+// GetSimpleFS returns simplefs configuration
+func (d *DefaultCache) GetSimpleFS() CacheProvider {
+	return d.SimpleFS
+}
+
 // GetStale returns the stale duration
 func (d *DefaultCache) GetStale() time.Duration {
 	return d.Stale.Duration
@@ -370,18 +380,21 @@ type DefaultCacheInterface interface {
 	GetEtcd() CacheProvider
 	GetMode() string
 	GetOtter() CacheProvider
+	GetNats() CacheProvider
 	GetNuts() CacheProvider
 	GetOlric() CacheProvider
 	GetRedis() CacheProvider
 	GetHeaders() []string
 	GetKey() Key
 	GetRegex() Regex
+	GetSimpleFS() CacheProvider
 	GetStale() time.Duration
 	GetStorers() []string
 	GetTimeout() Timeout
 	GetTTL() time.Duration
 	GetDefaultCacheControl() string
 	GetMaxBodyBytes() uint64
+	IsCoalescingDisable() bool
 }
 
 // APIEndpoint is the minimal structure to define an endpoint

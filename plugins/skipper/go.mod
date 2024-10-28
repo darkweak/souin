@@ -4,7 +4,7 @@ go 1.22.1
 
 require (
 	github.com/darkweak/souin v1.7.2
-	github.com/darkweak/souin/plugins/souin/storages v0.0.0-00010101000000-000000000000
+	github.com/darkweak/souin/plugins/souin/storages v1.7.2
 	github.com/zalando/skipper v0.16.145
 )
 
@@ -48,7 +48,7 @@ require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.3 // indirect
 	github.com/darkweak/go-esi v0.0.6 // indirect
 	github.com/darkweak/storages/badger v0.0.8 // indirect
-	github.com/darkweak/storages/core v0.0.8 // indirect
+	github.com/darkweak/storages/core v0.0.11 // indirect
 	github.com/darkweak/storages/etcd v0.0.8 // indirect
 	github.com/darkweak/storages/nats v0.0.8 // indirect
 	github.com/darkweak/storages/nuts v0.0.8 // indirect
@@ -218,7 +218,4 @@ require (
 	layeh.com/gopher-json v0.0.0-20201124131017-552bb3c4c3bf // indirect
 )
 
-replace (
-	github.com/darkweak/souin v1.7.2 => ../..
-	github.com/darkweak/souin/plugins/souin/storages => ../souin/storages
-)
+replace github.com/darkweak/souin v1.7.2 => ../..

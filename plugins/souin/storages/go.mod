@@ -7,7 +7,7 @@ replace github.com/darkweak/souin => ../../..
 require (
 	github.com/darkweak/souin v1.7.2
 	github.com/darkweak/storages/badger v0.0.8
-	github.com/darkweak/storages/core v0.0.8
+	github.com/darkweak/storages/core v0.0.11
 	github.com/darkweak/storages/etcd v0.0.8
 	github.com/darkweak/storages/nats v0.0.8
 	github.com/darkweak/storages/nuts v0.0.8

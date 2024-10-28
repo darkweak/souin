@@ -4,8 +4,8 @@ go 1.22.1
 
 require (
 	github.com/darkweak/souin v1.7.2
-	github.com/darkweak/souin/plugins/souin v0.0.0-00010101000000-000000000000
-	github.com/darkweak/souin/plugins/souin/storages v0.0.0-00010101000000-000000000000
+	github.com/darkweak/souin/plugins/souin v1.7.2
+	github.com/darkweak/souin/plugins/souin/storages v1.7.2
 	github.com/roadrunner-server/errors v1.3.0
 	go.uber.org/zap v1.27.0
 	gopkg.in/yaml.v3 v3.0.1
@@ -41,7 +41,7 @@ require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.3 // indirect
 	github.com/darkweak/go-esi v0.0.6 // indirect
 	github.com/darkweak/storages/badger v0.0.8 // indirect
-	github.com/darkweak/storages/core v0.0.8 // indirect
+	github.com/darkweak/storages/core v0.0.11 // indirect
 	github.com/darkweak/storages/etcd v0.0.8 // indirect
 	github.com/darkweak/storages/nats v0.0.8 // indirect
 	github.com/darkweak/storages/nuts v0.0.8 // indirect
@@ -182,5 +182,4 @@ require (
 replace (
 	github.com/darkweak/souin v1.7.2 => ../..
 	github.com/darkweak/souin/plugins/souin => ../souin
-	github.com/darkweak/souin/plugins/souin/storages => ../souin/storages
 )

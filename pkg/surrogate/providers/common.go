@@ -37,11 +37,17 @@ var storageToInfiniteTTLMap = map[string]time.Duration{
 	"OLRIC":                  types.OneYearDuration,
 	"OTTER":                  types.OneYearDuration,
 	"REDIS":                  -1,
+	"SIMPLEFS":               0,
 	types.DefaultStorageName: types.OneYearDuration,
 }
 
 func (s *baseStorage) ParseHeaders(value string) []string {
-	return strings.Split(value, s.parent.getHeaderSeparator())
+	res := strings.Split(value, s.parent.getHeaderSeparator())
+	for i, v := range res {
+		res[i] = strings.TrimSpace(v)
+	}
+
+	return res
 }
 
 func getCandidateHeader(header http.Header, getCandidates func() []string) (string, string) {

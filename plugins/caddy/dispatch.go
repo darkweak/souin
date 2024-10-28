@@ -2,6 +2,7 @@ package httpcache
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/caddyserver/caddy/v2"
@@ -73,7 +74,7 @@ func (s *SouinCaddyMiddleware) parseStorages(ctx caddy.Context) {
 		if e != nil {
 			s.logger.Errorf("Error during Nats init, did you include the Nats storage (--with github.com/darkweak/storages/nats/caddy)? %v", e)
 		} else {
-			s.Configuration.DefaultCache.Nuts.Uuid = fmt.Sprintf("NATS-%s-%s", s.Configuration.DefaultCache.Nats.URL, s.Configuration.DefaultCache.GetStale())
+			s.Configuration.DefaultCache.Nats.Uuid = fmt.Sprintf("NATS-%s-%s", s.Configuration.DefaultCache.Nats.URL, s.Configuration.DefaultCache.GetStale())
 		}
 	}
 	if s.Configuration.DefaultCache.Nuts.Found {
@@ -101,7 +102,7 @@ func (s *SouinCaddyMiddleware) parseStorages(ctx caddy.Context) {
 		if e != nil {
 			s.logger.Errorf("Error during Olric init, did you include the Olric storage (--with github.com/darkweak/storages/olric/caddy)? %v", e)
 		} else {
-			s.Configuration.DefaultCache.Nuts.Uuid = fmt.Sprintf("OLRIC-%s-%s", s.Configuration.DefaultCache.Olric.URL, s.Configuration.DefaultCache.GetStale())
+			s.Configuration.DefaultCache.Olric.Uuid = fmt.Sprintf("OLRIC-%s-%s", s.Configuration.DefaultCache.Olric.URL, s.Configuration.DefaultCache.GetStale())
 		}
 	}
 	if s.Configuration.DefaultCache.Otter.Found {
@@ -169,6 +170,37 @@ func (s *SouinCaddyMiddleware) parseStorages(ctx caddy.Context) {
 				dbname,
 				cname,
 				s.Configuration.DefaultCache.GetStale(),
+			)
+		}
+	}
+	if s.Configuration.DefaultCache.SimpleFS.Found {
+		e := dispatchStorage(ctx, "simplefs", s.Configuration.DefaultCache.SimpleFS, s.Configuration.DefaultCache.GetStale())
+		if e != nil {
+			s.logger.Errorf("Error during SimpleFS init, did you include the SimpleFS storage (--with github.com/darkweak/storages/simplefs/caddy)? %v", e)
+		} else {
+			simplefs := s.Configuration.DefaultCache.SimpleFS
+			path := simplefs.Path
+			size := "0"
+			if c := simplefs.Configuration; c != nil {
+				p, ok := c.(map[string]interface{})
+				if ok {
+					if d, ok := p["path"]; path == "" && ok {
+						path = fmt.Sprint(d)
+					}
+					if d, ok := p["size"]; ok {
+						size = fmt.Sprint(d)
+					}
+				}
+			}
+
+			if path == "" {
+				path, _ = os.Getwd()
+			}
+
+			s.Configuration.DefaultCache.SimpleFS.Uuid = fmt.Sprintf(
+				"SIMPLEFS-%s-%s",
+				path,
+				size,
 			)
 		}
 	}
