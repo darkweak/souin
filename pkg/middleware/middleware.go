@@ -350,24 +350,24 @@ func (s *SouinBaseHandler) Store(
 					}
 					for _, storer := range s.Storers {
 						wg.Add(1)
-						go func(currentStorer types.Storer) {
+						go func(currentStorer types.Storer, currentRes http.Response) {
 							defer wg.Done()
 							if currentStorer.SetMultiLevel(
 								cachedKey,
 								variedKey,
 								response,
 								vhs,
-								res.Header.Get("Etag"), ma,
+								currentRes.Header.Get("Etag"), ma,
 								variedKey,
 							) == nil {
 								s.Configuration.GetLogger().Debugf("Stored the key %s in the %s provider", variedKey, currentStorer.Name())
-								res.Request = rq
+								currentRes.Request = rq
 							} else {
 								mu.Lock()
 								fails = append(fails, fmt.Sprintf("; detail=%s-INSERTION-ERROR", currentStorer.Name()))
 								mu.Unlock()
 							}
-						}(storer)
+						}(storer, res)
 					}
 
 					wg.Wait()
