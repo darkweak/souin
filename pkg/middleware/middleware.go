@@ -33,6 +33,23 @@ import (
 	"golang.org/x/sync/singleflight"
 )
 
+func reorderStorers(storers []types.Storer, expectedStorers []string) []types.Storer {
+	if len(expectedStorers) == 0 {
+		return storers
+	}
+
+	newStorers := make([]types.Storer, 0)
+	for _, expectedStorer := range expectedStorers {
+		for _, storer := range storers {
+			if storer.Name() == strings.ToUpper(expectedStorer) {
+				newStorers = append(newStorers, storer)
+			}
+		}
+	}
+
+	return newStorers
+}
+
 func NewHTTPCacheHandler(c configurationtypes.AbstractConfigurationInterface) *SouinBaseHandler {
 	if c.GetLogger() == nil {
 		var logLevel zapcore.Level
@@ -75,12 +92,14 @@ func NewHTTPCacheHandler(c configurationtypes.AbstractConfigurationInterface) *S
 			}
 		}
 
+		storers = reorderStorers(storers, c.GetDefaultCache().GetStorers())
+
 		if len(storers) > 0 {
 			names := []string{}
 			for _, storer := range storers {
 				names = append(names, storer.Name())
 			}
-			c.GetLogger().Debugf("You're running Souin with the following storages %s", strings.Join(names, ", "))
+			c.GetLogger().Debugf("You're running Souin with the following storages in this order %s", strings.Join(names, ", "))
 		}
 	}
 	if len(storers) == 0 {
