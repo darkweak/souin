@@ -1,4 +1,4 @@
-baseURL = 'https://docs.souin.io/'
+# baseURL = 'https://docs.souin.io/'
 languageCode = 'en-us'
 title = "Souin's documentation"
 

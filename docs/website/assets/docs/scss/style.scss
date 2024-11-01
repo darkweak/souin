@@ -98,11 +98,13 @@ h4 {
     padding-top: 0.75em;
 }
 
-div.code-toolbar {
+div.code-toolbar, .docs-content .main-content pre {
     border-radius: 1rem;
-    & > pre {
-        border-radius: 1rem !important;
-    }
+}
+
+code[class*="language-"], pre[class*="language-"], .code-toolbar, .docs-content .main-content pre, code[class*="language-"]::-webkit-scrollbar, pre[class*="language-"]::-webkit-scrollbar {
+    background: var(--inline-code-bg) !important;
+    color: var(--body-color) !important;
 }
 
 .top-header {
