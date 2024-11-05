@@ -67,7 +67,7 @@ func GetCacheKeyFromCtx(currentCtx ctx.Context) string {
 		}
 	}
 
-	return ""
+	return "*****"
 }
 
 // MissCache set miss fwd

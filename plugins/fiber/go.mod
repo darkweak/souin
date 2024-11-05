@@ -3,8 +3,8 @@ module github.com/darkweak/souin/plugins/fiber
 go 1.22.1
 
 require (
-	github.com/darkweak/souin v1.7.4
-	github.com/darkweak/souin/plugins/souin/storages v1.7.4
+	github.com/darkweak/souin v1.7.5
+	github.com/darkweak/souin/plugins/souin/storages v1.7.5
 	github.com/gofiber/fiber/v2 v2.52.1
 	github.com/valyala/fasthttp v1.51.0
 )
@@ -185,6 +185,6 @@ require (
 )
 
 replace (
-	github.com/darkweak/souin v1.7.4 => ../..
+	github.com/darkweak/souin v1.7.5 => ../..
 	github.com/darkweak/souin/plugins/souin/storages => ../souin/storages
 )
