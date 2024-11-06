@@ -3,8 +3,8 @@ module github.com/darkweak/souin/plugins/goyave
 go 1.22.1
 
 require (
-	github.com/darkweak/souin v1.7.4
-	github.com/darkweak/souin/plugins/souin/storages v1.7.4
+	github.com/darkweak/souin v1.7.5
+	github.com/darkweak/souin/plugins/souin/storages v1.7.5
 	goyave.dev/goyave/v4 v4.4.11
 )
 
@@ -186,6 +186,6 @@ require (
 )
 
 replace (
-	github.com/darkweak/souin v1.7.4 => ../..
+	github.com/darkweak/souin v1.7.5 => ../..
 	github.com/darkweak/souin/plugins/souin/storages => ../souin/storages
 )
