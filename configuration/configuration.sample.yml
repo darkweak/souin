@@ -18,6 +18,9 @@ default_cache: # Required part
     - GET
     - POST
     - HEAD
+  allowed_addional_status_code: # Allowed additional HTTP status code to cache.
+    - 202
+    - 400
   cache_name: Souin # Override the Cache-Status name
   distributed: true # Use Olric distributed storage
   headers: # Default headers concatenated in stored keys

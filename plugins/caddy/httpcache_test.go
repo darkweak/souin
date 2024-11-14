@@ -1244,3 +1244,40 @@ func TestBypassWithExpiresAndRevalidate(t *testing.T) {
 		t.Errorf("unexpected Age header %v", respStored4.Header.Get("Age"))
 	}
 }
+
+func TestAllowedAdditionalStatusCode(t *testing.T) {
+	tester := caddytest.NewTester(t)
+	tester.InitServer(`
+	{
+		debug
+		admin localhost:2999
+		http_port 9080
+		https_port 9443
+		cache {
+			allowed_additional_status_codes 202 400
+			ttl 5s
+		}
+	}
+	localhost:9080 {
+		route /bypass-with-expires-and-revalidate {
+			cache
+			respond "Hello, additional status code!"
+		}
+	}`, "caddyfile")
+
+	respStored1, _ := tester.AssertGetResponse(`http://localhost:9080/bypass-with-expires-and-revalidate`, 200, "Hello, additional status code!")
+	if respStored1.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-http-localhost:9080-/bypass-with-expires-and-revalidate" {
+		t.Errorf("unexpected Cache-Status header value %v", respStored1.Header.Get("Cache-Status"))
+	}
+	if respStored1.Header.Get("Age") != "" {
+		t.Errorf("unexpected Age header %v", respStored1.Header.Get("Age"))
+	}
+
+	respStored2, _ := tester.AssertGetResponse(`http://localhost:9080/bypass-with-expires-and-revalidate`, 200, "Hello, additional status code!")
+	if respStored2.Header.Get("Cache-Status") != "Souin; hit; ttl=4; key=GET-http-localhost:9080-/bypass-with-expires-and-revalidate; detail=DEFAULT" {
+		t.Errorf("unexpected Cache-Status header value %v", respStored2.Header.Get("Cache-Status"))
+	}
+	if respStored2.Header.Get("Age") == "" {
+		t.Error("Age header should be present")
+	}
+}

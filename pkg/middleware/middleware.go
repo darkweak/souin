@@ -204,6 +204,16 @@ func canBypassAuthorizationRestriction(headers http.Header, bypassed []string) b
 	return strings.Contains(strings.ToLower(headers.Get("Vary")), "authorization")
 }
 
+func (s *SouinBaseHandler) hasAllowedAdditionalStatusCodesToCache(code int) bool {
+	for _, sc := range s.Configuration.GetDefaultCache().GetAllowedAdditionalStatusCodes() {
+		if sc == code {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (s *SouinBaseHandler) Store(
 	customWriter *CustomWriter,
 	rq *http.Request,
@@ -212,7 +222,7 @@ func (s *SouinBaseHandler) Store(
 	uri string,
 ) error {
 	statusCode := customWriter.GetStatusCode()
-	if !isCacheableCode(statusCode) {
+	if !isCacheableCode(statusCode) && !s.hasAllowedAdditionalStatusCodesToCache(statusCode) {
 		customWriter.Header().Set("Cache-Status", fmt.Sprintf("%s; fwd=uri-miss; key=%s; detail=UNCACHEABLE-STATUS-CODE", rq.Context().Value(context.CacheName), rfc.GetCacheKeyFromCtx(rq.Context())))
 
 		switch statusCode {
@@ -442,7 +452,7 @@ func (s *SouinBaseHandler) Upstream(
 		s.SurrogateKeyStorer.Invalidate(rq.Method, customWriter.Header())
 
 		statusCode := customWriter.GetStatusCode()
-		if !isCacheableCode(statusCode) {
+		if !isCacheableCode(statusCode) && !s.hasAllowedAdditionalStatusCodesToCache(statusCode) {
 			customWriter.Header().Set("Cache-Status", fmt.Sprintf("%s; fwd=uri-miss; key=%s; detail=UNCACHEABLE-STATUS-CODE", rq.Context().Value(context.CacheName), rfc.GetCacheKeyFromCtx(rq.Context())))
 
 			switch statusCode {

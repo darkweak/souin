@@ -28,6 +28,9 @@ httpcache:
       - GET
       - POST
       - HEAD
+    allowed_addional_status_code:
+      - 202
+      - 400
     badger:
       url: /badger/url
       path: /badger/path

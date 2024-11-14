@@ -117,6 +117,15 @@ func parseDefaultCache(dcConfiguration map[string]interface{}) *configurationtyp
 					dc.AllowedHTTPVerbs = append(dc.AllowedHTTPVerbs, verb.(string))
 				}
 			}
+		case "allowed_additional_status_codes":
+			dc.AllowedAdditionalStatusCodes = make([]int, 0)
+			if codes, ok := defaultCacheV.([]int); ok {
+				dc.AllowedAdditionalStatusCodes = codes
+			} else {
+				for _, code := range defaultCacheV.([]interface{}) {
+					dc.AllowedAdditionalStatusCodes = append(dc.AllowedAdditionalStatusCodes, code.(int))
+				}
+			}
 		case "badger":
 			provider := configurationtypes.CacheProvider{}
 			for badgerConfigurationK, badgerConfigurationV := range defaultCacheV.(map[string]interface{}) {

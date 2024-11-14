@@ -148,6 +148,13 @@ func parseDefaultCache(dcConfiguration map[string]config.Value) *configurationty
 				h, _ := header.String()
 				dc.AllowedHTTPVerbs = append(dc.AllowedHTTPVerbs, h)
 			}
+		case "allowed_additional_status_codes":
+			codes, _ := defaultCacheV.Slice()
+			dc.AllowedHTTPVerbs = make([]string, 0)
+			for _, code := range codes {
+				c, _ := code.Int()
+				dc.AllowedAdditionalStatusCodes = append(dc.AllowedAdditionalStatusCodes, int(c))
+			}
 		case "badger":
 			provider := configurationtypes.CacheProvider{}
 			badgerConfiguration, _ := defaultCacheV.Map()

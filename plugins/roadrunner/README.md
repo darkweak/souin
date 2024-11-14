@@ -67,6 +67,9 @@ http:
         - GET
         - POST
         - HEAD
+      allowed_addional_status_code: # Allowed additional HTTP status codes to cache.
+        - 202
+        - 400
       cache_name: Souin # Override the cache name to use in the Cache-Status header
       distributed: true # Use Olric or Etcd distributed storage
       key:
