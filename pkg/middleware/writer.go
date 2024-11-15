@@ -39,6 +39,12 @@ type CustomWriter struct {
 	statusCode  int
 }
 
+func (r *CustomWriter) handleBuffer(callback func(*bytes.Buffer)) {
+	r.mutex.Lock()
+	callback(r.Buf)
+	r.mutex.Unlock()
+}
+
 // Header will write the response headers
 func (r *CustomWriter) Header() http.Header {
 	r.mutex.Lock()
