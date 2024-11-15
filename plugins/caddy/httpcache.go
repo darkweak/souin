@@ -41,7 +41,7 @@ type SouinCaddyMiddleware struct {
 	// Allowed HTTP verbs to be cached by the system.
 	AllowedHTTPVerbs []string `json:"allowed_http_verbs,omitempty"`
 	// Allowed HTTP verbs to be cached by the system.
-	AllowedAdditionalStatusCodes []string `json:"allowed_addional_status_code,omitempty"`
+	AllowedAdditionalStatusCodes []string `json:"allowed_additional_status_codes,omitempty"`
 	// Headers to add to the cache key if they are present.
 	Headers []string `json:"headers,omitempty"`
 	// Configure the Badger cache storage.

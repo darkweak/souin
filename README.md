@@ -106,7 +106,7 @@ default_cache:
     - GET
     - POST
     - HEAD
-  allowed_addional_status_code: # Allowed additional HTTP status code to cache.
+  allowed_additional_status_codes: # Allowed additional HTTP status code to cache.
     - 202
     - 400
   cache_name: Souin # Override the cache name to use in the Cache-Status header
@@ -199,7 +199,7 @@ surrogate_keys:
 | `cdn.service_id`                                  | The service id if required, depending the provider                                                                                          | `123456_id`                                                                                                                                                                                                                   |
 | `cdn.zone_id`                                     | The zone id if required, depending the provider                                                                                             | `anywhere_zone`                                                                                                                                                                                                               |
 | `default_cache.allowed_http_verbs`                | The HTTP verbs to support cache                                                                                                             | `- GET`<br/><br/>`- POST`<br/><br/>`(default: GET, HEAD)`                                                                                                                                                                     |
-| `default_cache.allowed_addional_status_code`      | The additional HTTP status code to support cache                                                                                            | `- 200`<br/><br/>`- 404`                                                                                                                                                                     |
+| `default_cache.allowed_additional_status_codes`      | The additional HTTP status code to support cache                                                                                            | `- 200`<br/><br/>`- 404`                                                                                                                                                                     |
 | `default_cache.badger`                            | Configure the Badger cache storage                                                                                                          |                                                                                                                                                                                                                               |
 | `default_cache.badger.path`                       | Configure Badger with a file                                                                                                                | `/anywhere/badger_configuration.json`                                                                                                                                                                                         |
 | `default_cache.badger.configuration`              | Configure Badger directly in the Caddyfile or your JSON caddy configuration                                                                 | [See the Badger configuration for the options](https://dgraph.io/docs/badger/get-started/)                                                                                                                                    |
@@ -429,7 +429,7 @@ There is the fully configuration below
     }
     cache {
         allowed_http_verbs GET POST PATCH
-        allowed_addional_status_code 202
+        allowed_additional_status_codes 202
         api {
             basepath /some-basepath
             prometheus {
@@ -887,7 +887,7 @@ http:
         - GET
         - POST
         - HEAD
-      allowed_addional_status_code:
+      allowed_additional_status_codes:
         - 202
         - 400
       cdn:
@@ -987,7 +987,7 @@ http:
               - GET
               - HEAD
               - POST
-            allowed_addional_status_code:
+            allowed_additional_status_codes:
               - 202
               - 400
             default_cache_control: no-store

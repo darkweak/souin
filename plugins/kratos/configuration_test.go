@@ -28,7 +28,7 @@ httpcache:
       - GET
       - POST
       - HEAD
-    allowed_addional_status_code:
+    allowed_additional_status_codes:
       - 202
       - 400
     badger:
