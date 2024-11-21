@@ -229,35 +229,41 @@ type Key struct {
 
 // DefaultCache configuration
 type DefaultCache struct {
-	AllowedHTTPVerbs    []string      `json:"allowed_http_verbs" yaml:"allowed_http_verbs"`
-	Badger              CacheProvider `json:"badger" yaml:"badger"`
-	CDN                 CDN           `json:"cdn" yaml:"cdn"`
-	CacheName           string        `json:"cache_name" yaml:"cache_name"`
-	Distributed         bool          `json:"distributed" yaml:"distributed"`
-	Headers             []string      `json:"headers" yaml:"headers"`
-	Key                 Key           `json:"key" yaml:"key"`
-	Etcd                CacheProvider `json:"etcd" yaml:"etcd"`
-	Mode                string        `json:"mode" yaml:"mode"`
-	Nats                CacheProvider `json:"nats" yaml:"nats"`
-	Nuts                CacheProvider `json:"nuts" yaml:"nuts"`
-	Olric               CacheProvider `json:"olric" yaml:"olric"`
-	Otter               CacheProvider `json:"otter" yaml:"otter"`
-	Redis               CacheProvider `json:"redis" yaml:"redis"`
-	Port                Port          `json:"port" yaml:"port"`
-	Regex               Regex         `json:"regex" yaml:"regex"`
-	SimpleFS            CacheProvider `json:"simplefs" yaml:"simplefs"`
-	Stale               Duration      `json:"stale" yaml:"stale"`
-	Storers             []string      `json:"storers" yaml:"storers"`
-	Timeout             Timeout       `json:"timeout" yaml:"timeout"`
-	TTL                 Duration      `json:"ttl" yaml:"ttl"`
-	DefaultCacheControl string        `json:"default_cache_control" yaml:"default_cache_control"`
-	MaxBodyBytes        uint64        `json:"max_cacheable_body_bytes" yaml:"max_cacheable_body_bytes"`
-	DisableCoalescing   bool          `json:"disable_coalescing" yaml:"disable_coalescing"`
+	AllowedHTTPVerbs             []string      `json:"allowed_http_verbs" yaml:"allowed_http_verbs"`
+	AllowedAdditionalStatusCodes []int         `json:"allowed_additional_status_codes" yaml:"allowed_additional_status_codes"`
+	Badger                       CacheProvider `json:"badger" yaml:"badger"`
+	CDN                          CDN           `json:"cdn" yaml:"cdn"`
+	CacheName                    string        `json:"cache_name" yaml:"cache_name"`
+	Distributed                  bool          `json:"distributed" yaml:"distributed"`
+	Headers                      []string      `json:"headers" yaml:"headers"`
+	Key                          Key           `json:"key" yaml:"key"`
+	Etcd                         CacheProvider `json:"etcd" yaml:"etcd"`
+	Mode                         string        `json:"mode" yaml:"mode"`
+	Nats                         CacheProvider `json:"nats" yaml:"nats"`
+	Nuts                         CacheProvider `json:"nuts" yaml:"nuts"`
+	Olric                        CacheProvider `json:"olric" yaml:"olric"`
+	Otter                        CacheProvider `json:"otter" yaml:"otter"`
+	Redis                        CacheProvider `json:"redis" yaml:"redis"`
+	Port                         Port          `json:"port" yaml:"port"`
+	Regex                        Regex         `json:"regex" yaml:"regex"`
+	SimpleFS                     CacheProvider `json:"simplefs" yaml:"simplefs"`
+	Stale                        Duration      `json:"stale" yaml:"stale"`
+	Storers                      []string      `json:"storers" yaml:"storers"`
+	Timeout                      Timeout       `json:"timeout" yaml:"timeout"`
+	TTL                          Duration      `json:"ttl" yaml:"ttl"`
+	DefaultCacheControl          string        `json:"default_cache_control" yaml:"default_cache_control"`
+	MaxBodyBytes                 uint64        `json:"max_cacheable_body_bytes" yaml:"max_cacheable_body_bytes"`
+	DisableCoalescing            bool          `json:"disable_coalescing" yaml:"disable_coalescing"`
 }
 
 // GetAllowedHTTPVerbs returns the allowed verbs to cache
 func (d *DefaultCache) GetAllowedHTTPVerbs() []string {
 	return d.AllowedHTTPVerbs
+}
+
+// GetAllowedAdditionalStatusCodes returns the allowed verbs to cache
+func (d *DefaultCache) GetAllowedAdditionalStatusCodes() []int {
+	return d.AllowedAdditionalStatusCodes
 }
 
 // GetBadger returns the Badger configuration
@@ -373,6 +379,7 @@ func (d *DefaultCache) IsCoalescingDisable() bool {
 // DefaultCacheInterface interface
 type DefaultCacheInterface interface {
 	GetAllowedHTTPVerbs() []string
+	GetAllowedAdditionalStatusCodes() []int
 	GetBadger() CacheProvider
 	GetCacheName() string
 	GetCDN() CDN

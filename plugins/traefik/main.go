@@ -200,6 +200,8 @@ func parseConfiguration(c map[string]interface{}) Configuration {
 					}
 				case "allowed_http_verbs":
 					dc.AllowedHTTPVerbs = parseStringSlice(defaultCacheV)
+				case "allowed_additional_status_codes":
+					dc.AllowedAdditionalStatusCodes = parseIntSlice(defaultCacheV)
 				case "stale":
 					stale, err := time.ParseDuration(defaultCacheV.(string))
 					if err == nil {
@@ -272,6 +274,21 @@ func parseStringSlice(i interface{}) []string {
 
 	if value, ok := i.([]string); ok {
 		return value
+	}
+
+	return nil
+}
+
+func parseIntSlice(i interface{}) []int {
+	if value, ok := i.([]int); ok {
+		return value
+	}
+	if value, ok := i.([]interface{}); ok {
+		var arr []int
+		for _, v := range value {
+			arr = append(arr, v.(int))
+		}
+		return arr
 	}
 
 	return nil

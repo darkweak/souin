@@ -15,6 +15,8 @@ import (
 type DefaultCache struct {
 	// Allowed HTTP verbs to be cached by the system.
 	AllowedHTTPVerbs []string `json:"allowed_http_verbs"`
+	// Allowed additional status code to be cached by the system.
+	AllowedAdditionalStatusCodes []int `json:"allowed_additional_status_codes"`
 	// Badger provider configuration.
 	Badger configurationtypes.CacheProvider `json:"badger"`
 	// The cache name to use in the Cache-Status response header.
@@ -63,6 +65,11 @@ type DefaultCache struct {
 // GetAllowedHTTPVerbs returns the allowed verbs to cache
 func (d *DefaultCache) GetAllowedHTTPVerbs() []string {
 	return d.AllowedHTTPVerbs
+}
+
+// GetAllowedAdditionalStatusCodes returns the allowed verbs to cache
+func (d *DefaultCache) GetAllowedAdditionalStatusCodes() []int {
+	return d.AllowedAdditionalStatusCodes
 }
 
 // GetBadger returns the Badger configuration
@@ -364,6 +371,17 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isGlobal boo
 				allowed := cfg.DefaultCache.AllowedHTTPVerbs
 				allowed = append(allowed, h.RemainingArgs()...)
 				cfg.DefaultCache.AllowedHTTPVerbs = allowed
+			case "allowed_additional_status_codes":
+				allowed := cfg.DefaultCache.AllowedAdditionalStatusCodes
+				additional := h.RemainingArgs()
+				codes := make([]int, 0)
+				for _, code := range additional {
+					if c, err := strconv.Atoi(code); err == nil {
+						codes = append(codes, c)
+					}
+				}
+				allowed = append(allowed, codes...)
+				cfg.DefaultCache.AllowedAdditionalStatusCodes = allowed
 			case "api":
 				if !isGlobal {
 					return h.Err("'api' block must be global")

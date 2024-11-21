@@ -122,6 +122,10 @@ The default_cache prefix configure the default cache behavior. (e.g. `default_ca
 The allowed_http_verbs prefix configure the HTTP verbs allowed to get cached. (e.g. `default_cache.allowed_http_verbs`).  
 default: `[GET, HEAD]`
 
+#### Allowed additional status code
+The allowed_additional_status_codes prefix configure the additional HTTP status codes allowed to get cached. (e.g. `default_cache.allowed_additional_status_codes`).  
+default: `[]`
+
 #### Badger
 The badger prefix configure the badger storage. (e.g. `default_cache.badger`).
 
