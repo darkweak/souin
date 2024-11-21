@@ -12,6 +12,7 @@ import (
 	"github.com/darkweak/storages/olric"
 	"github.com/darkweak/storages/otter"
 	"github.com/darkweak/storages/redis"
+	"github.com/darkweak/storages/simplefs"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -74,4 +75,5 @@ func InitFromConfiguration(configuration configurationtypes.AbstractConfiguratio
 	tryToRegisterStorage(configuration.GetDefaultCache().GetOlric(), olric.Factory, logger, stale)
 	tryToRegisterStorage(configuration.GetDefaultCache().GetOtter(), otter.Factory, logger, stale)
 	tryToRegisterStorage(configuration.GetDefaultCache().GetRedis(), redis.Factory, logger, stale)
+	tryToRegisterStorage(configuration.GetDefaultCache().GetSimpleFS(), simplefs.Factory, logger, stale)
 }

@@ -14,6 +14,7 @@ require (
 	github.com/darkweak/storages/olric v0.0.8
 	github.com/darkweak/storages/otter v0.0.8
 	github.com/darkweak/storages/redis v0.0.8
+	github.com/darkweak/storages/simplefs v0.0.11
 	go.uber.org/zap v1.27.0
 )
 
@@ -54,6 +55,7 @@ require (
 	github.com/hashicorp/golang-lru v0.5.5-0.20200511160909-eb529947af53 // indirect
 	github.com/hashicorp/logutils v1.0.0 // indirect
 	github.com/hashicorp/memberlist v0.5.0 // indirect
+	github.com/jellydator/ttlcache/v3 v3.3.0 // indirect
 	github.com/klauspost/compress v1.17.8 // indirect
 	github.com/maypok86/otter v1.2.1 // indirect
 	github.com/miekg/dns v1.1.59 // indirect
@@ -81,7 +83,7 @@ require (
 	golang.org/x/crypto v0.23.0 // indirect
 	golang.org/x/mod v0.17.0 // indirect
 	golang.org/x/net v0.25.0 // indirect
-	golang.org/x/sync v0.7.0 // indirect
+	golang.org/x/sync v0.8.0 // indirect
 	golang.org/x/sys v0.20.0 // indirect
 	golang.org/x/text v0.15.0 // indirect
 	golang.org/x/tools v0.21.0 // indirect

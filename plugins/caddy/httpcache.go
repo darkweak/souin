@@ -40,6 +40,8 @@ type SouinCaddyMiddleware struct {
 	LogLevel string `json:"log_level,omitempty"`
 	// Allowed HTTP verbs to be cached by the system.
 	AllowedHTTPVerbs []string `json:"allowed_http_verbs,omitempty"`
+	// Allowed HTTP verbs to be cached by the system.
+	AllowedAdditionalStatusCodes []string `json:"allowed_additional_status_codes,omitempty"`
 	// Headers to add to the cache key if they are present.
 	Headers []string `json:"headers,omitempty"`
 	// Configure the Badger cache storage.
@@ -142,14 +144,15 @@ func (s *SouinCaddyMiddleware) FromApp(app *SouinApp) error {
 
 	if s.Configuration.GetDefaultCache() == nil {
 		s.Configuration.DefaultCache = DefaultCache{
-			AllowedHTTPVerbs:    app.DefaultCache.AllowedHTTPVerbs,
-			Headers:             app.Headers,
-			Key:                 app.Key,
-			TTL:                 app.TTL,
-			Stale:               app.Stale,
-			DefaultCacheControl: app.DefaultCacheControl,
-			CacheName:           app.CacheName,
-			Timeout:             app.Timeout,
+			AllowedHTTPVerbs:             app.DefaultCache.AllowedHTTPVerbs,
+			AllowedAdditionalStatusCodes: app.DefaultCache.AllowedAdditionalStatusCodes,
+			Headers:                      app.Headers,
+			Key:                          app.Key,
+			TTL:                          app.TTL,
+			Stale:                        app.Stale,
+			DefaultCacheControl:          app.DefaultCacheControl,
+			CacheName:                    app.CacheName,
+			Timeout:                      app.Timeout,
 		}
 		return nil
 	}
@@ -171,6 +174,7 @@ func (s *SouinCaddyMiddleware) FromApp(app *SouinApp) error {
 	dc := s.Configuration.DefaultCache
 	appDc := app.DefaultCache
 	s.Configuration.DefaultCache.AllowedHTTPVerbs = append(s.Configuration.DefaultCache.AllowedHTTPVerbs, appDc.AllowedHTTPVerbs...)
+	s.Configuration.DefaultCache.AllowedAdditionalStatusCodes = append(s.Configuration.DefaultCache.AllowedAdditionalStatusCodes, appDc.AllowedAdditionalStatusCodes...)
 	s.Configuration.DefaultCache.CDN = app.DefaultCache.CDN
 	if dc.Headers == nil {
 		s.Configuration.DefaultCache.Headers = appDc.Headers
