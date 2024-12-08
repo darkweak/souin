@@ -39,6 +39,12 @@ type CustomWriter struct {
 	statusCode  int
 }
 
+func (r *CustomWriter) handleBuffer(callback func(*bytes.Buffer)) {
+	r.mutex.Lock()
+	callback(r.Buf)
+	r.mutex.Unlock()
+}
+
 // Header will write the response headers
 func (r *CustomWriter) Header() http.Header {
 	r.mutex.Lock()
@@ -71,17 +77,19 @@ func (r *CustomWriter) WriteHeader(code int) {
 
 // Write will write the response body
 func (r *CustomWriter) Write(b []byte) (int, error) {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-	r.Buf.Grow(len(b))
-	_, _ = r.Buf.Write(b)
+	r.handleBuffer(func(actual *bytes.Buffer) {
+		actual.Grow(len(b))
+		_, _ = actual.Write(b)
+	})
 
 	return len(b), nil
 }
 
 // Send delays the response to handle Cache-Status
 func (r *CustomWriter) Send() (int, error) {
-	defer r.Buf.Reset()
+	defer r.handleBuffer(func(b *bytes.Buffer) {
+		b.Reset()
+	})
 	storedLength := r.Header().Get(rfc.StoredLengthHeader)
 	if storedLength != "" {
 		r.Header().Set("Content-Length", storedLength)
