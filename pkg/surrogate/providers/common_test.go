@@ -30,7 +30,7 @@ func mockCommonProvider() *baseStorage {
 			Keys:       make(map[string]configurationtypes.SurrogateKeys),
 			keysRegexp: make(map[string]keysRegexpInner),
 			dynamic:    true,
-			mu:         &sync.Mutex{},
+			mu:         sync.Mutex{},
 			logger:     zap.NewNop().Sugar(),
 		},
 	}

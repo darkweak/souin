@@ -24,7 +24,7 @@ func NewCustomWriter(rq *http.Request, rw http.ResponseWriter, b *bytes.Buffer) 
 		Req:        rq,
 		Rw:         rw,
 		Headers:    http.Header{},
-		mutex:      &sync.Mutex{},
+		mutex:      sync.Mutex{},
 	}
 }
 
@@ -35,7 +35,7 @@ type CustomWriter struct {
 	Req         *http.Request
 	Headers     http.Header
 	headersSent bool
-	mutex       *sync.Mutex
+	mutex       sync.Mutex
 	statusCode  int
 }
 

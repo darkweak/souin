@@ -104,7 +104,7 @@ type baseStorage struct {
 	dynamic    bool
 	keepStale  bool
 	logger     core.Logger
-	mu         *sync.Mutex
+	mu         sync.Mutex
 	duration   time.Duration
 }
 
@@ -159,7 +159,6 @@ func (s *baseStorage) init(config configurationtypes.AbstractConfigurationInterf
 	s.dynamic = config.GetDefaultCache().GetCDN().Dynamic
 	s.logger = config.GetLogger()
 	s.keysRegexp = keysRegexp
-	s.mu = &sync.Mutex{}
 	s.duration = storageToInfiniteTTLMap[s.Storage.Name()]
 }
 

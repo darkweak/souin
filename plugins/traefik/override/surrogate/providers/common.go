@@ -79,7 +79,7 @@ type baseStorage struct {
 	keysRegexp map[string]keysRegexpInner
 	dynamic    bool
 	keepStale  bool
-	mu         *sync.Mutex
+	mu         sync.Mutex
 	duration   time.Duration
 }
 
@@ -116,7 +116,7 @@ func (s *baseStorage) init(config configurationtypes.AbstractConfigurationInterf
 
 	s.dynamic = config.GetDefaultCache().GetCDN().Dynamic
 	s.keysRegexp = keysRegexp
-	s.mu = &sync.Mutex{}
+	s.mu = sync.Mutex{}
 	s.duration = storageToInfiniteTTLMap[s.Storage.Name()]
 }
 
