@@ -1281,3 +1281,62 @@ func TestAllowedAdditionalStatusCode(t *testing.T) {
 		t.Error("Age header should be present")
 	}
 }
+
+type testTimeoutHandler struct {
+	iterator int
+}
+
+func (t *testTimeoutHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	t.iterator++
+	if t.iterator%2 == 0 {
+		time.Sleep(5 * time.Second)
+
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write([]byte("Hello timeout!"))
+}
+
+func TestTimeout(t *testing.T) {
+	tester := caddytest.NewTester(t)
+	tester.InitServer(`
+	{
+		admin localhost:2999
+		http_port     9080
+		cache {
+			ttl 1ns
+			stale 1ns
+			timeout {
+				backend 1s
+			}
+		}
+	}
+	localhost:9080 {
+		route /cache-timeout {
+			cache
+			reverse_proxy localhost:9086
+		}
+	}`, "caddyfile")
+
+	go func() {
+		errorHandler := testTimeoutHandler{}
+		_ = http.ListenAndServe(":9086", &errorHandler)
+	}()
+	time.Sleep(time.Second)
+	resp1, _ := tester.AssertGetResponse(`http://localhost:9080/cache-timeout`, http.StatusOK, "Hello timeout!")
+	time.Sleep(time.Millisecond)
+	resp2, _ := tester.AssertGetResponse(`http://localhost:9080/cache-timeout`, http.StatusGatewayTimeout, "Internal server error")
+
+	if resp1.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-http-localhost:9080-/cache-timeout" {
+		t.Errorf("unexpected resp1 Cache-Status header %v", resp1.Header.Get("Cache-Status"))
+	}
+
+	if resp1.Header.Get("Age") != "" {
+		t.Errorf("unexpected resp1 Age header %v", resp1.Header.Get("Age"))
+	}
+
+	if resp2.Header.Get("Cache-Status") != "Souin; fwd=bypass; detail=DEADLINE-EXCEEDED" {
+		t.Errorf("unexpected resp2 Cache-Status header %v", resp2.Header.Get("Cache-Status"))
+	}
+}
