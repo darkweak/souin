@@ -358,26 +358,51 @@ func (s *SouinBaseHandler) Store(
 						hn := strings.Split(hname, ":")
 						vhs.Set(hn[0], rq.Header.Get(hn[0]))
 					}
-					for _, storer := range s.Storers {
-						wg.Add(1)
-						go func(currentStorer types.Storer, currentRes http.Response) {
-							defer wg.Done()
-							if currentStorer.SetMultiLevel(
-								cachedKey,
-								variedKey,
-								response,
-								vhs,
-								currentRes.Header.Get("Etag"), ma,
-								variedKey,
-							) == nil {
-								s.Configuration.GetLogger().Debugf("Stored the key %s in the %s provider", variedKey, currentStorer.Name())
-								currentRes.Request = rq
-							} else {
-								mu.Lock()
-								fails = append(fails, fmt.Sprintf("; detail=%s-INSERTION-ERROR", currentStorer.Name()))
-								mu.Unlock()
+					if upstreamStorerTarget := res.Header.Get("X-Souin-Storer"); upstreamStorerTarget != "" {
+						res.Header.Del("X-Souin-Storer")
+
+						var overridedStorer types.Storer
+						for _, storer := range s.Storers {
+							if strings.Contains(strings.ToLower(storer.Name()), strings.ToLower(upstreamStorerTarget)) {
+								overridedStorer = storer
 							}
-						}(storer, res)
+						}
+
+						if overridedStorer.SetMultiLevel(
+							cachedKey,
+							variedKey,
+							response,
+							vhs,
+							res.Header.Get("Etag"), ma,
+							variedKey,
+						) == nil {
+							s.Configuration.GetLogger().Debugf("Stored the key %s in the %s provider", variedKey, overridedStorer.Name())
+							res.Request = rq
+						} else {
+							fails = append(fails, fmt.Sprintf("; detail=%s-INSERTION-ERROR", overridedStorer.Name()))
+						}
+					} else {
+						for _, storer := range s.Storers {
+							wg.Add(1)
+							go func(currentStorer types.Storer, currentRes http.Response) {
+								defer wg.Done()
+								if currentStorer.SetMultiLevel(
+									cachedKey,
+									variedKey,
+									response,
+									vhs,
+									currentRes.Header.Get("Etag"), ma,
+									variedKey,
+								) == nil {
+									s.Configuration.GetLogger().Debugf("Stored the key %s in the %s provider", variedKey, currentStorer.Name())
+									currentRes.Request = rq
+								} else {
+									mu.Lock()
+									fails = append(fails, fmt.Sprintf("; detail=%s-INSERTION-ERROR", currentStorer.Name()))
+									mu.Unlock()
+								}
+							}(storer, res)
+						}
 					}
 
 					wg.Wait()
