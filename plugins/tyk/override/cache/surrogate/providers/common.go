@@ -72,7 +72,7 @@ type baseStorage struct {
 	dynamic    bool
 	keepStale  bool
 	logger     *zap.Logger
-	mu         *sync.Mutex
+	mu         sync.Mutex
 }
 
 func (s *baseStorage) init(config configurationtypes.AbstractConfigurationInterface) {
@@ -103,7 +103,7 @@ func (s *baseStorage) init(config configurationtypes.AbstractConfigurationInterf
 	s.dynamic = config.GetDefaultCache().GetCDN().Dynamic
 	s.logger = config.GetLogger()
 	s.keysRegexp = keysRegexp
-	s.mu = &sync.Mutex{}
+	s.mu = sync.Mutex{}
 }
 
 func (s *baseStorage) storeTag(tag string, cacheKey string, re *regexp.Regexp) {
