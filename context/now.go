@@ -25,7 +25,7 @@ func (cc *nowContext) SetContext(req *http.Request) *http.Request {
 	now, e = time.Parse(time.RFC1123, req.Header.Get("Date"))
 
 	if e != nil {
-		now := time.Now()
+		now = time.Now().UTC()
 		req.Header.Set("Date", now.Format(time.RFC1123))
 	}
 

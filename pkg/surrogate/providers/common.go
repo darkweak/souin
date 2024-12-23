@@ -81,7 +81,7 @@ func uniqueTag(values []string) []string {
 		if _, found := tmp[item]; !found {
 			tmp[item] = true
 
-			if strings.Contains(item, "%3B") || strings.Contains(item, "%3A") {
+			if strings.Contains(item, "%") {
 				item, _ = url.QueryUnescape(item)
 			}
 			list = append(list, item)
