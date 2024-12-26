@@ -556,6 +556,17 @@ func (s *SouinBaseHandler) Revalidate(validator *core.Revalidator, next handlerF
 				return nil, errors.New("")
 			}
 
+			if validator.IfModifiedSincePresent {
+				if lastModified, err := time.Parse(time.RFC1123, customWriter.Header().Get("Last-Modified")); err == nil && validator.IfModifiedSince.Sub(lastModified) > 0 {
+					customWriter.handleBuffer(func(b *bytes.Buffer) {
+						b.Reset()
+					})
+					customWriter.Rw.WriteHeader(http.StatusNotModified)
+
+					return nil, errors.New("")
+				}
+			}
+
 			if statusCode != http.StatusNotModified {
 				err = s.Store(customWriter, rq, requestCc, cachedKey, uri)
 			}
