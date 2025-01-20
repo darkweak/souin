@@ -3,9 +3,11 @@ package httpcache
 import (
 	"fmt"
 	"github.com/caddyserver/caddy/v2"
+	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/api"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/darkweak/storages/core"
 )
@@ -60,6 +62,11 @@ func (a *adminAPI) Provision(ctx caddy.Context) error {
 	a.app = app.(*SouinApp)
 	config := Configuration{
 		API: a.app.API,
+		DefaultCache: DefaultCache{
+			TTL: configurationtypes.Duration{
+				Duration: 120 * time.Second,
+			},
+		},
 	}
 	a.InternalEndpointHandlers = api.GenerateHandlerMap(&config, a.app.Storers, a.app.SurrogateStorage)
 

@@ -1,8 +1,6 @@
 package httpcache
 
 import (
-	"errors"
-
 	"github.com/caddyserver/caddy/v2"
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/storage/types"
@@ -39,9 +37,7 @@ func (s SouinApp) Start() error {
 	core.ResetRegisteredStorages()
 	_, _ = up.Delete(stored_providers_key)
 	_, _ = up.LoadOrStore(stored_providers_key, newStorageProvider())
-	if s.DefaultCache.GetTTL() == 0 {
-		return errors.New("Invalid/Incomplete default cache declaration")
-	}
+
 	return nil
 }
 
