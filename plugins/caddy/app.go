@@ -1,8 +1,6 @@
 package httpcache
 
 import (
-	"errors"
-
 	"github.com/caddyserver/caddy/v2"
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/storage/types"
@@ -15,7 +13,7 @@ type SouinApp struct {
 	DefaultCache
 	// The provider to use.
 	Storers []types.Storer
-	// Surrogate storage to support th econfiguration reload without surrogate-key data loss.
+	// Surrogate storage to support the configuration reload without surrogate-key data loss.
 	SurrogateStorage providers.SurrogateInterface
 	// Cache-key tweaking.
 	CacheKeys configurationtypes.CacheKeys `json:"cache_keys,omitempty"`
@@ -39,9 +37,7 @@ func (s SouinApp) Start() error {
 	core.ResetRegisteredStorages()
 	_, _ = up.Delete(stored_providers_key)
 	_, _ = up.LoadOrStore(stored_providers_key, newStorageProvider())
-	if s.DefaultCache.GetTTL() == 0 {
-		return errors.New("Invalid/Incomplete default cache declaration")
-	}
+
 	return nil
 }
 

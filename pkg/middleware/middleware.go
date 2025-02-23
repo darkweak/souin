@@ -50,6 +50,19 @@ func reorderStorers(storers []types.Storer, expectedStorers []string) []types.St
 	return newStorers
 }
 
+func registerMappingKeysEviction(logger core.Logger, storers []types.Storer) {
+	for _, storer := range storers {
+		logger.Debugf("registering mapping eviction for storer %s", storer.Name())
+		go func(current types.Storer) {
+			for {
+				logger.Debugf("run mapping eviction for storer %s", current.Name())
+				current.MapKeys(core.MappingKeyPrefix)
+				time.Sleep(time.Minute)
+			}
+		}(storer)
+	}
+}
+
 func NewHTTPCacheHandler(c configurationtypes.AbstractConfigurationInterface) *SouinBaseHandler {
 	if c.GetLogger() == nil {
 		var logLevel zapcore.Level
@@ -137,6 +150,8 @@ func NewHTTPCacheHandler(c configurationtypes.AbstractConfigurationInterface) *S
 		DefaultCacheControl: c.GetDefaultCache().GetDefaultCacheControl(),
 	}
 	c.GetLogger().Info("Souin configuration is now loaded.")
+
+	registerMappingKeysEviction(c.GetLogger(), storers)
 
 	return &SouinBaseHandler{
 		Configuration:            c,
@@ -556,6 +571,17 @@ func (s *SouinBaseHandler) Revalidate(validator *core.Revalidator, next handlerF
 				return nil, errors.New("")
 			}
 
+			if validator.IfModifiedSincePresent {
+				if lastModified, err := time.Parse(time.RFC1123, customWriter.Header().Get("Last-Modified")); err == nil && validator.IfModifiedSince.Sub(lastModified) > 0 {
+					customWriter.handleBuffer(func(b *bytes.Buffer) {
+						b.Reset()
+					})
+					customWriter.Rw.WriteHeader(http.StatusNotModified)
+
+					return nil, errors.New("")
+				}
+			}
+
 			if statusCode != http.StatusNotModified {
 				err = s.Store(customWriter, rq, requestCc, cachedKey, uri)
 			}
@@ -922,10 +948,10 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 	case <-req.Context().Done():
 		switch req.Context().Err() {
 		case baseCtx.DeadlineExceeded:
-			customWriter.WriteHeader(http.StatusGatewayTimeout)
-			s.Configuration.GetLogger().Infof("Internal server error on endpoint %s: %v", req.URL, s.Storers)
 			rw.Header().Set("Cache-Status", cacheName+"; fwd=bypass; detail=DEADLINE-EXCEEDED")
+			customWriter.Rw.WriteHeader(http.StatusGatewayTimeout)
 			_, _ = customWriter.Rw.Write([]byte("Internal server error"))
+			s.Configuration.GetLogger().Infof("Internal server error on endpoint %s: %v", req.URL, s.Storers)
 			return baseCtx.DeadlineExceeded
 		case baseCtx.Canceled:
 			return baseCtx.Canceled
