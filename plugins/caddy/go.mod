@@ -157,5 +157,3 @@ require (
 )
 
 replace github.com/darkweak/souin v1.7.5 => ../..
-
-replace github.com/darkweak/storages/core => ../../../storages/core

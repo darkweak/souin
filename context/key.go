@@ -8,6 +8,7 @@ import (
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
 	"github.com/darkweak/souin/configurationtypes"
+	"github.com/darkweak/storages/core"
 )
 
 const (
@@ -15,7 +16,6 @@ const (
 	DisplayableKey ctxKey = "souin_ctx.DISPLAYABLE_KEY"
 	IgnoredHeaders ctxKey = "souin_ctx.IGNORE_HEADERS"
 	Hashed         ctxKey = "souin_ctx.HASHED"
-	DisableVary    ctxKey = "storages_bypass_vary"
 )
 
 type keyContext struct {
@@ -163,7 +163,7 @@ func (g *keyContext) SetContext(req *http.Request) *http.Request {
 							Key,
 							key,
 						),
-						"storages_bypass_vary",
+						core.DISABLE_VARY_CTX,
 						g.disable_vary,
 					),
 					Hashed,

@@ -2,8 +2,6 @@ module github.com/darkweak/souin
 
 go 1.22.1
 
-replace github.com/darkweak/storages/core v0.0.13 => ../storages/core
-
 require (
 	github.com/caddyserver/caddy/v2 v2.8.4
 	github.com/cespare/xxhash/v2 v2.2.0
