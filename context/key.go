@@ -163,7 +163,7 @@ func (g *keyContext) SetContext(req *http.Request) *http.Request {
 							Key,
 							key,
 						),
-						core.DISABLE_VARY_CTX,
+						core.DISABLE_VARY_CTX, //nolint:staticcheck // we don't care about collision
 						g.disable_vary,
 					),
 					Hashed,
