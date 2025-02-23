@@ -356,6 +356,14 @@ func parseSimpleFSConfiguration(c map[string]interface{}) map[string]interface{}
 			} else {
 				c[k], _ = strconv.Atoi(v.(string))
 			}
+		case "directory_size":
+			if v == false {
+				c[k] = 0
+			} else if v == true {
+				c[k] = 1
+			} else {
+				c[k], _ = strconv.Atoi(v.(string))
+			}
 		}
 	}
 

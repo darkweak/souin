@@ -989,25 +989,9 @@ func TestDisabledVaryHandler(t *testing.T) {
 	resultMap := &sync.Map{}
 
 	for i, rq := range requests {
-		res, body := tester.AssertResponse(rq, 200, "Hello, vary first!")
-		fmt.Printf("%d\n%#v\n\n", i, body)
+		res, _ := tester.AssertResponse(rq, 200, "Hello, vary first!")
 		resultMap.Store(i, res)
 	}
-
-	// for i := 0; i < 4; i++ {
-	// 	if res, ok := resultMap.Load(i); !ok {
-	// 		t.Errorf("unexpected nil response for iteration %d", i)
-	// 	} else {
-	// 		rs, ok := res.(*http.Response)
-	// 		if !ok {
-	// 			t.Error("The object is not type of *http.Response")
-	// 		}
-	//
-	// 		if rs.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-http-localhost:9080-/vary-multiple" {
-	// 			t.Errorf("The response %d doesn't match the expected header: %s", i, rs.Header.Get("Cache-Status"))
-	// 		}
-	// 	}
-	// }
 }
 
 func TestESITags(t *testing.T) {
