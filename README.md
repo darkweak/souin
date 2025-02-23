@@ -90,6 +90,7 @@ cache_keys:
     disable_method: true # Prevent the method from being used in the cache key
     disable_query: true # Prevent the query string from being used in the cache key
     disable_scheme: true # request scheme the query string from being used in the cache key
+    disable_vary: true # Prevent the varied headers string from being used in the cache key
     hash: true # Hash the cache key instead of a plaintext one
     hide: true # Prevent the cache key to be in the response Cache-Status header
     headers: # Add headers to the key
@@ -117,6 +118,7 @@ default_cache:
     disable_method: true # Prevent the method from being used in the cache key
     disable_query: true # Prevent the query string from being used in the cache key
     disable_scheme: true # Prevent the request scheme string from being used in the cache key
+    disable_vary: true # Prevent the varied headers string from being used in the cache key
     hash: true # Hash the cache key instead of a plaintext one
     hide: true # Prevent the cache key to be in the response Cache-Status header
     headers: # Add headers to the key
@@ -185,6 +187,7 @@ surrogate_keys:
 | `cache_keys.{your regexp}.disable_method`         | Disable the method part in the key matching the regexp                                                                                      | `true`<br/><br/>`(default: false)`                                                                                                                                                                                            |
 | `cache_keys.{your regexp}.disable_query`          | Disable the query string part in the key matching the regexp                                                                                | `true`<br/><br/>`(default: false)`                                                                                                                                                                                            |
 | `cache_keys.{your regexp}.disable_scheme`         | Disable the request scheme string part in the key matching the regexp                                                                       | `true`<br/><br/>`(default: false)`                                                                                                                                                                                            |
+| `cache_keys.{your regexp}.disable_vary`           | Disable the vary string part in the key matching the regexp                                                                                 | `true`<br/><br/>`(default: false)`                                                                                                                                                                                            |
 | `cache_keys.{your regexp}.hash`                   | Hash the key matching the regexp                                                                                                            | `true`<br/><br/>`(default: false)`                                                                                                                                                                                            |
 | `cache_keys.{your regexp}.headers`                | Add headers to the key matching the regexp                                                                                                  | `- Authorization`<br/><br/>`- Content-Type`<br/><br/>`- X-Additional-Header`                                                                                                                                                  |
 | `cache_keys.{your regexp}.hide`                   | Prevent the key from being exposed in the `Cache-Status` HTTP response header                                                               | `true`<br/><br/>`(default: false)`                                                                                                                                                                                            |
@@ -199,7 +202,7 @@ surrogate_keys:
 | `cdn.service_id`                                  | The service id if required, depending the provider                                                                                          | `123456_id`                                                                                                                                                                                                                   |
 | `cdn.zone_id`                                     | The zone id if required, depending the provider                                                                                             | `anywhere_zone`                                                                                                                                                                                                               |
 | `default_cache.allowed_http_verbs`                | The HTTP verbs to support cache                                                                                                             | `- GET`<br/><br/>`- POST`<br/><br/>`(default: GET, HEAD)`                                                                                                                                                                     |
-| `default_cache.allowed_additional_status_codes`      | The additional HTTP status code to support cache                                                                                            | `- 200`<br/><br/>`- 404`                                                                                                                                                                     |
+| `default_cache.allowed_additional_status_codes`   | The additional HTTP status code to support cache                                                                                            | `- 200`<br/><br/>`- 404`                                                                                                                                                                     |
 | `default_cache.badger`                            | Configure the Badger cache storage                                                                                                          |                                                                                                                                                                                                                               |
 | `default_cache.badger.path`                       | Configure Badger with a file                                                                                                                | `/anywhere/badger_configuration.json`                                                                                                                                                                                         |
 | `default_cache.badger.configuration`              | Configure Badger directly in the Caddyfile or your JSON caddy configuration                                                                 | [See the Badger configuration for the options](https://dgraph.io/docs/badger/get-started/)                                                                                                                                    |
@@ -213,6 +216,7 @@ surrogate_keys:
 | `default_cache.key.disable_method`                | Disable the method part in the key                                                                                                          | `true`<br/><br/>`(default: false)`                                                                                                                                                                                            |
 | `default_cache.key.disable_query`                 | Disable the query string part in the key                                                                                                    | `true`<br/><br/>`(default: false)`                                                                                                                                                                                            |
 | `default_cache.key.disable_scheme`                | Disable the request scheme string part in the key                                                                                           | `true`<br/><br/>`(default: false)`                                                                                                                                                                                            |
+| `default_cache.key.disable_vary`                  | Disable the request vary string part in the key                                                                                             | `true`<br/><br/>`(default: false)`                                                                                                                                                                                            |
 | `default_cache.key.hash`                          | Hash the key name in the storage                                                                                                            | `true`<br/><br/>`(default: false)`                                                                                                                                                                                            |
 | `default_cache.key.headers`                       | Add headers to the key matching the regexp                                                                                                  | `- Authorization`<br/><br/>`- Content-Type`<br/><br/>`- X-Additional-Header`                                                                                                                                                  |
 | `default_cache.key.hide`                          | Prevent the key from being exposed in the `Cache-Status` HTTP response header                                                               | `true`<br/><br/>`(default: false)`                                                                                                                                                                                            |
@@ -450,6 +454,7 @@ There is the fully configuration below
                 disable_method
                 disable_query
                 disable_scheme
+                disable_vary
                 headers X-Token Authorization
                 hide
                 hash
@@ -472,6 +477,7 @@ There is the fully configuration below
             disable_method
             disable_query
             disable_scheme
+            disable_vary
             hash
             hide
             headers Content-Type Authorization
