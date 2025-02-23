@@ -2,18 +2,20 @@ module github.com/darkweak/souin
 
 go 1.22.1
 
+replace github.com/darkweak/storages/core v0.0.13 => ../storages/core
+
 require (
 	github.com/caddyserver/caddy/v2 v2.8.4
 	github.com/cespare/xxhash/v2 v2.2.0
-	github.com/darkweak/storages/core v0.0.11
+	github.com/darkweak/storages/core v0.0.13
 	github.com/google/uuid v1.6.0
-	github.com/pierrec/lz4/v4 v4.1.21
+	github.com/pierrec/lz4/v4 v4.1.22
 	github.com/pquerna/cachecontrol v0.2.0
 	github.com/prometheus/client_golang v1.19.1
 	github.com/prometheus/client_model v0.5.0
 	go.uber.org/zap v1.27.0
 	golang.org/x/sync v0.7.0
-	google.golang.org/protobuf v1.34.2
+	google.golang.org/protobuf v1.36.5
 	gopkg.in/yaml.v3 v3.0.1
 )
 

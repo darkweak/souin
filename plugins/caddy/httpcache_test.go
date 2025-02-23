@@ -942,6 +942,74 @@ func TestVaryHandler(t *testing.T) {
 	}
 }
 
+func TestDisabledVaryHandler(t *testing.T) {
+	tester := caddytest.NewTester(t)
+	tester.InitServer(`
+	{
+		admin localhost:2999
+		http_port     9080
+		https_port    9443
+		cache
+	}
+	localhost:9080 {
+		route /vary-multiple {
+			cache {
+				key {
+					disable_vary
+				}
+			}
+			reverse_proxy localhost:9084
+		}
+	}`, "caddyfile")
+
+	go func() {
+		varyHandler := testVaryHandler{}
+		_ = http.ListenAndServe(":9084", &varyHandler)
+	}()
+	time.Sleep(time.Second)
+
+	baseRq, _ := http.NewRequest(http.MethodGet, "http://localhost:9080/vary-multiple", nil)
+
+	rq1 := baseRq.Clone(context.Background())
+	rq1.Header.Set(variedHeader, "first")
+	rq2 := baseRq.Clone(context.Background())
+	rq2.Header.Set(variedHeader, "second")
+	rq3 := baseRq.Clone(context.Background())
+	rq3.Header.Set(variedHeader, "third")
+	rq4 := baseRq.Clone(context.Background())
+	rq4.Header.Set(variedHeader, "fourth")
+
+	requests := []*http.Request{
+		rq1,
+		rq2,
+		rq3,
+		rq4,
+	}
+
+	resultMap := &sync.Map{}
+
+	for i, rq := range requests {
+		res, body := tester.AssertResponse(rq, 200, "Hello, vary first!")
+		fmt.Printf("%d\n%#v\n\n", i, body)
+		resultMap.Store(i, res)
+	}
+
+	// for i := 0; i < 4; i++ {
+	// 	if res, ok := resultMap.Load(i); !ok {
+	// 		t.Errorf("unexpected nil response for iteration %d", i)
+	// 	} else {
+	// 		rs, ok := res.(*http.Response)
+	// 		if !ok {
+	// 			t.Error("The object is not type of *http.Response")
+	// 		}
+	//
+	// 		if rs.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-http-localhost:9080-/vary-multiple" {
+	// 			t.Errorf("The response %d doesn't match the expected header: %s", i, rs.Header.Get("Cache-Status"))
+	// 		}
+	// 	}
+	// }
+}
+
 func TestESITags(t *testing.T) {
 	tester := caddytest.NewTester(t)
 	tester.InitServer(`

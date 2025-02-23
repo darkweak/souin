@@ -471,6 +471,8 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isGlobal boo
 							ck.DisableQuery = true
 						case "disable_scheme":
 							ck.DisableScheme = true
+						case "disable_vary":
+							ck.DisableVary = true
 						case "template":
 							ck.Template = h.RemainingArgs()[0]
 						case "hash":
@@ -565,6 +567,8 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isGlobal boo
 						config_key.DisableQuery = true
 					case "disable_scheme":
 						config_key.DisableScheme = true
+					case "disable_vary":
+						config_key.DisableVary = true
 					case "template":
 						config_key.Template = h.RemainingArgs()[0]
 					case "hash":
