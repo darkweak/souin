@@ -178,6 +178,7 @@ func (*baseStorage) candidateStore(tag string) bool {
 
 func (*baseStorage) getOrderedSurrogateKeyHeadersCandidate() []string {
 	return []string{
+		cacheGroupKey,
 		surrogateKey,
 		edgeCacheTag,
 		cacheTags,

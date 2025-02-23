@@ -13,7 +13,7 @@ type SouinApp struct {
 	DefaultCache
 	// The provider to use.
 	Storers []types.Storer
-	// Surrogate storage to support th econfiguration reload without surrogate-key data loss.
+	// Surrogate storage to support the configuration reload without surrogate-key data loss.
 	SurrogateStorage providers.SurrogateInterface
 	// Cache-key tweaking.
 	CacheKeys configurationtypes.CacheKeys `json:"cache_keys,omitempty"`

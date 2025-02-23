@@ -50,6 +50,19 @@ func reorderStorers(storers []types.Storer, expectedStorers []string) []types.St
 	return newStorers
 }
 
+func registerMappingKeysEviction(logger core.Logger, storers []types.Storer) {
+	for _, storer := range storers {
+		logger.Debugf("registering mapping eviction for storer %s", storer.Name())
+		go func(current types.Storer) {
+			for {
+				logger.Debugf("run mapping eviction for storer %s", current.Name())
+				current.MapKeys(core.MappingKeyPrefix)
+				time.Sleep(time.Minute)
+			}
+		}(storer)
+	}
+}
+
 func NewHTTPCacheHandler(c configurationtypes.AbstractConfigurationInterface) *SouinBaseHandler {
 	if c.GetLogger() == nil {
 		var logLevel zapcore.Level
@@ -137,6 +150,8 @@ func NewHTTPCacheHandler(c configurationtypes.AbstractConfigurationInterface) *S
 		DefaultCacheControl: c.GetDefaultCache().GetDefaultCacheControl(),
 	}
 	c.GetLogger().Info("Souin configuration is now loaded.")
+
+	registerMappingKeysEviction(c.GetLogger(), storers)
 
 	return &SouinBaseHandler{
 		Configuration:            c,
