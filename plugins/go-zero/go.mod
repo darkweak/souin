@@ -3,8 +3,8 @@ module github.com/darkweak/souin/plugins/go-zero
 go 1.22.1
 
 require (
-	github.com/darkweak/souin v1.7.5
-	github.com/darkweak/souin/plugins/souin/storages v1.7.5
+	github.com/darkweak/souin v1.7.6
+	github.com/darkweak/souin/plugins/souin/storages v1.7.6
 	github.com/zeromicro/go-zero v1.6.2
 )
 
@@ -201,6 +201,6 @@ require (
 )
 
 replace (
-	github.com/darkweak/souin v1.7.5 => ../..
+	github.com/darkweak/souin v1.7.6 => ../..
 	github.com/darkweak/souin/plugins/souin/storages => ../souin/storages
 )
