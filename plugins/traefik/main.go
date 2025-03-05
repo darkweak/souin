@@ -42,7 +42,9 @@ func configCacheKey(keyConfiguration map[string]interface{}) configurationtypes.
 		case "disable_query":
 			key.DisableQuery = cast.ToBool(keyV)
 		case "disable_scheme":
-			key.DisableScheme = true
+			key.DisableScheme = cast.ToBool(keyV)
+		case "disable_vary":
+			key.DisableVary = cast.ToBool(keyV)
 		case "hash":
 			key.Hash = true
 		case "headers":

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	lz4 "github.com/pierrec/lz4/v4"
+	"github.com/pierrec/lz4/v4"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -41,7 +41,10 @@ type CacheProvider struct {
 	Configuration interface{} `json:"configuration" yaml:"configuration"`
 }
 
-const MappingKeyPrefix = "IDX_"
+const (
+	DISABLE_VARY_CTX = "storages_bypass_vary"
+	MappingKeyPrefix = "IDX_"
+)
 
 func DecodeMapping(item []byte) (*StorageMapper, error) {
 	mapping := &StorageMapper{}
@@ -63,11 +66,13 @@ func MappingElection(provider Storer, item []byte, req *http.Request, validator 
 	for keyName, keyItem := range mapping.GetMapping() {
 		valid := true
 
-		for hname, hval := range keyItem.GetVariedHeaders() {
-			if req.Header.Get(hname) != strings.Join(hval.GetHeaderValue(), ", ") {
-				valid = false
+		if req.Context().Value(DISABLE_VARY_CTX) == nil || !req.Context().Value(DISABLE_VARY_CTX).(bool) {
+			for hname, hval := range keyItem.GetVariedHeaders() {
+				if req.Header.Get(hname) != strings.Join(hval.GetHeaderValue(), ", ") {
+					valid = false
 
-				break
+					break
+				}
 			}
 		}
 

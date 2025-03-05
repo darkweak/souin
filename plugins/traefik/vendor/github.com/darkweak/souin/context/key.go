@@ -21,6 +21,7 @@ type keyContext struct {
 	disable_method bool
 	disable_query  bool
 	disable_scheme bool
+	disable_vary   bool
 	displayable    bool
 	hash           bool
 	headers        []string
@@ -41,6 +42,7 @@ func (g *keyContext) SetupContext(c configurationtypes.AbstractConfigurationInte
 	g.disable_method = k.DisableMethod
 	g.disable_query = k.DisableQuery
 	g.disable_scheme = k.DisableScheme
+	g.disable_vary = k.DisableVary
 	g.hash = k.Hash
 	g.displayable = !k.Hide
 	g.template = k.Template

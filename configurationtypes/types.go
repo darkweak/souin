@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/darkweak/storages/core"
-	yaml "gopkg.in/yaml.v3"
+	"gopkg.in/yaml.v3"
 )
 
 type CacheKey map[RegValue]Key
@@ -52,6 +52,9 @@ func (c *CacheKeys) parseJSON(rootDecoder *json.Decoder) {
 			case "disable_scheme":
 				val, _ := rootDecoder.Token()
 				key.DisableScheme, _ = strconv.ParseBool(fmt.Sprint(val))
+			case "disable_vary":
+				val, _ := rootDecoder.Token()
+				key.DisableVary, _ = strconv.ParseBool(fmt.Sprint(val))
 			case "hash":
 				val, _ := rootDecoder.Token()
 				key.Hash, _ = strconv.ParseBool(fmt.Sprint(val))
@@ -222,6 +225,7 @@ type Key struct {
 	DisableMethod bool     `json:"disable_method,omitempty" yaml:"disable_method,omitempty"`
 	DisableQuery  bool     `json:"disable_query,omitempty" yaml:"disable_query,omitempty"`
 	DisableScheme bool     `json:"disable_scheme,omitempty" yaml:"disable_scheme,omitempty"`
+	DisableVary   bool     `json:"disable_vary,omitempty" yaml:"disable_vary,omitempty"`
 	Hash          bool     `json:"hash,omitempty" yaml:"hash,omitempty"`
 	Hide          bool     `json:"hide,omitempty" yaml:"hide,omitempty"`
 	Template      string   `json:"template,omitempty" yaml:"template,omitempty"`

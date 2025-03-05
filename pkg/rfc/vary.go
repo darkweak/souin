@@ -6,6 +6,8 @@ import (
 	"net/url"
 	"slices"
 	"strings"
+
+	"github.com/darkweak/storages/core"
 )
 
 const (
@@ -15,6 +17,11 @@ const (
 
 // GetVariedCacheKey returns the varied cache key for req and resp.
 func GetVariedCacheKey(rq *http.Request, headers []string) string {
+	isVaryDisabled := rq.Context().Value(core.DISABLE_VARY_CTX)
+	if isVaryDisabled != nil && isVaryDisabled.(bool) {
+		return ""
+	}
+
 	if len(headers) == 0 {
 		return ""
 	}
