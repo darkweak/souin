@@ -201,7 +201,7 @@ func (s *SouinCaddyMiddleware) FromApp(app *SouinApp) error {
 	if dc.Timeout.Cache.Duration == 0 {
 		s.Configuration.DefaultCache.Timeout.Cache = appDc.Timeout.Cache
 	}
-	if !dc.Key.DisableBody && !dc.Key.DisableHost && !dc.Key.DisableMethod && !dc.Key.DisableQuery && !dc.Key.DisableScheme && !dc.Key.Hash && !dc.Key.Hide && len(dc.Key.Headers) == 0 && dc.Key.Template == "" {
+	if !dc.Key.DisableBody && !dc.Key.DisableHost && !dc.Key.DisableMethod && !dc.Key.DisableQuery && !dc.Key.DisableScheme && !dc.Key.DisableVary && !dc.Key.Hash && !dc.Key.Hide && len(dc.Key.Headers) == 0 && dc.Key.Template == "" {
 		s.Configuration.DefaultCache.Key = appDc.Key
 	}
 	if dc.DefaultCacheControl == "" {

@@ -1,11 +1,13 @@
 module github.com/darkweak/souin/plugins/caddy
 
-go 1.22.1
+go 1.22.3
+
+toolchain go1.24.0
 
 require (
 	github.com/caddyserver/caddy/v2 v2.8.4
-	github.com/darkweak/souin v1.7.5
-	github.com/darkweak/storages/core v0.0.11
+	github.com/darkweak/souin v1.7.6
+	github.com/darkweak/storages/core v0.0.13
 )
 
 require (
@@ -79,7 +81,7 @@ require (
 	github.com/mitchellh/go-ps v1.0.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/onsi/ginkgo/v2 v2.15.0 // indirect
-	github.com/pierrec/lz4/v4 v4.1.21 // indirect
+	github.com/pierrec/lz4/v4 v4.1.22 // indirect
 	github.com/pires/go-proxyproto v0.7.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pquerna/cachecontrol v0.2.0 // indirect
@@ -147,10 +149,10 @@ require (
 	google.golang.org/genproto/googleapis/api v0.0.0-20240506185236-b8a5c65736ae // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240429193739-8cf5692501f6 // indirect
 	google.golang.org/grpc v1.63.2 // indirect
-	google.golang.org/protobuf v1.34.2 // indirect
+	google.golang.org/protobuf v1.36.5 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	howett.net/plist v1.0.0 // indirect
 )
 
-replace github.com/darkweak/souin v1.7.5 => ../..
+replace github.com/darkweak/souin v1.7.6 => ../..
