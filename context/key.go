@@ -8,6 +8,7 @@ import (
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
 	"github.com/darkweak/souin/configurationtypes"
+	"github.com/darkweak/storages/core"
 )
 
 const (
@@ -22,6 +23,7 @@ type keyContext struct {
 	disable_host   bool
 	disable_method bool
 	disable_query  bool
+	disable_vary   bool
 	disable_scheme bool
 	displayable    bool
 	hash           bool
@@ -43,6 +45,7 @@ func (g *keyContext) SetupContext(c configurationtypes.AbstractConfigurationInte
 	g.disable_method = k.DisableMethod
 	g.disable_query = k.DisableQuery
 	g.disable_scheme = k.DisableScheme
+	g.disable_vary = k.DisableVary
 	g.hash = k.Hash
 	g.displayable = !k.Hide
 	g.template = k.Template
@@ -58,6 +61,7 @@ func (g *keyContext) SetupContext(c configurationtypes.AbstractConfigurationInte
 				disable_method: v.DisableMethod,
 				disable_query:  v.DisableQuery,
 				disable_scheme: v.DisableScheme,
+				disable_vary:   v.DisableVary,
 				hash:           v.Hash,
 				displayable:    !v.Hide,
 				template:       v.Template,
@@ -154,9 +158,13 @@ func (g *keyContext) SetContext(req *http.Request) *http.Request {
 			context.WithValue(
 				context.WithValue(
 					context.WithValue(
-						req.Context(),
-						Key,
-						key,
+						context.WithValue(
+							req.Context(),
+							Key,
+							key,
+						),
+						core.DISABLE_VARY_CTX, //nolint:staticcheck // we don't care about collision
+						g.disable_vary,
 					),
 					Hashed,
 					hash,
