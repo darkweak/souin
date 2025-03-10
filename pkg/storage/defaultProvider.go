@@ -181,11 +181,11 @@ func (provider *Default) DeleteMany(key string) {
 	re, e := regexp.Compile(key)
 
 	if e != nil {
-		return
+		provider.logger.Infof("Failed to compile key %s, %v", key, e)
 	}
 
-	provider.m.Range(func(key, _ any) bool {
-		if re.MatchString(key.(string)) {
+	provider.m.Range(func(current, _ any) bool {
+		if (re != nil && re.MatchString(current.(string))) || strings.HasPrefix(current.(string), key) {
 			provider.m.Delete(key)
 		}
 
