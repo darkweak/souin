@@ -137,7 +137,9 @@ func (s *SouinCaddyMiddleware) FromApp(app *SouinApp) error {
 	}
 
 	if app.DefaultCache.GetTTL() == 0 {
-		return nil
+		if s.Configuration.DefaultCache.GetTTL() == 0 {
+			app.DefaultCache.TTL = configurationtypes.Duration{Duration: 120 * time.Second}
+		}
 	}
 
 	s.Configuration.API = app.API
