@@ -155,15 +155,11 @@ func (provider *Cache) Delete(key string) {
 
 // DeleteMany method will delete the responses in Cache provider if exists corresponding to the regex key param
 func (provider *Cache) DeleteMany(key string) {
-	re, e := regexp.Compile(key)
+	re, _ := regexp.Compile(key)
 
-	if e != nil {
-		return
-	}
-
-	provider.Cache.Range(func(k, _ interface{}) bool {
-		if re.MatchString(k.(string)) {
-			provider.Delete(k.(string))
+	provider.Cache.Range(func(current, _ any) bool {
+		if (re != nil && re.MatchString(current.(string))) || strings.HasPrefix(current.(string), key) {
+			provider.Delete(current.(string))
 		}
 		return true
 	})
