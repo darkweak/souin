@@ -172,6 +172,9 @@ func (s *SouinCaddyMiddleware) parseStorages(ctx caddy.Context) {
 				s.Configuration.DefaultCache.GetStale(),
 			)
 		}
+	} else {
+		// Log Found false
+		s.logger.Warn("Redis storage not found")
 	}
 	if s.Configuration.DefaultCache.SimpleFS.Found {
 		e := dispatchStorage(ctx, "simplefs", s.Configuration.DefaultCache.SimpleFS, s.Configuration.DefaultCache.GetStale())

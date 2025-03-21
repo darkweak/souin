@@ -14,6 +14,7 @@ import (
 	"github.com/darkweak/souin/pkg/middleware"
 	surrogates_providers "github.com/darkweak/souin/pkg/surrogate/providers"
 	"github.com/darkweak/storages/core"
+	"go.uber.org/zap"
 )
 
 const moduleName = "cache"
@@ -242,7 +243,26 @@ func dispatchStorage(ctx caddy.Context, name string, provider configurationtypes
 		},
 		Stale: stale,
 	})
+
+	ctx.Logger().Warn("Attempting to load storage module",
+		zap.String("name", name),
+		zap.String("config", string(b)),
+		zap.String("url", provider.URL),
+		zap.String("path", provider.Path))
+
 	_, e := ctx.LoadModuleByID("storages.cache."+name, b)
+	if e != nil {
+		ctx.Logger().Error("Failed to load storage module",
+			zap.String("name", name),
+			zap.Error(e),
+			zap.String("url", provider.URL),
+			zap.String("path", provider.Path))
+	} else {
+		ctx.Logger().Warn("Successfully loaded storage module",
+			zap.String("name", name),
+			zap.String("url", provider.URL),
+			zap.String("path", provider.Path))
+	}
 
 	return e
 }
@@ -262,6 +282,10 @@ func (s *SouinCaddyMiddleware) Provision(ctx caddy.Context) error {
 	if err := s.FromApp(app); err != nil {
 		return err
 	}
+
+	// Log the complete configuration
+	configJSON, _ := json.MarshalIndent(s.Configuration, "", "  ")
+	s.logger.Warn("Complete Souin Configuration:", zap.String("config", string(configJSON)))
 
 	s.parseStorages(ctx)
 
