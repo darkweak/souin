@@ -278,6 +278,12 @@ func parseBadgerConfiguration(c map[string]interface{}) map[string]interface{} {
 			c[k] = v
 		case "SyncWrites", "ReadOnly", "InMemory", "MetricsEnabled", "CompactL0OnClose", "LmaxCompaction", "VerifyValueChecksum", "BypassLockGuard", "DetectConflicts":
 			c[k] = true
+			if v != nil {
+				val, ok := v.(string)
+				if ok {
+					c[k], _ = strconv.ParseBool(val)
+				}
+			}
 		case "NumVersionsToKeep", "NumGoroutines", "MemTableSize", "BaseTableSize", "BaseLevelSize", "LevelSizeMultiplier", "TableSizeMultiplier", "MaxLevels", "ValueThreshold", "NumMemtables", "BlockSize", "BlockCacheSize", "IndexCacheSize", "NumLevelZeroTables", "NumLevelZeroTablesStall", "ValueLogFileSize", "NumCompactors", "ZSTDCompressionLevel", "ChecksumVerificationMode", "NamespaceOffset":
 			c[k], _ = strconv.Atoi(v.(string))
 		case "Compression", "ValueLogMaxEntries":
