@@ -284,28 +284,30 @@ func (s *SouinBaseHandler) Store(
 
 	hasFreshness := false
 	ma := currentMatchedURL.TTL.Duration
-	if responseCc.SMaxAge >= 0 {
-		ma = time.Duration(responseCc.SMaxAge) * time.Second
-	} else if responseCc.MaxAge >= 0 {
-		ma = time.Duration(responseCc.MaxAge) * time.Second
-	} else if !modeContext.Bypass_response && customWriter.Header().Get("Expires") != "" {
-		exp, err := time.Parse(time.RFC1123, customWriter.Header().Get("Expires"))
-		if err != nil {
-			return nil
-		}
+	if !modeContext.Bypass_response {
+		if responseCc.SMaxAge >= 0 {
+			ma = time.Duration(responseCc.SMaxAge) * time.Second
+		} else if responseCc.MaxAge >= 0 {
+			ma = time.Duration(responseCc.MaxAge) * time.Second
+		} else if customWriter.Header().Get("Expires") != "" {
+			exp, err := time.Parse(time.RFC1123, customWriter.Header().Get("Expires"))
+			if err != nil {
+				return nil
+			}
 
-		duration := time.Until(exp)
-		if duration <= 0 || duration > 10*types.OneYearDuration {
-			return nil
-		}
+			duration := time.Until(exp)
+			if duration <= 0 || duration > 10*types.OneYearDuration {
+				return nil
+			}
 
-		date, _ := time.Parse(time.RFC1123, customWriter.Header().Get("Date"))
-		if date.Sub(exp) > 0 {
-			return nil
-		}
+			date, _ := time.Parse(time.RFC1123, customWriter.Header().Get("Date"))
+			if date.Sub(exp) > 0 {
+				return nil
+			}
 
-		ma = duration
-		hasFreshness = true
+			ma = duration
+			hasFreshness = true
+		}
 	}
 
 	now := rq.Context().Value(context.Now).(time.Time)
@@ -729,6 +731,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 		}
 		for _, currentStorer := range s.Storers {
 			fresh, stale = currentStorer.GetMultiLevel(finalKey, req, validator)
+			fmt.Printf("modecontext: %#v\n%#v\n%#v\n\n", modeContext, fresh, stale)
 
 			if fresh != nil || stale != nil {
 				storerName = currentStorer.Name()
