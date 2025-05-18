@@ -185,28 +185,30 @@ func (s *SouinBaseHandler) Store(
 
 	hasFreshness := false
 	ma := currentMatchedURL.TTL.Duration
-	if responseCc.SMaxAge >= 0 {
-		ma = time.Duration(responseCc.SMaxAge) * time.Second
-	} else if responseCc.MaxAge >= 0 {
-		ma = time.Duration(responseCc.MaxAge) * time.Second
-	} else if !modeContext.Bypass_response && customWriter.Header().Get("Expires") != "" {
-		exp, err := time.Parse(time.RFC1123, customWriter.Header().Get("Expires"))
-		if err != nil {
-			return nil
-		}
+	if !modeContext.Bypass_response {
+		if responseCc.SMaxAge >= 0 {
+			ma = time.Duration(responseCc.SMaxAge) * time.Second
+		} else if responseCc.MaxAge >= 0 {
+			ma = time.Duration(responseCc.MaxAge) * time.Second
+		} else if customWriter.Header().Get("Expires") != "" {
+			exp, err := time.Parse(time.RFC1123, customWriter.Header().Get("Expires"))
+			if err != nil {
+				return nil
+			}
 
-		duration := time.Until(exp)
-		if duration <= 0 || duration > 10*types.OneYearDuration {
-			return nil
-		}
+			duration := time.Until(exp)
+			if duration <= 0 || duration > 10*types.OneYearDuration {
+				return nil
+			}
 
-		date, _ := time.Parse(time.RFC1123, customWriter.Header().Get("Date"))
-		if date.Sub(exp) > 0 {
-			return nil
-		}
+			date, _ := time.Parse(time.RFC1123, customWriter.Header().Get("Date"))
+			if date.Sub(exp) > 0 {
+				return nil
+			}
 
-		ma = duration
-		hasFreshness = true
+			ma = duration
+			hasFreshness = true
+		}
 	}
 
 	now := rq.Context().Value(context.Now).(time.Time)
@@ -402,6 +404,7 @@ func (s *SouinBaseHandler) Upstream(
 				}
 			}
 		}
+		customWriter.Buf.Reset()
 		_, _ = customWriter.Write(sfWriter.body)
 		// Yaegi sucks, we can't use maps.
 		for k := range sfWriter.headers {
@@ -431,6 +434,17 @@ func (s *SouinBaseHandler) Revalidate(validator *types.Revalidator, next handler
 				customWriter.Rw.WriteHeader(http.StatusPreconditionFailed)
 
 				return nil, errors.New("")
+			}
+
+			if validator.IfModifiedSincePresent {
+				if lastModified, err := time.Parse(time.RFC1123, customWriter.Header().Get("Last-Modified")); err == nil && validator.IfModifiedSince.Sub(lastModified) > 0 {
+					customWriter.handleBuffer(func(b *bytes.Buffer) {
+						b.Reset()
+					})
+					customWriter.Rw.WriteHeader(http.StatusNotModified)
+
+					return nil, errors.New("")
+				}
 			}
 
 			if statusCode != http.StatusNotModified {
@@ -616,13 +630,13 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 				return nil
 			}
 
-			if validator.NeedRevalidation {
+			if !modeContext.Bypass_request && validator.NeedRevalidation {
 				err := s.Revalidate(validator, next, customWriter, req, requestCc, cachedKey, uri)
 				_, _ = customWriter.Send()
 
 				return err
 			}
-			if resCc, _ := cacheobject.ParseResponseCacheControl(rfc.HeaderAllCommaSepValuesString(response.Header, headerName)); resCc.NoCachePresent {
+			if resCc, _ := cacheobject.ParseResponseCacheControl(rfc.HeaderAllCommaSepValuesString(response.Header, headerName)); !modeContext.Bypass_response && resCc.NoCachePresent {
 				err := s.Revalidate(validator, next, customWriter, req, requestCc, cachedKey, uri)
 				_, _ = customWriter.Send()
 
