@@ -2,7 +2,7 @@
 weight = 408
 title = "Otter"
 icon = "home_storage"
-description = "Otter is an in-memory/filesystem storage system"
+description = "Otter is an in-memory storage system"
 tags = ["Beginners"]
 +++
 
