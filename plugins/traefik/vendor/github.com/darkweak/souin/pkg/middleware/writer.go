@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"bytes"
+	"fmt"
 	"net/http"
 	"strconv"
 	"sync"
@@ -76,10 +77,10 @@ func (r *CustomWriter) WriteHeader(code int) {
 
 // Write will write the response body
 func (r *CustomWriter) Write(b []byte) (int, error) {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-	r.Buf.Grow(len(b))
-	_, _ = r.Buf.Write(b)
+	r.handleBuffer(func(actual *bytes.Buffer) {
+		actual.Grow(len(b))
+		_, _ = actual.Write(b)
+	})
 
 	return len(b), nil
 }
@@ -87,6 +88,7 @@ func (r *CustomWriter) Write(b []byte) (int, error) {
 // Send delays the response to handle Cache-Status
 func (r *CustomWriter) Send() (int, error) {
 	defer r.Buf.Reset()
+	fmt.Println("Upstream Send", r.Buf.Len())
 	storedLength := r.Header().Get(rfc.StoredLengthHeader)
 	if storedLength != "" {
 		r.Header().Set("Content-Length", storedLength)
