@@ -731,7 +731,6 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 		}
 		for _, currentStorer := range s.Storers {
 			fresh, stale = currentStorer.GetMultiLevel(finalKey, req, validator)
-			fmt.Printf("modecontext: %#v\n%#v\n%#v\n\n", modeContext, fresh, stale)
 
 			if fresh != nil || stale != nil {
 				storerName = currentStorer.Name()
