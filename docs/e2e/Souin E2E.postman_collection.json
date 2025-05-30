@@ -678,7 +678,7 @@
 									"        'Surrogate-Key': key,",
 									"    },",
 									"    method,",
-									"    url: `${utils.getVar(pm, 'app_url')}${utils.getVar(pm, 'souin_base_api')}${utils.getVar(pm, 'souin_api')}${method != 'PURGE' ? '/surrogate_keys' : ''}`,",
+									"    url: `${utils.getVar(pm, 'caddy_admin')}${utils.getVar(pm, 'souin_base_api')}${utils.getVar(pm, 'souin_api')}${method != 'PURGE' ? '/surrogate_keys' : ''}`,",
 									"})",
 									"const KEYS = {",
 									"    PREFIX: {",
@@ -737,7 +737,8 @@
 									"    })",
 									"})"
 								],
-								"type": "text/javascript"
+								"type": "text/javascript",
+								"packages": {}
 							}
 						}
 					],
@@ -751,9 +752,9 @@
 							}
 						],
 						"url": {
-							"raw": "{{app_url}}{{souin_base_api}}{{souin_api}}/surrogate_keys",
+							"raw": "{{caddy_admin}}{{souin_base_api}}{{souin_api}}/surrogate_keys",
 							"host": [
-								"{{app_url}}{{souin_base_api}}{{souin_api}}"
+								"{{caddy_admin}}{{souin_base_api}}{{souin_api}}"
 							],
 							"path": [
 								"surrogate_keys"
