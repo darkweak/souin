@@ -142,8 +142,6 @@ func (s *SouinCaddyMiddleware) FromApp(app *SouinApp) error {
 		}
 	}
 
-	s.Configuration.API = app.API
-
 	if s.Configuration.GetDefaultCache() == nil {
 		s.Configuration.DefaultCache = DefaultCache{
 			AllowedHTTPVerbs:             app.DefaultCache.AllowedHTTPVerbs,

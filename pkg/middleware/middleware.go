@@ -56,8 +56,8 @@ func registerMappingKeysEviction(logger core.Logger, storers []types.Storer) {
 		go func(current types.Storer) {
 			for {
 				logger.Debugf("run mapping eviction for storer %s", current.Name())
-				current.MapKeys(core.MappingKeyPrefix)
-				time.Sleep(time.Minute)
+
+				api.EvictMapping(current)
 			}
 		}(storer)
 	}
@@ -731,7 +731,6 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 		}
 		for _, currentStorer := range s.Storers {
 			fresh, stale = currentStorer.GetMultiLevel(finalKey, req, validator)
-			fmt.Printf("modecontext: %#v\n%#v\n%#v\n\n", modeContext, fresh, stale)
 
 			if fresh != nil || stale != nil {
 				storerName = currentStorer.Name()
