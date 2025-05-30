@@ -217,7 +217,7 @@ func (s *baseStorage) purgeTag(tag string) []string {
 }
 
 // Store will take the lead to store the cache key for each provided Surrogate-key
-func (s *baseStorage) Store(response *http.Response, cacheKey, _ string) error {
+func (s *baseStorage) Store(response *http.Response, cacheKey, uri string) error {
 	h := response.Header
 
 	cacheKey = url.QueryEscape(cacheKey)
@@ -230,18 +230,21 @@ func (s *baseStorage) Store(response *http.Response, cacheKey, _ string) error {
 		if controls := s.ParseHeaders(v); len(controls) != 0 {
 			if len(controls) == 1 && controls[0] == "" {
 				s.storeTag(key, cacheKey, urlRegexp)
+				s.storeTag(uri, cacheKey, urlRegexp)
 
 				continue
 			}
 			for _, control := range controls {
 				if s.parent.candidateStore(control) {
 					s.storeTag(key, cacheKey, urlRegexp)
+					s.storeTag(uri, cacheKey, urlRegexp)
 
 					break
 				}
 			}
 		} else {
 			s.storeTag(key, cacheKey, urlRegexp)
+			s.storeTag(uri, cacheKey, urlRegexp)
 		}
 	}
 

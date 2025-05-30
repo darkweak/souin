@@ -2,12 +2,13 @@ package httpcache
 
 import (
 	"fmt"
-	"github.com/caddyserver/caddy/v2"
-	"github.com/darkweak/souin/configurationtypes"
-	"github.com/darkweak/souin/pkg/api"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/caddyserver/caddy/v2"
+	"github.com/darkweak/souin/configurationtypes"
+	"github.com/darkweak/souin/pkg/api"
 
 	"github.com/darkweak/storages/core"
 )
@@ -73,16 +74,11 @@ func (a *adminAPI) Provision(ctx caddy.Context) error {
 	return nil
 }
 
-// Routes returns the admin routes for the PKI app.
+// Routes returns the admin routes.
 func (a *adminAPI) Routes() []caddy.AdminRoute {
-	basepath := "/souin-api"
-	if a.app != nil && a.app.API.BasePath != "" {
-		basepath = a.app.API.BasePath
-	}
-
 	return []caddy.AdminRoute{
 		{
-			Pattern: basepath + "/{params...}",
+			Pattern: "/{params...}",
 			Handler: caddy.AdminHandlerFunc(a.handleAPIEndpoints),
 		},
 	}

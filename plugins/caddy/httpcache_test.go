@@ -2,6 +2,7 @@ package httpcache
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -1390,5 +1391,116 @@ func TestTimeout(t *testing.T) {
 
 	if resp2.Header.Get("Cache-Status") != "Souin; fwd=bypass; detail=DEADLINE-EXCEEDED" {
 		t.Errorf("unexpected resp2 Cache-Status header %v", resp2.Header.Get("Cache-Status"))
+	}
+}
+
+type testSetCookieHandler struct{}
+
+func (t *testSetCookieHandler) ServeHTTP(w http.ResponseWriter, rq *http.Request) {
+	w.Header().Set("Set-Cookie", "foo="+rq.Header.Get("X-Cookie-Name"))
+
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write([]byte("Hello set-cookie!"))
+}
+
+func TestSetCookieNotStored(t *testing.T) {
+	tester := caddytest.NewTester(t)
+	tester.InitServer(`
+	{
+		admin localhost:2999
+		http_port     9080
+		cache {
+			ttl 5s
+		}
+	}
+	localhost:9080 {
+		route /cache-set-cookie {
+			cache
+			reverse_proxy localhost:9087 {
+				header_down +Cache-Control no-cache=Set-Cookie
+			}
+		}
+	}`, "caddyfile")
+
+	go func() {
+		setCookieHandler := testSetCookieHandler{}
+		_ = http.ListenAndServe(":9087", &setCookieHandler)
+	}()
+	time.Sleep(time.Second)
+	rq, _ := http.NewRequest("GET", "http://localhost:9080/cache-set-cookie", nil)
+	rq.Header.Set("X-Cookie-Name", "bar")
+
+	resp1, _ := tester.AssertResponse(rq, http.StatusOK, "Hello set-cookie!")
+	time.Sleep(time.Millisecond)
+
+	rq.Header.Set("X-Cookie-Name", "baz")
+	resp2, _ := tester.AssertResponse(rq, http.StatusOK, "Hello set-cookie!")
+
+	if resp1.Header.Get("Set-Cookie") != "foo=bar" {
+		t.Errorf("unexpected resp1 Set-Cookie header %v", resp1.Header.Get("Set-Cookie"))
+	}
+
+	if resp1.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-http-localhost:9080-/cache-set-cookie" {
+		t.Errorf("unexpected resp1 Cache-Status header %v", resp1.Header.Get("Cache-Status"))
+	}
+
+	if resp1.Header.Get("Age") != "" {
+		t.Errorf("unexpected resp1 Age header %v", resp1.Header.Get("Age"))
+	}
+
+	if resp2.Header.Get("Cache-Status") != "Souin; fwd=request; fwd-status=200; key=GET-http-localhost:9080-/cache-set-cookie; detail=REQUEST-REVALIDATION" {
+		t.Errorf("unexpected resp2 Cache-Status header %v", resp2.Header.Get("Cache-Status"))
+	}
+
+	if resp2.Header.Get("Set-Cookie") != "foo=baz" {
+		t.Errorf("unexpected resp2 Set-Cookie header %v", resp1.Header.Get("Set-Cookie"))
+	}
+}
+
+func TestAPIPlatformInvalidation(t *testing.T) {
+	tester := caddytest.NewTester(t)
+	tester.InitServer(`
+	{
+		debug
+		admin localhost:2999
+		http_port     9080
+		cache {
+			api {
+				souin
+			}
+		}
+	}
+	localhost:9080 {
+		route /api-platform-invalidation {
+			cache
+
+			header Vary "Content-Type"
+			respond "Hello invalidation!"
+		}
+	}`, "caddyfile")
+
+	reqResetCache, _ := http.NewRequest("PURGE", "http://localhost:2999/souin-api/souin/flush", nil)
+	reqSouinAPIList, _ := http.NewRequest(http.MethodGet, "http://localhost:2999/souin-api/souin", nil)
+	reqSouinAPISK, _ := http.NewRequest(http.MethodGet, "http://localhost:2999/souin-api/souin/surrogate_keys", nil)
+
+	_, _ = tester.AssertResponse(reqResetCache, http.StatusNoContent, "")
+	_, _ = tester.AssertResponse(reqSouinAPIList, http.StatusOK, "[]")
+	_, _ = tester.AssertResponse(reqSouinAPISK, http.StatusOK, "{}")
+	_, _ = tester.AssertGetResponse("http://localhost:9080/api-platform-invalidation", http.StatusOK, "Hello invalidation!")
+	resp4 := tester.AssertResponseCode(reqSouinAPIList, http.StatusOK)
+	resp5 := tester.AssertResponseCode(reqSouinAPISK, http.StatusOK)
+
+	var list []string
+	_ = json.NewDecoder(resp4.Body).Decode(&list)
+
+	if len(list) != 1 {
+		t.Errorf("unexpected list %#v", list)
+	}
+
+	var items map[string]string
+	_ = json.NewDecoder(resp5.Body).Decode(&items)
+
+	if len(items) != 2 {
+		t.Errorf("unexpected list %#v", items)
 	}
 }

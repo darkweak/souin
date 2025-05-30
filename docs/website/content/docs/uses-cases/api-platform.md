@@ -245,7 +245,7 @@ api_platform:
 
 +   http_cache:
 +       invalidation:
-+           urls: [ 'http://php/souin-api/souin' ]
++           urls: [ 'http://php:2019/souin-api/souin' ]
 +           purger: api_platform.http_cache.purger.souin
 ```
 

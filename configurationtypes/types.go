@@ -199,6 +199,26 @@ type CacheProvider struct {
 	Configuration interface{} `json:"configuration" yaml:"configuration"`
 }
 
+func (c *CacheProvider) MarshalJSON() ([]byte, error) {
+	if !c.Found && c.URL == "" && c.Path == "" && c.Configuration == nil && c.Uuid == "" {
+		return []byte("null"), nil
+	}
+
+	return json.Marshal(struct {
+		Uuid          string
+		Found         bool        `json:"found"`
+		URL           string      `json:"url"`
+		Path          string      `json:"path"`
+		Configuration interface{} `json:"configuration"`
+	}{
+		Uuid:          c.Uuid,
+		Found:         c.Found,
+		URL:           c.URL,
+		Path:          c.Path,
+		Configuration: c.Configuration,
+	})
+}
+
 // Timeout configuration to handle the cache provider and the
 // reverse-proxy timeout.
 type Timeout struct {

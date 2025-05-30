@@ -97,6 +97,8 @@ func (s *SouinAPI) BulkDelete(key string, purge bool) {
 		if purge {
 			current.Delete(core.MappingKeyPrefix + key)
 		}
+
+		current.Delete(key)
 	}
 
 	s.Delete(key)
@@ -162,37 +164,47 @@ var storageToInfiniteTTLMap = map[string]time.Duration{
 	types.DefaultStorageName: types.OneYearDuration,
 }
 
-func (s *SouinAPI) purgeMapping() {
+func EvictMapping(current types.Storer) {
+	values := current.MapKeys(core.MappingKeyPrefix)
 	now := time.Now()
-	for _, current := range s.storers {
-		infiniteStoreDuration := storageToInfiniteTTLMap[current.Name()]
-		values := current.MapKeys(core.MappingKeyPrefix)
-		for k, v := range values {
-			mapping := &core.StorageMapper{}
+	infiniteStoreDuration := storageToInfiniteTTLMap[current.Name()]
 
-			e := proto.Unmarshal([]byte(v), mapping)
-			if e != nil {
-				current.Delete(core.MappingKeyPrefix + k)
-				continue
-			}
+	for k, v := range values {
+		mapping := &core.StorageMapper{}
 
-			updated := false
-			for key, val := range mapping.GetMapping() {
-				if now.Sub(val.FreshTime.AsTime()) > 0 && now.Sub(val.StaleTime.AsTime()) > 0 {
-					delete(mapping.GetMapping(), key)
-					updated = true
-				}
-			}
+		e := proto.Unmarshal([]byte(v), mapping)
+		if e != nil {
+			current.Delete(core.MappingKeyPrefix + k)
+			continue
+		}
 
-			if updated {
-				v, e := proto.Marshal(mapping)
-				if e != nil {
-					fmt.Println("Impossible to re-encode the mapping", core.MappingKeyPrefix+k)
-					current.Delete(core.MappingKeyPrefix + k)
-				}
-				_ = current.Set(core.MappingKeyPrefix+k, v, infiniteStoreDuration)
+		updated := false
+		for key, val := range mapping.GetMapping() {
+			if now.Sub(val.FreshTime.AsTime()) > 0 && now.Sub(val.StaleTime.AsTime()) > 0 {
+				delete(mapping.GetMapping(), key)
+				updated = true
 			}
 		}
+
+		if updated {
+			v, e := proto.Marshal(mapping)
+			if e != nil {
+				fmt.Println("Impossible to re-encode the mapping", core.MappingKeyPrefix+k)
+				current.Delete(core.MappingKeyPrefix + k)
+			}
+			_ = current.Set(core.MappingKeyPrefix+k, v, infiniteStoreDuration)
+		}
+
+		if len(mapping.GetMapping()) == 0 {
+			current.Delete(core.MappingKeyPrefix + k)
+		}
+	}
+	time.Sleep(time.Minute)
+}
+
+func (s *SouinAPI) purgeMapping() {
+	for _, current := range s.storers {
+		EvictMapping(current)
 	}
 
 	fmt.Println("Successfully clear the mappings.")
@@ -228,7 +240,9 @@ func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 		keysToInvalidate := []string{}
 		switch invalidator.Type {
 		case groupInvalidationType:
-			keysToInvalidate, _ = s.surrogateStorage.Purge(http.Header{"Surrogate-Key": invalidator.Groups})
+			var surrogateKeys []string
+			keysToInvalidate, surrogateKeys = s.surrogateStorage.Purge(http.Header{"Surrogate-Key": invalidator.Groups})
+			keysToInvalidate = append(keysToInvalidate, surrogateKeys...)
 		case uriPrefixInvalidationType, uriInvalidationType:
 			bodyKeys := []string{}
 			listedKeys := s.GetAll()
@@ -311,9 +325,12 @@ func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		} else {
-			ck, _ := s.surrogateStorage.Purge(r.Header)
+			ck, surrogateKeys := s.surrogateStorage.Purge(r.Header)
 			for _, k := range ck {
 				s.BulkDelete(k, true)
+			}
+			for _, k := range surrogateKeys {
+				s.BulkDelete("SURROGATE_"+k, true)
 			}
 		}
 		w.WriteHeader(http.StatusNoContent)
