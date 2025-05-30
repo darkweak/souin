@@ -1,7 +1,6 @@
 package providers
 
 import (
-	"fmt"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -222,7 +221,6 @@ func (s *baseStorage) Store(response *http.Response, cacheKey, uri string) error
 	h := response.Header
 
 	cacheKey = url.QueryEscape(cacheKey)
-	fmt.Println("CACHE KEY FOR URI", uri, ":", cacheKey)
 
 	urlRegexp := regexp.MustCompile("(^|" + regexp.QuoteMeta(souinStorageSeparator) + ")" + regexp.QuoteMeta(cacheKey) + "(" + regexp.QuoteMeta(souinStorageSeparator) + "|$)")
 	keys := s.ParseHeaders(s.parent.getSurrogateKey(h))

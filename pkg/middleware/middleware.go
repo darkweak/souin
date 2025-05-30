@@ -56,8 +56,8 @@ func registerMappingKeysEviction(logger core.Logger, storers []types.Storer) {
 		go func(current types.Storer) {
 			for {
 				logger.Debugf("run mapping eviction for storer %s", current.Name())
-				current.MapKeys(core.MappingKeyPrefix)
-				time.Sleep(time.Minute)
+
+				api.EvictMapping(current)
 			}
 		}(storer)
 	}

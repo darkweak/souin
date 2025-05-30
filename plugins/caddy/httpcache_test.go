@@ -1396,9 +1396,8 @@ func TestTimeout(t *testing.T) {
 
 type testSetCookieHandler struct{}
 
-func (t *testSetCookieHandler) ServeHTTP(w http.ResponseWriter, _ *http.Request) {
-	fmt.Println("qjzkdqzkjdbqzd")
-	w.Header().Set("Set-Cookie", "foo=bar")
+func (t *testSetCookieHandler) ServeHTTP(w http.ResponseWriter, rq *http.Request) {
+	w.Header().Set("Set-Cookie", "foo="+rq.Header.Get("X-Cookie-Name"))
 
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write([]byte("Hello set-cookie!"))
@@ -1428,9 +1427,14 @@ func TestSetCookieNotStored(t *testing.T) {
 		_ = http.ListenAndServe(":9087", &setCookieHandler)
 	}()
 	time.Sleep(time.Second)
-	resp1, _ := tester.AssertGetResponse(`http://localhost:9080/cache-set-cookie`, http.StatusOK, "Hello set-cookie!")
+	rq, _ := http.NewRequest("GET", "http://localhost:9080/cache-set-cookie", nil)
+	rq.Header.Set("X-Cookie-Name", "bar")
+
+	resp1, _ := tester.AssertResponse(rq, http.StatusOK, "Hello set-cookie!")
 	time.Sleep(time.Millisecond)
-	resp2, _ := tester.AssertGetResponse(`http://localhost:9080/cache-set-cookie`, http.StatusOK, "Hello set-cookie!")
+
+	rq.Header.Set("X-Cookie-Name", "baz")
+	resp2, _ := tester.AssertResponse(rq, http.StatusOK, "Hello set-cookie!")
 
 	if resp1.Header.Get("Set-Cookie") != "foo=bar" {
 		t.Errorf("unexpected resp1 Set-Cookie header %v", resp1.Header.Get("Set-Cookie"))
@@ -1444,11 +1448,11 @@ func TestSetCookieNotStored(t *testing.T) {
 		t.Errorf("unexpected resp1 Age header %v", resp1.Header.Get("Age"))
 	}
 
-	if resp2.Header.Get("Cache-Status") != "Souin; hit; ttl=4; key=GET-http-localhost:9080-/cache-set-cookie; detail=DEFAULT" {
+	if resp2.Header.Get("Cache-Status") != "Souin; fwd=request; fwd-status=200; key=GET-http-localhost:9080-/cache-set-cookie; detail=REQUEST-REVALIDATION" {
 		t.Errorf("unexpected resp2 Cache-Status header %v", resp2.Header.Get("Cache-Status"))
 	}
 
-	if resp1.Header.Get("Set-Cookie") != "" {
+	if resp2.Header.Get("Set-Cookie") != "foo=baz" {
 		t.Errorf("unexpected resp2 Set-Cookie header %v", resp1.Header.Get("Set-Cookie"))
 	}
 }
@@ -1475,9 +1479,11 @@ func TestAPIPlatformInvalidation(t *testing.T) {
 		}
 	}`, "caddyfile")
 
+	reqResetCache, _ := http.NewRequest("PURGE", "http://localhost:2999/souin-api/souin/flush", nil)
 	reqSouinAPIList, _ := http.NewRequest(http.MethodGet, "http://localhost:2999/souin-api/souin", nil)
 	reqSouinAPISK, _ := http.NewRequest(http.MethodGet, "http://localhost:2999/souin-api/souin/surrogate_keys", nil)
 
+	_, _ = tester.AssertResponse(reqResetCache, http.StatusNoContent, "")
 	_, _ = tester.AssertResponse(reqSouinAPIList, http.StatusOK, "[]")
 	_, _ = tester.AssertResponse(reqSouinAPISK, http.StatusOK, "{}")
 	_, _ = tester.AssertGetResponse("http://localhost:9080/api-platform-invalidation", http.StatusOK, "Hello invalidation!")
