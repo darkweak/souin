@@ -19,6 +19,8 @@ type Default struct {
 	m      *sync.Map
 	stale  time.Duration
 	logger core.Logger
+
+	mu sync.Mutex
 }
 
 type item struct {
@@ -43,6 +45,9 @@ func (provider *Default) Uuid() string {
 
 // MapKeys method returns a map with the key and value
 func (provider *Default) MapKeys(prefix string) map[string]string {
+	provider.mu.Lock()
+	defer provider.mu.Unlock()
+
 	now := time.Now()
 	keys := map[string]string{}
 
@@ -200,6 +205,9 @@ func (provider *Default) Init() error {
 
 // Reset method will reset or close provider
 func (provider *Default) Reset() error {
-	provider.m = &sync.Map{}
+	provider.mu.Lock()
+	provider.m = new(sync.Map)
+	provider.mu.Unlock()
+
 	return nil
 }

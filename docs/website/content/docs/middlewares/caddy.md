@@ -75,9 +75,9 @@ route {
     cache
 }
 ```
-With this given configuration if you go on [https://localhost/souin-api/souin](https://localhost/souin-api/souin) we get the stored keys list.  
-If we go on [https://localhost/souin-api/metrics](https://localhost/souin-api/metrics) we access to the prometheus web page.  
-If we go on [https://localhost/souin-api/debug/](https://localhost/souin-api/debug/) we access to the pprof web page.  
+With this given configuration if you go on [https://localhost:2019/souin-api/souin](https://localhost:2019/souin-api/souin) we get the stored keys list.  
+If we go on [https://localhost:2019/souin-api/metrics](https://localhost/souin-api/metrics) we access to the prometheus web page.  
+If we go on [https://localhost:2019/souin-api/debug/](https://localhost/souin-api/debug/) we access to the pprof web page.  
 
 ### Complex configuration
 
