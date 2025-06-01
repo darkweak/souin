@@ -36,6 +36,11 @@ var (
 	// TailscaledDialer is the DialContext func that connects to the local machine's
 	// tailscaled or equivalent.
 	TailscaledDialer = DialLocalAPI
+
+	// TailscaledTransport is the RoundTripper that sends LocalAPI requests
+	// to the local machine's tailscaled or equivalent.
+	// If nil, a default RoundTripper is used that uses TailscaledDialer.
+	TailscaledTransport http.RoundTripper
 )
 
 // DialLocalAPI connects to the LocalAPI server of the tailscaled instance on the machine.
@@ -79,11 +84,13 @@ var (
 // DoLocalRequest may mutate the request to add Authorization headers.
 func DoLocalRequest(req *http.Request) (*http.Response, error) {
 	tsClientOnce.Do(func() {
-		tsClient = &http.Client{
-			Transport: &http.Transport{
+		tr := TailscaledTransport
+		if tr == nil {
+			tr = &http.Transport{
 				DialContext: TailscaledDialer,
-			},
+			}
 		}
+		tsClient = &http.Client{Transport: tr}
 	})
 	if _, token, err := safesocket.LocalTCPPortAndToken(); err == nil {
 		req.SetBasicAuth("", token)

@@ -424,9 +424,12 @@ func (s *SouinBaseHandler) Store(
 
 					wg.Wait()
 					if len(fails) < s.storersLen {
-						go func(rs http.Response, key string) {
-							_ = s.SurrogateKeyStorer.Store(&rs, key, uri)
-						}(res, variedKey)
+						if s.Configuration.IsSurrogateDisabled() {
+							go func(rs http.Response, key string) {
+								_ = s.SurrogateKeyStorer.Store(&rs, key, uri)
+							}(res, variedKey)
+						}
+
 						status += "; stored"
 					}
 
@@ -491,7 +494,9 @@ func (s *SouinBaseHandler) Upstream(
 			return nil, e
 		}
 
-		s.SurrogateKeyStorer.Invalidate(rq.Method, customWriter.Header())
+		if s.Configuration.IsSurrogateDisabled() {
+			s.SurrogateKeyStorer.Invalidate(rq.Method, customWriter.Header())
+		}
 
 		statusCode := customWriter.GetStatusCode()
 		if !isCacheableCode(statusCode) && !s.hasAllowedAdditionalStatusCodesToCache(statusCode) {
@@ -560,7 +565,10 @@ func (s *SouinBaseHandler) Revalidate(validator *core.Revalidator, next handlerF
 	}
 	sfValue, err, shared := s.singleflightPool.Do(singleflightCacheKey, func() (interface{}, error) {
 		err := next(customWriter, rq)
-		s.SurrogateKeyStorer.Invalidate(rq.Method, customWriter.Header())
+
+		if s.Configuration.IsSurrogateDisabled() {
+			s.SurrogateKeyStorer.Invalidate(rq.Method, customWriter.Header())
+		}
 
 		statusCode := customWriter.GetStatusCode()
 		if err == nil {
@@ -671,7 +679,10 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 		}
 
 		err := next(nrw, req)
-		s.SurrogateKeyStorer.Invalidate(req.Method, rw.Header())
+
+		if s.Configuration.IsSurrogateDisabled() {
+			s.SurrogateKeyStorer.Invalidate(req.Method, rw.Header())
+		}
 
 		if err == nil && req.Method != http.MethodGet && nrw.statusCode < http.StatusBadRequest {
 			// Invalidate related GET keys when the method is not allowed and the response is valid
@@ -692,7 +703,10 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 		rw.Header().Set("Cache-Status", cacheName+"; fwd=bypass; detail=CACHE-CONTROL-EXTRACTION-ERROR")
 
 		err := next(rw, req)
-		s.SurrogateKeyStorer.Invalidate(req.Method, rw.Header())
+
+		if s.Configuration.IsSurrogateDisabled() {
+			s.SurrogateKeyStorer.Invalidate(req.Method, rw.Header())
+		}
 
 		return err
 	}
@@ -702,7 +716,10 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 		rw.Header().Set("Cache-Status", cacheName+"; fwd=bypass; detail=IS-MUTATION-REQUEST")
 
 		err := next(rw, req)
-		s.SurrogateKeyStorer.Invalidate(req.Method, rw.Header())
+
+		if s.Configuration.IsSurrogateDisabled() {
+			s.SurrogateKeyStorer.Invalidate(req.Method, rw.Header())
+		}
 
 		return err
 	}
@@ -941,7 +958,14 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 	}
 
 	errorCacheCh := make(chan error)
+	defer close(errorCacheCh)
+
 	go func(vr *http.Request, cw *CustomWriter) {
+		defer func() {
+			if r := recover(); r != nil {
+				s.Configuration.GetLogger().Infof("recovered due to closed errorCacheCh chan, the request context has finished prematurely %s", req.URL)
+			}
+		}()
 		prometheus.Increment(prometheus.NoCachedResponseCounter)
 		errorCacheCh <- s.Upstream(cw, vr, next, requestCc, cachedKey, uri)
 	}(req, customWriter)

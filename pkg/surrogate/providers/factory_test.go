@@ -9,7 +9,7 @@ import (
 	"github.com/darkweak/storages/core"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	yaml "gopkg.in/yaml.v3"
+	"gopkg.in/yaml.v3"
 )
 
 func cdnConfigurationAkamai() string {
@@ -71,6 +71,9 @@ func (*testConfiguration) GetYkeys() map[string]configurationtypes.SurrogateKeys
 }
 func (*testConfiguration) GetSurrogateKeys() map[string]configurationtypes.SurrogateKeys {
 	return nil
+}
+func (*testConfiguration) IsSurrogateDisabled() bool {
+	return true
 }
 func (t *testConfiguration) GetCacheKeys() configurationtypes.CacheKeys {
 	return nil

@@ -148,6 +148,69 @@ func (f *FunctionDecl) Merge(other *FunctionDecl) (*FunctionDecl, error) {
 	return merged, nil
 }
 
+// FunctionSubsetter subsets a function declaration or returns nil and false if the function
+// subset was empty.
+type FunctionSubsetter func(fn *FunctionDecl) (*FunctionDecl, bool)
+
+// OverloadSelector selects an overload associated with a given function when it returns true.
+//
+// Used in combination with the Subset method.
+type OverloadSelector func(overload *OverloadDecl) bool
+
+// IncludeOverloads defines an OverloadSelector which allow-lists a set of overloads by their ids.
+func IncludeOverloads(overloadIDs ...string) OverloadSelector {
+	return func(overload *OverloadDecl) bool {
+		for _, oID := range overloadIDs {
+			if overload.id == oID {
+				return true
+			}
+		}
+		return false
+	}
+}
+
+// ExcludeOverloads defines an OverloadSelector which deny-lists a set of overloads by their ids.
+func ExcludeOverloads(overloadIDs ...string) OverloadSelector {
+	return func(overload *OverloadDecl) bool {
+		for _, oID := range overloadIDs {
+			if overload.id == oID {
+				return false
+			}
+		}
+		return true
+	}
+}
+
+// Subset returns a new function declaration which contains only the overloads with the specified IDs.
+// If the subset function contains no overloads, then nil is returned to indicate the function is not
+// functional.
+func (f *FunctionDecl) Subset(selector OverloadSelector) *FunctionDecl {
+	if f == nil {
+		return nil
+	}
+	overloads := make(map[string]*OverloadDecl)
+	overloadOrdinals := make([]string, 0, len(f.overloadOrdinals))
+	for _, oID := range f.overloadOrdinals {
+		overload := f.overloads[oID]
+		if selector(overload) {
+			overloads[oID] = overload
+			overloadOrdinals = append(overloadOrdinals, oID)
+		}
+	}
+	if len(overloads) == 0 {
+		return nil
+	}
+	subset := &FunctionDecl{
+		name:              f.Name(),
+		overloads:         overloads,
+		singleton:         f.singleton,
+		disableTypeGuards: f.disableTypeGuards,
+		state:             f.state,
+		overloadOrdinals:  overloadOrdinals,
+	}
+	return subset
+}
+
 // AddOverload ensures that the new overload does not collide with an existing overload signature;
 // however, if the function signatures are identical, the implementation may be rewritten as its
 // difficult to compare functions by object identity.
@@ -162,7 +225,9 @@ func (f *FunctionDecl) AddOverload(overload *OverloadDecl) error {
 		if oID == overload.ID() {
 			if o.SignatureEquals(overload) && o.IsNonStrict() == overload.IsNonStrict() {
 				// Allow redefinition of an overload implementation so long as the signatures match.
-				f.overloads[oID] = overload
+				if overload.hasBinding() {
+					f.overloads[oID] = overload
+				}
 				return nil
 			}
 			return fmt.Errorf("overload redefinition in function. %s: %s has multiple definitions", f.Name(), oID)
@@ -249,15 +314,15 @@ func (f *FunctionDecl) Bindings() ([]*functions.Overload, error) {
 			// are preserved in order to assist with the function resolution step.
 			switch len(args) {
 			case 1:
-				if o.unaryOp != nil && o.matchesRuntimeSignature( /* disableTypeGuards=*/ false, args...) {
+				if o.unaryOp != nil && o.matchesRuntimeSignature(f.disableTypeGuards, args...) {
 					return o.unaryOp(args[0])
 				}
 			case 2:
-				if o.binaryOp != nil && o.matchesRuntimeSignature( /* disableTypeGuards=*/ false, args...) {
+				if o.binaryOp != nil && o.matchesRuntimeSignature(f.disableTypeGuards, args...) {
 					return o.binaryOp(args[0], args[1])
 				}
 			}
-			if o.functionOp != nil && o.matchesRuntimeSignature( /* disableTypeGuards=*/ false, args...) {
+			if o.functionOp != nil && o.matchesRuntimeSignature(f.disableTypeGuards, args...) {
 				return o.functionOp(args...)
 			}
 			// eventually this will fall through to the noSuchOverload below.
@@ -775,8 +840,18 @@ func (v *VariableDecl) DeclarationIsEquivalent(other *VariableDecl) bool {
 	return v.Name() == other.Name() && v.Type().IsEquivalentType(other.Type())
 }
 
+// TypeVariable creates a new type identifier for use within a types.Provider
+func TypeVariable(t *types.Type) *VariableDecl {
+	return NewVariable(t.TypeName(), types.NewTypeTypeWithParam(t))
+}
+
 // VariableDeclToExprDecl converts a go-native variable declaration into a protobuf-type variable declaration.
 func VariableDeclToExprDecl(v *VariableDecl) (*exprpb.Decl, error) {
+	return variableDeclToExprDecl(v)
+}
+
+// variableDeclToExprDecl converts a go-native variable declaration into a protobuf-type variable declaration.
+func variableDeclToExprDecl(v *VariableDecl) (*exprpb.Decl, error) {
 	varType, err := types.TypeToExprType(v.Type())
 	if err != nil {
 		return nil, err
@@ -784,13 +859,13 @@ func VariableDeclToExprDecl(v *VariableDecl) (*exprpb.Decl, error) {
 	return chkdecls.NewVar(v.Name(), varType), nil
 }
 
-// TypeVariable creates a new type identifier for use within a types.Provider
-func TypeVariable(t *types.Type) *VariableDecl {
-	return NewVariable(t.TypeName(), types.NewTypeTypeWithParam(t))
-}
-
 // FunctionDeclToExprDecl converts a go-native function declaration into a protobuf-typed function declaration.
 func FunctionDeclToExprDecl(f *FunctionDecl) (*exprpb.Decl, error) {
+	return functionDeclToExprDecl(f)
+}
+
+// functionDeclToExprDecl converts a go-native function declaration into a protobuf-typed function declaration.
+func functionDeclToExprDecl(f *FunctionDecl) (*exprpb.Decl, error) {
 	overloads := make([]*exprpb.Decl_FunctionDecl_Overload, len(f.overloads))
 	for i, oID := range f.overloadOrdinals {
 		o := f.overloads[oID]

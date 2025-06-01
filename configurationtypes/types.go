@@ -481,5 +481,6 @@ type AbstractConfigurationInterface interface {
 	SetLogger(core.Logger)
 	GetYkeys() map[string]SurrogateKeys
 	GetSurrogateKeys() map[string]SurrogateKeys
+	IsSurrogateDisabled() bool
 	GetCacheKeys() CacheKeys
 }
