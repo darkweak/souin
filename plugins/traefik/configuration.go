@@ -50,6 +50,11 @@ func (c *Configuration) GetSurrogateKeys() map[string]configurationtypes.Surroga
 	return c.SurrogateKeys
 }
 
+// IsSurrogateDisabled disable the surrogate storage
+func (c *Configuration) IsSurrogateDisabled() bool {
+	return c.SurrogateKeyDisabled
+}
+
 // GetCacheKeys get the cache keys rules to override
 func (c *Configuration) GetCacheKeys() configurationtypes.CacheKeys {
 	return c.CacheKeys
