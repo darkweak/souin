@@ -148,8 +148,8 @@ generate-workflow: ## Generate plugin workflow
 
 golangci-lint: ## Run golangci-lint to ensure the code quality
 	golangci-lint run -v ./...
-	for plugin in $(PLUGINS_LIST) ; do \
-		echo "Starting lint $$plugin \n" && cd ./plugins/$$plugin && golangci-lint run -v -c ../../.golangci-lint.yml ./...; cd -; \
+	for plugin in $(MOD_PLUGINS_LIST) ; do \
+		echo "Starting lint $$plugin \n" && cd ./plugins/$$plugin && golangci-lint run -v -c ../../.golangci.yml ./...; cd -; \
 	done
 	cd plugins/caddy && go mod tidy && go mod download
 

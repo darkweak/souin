@@ -1,4 +1,7 @@
-version: 2
+version: "2"
+
+issues:
+  fix: true
 
 linters:
   disable:
@@ -6,4 +9,3 @@ linters:
 
 run:
   timeout: 5m
-  # modules-download-mode: vendor
