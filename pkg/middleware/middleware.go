@@ -424,7 +424,7 @@ func (s *SouinBaseHandler) Store(
 
 					wg.Wait()
 					if len(fails) < s.storersLen {
-						if s.Configuration.IsSurrogateDisabled() {
+						if !s.Configuration.IsSurrogateDisabled() {
 							go func(rs http.Response, key string) {
 								_ = s.SurrogateKeyStorer.Store(&rs, key, uri)
 							}(res, variedKey)
@@ -494,7 +494,7 @@ func (s *SouinBaseHandler) Upstream(
 			return nil, e
 		}
 
-		if s.Configuration.IsSurrogateDisabled() {
+		if !s.Configuration.IsSurrogateDisabled() {
 			s.SurrogateKeyStorer.Invalidate(rq.Method, customWriter.Header())
 		}
 
@@ -566,7 +566,7 @@ func (s *SouinBaseHandler) Revalidate(validator *core.Revalidator, next handlerF
 	sfValue, err, shared := s.singleflightPool.Do(singleflightCacheKey, func() (interface{}, error) {
 		err := next(customWriter, rq)
 
-		if s.Configuration.IsSurrogateDisabled() {
+		if !s.Configuration.IsSurrogateDisabled() {
 			s.SurrogateKeyStorer.Invalidate(rq.Method, customWriter.Header())
 		}
 
@@ -680,7 +680,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 
 		err := next(nrw, req)
 
-		if s.Configuration.IsSurrogateDisabled() {
+		if !s.Configuration.IsSurrogateDisabled() {
 			s.SurrogateKeyStorer.Invalidate(req.Method, rw.Header())
 		}
 
@@ -704,7 +704,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 
 		err := next(rw, req)
 
-		if s.Configuration.IsSurrogateDisabled() {
+		if !s.Configuration.IsSurrogateDisabled() {
 			s.SurrogateKeyStorer.Invalidate(req.Method, rw.Header())
 		}
 
@@ -717,7 +717,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 
 		err := next(rw, req)
 
-		if s.Configuration.IsSurrogateDisabled() {
+		if !s.Configuration.IsSurrogateDisabled() {
 			s.SurrogateKeyStorer.Invalidate(req.Method, rw.Header())
 		}
 

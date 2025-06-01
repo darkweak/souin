@@ -73,7 +73,7 @@ func (*testConfiguration) GetSurrogateKeys() map[string]configurationtypes.Surro
 	return nil
 }
 func (*testConfiguration) IsSurrogateDisabled() bool {
-	return true
+	return false
 }
 func (t *testConfiguration) GetCacheKeys() configurationtypes.CacheKeys {
 	return nil
