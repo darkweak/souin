@@ -101,7 +101,7 @@ func Test_SouinChiPlugin_Middleware_APIHandle(t *testing.T) {
 		t.Error("The response must be in JSON.")
 	}
 	b, _ := io.ReadAll(res.Result().Body)
-	res.Result().Body.Close()
+	_ = res.Result().Body.Close()
 	if string(b) != "[]" {
 		t.Error("The response body must be an empty array because no request has been stored")
 	}
@@ -111,7 +111,7 @@ func Test_SouinChiPlugin_Middleware_APIHandle(t *testing.T) {
 		t.Error("The response must be in JSON.")
 	}
 	b, _ = io.ReadAll(res2.Result().Body)
-	res2.Result().Body.Close()
+	_ = res2.Result().Body.Close()
 	var payload []string
 	_ = json.Unmarshal(b, &payload)
 	if len(payload) != 1 {

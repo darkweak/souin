@@ -93,7 +93,9 @@ func main() {
 				w.WriteHeader(res.StatusCode)
 
 				body, _ := io.ReadAll(res.Body)
-				defer res.Body.Close()
+				defer func() {
+					_ = res.Body.Close()
+				}()
 				res.Body = io.NopCloser(bytes.NewBuffer(body))
 				_, err = w.Write(body)
 

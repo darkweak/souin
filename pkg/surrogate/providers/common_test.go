@@ -35,7 +35,7 @@ func mockCommonProvider() *baseStorage {
 		},
 	}
 
-	sss.baseStorage.parent = sss
+	sss.parent = sss
 
 	return sss.baseStorage
 }

@@ -124,7 +124,7 @@ func (suite *HttpCacheMiddlewareTestSuite) Test_SouinFiberPlugin_Middleware_APIH
 	time.Sleep(DevDefaultConfiguration.DefaultCache.GetTTL() + DevDefaultConfiguration.GetDefaultCache().GetStale())
 
 	b, _ := io.ReadAll(res.Body)
-	res.Body.Close()
+	_ = res.Body.Close()
 	if string(b) != "[]" {
 		suite.T().Error("The response body must be an empty array because no request has been stored")
 	}
@@ -133,7 +133,7 @@ func (suite *HttpCacheMiddlewareTestSuite) Test_SouinFiberPlugin_Middleware_APIH
 	})
 	res = suite.Middleware(httpcache.Handle, SouinAPIRequest, func(response *goyave.Response, r *goyave.Request) {})
 	b, _ = io.ReadAll(res.Body)
-	res.Body.Close()
+	_ = res.Body.Close()
 	var payload []string
 	_ = json.Unmarshal(b, &payload)
 	if len(payload) != 1 {

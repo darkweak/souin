@@ -7,11 +7,6 @@ import (
 	goahttp "goa.design/goa/v3/http"
 )
 
-func defaultHandler(w http.ResponseWriter, _ *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Hello, World!"))
-}
-
 func main() {
 	// Use the Souin default configuration
 	g := goahttp.NewMuxer()
@@ -19,12 +14,12 @@ func main() {
 
 	g.Handle(http.MethodGet, "/excluded", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Hello, Excluded!"))
+		_, _ = w.Write([]byte("Hello, Excluded!"))
 	})
 	g.Handle(http.MethodGet, "/{path}", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Hello, World!"))
+		_, _ = w.Write([]byte("Hello, World!"))
 	})
 
-	http.ListenAndServe(":80", g)
+	_ = http.ListenAndServe(":80", g)
 }

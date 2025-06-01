@@ -1,0 +1,9 @@
+version: 2
+
+linters:
+  disable:
+    - staticcheck
+
+run:
+  timeout: 5m
+  # modules-download-mode: vendor

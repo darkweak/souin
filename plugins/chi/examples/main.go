@@ -9,7 +9,7 @@ import (
 
 func defaultHandler(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Hello, World!"))
+	_, _ = w.Write([]byte("Hello, World!"))
 }
 
 func main() {
@@ -17,5 +17,5 @@ func main() {
 	router := chi.NewRouter()
 	router.Use(cache.NewHTTPCache(cache.DevDefaultConfiguration).Handle)
 	router.Get("/*", defaultHandler)
-	http.ListenAndServe(":80", router)
+	_ = http.ListenAndServe(":80", router)
 }
