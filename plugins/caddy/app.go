@@ -15,6 +15,8 @@ type SouinApp struct {
 	Storers []types.Storer
 	// Surrogate storage to support the configuration reload without surrogate-key data loss.
 	SurrogateStorage providers.SurrogateInterface
+	// SurrogateKeyDisabled opt-out the Surrogate key system.
+	SurrogateKeyDisabled bool
 	// Cache-key tweaking.
 	CacheKeys configurationtypes.CacheKeys `json:"cache_keys,omitempty"`
 	// API endpoints enablers.
