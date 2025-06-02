@@ -34,6 +34,7 @@ import (
 	"github.com/google/cel-go/cel"
 	"github.com/google/cel-go/common/types"
 	"github.com/google/cel-go/common/types/ref"
+	"golang.org/x/net/idna"
 
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
@@ -177,6 +178,22 @@ type (
 	// "http/2", "http/3", or minimum versions: "http/2+", etc.
 	MatchProtocol string
 
+	// MatchTLS matches HTTP requests based on the underlying
+	// TLS connection state. If this matcher is specified but
+	// the request did not come over TLS, it will never match.
+	// If this matcher is specified but is empty and the request
+	// did come in over TLS, it will always match.
+	MatchTLS struct {
+		// Matches if the TLS handshake has completed. QUIC 0-RTT early
+		// data may arrive before the handshake completes. Generally, it
+		// is unsafe to replay these requests if they are not idempotent;
+		// additionally, the remote IP of early data packets can more
+		// easily be spoofed. It is conventional to respond with HTTP 425
+		// Too Early if the request cannot risk being processed in this
+		// state.
+		HandshakeComplete *bool `json:"handshake_complete,omitempty"`
+	}
+
 	// MatchNot matches requests by negating the results of its matcher
 	// sets. A single "not" matcher takes one or more matcher sets. Each
 	// matcher set is OR'ed; in other words, if any matcher set returns
@@ -212,6 +229,7 @@ func init() {
 	caddy.RegisterModule(MatchHeader{})
 	caddy.RegisterModule(MatchHeaderRE{})
 	caddy.RegisterModule(new(MatchProtocol))
+	caddy.RegisterModule(MatchTLS{})
 	caddy.RegisterModule(MatchNot{})
 }
 
@@ -239,13 +257,20 @@ func (m *MatchHost) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 func (m MatchHost) Provision(_ caddy.Context) error {
 	// check for duplicates; they are nonsensical and reduce efficiency
 	// (we could just remove them, but the user should know their config is erroneous)
-	seen := make(map[string]int)
-	for i, h := range m {
-		h = strings.ToLower(h)
-		if firstI, ok := seen[h]; ok {
-			return fmt.Errorf("host at index %d is repeated at index %d: %s", firstI, i, h)
+	seen := make(map[string]int, len(m))
+	for i, host := range m {
+		asciiHost, err := idna.ToASCII(host)
+		if err != nil {
+			return fmt.Errorf("converting hostname '%s' to ASCII: %v", host, err)
 		}
-		seen[h] = i
+		if asciiHost != host {
+			m[i] = asciiHost
+		}
+		normalizedHost := strings.ToLower(asciiHost)
+		if firstI, ok := seen[normalizedHost]; ok {
+			return fmt.Errorf("host at index %d is repeated at index %d: %s", firstI, i, host)
+		}
+		seen[normalizedHost] = i
 	}
 
 	if m.large() {
@@ -271,6 +296,12 @@ func (m MatchHost) Provision(_ caddy.Context) error {
 
 // Match returns true if r matches m.
 func (m MatchHost) Match(r *http.Request) bool {
+	match, _ := m.MatchWithError(r)
+	return match
+}
+
+// MatchWithError returns true if r matches m.
+func (m MatchHost) MatchWithError(r *http.Request) (bool, error) {
 	reqHost, _, err := net.SplitHostPort(r.Host)
 	if err != nil {
 		// OK; probably didn't have a port
@@ -290,7 +321,7 @@ func (m MatchHost) Match(r *http.Request) bool {
 			return m[i] >= reqHost
 		})
 		if pos < len(m) && m[pos] == reqHost {
-			return true
+			return true, nil
 		}
 	}
 
@@ -321,13 +352,13 @@ outer:
 					continue outer
 				}
 			}
-			return true
+			return true, nil
 		} else if strings.EqualFold(reqHost, host) {
-			return true
+			return true, nil
 		}
 	}
 
-	return false
+	return false, nil
 }
 
 // CELLibrary produces options that expose this matcher for use in CEL
@@ -341,7 +372,7 @@ func (MatchHost) CELLibrary(ctx caddy.Context) (cel.Library, error) {
 		"host",
 		"host_match_request_list",
 		[]*cel.Type{cel.ListType(cel.StringType)},
-		func(data ref.Val) (RequestMatcher, error) {
+		func(data ref.Val) (RequestMatcherWithError, error) {
 			refStringList := reflect.TypeOf([]string{})
 			strList, err := data.ConvertToNative(refStringList)
 			if err != nil {
@@ -386,6 +417,12 @@ func (m MatchPath) Provision(_ caddy.Context) error {
 
 // Match returns true if r matches m.
 func (m MatchPath) Match(r *http.Request) bool {
+	match, _ := m.MatchWithError(r)
+	return match
+}
+
+// MatchWithError returns true if r matches m.
+func (m MatchPath) MatchWithError(r *http.Request) (bool, error) {
 	// Even though RFC 9110 says that path matching is case-sensitive
 	// (https://www.rfc-editor.org/rfc/rfc9110.html#section-4.2.3),
 	// we do case-insensitive matching to mitigate security issues
@@ -411,7 +448,7 @@ func (m MatchPath) Match(r *http.Request) bool {
 		// special case: whole path is wildcard; this is unnecessary
 		// as it matches all requests, which is the same as no matcher
 		if matchPattern == "*" {
-			return true
+			return true, nil
 		}
 
 		// Clean the path, merge doubled slashes, etc.
@@ -439,7 +476,7 @@ func (m MatchPath) Match(r *http.Request) bool {
 		if strings.Contains(matchPattern, "%") {
 			reqPathForPattern := CleanPath(r.URL.EscapedPath(), mergeSlashes)
 			if m.matchPatternWithEscapeSequence(reqPathForPattern, matchPattern) {
-				return true
+				return true, nil
 			}
 
 			// doing prefix/suffix/substring matches doesn't make sense
@@ -458,7 +495,7 @@ func (m MatchPath) Match(r *http.Request) bool {
 			strings.HasPrefix(matchPattern, "*") &&
 			strings.HasSuffix(matchPattern, "*") {
 			if strings.Contains(reqPathForPattern, matchPattern[1:len(matchPattern)-1]) {
-				return true
+				return true, nil
 			}
 			continue
 		}
@@ -470,7 +507,7 @@ func (m MatchPath) Match(r *http.Request) bool {
 			// treat it as a fast suffix match
 			if strings.HasPrefix(matchPattern, "*") {
 				if strings.HasSuffix(reqPathForPattern, matchPattern[1:]) {
-					return true
+					return true, nil
 				}
 				continue
 			}
@@ -479,7 +516,7 @@ func (m MatchPath) Match(r *http.Request) bool {
 			// treat it as a fast prefix match
 			if strings.HasSuffix(matchPattern, "*") {
 				if strings.HasPrefix(reqPathForPattern, matchPattern[:len(matchPattern)-1]) {
-					return true
+					return true, nil
 				}
 				continue
 			}
@@ -490,10 +527,10 @@ func (m MatchPath) Match(r *http.Request) bool {
 		// because we can't handle it anyway
 		matches, _ := path.Match(matchPattern, reqPathForPattern)
 		if matches {
-			return true
+			return true, nil
 		}
 	}
-	return false
+	return false, nil
 }
 
 func (MatchPath) matchPatternWithEscapeSequence(escapedPath, matchPath string) bool {
@@ -617,7 +654,7 @@ func (MatchPath) CELLibrary(ctx caddy.Context) (cel.Library, error) {
 		// internal data type of the MatchPath value.
 		[]*cel.Type{cel.ListType(cel.StringType)},
 		// function to convert a constant list of strings to a MatchPath instance.
-		func(data ref.Val) (RequestMatcher, error) {
+		func(data ref.Val) (RequestMatcherWithError, error) {
 			refStringList := reflect.TypeOf([]string{})
 			strList, err := data.ConvertToNative(refStringList)
 			if err != nil {
@@ -652,6 +689,12 @@ func (MatchPathRE) CaddyModule() caddy.ModuleInfo {
 
 // Match returns true if r matches m.
 func (m MatchPathRE) Match(r *http.Request) bool {
+	match, _ := m.MatchWithError(r)
+	return match
+}
+
+// MatchWithError returns true if r matches m.
+func (m MatchPathRE) MatchWithError(r *http.Request) (bool, error) {
 	repl := r.Context().Value(caddy.ReplacerCtxKey).(*caddy.Replacer)
 
 	// Clean the path, merges doubled slashes, etc.
@@ -659,7 +702,7 @@ func (m MatchPathRE) Match(r *http.Request) bool {
 	// the path matcher. See #4407
 	cleanedPath := cleanPath(r.URL.Path)
 
-	return m.MatchRegexp.Match(cleanedPath, repl)
+	return m.MatchRegexp.Match(cleanedPath, repl), nil
 }
 
 // CELLibrary produces options that expose this matcher for use in CEL
@@ -673,7 +716,7 @@ func (MatchPathRE) CELLibrary(ctx caddy.Context) (cel.Library, error) {
 		"path_regexp",
 		"path_regexp_request_string",
 		[]*cel.Type{cel.StringType},
-		func(data ref.Val) (RequestMatcher, error) {
+		func(data ref.Val) (RequestMatcherWithError, error) {
 			pattern := data.(types.String)
 			matcher := MatchPathRE{MatchRegexp{
 				Name:    ctx.Value(MatcherNameCtxKey).(string),
@@ -690,7 +733,7 @@ func (MatchPathRE) CELLibrary(ctx caddy.Context) (cel.Library, error) {
 		"path_regexp",
 		"path_regexp_request_string_string",
 		[]*cel.Type{cel.StringType, cel.StringType},
-		func(data ref.Val) (RequestMatcher, error) {
+		func(data ref.Val) (RequestMatcherWithError, error) {
 			refStringList := reflect.TypeOf([]string{})
 			params, err := data.ConvertToNative(refStringList)
 			if err != nil {
@@ -739,12 +782,13 @@ func (m *MatchMethod) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 
 // Match returns true if r matches m.
 func (m MatchMethod) Match(r *http.Request) bool {
-	for _, method := range m {
-		if r.Method == method {
-			return true
-		}
-	}
-	return false
+	match, _ := m.MatchWithError(r)
+	return match
+}
+
+// MatchWithError returns true if r matches m.
+func (m MatchMethod) MatchWithError(r *http.Request) (bool, error) {
+	return slices.Contains(m, r.Method), nil
 }
 
 // CELLibrary produces options that expose this matcher for use in CEL
@@ -758,7 +802,7 @@ func (MatchMethod) CELLibrary(_ caddy.Context) (cel.Library, error) {
 		"method",
 		"method_request_list",
 		[]*cel.Type{cel.ListType(cel.StringType)},
-		func(data ref.Val) (RequestMatcher, error) {
+		func(data ref.Val) (RequestMatcherWithError, error) {
 			refStringList := reflect.TypeOf([]string{})
 			strList, err := data.ConvertToNative(refStringList)
 			if err != nil {
@@ -803,10 +847,17 @@ func (m *MatchQuery) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 
 // Match returns true if r matches m. An empty m matches an empty query string.
 func (m MatchQuery) Match(r *http.Request) bool {
+	match, _ := m.MatchWithError(r)
+	return match
+}
+
+// MatchWithError returns true if r matches m.
+// An empty m matches an empty query string.
+func (m MatchQuery) MatchWithError(r *http.Request) (bool, error) {
 	// If no query keys are configured, this only
 	// matches an empty query string.
 	if len(m) == 0 {
-		return len(r.URL.Query()) == 0
+		return len(r.URL.Query()) == 0, nil
 	}
 
 	repl := r.Context().Value(caddy.ReplacerCtxKey).(*caddy.Replacer)
@@ -823,7 +874,7 @@ func (m MatchQuery) Match(r *http.Request) bool {
 		// "Relying on parser alignment for security is doomed." Overall conclusion is that
 		// splitting on & and rejecting ; in key=value pairs is safer than accepting raw ;.
 		// We regard the Go team's decision as sound and thus reject malformed query strings.
-		return false
+		return false, nil
 	}
 
 	// Count the amount of matched keys, to ensure we AND
@@ -834,7 +885,7 @@ func (m MatchQuery) Match(r *http.Request) bool {
 		param = repl.ReplaceAll(param, "")
 		paramVal, found := parsed[param]
 		if !found {
-			return false
+			return false, nil
 		}
 		for _, v := range vals {
 			v = repl.ReplaceAll(v, "")
@@ -844,7 +895,7 @@ func (m MatchQuery) Match(r *http.Request) bool {
 			}
 		}
 	}
-	return matchedKeys == len(m)
+	return matchedKeys == len(m), nil
 }
 
 // CELLibrary produces options that expose this matcher for use in CEL
@@ -858,7 +909,7 @@ func (MatchQuery) CELLibrary(_ caddy.Context) (cel.Library, error) {
 		"query",
 		"query_matcher_request_map",
 		[]*cel.Type{CELTypeJSON},
-		func(data ref.Val) (RequestMatcher, error) {
+		func(data ref.Val) (RequestMatcherWithError, error) {
 			mapStrListStr, err := CELValueToMapStrList(data)
 			if err != nil {
 				return nil, err
@@ -920,8 +971,14 @@ func (m *MatchHeader) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 
 // Match returns true if r matches m.
 func (m MatchHeader) Match(r *http.Request) bool {
+	match, _ := m.MatchWithError(r)
+	return match
+}
+
+// MatchWithError returns true if r matches m.
+func (m MatchHeader) MatchWithError(r *http.Request) (bool, error) {
 	repl := r.Context().Value(caddy.ReplacerCtxKey).(*caddy.Replacer)
-	return matchHeaders(r.Header, http.Header(m), r.Host, repl)
+	return matchHeaders(r.Header, http.Header(m), r.Host, r.TransferEncoding, repl), nil
 }
 
 // CELLibrary produces options that expose this matcher for use in CEL
@@ -936,7 +993,7 @@ func (MatchHeader) CELLibrary(_ caddy.Context) (cel.Library, error) {
 		"header",
 		"header_matcher_request_map",
 		[]*cel.Type{CELTypeJSON},
-		func(data ref.Val) (RequestMatcher, error) {
+		func(data ref.Val) (RequestMatcherWithError, error) {
 			mapStrListStr, err := CELValueToMapStrList(data)
 			if err != nil {
 				return nil, err
@@ -947,12 +1004,16 @@ func (MatchHeader) CELLibrary(_ caddy.Context) (cel.Library, error) {
 }
 
 // getHeaderFieldVals returns the field values for the given fieldName from input.
-// The host parameter should be obtained from the http.Request.Host field since
-// net/http removes it from the header map.
-func getHeaderFieldVals(input http.Header, fieldName, host string) []string {
+// The host parameter should be obtained from the http.Request.Host field, and the
+// transferEncoding from http.Request.TransferEncoding, since net/http removes them
+// from the header map.
+func getHeaderFieldVals(input http.Header, fieldName, host string, transferEncoding []string) []string {
 	fieldName = textproto.CanonicalMIMEHeaderKey(fieldName)
 	if fieldName == "Host" && host != "" {
 		return []string{host}
+	}
+	if fieldName == "Transfer-Encoding" && input[fieldName] == nil {
+		return transferEncoding
 	}
 	return input[fieldName]
 }
@@ -960,9 +1021,9 @@ func getHeaderFieldVals(input http.Header, fieldName, host string) []string {
 // matchHeaders returns true if input matches the criteria in against without regex.
 // The host parameter should be obtained from the http.Request.Host field since
 // net/http removes it from the header map.
-func matchHeaders(input, against http.Header, host string, repl *caddy.Replacer) bool {
+func matchHeaders(input, against http.Header, host string, transferEncoding []string, repl *caddy.Replacer) bool {
 	for field, allowedFieldVals := range against {
-		actualFieldVals := getHeaderFieldVals(input, field, host)
+		actualFieldVals := getHeaderFieldVals(input, field, host, transferEncoding)
 		if allowedFieldVals != nil && len(allowedFieldVals) == 0 && actualFieldVals != nil {
 			// a non-nil but empty list of allowed values means
 			// match if the header field exists at all
@@ -1055,8 +1116,14 @@ func (m *MatchHeaderRE) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 
 // Match returns true if r matches m.
 func (m MatchHeaderRE) Match(r *http.Request) bool {
+	match, _ := m.MatchWithError(r)
+	return match
+}
+
+// MatchWithError returns true if r matches m.
+func (m MatchHeaderRE) MatchWithError(r *http.Request) (bool, error) {
 	for field, rm := range m {
-		actualFieldVals := getHeaderFieldVals(r.Header, field, r.Host)
+		actualFieldVals := getHeaderFieldVals(r.Header, field, r.Host, r.TransferEncoding)
 		match := false
 	fieldVal:
 		for _, actualFieldVal := range actualFieldVals {
@@ -1067,10 +1134,10 @@ func (m MatchHeaderRE) Match(r *http.Request) bool {
 			}
 		}
 		if !match {
-			return false
+			return false, nil
 		}
 	}
-	return true
+	return true, nil
 }
 
 // Provision compiles m's regular expressions.
@@ -1106,7 +1173,7 @@ func (MatchHeaderRE) CELLibrary(ctx caddy.Context) (cel.Library, error) {
 		"header_regexp",
 		"header_regexp_request_string_string",
 		[]*cel.Type{cel.StringType, cel.StringType},
-		func(data ref.Val) (RequestMatcher, error) {
+		func(data ref.Val) (RequestMatcherWithError, error) {
 			refStringList := reflect.TypeOf([]string{})
 			params, err := data.ConvertToNative(refStringList)
 			if err != nil {
@@ -1129,7 +1196,7 @@ func (MatchHeaderRE) CELLibrary(ctx caddy.Context) (cel.Library, error) {
 		"header_regexp",
 		"header_regexp_request_string_string_string",
 		[]*cel.Type{cel.StringType, cel.StringType, cel.StringType},
-		func(data ref.Val) (RequestMatcher, error) {
+		func(data ref.Val) (RequestMatcherWithError, error) {
 			refStringList := reflect.TypeOf([]string{})
 			params, err := data.ConvertToNative(refStringList)
 			if err != nil {
@@ -1167,31 +1234,37 @@ func (MatchProtocol) CaddyModule() caddy.ModuleInfo {
 
 // Match returns true if r matches m.
 func (m MatchProtocol) Match(r *http.Request) bool {
+	match, _ := m.MatchWithError(r)
+	return match
+}
+
+// MatchWithError returns true if r matches m.
+func (m MatchProtocol) MatchWithError(r *http.Request) (bool, error) {
 	switch string(m) {
 	case "grpc":
-		return strings.HasPrefix(r.Header.Get("content-type"), "application/grpc")
+		return strings.HasPrefix(r.Header.Get("content-type"), "application/grpc"), nil
 	case "https":
-		return r.TLS != nil
+		return r.TLS != nil, nil
 	case "http":
-		return r.TLS == nil
+		return r.TLS == nil, nil
 	case "http/1.0":
-		return r.ProtoMajor == 1 && r.ProtoMinor == 0
+		return r.ProtoMajor == 1 && r.ProtoMinor == 0, nil
 	case "http/1.0+":
-		return r.ProtoAtLeast(1, 0)
+		return r.ProtoAtLeast(1, 0), nil
 	case "http/1.1":
-		return r.ProtoMajor == 1 && r.ProtoMinor == 1
+		return r.ProtoMajor == 1 && r.ProtoMinor == 1, nil
 	case "http/1.1+":
-		return r.ProtoAtLeast(1, 1)
+		return r.ProtoAtLeast(1, 1), nil
 	case "http/2":
-		return r.ProtoMajor == 2
+		return r.ProtoMajor == 2, nil
 	case "http/2+":
-		return r.ProtoAtLeast(2, 0)
+		return r.ProtoAtLeast(2, 0), nil
 	case "http/3":
-		return r.ProtoMajor == 3
+		return r.ProtoMajor == 3, nil
 	case "http/3+":
-		return r.ProtoAtLeast(3, 0)
+		return r.ProtoAtLeast(3, 0), nil
 	}
-	return false
+	return false, nil
 }
 
 // UnmarshalCaddyfile implements caddyfile.Unmarshaler.
@@ -1218,7 +1291,7 @@ func (MatchProtocol) CELLibrary(_ caddy.Context) (cel.Library, error) {
 		"protocol",
 		"protocol_request_string",
 		[]*cel.Type{cel.StringType},
-		func(data ref.Val) (RequestMatcher, error) {
+		func(data ref.Val) (RequestMatcherWithError, error) {
 			protocolStr, ok := data.(types.String)
 			if !ok {
 				return nil, errors.New("protocol argument was not a string")
@@ -1226,6 +1299,61 @@ func (MatchProtocol) CELLibrary(_ caddy.Context) (cel.Library, error) {
 			return MatchProtocol(strings.ToLower(string(protocolStr))), nil
 		},
 	)
+}
+
+// CaddyModule returns the Caddy module information.
+func (MatchTLS) CaddyModule() caddy.ModuleInfo {
+	return caddy.ModuleInfo{
+		ID:  "http.matchers.tls",
+		New: func() caddy.Module { return new(MatchTLS) },
+	}
+}
+
+// Match returns true if r matches m.
+func (m MatchTLS) Match(r *http.Request) bool {
+	match, _ := m.MatchWithError(r)
+	return match
+}
+
+// MatchWithError returns true if r matches m.
+func (m MatchTLS) MatchWithError(r *http.Request) (bool, error) {
+	if r.TLS == nil {
+		return false, nil
+	}
+	if m.HandshakeComplete != nil {
+		if (!*m.HandshakeComplete && r.TLS.HandshakeComplete) ||
+			(*m.HandshakeComplete && !r.TLS.HandshakeComplete) {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
+// UnmarshalCaddyfile parses Caddyfile tokens for this matcher. Syntax:
+//
+// ... tls [early_data]
+//
+// EXPERIMENTAL SYNTAX: Subject to change.
+func (m *MatchTLS) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
+	// iterate to merge multiple matchers into one
+	for d.Next() {
+		if d.NextArg() {
+			switch d.Val() {
+			case "early_data":
+				var false bool
+				m.HandshakeComplete = &false
+			default:
+				return d.Errf("unrecognized option '%s'", d.Val())
+			}
+		}
+		if d.NextArg() {
+			return d.ArgErr()
+		}
+		if d.NextBlock(0) {
+			return d.Err("malformed tls matcher: blocks are not supported yet")
+		}
+	}
+	return nil
 }
 
 // CaddyModule returns the Caddy module information.
@@ -1270,7 +1398,15 @@ func (m *MatchNot) Provision(ctx caddy.Context) error {
 	for _, modMap := range matcherSets.([]map[string]any) {
 		var ms MatcherSet
 		for _, modIface := range modMap {
-			ms = append(ms, modIface.(RequestMatcher))
+			if mod, ok := modIface.(RequestMatcherWithError); ok {
+				ms = append(ms, mod)
+				continue
+			}
+			if mod, ok := modIface.(RequestMatcher); ok {
+				ms = append(ms, mod)
+				continue
+			}
+			return fmt.Errorf("module is not a request matcher: %T", modIface)
 		}
 		m.MatcherSets = append(m.MatcherSets, ms)
 	}
@@ -1281,12 +1417,24 @@ func (m *MatchNot) Provision(ctx caddy.Context) error {
 // the embedded matchers, false is returned if any of its matcher
 // sets return true.
 func (m MatchNot) Match(r *http.Request) bool {
+	match, _ := m.MatchWithError(r)
+	return match
+}
+
+// MatchWithError returns true if r matches m. Since this matcher
+// negates the embedded matchers, false is returned if any of its
+// matcher sets return true.
+func (m MatchNot) MatchWithError(r *http.Request) (bool, error) {
 	for _, ms := range m.MatcherSets {
-		if ms.Match(r) {
-			return false
+		matches, err := ms.MatchWithError(r)
+		if err != nil {
+			return false, err
+		}
+		if matches {
+			return false, nil
 		}
 	}
-	return true
+	return true, nil
 }
 
 // MatchRegexp is an embedable type for matching
@@ -1402,7 +1550,7 @@ func (mre *MatchRegexp) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 // ParseCaddyfileNestedMatcher parses the Caddyfile tokens for a nested
 // matcher set, and returns its raw module map value.
 func ParseCaddyfileNestedMatcherSet(d *caddyfile.Dispenser) (caddy.ModuleMap, error) {
-	matcherMap := make(map[string]RequestMatcher)
+	matcherMap := make(map[string]any)
 
 	// in case there are multiple instances of the same matcher, concatenate
 	// their tokens (we expect that UnmarshalCaddyfile should be able to
@@ -1427,11 +1575,15 @@ func ParseCaddyfileNestedMatcherSet(d *caddyfile.Dispenser) (caddy.ModuleMap, er
 		if err != nil {
 			return nil, err
 		}
-		rm, ok := unm.(RequestMatcher)
-		if !ok {
-			return nil, fmt.Errorf("matcher module '%s' is not a request matcher", matcherName)
+		if rm, ok := unm.(RequestMatcherWithError); ok {
+			matcherMap[matcherName] = rm
+			continue
 		}
-		matcherMap[matcherName] = rm
+		if rm, ok := unm.(RequestMatcher); ok {
+			matcherMap[matcherName] = rm
+			continue
+		}
+		return nil, fmt.Errorf("matcher module '%s' is not a request matcher", matcherName)
 	}
 
 	// we should now have a functional matcher, but we also
@@ -1457,24 +1609,28 @@ const regexpPlaceholderPrefix = "http.regexp"
 // holds an optional error emitted from a request matcher,
 // to short-circuit the handler chain, since matchers cannot
 // return errors via the RequestMatcher interface.
+//
+// Deprecated: Matchers should implement RequestMatcherWithError
+// which can return an error directly, instead of smuggling it
+// through the vars map.
 const MatcherErrorVarKey = "matchers.error"
 
 // Interface guards
 var (
-	_ RequestMatcher    = (*MatchHost)(nil)
-	_ caddy.Provisioner = (*MatchHost)(nil)
-	_ RequestMatcher    = (*MatchPath)(nil)
-	_ RequestMatcher    = (*MatchPathRE)(nil)
-	_ caddy.Provisioner = (*MatchPathRE)(nil)
-	_ RequestMatcher    = (*MatchMethod)(nil)
-	_ RequestMatcher    = (*MatchQuery)(nil)
-	_ RequestMatcher    = (*MatchHeader)(nil)
-	_ RequestMatcher    = (*MatchHeaderRE)(nil)
-	_ caddy.Provisioner = (*MatchHeaderRE)(nil)
-	_ RequestMatcher    = (*MatchProtocol)(nil)
-	_ RequestMatcher    = (*MatchNot)(nil)
-	_ caddy.Provisioner = (*MatchNot)(nil)
-	_ caddy.Provisioner = (*MatchRegexp)(nil)
+	_ RequestMatcherWithError = (*MatchHost)(nil)
+	_ caddy.Provisioner       = (*MatchHost)(nil)
+	_ RequestMatcherWithError = (*MatchPath)(nil)
+	_ RequestMatcherWithError = (*MatchPathRE)(nil)
+	_ caddy.Provisioner       = (*MatchPathRE)(nil)
+	_ RequestMatcherWithError = (*MatchMethod)(nil)
+	_ RequestMatcherWithError = (*MatchQuery)(nil)
+	_ RequestMatcherWithError = (*MatchHeader)(nil)
+	_ RequestMatcherWithError = (*MatchHeaderRE)(nil)
+	_ caddy.Provisioner       = (*MatchHeaderRE)(nil)
+	_ RequestMatcherWithError = (*MatchProtocol)(nil)
+	_ RequestMatcherWithError = (*MatchNot)(nil)
+	_ caddy.Provisioner       = (*MatchNot)(nil)
+	_ caddy.Provisioner       = (*MatchRegexp)(nil)
 
 	_ caddyfile.Unmarshaler = (*MatchHost)(nil)
 	_ caddyfile.Unmarshaler = (*MatchPath)(nil)
@@ -1495,8 +1651,8 @@ var (
 	_ CELLibraryProducer = (*MatchHeader)(nil)
 	_ CELLibraryProducer = (*MatchHeaderRE)(nil)
 	_ CELLibraryProducer = (*MatchProtocol)(nil)
-	// _ CELLibraryProducer = (*VarsMatcher)(nil)
-	// _ CELLibraryProducer = (*MatchVarsRE)(nil)
+	_ CELLibraryProducer = (*VarsMatcher)(nil)
+	_ CELLibraryProducer = (*MatchVarsRE)(nil)
 
 	_ json.Marshaler   = (*MatchNot)(nil)
 	_ json.Unmarshaler = (*MatchNot)(nil)

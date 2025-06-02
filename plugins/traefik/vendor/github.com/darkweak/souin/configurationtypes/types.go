@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	yaml "gopkg.in/yaml.v3"
+	"gopkg.in/yaml.v3"
 )
 
 type CacheKey map[RegValue]Key
@@ -105,7 +105,7 @@ func (c *CacheKeys) MarshalJSON() ([]byte, error) {
 	for _, cacheKey := range *c {
 		for rg, key := range cacheKey {
 			keyBytes, _ := json.Marshal(key)
-			strKeys = append(strKeys, fmt.Sprintf(`"%s": %v`, rg.Regexp.String(), string(keyBytes)))
+			strKeys = append(strKeys, fmt.Sprintf(`"%s": %v`, rg.String(), string(keyBytes)))
 		}
 	}
 
@@ -119,7 +119,7 @@ type Duration struct {
 
 // MarshalYAML transform the Duration into a time.duration object
 func (d *Duration) MarshalYAML() (interface{}, error) {
-	return yaml.Marshal(d.Duration.String())
+	return yaml.Marshal(d.String())
 }
 
 // UnmarshalYAML parse the time.duration into a Duration object
@@ -131,7 +131,7 @@ func (d *Duration) UnmarshalYAML(b *yaml.Node) (e error) {
 
 // MarshalJSON transform the Duration into a time.duration object
 func (d Duration) MarshalJSON() ([]byte, error) {
-	return json.Marshal(d.Duration.String())
+	return json.Marshal(d.String())
 }
 
 // UnmarshalJSON parse the time.duration into a Duration object

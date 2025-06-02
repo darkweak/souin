@@ -9,10 +9,10 @@ import (
 )
 
 func main() {
-	config.LoadFrom("examples/config.json")
-	goyave.Start(func(r *goyave.Router) {
+	_ = config.LoadFrom("examples/config.json")
+	_ = goyave.Start(func(r *goyave.Router) {
 		r.Get("/{p}", func(response *goyave.Response, r *goyave.Request) {
-			response.String(http.StatusOK, "Hello, World 👋!")
+			_ = response.String(http.StatusOK, "Hello, World 👋!")
 		}).Middleware(cache.NewHTTPCache(cache.DevDefaultConfiguration).Handle)
 	})
 }

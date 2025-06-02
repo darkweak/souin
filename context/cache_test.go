@@ -41,6 +41,9 @@ func (*testConfiguration) GetYkeys() map[string]configurationtypes.SurrogateKeys
 func (*testConfiguration) GetSurrogateKeys() map[string]configurationtypes.SurrogateKeys {
 	return nil
 }
+func (*testConfiguration) IsSurrogateDisabled() bool {
+	return false
+}
 func (t *testConfiguration) GetCacheKeys() configurationtypes.CacheKeys {
 	return t.cacheKeys
 }

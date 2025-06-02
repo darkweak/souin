@@ -183,6 +183,9 @@ func (s *SouinCaddyMiddleware) FromApp(app *SouinApp) error {
 	if s.Configuration.LogLevel == "" {
 		s.Configuration.LogLevel = app.LogLevel
 	}
+	if !s.Configuration.SurrogateKeyDisabled {
+		s.Configuration.SurrogateKeyDisabled = app.SurrogateKeyDisabled
+	}
 	if dc.TTL.Duration == 0 {
 		s.Configuration.DefaultCache.TTL = appDc.TTL
 	}
@@ -305,6 +308,7 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 	souinApp.API = cfg.API
 	souinApp.CacheKeys = cfg.CacheKeys
 	souinApp.LogLevel = cfg.LogLevel
+	souinApp.SurrogateKeyDisabled = cfg.SurrogateKeyDisabled
 
 	return httpcaddyfile.App{
 		Name:  moduleName,

@@ -6,14 +6,15 @@ import (
 
 // BaseConfiguration holder
 type BaseConfiguration struct {
-	DefaultCache  *configurationtypes.DefaultCache  `json:"default_cache" yaml:"default_cache"`
-	API           configurationtypes.API            `json:"api" yaml:"api"`
-	CacheKeys     configurationtypes.CacheKeys      `json:"cache_keys" yaml:"cache_keys"`
-	URLs          map[string]configurationtypes.URL `json:"urls" yaml:"urls"`
-	LogLevel      string                            `json:"log_level" yaml:"log_level"`
-	PluginName    string
-	Ykeys         map[string]configurationtypes.SurrogateKeys `json:"ykeys" yaml:"ykeys"`
-	SurrogateKeys map[string]configurationtypes.SurrogateKeys `json:"surrogate_keys" yaml:"surrogate_keys"`
+	DefaultCache         *configurationtypes.DefaultCache  `json:"default_cache" yaml:"default_cache"`
+	API                  configurationtypes.API            `json:"api" yaml:"api"`
+	CacheKeys            configurationtypes.CacheKeys      `json:"cache_keys" yaml:"cache_keys"`
+	URLs                 map[string]configurationtypes.URL `json:"urls" yaml:"urls"`
+	LogLevel             string                            `json:"log_level" yaml:"log_level"`
+	PluginName           string
+	Ykeys                map[string]configurationtypes.SurrogateKeys `json:"ykeys" yaml:"ykeys"`
+	SurrogateKeys        map[string]configurationtypes.SurrogateKeys `json:"surrogate_keys" yaml:"surrogate_keys"`
+	SurrogateKeyDisabled bool                                        `json:"disable_surrogate_key" yaml:"disable_surrogate_key"`
 }
 
 // GetUrls get the urls list in the configuration
@@ -49,6 +50,11 @@ func (c *BaseConfiguration) GetYkeys() map[string]configurationtypes.SurrogateKe
 // GetSurrogateKeys get the surrogate keys list
 func (c *BaseConfiguration) GetSurrogateKeys() map[string]configurationtypes.SurrogateKeys {
 	return c.SurrogateKeys
+}
+
+// IsSurrogateDisabled disable the surrogate storage
+func (c *BaseConfiguration) IsSurrogateDisabled() bool {
+	return c.SurrogateKeyDisabled
 }
 
 // GetCacheKeys get the cache keys rules to override

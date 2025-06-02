@@ -18,7 +18,7 @@ func init() {
 }
 
 func main() {
-	web.LoadAppConfig("json", "beego.json")
+	_ = web.LoadAppConfig("json", "beego.json")
 	web.InsertFilterChain("/*", httpcache.NewHTTPCacheFilter())
 	web.Router("/*", &mainController{})
 	web.Run()

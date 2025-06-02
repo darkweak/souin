@@ -42,8 +42,9 @@ type CacheProvider struct {
 }
 
 const (
-	DISABLE_VARY_CTX = "storages_bypass_vary"
-	MappingKeyPrefix = "IDX_"
+	DISABLE_VARY_CTX   = "storages_bypass_vary"
+	MappingKeyPrefix   = "IDX_"
+	SurrogateKeyPrefix = "SURROGATE_"
 )
 
 func DecodeMapping(item []byte) (*StorageMapper, error) {

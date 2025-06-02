@@ -46,7 +46,7 @@ func (provider *Cache) Uuid() string {
 // ListKeys method returns the list of existing keys
 func (provider *Cache) ListKeys() []string {
 	var keys []string
-	provider.Cache.Range(func(key, _ interface{}) bool {
+	provider.Range(func(key, _ interface{}) bool {
 		keys = append(keys, key.(string))
 		return true
 	})
@@ -57,7 +57,7 @@ func (provider *Cache) ListKeys() []string {
 // MapKeys method returns the map of existing keys
 func (provider *Cache) MapKeys(prefix string) map[string]string {
 	keys := map[string]string{}
-	provider.Cache.Range(func(key, value interface{}) bool {
+	provider.Range(func(key, value interface{}) bool {
 		if strings.HasPrefix(key.(string), prefix) {
 			k, _ := strings.CutPrefix(key.(string), prefix)
 			keys[k] = string(value.([]byte))
@@ -119,7 +119,7 @@ func (provider *Cache) SetMultiLevel(baseKey, variedKey string, value []byte, va
 func (provider *Cache) Prefix(key string, req *http.Request, validator *types.Revalidator) *http.Response {
 	var result *http.Response
 
-	provider.Cache.Range(func(k, v interface{}) bool {
+	provider.Range(func(k, v interface{}) bool {
 		if !strings.HasPrefix(k.(string), key) {
 			return true
 		}
@@ -157,7 +157,7 @@ func (provider *Cache) Delete(key string) {
 func (provider *Cache) DeleteMany(key string) {
 	re, _ := regexp.Compile(key)
 
-	provider.Cache.Range(func(current, _ any) bool {
+	provider.Range(func(current, _ any) bool {
 		if (re != nil && re.MatchString(current.(string))) || strings.HasPrefix(current.(string), key) {
 			provider.Delete(current.(string))
 		}

@@ -38,7 +38,7 @@ func (g *graphQLContext) SetContextWithBaseRequest(req *http.Request, baseRq *ht
 				ctx = context.WithValue(ctx, IsMutationRequest, true)
 			} else {
 				h := sha256.New()
-				h.Write(b.Bytes())
+				_, _ = h.Write(b.Bytes())
 				ctx = context.WithValue(ctx, HashBody, fmt.Sprintf("-%x", h.Sum(nil)))
 			}
 		}
@@ -73,7 +73,7 @@ func (g *graphQLContext) SetContext(req *http.Request) *http.Request {
 				ctx = context.WithValue(ctx, IsMutationRequest, true)
 			} else {
 				h := sha256.New()
-				h.Write(b.Bytes())
+				_, _ = h.Write(b.Bytes())
 				ctx = context.WithValue(ctx, HashBody, fmt.Sprintf("-%x", h.Sum(nil)))
 			}
 		}

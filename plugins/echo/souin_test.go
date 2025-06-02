@@ -16,7 +16,7 @@ import (
 
 func Test_New(t *testing.T) {
 	s := NewMiddleware(DevDefaultConfiguration)
-	if s.SouinBaseHandler.Storers == nil || len(s.SouinBaseHandler.Storers) != 1 {
+	if s.Storers == nil || len(s.Storers) != 1 {
 		t.Error("The storer must be set.")
 	}
 	c := middleware.BaseConfiguration{}
@@ -115,7 +115,9 @@ func Test_SouinEchoPlugin_Process_APIHandle(t *testing.T) {
 		t.Error("The response must contain be in JSON.")
 	}
 	b, _ := io.ReadAll(res.Result().Body)
-	defer res.Result().Body.Close()
+	defer func() {
+		_ = res.Result().Body.Close()
+	}()
 	if string(b) != "[]" {
 		t.Error("The response body must be an empty array because no request has been stored")
 	}
@@ -129,7 +131,9 @@ func Test_SouinEchoPlugin_Process_APIHandle(t *testing.T) {
 		t.Error("The response must contain be in JSON.")
 	}
 	b, _ = io.ReadAll(res2.Result().Body)
-	defer res.Result().Body.Close()
+	defer func() {
+		_ = res.Result().Body.Close()
+	}()
 	var payload []string
 	_ = json.Unmarshal(b, &payload)
 	if len(payload) != 1 {

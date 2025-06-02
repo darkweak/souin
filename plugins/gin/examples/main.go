@@ -23,5 +23,5 @@ func main() {
 	})
 
 	// Start server
-	r.Run(":80")
+	_ = r.Run(":80")
 }

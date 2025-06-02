@@ -19,17 +19,18 @@ const DOMAIN = "domain.com"
 const PATH = "/testing"
 
 type testConfiguration struct {
-	DefaultCache    *configurationtypes.DefaultCache  `yaml:"default_cache"`
-	CacheKeys       configurationtypes.CacheKeys      `yaml:"cache_keys"`
-	API             configurationtypes.API            `yaml:"api"`
-	ReverseProxyURL string                            `yaml:"reverse_proxy_url"`
-	SSLProviders    []string                          `yaml:"ssl_providers"`
-	URLs            map[string]configurationtypes.URL `yaml:"urls"`
-	LogLevel        string                            `yaml:"log_level"`
-	logger          core.Logger
-	PluginName      string
-	Ykeys           map[string]configurationtypes.SurrogateKeys `yaml:"ykeys"`
-	SurrogateKeys   map[string]configurationtypes.SurrogateKeys `yaml:"surrogate_keys"`
+	DefaultCache         *configurationtypes.DefaultCache  `yaml:"default_cache"`
+	CacheKeys            configurationtypes.CacheKeys      `yaml:"cache_keys"`
+	API                  configurationtypes.API            `yaml:"api"`
+	ReverseProxyURL      string                            `yaml:"reverse_proxy_url"`
+	SSLProviders         []string                          `yaml:"ssl_providers"`
+	URLs                 map[string]configurationtypes.URL `yaml:"urls"`
+	LogLevel             string                            `yaml:"log_level"`
+	logger               core.Logger
+	PluginName           string
+	Ykeys                map[string]configurationtypes.SurrogateKeys `yaml:"ykeys"`
+	SurrogateKeys        map[string]configurationtypes.SurrogateKeys `yaml:"surrogate_keys"`
+	SurrogateKeyDisabled bool                                        `yaml:"disable_surrogate_key"`
 }
 
 // GetUrls get the urls list in the configuration
@@ -85,6 +86,11 @@ func (c *testConfiguration) GetYkeys() map[string]configurationtypes.SurrogateKe
 // GetSurrogateKeys get the surrogate keys list
 func (c *testConfiguration) GetSurrogateKeys() map[string]configurationtypes.SurrogateKeys {
 	return c.SurrogateKeys
+}
+
+// GetSurrogateKeys get the surrogate keys list
+func (c *testConfiguration) IsSurrogateDisabled() bool {
+	return c.SurrogateKeyDisabled
 }
 
 // GetCacheKeys get the cache keys rules to override

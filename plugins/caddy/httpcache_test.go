@@ -820,7 +820,7 @@ func (t *testVaryHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Vary", variedHeader)
 	w.Header().Set(variedHeader, r.Header.Get(variedHeader))
 	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write([]byte(fmt.Sprintf("Hello, vary %s!", r.Header.Get(variedHeader))))
+	_, _ = fmt.Fprintf(w, "Hello, vary %s!", r.Header.Get(variedHeader))
 }
 
 func TestVaryHandler(t *testing.T) {

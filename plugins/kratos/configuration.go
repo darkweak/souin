@@ -473,6 +473,8 @@ func ParseConfiguration(c config.Config) middleware.BaseConfiguration {
 		case "surrogate_keys":
 			surrogates, _ := v.Map()
 			configuration.SurrogateKeys = parseSurrogateKeys(surrogates)
+		case "disable_surrogate_key":
+			configuration.SurrogateKeyDisabled = true
 		}
 	}
 

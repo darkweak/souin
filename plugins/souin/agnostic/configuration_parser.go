@@ -411,6 +411,8 @@ func ParseConfiguration(baseConfiguration *middleware.BaseConfiguration, unparse
 			baseConfiguration.Ykeys = parseSurrogateKeys(v.(map[string]interface{}))
 		case "surrogate_keys":
 			baseConfiguration.SurrogateKeys = parseSurrogateKeys(v.(map[string]interface{}))
+		case "disable_surrogate_key":
+			baseConfiguration.SurrogateKeyDisabled = v.(bool)
 		}
 	}
 }

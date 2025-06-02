@@ -62,7 +62,7 @@ func (s *SouinEchoMiddleware) Process(next echo.HandlerFunc) echo.HandlerFunc {
 		req := c.Request()
 		rw := c.Response().Writer
 
-		return s.SouinBaseHandler.ServeHTTP(rw, req, func(customWriter http.ResponseWriter, _ *http.Request) error {
+		return s.ServeHTTP(rw, req, func(customWriter http.ResponseWriter, _ *http.Request) error {
 			c.Response().Writer = customWriter
 			return next(c)
 		})
