@@ -32,7 +32,7 @@ func main() {
 
 	r.GET("/{p}", func(ctx kratos_http.Context) error {
 		ctx.Response().WriteHeader(http.StatusOK)
-		ctx.Response().Write([]byte("Hello Kratos!"))
+		_, _ = ctx.Response().Write([]byte("Hello Kratos!"))
 		return nil
 	})
 

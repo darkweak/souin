@@ -6,13 +6,14 @@ import (
 
 // Configuration holder
 type Configuration struct {
-	DefaultCache  *configurationtypes.DefaultCache            `json:"default_cache" yaml:"default_cache"`
-	API           configurationtypes.API                      `json:"api" yaml:"api"`
-	CacheKeys     configurationtypes.CacheKeys                `yaml:"cache_keys"`
-	URLs          map[string]configurationtypes.URL           `json:"urls" yaml:"urls"`
-	LogLevel      string                                      `json:"log_level" yaml:"log_level"`
-	Ykeys         map[string]configurationtypes.SurrogateKeys `json:"ykeys" yaml:"ykeys"`
-	SurrogateKeys map[string]configurationtypes.SurrogateKeys `json:"surrogate_keys" yaml:"surrogate_keys"`
+	DefaultCache         *configurationtypes.DefaultCache            `json:"default_cache" yaml:"default_cache"`
+	API                  configurationtypes.API                      `json:"api" yaml:"api"`
+	CacheKeys            configurationtypes.CacheKeys                `yaml:"cache_keys"`
+	URLs                 map[string]configurationtypes.URL           `json:"urls" yaml:"urls"`
+	LogLevel             string                                      `json:"log_level" yaml:"log_level"`
+	Ykeys                map[string]configurationtypes.SurrogateKeys `json:"ykeys" yaml:"ykeys"`
+	SurrogateKeys        map[string]configurationtypes.SurrogateKeys `json:"surrogate_keys" yaml:"surrogate_keys"`
+	SurrogateKeyDisabled bool                                        `json:"disable_surrogate_key" yaml:"disable_surrogate_key"`
 }
 
 // GetUrls get the urls list in the configuration
@@ -48,6 +49,11 @@ func (c *Configuration) GetYkeys() map[string]configurationtypes.SurrogateKeys {
 // GetSurrogateKeys get the surrogate keys list
 func (c *Configuration) GetSurrogateKeys() map[string]configurationtypes.SurrogateKeys {
 	return c.SurrogateKeys
+}
+
+// IsSurrogateDisabled disable the surrogate storage
+func (c *Configuration) IsSurrogateDisabled() bool {
+	return c.SurrogateKeyDisabled
 }
 
 // GetCacheKeys get the cache keys rules to override

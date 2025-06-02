@@ -23,6 +23,7 @@ import (
 	"github.com/google/cel-go/common/types"
 	"github.com/google/cel-go/common/types/ref"
 
+	celpb "cel.dev/expr"
 	exprpb "google.golang.org/genproto/googleapis/api/expr/v1alpha1"
 )
 
@@ -147,6 +148,16 @@ func Variable(name string, t *Type) EnvOption {
 	}
 }
 
+// VariableDecls configures a set of fully defined cel.VariableDecl instances in the environment.
+func VariableDecls(vars ...*decls.VariableDecl) EnvOption {
+	return func(e *Env) (*Env, error) {
+		for _, v := range vars {
+			e.variables = append(e.variables, v)
+		}
+		return e, nil
+	}
+}
+
 // Function defines a function and overloads with optional singleton or per-overload bindings.
 //
 // Using Function is roughly equivalent to calling Declarations() to declare the function signatures
@@ -189,6 +200,38 @@ func Function(name string, opts ...FunctionOpt) EnvOption {
 			}
 		}
 		e.functions[fn.Name()] = fn
+		return e, nil
+	}
+}
+
+// OverloadSelector selects an overload associated with a given function when it returns true.
+//
+// Used in combination with the FunctionDecl.Subset method.
+type OverloadSelector = decls.OverloadSelector
+
+// IncludeOverloads defines an OverloadSelector which allow-lists a set of overloads by their ids.
+func IncludeOverloads(overloadIDs ...string) OverloadSelector {
+	return decls.IncludeOverloads(overloadIDs...)
+}
+
+// ExcludeOverloads defines an OverloadSelector which deny-lists a set of overloads by their ids.
+func ExcludeOverloads(overloadIDs ...string) OverloadSelector {
+	return decls.ExcludeOverloads(overloadIDs...)
+}
+
+// FunctionDecls provides one or more fully formed function declarations to be added to the environment.
+func FunctionDecls(funcs ...*decls.FunctionDecl) EnvOption {
+	return func(e *Env) (*Env, error) {
+		var err error
+		for _, fn := range funcs {
+			if existing, found := e.functions[fn.Name()]; found {
+				fn, err = existing.Merge(fn)
+				if err != nil {
+					return nil, err
+				}
+			}
+			e.functions[fn.Name()] = fn
+		}
 		return e, nil
 	}
 }
@@ -312,20 +355,34 @@ func ExprTypeToType(t *exprpb.Type) (*Type, error) {
 
 // ExprDeclToDeclaration converts a protobuf CEL declaration to a CEL-native declaration, either a Variable or Function.
 func ExprDeclToDeclaration(d *exprpb.Decl) (EnvOption, error) {
+	return AlphaProtoAsDeclaration(d)
+}
+
+// AlphaProtoAsDeclaration converts a v1alpha1.Decl value describing a variable or function into an EnvOption.
+func AlphaProtoAsDeclaration(d *exprpb.Decl) (EnvOption, error) {
+	canonical := &celpb.Decl{}
+	if err := convertProto(d, canonical); err != nil {
+		return nil, err
+	}
+	return ProtoAsDeclaration(canonical)
+}
+
+// ProtoAsDeclaration converts a canonical celpb.Decl value describing a variable or function into an EnvOption.
+func ProtoAsDeclaration(d *celpb.Decl) (EnvOption, error) {
 	switch d.GetDeclKind().(type) {
-	case *exprpb.Decl_Function:
+	case *celpb.Decl_Function:
 		overloads := d.GetFunction().GetOverloads()
 		opts := make([]FunctionOpt, len(overloads))
 		for i, o := range overloads {
 			args := make([]*Type, len(o.GetParams()))
 			for j, p := range o.GetParams() {
-				a, err := types.ExprTypeToType(p)
+				a, err := types.ProtoAsType(p)
 				if err != nil {
 					return nil, err
 				}
 				args[j] = a
 			}
-			res, err := types.ExprTypeToType(o.GetResultType())
+			res, err := types.ProtoAsType(o.GetResultType())
 			if err != nil {
 				return nil, err
 			}
@@ -336,15 +393,15 @@ func ExprDeclToDeclaration(d *exprpb.Decl) (EnvOption, error) {
 			}
 		}
 		return Function(d.GetName(), opts...), nil
-	case *exprpb.Decl_Ident:
-		t, err := types.ExprTypeToType(d.GetIdent().GetType())
+	case *celpb.Decl_Ident:
+		t, err := types.ProtoAsType(d.GetIdent().GetType())
 		if err != nil {
 			return nil, err
 		}
 		if d.GetIdent().GetValue() == nil {
 			return Variable(d.GetName(), t), nil
 		}
-		val, err := ast.ConstantToVal(d.GetIdent().GetValue())
+		val, err := ast.ProtoConstantAsVal(d.GetIdent().GetValue())
 		if err != nil {
 			return nil, err
 		}

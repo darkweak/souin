@@ -10,12 +10,7 @@ import (
 
 func defaultHandler(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Hello, World!"))
-}
-
-func excludedHandler(w http.ResponseWriter, _ *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Hello, Excluded!"))
+	_, _ = w.Write([]byte("Hello, World!"))
 }
 
 func getRoutes() []*webgo.Route {

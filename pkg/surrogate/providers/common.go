@@ -110,11 +110,11 @@ type baseStorage struct {
 
 func (s *baseStorage) init(config configurationtypes.AbstractConfigurationInterface, defaultStorerName string) {
 	if configuration, ok := config.GetSurrogateKeys()["_configuration"]; ok {
-		storer := core.GetRegisteredStorer(configuration.SurrogateConfiguration.Storer)
+		storer := core.GetRegisteredStorer(configuration.Storer)
 		if storer == nil {
 			storer = core.GetRegisteredStorer(types.DefaultStorageName + "-")
 			if storer == nil {
-				config.GetLogger().Errorf("Impossible to retrieve the storers %s for the surrogate-keys from it's configuration", configuration.SurrogateConfiguration.Storer)
+				config.GetLogger().Errorf("Impossible to retrieve the storers %s for the surrogate-keys from it's configuration", configuration.Storer)
 			}
 		}
 
@@ -123,7 +123,7 @@ func (s *baseStorage) init(config configurationtypes.AbstractConfigurationInterf
 		config.GetLogger().Debugf("Try to load the storer %s as surrogate backend", defaultStorerName)
 		storer := core.GetRegisteredStorer(defaultStorerName)
 		if storer == nil {
-			config.GetLogger().Errorf("Impossible to retrieve the storers %s for the surrogate-keys fallback to the default storage", configuration.SurrogateConfiguration.Storer)
+			config.GetLogger().Errorf("Impossible to retrieve the storers %s for the surrogate-keys fallback to the default storage", configuration.Storer)
 			storer = core.GetRegisteredStorer(types.DefaultStorageName + "-")
 			if storer == nil {
 				config.GetLogger().Error("Impossible to retrieve the default storer")

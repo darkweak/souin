@@ -247,6 +247,8 @@ func parseConfiguration(c map[string]interface{}) Configuration {
 			d, _ := json.Marshal(v)
 			_ = json.Unmarshal(d, &ykeys)
 			configuration.Ykeys = ykeys
+		case "disable_surrogate_key":
+			configuration.SurrogateKeyDisabled = v.(bool)
 		}
 	}
 

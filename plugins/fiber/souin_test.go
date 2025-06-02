@@ -124,7 +124,7 @@ func Test_SouinFiberPlugin_Middleware_APIHandle(t *testing.T) {
 	}
 
 	b, _ := io.ReadAll(res.Body)
-	res.Body.Close()
+	_ = res.Body.Close()
 	if string(b) != "[]" {
 		t.Error("The response body must be an empty array because no request has been stored")
 	}
@@ -137,7 +137,7 @@ func Test_SouinFiberPlugin_Middleware_APIHandle(t *testing.T) {
 		t.Error(err)
 	}
 	b, _ = io.ReadAll(res.Body)
-	res.Body.Close()
+	_ = res.Body.Close()
 	var payload []string
 	_ = json.Unmarshal(b, &payload)
 	if len(payload) != 1 {
