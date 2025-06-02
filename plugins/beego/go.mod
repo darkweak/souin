@@ -6,9 +6,9 @@ toolchain go1.24.2
 
 require (
 	github.com/beego/beego/v2 v2.1.1
-	github.com/darkweak/souin v1.7.6
-	github.com/darkweak/souin/plugins/souin v1.7.6
-	github.com/darkweak/souin/plugins/souin/storages v1.7.6
+	github.com/darkweak/souin v1.7.7
+	github.com/darkweak/souin/plugins/souin v1.7.7
+	github.com/darkweak/souin/plugins/souin/storages v1.7.7
 )
 
 require (
@@ -190,7 +190,7 @@ require (
 )
 
 replace (
-	github.com/darkweak/souin v1.7.6 => ../..
+	github.com/darkweak/souin v1.7.7 => ../..
 	github.com/darkweak/souin/plugins/souin => ../souin
 	github.com/darkweak/souin/plugins/souin/storages => ../souin/storages
 )

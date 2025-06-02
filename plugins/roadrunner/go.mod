@@ -5,9 +5,9 @@ go 1.24
 toolchain go1.24.2
 
 require (
-	github.com/darkweak/souin v1.7.6
-	github.com/darkweak/souin/plugins/souin v1.7.6
-	github.com/darkweak/souin/plugins/souin/storages v1.7.6
+	github.com/darkweak/souin v1.7.7
+	github.com/darkweak/souin/plugins/souin v1.7.7
+	github.com/darkweak/souin/plugins/souin/storages v1.7.7
 	github.com/roadrunner-server/errors v1.3.0
 	go.uber.org/zap v1.27.0
 	gopkg.in/yaml.v3 v3.0.1
@@ -188,7 +188,7 @@ require (
 )
 
 replace (
-	github.com/darkweak/souin v1.7.6 => ../..
+	github.com/darkweak/souin v1.7.7 => ../..
 	github.com/darkweak/souin/plugins/souin => ../souin
 	github.com/darkweak/souin/plugins/souin/storages => ../souin/storages
 )

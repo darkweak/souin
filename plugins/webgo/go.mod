@@ -6,8 +6,8 @@ toolchain go1.24.2
 
 require (
 	github.com/bnkamalesh/webgo/v6 v6.7.0
-	github.com/darkweak/souin v1.7.6
-	github.com/darkweak/souin/plugins/souin/storages v1.7.6
+	github.com/darkweak/souin v1.7.7
+	github.com/darkweak/souin/plugins/souin/storages v1.7.7
 )
 
 require (
@@ -187,6 +187,6 @@ require (
 )
 
 replace (
-	github.com/darkweak/souin v1.7.6 => ../..
+	github.com/darkweak/souin v1.7.7 => ../..
 	github.com/darkweak/souin/plugins/souin/storages => ../souin/storages
 )

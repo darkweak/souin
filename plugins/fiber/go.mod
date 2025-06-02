@@ -5,8 +5,8 @@ go 1.24
 toolchain go1.24.2
 
 require (
-	github.com/darkweak/souin v1.7.6
-	github.com/darkweak/souin/plugins/souin/storages v1.7.6
+	github.com/darkweak/souin v1.7.7
+	github.com/darkweak/souin/plugins/souin/storages v1.7.7
 	github.com/gofiber/fiber/v2 v2.52.1
 	github.com/valyala/fasthttp v1.51.0
 )
@@ -193,6 +193,6 @@ require (
 )
 
 replace (
-	github.com/darkweak/souin v1.7.6 => ../..
+	github.com/darkweak/souin v1.7.7 => ../..
 	github.com/darkweak/souin/plugins/souin/storages => ../souin/storages
 )

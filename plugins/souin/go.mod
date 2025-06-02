@@ -5,13 +5,13 @@ go 1.24
 toolchain go1.24.2
 
 replace (
-	github.com/darkweak/souin v1.7.6 => ../..
+	github.com/darkweak/souin v1.7.7 => ../..
 	github.com/darkweak/souin/plugins/souin/storages => ./storages
 )
 
 require (
-	github.com/darkweak/souin v1.7.6
-	github.com/darkweak/souin/plugins/souin/storages v1.7.6
+	github.com/darkweak/souin v1.7.7
+	github.com/darkweak/souin/plugins/souin/storages v1.7.7
 	github.com/darkweak/storages/core v0.0.15
 	github.com/fsnotify/fsnotify v1.8.0
 	go.uber.org/zap v1.27.0

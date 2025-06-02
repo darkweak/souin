@@ -6,7 +6,7 @@ toolchain go1.24.2
 
 require (
 	github.com/caddyserver/caddy/v2 v2.10.0
-	github.com/darkweak/souin v1.7.6
+	github.com/darkweak/souin v1.7.7
 	github.com/darkweak/storages/core v0.0.15
 )
 
@@ -160,4 +160,4 @@ require (
 	howett.net/plist v1.0.0 // indirect
 )
 
-replace github.com/darkweak/souin v1.7.6 => ../..
+replace github.com/darkweak/souin v1.7.7 => ../..

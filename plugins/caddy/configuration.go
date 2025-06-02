@@ -196,7 +196,9 @@ type Configuration struct {
 	LogLevel string
 	// SurrogateKeys contains the surrogate keys to use with a predefined mapping
 	SurrogateKeys map[string]configurationtypes.SurrogateKeys
-	logger        core.Logger
+	// SurrogateKeyDisabled disables the surrogate keys system
+	SurrogateKeyDisabled bool
+	logger               core.Logger
 }
 
 // GetUrls get the urls list in the configuration
@@ -204,7 +206,7 @@ func (c *Configuration) GetUrls() map[string]configurationtypes.URL {
 	return c.URLs
 }
 
-// GetDefaultCache get the default cache
+// GetPluginName get the plugin name
 func (c *Configuration) GetPluginName() string {
 	return "caddy"
 }
@@ -246,7 +248,7 @@ func (c *Configuration) GetSurrogateKeys() map[string]configurationtypes.Surroga
 
 // IsSurrogateDisabled disables the surrogate storage
 func (c *Configuration) IsSurrogateDisabled() bool {
-	return false
+	return c.SurrogateKeyDisabled
 }
 
 // GetCacheKeys get the cache keys rules to override
@@ -761,6 +763,8 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isGlobal boo
 				}
 			case "disable_coalescing":
 				cfg.DefaultCache.DisableCoalescing = true
+			case "disable_surrogate_key":
+				cfg.SurrogateKeyDisabled = true
 			default:
 				return h.Errf("unsupported root directive: %s", rootOption)
 			}

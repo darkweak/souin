@@ -257,9 +257,22 @@ surrogate_keys:
 | `surrogate_keys.{key name}.headers`               | Headers that should match to be part of the surrogate key group                                                                             | `Authorization: ey.+`<br/><br/>`Content-Type: json`                                                                                                                                                                           |
 | `surrogate_keys.{key name}.headers.{header name}` | Header name that should be present a match the regex to be part of the surrogate key group                                                  | `Content-Type: json`                                                                                                                                                                                                          |
 | `surrogate_keys.{key name}.url`                   | Url that should match to be part of the surrogate key group                                                                                 | `.+`                                                                                                                                                                                                                          |
+| `disable_surrogate_key`                           | Disable the Surrogate keys storage system                                                                                                   | `true`                                                                                                                                                                                                                        |
 | `ykeys.{key name}.headers`                        | (DEPRECATED) Headers that should match to be part of the ykey group                                                                         | `Authorization: ey.+`<br/><br/>`Content-Type: json`                                                                                                                                                                           |
 | `ykeys.{key name}.headers.{header name}`          | (DEPRECATED) Header name that should be present a match the regex to be part of the ykey group                                              | `Content-Type: json`                                                                                                                                                                                                          |
 | `ykeys.{key name}.url`                            | (DEPRECATED) Url that should match to be part of the ykey group                                                                             | `.+`                                                                                                                                                                                                                          |
+
+## Storages
+Since `v1.7.0` Souin implements only one storage. If you need a specific storage you have to take it from [the storages repository](https://github.com/darkweak/storages) and add it either in your code, during the build otherwise. 
+
+Supported storages
+- [Badger](https://github.com/dgraph-io/badger)
+- [Etcd](https://github.com/etcd-io/etcd)
+- [NutsDB](https://github.com/nutsdb/nutsdb)
+- [Olric](https://github.com/buraksezer/olric)
+- [Otter](https://github.com/maypok86/otter)
+- [Redis](https://github.com/redis/redis)
+- [Simplefs](https://github.com/darkweak/storages)
 
 ## APIs
 All endpoints are accessible through the `api.basepath` configuration line or by default through `/souin-api` to avoid named route conflicts. Be sure to define an unused route to not break your existing application.
@@ -972,7 +985,7 @@ experimental:
   plugins:
     souin:
       moduleName: github.com/darkweak/souin
-      version: v1.7.6
+      version: v1.7.7
 ```
 After that you can declare either the whole configuration at once in the middleware block or by service. See the examples below.
 ```yaml
