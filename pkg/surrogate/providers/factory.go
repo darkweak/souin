@@ -2,6 +2,7 @@ package providers
 
 import (
 	"github.com/darkweak/souin/configurationtypes"
+	"time"
 )
 
 // SurrogateFactory generate a SurrogateInterface instance

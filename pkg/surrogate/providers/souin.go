@@ -2,6 +2,7 @@ package providers
 
 import (
 	"github.com/darkweak/souin/configurationtypes"
+	"time"
 )
 
 // SouinSurrogateStorage is the layer for Surrogate-key support storage

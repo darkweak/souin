@@ -3,6 +3,7 @@ package providers
 import (
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/darkweak/souin/configurationtypes"
 )
@@ -15,7 +16,7 @@ type FastlySurrogateStorage struct {
 	strategy       string
 }
 
-func generateFastlyInstance(config configurationtypes.AbstractConfigurationInterface, defaultStorerName string) *FastlySurrogateStorage {
+func generateFastlyInstance(config configurationtypes.AbstractConfigurationInterface, defaultStorerName string, defaultTTL time.Duration) *FastlySurrogateStorage {
 	cdn := config.GetDefaultCache().GetCDN()
 	f := &FastlySurrogateStorage{
 		baseStorage:    &baseStorage{},
@@ -28,7 +29,7 @@ func generateFastlyInstance(config configurationtypes.AbstractConfigurationInter
 		f.strategy = "1"
 	}
 
-	f.init(config, defaultStorerName)
+	f.init(config, defaultStorerName, defaultTTL)
 	f.parent = f
 
 	return f
