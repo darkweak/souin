@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/darkweak/souin/configurationtypes"
 )
@@ -18,7 +19,7 @@ type CloudflareSurrogateStorage struct {
 	zoneID         string
 }
 
-func generateCloudflareInstance(config configurationtypes.AbstractConfigurationInterface, defaultStorerName string) *CloudflareSurrogateStorage {
+func generateCloudflareInstance(config configurationtypes.AbstractConfigurationInterface, defaultStorerName string, defaultTTL time.Duration) *CloudflareSurrogateStorage {
 	cdn := config.GetDefaultCache().GetCDN()
 	f := &CloudflareSurrogateStorage{
 		baseStorage:    &baseStorage{},
@@ -27,7 +28,7 @@ func generateCloudflareInstance(config configurationtypes.AbstractConfigurationI
 		email:          cdn.Email,
 	}
 
-	f.init(config, defaultStorerName)
+	f.init(config, defaultStorerName, defaultTTL)
 	f.parent = f
 
 	return f
