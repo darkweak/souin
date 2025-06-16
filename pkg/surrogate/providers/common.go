@@ -108,7 +108,7 @@ type baseStorage struct {
 	duration   time.Duration
 }
 
-func (s *baseStorage) init(config configurationtypes.AbstractConfigurationInterface, defaultStorerName string) {
+func (s *baseStorage) init(config configurationtypes.AbstractConfigurationInterface, defaultStorerName string, defaultTTL time.Duration) {
 	if configuration, ok := config.GetSurrogateKeys()["_configuration"]; ok {
 		storer := core.GetRegisteredStorer(configuration.Storer)
 		if storer == nil {
@@ -159,7 +159,11 @@ func (s *baseStorage) init(config configurationtypes.AbstractConfigurationInterf
 	s.dynamic = config.GetDefaultCache().GetCDN().Dynamic
 	s.logger = config.GetLogger()
 	s.keysRegexp = keysRegexp
-	s.duration = storageToInfiniteTTLMap[s.Storage.Name()]
+	if defaultTTL > 0 {
+		s.duration = defaultTTL
+	} else {
+		s.duration = storageToInfiniteTTLMap[s.Storage.Name()]
+	}
 }
 
 func (s *baseStorage) storeTag(tag string, cacheKey string, re *regexp.Regexp) {

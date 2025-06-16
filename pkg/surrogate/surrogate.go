@@ -78,6 +78,6 @@ import (
 )
 
 // InitializeSurrogate will initialize the Surrogate-Key storage system
-func InitializeSurrogate(configurationInterface configurationtypes.AbstractConfigurationInterface, storageName string) providers.SurrogateInterface {
-	return providers.SurrogateFactory(configurationInterface, storageName)
+func InitializeSurrogate(configurationInterface configurationtypes.AbstractConfigurationInterface, storageName string, defaultTTL time.Duration) providers.SurrogateInterface {
+	return providers.SurrogateFactory(configurationInterface, storageName, defaultTTL)
 }
