@@ -7,7 +7,7 @@ toolchain go1.24.2
 require (
 	github.com/darkweak/souin v1.7.7
 	github.com/darkweak/souin/plugins/souin/storages v1.7.7
-	github.com/go-chi/chi/v5 v5.2.1
+	github.com/go-chi/chi/v5 v5.2.2
 )
 
 require (
