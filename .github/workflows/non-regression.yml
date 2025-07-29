@@ -50,5 +50,5 @@ jobs:
         name: Build the stack
         run: docker compose -f docker-compose.yml.prod up -d --build --force-recreate --remove-orphans
       -
-        name: Souin container healthceck
+        name: Souin container healthcheck
         run: docker compose -f docker-compose.yml.prod exec -T souin ls

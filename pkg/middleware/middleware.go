@@ -733,7 +733,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 
 	customWriter := NewCustomWriter(req, rw, bufPool)
 	customWriter.Headers.Add("Range", req.Header.Get("Range"))
-	req.Header.Del("Range")
+	// req.Header.Del("Range")
 
 	go func(req *http.Request, crw *CustomWriter) {
 		<-req.Context().Done()
