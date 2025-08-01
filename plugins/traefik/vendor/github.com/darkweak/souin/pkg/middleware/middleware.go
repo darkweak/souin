@@ -633,11 +633,13 @@ func (s *SouinBaseHandler) HandleInternally(r *http.Request) (bool, http.Handler
 	return false, nil
 }
 
-type handlerFunc = func(http.ResponseWriter, *http.Request) error
-type statusCodeLogger struct {
-	http.ResponseWriter
-	statusCode int
-}
+type (
+	handlerFunc      = func(http.ResponseWriter, *http.Request) error
+	statusCodeLogger struct {
+		http.ResponseWriter
+		statusCode int
+	}
+)
 
 func (s *statusCodeLogger) WriteHeader(code int) {
 	s.statusCode = code
@@ -765,7 +767,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 				}
 
 				customWriter.WriteHeader(response.StatusCode)
-				customWriter.copyToBuffer(response.Body)
+				_, _ = customWriter.copyToBuffer(response.Body)
 				_, _ = customWriter.Send()
 
 				return nil
@@ -791,7 +793,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 				}
 				customWriter.WriteHeader(response.StatusCode)
 				s.Configuration.GetLogger().Debugf("Serve from cache %+v", req)
-				customWriter.copyToBuffer(response.Body)
+				_, _ = customWriter.copyToBuffer(response.Body)
 				_, err := customWriter.Send()
 				prometheus.Increment(prometheus.CachedResponseCounter)
 
@@ -811,7 +813,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 					}
 					customWriter.WriteHeader(response.StatusCode)
 					rfc.HitStaleCache(&response.Header)
-					customWriter.copyToBuffer(response.Body)
+					_, _ = customWriter.copyToBuffer(response.Body)
 					_, err := customWriter.Send()
 					customWriter = NewCustomWriter(req, rw, bufPool)
 					go func(v *core.Revalidator, goCw *CustomWriter, goRq *http.Request, goNext func(http.ResponseWriter, *http.Request) error, goCc *cacheobject.RequestCacheDirectives, goCk string, goUri string) {
@@ -835,7 +837,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 							response.Header.Set("Cache-Status", response.Header.Get("Cache-Status")+code)
 							maps.Copy(customWriter.Header(), response.Header)
 							customWriter.WriteHeader(response.StatusCode)
-							customWriter.resetAndCopyToBuffer(response.Body)
+							_, _ = customWriter.resetAndCopyToBuffer(response.Body)
 							_, err := customWriter.Send()
 
 							return err
@@ -852,7 +854,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 							rfc.SetCacheStatusHeader(response, storerName)
 							customWriter.WriteHeader(response.StatusCode)
 							maps.Copy(customWriter.Header(), response.Header)
-							customWriter.copyToBuffer(response.Body)
+							_, _ = customWriter.copyToBuffer(response.Body)
 							_, _ = customWriter.Send()
 
 							return err
@@ -876,7 +878,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 					customWriter.WriteHeader(response.StatusCode)
 					rfc.HitStaleCache(&response.Header)
 					maps.Copy(customWriter.Header(), response.Header)
-					customWriter.copyToBuffer(response.Body)
+					_, _ = customWriter.copyToBuffer(response.Body)
 					_, err := customWriter.Send()
 
 					return err
@@ -890,7 +892,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 				customWriter.WriteHeader(response.StatusCode)
 				rfc.HitStaleCache(&response.Header)
 				maps.Copy(customWriter.Header(), response.Header)
-				customWriter.copyToBuffer(response.Body)
+				_, _ = customWriter.copyToBuffer(response.Body)
 				_, err := customWriter.Send()
 
 				return err
@@ -914,7 +916,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 						response.Header.Set("Cache-Status", response.Header.Get("Cache-Status")+code)
 						maps.Copy(customWriter.Header(), response.Header)
 						customWriter.WriteHeader(response.StatusCode)
-						customWriter.resetAndCopyToBuffer(response.Body)
+						_, _ = customWriter.resetAndCopyToBuffer(response.Body)
 						_, err := customWriter.Send()
 
 						return err
