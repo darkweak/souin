@@ -191,7 +191,7 @@ func (provider *Default) DeleteMany(key string) {
 
 	provider.m.Range(func(current, _ any) bool {
 		if (re != nil && re.MatchString(current.(string))) || strings.HasPrefix(current.(string), key) {
-			provider.m.Delete(current.(string))
+			provider.m.Delete(current)
 		}
 
 		return true
