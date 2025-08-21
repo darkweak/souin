@@ -190,8 +190,25 @@ func (provider *Default) DeleteMany(key string) {
 	}
 
 	provider.m.Range(func(current, _ any) bool {
-		if (re != nil && re.MatchString(current.(string))) || strings.HasPrefix(current.(string), key) {
+		currentKey := current.(string)
+		provider.logger.Debugf("DeleteMany: testing key %s against pattern %s", currentKey, key)
+
+		isRegexMatch := re != nil && re.MatchString(currentKey)
+		isPrefixMatch := strings.HasPrefix(currentKey, key)
+
+		if isRegexMatch || isPrefixMatch {
+			var reason string
+			if isRegexMatch && isPrefixMatch {
+				reason = "regex and prefix match"
+			} else if isRegexMatch {
+				reason = "regex match"
+			} else {
+				reason = "prefix match"
+			}
+			provider.logger.Debugf("DeleteMany: key %s matched pattern %s (%s), deleting.", currentKey, key, reason)
 			provider.m.Delete(current)
+		} else {
+			provider.logger.Debugf("DeleteMany: key %s did not match pattern %s", currentKey, key)
 		}
 
 		return true
