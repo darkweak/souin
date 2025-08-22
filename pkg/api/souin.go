@@ -212,6 +212,7 @@ func (s *SouinAPI) purgeMapping() {
 
 // HandleRequest will handle the request
 func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
+	fmt.Printf("SOUIN API HandleRequest: Method=%s, URI=%s\n", r.Method, r.RequestURI)
 	res := []byte{}
 	compile := regexp.MustCompile(s.GetBasePath()+"/.+").FindString(r.RequestURI) != ""
 	switch r.Method {
@@ -322,7 +323,9 @@ func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 				s.purgeMapping()
 			} else {
 				submatch := keysRg.FindAllStringSubmatch(r.RequestURI, -1)[0][1]
+				fmt.Printf("SOUIN API PURGE: extracted pattern from URI: %s\n", submatch)
 				for _, current := range s.storers {
+					fmt.Printf("SOUIN API PURGE: calling DeleteMany with pattern: %s on storer: %s\n", submatch, current.Name())
 					current.DeleteMany(submatch)
 				}
 			}

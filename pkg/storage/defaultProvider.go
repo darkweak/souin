@@ -79,26 +79,37 @@ func (provider *Default) MapKeys(prefix string) map[string]string {
 
 // ListKeys method returns the list of existing keys
 func (provider *Default) ListKeys() []string {
+	provider.logger.Debugf("ListKeys called on Default storage provider")
 	now := time.Now()
 	keys := []string{}
 
 	provider.m.Range(func(key, value any) bool {
-		if strings.HasPrefix(key.(string), core.MappingKeyPrefix) {
+		keyStr := key.(string)
+		provider.logger.Debugf("ListKeys: examining key %s", keyStr)
+		
+		if strings.HasPrefix(keyStr, core.MappingKeyPrefix) {
+			provider.logger.Debugf("ListKeys: found mapping key %s", keyStr)
 			mapping, err := core.DecodeMapping(value.([]byte))
 			if err == nil {
+				provider.logger.Debugf("ListKeys: successfully decoded mapping with %d entries", len(mapping.Mapping))
 				for _, v := range mapping.Mapping {
 					if v.StaleTime.AsTime().After(now) {
+						provider.logger.Debugf("ListKeys: adding fresh key %s", v.RealKey)
 						keys = append(keys, v.RealKey)
 					} else {
+						provider.logger.Debugf("ListKeys: removing stale key %s", v.RealKey)
 						provider.m.Delete(v.RealKey)
 					}
 				}
+			} else {
+				provider.logger.Errorf("ListKeys: failed to decode mapping for key %s: %v", keyStr, err)
 			}
 		}
 
 		return true
 	})
 
+	provider.logger.Debugf("ListKeys returning %d keys: %v", len(keys), keys)
 	return keys
 }
 
