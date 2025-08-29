@@ -149,11 +149,6 @@ func NewHTTPCacheHandler(c configurationtypes.AbstractConfigurationInterface) *S
 		Headers:             c.GetDefaultCache().GetHeaders(),
 		DefaultCacheControl: c.GetDefaultCache().GetDefaultCacheControl(),
 	}
-	if c.GetDefaultCache().IsCoalescingDisable() {
-		c.GetLogger().Info("Coalescing is disabled.")
-	} else {
-		c.GetLogger().Info("Coalescing is enabled.")
-	}
 	c.GetLogger().Info("Souin configuration is now loaded.")
 
 	registerMappingKeysEviction(c.GetLogger(), storers)
