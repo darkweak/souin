@@ -1504,3 +1504,72 @@ func TestAPIPlatformInvalidation(t *testing.T) {
 		t.Errorf("unexpected list %#v", items)
 	}
 }
+
+func TestRange(t *testing.T) {
+	tester := caddytest.NewTester(t)
+	tester.InitServer(`
+	{
+		debug
+		admin localhost:2999
+		http_port     9080
+		cache {
+			api {
+				souin
+			}
+		}
+	}
+	localhost:9080 {
+		route /range-request {
+			cache
+
+			respond "Hello range-request!"
+		}
+	}`, "caddyfile")
+
+	reqRange, _ := http.NewRequest(http.MethodGet, "http://localhost:9080/range-request", nil)
+	reqRange.Header.Set("Range", "bytes=0-4, 6-10")
+
+	resp1, _ := tester.AssertResponse(reqRange, http.StatusPartialContent, `
+--SOUIN-HTTP-CACHE-SEPARATOR
+Content-Type: text/plain; charset=utf-8
+Content-Range: bytes 0-5/20
+
+Hello
+
+--SOUIN-HTTP-CACHE-SEPARATOR
+Content-Type: text/plain; charset=utf-8
+Content-Range: bytes 6-11/20
+
+range
+--SOUIN-HTTP-CACHE-SEPARATOR--`)
+
+	if resp1.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-http-localhost:9080-/range-request" {
+		t.Errorf("unexpected resp1 Cache-Status header %v", resp1.Header.Get("Cache-Status"))
+	}
+
+	if resp1.Header.Get("Age") != "" {
+		t.Errorf("unexpected resp1 Age header %v", resp1.Header.Get("Age"))
+	}
+
+	resp2, _ := tester.AssertResponse(reqRange, http.StatusPartialContent, `
+--SOUIN-HTTP-CACHE-SEPARATOR
+Content-Type: text/plain; charset=utf-8
+Content-Range: bytes 0-5/20
+
+Hello
+
+--SOUIN-HTTP-CACHE-SEPARATOR
+Content-Type: text/plain; charset=utf-8
+Content-Range: bytes 6-11/20
+
+range
+--SOUIN-HTTP-CACHE-SEPARATOR--`)
+
+	if resp2.Header.Get("Cache-Status") != "Souin; hit; ttl=119; key=GET-http-localhost:9080-/range-request; detail=DEFAULT" {
+		t.Errorf("unexpected resp2 Cache-Status header %v", resp2.Header.Get("Cache-Status"))
+	}
+
+	if resp2.Header.Get("Age") != "1" {
+		t.Errorf("unexpected resp2 Age header %v", resp2.Header.Get("Age"))
+	}
+}
