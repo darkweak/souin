@@ -14,7 +14,7 @@ import (
 	"sync"
 	"time"
 
-	xxhash "github.com/cespare/xxhash/v2"
+	"github.com/cespare/xxhash/v2"
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/context"
 	"github.com/darkweak/souin/helpers"
@@ -730,7 +730,11 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 	bufPool := s.bufPool.Get().(*bytes.Buffer)
 	bufPool.Reset()
 	defer s.bufPool.Put(bufPool)
+
 	customWriter := NewCustomWriter(req, rw, bufPool)
+	customWriter.Headers.Add("Range", req.Header.Get("Range"))
+	// req.Header.Del("Range")
+
 	go func(req *http.Request, crw *CustomWriter) {
 		<-req.Context().Done()
 		crw.mutex.Lock()
