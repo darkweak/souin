@@ -218,7 +218,11 @@ func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		if regexp.MustCompile(s.GetBasePath()+"/surrogate_keys").FindString(r.RequestURI) != "" {
-			res, _ = json.Marshal(s.surrogateStorage.List())
+			if s.surrogateStorage != nil {
+				res, _ = json.Marshal(s.surrogateStorage.List())
+			} else {
+				res, _ = json.Marshal([]string{})
+			}
 		} else if compile {
 			search := regexp.MustCompile(s.GetBasePath()+"/(.+)").FindAllStringSubmatch(r.RequestURI, -1)[0][1]
 			res, _ = json.Marshal(s.listKeys(search))
@@ -244,8 +248,10 @@ func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 		switch invalidator.Type {
 		case groupInvalidationType:
 			var surrogateKeys []string
-			keysToInvalidate, surrogateKeys = s.surrogateStorage.Purge(http.Header{"Surrogate-Key": invalidator.Groups})
-			keysToInvalidate = append(keysToInvalidate, surrogateKeys...)
+			if s.surrogateStorage != nil {
+				keysToInvalidate, surrogateKeys = s.surrogateStorage.Purge(http.Header{"Surrogate-Key": invalidator.Groups})
+				keysToInvalidate = append(keysToInvalidate, surrogateKeys...)
+			}
 		case uriPrefixInvalidationType, uriInvalidationType:
 			bodyKeys := []string{}
 			listedKeys := s.GetAll()
@@ -314,9 +320,11 @@ func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 				for _, current := range s.storers {
 					current.DeleteMany(".+")
 				}
-				e := s.surrogateStorage.Destruct()
-				if e != nil {
-					fmt.Printf("Error while purging the surrogate keys: %+v.", e)
+				if s.surrogateStorage != nil {
+					e := s.surrogateStorage.Destruct()
+					if e != nil {
+						fmt.Printf("Error while purging the surrogate keys: %+v.", e)
+					}
 				}
 				fmt.Println("Successfully clear the cache and the surrogate keys storage.")
 			} else if mappingRg.FindString(r.RequestURI) != "" {
@@ -330,12 +338,14 @@ func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		} else {
-			ck, surrogateKeys := s.surrogateStorage.Purge(r.Header)
-			for _, k := range ck {
-				s.BulkDelete(k, true)
-			}
-			for _, k := range surrogateKeys {
-				s.BulkDelete("SURROGATE_"+k, true)
+			if s.surrogateStorage != nil {
+				ck, surrogateKeys := s.surrogateStorage.Purge(r.Header)
+				for _, k := range ck {
+					s.BulkDelete(k, true)
+				}
+				for _, k := range surrogateKeys {
+					s.BulkDelete("SURROGATE_"+k, true)
+				}
 			}
 		}
 		w.WriteHeader(http.StatusNoContent)
