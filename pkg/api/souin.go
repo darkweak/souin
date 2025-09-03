@@ -120,10 +120,13 @@ func (s *SouinAPI) Delete(key string) {
 // GetAll will retrieve all stored keys in the provider
 func (s *SouinAPI) GetAll() []string {
 	keys := []string{}
-	for _, current := range s.storers {
-		keys = append(keys, current.ListKeys()...)
+	fmt.Printf("SOUIN API GetAll: Number of storers: %d\n", len(s.storers))
+	for i, current := range s.storers {
+		currentKeys := current.ListKeys()
+		fmt.Printf("SOUIN API GetAll: Storer %d (%s) has %d keys\n", i, current.Name(), len(currentKeys))
+		keys = append(keys, currentKeys...)
 	}
-
+	fmt.Printf("SOUIN API GetAll: Total keys found: %d\n", len(keys))
 	return keys
 }
 
@@ -218,19 +221,24 @@ func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		if regexp.MustCompile(s.GetBasePath()+"/surrogate_keys").FindString(r.RequestURI) != "" {
+			fmt.Printf("SOUIN API GET: Handling surrogate_keys request\n")
 			if s.surrogateStorage != nil {
 				res, _ = json.Marshal(s.surrogateStorage.List())
 			} else {
 				res, _ = json.Marshal([]string{})
 			}
 		} else if compile {
+			fmt.Printf("SOUIN API GET: Handling pattern search request\n")
 			search := regexp.MustCompile(s.GetBasePath()+"/(.+)").FindAllStringSubmatch(r.RequestURI, -1)[0][1]
 			res, _ = json.Marshal(s.listKeys(search))
 			if len(res) == 2 {
 				w.WriteHeader(http.StatusNotFound)
 			}
 		} else {
-			res, _ = json.Marshal(s.GetAll())
+			fmt.Printf("SOUIN API GET: Handling GetAll request\n")
+			allKeys := s.GetAll()
+			fmt.Printf("SOUIN API GET: GetAll returned %d keys\n", len(allKeys))
+			res, _ = json.Marshal(allKeys)
 		}
 		w.Header().Set("Content-Type", "application/json")
 	case http.MethodPost:
