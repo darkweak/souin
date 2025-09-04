@@ -1,11 +1,12 @@
 package httpcache
 
 import (
+	"fmt"
+
 	"github.com/caddyserver/caddy/v2"
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/storage/types"
 	"github.com/darkweak/souin/pkg/surrogate/providers"
-	"github.com/darkweak/storages/core"
 )
 
 type notifierItem struct {
@@ -47,7 +48,6 @@ func (s *SouinApp) Provision(_ caddy.Context) error {
 
 // Start will start the App
 func (s SouinApp) Start() error {
-	core.ResetRegisteredStorages()
 	_, _ = up.Delete(stored_providers_key)
 	_, _ = up.LoadOrStore(stored_providers_key, newStorageProvider())
 
@@ -56,6 +56,7 @@ func (s SouinApp) Start() error {
 
 // Stop will stop the App
 func (s SouinApp) Stop() error {
+	fmt.Println("Stopping Souin")
 	return nil
 }
 

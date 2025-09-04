@@ -5,7 +5,7 @@ go 1.25
 require (
 	github.com/darkweak/souin v1.7.7
 	github.com/darkweak/souin/plugins/souin/storages v1.7.7
-	github.com/zalando/skipper v0.22.102
+	github.com/zalando/skipper v0.22.104
 )
 
 require (
@@ -40,7 +40,7 @@ require (
 	github.com/bwmarrin/snowflake v0.3.0 // indirect
 	github.com/bytecodealliance/wasmtime-go/v3 v3.0.2 // indirect
 	github.com/caddyserver/caddy/v2 v2.10.2 // indirect
-	github.com/caddyserver/certmagic v0.24.0 // indirect
+	github.com/caddyserver/certmagic v0.25.0 // indirect
 	github.com/caddyserver/zerossl v0.1.3 // indirect
 	github.com/ccoveille/go-safecast v1.6.1 // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
@@ -62,15 +62,15 @@ require (
 	github.com/coreos/go-systemd/v22 v22.6.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
 	github.com/darkweak/go-esi v0.0.6 // indirect
-	github.com/darkweak/storages/badger v0.0.15 // indirect
+	github.com/darkweak/storages/badger v0.0.16 // indirect
 	github.com/darkweak/storages/core v0.0.16 // indirect
-	github.com/darkweak/storages/etcd v0.0.15 // indirect
+	github.com/darkweak/storages/etcd v0.0.16 // indirect
 	github.com/darkweak/storages/nats v0.0.16 // indirect
 	github.com/darkweak/storages/nuts v0.0.16 // indirect
-	github.com/darkweak/storages/olric v0.0.15 // indirect
-	github.com/darkweak/storages/otter v0.0.15 // indirect
+	github.com/darkweak/storages/olric v0.0.16 // indirect
+	github.com/darkweak/storages/otter v0.0.16 // indirect
 	github.com/darkweak/storages/redis v0.0.16 // indirect
-	github.com/darkweak/storages/simplefs v0.0.15 // indirect
+	github.com/darkweak/storages/simplefs v0.0.16 // indirect
 	github.com/dchest/siphash v1.2.3 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0 // indirect
 	github.com/dgraph-io/badger v1.6.2 // indirect
@@ -112,11 +112,12 @@ require (
 	github.com/google/btree v1.1.3 // indirect
 	github.com/google/cel-go v0.26.1 // indirect
 	github.com/google/flatbuffers v25.2.10+incompatible // indirect
-	github.com/google/pprof v0.0.0-20250830080959-101d87ff5bc3 // indirect
+	github.com/google/pprof v0.0.0-20250903194437-c28834ac2320 // indirect
 	github.com/google/s2a-go v0.1.9 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.6 // indirect
 	github.com/googleapis/gax-go/v2 v2.15.0 // indirect
+	github.com/grafana/regexp v0.0.0-20240518133315-a468a5bfb3bc // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.2 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-immutable-radix v1.3.1 // indirect
@@ -153,7 +154,7 @@ require (
 	github.com/mattn/go-runewidth v0.0.16 // indirect
 	github.com/maypok86/otter v1.2.4 // indirect
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
-	github.com/mholt/acmez/v3 v3.1.2 // indirect
+	github.com/mholt/acmez/v3 v3.1.3 // indirect
 	github.com/miekg/dns v1.1.68 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/go-ps v1.0.0 // indirect
@@ -183,14 +184,14 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10 // indirect
 	github.com/pquerna/cachecontrol v0.2.0 // indirect
-	github.com/prometheus/client_golang v1.23.0 // indirect
+	github.com/prometheus/client_golang v1.23.1 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
-	github.com/prometheus/common v0.65.0 // indirect
+	github.com/prometheus/common v0.66.0 // indirect
 	github.com/prometheus/procfs v0.17.0 // indirect
 	github.com/quic-go/qpack v0.5.1 // indirect
 	github.com/quic-go/quic-go v0.54.0 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20250401214520-65e299d6c5c9 // indirect
-	github.com/redis/go-redis/v9 v9.12.1 // indirect
+	github.com/redis/go-redis/v9 v9.13.0 // indirect
 	github.com/redis/rueidis v1.0.64 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/rs/xid v1.6.0 // indirect
@@ -211,8 +212,8 @@ require (
 	github.com/smallstep/truststore v0.13.0 // indirect
 	github.com/sony/gobreaker v1.0.0 // indirect
 	github.com/spf13/cast v1.9.2 // indirect
-	github.com/spf13/cobra v1.10.0 // indirect
-	github.com/spf13/pflag v1.0.9 // indirect
+	github.com/spf13/cobra v1.10.1 // indirect
+	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/stoewer/go-strcase v1.3.1 // indirect
 	github.com/szuecs/rate-limit-buffer v0.9.0 // indirect
 	github.com/tailscale/tscert v0.0.0-20240608151842-d3f834017e53 // indirect
@@ -251,7 +252,7 @@ require (
 	go.opentelemetry.io/otel/metric v1.38.0 // indirect
 	go.opentelemetry.io/otel/sdk v1.38.0 // indirect
 	go.opentelemetry.io/otel/trace v1.38.0 // indirect
-	go.opentelemetry.io/proto/otlp v1.7.1 // indirect
+	go.opentelemetry.io/proto/otlp v1.8.0 // indirect
 	go.step.sm/crypto v0.70.0 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/automaxprocs v1.6.0 // indirect
@@ -262,7 +263,7 @@ require (
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba // indirect
 	golang.org/x/crypto v0.41.0 // indirect
-	golang.org/x/crypto/x509roots/fallback v0.0.0-20250826074233-8f580defa01d // indirect
+	golang.org/x/crypto/x509roots/fallback v0.0.0-20250904143959-9d779377cff7 // indirect
 	golang.org/x/exp v0.0.0-20250819193227-8b4c13bb791b // indirect
 	golang.org/x/mod v0.27.0 // indirect
 	golang.org/x/net v0.43.0 // indirect

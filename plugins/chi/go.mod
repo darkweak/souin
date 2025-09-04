@@ -33,7 +33,7 @@ require (
 	github.com/buraksezer/olric v0.5.7 // indirect
 	github.com/bwmarrin/snowflake v0.3.0 // indirect
 	github.com/caddyserver/caddy/v2 v2.10.2 // indirect
-	github.com/caddyserver/certmagic v0.24.0 // indirect
+	github.com/caddyserver/certmagic v0.25.0 // indirect
 	github.com/caddyserver/zerossl v0.1.3 // indirect
 	github.com/ccoveille/go-safecast v1.6.1 // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
@@ -45,19 +45,21 @@ require (
 	github.com/coreos/go-systemd/v22 v22.6.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
 	github.com/darkweak/go-esi v0.0.6 // indirect
-	github.com/darkweak/storages/badger v0.0.15 // indirect
+	github.com/darkweak/storages/badger v0.0.16 // indirect
 	github.com/darkweak/storages/core v0.0.16 // indirect
-	github.com/darkweak/storages/etcd v0.0.15 // indirect
+	github.com/darkweak/storages/etcd v0.0.16 // indirect
 	github.com/darkweak/storages/nats v0.0.16 // indirect
 	github.com/darkweak/storages/nuts v0.0.16 // indirect
-	github.com/darkweak/storages/olric v0.0.15 // indirect
-	github.com/darkweak/storages/otter v0.0.15 // indirect
+	github.com/darkweak/storages/olric v0.0.16 // indirect
+	github.com/darkweak/storages/otter v0.0.16 // indirect
 	github.com/darkweak/storages/redis v0.0.16 // indirect
-	github.com/darkweak/storages/simplefs v0.0.15 // indirect
+	github.com/darkweak/storages/simplefs v0.0.16 // indirect
 	github.com/dgraph-io/badger v1.6.2 // indirect
 	github.com/dgraph-io/badger/v2 v2.2007.4 // indirect
 	github.com/dgraph-io/badger/v3 v3.2103.5 // indirect
+	github.com/dgraph-io/badger/v4 v4.8.0 // indirect
 	github.com/dgraph-io/ristretto v0.2.0 // indirect
+	github.com/dgraph-io/ristretto/v2 v2.3.0 // indirect
 	github.com/dgryski/go-farm v0.0.0-20240924180020-3414d57e47da // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/dolthub/maphash v0.1.0 // indirect
@@ -83,6 +85,7 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.6 // indirect
 	github.com/googleapis/gax-go/v2 v2.15.0 // indirect
+	github.com/grafana/regexp v0.0.0-20240518133315-a468a5bfb3bc // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.2 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-immutable-radix v1.3.1 // indirect
@@ -108,7 +111,7 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/maypok86/otter v1.2.4 // indirect
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
-	github.com/mholt/acmez/v3 v3.1.2 // indirect
+	github.com/mholt/acmez/v3 v3.1.3 // indirect
 	github.com/miekg/dns v1.1.68 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/go-ps v1.0.0 // indirect
@@ -124,9 +127,9 @@ require (
 	github.com/pierrec/lz4/v4 v4.1.22 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pquerna/cachecontrol v0.2.0 // indirect
-	github.com/prometheus/client_golang v1.23.0 // indirect
+	github.com/prometheus/client_golang v1.23.1 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
-	github.com/prometheus/common v0.65.0 // indirect
+	github.com/prometheus/common v0.66.0 // indirect
 	github.com/prometheus/procfs v0.17.0 // indirect
 	github.com/quic-go/qpack v0.5.1 // indirect
 	github.com/quic-go/quic-go v0.54.0 // indirect
@@ -145,8 +148,8 @@ require (
 	github.com/smallstep/scep v0.0.0-20250318231241-a25cabb69492 // indirect
 	github.com/smallstep/truststore v0.13.0 // indirect
 	github.com/spf13/cast v1.9.2 // indirect
-	github.com/spf13/cobra v1.10.0 // indirect
-	github.com/spf13/pflag v1.0.9 // indirect
+	github.com/spf13/cobra v1.10.1 // indirect
+	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/stoewer/go-strcase v1.3.1 // indirect
 	github.com/tailscale/tscert v0.0.0-20240608151842-d3f834017e53 // indirect
 	github.com/tidwall/btree v1.8.1 // indirect
@@ -175,7 +178,7 @@ require (
 	go.uber.org/zap v1.27.0 // indirect
 	go.uber.org/zap/exp v0.3.0 // indirect
 	golang.org/x/crypto v0.41.0 // indirect
-	golang.org/x/crypto/x509roots/fallback v0.0.0-20250826074233-8f580defa01d // indirect
+	golang.org/x/crypto/x509roots/fallback v0.0.0-20250904143959-9d779377cff7 // indirect
 	golang.org/x/exp v0.0.0-20250819193227-8b4c13bb791b // indirect
 	golang.org/x/mod v0.27.0 // indirect
 	golang.org/x/net v0.43.0 // indirect
