@@ -154,6 +154,9 @@ handle @match {
 }
 ```
 
+### API Setup
+Along with ensuring the Souin API is enabled in the global options, the API is only accessible via the [Caddy admin API](https://caddyserver.com/docs/api) since Souin v1.7.7. For example, if using the default admin port (:2019) and Souin API base paths, the Souin API would be accessible via http://localhost:2019/souin-api/souin
+
 ## Provider Syntax
 
 ### Badger
