@@ -1481,6 +1481,7 @@ func TestAPIPlatformInvalidation(t *testing.T) {
 		}
 	}`, "caddyfile")
 
+	time.Sleep(time.Second)
 	reqResetCache, _ := http.NewRequest("PURGE", "http://localhost:2999/souin-api/souin/flush", nil)
 	reqSouinAPIList, _ := http.NewRequest(http.MethodGet, "http://localhost:2999/souin-api/souin", nil)
 	reqSouinAPISK, _ := http.NewRequest(http.MethodGet, "http://localhost:2999/souin-api/souin/surrogate_keys", nil)

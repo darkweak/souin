@@ -278,7 +278,7 @@ func (s *SouinCaddyMiddleware) Provision(ctx caddy.Context) error {
 	}
 
 	if app.SurrogateStorage == nil {
-		app.SurrogateStorage = s.SouinBaseHandler.SurrogateKeyStorer
+		app.withSurrogateStorer(s.SouinBaseHandler.SurrogateKeyStorer)
 	} else {
 		s.SouinBaseHandler.SurrogateKeyStorer = app.SurrogateStorage
 	}
