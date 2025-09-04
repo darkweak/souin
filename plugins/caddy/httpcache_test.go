@@ -1396,8 +1396,10 @@ func TestTimeout(t *testing.T) {
 
 type testSetCookieHandler struct{}
 
+const xCookieName = "X-Cookie-Name"
+
 func (t *testSetCookieHandler) ServeHTTP(w http.ResponseWriter, rq *http.Request) {
-	w.Header().Set("Set-Cookie", "foo="+rq.Header.Get("X-Cookie-Name"))
+	w.Header().Set("Set-Cookie", "foo="+rq.Header.Get(xCookieName))
 
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write([]byte("Hello set-cookie!"))
@@ -1428,12 +1430,12 @@ func TestSetCookieNotStored(t *testing.T) {
 	}()
 	time.Sleep(time.Second)
 	rq, _ := http.NewRequest("GET", "http://localhost:9080/cache-set-cookie", nil)
-	rq.Header.Set("X-Cookie-Name", "bar")
+	rq.Header.Set(xCookieName, "bar")
 
 	resp1, _ := tester.AssertResponse(rq, http.StatusOK, "Hello set-cookie!")
 	time.Sleep(time.Millisecond)
 
-	rq.Header.Set("X-Cookie-Name", "baz")
+	rq.Header.Set(xCookieName, "baz")
 	resp2, _ := tester.AssertResponse(rq, http.StatusOK, "Hello set-cookie!")
 
 	if resp1.Header.Get("Set-Cookie") != "foo=bar" {
@@ -1571,5 +1573,78 @@ range
 
 	if resp2.Header.Get("Age") != "1" {
 		t.Errorf("unexpected resp2 Age header %v", resp2.Header.Get("Age"))
+	}
+}
+
+func TestCoalescing(t *testing.T) {
+	tester := caddytest.NewTester(t)
+	tester.InitServer(`
+	{
+		admin localhost:2999
+		http_port     9080
+		cache {
+			ttl 5s
+		}
+	}
+	localhost:9080 {
+		route /cache-set-cookie-coalescing {
+			cache
+			reverse_proxy localhost:9087 {
+				header_down +Cache-Control no-cache=Set-Cookie
+			}
+		}
+	}`, "caddyfile")
+
+	go func() {
+		setCookieHandler := testSetCookieHandler{}
+		_ = http.ListenAndServe(":9087", &setCookieHandler)
+	}()
+	time.Sleep(time.Second)
+	baseRq, _ := http.NewRequest("GET", "http://localhost:9080/cache-set-cookie-coalescing", nil)
+
+	rq1 := baseRq.Clone(context.Background())
+	rq1.Header.Set(xCookieName, "bar")
+	rq2 := baseRq.Clone(context.Background())
+	rq2.Header.Set(xCookieName, "baz")
+	rq3 := baseRq.Clone(context.Background())
+	rq3.Header.Set(xCookieName, "foo")
+
+	requests := []*http.Request{
+		rq1,
+		rq2,
+		rq3,
+	}
+
+	var wg sync.WaitGroup
+	resultMap := &sync.Map{}
+
+	for i, rq := range requests {
+		wg.Add(1)
+
+		go func(r *http.Request, iteration int) {
+			defer wg.Done()
+			res, _ := tester.AssertResponse(r, 200, "Hello set-cookie!")
+			resultMap.Store(iteration, res)
+		}(rq, i)
+	}
+
+	wg.Wait()
+
+	for i := 0; i < len(requests); i++ {
+		if res, ok := resultMap.Load(i); !ok {
+			t.Errorf("unexpected nil response for iteration %d", i)
+		} else {
+			rs, ok := res.(*http.Response)
+			if !ok {
+				t.Error("The object is not type of *http.Response")
+			}
+
+			if rs.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-http-localhost:9080-/cache-set-cookie-coalescing" {
+				t.Errorf("The response %d doesn't match the expected header: %s", i, rs.Header.Get("Cache-Status"))
+			}
+			if rs.Header.Get("Set-Cookie") != fmt.Sprintf("foo=%s", requests[i].Header.Get(xCookieName)) {
+				t.Errorf("The response %d doesn't match the expected header: %s", i, rs.Header.Get("Cache-Status"))
+			}
+		}
 	}
 }

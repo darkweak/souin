@@ -1,13 +1,11 @@
 module github.com/darkweak/souin/plugins/caddy
 
-go 1.24
-
-toolchain go1.24.2
+go 1.25
 
 require (
 	github.com/caddyserver/caddy/v2 v2.10.0
 	github.com/darkweak/souin v1.7.7
-	github.com/darkweak/storages/core v0.0.15
+	github.com/darkweak/storages/core v0.0.16
 )
 
 require (

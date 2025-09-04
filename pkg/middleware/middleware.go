@@ -464,6 +464,7 @@ func (s *SouinBaseHandler) Upstream(
 	requestCc *cacheobject.RequestCacheDirectives,
 	cachedKey string,
 	uri string,
+	disableCoalescing bool,
 ) error {
 	s.Configuration.GetLogger().Debug("Request the upstream server")
 	prometheus.Increment(prometheus.RequestCounter)
@@ -484,7 +485,7 @@ func (s *SouinBaseHandler) Upstream(
 	}()
 
 	singleflightCacheKey := cachedKey
-	if s.Configuration.GetDefaultCache().IsCoalescingDisable() {
+	if s.Configuration.GetDefaultCache().IsCoalescingDisable() || disableCoalescing {
 		singleflightCacheKey += uuid.NewString()
 	}
 	sfValue, err, shared := s.singleflightPool.Do(singleflightCacheKey, func() (interface{}, error) {
@@ -539,11 +540,16 @@ func (s *SouinBaseHandler) Upstream(
 				for _, vh := range variedHeaders {
 					if rq.Header.Get(vh) != sfWriter.requestHeaders.Get(vh) {
 						// cachedKey += rfc.GetVariedCacheKey(rq, variedHeaders)
-						return s.Upstream(customWriter, rq, next, requestCc, cachedKey, uri)
+						return s.Upstream(customWriter, rq, next, requestCc, cachedKey, uri, false)
 					}
 				}
 			}
 		}
+
+		if shared && sfWriter.headers.Get("Set-Cookie") != "" {
+			return s.Upstream(customWriter, rq, next, requestCc, cachedKey, uri, true)
+		}
+
 		if shared {
 			s.Configuration.GetLogger().Infof("Reused response from concurrent request with the key %s", cachedKey)
 		}
@@ -971,7 +977,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 			}
 		}()
 		prometheus.Increment(prometheus.NoCachedResponseCounter)
-		errorCacheCh <- s.Upstream(cw, vr, next, requestCc, cachedKey, uri)
+		errorCacheCh <- s.Upstream(cw, vr, next, requestCc, cachedKey, uri, false)
 	}(req, customWriter)
 
 	select {
