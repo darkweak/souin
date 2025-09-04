@@ -121,6 +121,12 @@ func (s *SouinAPI) Delete(key string) {
 func (s *SouinAPI) GetAll() []string {
 	keys := []string{}
 	fmt.Printf("SOUIN API GetAll: Number of storers: %d\n", len(s.storers))
+	
+	if len(s.storers) == 0 {
+		fmt.Printf("SOUIN API GetAll: No storers configured - this suggests the HTTP cache handler hasn't been initialized yet or no storage is configured\n")
+		return keys
+	}
+	
 	for i, current := range s.storers {
 		currentKeys := current.ListKeys()
 		fmt.Printf("SOUIN API GetAll: Storer %d (%s) has %d keys\n", i, current.Name(), len(currentKeys))
