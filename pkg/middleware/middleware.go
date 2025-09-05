@@ -451,10 +451,11 @@ func (s *SouinBaseHandler) Store(
 }
 
 type singleflightValue struct {
-	body           []byte
-	headers        http.Header
-	requestHeaders http.Header
-	code           int
+	body              []byte
+	headers           http.Header
+	requestHeaders    http.Header
+	code              int
+	disableCoalescing bool
 }
 
 func (s *SouinBaseHandler) Upstream(
@@ -520,10 +521,11 @@ func (s *SouinBaseHandler) Upstream(
 		})
 
 		return singleflightValue{
-			body:           customWriter.Buf.Bytes(),
-			headers:        customWriter.Header().Clone(),
-			requestHeaders: rq.Header,
-			code:           statusCode,
+			body:              customWriter.Buf.Bytes(),
+			headers:           customWriter.Header().Clone(),
+			requestHeaders:    rq.Header,
+			code:              statusCode,
+			disableCoalescing: strings.Contains(cacheControl, "private") || customWriter.Header().Get("Set-Cookie") != "",
 		}, err
 	})
 	if recoveredFromErr != nil {
@@ -534,6 +536,10 @@ func (s *SouinBaseHandler) Upstream(
 	}
 
 	if sfWriter, ok := sfValue.(singleflightValue); ok {
+		if shared && sfWriter.disableCoalescing {
+			return s.Upstream(customWriter, rq, next, requestCc, cachedKey, uri, true)
+		}
+
 		if vary := sfWriter.headers.Get("Vary"); vary != "" {
 			variedHeaders, isVaryStar := rfc.VariedHeaderAllCommaSepValues(sfWriter.headers)
 			if !isVaryStar {
@@ -544,10 +550,6 @@ func (s *SouinBaseHandler) Upstream(
 					}
 				}
 			}
-		}
-
-		if shared && sfWriter.headers.Get("Set-Cookie") != "" {
-			return s.Upstream(customWriter, rq, next, requestCc, cachedKey, uri, true)
 		}
 
 		if shared {
