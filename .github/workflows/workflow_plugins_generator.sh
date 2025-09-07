@@ -15,6 +15,32 @@ jobs:
   build-caddy-validator:
     name: Caddy
     runs-on: ubuntu-latest
+    steps:
+      -
+        name: Add domain.com host to /etc/hosts
+        run: |
+          sudo echo "127.0.0.1 domain.com etcd redis" | sudo tee -a /etc/hosts
+      -
+        name: Install Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: '$go_version'
+      -
+        name: Checkout code
+        uses: actions/checkout@v4
+      -
+        name: Install xcaddy
+        run: go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest
+      -
+        name: Build Souin as caddy module
+        run: cd plugins/caddy && xcaddy build --with github.com/darkweak/souin/plugins/caddy=./ --with github.com/darkweak/souin=../.. --with github.com/darkweak/storages/badger/caddy --with github.com/darkweak/storages/etcd/caddy --with github.com/darkweak/storages/nats/caddy --with github.com/darkweak/storages/nuts/caddy --with github.com/darkweak/storages/olric/caddy --with github.com/darkweak/storages/otter/caddy --with github.com/darkweak/storages/redis/caddy
+      -
+        name: Run Caddy tests
+        run: cd plugins/caddy && go test -v ./...
+  build-caddy-validator-e2e:
+    needs: build-caddy-validator
+    name: Caddy
+    runs-on: ubuntu-latest
     services:
       redis:
         image: redis
@@ -54,9 +80,6 @@ jobs:
       -
         name: Build Souin as caddy module
         run: cd plugins/caddy && xcaddy build --with github.com/darkweak/souin/plugins/caddy=./ --with github.com/darkweak/souin=../.. --with github.com/darkweak/storages/badger/caddy --with github.com/darkweak/storages/etcd/caddy --with github.com/darkweak/storages/nats/caddy --with github.com/darkweak/storages/nuts/caddy --with github.com/darkweak/storages/olric/caddy --with github.com/darkweak/storages/otter/caddy --with github.com/darkweak/storages/redis/caddy
-      -
-        name: Run Caddy tests
-        run: cd plugins/caddy && go test -v ./...
       -
         name: Run detached caddy
         run: cd plugins/caddy && ./caddy run &
