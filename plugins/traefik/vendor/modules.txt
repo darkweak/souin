@@ -95,7 +95,7 @@ github.com/cpuguy83/go-md2man/v2/md2man
 ## explicit; go 1.18
 github.com/darkweak/go-esi/esi
 # github.com/darkweak/souin v1.7.7 => ../..
-## explicit; go 1.24
+## explicit; go 1.25
 github.com/darkweak/souin/configurationtypes
 github.com/darkweak/souin/context
 github.com/darkweak/souin/helpers

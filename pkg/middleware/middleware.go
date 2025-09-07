@@ -451,10 +451,11 @@ func (s *SouinBaseHandler) Store(
 }
 
 type singleflightValue struct {
-	body           []byte
-	headers        http.Header
-	requestHeaders http.Header
-	code           int
+	body              []byte
+	headers           http.Header
+	requestHeaders    http.Header
+	code              int
+	disableCoalescing bool
 }
 
 func (s *SouinBaseHandler) Upstream(
@@ -464,6 +465,7 @@ func (s *SouinBaseHandler) Upstream(
 	requestCc *cacheobject.RequestCacheDirectives,
 	cachedKey string,
 	uri string,
+	disableCoalescing bool,
 ) error {
 	s.Configuration.GetLogger().Debug("Request the upstream server")
 	prometheus.Increment(prometheus.RequestCounter)
@@ -484,7 +486,7 @@ func (s *SouinBaseHandler) Upstream(
 	}()
 
 	singleflightCacheKey := cachedKey
-	if s.Configuration.GetDefaultCache().IsCoalescingDisable() {
+	if s.Configuration.GetDefaultCache().IsCoalescingDisable() || disableCoalescing {
 		singleflightCacheKey += uuid.NewString()
 	}
 	sfValue, err, shared := s.singleflightPool.Do(singleflightCacheKey, func() (interface{}, error) {
@@ -519,10 +521,11 @@ func (s *SouinBaseHandler) Upstream(
 		})
 
 		return singleflightValue{
-			body:           customWriter.Buf.Bytes(),
-			headers:        customWriter.Header().Clone(),
-			requestHeaders: rq.Header,
-			code:           statusCode,
+			body:              customWriter.Buf.Bytes(),
+			headers:           customWriter.Header().Clone(),
+			requestHeaders:    rq.Header,
+			code:              statusCode,
+			disableCoalescing: strings.Contains(cacheControl, "private") || customWriter.Header().Get("Set-Cookie") != "",
 		}, err
 	})
 	if recoveredFromErr != nil {
@@ -533,17 +536,22 @@ func (s *SouinBaseHandler) Upstream(
 	}
 
 	if sfWriter, ok := sfValue.(singleflightValue); ok {
+		if shared && sfWriter.disableCoalescing {
+			return s.Upstream(customWriter, rq, next, requestCc, cachedKey, uri, true)
+		}
+
 		if vary := sfWriter.headers.Get("Vary"); vary != "" {
 			variedHeaders, isVaryStar := rfc.VariedHeaderAllCommaSepValues(sfWriter.headers)
 			if !isVaryStar {
 				for _, vh := range variedHeaders {
 					if rq.Header.Get(vh) != sfWriter.requestHeaders.Get(vh) {
 						// cachedKey += rfc.GetVariedCacheKey(rq, variedHeaders)
-						return s.Upstream(customWriter, rq, next, requestCc, cachedKey, uri)
+						return s.Upstream(customWriter, rq, next, requestCc, cachedKey, uri, false)
 					}
 				}
 			}
 		}
+
 		if shared {
 			s.Configuration.GetLogger().Infof("Reused response from concurrent request with the key %s", cachedKey)
 		}
@@ -971,7 +979,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 			}
 		}()
 		prometheus.Increment(prometheus.NoCachedResponseCounter)
-		errorCacheCh <- s.Upstream(cw, vr, next, requestCc, cachedKey, uri)
+		errorCacheCh <- s.Upstream(cw, vr, next, requestCc, cachedKey, uri, false)
 	}(req, customWriter)
 
 	select {

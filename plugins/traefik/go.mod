@@ -1,8 +1,6 @@
 module github.com/darkweak/souin/plugins/traefik
 
-go 1.24
-
-toolchain go1.24.2
+go 1.25
 
 require (
 	github.com/akyoto/cache v1.0.6
