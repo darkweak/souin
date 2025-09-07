@@ -1,8 +1,6 @@
 module github.com/darkweak/souin/plugins/souin
 
-go 1.24
-
-toolchain go1.24.2
+go 1.25
 
 replace (
 	github.com/darkweak/souin v1.7.7 => ../..

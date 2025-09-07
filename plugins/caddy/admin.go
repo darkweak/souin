@@ -22,7 +22,6 @@ func init() {
 type adminAPI struct {
 	ctx                      caddy.Context
 	logger                   core.Logger
-	app                      *SouinApp
 	InternalEndpointHandlers *api.MapHandler
 }
 
@@ -60,16 +59,21 @@ func (a *adminAPI) Provision(ctx caddy.Context) error {
 		return err
 	}
 
-	a.app = app.(*SouinApp)
-	config := Configuration{
-		API: a.app.API,
-		DefaultCache: DefaultCache{
-			TTL: configurationtypes.Duration{
-				Duration: 120 * time.Second,
+	go func() {
+		currentApp := app.(*SouinApp)
+
+		item := <-currentApp.onMiddlewareLoaded()
+
+		config := Configuration{
+			API: item.API,
+			DefaultCache: DefaultCache{
+				TTL: configurationtypes.Duration{
+					Duration: 120 * time.Second,
+				},
 			},
-		},
-	}
-	a.InternalEndpointHandlers = api.GenerateHandlerMap(&config, a.app.Storers, a.app.SurrogateStorage)
+		}
+		a.InternalEndpointHandlers = api.GenerateHandlerMap(&config, currentApp.Storers, item.SurrogateStorage)
+	}()
 
 	return nil
 }

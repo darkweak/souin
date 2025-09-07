@@ -28,6 +28,13 @@ func (s *SouinCaddyMiddleware) parseStorages(ctx caddy.Context) {
 						vdir = fmt.Sprint(d)
 					}
 				}
+
+				if dir == "" {
+					dir = "souin_dir"
+				}
+				if vdir == "" {
+					vdir = dir
+				}
 			}
 			s.Configuration.DefaultCache.Badger.Uuid = fmt.Sprintf(
 				"BADGER-%s-%s-%s",
