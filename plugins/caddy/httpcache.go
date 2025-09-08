@@ -216,9 +216,6 @@ func (s *SouinCaddyMiddleware) FromApp(app *SouinApp) error {
 	if dc.CacheName == "" {
 		s.Configuration.DefaultCache.CacheName = appDc.CacheName
 	}
-	if !dc.DisableCoalescing && appDc.DisableCoalescing {
-		s.Configuration.DefaultCache.DisableCoalescing = appDc.DisableCoalescing
-	}
 	if isProviderEmpty(dc.Badger) && isProviderEmpty(dc.Etcd) && isProviderEmpty(dc.Nats) && isProviderEmpty(dc.Nuts) && isProviderEmpty(dc.Olric) && isProviderEmpty(dc.Otter) && isProviderEmpty(dc.Redis) && isProviderEmpty(dc.SimpleFS) {
 		s.Configuration.DefaultCache.Distributed = appDc.Distributed
 		s.Configuration.DefaultCache.Olric = appDc.Olric
