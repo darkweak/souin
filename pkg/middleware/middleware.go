@@ -660,6 +660,56 @@ func (s *statusCodeLogger) WriteHeader(code int) {
 	s.ResponseWriter.WriteHeader(code)
 }
 
+func (s *SouinBaseHandler) backfillStorers(idx int, cachedKey string, rq *http.Request, response *http.Response) {
+	if idx == 0 {
+		return
+	}
+
+	storedDuration, err := time.ParseDuration(response.Header.Get(rfc.StoredTTLHeader))
+	if err != nil {
+		return
+	}
+
+	dateHeader, err := http.ParseTime(response.Header.Get("Date"))
+	if err != nil {
+		return
+	}
+
+	now := time.Now()
+
+	ma := storedDuration - now.Sub(dateHeader)
+
+	variedHeaders, _ := rfc.VariedHeaderAllCommaSepValues(response.Header)
+	variedKey := cachedKey + rfc.GetVariedCacheKey(rq, variedHeaders)
+
+	if rq.Context().Value(context.Hashed).(bool) {
+		cachedKey = fmt.Sprint(xxhash.Sum64String(cachedKey))
+		variedKey = fmt.Sprint(xxhash.Sum64String(variedKey))
+	}
+
+	vhs := http.Header{}
+	for _, hname := range variedHeaders {
+		hn := strings.Split(hname, ":")
+		vhs.Set(hn[0], rq.Header.Get(hn[0]))
+	}
+
+	res, err := httputil.DumpResponse(response, true)
+
+	for _, currentStorer := range s.Storers[:idx] {
+		err = currentStorer.SetMultiLevel(
+			cachedKey,
+			variedKey,
+			res,
+			vhs,
+			response.Header.Get("Etag"), ma,
+			variedKey,
+		)
+		if err != nil {
+			s.Configuration.GetLogger().Errorf("Error while backfilling the storer %s: %v", currentStorer.Name(), err)
+		}
+	}
+}
+
 func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, next handlerFunc) error {
 	start := time.Now()
 	defer func(s time.Time) {
@@ -749,6 +799,9 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 		crw.headersSent = true
 		crw.mutex.Unlock()
 	}(req, customWriter)
+
+	backfillIds := 0
+
 	s.Configuration.GetLogger().Debugf("Request cache-control %+v", requestCc)
 	if modeContext.Bypass_request || !requestCc.NoCache {
 		validator := rfc.ParseRequest(req)
@@ -766,11 +819,18 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 				s.Configuration.GetLogger().Debugf("Found at least one valid response in the %s storage", storerName)
 				break
 			}
+
+			backfillIds++
 		}
 
 		headerName, _ := s.SurrogateKeyStorer.GetSurrogateControl(customWriter.Header())
 		if fresh != nil && (!modeContext.Strict || rfc.ValidateCacheControl(fresh, requestCc)) {
+			go func() {
+				s.backfillStorers(backfillIds, cachedKey, req, fresh)
+			}()
+
 			response := fresh
+
 			if validator.ResponseETag != "" && validator.Matched {
 				rfc.SetCacheStatusHeader(response, storerName)
 				for h, v := range response.Header {
