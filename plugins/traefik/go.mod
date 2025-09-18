@@ -4,7 +4,7 @@ go 1.25
 
 require (
 	github.com/akyoto/cache v1.0.6
-	github.com/darkweak/souin v1.7.7
+	github.com/darkweak/souin v1.7.8
 	github.com/pquerna/cachecontrol v0.2.0
 )
 
@@ -130,6 +130,6 @@ require (
 )
 
 replace (
-	github.com/darkweak/souin v1.7.7 => ../..
+	github.com/darkweak/souin v1.7.8 => ../..
 	go.uber.org/zap v1.26.0 => go.uber.org/zap v1.21.0
 )

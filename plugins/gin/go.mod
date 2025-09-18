@@ -3,8 +3,8 @@ module github.com/darkweak/souin/plugins/gin
 go 1.25
 
 require (
-	github.com/darkweak/souin v1.7.7
-	github.com/darkweak/souin/plugins/souin/storages v1.7.7
+	github.com/darkweak/souin v1.7.8
+	github.com/darkweak/souin/plugins/souin/storages v1.7.8
 	github.com/gin-gonic/gin v1.10.1
 )
 
@@ -216,6 +216,6 @@ require (
 )
 
 replace (
-	github.com/darkweak/souin v1.7.7 => ../..
+	github.com/darkweak/souin v1.7.8 => ../..
 	github.com/darkweak/souin/plugins/souin/storages => ../souin/storages
 )
