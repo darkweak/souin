@@ -1,13 +1,11 @@
 module github.com/darkweak/souin/plugins/souin/storages
 
-go 1.24
-
-toolchain go1.24.2
+go 1.25
 
 replace github.com/darkweak/souin => ../../..
 
 require (
-	github.com/darkweak/souin v1.7.7
+	github.com/darkweak/souin v1.7.8
 	github.com/darkweak/storages/badger v0.0.13
 	github.com/darkweak/storages/core v0.0.15
 	github.com/darkweak/storages/etcd v0.0.13
