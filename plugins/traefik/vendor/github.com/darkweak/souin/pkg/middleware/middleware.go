@@ -516,8 +516,13 @@ func (s *SouinBaseHandler) Upstream(
 		err := s.Store(customWriter, rq, requestCc, cachedKey, uri)
 		defer customWriter.resetBuffer()
 
+		// Create a copy of the buffer to prevent memory retention
+		// when the buffer is returned to the pool
+		bodyCopy := make([]byte, customWriter.Buf.Len())
+		copy(bodyCopy, customWriter.Buf.Bytes())
+
 		return singleflightValue{
-			body:           customWriter.Buf.Bytes(),
+			body:           bodyCopy,
 			headers:        customWriter.Header().Clone(),
 			requestHeaders: rq.Header,
 			code:           statusCode,
@@ -602,8 +607,14 @@ func (s *SouinBaseHandler) Revalidate(validator *core.Revalidator, next handlerF
 		)
 
 		defer customWriter.resetBuffer()
+
+		// Create a copy of the buffer to prevent memory retention
+		// when the buffer is returned to the pool
+		bodyCopy := make([]byte, customWriter.Buf.Len())
+		copy(bodyCopy, customWriter.Buf.Bytes())
+
 		return singleflightValue{
-			body:    customWriter.Buf.Bytes(),
+			body:    bodyCopy,
 			headers: customWriter.Header().Clone(),
 			code:    statusCode,
 		}, err

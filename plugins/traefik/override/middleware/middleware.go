@@ -376,8 +376,13 @@ func (s *SouinBaseHandler) Upstream(
 		err := s.Store(customWriter, rq, requestCc, cachedKey)
 		defer customWriter.resetBuffer()
 
+		// Create a copy of the buffer to prevent memory retention
+		// when the buffer is returned to the pool
+		bodyCopy := make([]byte, customWriter.Buf.Len())
+		copy(bodyCopy, customWriter.Buf.Bytes())
+
 		return singleflightValue{
-			body:           customWriter.Buf.Bytes(),
+			body:           bodyCopy,
 			headers:        customWriter.Header().Clone(),
 			requestHeaders: rq.Header,
 			code:           statusCode,
@@ -457,8 +462,14 @@ func (s *SouinBaseHandler) Revalidate(validator *types.Revalidator, next handler
 		)
 
 		defer customWriter.resetBuffer()
+
+		// Create a copy of the buffer to prevent memory retention
+		// when the buffer is returned to the pool
+		bodyCopy := make([]byte, customWriter.Buf.Len())
+		copy(bodyCopy, customWriter.Buf.Bytes())
+
 		return singleflightValue{
-			body:    customWriter.Buf.Bytes(),
+			body:    bodyCopy,
 			headers: customWriter.Header().Clone(),
 			code:    statusCode,
 		}, err
@@ -489,11 +500,13 @@ func (s *SouinBaseHandler) HandleInternally(r *http.Request) (bool, http.Handler
 	return false, func(w http.ResponseWriter, r *http.Request) {}
 }
 
-type handlerFunc = func(http.ResponseWriter, *http.Request) error
-type statusCodeLogger struct {
-	http.ResponseWriter
-	statusCode int
-}
+type (
+	handlerFunc      = func(http.ResponseWriter, *http.Request) error
+	statusCodeLogger struct {
+		http.ResponseWriter
+		statusCode int
+	}
+)
 
 func (s *statusCodeLogger) WriteHeader(code int) {
 	s.statusCode = code
