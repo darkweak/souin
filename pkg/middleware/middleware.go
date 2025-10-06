@@ -58,6 +58,8 @@ func registerMappingKeysEviction(logger core.Logger, storers []types.Storer) {
 				logger.Debugf("run mapping eviction for storer %s", current.Name())
 
 				api.EvictMapping(current)
+
+				time.Sleep(time.Minute)
 			}
 		}(storer)
 	}
@@ -342,8 +344,7 @@ func (s *SouinBaseHandler) Store(
 		if res.Header.Get("Content-Length") == "" {
 			res.Header.Set("Content-Length", fmt.Sprint(bLen))
 		}
-		respBodyMaxSize := int(s.Configuration.GetDefaultCache().GetMaxBodyBytes())
-		if respBodyMaxSize > 0 && bLen > respBodyMaxSize {
+		if customWriter.maxSizeReached {
 			customWriter.Header().Set("Cache-Status", status+"; detail=UPSTREAM-RESPONSE-TOO-LARGE; key="+rfc.GetCacheKeyFromCtx(rq.Context()))
 
 			return nil
@@ -516,9 +517,7 @@ func (s *SouinBaseHandler) Upstream(
 		}
 
 		err := s.Store(customWriter, rq, requestCc, cachedKey, uri)
-		defer customWriter.handleBuffer(func(b *bytes.Buffer) {
-			b.Reset()
-		})
+		defer customWriter.resetBuffer()
 
 		return singleflightValue{
 			body:              customWriter.Buf.Bytes(),
@@ -581,9 +580,7 @@ func (s *SouinBaseHandler) Revalidate(validator *core.Revalidator, next handlerF
 		statusCode := customWriter.GetStatusCode()
 		if err == nil {
 			if validator.IfUnmodifiedSincePresent && statusCode != http.StatusNotModified {
-				customWriter.handleBuffer(func(b *bytes.Buffer) {
-					b.Reset()
-				})
+				customWriter.resetBuffer()
 				customWriter.Rw.WriteHeader(http.StatusPreconditionFailed)
 
 				return nil, errors.New("")
@@ -591,9 +588,7 @@ func (s *SouinBaseHandler) Revalidate(validator *core.Revalidator, next handlerF
 
 			if validator.IfModifiedSincePresent {
 				if lastModified, err := time.Parse(time.RFC1123, customWriter.Header().Get("Last-Modified")); err == nil && validator.IfModifiedSince.Sub(lastModified) > 0 {
-					customWriter.handleBuffer(func(b *bytes.Buffer) {
-						b.Reset()
-					})
+					customWriter.resetBuffer()
 					customWriter.Rw.WriteHeader(http.StatusNotModified)
 
 					return nil, errors.New("")
@@ -615,9 +610,8 @@ func (s *SouinBaseHandler) Revalidate(validator *core.Revalidator, next handlerF
 			),
 		)
 
-		defer customWriter.handleBuffer(func(b *bytes.Buffer) {
-			b.Reset()
-		})
+		defer customWriter.resetBuffer()
+
 		return singleflightValue{
 			body:    customWriter.Buf.Bytes(),
 			headers: customWriter.Header().Clone(),
@@ -789,7 +783,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 	bufPool.Reset()
 	defer s.bufPool.Put(bufPool)
 
-	customWriter := NewCustomWriter(req, rw, bufPool)
+	customWriter := NewCustomWriter(req, rw, bufPool, int(s.Configuration.GetDefaultCache().GetMaxBodyBytes()))
 	customWriter.Headers.Add("Range", req.Header.Get("Range"))
 	// req.Header.Del("Range")
 
@@ -838,18 +832,14 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 				}
 				if validator.NotModified {
 					customWriter.WriteHeader(http.StatusNotModified)
-					customWriter.handleBuffer(func(b *bytes.Buffer) {
-						b.Reset()
-					})
+					customWriter.resetBuffer()
 					_, _ = customWriter.Send()
 
 					return nil
 				}
 
 				customWriter.WriteHeader(response.StatusCode)
-				customWriter.handleBuffer(func(b *bytes.Buffer) {
-					_, _ = io.Copy(b, response.Body)
-				})
+				_, _ = customWriter.copyToBuffer(response.Body)
 				_, _ = customWriter.Send()
 
 				return nil
@@ -875,9 +865,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 				}
 				customWriter.WriteHeader(response.StatusCode)
 				s.Configuration.GetLogger().Debugf("Serve from cache %+v", req)
-				customWriter.handleBuffer(func(b *bytes.Buffer) {
-					_, _ = io.Copy(b, response.Body)
-				})
+				_, _ = customWriter.copyToBuffer(response.Body)
 				_, err := customWriter.Send()
 				prometheus.Increment(prometheus.CachedResponseCounter)
 
@@ -897,11 +885,9 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 					}
 					customWriter.WriteHeader(response.StatusCode)
 					rfc.HitStaleCache(&response.Header)
-					customWriter.handleBuffer(func(b *bytes.Buffer) {
-						_, _ = io.Copy(b, response.Body)
-					})
+					_, _ = customWriter.copyToBuffer(response.Body)
 					_, err := customWriter.Send()
-					customWriter = NewCustomWriter(req, rw, bufPool)
+					customWriter = NewCustomWriter(req, rw, bufPool, int(s.Configuration.GetDefaultCache().GetMaxBodyBytes()))
 					go func(v *core.Revalidator, goCw *CustomWriter, goRq *http.Request, goNext func(http.ResponseWriter, *http.Request) error, goCc *cacheobject.RequestCacheDirectives, goCk string, goUri string) {
 						_ = s.Revalidate(v, goNext, goCw, goRq, goCc, goCk, goUri)
 					}(validator, customWriter, req, next, requestCc, cachedKey, uri)
@@ -923,18 +909,13 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 							response.Header.Set("Cache-Status", response.Header.Get("Cache-Status")+code)
 							maps.Copy(customWriter.Header(), response.Header)
 							customWriter.WriteHeader(response.StatusCode)
-							customWriter.handleBuffer(func(b *bytes.Buffer) {
-								b.Reset()
-								_, _ = io.Copy(b, response.Body)
-							})
+							_, _ = customWriter.resetAndCopyToBuffer(response.Body)
 							_, err := customWriter.Send()
 
 							return err
 						}
 						rw.WriteHeader(http.StatusGatewayTimeout)
-						customWriter.handleBuffer(func(b *bytes.Buffer) {
-							b.Reset()
-						})
+						customWriter.resetBuffer()
 						_, err := customWriter.Send()
 
 						return err
@@ -945,9 +926,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 							rfc.SetCacheStatusHeader(response, storerName)
 							customWriter.WriteHeader(response.StatusCode)
 							maps.Copy(customWriter.Header(), response.Header)
-							customWriter.handleBuffer(func(b *bytes.Buffer) {
-								_, _ = io.Copy(b, response.Body)
-							})
+							_, _ = customWriter.copyToBuffer(response.Body)
 							_, _ = customWriter.Send()
 
 							return err
@@ -956,9 +935,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 
 					if statusCode != http.StatusNotModified && validator.Matched {
 						customWriter.WriteHeader(http.StatusNotModified)
-						customWriter.handleBuffer(func(b *bytes.Buffer) {
-							b.Reset()
-						})
+						customWriter.resetBuffer()
 						_, _ = customWriter.Send()
 
 						return err
@@ -973,9 +950,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 					customWriter.WriteHeader(response.StatusCode)
 					rfc.HitStaleCache(&response.Header)
 					maps.Copy(customWriter.Header(), response.Header)
-					customWriter.handleBuffer(func(b *bytes.Buffer) {
-						_, _ = io.Copy(b, response.Body)
-					})
+					_, _ = customWriter.copyToBuffer(response.Body)
 					_, err := customWriter.Send()
 
 					return err
@@ -989,9 +964,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 				customWriter.WriteHeader(response.StatusCode)
 				rfc.HitStaleCache(&response.Header)
 				maps.Copy(customWriter.Header(), response.Header)
-				customWriter.handleBuffer(func(b *bytes.Buffer) {
-					_, _ = io.Copy(b, response.Body)
-				})
+				_, _ = customWriter.copyToBuffer(response.Body)
 				_, err := customWriter.Send()
 
 				return err
@@ -1015,10 +988,8 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 						response.Header.Set("Cache-Status", response.Header.Get("Cache-Status")+code)
 						maps.Copy(customWriter.Header(), response.Header)
 						customWriter.WriteHeader(response.StatusCode)
-						customWriter.handleBuffer(func(b *bytes.Buffer) {
-							b.Reset()
-							_, _ = io.Copy(b, response.Body)
-						})
+						_, _ = customWriter.resetAndCopyToBuffer(response.Body)
+
 						_, err := customWriter.Send()
 
 						return err

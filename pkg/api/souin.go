@@ -186,7 +186,7 @@ func EvictMapping(current types.Storer) {
 			}
 		}
 
-		if updated {
+		if updated && len(mapping.GetMapping()) > 0 {
 			v, e := proto.Marshal(mapping)
 			if e != nil {
 				fmt.Println("Impossible to re-encode the mapping", core.MappingKeyPrefix+k)
@@ -199,7 +199,6 @@ func EvictMapping(current types.Storer) {
 			current.Delete(core.MappingKeyPrefix + k)
 		}
 	}
-	time.Sleep(time.Minute)
 }
 
 func (s *SouinAPI) purgeMapping() {
