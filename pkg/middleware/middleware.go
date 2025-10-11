@@ -817,6 +817,15 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 			backfillIds++
 		}
 
+		defer func() {
+			if fresh != nil {
+				_ = fresh.Body.Close()
+			}
+			if stale != nil {
+				_ = stale.Body.Close()
+			}
+		}()
+
 		headerName, _ := s.SurrogateKeyStorer.GetSurrogateControl(customWriter.Header())
 		if fresh != nil && (!modeContext.Strict || rfc.ValidateCacheControl(fresh, requestCc)) {
 			go func() {

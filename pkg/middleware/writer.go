@@ -202,7 +202,7 @@ func (r *CustomWriter) Send() (int, error) {
 
 	if r.Headers.Get("Range") != "" {
 
-		var bufStr string
+		bufStr := new(strings.Builder)
 		mimeType := r.Header().Get("Content-Type")
 
 		r.WriteHeader(http.StatusPartialContent)
@@ -244,16 +244,17 @@ func (r *CustomWriter) Send() (int, error) {
 					content = content[:header.to-header.from]
 				}
 
-				bufStr += fmt.Sprintf(`
+				bufStr.WriteString(fmt.Sprintf(`
 %s
 Content-Type: %s
 Content-Range: bytes %d-%d/%d
 
 %s
-`, separator, mimeType, header.from, header.to, r.Buf.Len(), content)
+`, separator, mimeType, header.from, header.to, r.Buf.Len(), content))
 			}
 
-			result = []byte(bufStr + separator + "--")
+			bufStr.WriteString(separator + "--")
+			result = []byte(bufStr.String())
 		}
 	}
 

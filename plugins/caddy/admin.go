@@ -78,7 +78,7 @@ func (a *adminAPI) Provision(ctx caddy.Context) error {
 	return nil
 }
 
-// Routes returns the admin routes.
+// Routes return the admin routes.
 func (a *adminAPI) Routes() []caddy.AdminRoute {
 	return []caddy.AdminRoute{
 		{
