@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/darkweak/storages/core"
 	"gopkg.in/yaml.v3"
 )
 
@@ -196,6 +197,26 @@ type CacheProvider struct {
 	Path string `json:"path" yaml:"path"`
 	// Declare the cache provider directly in the Souin configuration.
 	Configuration interface{} `json:"configuration" yaml:"configuration"`
+}
+
+func (c *CacheProvider) MarshalJSON() ([]byte, error) {
+	if !c.Found && c.URL == "" && c.Path == "" && c.Configuration == nil && c.Uuid == "" {
+		return []byte("null"), nil
+	}
+
+	return json.Marshal(struct {
+		Uuid          string
+		Found         bool        `json:"found"`
+		URL           string      `json:"url"`
+		Path          string      `json:"path"`
+		Configuration interface{} `json:"configuration"`
+	}{
+		Uuid:          c.Uuid,
+		Found:         c.Found,
+		URL:           c.URL,
+		Path:          c.Path,
+		Configuration: c.Configuration,
+	})
 }
 
 // Timeout configuration to handle the cache provider and the
@@ -456,7 +477,10 @@ type AbstractConfigurationInterface interface {
 	GetDefaultCache() DefaultCacheInterface
 	GetAPI() API
 	GetLogLevel() string
+	GetLogger() core.Logger
+	SetLogger(core.Logger)
 	GetYkeys() map[string]SurrogateKeys
 	GetSurrogateKeys() map[string]SurrogateKeys
+	IsSurrogateDisabled() bool
 	GetCacheKeys() CacheKeys
 }
