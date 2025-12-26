@@ -3,6 +3,7 @@ package middleware
 import (
 	"bytes"
 	baseCtx "context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -631,6 +632,60 @@ func (s *SouinBaseHandler) Revalidate(validator *core.Revalidator, next handlerF
 	return err
 }
 
+func (s *SouinBaseHandler) GetEarlyHints(cachedKey string) map[string][]string {
+	var wg sync.WaitGroup
+
+	wg.Add(s.storersLen)
+	cachedKey = fmt.Sprintf("%s_103_", cachedKey)
+
+	for _, storer := range s.Storers {
+		result := storer.MapKeys(cachedKey)
+
+		if len(result) != 0 {
+			earlyHintLinks := map[string][]string{}
+
+			for k, h := range result {
+				var res http.Header
+				_ = json.Unmarshal([]byte(h), &res)
+
+				res.Values("Link")
+				earlyHintLinks[k] = res.Values("Link")
+			}
+
+			s.Configuration.GetLogger().Debugf("Found early_hints %#v for the cachedKey %s", earlyHintLinks, cachedKey)
+
+			return earlyHintLinks
+		}
+	}
+
+	return nil
+}
+
+func (s *SouinBaseHandler) StoreEarlyHint(cachedKey string, h http.Header, iteration int) {
+	var wg sync.WaitGroup
+
+	wg.Add(s.storersLen)
+
+	cachedKey = fmt.Sprintf("%s_103_%d", cachedKey, iteration)
+
+	byteHeaders, _ := json.Marshal(h)
+
+	for _, storer := range s.Storers {
+		go func(currentStorer types.Storer, currentKey string, byteHeaders []byte) {
+			defer wg.Done()
+			if currentStorer.Set(currentKey, byteHeaders, s.DefaultMatchedUrl.TTL.Duration) == nil {
+				s.Configuration.GetLogger().Debugf("Stored the early_hint key %s in the %s provider for %v duration", currentKey, currentStorer.Name())
+			} else {
+				s.Configuration.GetLogger().Debugf(
+					"Cannot store the key early_hint key %s in the %s provider",
+					currentKey,
+					currentStorer.Name(),
+				)
+			}
+		}(storer, cachedKey, byteHeaders)
+	}
+}
+
 func (s *SouinBaseHandler) HandleInternally(r *http.Request) (bool, http.HandlerFunc) {
 	if s.InternalEndpointHandlers != nil {
 		for k, handler := range *s.InternalEndpointHandlers.Handlers {
@@ -783,9 +838,28 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 	bufPool.Reset()
 	defer s.bufPool.Put(bufPool)
 
-	customWriter := NewCustomWriter(req, rw, bufPool, int(s.Configuration.GetDefaultCache().GetMaxBodyBytes()))
+	earlyHintIteration := 0
+	customWriter := NewCustomWriter(
+		req,
+		rw,
+		bufPool,
+		int(s.Configuration.GetDefaultCache().GetMaxBodyBytes()),
+		func(h http.Header) {
+			s.StoreEarlyHint(cachedKey, h, earlyHintIteration)
+			earlyHintIteration++
+		})
 	customWriter.Headers.Add("Range", req.Header.Get("Range"))
-	// req.Header.Del("Range")
+
+	earlyHints := s.GetEarlyHints(cachedKey)
+	for _, links := range earlyHints {
+		for _, link := range links {
+			rw.Header().Add("Link", link)
+		}
+
+		rw.WriteHeader(http.StatusEarlyHints)
+
+		rw.Header().Del("Link")
+	}
 
 	go func(req *http.Request, crw *CustomWriter) {
 		<-req.Context().Done()
@@ -896,7 +970,15 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 					rfc.HitStaleCache(&response.Header)
 					_, _ = customWriter.copyToBuffer(response.Body)
 					_, err := customWriter.Send()
-					customWriter = NewCustomWriter(req, rw, bufPool, int(s.Configuration.GetDefaultCache().GetMaxBodyBytes()))
+					customWriter = NewCustomWriter(
+						req,
+						rw,
+						bufPool,
+						int(s.Configuration.GetDefaultCache().GetMaxBodyBytes()),
+						func(h http.Header) {
+							s.StoreEarlyHint(cachedKey, h, earlyHintIteration)
+							earlyHintIteration++
+						})
 					go func(v *core.Revalidator, goCw *CustomWriter, goRq *http.Request, goNext func(http.ResponseWriter, *http.Request) error, goCc *cacheobject.RequestCacheDirectives, goCk string, goUri string) {
 						_ = s.Revalidate(v, goNext, goCw, goRq, goCc, goCk, goUri)
 					}(validator, customWriter, req, next, requestCc, cachedKey, uri)

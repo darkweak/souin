@@ -21,7 +21,13 @@ type SouinWriterInterface interface {
 
 var _ SouinWriterInterface = (*CustomWriter)(nil)
 
-func NewCustomWriter(rq *http.Request, rw http.ResponseWriter, b *bytes.Buffer, maxSize int) *CustomWriter {
+func NewCustomWriter(
+	rq *http.Request,
+	rw http.ResponseWriter,
+	b *bytes.Buffer,
+	maxSize int,
+	earlyHintStore func(http.Header),
+) *CustomWriter {
 	return &CustomWriter{
 		statusCode:     200,
 		Buf:            b,
@@ -31,6 +37,7 @@ func NewCustomWriter(rq *http.Request, rw http.ResponseWriter, b *bytes.Buffer, 
 		mutex:          sync.Mutex{},
 		maxSize:        maxSize,
 		maxSizeReached: false,
+		earlyHintStore: earlyHintStore,
 	}
 }
 
@@ -45,6 +52,8 @@ type CustomWriter struct {
 	statusCode     int
 	maxSize        int
 	maxSizeReached bool
+
+	earlyHintStore func(http.Header)
 }
 
 func (r *CustomWriter) resetBuffer() {
@@ -92,12 +101,24 @@ func (r *CustomWriter) GetStatusCode() int {
 
 // WriteHeader will write the response headers
 func (r *CustomWriter) WriteHeader(code int) {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
+	defer func(h http.Header) {
+		r.mutex.Unlock()
+
+		if code == http.StatusEarlyHints {
+			r.earlyHintStore(h)
+		}
+	}(r.Header())
+
 	if r.headersSent {
 		return
 	}
+
+	r.mutex.Lock()
+
 	r.statusCode = code
+	if code == http.StatusEarlyHints {
+		r.Rw.WriteHeader(code)
+	}
 }
 
 // Write will write the response body
@@ -185,6 +206,16 @@ func parseRange(rangeHeaders []string, contentRange string) ([]rangeValue, range
 	}
 
 	return values, crv, total + 1
+}
+
+// Push implements http.Pusher
+func (r *CustomWriter) Push(target string, opts *http.PushOptions) error {
+	pusher, ok := r.Rw.(http.Pusher)
+	if !ok {
+		return fmt.Errorf("ResponseWriter does not implement http.Pusher")
+	}
+
+	return pusher.Push(target, opts)
 }
 
 // Send delays the response to handle Cache-Status
