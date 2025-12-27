@@ -101,6 +101,10 @@ func (r *CustomWriter) GetStatusCode() int {
 
 // WriteHeader will write the response headers
 func (r *CustomWriter) WriteHeader(code int) {
+	if r.headersSent {
+		return
+	}
+
 	defer func(h http.Header) {
 		r.mutex.Unlock()
 
@@ -108,11 +112,6 @@ func (r *CustomWriter) WriteHeader(code int) {
 			r.earlyHintStore(h)
 		}
 	}(r.Header())
-
-	if r.headersSent {
-		return
-	}
-
 	r.mutex.Lock()
 
 	r.statusCode = code
