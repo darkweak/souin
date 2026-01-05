@@ -36,7 +36,7 @@ func ValidateMaxAgeCachedStaleResponse(co *cacheobject.RequestCacheDirectives, r
 		return res
 	}
 
-	if resCo != nil && (resCo.StaleIfError > -1 || co.StaleIfError > 0) {
+	if resCo != nil && (resCo.StaleIfError > -1 || co.StaleIfError > 0 || resCo.StaleWhileRevalidate > 0) {
 		if resCo.StaleIfError > -1 {
 			if response := validateMaxAgeCachedResponse(res, int(resCo.StaleIfError), addTime); response != nil {
 				return response
@@ -45,6 +45,12 @@ func ValidateMaxAgeCachedStaleResponse(co *cacheobject.RequestCacheDirectives, r
 
 		if co.StaleIfError > 0 {
 			if response := validateMaxAgeCachedResponse(res, int(co.StaleIfError), addTime); response != nil {
+				return response
+			}
+		}
+
+		if resCo.StaleWhileRevalidate > 0 {
+			if response := validateMaxAgeCachedResponse(res, int(resCo.StaleWhileRevalidate), addTime); response != nil {
 				return response
 			}
 		}

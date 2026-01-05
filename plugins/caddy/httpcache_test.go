@@ -1660,3 +1660,42 @@ func TestCoalescing(t *testing.T) {
 		}
 	}
 }
+
+func TestMaxStaleRevalidation(t *testing.T) {
+	tester := caddytest.NewTester(t)
+	tester.InitServer(`
+	{
+		admin localhost:2999
+		http_port     9080
+		https_port    9443
+		cache {
+			stale 3600s
+		}
+	}
+	localhost:9080 {
+		route /cache-max-age-revalidation {
+			cache
+			header Cache-Control "max-age=1"
+			header ETag "df7g3dt1b7k010"
+			respond "Hello, max-age!"
+		}
+	}`, "caddyfile")
+
+	resp1, _ := tester.AssertGetResponse(`http://localhost:9080/cache-max-age-revalidation`, 200, "Hello, max-age!")
+	if resp1.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-http-localhost:9080-/cache-max-age-revalidation" {
+		t.Errorf("unexpected Cache-Status header %v", resp1.Header)
+	}
+
+	req2, _ := http.NewRequest("GET", "http://localhost:9080/cache-max-age-revalidation", nil)
+	req2.Header.Set("Cache-Control", "max-stale=6")
+	resp2, _ := tester.AssertResponse(req2, 200, "Hello, max-age!")
+	compareHit(t, resp2.Header, "GET-http-localhost:9080-/cache-max-age-revalidation", "DEFAULT", 0)
+
+	time.Sleep(2 * time.Second)
+
+	req3, _ := http.NewRequest("GET", "http://localhost:9080/cache-max-age-revalidation", nil)
+	req3.Header.Set("Cache-Control", "max-stale=6")
+	req3.Header.Set("ETag", "df7g3dt1b7k019")
+	resp3, _ := tester.AssertResponse(req3, 200, "Hello, max-age!")
+	compareHit(t, resp3.Header, "GET-http-localhost:9080-/cache-max-age-revalidation", "DEFAULT", -2, "; fwd=stale")
+}
