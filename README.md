@@ -685,7 +685,7 @@ func main(){
 
     // ...
 	e := echo.New()
-	s := souin_echo.New(souin_echo.DefaultConfiguration)
+	s := souin_echo.NewMiddleware(souin_echo.DefaultConfiguration)
 	e.Use(s.Process)
     // ...
 

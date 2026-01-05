@@ -25,14 +25,14 @@ import (
 func main(){
 
     // ...
-	s := souin_echo.New(souin_echo.DevDefaultConfiguration)
+	s := souin_echo.NewMiddleware(souin_echo.DevDefaultConfiguration)
 	e.Use(s.Process)
     // ...
 
 }
 ```
 With that your application will be able to cache the responses if possible and returns at least the `Cache-Status` HTTP header with the different directives mentionned in the RFC specification.  
-You have to pass an Echo `Configuration` structure into the `New` method (you can use the `DefaultConfiguration` variable to have a built-in production ready configuration).  
+You have to pass an Echo `Configuration` structure into the `NewMiddleware` method (you can use the `DefaultConfiguration` variable to have a built-in production ready configuration).  
 See the full detailled configuration names [here](https://github.com/darkweak/souin#optional-configuration).
 
 Other resources
