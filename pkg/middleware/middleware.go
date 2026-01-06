@@ -1068,7 +1068,42 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 				_, _ = time.ParseDuration(response.Header.Get(rfc.StoredTTLHeader))
 				rfc.SetCacheStatusHeader(response, storerName)
 
-				responseCc, _ := cacheobject.ParseResponseCacheControl(rfc.HeaderAllCommaSepValuesString(response.Header, "Cache-Control"))
+				datetime, _ := http.ParseTime(response.Header.Get("Date"))
+				if responseCc.StaleWhileRevalidate > 0 && datetime.Add(addTime).Add(time.Duration(responseCc.StaleWhileRevalidate)*time.Second).After(start) {
+					for h, v := range response.Header {
+						customWriter.Header()[h] = v
+					}
+					customWriter.WriteHeader(response.StatusCode)
+					rfc.HitStaleCache(&response.Header)
+					_, _ = customWriter.copyToBuffer(response.Body)
+					_, err := customWriter.Send()
+
+					buf := s.bufPool.Get().(*bytes.Buffer)
+					buf.Reset()
+					defer s.bufPool.Put(buf)
+
+					closer := io.NopCloser(bytes.NewBuffer([]byte{}))
+					defer func() {
+						_ = closer.Close()
+					}()
+
+					clonedReq := req.Clone(newContextSWR(req.Context()))
+					customWriter = NewCustomWriter(
+						clonedReq,
+						newSWRRW(closer),
+						buf,
+						int(s.Configuration.GetDefaultCache().GetMaxBodyBytes()),
+						func(h http.Header) {
+							s.StoreEarlyHint(cachedKey, h, earlyHintIteration)
+							earlyHintIteration++
+						})
+
+					go func(v *core.Revalidator, goCw *CustomWriter, goRq *http.Request, goNext func(http.ResponseWriter, *http.Request) error, goCc *cacheobject.RequestCacheDirectives, goCk string, goUri string) {
+						_ = s.Revalidate(v, goNext, goCw, goRq, goCc, goCk, goUri)
+					}(validator, customWriter, clonedReq, next, requestCc, cachedKey, uri)
+
+					return err
+				}
 
 				if responseCc.StaleIfError > -1 || requestCc.StaleIfError > 0 {
 					err := s.Revalidate(validator, next, customWriter, req, requestCc, cachedKey, uri)

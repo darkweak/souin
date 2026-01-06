@@ -101,6 +101,10 @@ func (r *CustomWriter) GetStatusCode() int {
 
 // WriteHeader will write the response headers
 func (r *CustomWriter) WriteHeader(code int) {
+	if r.headersSent {
+		return
+	}
+
 	defer func(h http.Header) {
 		r.mutex.Unlock()
 
@@ -108,11 +112,6 @@ func (r *CustomWriter) WriteHeader(code int) {
 			r.earlyHintStore(h)
 		}
 	}(r.Header())
-
-	if r.headersSent {
-		return
-	}
-
 	r.mutex.Lock()
 
 	r.statusCode = code
@@ -302,4 +301,30 @@ Content-Range: bytes %d-%d/%d
 	}
 
 	return r.Rw.Write(result)
+}
+
+func newSWRRW(closer io.ReadCloser) http.ResponseWriter {
+	return &swrResponseWriter{
+		body:       closer,
+		headers:    http.Header{},
+		statusCode: 0,
+	}
+}
+
+type swrResponseWriter struct {
+	body       io.ReadCloser
+	headers    http.Header
+	statusCode int
+}
+
+func (r swrResponseWriter) Header() http.Header {
+	return r.headers
+}
+
+func (r swrResponseWriter) WriteHeader(code int) {
+	r.statusCode = code
+}
+
+func (r swrResponseWriter) Write(b []byte) (int, error) {
+	return r.body.Read(b)
 }

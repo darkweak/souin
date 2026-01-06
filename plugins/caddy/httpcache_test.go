@@ -587,6 +587,69 @@ func TestMustRevalidate(t *testing.T) {
 	}
 }
 
+func TestSWR(t *testing.T) {
+	tester := caddytest.NewTester(t)
+	tester.InitServer(`
+	{
+		admin localhost:2999
+		http_port     9080
+		cache {
+			ttl 5s
+			stale 5s
+		}
+	}
+	localhost:9080 {
+		route /cache-swr {
+			cache
+
+			header Cache-Control "s-maxage=5, stale-while-revalidate=5"
+			respond "Hello, stale-while-revalidate!"
+		}
+	}`, "caddyfile")
+
+	time.Sleep(time.Second)
+	resp1, _ := tester.AssertGetResponse(`http://localhost:9080/cache-swr`, http.StatusOK, "Hello, stale-while-revalidate!")
+	resp2, _ := tester.AssertGetResponse(`http://localhost:9080/cache-swr`, http.StatusOK, "Hello, stale-while-revalidate!")
+	time.Sleep(6 * time.Second)
+	resp3, _ := tester.AssertGetResponse(`http://localhost:9080/cache-swr`, http.StatusOK, "Hello, stale-while-revalidate!")
+
+	if resp1.Header.Get("Cache-Control") != "s-maxage=5, stale-while-revalidate=5" {
+		t.Errorf("unexpected resp1 Cache-Control header %v", resp1.Header.Get("Cache-Control"))
+	}
+	if resp1.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-http-localhost:9080-/cache-swr" {
+		t.Errorf("unexpected resp1 Cache-Status header %v", resp1.Header.Get("Cache-Status"))
+	}
+	if resp1.Header.Get("Age") != "" {
+		t.Errorf("unexpected resp1 Age header %v", resp1.Header.Get("Age"))
+	}
+
+	if resp2.Header.Get("Cache-Control") != "s-maxage=5, stale-while-revalidate=5" {
+		t.Errorf("unexpected resp2 Cache-Control header %v", resp2.Header.Get("Cache-Control"))
+	}
+	compareHit(t, resp2.Header, "GET-http-localhost:9080-/cache-swr", "DEFAULT", 4)
+	if resp2.Header.Get("Age") != "1" {
+		t.Errorf("unexpected resp2 Age header %v", resp2.Header.Get("Age"))
+	}
+
+	if resp3.Header.Get("Cache-Control") != "s-maxage=5, stale-while-revalidate=5" {
+		t.Errorf("unexpected resp3 Cache-Control header %v", resp3.Header.Get("Cache-Control"))
+	}
+	compareHit(t, resp3.Header, "GET-http-localhost:9080-/cache-swr", "DEFAULT", -2)
+	if resp3.Header.Get("Age") != "7" {
+		t.Errorf("unexpected resp3 Age header %v", resp3.Header.Get("Age"))
+	}
+
+	time.Sleep(10 * time.Millisecond)
+	resp4, _ := tester.AssertGetResponse(`http://localhost:9080/cache-swr`, http.StatusOK, "Hello, stale-while-revalidate!")
+	if resp4.Header.Get("Cache-Control") != "s-maxage=5, stale-while-revalidate=5" {
+		t.Errorf("unexpected resp4 Cache-Control header %v", resp4.Header.Get("Cache-Control"))
+	}
+	compareHit(t, resp4.Header, "GET-http-localhost:9080-/cache-swr", "DEFAULT", 4)
+	if resp4.Header.Get("Age") != "1" {
+		t.Errorf("unexpected resp4 Age header %v", resp4.Header.Get("Age"))
+	}
+}
+
 type staleIfErrorHandler struct {
 	iterator int
 }
@@ -1596,4 +1659,43 @@ func TestCoalescing(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestMaxStaleRevalidation(t *testing.T) {
+	tester := caddytest.NewTester(t)
+	tester.InitServer(`
+	{
+		admin localhost:2999
+		http_port     9080
+		https_port    9443
+		cache {
+			stale 3600s
+		}
+	}
+	localhost:9080 {
+		route /cache-max-age-revalidation {
+			cache
+			header Cache-Control "max-age=1"
+			header ETag "df7g3dt1b7k010"
+			respond "Hello, max-age!"
+		}
+	}`, "caddyfile")
+
+	resp1, _ := tester.AssertGetResponse(`http://localhost:9080/cache-max-age-revalidation`, 200, "Hello, max-age!")
+	if resp1.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-http-localhost:9080-/cache-max-age-revalidation" {
+		t.Errorf("unexpected Cache-Status header %v", resp1.Header)
+	}
+
+	req2, _ := http.NewRequest("GET", "http://localhost:9080/cache-max-age-revalidation", nil)
+	req2.Header.Set("Cache-Control", "max-stale=6")
+	resp2, _ := tester.AssertResponse(req2, 200, "Hello, max-age!")
+	compareHit(t, resp2.Header, "GET-http-localhost:9080-/cache-max-age-revalidation", "DEFAULT", 0)
+
+	time.Sleep(2 * time.Second)
+
+	req3, _ := http.NewRequest("GET", "http://localhost:9080/cache-max-age-revalidation", nil)
+	req3.Header.Set("Cache-Control", "max-stale=6")
+	req3.Header.Set("ETag", "df7g3dt1b7k019")
+	resp3, _ := tester.AssertResponse(req3, 200, "Hello, max-age!")
+	compareHit(t, resp3.Header, "GET-http-localhost:9080-/cache-max-age-revalidation", "DEFAULT", -2, "; fwd=stale")
 }

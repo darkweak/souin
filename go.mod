@@ -5,9 +5,9 @@ go 1.25
 require (
 	github.com/caddyserver/caddy/v2 v2.10.0
 	github.com/cespare/xxhash/v2 v2.3.0
-	github.com/darkweak/storages/core v0.0.15
+	github.com/darkweak/storages/core v0.0.17
 	github.com/google/uuid v1.6.0
-	github.com/pierrec/lz4/v4 v4.1.22
+	github.com/pierrec/lz4/v4 v4.1.23
 	github.com/pquerna/cachecontrol v0.2.0
 	github.com/prometheus/client_golang v1.22.0
 	github.com/prometheus/client_model v0.6.2
