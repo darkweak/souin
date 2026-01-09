@@ -3,6 +3,7 @@ package middleware
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -41,10 +42,23 @@ type CustomWriter struct {
 	statusCode  int
 }
 
-func (r *CustomWriter) handleBuffer(callback func(*bytes.Buffer)) {
+func (r *CustomWriter) resetBuffer() {
 	r.mutex.Lock()
-	callback(r.Buf)
+	r.Buf.Reset()
 	r.mutex.Unlock()
+}
+
+func (r *CustomWriter) copyToBuffer(src io.Reader) (int64, error) {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+	return io.Copy(r.Buf, src)
+}
+
+func (r *CustomWriter) resetAndCopyToBuffer(src io.Reader) (int64, error) {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+	r.Buf.Reset()
+	return io.Copy(r.Buf, src)
 }
 
 // Header will write the response headers
@@ -79,10 +93,10 @@ func (r *CustomWriter) WriteHeader(code int) {
 
 // Write will write the response body
 func (r *CustomWriter) Write(b []byte) (int, error) {
-	r.handleBuffer(func(actual *bytes.Buffer) {
-		actual.Grow(len(b))
-		_, _ = actual.Write(b)
-	})
+	r.mutex.Lock()
+	r.Buf.Grow(len(b))
+	_, _ = r.Buf.Write(b)
+	r.mutex.Unlock()
 
 	return len(b), nil
 }
@@ -142,9 +156,7 @@ func parseRange(rangeHeaders []string, contentRange string) ([]rangeValue, range
 
 // Send delays the response to handle Cache-Status
 func (r *CustomWriter) Send() (int, error) {
-	defer r.handleBuffer(func(b *bytes.Buffer) {
-		b.Reset()
-	})
+	defer r.resetBuffer()
 	storedLength := r.Header().Get(rfc.StoredLengthHeader)
 	if storedLength != "" {
 		r.Header().Set("Content-Length", storedLength)

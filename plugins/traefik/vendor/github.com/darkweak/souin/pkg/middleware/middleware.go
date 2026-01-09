@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"net/http"
 	"net/http/httputil"
 	"regexp"
@@ -13,29 +14,123 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cespare/xxhash/v2"
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/context"
 	"github.com/darkweak/souin/helpers"
 	"github.com/darkweak/souin/pkg/api"
+	"github.com/darkweak/souin/pkg/api/prometheus"
 	"github.com/darkweak/souin/pkg/rfc"
 	"github.com/darkweak/souin/pkg/storage"
 	"github.com/darkweak/souin/pkg/storage/types"
 	"github.com/darkweak/souin/pkg/surrogate"
 	"github.com/darkweak/souin/pkg/surrogate/providers"
+	"github.com/darkweak/storages/core"
 	"github.com/google/uuid"
 	"github.com/pquerna/cachecontrol/cacheobject"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	"golang.org/x/sync/singleflight"
 )
 
-func NewHTTPCacheHandler(c configurationtypes.AbstractConfigurationInterface) *SouinBaseHandler {
-	storers, err := storage.NewStorages(c)
-	if err != nil {
-		panic(err)
+func reorderStorers(storers []types.Storer, expectedStorers []string) []types.Storer {
+	if len(expectedStorers) == 0 {
+		return storers
 	}
-	fmt.Println("Storers initialized.")
+
+	newStorers := make([]types.Storer, 0)
+	for _, expectedStorer := range expectedStorers {
+		for _, storer := range storers {
+			if storer.Name() == strings.ToUpper(expectedStorer) {
+				newStorers = append(newStorers, storer)
+			}
+		}
+	}
+
+	return newStorers
+}
+
+func registerMappingKeysEviction(logger core.Logger, storers []types.Storer) {
+	for _, storer := range storers {
+		logger.Debugf("registering mapping eviction for storer %s", storer.Name())
+		go func(current types.Storer) {
+			for {
+				logger.Debugf("run mapping eviction for storer %s", current.Name())
+
+				api.EvictMapping(current)
+			}
+		}(storer)
+	}
+}
+
+func NewHTTPCacheHandler(c configurationtypes.AbstractConfigurationInterface) *SouinBaseHandler {
+	if c.GetLogger() == nil {
+		var logLevel zapcore.Level
+		if c.GetLogLevel() == "" {
+			logLevel = zapcore.FatalLevel
+		} else if err := logLevel.UnmarshalText([]byte(c.GetLogLevel())); err != nil {
+			logLevel = zapcore.FatalLevel
+		}
+		cfg := zap.Config{
+			Encoding:         "json",
+			Level:            zap.NewAtomicLevelAt(logLevel),
+			OutputPaths:      []string{"stderr"},
+			ErrorOutputPaths: []string{"stderr"},
+			EncoderConfig: zapcore.EncoderConfig{
+				MessageKey: "message",
+
+				LevelKey:    "level",
+				EncodeLevel: zapcore.CapitalLevelEncoder,
+
+				TimeKey:    "time",
+				EncodeTime: zapcore.ISO8601TimeEncoder,
+
+				CallerKey:    "caller",
+				EncodeCaller: zapcore.ShortCallerEncoder,
+			},
+		}
+		logger, _ := cfg.Build()
+		c.SetLogger(logger.Sugar())
+	}
+
+	storedStorers := core.GetRegisteredStorers()
+	storers := []types.Storer{}
+	if len(storedStorers) != 0 {
+		dc := c.GetDefaultCache()
+		for _, s := range []string{dc.GetBadger().Uuid, dc.GetEtcd().Uuid, dc.GetNats().Uuid, dc.GetNuts().Uuid, dc.GetOlric().Uuid, dc.GetOtter().Uuid, dc.GetRedis().Uuid, dc.GetSimpleFS().Uuid} {
+			if s != "" {
+				if st := core.GetRegisteredStorer(s); st != nil {
+					storers = append(storers, st.(types.Storer))
+				}
+			}
+		}
+
+		storers = reorderStorers(storers, c.GetDefaultCache().GetStorers())
+
+		if len(storers) > 0 {
+			names := []string{}
+			for _, storer := range storers {
+				names = append(names, storer.Name())
+			}
+			c.GetLogger().Debugf("You're running Souin with the following storages in this order %s", strings.Join(names, ", "))
+		}
+	}
+	if len(storers) == 0 {
+		c.GetLogger().Warn("You're running Souin with the default storage that is not optimized and for development purpose. We recommend to use at least one of the storages from https://github.com/darkweak/storages")
+
+		memoryStorer, _ := storage.Factory(c)
+		if st := core.GetRegisteredStorer(types.DefaultStorageName + "-"); st != nil {
+			memoryStorer = st.(types.Storer)
+		} else {
+			core.RegisterStorage(memoryStorer)
+		}
+		storers = append(storers, memoryStorer)
+	}
+
+	c.GetLogger().Debugf("Storer initialized: %#v.", storers)
 	regexpUrls := helpers.InitializeRegexp(c)
-	surrogateStorage := surrogate.InitializeSurrogate(c, storers[0].Name())
-	fmt.Println("Surrogate storage initialized.")
+	surrogateStorage := surrogate.InitializeSurrogate(c, fmt.Sprintf("%s-%s", storers[0].Name(), storers[0].Uuid()))
+	c.GetLogger().Debug("Surrogate storage initialized.")
 	var excludedRegexp *regexp.Regexp = nil
 	if c.GetDefaultCache().GetRegex().Exclude != "" {
 		excludedRegexp = regexp.MustCompile(c.GetDefaultCache().GetRegex().Exclude)
@@ -54,7 +149,9 @@ func NewHTTPCacheHandler(c configurationtypes.AbstractConfigurationInterface) *S
 		Headers:             c.GetDefaultCache().GetHeaders(),
 		DefaultCacheControl: c.GetDefaultCache().GetDefaultCacheControl(),
 	}
-	fmt.Println("Souin configuration is now loaded.")
+	c.GetLogger().Info("Souin configuration is now loaded.")
+
+	registerMappingKeysEviction(c.GetLogger(), storers)
 
 	return &SouinBaseHandler{
 		Configuration:            c,
@@ -137,6 +234,7 @@ func (s *SouinBaseHandler) Store(
 	rq *http.Request,
 	requestCc *cacheobject.RequestCacheDirectives,
 	cachedKey string,
+	uri string,
 ) error {
 	statusCode := customWriter.GetStatusCode()
 	if !isCacheableCode(statusCode) && !s.hasAllowedAdditionalStatusCodesToCache(statusCode) {
@@ -161,6 +259,7 @@ func (s *SouinBaseHandler) Store(
 	}
 
 	responseCc, _ := cacheobject.ParseResponseCacheControl(rfc.HeaderAllCommaSepValuesString(customWriter.Header(), headerName))
+	s.Configuration.GetLogger().Debugf("Response cache-control %+v", responseCc)
 	if responseCc == nil {
 		customWriter.Header().Set("Cache-Status", fmt.Sprintf("%s; fwd=uri-miss; key=%s; detail=INVALID-RESPONSE-CACHE-CONTROL", rq.Context().Value(context.CacheName), rfc.GetCacheKeyFromCtx(rq.Context())))
 		return nil
@@ -251,13 +350,18 @@ func (s *SouinBaseHandler) Store(
 		}
 		res.Header.Set(rfc.StoredLengthHeader, res.Header.Get("Content-Length"))
 		response, err := httputil.DumpResponse(&res, true)
-		if err == nil && (bLen > 0 || canStatusCodeEmptyContent(statusCode) || s.hasAllowedAdditionalStatusCodesToCache(statusCode)) {
+		if err == nil && (bLen > 0 || rq.Method == http.MethodHead || canStatusCodeEmptyContent(statusCode) || s.hasAllowedAdditionalStatusCodesToCache(statusCode)) {
 			variedHeaders, isVaryStar := rfc.VariedHeaderAllCommaSepValues(res.Header)
 			if isVaryStar {
 				// "Implies that the response is uncacheable"
 				status += "; detail=UPSTREAM-VARY-STAR"
 			} else {
 				variedKey := cachedKey + rfc.GetVariedCacheKey(rq, variedHeaders)
+				if rq.Context().Value(context.Hashed).(bool) {
+					cachedKey = fmt.Sprint(xxhash.Sum64String(cachedKey))
+					variedKey = fmt.Sprint(xxhash.Sum64String(variedKey))
+				}
+				s.Configuration.GetLogger().Debugf("Store the response for %s with duration %v", variedKey, ma)
 
 				var wg sync.WaitGroup
 				mu := sync.Mutex{}
@@ -271,32 +375,61 @@ func (s *SouinBaseHandler) Store(
 						hn := strings.Split(hname, ":")
 						vhs.Set(hn[0], rq.Header.Get(hn[0]))
 					}
-					for _, storer := range s.Storers {
-						wg.Add(1)
-						go func(currentStorer types.Storer) {
-							defer wg.Done()
-							if currentStorer.SetMultiLevel(
-								cachedKey,
-								variedKey,
-								response,
-								vhs,
-								res.Header.Get("Etag"), ma,
-								variedKey,
-							) == nil {
-								res.Request = rq
-							} else {
-								mu.Lock()
-								fails = append(fails, fmt.Sprintf("; detail=%s-INSERTION-ERROR", currentStorer.Name()))
-								mu.Unlock()
+					if upstreamStorerTarget := res.Header.Get("X-Souin-Storer"); upstreamStorerTarget != "" {
+						res.Header.Del("X-Souin-Storer")
+
+						var overridedStorer types.Storer
+						for _, storer := range s.Storers {
+							if strings.Contains(strings.ToLower(storer.Name()), strings.ToLower(upstreamStorerTarget)) {
+								overridedStorer = storer
 							}
-						}(storer)
+						}
+
+						if overridedStorer.SetMultiLevel(
+							cachedKey,
+							variedKey,
+							response,
+							vhs,
+							res.Header.Get("Etag"), ma,
+							variedKey,
+						) == nil {
+							s.Configuration.GetLogger().Debugf("Stored the key %s in the %s provider", variedKey, overridedStorer.Name())
+							res.Request = rq
+						} else {
+							fails = append(fails, fmt.Sprintf("; detail=%s-INSERTION-ERROR", overridedStorer.Name()))
+						}
+					} else {
+						for _, storer := range s.Storers {
+							wg.Add(1)
+							go func(currentStorer types.Storer, currentRes http.Response) {
+								defer wg.Done()
+								if currentStorer.SetMultiLevel(
+									cachedKey,
+									variedKey,
+									response,
+									vhs,
+									currentRes.Header.Get("Etag"), ma,
+									variedKey,
+								) == nil {
+									s.Configuration.GetLogger().Debugf("Stored the key %s in the %s provider", variedKey, currentStorer.Name())
+									currentRes.Request = rq
+								} else {
+									mu.Lock()
+									fails = append(fails, fmt.Sprintf("; detail=%s-INSERTION-ERROR", currentStorer.Name()))
+									mu.Unlock()
+								}
+							}(storer, res)
+						}
 					}
 
 					wg.Wait()
 					if len(fails) < s.storersLen {
-						go func(rs http.Response, key string) {
-							_ = s.SurrogateKeyStorer.Store(&rs, key, "")
-						}(res, variedKey)
+						if !s.Configuration.IsSurrogateDisabled() {
+							go func(rs http.Response, key string) {
+								_ = s.SurrogateKeyStorer.Store(&rs, key, uri)
+							}(res, variedKey)
+						}
+
 						status += "; stored"
 					}
 
@@ -330,7 +463,11 @@ func (s *SouinBaseHandler) Upstream(
 	next handlerFunc,
 	requestCc *cacheobject.RequestCacheDirectives,
 	cachedKey string,
+	uri string,
 ) error {
+	s.Configuration.GetLogger().Debug("Request the upstream server")
+	prometheus.Increment(prometheus.RequestCounter)
+
 	var recoveredFromErr error = nil
 	defer func() {
 		// In case of "http.ErrAbortHandler" panic,
@@ -350,13 +487,16 @@ func (s *SouinBaseHandler) Upstream(
 	if s.Configuration.GetDefaultCache().IsCoalescingDisable() {
 		singleflightCacheKey += uuid.NewString()
 	}
-	sfValue, err, _ := s.singleflightPool.Do(singleflightCacheKey, func() (interface{}, error) {
+	sfValue, err, shared := s.singleflightPool.Do(singleflightCacheKey, func() (interface{}, error) {
 		if e := next(customWriter, rq); e != nil {
+			s.Configuration.GetLogger().Warnf("%#v", e)
 			customWriter.Header().Set("Cache-Status", fmt.Sprintf("%s; fwd=uri-miss; key=%s; detail=SERVE-HTTP-ERROR", rq.Context().Value(context.CacheName), rfc.GetCacheKeyFromCtx(rq.Context())))
 			return nil, e
 		}
 
-		s.SurrogateKeyStorer.Invalidate(rq.Method, customWriter.Header())
+		if !s.Configuration.IsSurrogateDisabled() {
+			s.SurrogateKeyStorer.Invalidate(rq.Method, customWriter.Header())
+		}
 
 		statusCode := customWriter.GetStatusCode()
 		if !isCacheableCode(statusCode) && !s.hasAllowedAdditionalStatusCodesToCache(statusCode) {
@@ -373,13 +513,16 @@ func (s *SouinBaseHandler) Upstream(
 			customWriter.Header().Set(headerName, s.DefaultMatchedUrl.DefaultCacheControl)
 		}
 
-		err := s.Store(customWriter, rq, requestCc, cachedKey)
-		defer customWriter.handleBuffer(func(b *bytes.Buffer) {
-			b.Reset()
-		})
+		err := s.Store(customWriter, rq, requestCc, cachedKey, uri)
+		defer customWriter.resetBuffer()
+
+		// Create a copy of the buffer to prevent memory retention
+		// when the buffer is returned to the pool
+		bodyCopy := make([]byte, customWriter.Buf.Len())
+		copy(bodyCopy, customWriter.Buf.Bytes())
 
 		return singleflightValue{
-			body:           customWriter.Buf.Bytes(),
+			body:           bodyCopy,
 			headers:        customWriter.Header().Clone(),
 			requestHeaders: rq.Header,
 			code:           statusCode,
@@ -399,38 +542,41 @@ func (s *SouinBaseHandler) Upstream(
 				for _, vh := range variedHeaders {
 					if rq.Header.Get(vh) != sfWriter.requestHeaders.Get(vh) {
 						// cachedKey += rfc.GetVariedCacheKey(rq, variedHeaders)
-						return s.Upstream(customWriter, rq, next, requestCc, cachedKey)
+						return s.Upstream(customWriter, rq, next, requestCc, cachedKey, uri)
 					}
 				}
 			}
 		}
-		customWriter.Buf.Reset()
-		_, _ = customWriter.Write(sfWriter.body)
-		// Yaegi sucks, we can't use maps.
-		for k := range sfWriter.headers {
-			customWriter.Header().Set(k, sfWriter.headers.Get(k))
+		if shared {
+			s.Configuration.GetLogger().Infof("Reused response from concurrent request with the key %s", cachedKey)
 		}
+		_, _ = customWriter.Write(sfWriter.body)
+		maps.Copy(customWriter.Header(), sfWriter.headers)
 		customWriter.WriteHeader(sfWriter.code)
 	}
 
 	return nil
 }
 
-func (s *SouinBaseHandler) Revalidate(validator *types.Revalidator, next handlerFunc, customWriter *CustomWriter, rq *http.Request, requestCc *cacheobject.RequestCacheDirectives, cachedKey string, uri string) error {
+func (s *SouinBaseHandler) Revalidate(validator *core.Revalidator, next handlerFunc, customWriter *CustomWriter, rq *http.Request, requestCc *cacheobject.RequestCacheDirectives, cachedKey string, uri string) error {
+	s.Configuration.GetLogger().Debug("Revalidate the request with the upstream server")
+	prometheus.Increment(prometheus.RequestRevalidationCounter)
+
 	singleflightCacheKey := cachedKey
 	if s.Configuration.GetDefaultCache().IsCoalescingDisable() {
 		singleflightCacheKey += uuid.NewString()
 	}
-	sfValue, err, _ := s.singleflightPool.Do(singleflightCacheKey, func() (interface{}, error) {
+	sfValue, err, shared := s.singleflightPool.Do(singleflightCacheKey, func() (interface{}, error) {
 		err := next(customWriter, rq)
-		s.SurrogateKeyStorer.Invalidate(rq.Method, customWriter.Header())
+
+		if !s.Configuration.IsSurrogateDisabled() {
+			s.SurrogateKeyStorer.Invalidate(rq.Method, customWriter.Header())
+		}
 
 		statusCode := customWriter.GetStatusCode()
 		if err == nil {
 			if validator.IfUnmodifiedSincePresent && statusCode != http.StatusNotModified {
-				customWriter.handleBuffer(func(b *bytes.Buffer) {
-					b.Reset()
-				})
+				customWriter.resetBuffer()
 				customWriter.Rw.WriteHeader(http.StatusPreconditionFailed)
 
 				return nil, errors.New("")
@@ -438,9 +584,7 @@ func (s *SouinBaseHandler) Revalidate(validator *types.Revalidator, next handler
 
 			if validator.IfModifiedSincePresent {
 				if lastModified, err := time.Parse(time.RFC1123, customWriter.Header().Get("Last-Modified")); err == nil && validator.IfModifiedSince.Sub(lastModified) > 0 {
-					customWriter.handleBuffer(func(b *bytes.Buffer) {
-						b.Reset()
-					})
+					customWriter.resetBuffer()
 					customWriter.Rw.WriteHeader(http.StatusNotModified)
 
 					return nil, errors.New("")
@@ -448,7 +592,7 @@ func (s *SouinBaseHandler) Revalidate(validator *types.Revalidator, next handler
 			}
 
 			if statusCode != http.StatusNotModified {
-				err = s.Store(customWriter, rq, requestCc, cachedKey)
+				err = s.Store(customWriter, rq, requestCc, cachedKey, uri)
 			}
 		}
 
@@ -462,22 +606,26 @@ func (s *SouinBaseHandler) Revalidate(validator *types.Revalidator, next handler
 			),
 		)
 
-		defer customWriter.handleBuffer(func(b *bytes.Buffer) {
-			b.Reset()
-		})
+		defer customWriter.resetBuffer()
+
+		// Create a copy of the buffer to prevent memory retention
+		// when the buffer is returned to the pool
+		bodyCopy := make([]byte, customWriter.Buf.Len())
+		copy(bodyCopy, customWriter.Buf.Bytes())
+
 		return singleflightValue{
-			body:    customWriter.Buf.Bytes(),
+			body:    bodyCopy,
 			headers: customWriter.Header().Clone(),
 			code:    statusCode,
 		}, err
 	})
 
 	if sfWriter, ok := sfValue.(singleflightValue); ok {
-		_, _ = customWriter.Write(sfWriter.body)
-		// Yaegi sucks, we can't use maps.
-		for k := range sfWriter.headers {
-			customWriter.Header().Set(k, sfWriter.headers.Get(k))
+		if shared {
+			s.Configuration.GetLogger().Infof("Reused response from concurrent request with the key %s", cachedKey)
 		}
+		_, _ = customWriter.Write(sfWriter.body)
+		maps.Copy(customWriter.Header(), sfWriter.headers)
 		customWriter.WriteHeader(sfWriter.code)
 	}
 
@@ -493,15 +641,16 @@ func (s *SouinBaseHandler) HandleInternally(r *http.Request) (bool, http.Handler
 		}
 	}
 
-	// Because Yægi interpretation sucks, we have to return the empty function instead of nil.
-	return false, func(w http.ResponseWriter, r *http.Request) {}
+	return false, nil
 }
 
-type handlerFunc = func(http.ResponseWriter, *http.Request) error
-type statusCodeLogger struct {
-	http.ResponseWriter
-	statusCode int
-}
+type (
+	handlerFunc      = func(http.ResponseWriter, *http.Request) error
+	statusCodeLogger struct {
+		http.ResponseWriter
+		statusCode int
+	}
+)
 
 func (s *statusCodeLogger) WriteHeader(code int) {
 	s.statusCode = code
@@ -509,6 +658,11 @@ func (s *statusCodeLogger) WriteHeader(code int) {
 }
 
 func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, next handlerFunc) error {
+	start := time.Now()
+	defer func(s time.Time) {
+		prometheus.Add(prometheus.AvgResponseTime, float64(time.Since(s).Milliseconds()))
+	}(start)
+	s.Configuration.GetLogger().Debugf("Incomming request %+v", rq)
 	if b, handler := s.HandleInternally(rq); b {
 		handler(rw, rq)
 		return nil
@@ -530,14 +684,17 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 		}
 
 		err := next(nrw, req)
-		s.SurrogateKeyStorer.Invalidate(req.Method, rw.Header())
+
+		if !s.Configuration.IsSurrogateDisabled() {
+			s.SurrogateKeyStorer.Invalidate(req.Method, rw.Header())
+		}
 
 		if err == nil && req.Method != http.MethodGet && nrw.statusCode < http.StatusBadRequest {
 			// Invalidate related GET keys when the method is not allowed and the response is valid
 			req.Method = http.MethodGet
 			keyname := s.context.SetContext(req, rq).Context().Value(context.Key).(string)
 			for _, storer := range s.Storers {
-				storer.Delete("IDX_" + keyname)
+				storer.Delete(core.MappingKeyPrefix + keyname)
 			}
 		}
 
@@ -551,29 +708,26 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 		rw.Header().Set("Cache-Status", cacheName+"; fwd=bypass; detail=CACHE-CONTROL-EXTRACTION-ERROR")
 
 		err := next(rw, req)
-		s.SurrogateKeyStorer.Invalidate(req.Method, rw.Header())
+
+		if !s.Configuration.IsSurrogateDisabled() {
+			s.SurrogateKeyStorer.Invalidate(req.Method, rw.Header())
+		}
 
 		return err
 	}
 
 	req = s.context.SetContext(req, rq)
-
-	isMutationRequest := false
-	// Yaegi sucks AGAIN, it considers the value as nil if we directly try to cast as bool
-	mutationRequestValue := req.Context().Value(context.IsMutationRequest)
-	if mutationRequestValue != nil {
-		isMutationRequest = mutationRequestValue.(bool)
-	}
-
-	if isMutationRequest {
+	if req.Context().Value(context.IsMutationRequest).(bool) {
 		rw.Header().Set("Cache-Status", cacheName+"; fwd=bypass; detail=IS-MUTATION-REQUEST")
 
 		err := next(rw, req)
-		s.SurrogateKeyStorer.Invalidate(req.Method, rw.Header())
+
+		if !s.Configuration.IsSurrogateDisabled() {
+			s.SurrogateKeyStorer.Invalidate(req.Method, rw.Header())
+		}
 
 		return err
 	}
-
 	cachedKey := req.Context().Value(context.Key).(string)
 
 	// Need to copy URL path before calling next because it can alter the URI
@@ -581,7 +735,10 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 	bufPool := s.bufPool.Get().(*bytes.Buffer)
 	bufPool.Reset()
 	defer s.bufPool.Put(bufPool)
+
 	customWriter := NewCustomWriter(req, rw, bufPool)
+	customWriter.Headers.Add("Range", req.Header.Get("Range"))
+	// req.Header.Del("Range")
 
 	go func(req *http.Request, crw *CustomWriter) {
 		<-req.Context().Done()
@@ -589,16 +746,21 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 		crw.headersSent = true
 		crw.mutex.Unlock()
 	}(req, customWriter)
-
+	s.Configuration.GetLogger().Debugf("Request cache-control %+v", requestCc)
 	if modeContext.Bypass_request || !requestCc.NoCache {
 		validator := rfc.ParseRequest(req)
 		var fresh, stale *http.Response
 		var storerName string
+		finalKey := cachedKey
+		if req.Context().Value(context.Hashed).(bool) {
+			finalKey = fmt.Sprint(xxhash.Sum64String(finalKey))
+		}
 		for _, currentStorer := range s.Storers {
-			fresh, stale = currentStorer.GetMultiLevel(cachedKey, req, validator)
+			fresh, stale = currentStorer.GetMultiLevel(finalKey, req, validator)
 
 			if fresh != nil || stale != nil {
 				storerName = currentStorer.Name()
+				s.Configuration.GetLogger().Debugf("Found at least one valid response in the %s storage", storerName)
 				break
 			}
 		}
@@ -613,18 +775,14 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 				}
 				if validator.NotModified {
 					customWriter.WriteHeader(http.StatusNotModified)
-					customWriter.handleBuffer(func(b *bytes.Buffer) {
-						b.Reset()
-					})
+					customWriter.resetBuffer()
 					_, _ = customWriter.Send()
 
 					return nil
 				}
 
 				customWriter.WriteHeader(response.StatusCode)
-				customWriter.handleBuffer(func(b *bytes.Buffer) {
-					_, _ = io.Copy(b, response.Body)
-				})
+				_, _ = customWriter.copyToBuffer(response.Body)
 				_, _ = customWriter.Send()
 
 				return nil
@@ -637,6 +795,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 				return err
 			}
 			if resCc, _ := cacheobject.ParseResponseCacheControl(rfc.HeaderAllCommaSepValuesString(response.Header, headerName)); !modeContext.Bypass_response && resCc.NoCachePresent {
+				prometheus.Increment(prometheus.NoCachedResponseCounter)
 				err := s.Revalidate(validator, next, customWriter, req, requestCc, cachedKey, uri)
 				_, _ = customWriter.Send()
 
@@ -648,10 +807,10 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 					customWriter.Header()[h] = v
 				}
 				customWriter.WriteHeader(response.StatusCode)
-				customWriter.handleBuffer(func(b *bytes.Buffer) {
-					_, _ = io.Copy(b, response.Body)
-				})
+				s.Configuration.GetLogger().Debugf("Serve from cache %+v", req)
+				_, _ = customWriter.copyToBuffer(response.Body)
 				_, err := customWriter.Send()
+				prometheus.Increment(prometheus.CachedResponseCounter)
 
 				return err
 			}
@@ -669,12 +828,10 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 					}
 					customWriter.WriteHeader(response.StatusCode)
 					rfc.HitStaleCache(&response.Header)
-					customWriter.handleBuffer(func(b *bytes.Buffer) {
-						_, _ = io.Copy(b, response.Body)
-					})
+					_, _ = customWriter.copyToBuffer(response.Body)
 					_, err := customWriter.Send()
 					customWriter = NewCustomWriter(req, rw, bufPool)
-					go func(v *types.Revalidator, goCw *CustomWriter, goRq *http.Request, goNext func(http.ResponseWriter, *http.Request) error, goCc *cacheobject.RequestCacheDirectives, goCk string, goUri string) {
+					go func(v *core.Revalidator, goCw *CustomWriter, goRq *http.Request, goNext func(http.ResponseWriter, *http.Request) error, goCc *cacheobject.RequestCacheDirectives, goCk string, goUri string) {
 						_ = s.Revalidate(v, goNext, goCw, goRq, goCc, goCk, goUri)
 					}(validator, customWriter, req, next, requestCc, cachedKey, uri)
 					buf := s.bufPool.Get().(*bytes.Buffer)
@@ -693,23 +850,15 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 							code := fmt.Sprintf("; fwd-status=%d", statusCode)
 							rfc.HitStaleCache(&response.Header)
 							response.Header.Set("Cache-Status", response.Header.Get("Cache-Status")+code)
-							// Yaegi sucks, we can't use maps.
-							for k := range response.Header {
-								customWriter.Header().Set(k, response.Header.Get(k))
-							}
+							maps.Copy(customWriter.Header(), response.Header)
 							customWriter.WriteHeader(response.StatusCode)
-							customWriter.handleBuffer(func(b *bytes.Buffer) {
-								b.Reset()
-								_, _ = io.Copy(b, response.Body)
-							})
+							_, _ = customWriter.resetAndCopyToBuffer(response.Body)
 							_, err := customWriter.Send()
 
 							return err
 						}
 						rw.WriteHeader(http.StatusGatewayTimeout)
-						customWriter.handleBuffer(func(b *bytes.Buffer) {
-							b.Reset()
-						})
+						customWriter.resetBuffer()
 						_, err := customWriter.Send()
 
 						return err
@@ -719,13 +868,8 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 						if !validator.Matched {
 							rfc.SetCacheStatusHeader(response, storerName)
 							customWriter.WriteHeader(response.StatusCode)
-							// Yaegi sucks, we can't use maps.
-							for k := range response.Header {
-								customWriter.Header().Set(k, response.Header.Get(k))
-							}
-							customWriter.handleBuffer(func(b *bytes.Buffer) {
-								_, _ = io.Copy(b, response.Body)
-							})
+							maps.Copy(customWriter.Header(), response.Header)
+							_, _ = customWriter.copyToBuffer(response.Body)
 							_, _ = customWriter.Send()
 
 							return err
@@ -734,9 +878,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 
 					if statusCode != http.StatusNotModified && validator.Matched {
 						customWriter.WriteHeader(http.StatusNotModified)
-						customWriter.handleBuffer(func(b *bytes.Buffer) {
-							b.Reset()
-						})
+						customWriter.resetBuffer()
 						_, _ = customWriter.Send()
 
 						return err
@@ -750,13 +892,8 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 				if !modeContext.Strict || rfc.ValidateMaxAgeCachedStaleResponse(requestCc, responseCc, response, int(addTime.Seconds())) != nil {
 					customWriter.WriteHeader(response.StatusCode)
 					rfc.HitStaleCache(&response.Header)
-					// Yaegi sucks, we can't use maps.
-					for k := range response.Header {
-						customWriter.Header().Set(k, response.Header.Get(k))
-					}
-					customWriter.handleBuffer(func(b *bytes.Buffer) {
-						_, _ = io.Copy(b, response.Body)
-					})
+					maps.Copy(customWriter.Header(), response.Header)
+					_, _ = customWriter.copyToBuffer(response.Body)
 					_, err := customWriter.Send()
 
 					return err
@@ -764,6 +901,18 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 			}
 		} else if stale != nil {
 			response := stale
+
+			if !modeContext.Strict {
+				rfc.SetCacheStatusHeader(response, storerName)
+				customWriter.WriteHeader(response.StatusCode)
+				rfc.HitStaleCache(&response.Header)
+				maps.Copy(customWriter.Header(), response.Header)
+				_, _ = customWriter.copyToBuffer(response.Body)
+				_, err := customWriter.Send()
+
+				return err
+			}
+
 			addTime, _ := time.ParseDuration(response.Header.Get(rfc.StoredTTLHeader))
 			responseCc, _ := cacheobject.ParseResponseCacheControl(rfc.HeaderAllCommaSepValuesString(response.Header, "Cache-Control"))
 
@@ -780,15 +929,9 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 						code := fmt.Sprintf("; fwd-status=%d", statusCode)
 						rfc.HitStaleCache(&response.Header)
 						response.Header.Set("Cache-Status", response.Header.Get("Cache-Status")+code)
-						// Yaegi sucks, we can't use maps.
-						for k := range response.Header {
-							customWriter.Header().Set(k, response.Header.Get(k))
-						}
+						maps.Copy(customWriter.Header(), response.Header)
 						customWriter.WriteHeader(response.StatusCode)
-						customWriter.handleBuffer(func(b *bytes.Buffer) {
-							b.Reset()
-							_, _ = io.Copy(b, response.Body)
-						})
+						_, _ = customWriter.resetAndCopyToBuffer(response.Body)
 						_, err := customWriter.Send()
 
 						return err
@@ -800,28 +943,33 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 	}
 
 	errorCacheCh := make(chan error)
+	defer close(errorCacheCh)
 
 	go func(vr *http.Request, cw *CustomWriter) {
-		errorCacheCh <- s.Upstream(cw, vr, next, requestCc, cachedKey)
+		defer func() {
+			if r := recover(); r != nil {
+				s.Configuration.GetLogger().Infof("recovered due to closed errorCacheCh chan, the request context has finished prematurely %s", req.URL)
+			}
+		}()
+		prometheus.Increment(prometheus.NoCachedResponseCounter)
+		errorCacheCh <- s.Upstream(cw, vr, next, requestCc, cachedKey, uri)
 	}(req, customWriter)
 
 	select {
 	case <-req.Context().Done():
-
 		switch req.Context().Err() {
 		case baseCtx.DeadlineExceeded:
-			customWriter.WriteHeader(http.StatusGatewayTimeout)
 			rw.Header().Set("Cache-Status", cacheName+"; fwd=bypass; detail=DEADLINE-EXCEEDED")
+			customWriter.Rw.WriteHeader(http.StatusGatewayTimeout)
 			_, _ = customWriter.Rw.Write([]byte("Internal server error"))
+			s.Configuration.GetLogger().Infof("Internal server error on endpoint %s: %v", req.URL, s.Storers)
 			return baseCtx.DeadlineExceeded
 		case baseCtx.Canceled:
 			return baseCtx.Canceled
 		default:
 			return nil
 		}
-
 	case v := <-errorCacheCh:
-
 		switch v {
 		case nil:
 			_, _ = customWriter.Send()

@@ -2,6 +2,7 @@ package traefik
 
 import (
 	"github.com/darkweak/souin/configurationtypes"
+	"github.com/darkweak/storages/core"
 )
 
 // Configuration holder
@@ -13,7 +14,19 @@ type Configuration struct {
 	LogLevel             string                                      `json:"log_level" yaml:"log_level"`
 	Ykeys                map[string]configurationtypes.SurrogateKeys `json:"ykeys" yaml:"ykeys"`
 	SurrogateKeys        map[string]configurationtypes.SurrogateKeys `json:"surrogate_keys" yaml:"surrogate_keys"`
-	SurrogateKeyDisabled bool                                        `json:"disable_surrogate_key" yaml:"disable_surrogate_key"`
+	SurrogateKeyDisabled bool
+
+	logger core.Logger
+}
+
+// GetLogger implements configurationtypes.AbstractConfigurationInterface.
+func (c *Configuration) GetLogger() core.Logger {
+	return c.logger
+}
+
+// SetLogger implements configurationtypes.AbstractConfigurationInterface.
+func (c *Configuration) SetLogger(logger core.Logger) {
+	c.logger = logger
 }
 
 // GetUrls get the urls list in the configuration
