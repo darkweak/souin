@@ -1,4 +1,4 @@
-module github.com/darkweak/souin/plugins/caddy
+module github.com/popcorn/souin/plugins/caddy
 
 go 1.25
 
