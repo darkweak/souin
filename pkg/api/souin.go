@@ -165,6 +165,17 @@ var storageToInfiniteTTLMap = map[string]time.Duration{
 }
 
 func EvictMapping(current types.Storer) {
+	// Check if the storer implements efficient mapping eviction (e.g., Redis with sorted sets).
+	// If so, delegate to the storer's implementation which avoids expensive SCAN operations.
+	// See: https://github.com/darkweak/souin/issues/671
+	if evictor, ok := current.(types.MappingEvictor); ok {
+		if evictor.EvictExpiredMappingEntries() {
+			time.Sleep(time.Minute)
+			return
+		}
+	}
+
+	// Fallback to SCAN-based eviction for storers that don't implement MappingEvictor
 	values := current.MapKeys(core.MappingKeyPrefix)
 	now := time.Now()
 	infiniteStoreDuration := storageToInfiniteTTLMap[current.Name()]
