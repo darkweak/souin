@@ -516,12 +516,18 @@ func (s *SouinBaseHandler) Upstream(
 		}
 
 		err := s.Store(customWriter, rq, requestCc, cachedKey, uri)
+
+		// Copy the buffer bytes so the returned value is independent of the
+		// underlying buffer, which may be reset or returned to the pool.
+		bodySnapshot := make([]byte, customWriter.Buf.Len())
+		copy(bodySnapshot, customWriter.Buf.Bytes())
+
 		defer customWriter.handleBuffer(func(b *bytes.Buffer) {
 			b.Reset()
 		})
 
 		return singleflightValue{
-			body:              customWriter.Buf.Bytes(),
+			body:              bodySnapshot,
 			headers:           customWriter.Header().Clone(),
 			requestHeaders:    rq.Header,
 			code:              statusCode,
@@ -555,6 +561,7 @@ func (s *SouinBaseHandler) Upstream(
 		if shared {
 			s.Configuration.GetLogger().Infof("Reused response from concurrent request with the key %s", cachedKey)
 		}
+		customWriter.Buf.Reset()
 		_, _ = customWriter.Write(sfWriter.body)
 		maps.Copy(customWriter.Header(), sfWriter.headers)
 		customWriter.WriteHeader(sfWriter.code)
@@ -615,11 +622,16 @@ func (s *SouinBaseHandler) Revalidate(validator *core.Revalidator, next handlerF
 			),
 		)
 
+		// Copy the buffer bytes so the returned value is independent of the
+		// underlying buffer, which may be reset or returned to the pool.
+		bodySnapshot := make([]byte, customWriter.Buf.Len())
+		copy(bodySnapshot, customWriter.Buf.Bytes())
+
 		defer customWriter.handleBuffer(func(b *bytes.Buffer) {
 			b.Reset()
 		})
 		return singleflightValue{
-			body:    customWriter.Buf.Bytes(),
+			body:    bodySnapshot,
 			headers: customWriter.Header().Clone(),
 			code:    statusCode,
 		}, err
@@ -629,6 +641,7 @@ func (s *SouinBaseHandler) Revalidate(validator *core.Revalidator, next handlerF
 		if shared {
 			s.Configuration.GetLogger().Infof("Reused response from concurrent request with the key %s", cachedKey)
 		}
+		customWriter.Buf.Reset()
 		_, _ = customWriter.Write(sfWriter.body)
 		maps.Copy(customWriter.Header(), sfWriter.headers)
 		customWriter.WriteHeader(sfWriter.code)
@@ -787,7 +800,15 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 	uri := req.URL.Path
 	bufPool := s.bufPool.Get().(*bytes.Buffer)
 	bufPool.Reset()
-	defer s.bufPool.Put(bufPool)
+	// Track whether the buffer ownership has been handed off to the background
+	// goroutine. If so, we must not return it to the pool on exit because the
+	// goroutine may still be writing to it.
+	bufPoolOwned := true
+	defer func() {
+		if bufPoolOwned {
+			s.bufPool.Put(bufPool)
+		}
+	}()
 
 	customWriter := NewCustomWriter(req, rw, bufPool)
 	customWriter.Headers.Add("Range", req.Header.Get("Range"))
@@ -1029,15 +1050,13 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 		}
 	}
 
-	errorCacheCh := make(chan error)
-	defer close(errorCacheCh)
+	errorCacheCh := make(chan error, 1)
 
+	// Release buffer ownership before launching the goroutine. The goroutine
+	// writes to customWriter (which wraps bufPool) and will finish
+	// asynchronously if the context is cancelled.
+	bufPoolOwned = false
 	go func(vr *http.Request, cw *CustomWriter) {
-		defer func() {
-			if r := recover(); r != nil {
-				s.Configuration.GetLogger().Infof("recovered due to closed errorCacheCh chan, the request context has finished prematurely %s", req.URL)
-			}
-		}()
 		prometheus.Increment(prometheus.NoCachedResponseCounter)
 		errorCacheCh <- s.Upstream(cw, vr, next, requestCc, cachedKey, uri, false)
 	}(req, customWriter)
@@ -1057,6 +1076,8 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 			return nil
 		}
 	case v := <-errorCacheCh:
+		// Goroutine has finished — safe to reclaim the buffer.
+		s.bufPool.Put(bufPool)
 		switch v {
 		case nil:
 			_, _ = customWriter.Send()
