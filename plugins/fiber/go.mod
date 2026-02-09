@@ -5,7 +5,7 @@ go 1.25
 require (
 	github.com/darkweak/souin v1.7.8
 	github.com/darkweak/souin/plugins/souin/storages v1.7.8
-	github.com/gofiber/fiber/v2 v2.52.9
+	github.com/gofiber/fiber/v2 v2.52.11
 	github.com/valyala/fasthttp v1.65.0
 )
 
