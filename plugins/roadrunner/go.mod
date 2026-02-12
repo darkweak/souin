@@ -49,7 +49,7 @@ require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
 	github.com/darkweak/go-esi v0.0.6 // indirect
 	github.com/darkweak/storages/badger v0.0.16 // indirect
-	github.com/darkweak/storages/core v0.0.16 // indirect
+	github.com/darkweak/storages/core v0.0.18 // indirect
 	github.com/darkweak/storages/etcd v0.0.16 // indirect
 	github.com/darkweak/storages/nats v0.0.16 // indirect
 	github.com/darkweak/storages/nuts v0.0.16 // indirect
@@ -125,7 +125,7 @@ require (
 	github.com/nutsdb/nutsdb v1.0.4 // indirect
 	github.com/onsi/gomega v1.38.2 // indirect
 	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58 // indirect
-	github.com/pierrec/lz4/v4 v4.1.22 // indirect
+	github.com/pierrec/lz4/v4 v4.1.23 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pquerna/cachecontrol v0.2.0 // indirect
 	github.com/prometheus/client_golang v1.23.1 // indirect

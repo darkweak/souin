@@ -1,6 +1,8 @@
 package core
 
-import "time"
+import (
+	"time"
+)
 
 type Revalidator struct {
 	Matched                     bool
@@ -21,7 +23,7 @@ type Revalidator struct {
 
 func ValidateETagFromHeader(etag string, validator *Revalidator) {
 	validator.ResponseETag = etag
-	validator.NeedRevalidation = validator.NeedRevalidation || validator.ResponseETag != ""
+	validator.NeedRevalidation = validator.NeedRevalidation || (validator.ResponseETag != "" && len(validator.RequestETags) > 0)
 	validator.Matched = validator.ResponseETag == "" || (validator.ResponseETag != "" && len(validator.RequestETags) == 0)
 
 	if len(validator.RequestETags) == 0 {

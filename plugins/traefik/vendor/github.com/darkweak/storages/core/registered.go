@@ -24,7 +24,7 @@ func GetRegisteredStorer(name string) Storer {
 }
 
 func ResetRegisteredStorages() {
-	registered.Range(func(key, _ any) bool {
+	registered.Range(func(key, value any) bool {
 		registered.Delete(key)
 
 		return true
