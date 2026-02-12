@@ -50,6 +50,8 @@ type SouinCaddyMiddleware struct {
 	Key configurationtypes.Key `json:"key,omitempty"`
 	// Override the cache key generation matching the pattern.
 	CacheKeys configurationtypes.CacheKeys `json:"cache_keys,omitempty"`
+	// MappingEvictionInterval interval between eviction
+	MappingEvictionInterval configurationtypes.Duration `json:"mapping_eviction_interval"`
 	// Configure the Nats cache storage.
 	Nats configurationtypes.CacheProvider `json:"nats,omitempty"`
 	// Configure the Nuts cache storage.
@@ -96,23 +98,24 @@ func (s *SouinCaddyMiddleware) ServeHTTP(rw http.ResponseWriter, r *http.Request
 func (s *SouinCaddyMiddleware) configurationPropertyMapper() error {
 	if s.Configuration.GetDefaultCache() == nil {
 		defaultCache := DefaultCache{
-			Badger:              s.Badger,
-			Nats:                s.Nats,
-			Nuts:                s.Nuts,
-			SimpleFS:            s.SimpleFS,
-			Otter:               s.Otter,
-			Key:                 s.Key,
-			DefaultCacheControl: s.DefaultCacheControl,
-			CacheName:           s.CacheName,
-			Distributed:         s.Olric.URL != "" || s.Olric.Path != "" || s.Olric.Configuration != nil || s.Etcd.Configuration != nil || s.Redis.URL != "" || s.Redis.Configuration != nil,
-			Headers:             s.Headers,
-			Olric:               s.Olric,
-			Etcd:                s.Etcd,
-			Redis:               s.Redis,
-			Timeout:             s.Timeout,
-			TTL:                 s.TTL,
-			Stale:               s.Stale,
-			Storers:             s.Storers,
+			Badger:                  s.Badger,
+			Nats:                    s.Nats,
+			Nuts:                    s.Nuts,
+			SimpleFS:                s.SimpleFS,
+			Otter:                   s.Otter,
+			Key:                     s.Key,
+			DefaultCacheControl:     s.DefaultCacheControl,
+			CacheName:               s.CacheName,
+			Distributed:             s.Olric.URL != "" || s.Olric.Path != "" || s.Olric.Configuration != nil || s.Etcd.Configuration != nil || s.Redis.URL != "" || s.Redis.Configuration != nil,
+			Headers:                 s.Headers,
+			Olric:                   s.Olric,
+			Etcd:                    s.Etcd,
+			Redis:                   s.Redis,
+			Timeout:                 s.Timeout,
+			TTL:                     s.TTL,
+			MappingEvictionInterval: s.MappingEvictionInterval,
+			Stale:                   s.Stale,
+			Storers:                 s.Storers,
 		}
 		s.Configuration = Configuration{
 			CacheKeys:    s.cacheKeys,
@@ -142,6 +145,12 @@ func (s *SouinCaddyMiddleware) FromApp(app *SouinApp) error {
 		}
 	}
 
+	if app.DefaultCache.GetMappingEvictionInterval() == 0 {
+		if s.Configuration.DefaultCache.GetMappingEvictionInterval() == 0 {
+			app.DefaultCache.MappingEvictionInterval = configurationtypes.Duration{Duration: time.Hour}
+		}
+	}
+
 	if s.Configuration.GetDefaultCache() == nil {
 		s.Configuration.DefaultCache = DefaultCache{
 			AllowedHTTPVerbs:             app.DefaultCache.AllowedHTTPVerbs,
@@ -151,6 +160,7 @@ func (s *SouinCaddyMiddleware) FromApp(app *SouinApp) error {
 			TTL:                          app.TTL,
 			Stale:                        app.Stale,
 			DefaultCacheControl:          app.DefaultCacheControl,
+			MappingEvictionInterval:      app.MappingEvictionInterval,
 			CacheName:                    app.CacheName,
 			Timeout:                      app.Timeout,
 		}
@@ -188,6 +198,9 @@ func (s *SouinCaddyMiddleware) FromApp(app *SouinApp) error {
 	}
 	if dc.TTL.Duration == 0 {
 		s.Configuration.DefaultCache.TTL = appDc.TTL
+	}
+	if dc.MappingEvictionInterval.Duration == 0 {
+		s.Configuration.DefaultCache.MappingEvictionInterval = appDc.MappingEvictionInterval
 	}
 	if dc.Stale.Duration == 0 {
 		s.Configuration.DefaultCache.Stale = appDc.Stale
@@ -296,8 +309,9 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 			TTL: configurationtypes.Duration{
 				Duration: 120 * time.Second,
 			},
-			DefaultCacheControl: "",
-			CacheName:           "",
+			MappingEvictionInterval: configurationtypes.Duration{Duration: time.Hour},
+			DefaultCacheControl:     "",
+			CacheName:               "",
 		},
 		URLs: make(map[string]configurationtypes.URL),
 	}

@@ -104,9 +104,10 @@ func parseDefaultCache(dcConfiguration map[string]interface{}) *configurationtyp
 			Path:          "",
 			Configuration: nil,
 		},
-		Regex:               configurationtypes.Regex{},
-		TTL:                 configurationtypes.Duration{},
-		DefaultCacheControl: "",
+		Regex:                   configurationtypes.Regex{},
+		TTL:                     configurationtypes.Duration{},
+		MappingEvictionInterval: configurationtypes.Duration{Duration: time.Hour},
+		DefaultCacheControl:     "",
 	}
 	for defaultCacheK, defaultCacheV := range dcConfiguration {
 		switch defaultCacheK {
@@ -194,6 +195,11 @@ func parseDefaultCache(dcConfiguration map[string]interface{}) *configurationtyp
 						dc.Headers = append(dc.Headers, hv.(string))
 					}
 				}
+			}
+		case "mapping_eviction_interval":
+			eviction, err := time.ParseDuration(defaultCacheV.(string))
+			if err == nil {
+				dc.MappingEvictionInterval = configurationtypes.Duration{Duration: eviction}
 			}
 		case "mode":
 			dc.Mode, _ = defaultCacheV.(string)
