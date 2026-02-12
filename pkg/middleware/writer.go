@@ -3,12 +3,14 @@ package middleware
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
 	"sync"
 
 	"github.com/darkweak/go-esi/esi"
+	"github.com/darkweak/souin/context"
 	"github.com/darkweak/souin/pkg/rfc"
 )
 
@@ -19,32 +21,53 @@ type SouinWriterInterface interface {
 
 var _ SouinWriterInterface = (*CustomWriter)(nil)
 
-func NewCustomWriter(rq *http.Request, rw http.ResponseWriter, b *bytes.Buffer) *CustomWriter {
+func NewCustomWriter(rq *http.Request, rw http.ResponseWriter, b *bytes.Buffer, maxSize int) *CustomWriter {
 	return &CustomWriter{
-		statusCode: 200,
-		Buf:        b,
-		Req:        rq,
-		Rw:         rw,
-		Headers:    http.Header{},
-		mutex:      sync.Mutex{},
+		statusCode:     200,
+		Buf:            b,
+		Req:            rq,
+		Rw:             rw,
+		Headers:        http.Header{},
+		mutex:          sync.Mutex{},
+		maxSize:        maxSize,
+		maxSizeReached: false,
 	}
 }
 
 // CustomWriter handles the response and provide the way to cache the value
 type CustomWriter struct {
-	Buf         *bytes.Buffer
-	Rw          http.ResponseWriter
-	Req         *http.Request
-	Headers     http.Header
-	headersSent bool
-	mutex       sync.Mutex
-	statusCode  int
+	Buf            *bytes.Buffer
+	Rw             http.ResponseWriter
+	Req            *http.Request
+	Headers        http.Header
+	headersSent    bool
+	mutex          sync.Mutex
+	statusCode     int
+	maxSize        int
+	maxSizeReached bool
 }
 
-func (r *CustomWriter) handleBuffer(callback func(*bytes.Buffer)) {
+func (r *CustomWriter) resetBuffer() {
 	r.mutex.Lock()
-	callback(r.Buf)
-	r.mutex.Unlock()
+	defer r.mutex.Unlock()
+
+	r.Buf.Reset()
+}
+
+func (r *CustomWriter) copyToBuffer(src io.Reader) (int64, error) {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	return io.Copy(r.Buf, src)
+}
+
+func (r *CustomWriter) resetAndCopyToBuffer(src io.Reader) (int64, error) {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	r.Buf.Reset()
+
+	return io.Copy(r.Buf, src)
 }
 
 // Header will write the response headers
@@ -79,10 +102,34 @@ func (r *CustomWriter) WriteHeader(code int) {
 
 // Write will write the response body
 func (r *CustomWriter) Write(b []byte) (int, error) {
-	r.handleBuffer(func(actual *bytes.Buffer) {
-		actual.Grow(len(b))
-		_, _ = actual.Write(b)
-	})
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	if r.maxSizeReached {
+		return r.Rw.Write(b)
+	}
+
+	if r.maxSize > 0 && (r.Buf.Len()+len(b)) > r.maxSize {
+		r.maxSizeReached = true
+
+		if !r.headersSent && r.Req.Context().Err() == nil {
+			r.Rw.Header().Set(
+				"Cache-Status",
+				fmt.Sprintf(
+					"%s; fwd=uri-miss; detail=UPSTREAM-RESPONSE-TOO-LARGE; key=%s",
+					r.Req.Context().Value(context.CacheName),
+					rfc.GetCacheKeyFromCtx(r.Req.Context()),
+				),
+			)
+		}
+
+		_, _ = r.Rw.Write(r.Buf.Bytes())
+
+		r.Buf.Reset()
+	}
+
+	r.Buf.Grow(len(b))
+	_, _ = r.Buf.Write(b)
 
 	return len(b), nil
 }
@@ -142,9 +189,8 @@ func parseRange(rangeHeaders []string, contentRange string) ([]rangeValue, range
 
 // Send delays the response to handle Cache-Status
 func (r *CustomWriter) Send() (int, error) {
-	defer r.handleBuffer(func(b *bytes.Buffer) {
-		b.Reset()
-	})
+	defer r.resetBuffer()
+
 	storedLength := r.Header().Get(rfc.StoredLengthHeader)
 	if storedLength != "" {
 		r.Header().Set("Content-Length", storedLength)
@@ -156,7 +202,7 @@ func (r *CustomWriter) Send() (int, error) {
 
 	if r.Headers.Get("Range") != "" {
 
-		var bufStr string
+		bufStr := new(strings.Builder)
 		mimeType := r.Header().Get("Content-Type")
 
 		r.WriteHeader(http.StatusPartialContent)
@@ -198,16 +244,17 @@ func (r *CustomWriter) Send() (int, error) {
 					content = content[:header.to-header.from]
 				}
 
-				bufStr += fmt.Sprintf(`
+				bufStr.WriteString(fmt.Sprintf(`
 %s
 Content-Type: %s
 Content-Range: bytes %d-%d/%d
 
 %s
-`, separator, mimeType, header.from, header.to, r.Buf.Len(), content)
+`, separator, mimeType, header.from, header.to, r.Buf.Len(), content))
 			}
 
-			result = []byte(bufStr + separator + "--")
+			bufStr.WriteString(separator + "--")
+			result = []byte(bufStr.String())
 		}
 	}
 
