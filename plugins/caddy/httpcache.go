@@ -142,6 +142,12 @@ func (s *SouinCaddyMiddleware) FromApp(app *SouinApp) error {
 		}
 	}
 
+	if app.DefaultCache.GetMappingEvictionInterval() == 0 {
+		if s.Configuration.DefaultCache.GetMappingEvictionInterval() == 0 {
+			app.DefaultCache.TTL = configurationtypes.Duration{Duration: time.Hour}
+		}
+	}
+
 	if s.Configuration.GetDefaultCache() == nil {
 		s.Configuration.DefaultCache = DefaultCache{
 			AllowedHTTPVerbs:             app.DefaultCache.AllowedHTTPVerbs,
@@ -151,6 +157,7 @@ func (s *SouinCaddyMiddleware) FromApp(app *SouinApp) error {
 			TTL:                          app.TTL,
 			Stale:                        app.Stale,
 			DefaultCacheControl:          app.DefaultCacheControl,
+			MappingEvictionInterval:      app.MappingEvictionInterval,
 			CacheName:                    app.CacheName,
 			Timeout:                      app.Timeout,
 		}
@@ -188,6 +195,9 @@ func (s *SouinCaddyMiddleware) FromApp(app *SouinApp) error {
 	}
 	if dc.TTL.Duration == 0 {
 		s.Configuration.DefaultCache.TTL = appDc.TTL
+	}
+	if dc.MappingEvictionInterval.Duration == 0 {
+		s.Configuration.DefaultCache.MappingEvictionInterval = appDc.MappingEvictionInterval
 	}
 	if dc.Stale.Duration == 0 {
 		s.Configuration.DefaultCache.Stale = appDc.Stale
@@ -296,8 +306,9 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 			TTL: configurationtypes.Duration{
 				Duration: 120 * time.Second,
 			},
-			DefaultCacheControl: "",
-			CacheName:           "",
+			MappingEvictionInterval: configurationtypes.Duration{Duration: time.Hour},
+			DefaultCacheControl:     "",
+			CacheName:               "",
 		},
 		URLs: make(map[string]configurationtypes.URL),
 	}

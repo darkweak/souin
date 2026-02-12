@@ -95,19 +95,20 @@ func tryAcquireEvictionLock(storer types.Storer) bool {
 func registerMappingKeysEviction(logger core.Logger, storers []types.Storer, interval time.Duration) {
 	for _, storer := range storers {
 		logger.Debugf("registering mapping eviction for storer %s (interval: %s)", storer.Name(), interval)
-		go func(current types.Storer) {
+		go func(current types.Storer, currentInterval time.Duration) {
 			for {
 				if !tryAcquireEvictionLock(current) {
 					logger.Debugf("skipping mapping eviction for storer %s, another instance holds the lock", current.Name())
-					time.Sleep(time.Minute)
+					time.Sleep(currentInterval)
+
 					continue
 				}
 
 				logger.Debugf("run mapping eviction for storer %s", current.Name())
 				api.EvictMapping(current)
-				<-time.After(interval)
+				<-time.After(currentInterval)
 			}
-		}(storer)
+		}(storer, interval)
 	}
 }
 
