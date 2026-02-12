@@ -172,3 +172,39 @@ func TestBaseStorage_Store_Load(t *testing.T) {
 	// 	// t.Errorf("The surrogate storage should contain %d stored elements, %d given.", length+1, len(strings.Split(string(v), ",")))
 	// }
 }
+
+func TestContainsCacheKey(t *testing.T) {
+	testCases := []struct {
+		name         string
+		currentValue string
+		cacheKey     string
+		expected     bool
+	}{
+		{"empty current value", "", "key1", false},
+		{"exact match single key", "key1", "key1", true},
+		{"key at beginning", "key1,key2,key3", "key1", true},
+		{"key at end", "key1,key2,key3", "key3", true},
+		{"key in middle", "key1,key2,key3", "key2", true},
+		{"key not present", "key1,key2,key3", "key4", false},
+		{"partial match should not match", "key1,key2,key3", "key", false},
+		{"partial match at start should not match", "key12,key2,key3", "key1", false},
+		{"partial match at end should not match", "key1,key2,key34", "key3", false},
+		{"url encoded key present", "%2Fapi%2Fusers,other", "%2Fapi%2Fusers", true},
+		{"url encoded key not present", "%2Fapi%2Fusers,other", "%2Fapi%2Fposts", false},
+		{"key with special chars", "a%2Fb,c%2Fd", "a%2Fb", true},
+		{"empty key in empty value", "", "", false},
+		{"empty key in non-empty value", "key1,key2", "", false},
+		{"similar keys should not match", "product-123,product-1234", "product-12", false},
+		{"leading comma in stored value", ",key1,key2", "key1", true},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := containsCacheKey(tc.currentValue, tc.cacheKey)
+			if result != tc.expected {
+				t.Errorf("containsCacheKey(%q, %q) = %v, expected %v",
+					tc.currentValue, tc.cacheKey, result, tc.expected)
+			}
+		})
+	}
+}

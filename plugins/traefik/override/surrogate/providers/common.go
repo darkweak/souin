@@ -120,11 +120,37 @@ func (s *baseStorage) init(config configurationtypes.AbstractConfigurationInterf
 	s.duration = storageToInfiniteTTLMap[s.Storage.Name()]
 }
 
-func (s *baseStorage) storeTag(tag string, cacheKey string, re *regexp.Regexp) {
+// containsCacheKey checks if the cacheKey already exists in the comma-separated currentValue.
+// This is much faster than regex matching, especially for long strings.
+func containsCacheKey(currentValue, cacheKey string) bool {
+	if currentValue == "" {
+		return false
+	}
+	// Check for exact match at various positions:
+	// 1. Exact match of entire string
+	if currentValue == cacheKey {
+		return true
+	}
+	// 2. At the beginning: "cacheKey,"
+	if strings.HasPrefix(currentValue, cacheKey+souinStorageSeparator) {
+		return true
+	}
+	// 3. At the end: ",cacheKey"
+	if strings.HasSuffix(currentValue, souinStorageSeparator+cacheKey) {
+		return true
+	}
+	// 4. In the middle: ",cacheKey,"
+	if strings.Contains(currentValue, souinStorageSeparator+cacheKey+souinStorageSeparator) {
+		return true
+	}
+	return false
+}
+
+func (s *baseStorage) storeTag(tag string, cacheKey string) {
 	defer s.mu.Unlock()
 	s.mu.Lock()
 	currentValue := string(s.Storage.Get(surrogatePrefix + tag))
-	if !re.MatchString(currentValue) {
+	if !containsCacheKey(currentValue, cacheKey) {
 		fmt.Printf("Store the tag %s", tag)
 		_ = s.Storage.Set(surrogatePrefix+tag, []byte(currentValue+souinStorageSeparator+cacheKey), -1)
 	}
@@ -195,29 +221,26 @@ func (s *baseStorage) Store(response *http.Response, cacheKey, uri string) error
 	cacheKey = url.QueryEscape(cacheKey)
 	staleKey := stalePrefix + cacheKey
 
-	urlRegexp := regexp.MustCompile("(^|" + regexp.QuoteMeta(souinStorageSeparator) + ")" + regexp.QuoteMeta(cacheKey) + "(" + regexp.QuoteMeta(souinStorageSeparator) + "|$)")
-	staleUrlRegexp := regexp.MustCompile("(^|" + regexp.QuoteMeta(souinStorageSeparator) + ")" + regexp.QuoteMeta(staleKey) + "(" + regexp.QuoteMeta(souinStorageSeparator) + "|$)")
-
 	keys := s.ParseHeaders(s.parent.getSurrogateKey(h))
 
 	for _, key := range keys {
 		_, v := s.parent.GetSurrogateControl(h)
 		if controls := s.ParseHeaders(v); len(controls) != 0 {
 			if len(controls) == 1 && controls[0] == "" {
-				s.storeTag(key, cacheKey, urlRegexp)
-				s.storeTag(stalePrefix+key, staleKey, staleUrlRegexp)
+				s.storeTag(key, cacheKey)
+				s.storeTag(stalePrefix+key, staleKey)
 
 				continue
 			}
 			for _, control := range controls {
 				if s.parent.candidateStore(control) {
-					s.storeTag(key, cacheKey, urlRegexp)
-					s.storeTag(stalePrefix+key, staleKey, staleUrlRegexp)
+					s.storeTag(key, cacheKey)
+					s.storeTag(stalePrefix+key, staleKey)
 				}
 			}
 		} else {
-			s.storeTag(key, cacheKey, urlRegexp)
-			s.storeTag(stalePrefix+key, staleKey, staleUrlRegexp)
+			s.storeTag(key, cacheKey)
+			s.storeTag(stalePrefix+key, staleKey)
 		}
 	}
 
