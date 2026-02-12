@@ -5,7 +5,7 @@ go 1.25
 require (
 	github.com/caddyserver/caddy/v2 v2.10.2
 	github.com/darkweak/souin v1.7.8
-	github.com/darkweak/storages/core v0.0.16
+	github.com/darkweak/storages/core v0.0.18
 )
 
 require (
@@ -84,7 +84,7 @@ require (
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58 // indirect
-	github.com/pierrec/lz4/v4 v4.1.22 // indirect
+	github.com/pierrec/lz4/v4 v4.1.23 // indirect
 	github.com/pires/go-proxyproto v0.8.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pquerna/cachecontrol v0.2.0 // indirect
