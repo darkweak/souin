@@ -27,7 +27,7 @@ require (
 	github.com/cloudflare/circl v1.6.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.6 // indirect
 	github.com/darkweak/go-esi v0.0.5 // indirect
-	github.com/darkweak/storages/core v0.0.15 // indirect
+	github.com/darkweak/storages/core v0.0.18 // indirect
 	github.com/dgraph-io/badger v1.6.2 // indirect
 	github.com/dgraph-io/badger/v2 v2.2007.4 // indirect
 	github.com/dgryski/go-farm v0.0.0-20200201041132-a6ae2369ad13 // indirect
@@ -63,7 +63,7 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/onsi/ginkgo/v2 v2.15.0 // indirect
 	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58 // indirect
-	github.com/pierrec/lz4/v4 v4.1.22 // indirect
+	github.com/pierrec/lz4/v4 v4.1.23 // indirect
 	github.com/quic-go/qpack v0.5.1 // indirect
 	github.com/quic-go/quic-go v0.50.1 // indirect
 	github.com/rs/xid v1.5.0 // indirect

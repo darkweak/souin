@@ -7,7 +7,7 @@ replace github.com/darkweak/souin => ../../..
 require (
 	github.com/darkweak/souin v1.7.8
 	github.com/darkweak/storages/badger v0.0.13
-	github.com/darkweak/storages/core v0.0.15
+	github.com/darkweak/storages/core v0.0.18
 	github.com/darkweak/storages/etcd v0.0.13
 	github.com/darkweak/storages/nats v0.0.13
 	github.com/darkweak/storages/nuts v0.0.13
@@ -63,7 +63,7 @@ require (
 	github.com/nats-io/nkeys v0.4.9 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/nutsdb/nutsdb v1.0.4 // indirect
-	github.com/pierrec/lz4/v4 v4.1.22 // indirect
+	github.com/pierrec/lz4/v4 v4.1.23 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/redis/rueidis v1.0.54 // indirect
 	github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529 // indirect

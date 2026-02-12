@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/pierrec/lz4/v4"
@@ -38,7 +39,7 @@ type CacheProvider struct {
 	// Path to the configuration file.
 	Path string `json:"path" yaml:"path"`
 	// Declare the cache provider directly in the Souin configuration.
-	Configuration interface{} `json:"configuration" yaml:"configuration"`
+	Configuration any `json:"configuration" yaml:"configuration"`
 }
 
 const (
@@ -52,6 +53,25 @@ func DecodeMapping(item []byte) (*StorageMapper, error) {
 	e := proto.Unmarshal(item, mapping)
 
 	return mapping, e
+}
+
+var bufPool = sync.Pool{New: func() any { return new(bytes.Buffer) }}
+
+func readResponse(data []byte, req *http.Request) (*http.Response, error) {
+	reader := lz4.NewReader(bytes.NewBuffer(data))
+	buf := bufPool.Get().(*bytes.Buffer)
+
+	defer func() {
+		reader.Reset(buf)
+		buf.Reset()
+		bufPool.Put(buf)
+	}()
+
+	_, _ = reader.WriteTo(buf)
+
+	bufReader := bufio.NewReader(buf)
+
+	return http.ReadResponse(bufReader, req)
 }
 
 func MappingElection(provider Storer, item []byte, req *http.Request, validator *Revalidator, logger Logger) (resultFresh *http.Response, resultStale *http.Response, e error) {
@@ -88,11 +108,7 @@ func MappingElection(provider Storer, item []byte, req *http.Request, validator 
 			if time.Since(keyItem.GetFreshTime().AsTime()) < 0 {
 				response := provider.Get(keyName)
 				if response != nil {
-					bufW := new(bytes.Buffer)
-					reader := lz4.NewReader(bytes.NewBuffer(response))
-					_, _ = reader.WriteTo(bufW)
-
-					if resultFresh, e = http.ReadResponse(bufio.NewReader(bufW), req); e != nil {
+					if resultFresh, e = readResponse(response, req); e != nil {
 						logger.Errorf("An error occurred while reading response for the key %s: %v", keyName, e)
 
 						return resultFresh, resultStale, e
@@ -108,11 +124,7 @@ func MappingElection(provider Storer, item []byte, req *http.Request, validator 
 			if time.Since(keyItem.GetStaleTime().AsTime()) < 0 {
 				response := provider.Get(keyName)
 				if response != nil {
-					bufW := new(bytes.Buffer)
-					reader := lz4.NewReader(bytes.NewBuffer(response))
-					_, _ = reader.WriteTo(bufW)
-
-					if resultStale, e = http.ReadResponse(bufio.NewReader(bufW), req); e != nil {
+					if resultStale, e = readResponse(response, req); e != nil {
 						logger.Errorf("An error occurred while reading response for the key %s: %v", keyName, e)
 
 						return resultFresh, resultStale, e
