@@ -106,7 +106,7 @@ func registerMappingKeysEviction(logger core.Logger, storers []types.Storer, int
 
 				logger.Debugf("run mapping eviction for storer %s", current.Name())
 				api.EvictMapping(current)
-				<-time.After(currentInterval)
+				<-time.After(10 * time.Minute)
 			}
 		}(storer, interval)
 	}
@@ -199,6 +199,7 @@ func NewHTTPCacheHandler(c configurationtypes.AbstractConfigurationInterface) *S
 		DefaultCacheControl: c.GetDefaultCache().GetDefaultCacheControl(),
 	}
 	c.GetLogger().Info("Souin configuration is now loaded.")
+	c.GetLogger().Debugf("Configuration: %#v.", c.GetDefaultCache())
 
 	registerMappingKeysEviction(c.GetLogger(), storers, c.GetDefaultCache().GetMappingEvictionInterval())
 

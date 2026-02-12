@@ -50,6 +50,8 @@ type SouinCaddyMiddleware struct {
 	Key configurationtypes.Key `json:"key,omitempty"`
 	// Override the cache key generation matching the pattern.
 	CacheKeys configurationtypes.CacheKeys `json:"cache_keys,omitempty"`
+	// MappingEvictionInterval interval between eviction
+	MappingEvictionInterval configurationtypes.Duration `json:"mapping_eviction_interval"`
 	// Configure the Nats cache storage.
 	Nats configurationtypes.CacheProvider `json:"nats,omitempty"`
 	// Configure the Nuts cache storage.
@@ -96,23 +98,24 @@ func (s *SouinCaddyMiddleware) ServeHTTP(rw http.ResponseWriter, r *http.Request
 func (s *SouinCaddyMiddleware) configurationPropertyMapper() error {
 	if s.Configuration.GetDefaultCache() == nil {
 		defaultCache := DefaultCache{
-			Badger:              s.Badger,
-			Nats:                s.Nats,
-			Nuts:                s.Nuts,
-			SimpleFS:            s.SimpleFS,
-			Otter:               s.Otter,
-			Key:                 s.Key,
-			DefaultCacheControl: s.DefaultCacheControl,
-			CacheName:           s.CacheName,
-			Distributed:         s.Olric.URL != "" || s.Olric.Path != "" || s.Olric.Configuration != nil || s.Etcd.Configuration != nil || s.Redis.URL != "" || s.Redis.Configuration != nil,
-			Headers:             s.Headers,
-			Olric:               s.Olric,
-			Etcd:                s.Etcd,
-			Redis:               s.Redis,
-			Timeout:             s.Timeout,
-			TTL:                 s.TTL,
-			Stale:               s.Stale,
-			Storers:             s.Storers,
+			Badger:                  s.Badger,
+			Nats:                    s.Nats,
+			Nuts:                    s.Nuts,
+			SimpleFS:                s.SimpleFS,
+			Otter:                   s.Otter,
+			Key:                     s.Key,
+			DefaultCacheControl:     s.DefaultCacheControl,
+			CacheName:               s.CacheName,
+			Distributed:             s.Olric.URL != "" || s.Olric.Path != "" || s.Olric.Configuration != nil || s.Etcd.Configuration != nil || s.Redis.URL != "" || s.Redis.Configuration != nil,
+			Headers:                 s.Headers,
+			Olric:                   s.Olric,
+			Etcd:                    s.Etcd,
+			Redis:                   s.Redis,
+			Timeout:                 s.Timeout,
+			TTL:                     s.TTL,
+			MappingEvictionInterval: s.MappingEvictionInterval,
+			Stale:                   s.Stale,
+			Storers:                 s.Storers,
 		}
 		s.Configuration = Configuration{
 			CacheKeys:    s.cacheKeys,
@@ -144,7 +147,7 @@ func (s *SouinCaddyMiddleware) FromApp(app *SouinApp) error {
 
 	if app.DefaultCache.GetMappingEvictionInterval() == 0 {
 		if s.Configuration.DefaultCache.GetMappingEvictionInterval() == 0 {
-			app.DefaultCache.TTL = configurationtypes.Duration{Duration: time.Hour}
+			app.DefaultCache.MappingEvictionInterval = configurationtypes.Duration{Duration: time.Hour}
 		}
 	}
 
