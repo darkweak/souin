@@ -51,7 +51,7 @@ func reorderStorers(storers []types.Storer, expectedStorers []string) []types.St
 }
 
 const (
-	evictionLockKey = core.MappingKeyPrefix + "eviction-lock"
+	evictionLockKey = "eviction-lock"
 	evictionLockTTL = 2 * time.Minute
 )
 
