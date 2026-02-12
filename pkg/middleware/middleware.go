@@ -50,13 +50,60 @@ func reorderStorers(storers []types.Storer, expectedStorers []string) []types.St
 	return newStorers
 }
 
+const (
+	evictionLockKey = "eviction-lock"
+	evictionLockTTL = 2 * time.Minute
+)
+
+// evictionLockHolder is a unique identifier for this instance, used for distributed lock ownership.
+var evictionLockHolder = uuid.NewString()
+
+func tryAcquireEvictionLock(storer types.Storer) bool {
+	now := time.Now()
+	existing := storer.Get(evictionLockKey)
+
+	if len(existing) > 0 {
+		// Lock value format: "holder_id|expiry_timestamp"
+		parts := strings.SplitN(string(existing), "|", 2)
+		if len(parts) == 2 {
+			holderID := parts[0]
+			lockedUntil, err := time.Parse(time.RFC3339, parts[1])
+			if err == nil && now.Before(lockedUntil) {
+				// Lock is still valid - check if we own it
+				if holderID == evictionLockHolder {
+					return true
+				}
+				return false
+			}
+		}
+	}
+
+	// Lock expired or doesn't exist - attempt to claim it using optimistic locking
+	newLockExpiry := now.Add(evictionLockTTL)
+	lockValue := evictionLockHolder + "|" + newLockExpiry.Format(time.RFC3339)
+	if err := storer.Set(evictionLockKey, []byte(lockValue), evictionLockTTL); err != nil {
+		return false
+	}
+
+	// Verify we actually got the lock (optimistic locking)
+	// Another instance might have written between our check and set
+	time.Sleep(10 * time.Millisecond)
+	verifyValue := storer.Get(evictionLockKey)
+	return string(verifyValue) == lockValue
+}
+
 func registerMappingKeysEviction(logger core.Logger, storers []types.Storer) {
 	for _, storer := range storers {
 		logger.Debugf("registering mapping eviction for storer %s", storer.Name())
 		go func(current types.Storer) {
 			for {
-				logger.Debugf("run mapping eviction for storer %s", current.Name())
+				if !tryAcquireEvictionLock(current) {
+					logger.Debugf("skipping mapping eviction for storer %s, another instance holds the lock", current.Name())
+					time.Sleep(time.Minute)
+					continue
+				}
 
+				logger.Debugf("run mapping eviction for storer %s", current.Name())
 				api.EvictMapping(current)
 			}
 		}(storer)

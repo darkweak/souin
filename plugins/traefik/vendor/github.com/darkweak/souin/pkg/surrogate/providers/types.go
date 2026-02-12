@@ -2,7 +2,6 @@ package providers
 
 import (
 	"net/http"
-	"regexp"
 )
 
 // SurrogateInterface represents the interface to implement to be part
@@ -17,7 +16,7 @@ type SurrogateInterface interface {
 	Invalidate(method string, h http.Header)
 	purgeTag(string) []string
 	Store(*http.Response, string, string) error
-	storeTag(string, string, *regexp.Regexp)
+	storeTag(string, string)
 	ParseHeaders(string) []string
 	List() map[string]string
 	candidateStore(string) bool
