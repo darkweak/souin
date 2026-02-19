@@ -20,7 +20,7 @@ require (
 require (
 	cel.dev/expr v0.19.1 // indirect
 	dario.cat/mergo v1.0.1 // indirect
-	filippo.io/edwards25519 v1.1.0 // indirect
+	filippo.io/edwards25519 v1.1.1 // indirect
 	github.com/AndreasBriese/bbloom v0.0.0-20190825152654-46b345b51c96 // indirect
 	github.com/KimMachineGun/automemlimit v0.7.1 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
