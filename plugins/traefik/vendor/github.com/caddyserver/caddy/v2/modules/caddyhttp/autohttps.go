@@ -90,7 +90,16 @@ func (app *App) automaticHTTPSPhase1(ctx caddy.Context, repl *caddy.Replacer) er
 	// the log configuration for an HTTPS enabled server
 	var logCfg *ServerLogConfig
 
-	for srvName, srv := range app.Servers {
+	// Sort server names to ensure deterministic iteration.
+	// This prevents race conditions where the order of server processing
+	// could affect which server gets assigned the HTTP->HTTPS redirect listener.
+	srvNames := make([]string, 0, len(app.Servers))
+	for name := range app.Servers {
+		srvNames = append(srvNames, name)
+	}
+	slices.Sort(srvNames)
+	for _, srvName := range srvNames {
+		srv := app.Servers[srvName]
 		// as a prerequisite, provision route matchers; this is
 		// required for all routes on all servers, and must be
 		// done before we attempt to do phase 1 of auto HTTPS,
@@ -265,6 +274,22 @@ func (app *App) automaticHTTPSPhase1(ctx caddy.Context, repl *caddy.Replacer) er
 		}
 	}
 
+	// if all servers have auto_https disabled and no domains need certs,
+	// skip the rest of the TLS automation setup to avoid creating
+	// unnecessary PKI infrastructure and automation policies
+	allServersDisabled := true
+	for _, srv := range app.Servers {
+		if srv.AutoHTTPS == nil || !srv.AutoHTTPS.Disabled {
+			allServersDisabled = false
+			break
+		}
+	}
+
+	if allServersDisabled && len(uniqueDomainsForCerts) == 0 {
+		logger.Debug("all servers have automatic HTTPS disabled and no domains need certificates, skipping TLS automation setup")
+		return nil
+	}
+
 	// we now have a list of all the unique names for which we need certs
 	var internal, tailscale []string
 uniqueDomainsLoop:
@@ -343,7 +368,7 @@ uniqueDomainsLoop:
 		// match on known domain names, unless it's our special case of a
 		// catch-all which is an empty string (common among catch-all sites
 		// that enable on-demand TLS for yet-unknown domain names)
-		if !(len(domains) == 1 && domains[0] == "") {
+		if len(domains) != 1 || domains[0] != "" {
 			matcherSet = append(matcherSet, MatchHost(domains))
 		}
 
@@ -382,15 +407,26 @@ uniqueDomainsLoop:
 		return append(routes, app.makeRedirRoute(uint(app.httpsPort()), MatcherSet{MatchProtocol("http")}))
 	}
 
+	// Sort redirect addresses to ensure deterministic process
+	redirServerAddrsSorted := make([]string, 0, len(redirServers))
+	for addr := range redirServers {
+		redirServerAddrsSorted = append(redirServerAddrsSorted, addr)
+	}
+	slices.Sort(redirServerAddrsSorted)
+
 redirServersLoop:
-	for redirServerAddr, routes := range redirServers {
+	for _, redirServerAddr := range redirServerAddrsSorted {
+		routes := redirServers[redirServerAddr]
 		// for each redirect listener, see if there's already a
 		// server configured to listen on that exact address; if so,
 		// insert the redirect route to the end of its route list
 		// after any other routes with host matchers; otherwise,
 		// we'll create a new server for all the listener addresses
 		// that are unused and serve the remaining redirects from it
-		for _, srv := range app.Servers {
+
+		// Use the sorted srvNames to consistently find the target server
+		for _, srvName := range srvNames {
+			srv := app.Servers[srvName]
 			// only look at servers which listen on an address which
 			// we want to add redirects to
 			if !srv.hasListenerAddress(redirServerAddr) {

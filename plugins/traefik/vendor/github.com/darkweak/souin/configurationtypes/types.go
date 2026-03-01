@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/darkweak/storages/core"
 	"gopkg.in/yaml.v3"
 )
 
@@ -198,6 +199,26 @@ type CacheProvider struct {
 	Configuration interface{} `json:"configuration" yaml:"configuration"`
 }
 
+func (c *CacheProvider) MarshalJSON() ([]byte, error) {
+	if !c.Found && c.URL == "" && c.Path == "" && c.Configuration == nil && c.Uuid == "" {
+		return []byte("null"), nil
+	}
+
+	return json.Marshal(struct {
+		Uuid          string
+		Found         bool        `json:"found"`
+		URL           string      `json:"url"`
+		Path          string      `json:"path"`
+		Configuration interface{} `json:"configuration"`
+	}{
+		Uuid:          c.Uuid,
+		Found:         c.Found,
+		URL:           c.URL,
+		Path:          c.Path,
+		Configuration: c.Configuration,
+	})
+}
+
 // Timeout configuration to handle the cache provider and the
 // reverse-proxy timeout.
 type Timeout struct {
@@ -258,6 +279,7 @@ type DefaultCache struct {
 	DefaultCacheControl          string        `json:"default_cache_control" yaml:"default_cache_control"`
 	MaxBodyBytes                 uint64        `json:"max_cacheable_body_bytes" yaml:"max_cacheable_body_bytes"`
 	DisableCoalescing            bool          `json:"disable_coalescing" yaml:"disable_coalescing"`
+	MappingEvictionInterval      Duration      `json:"mapping_eviction_interval" yaml:"mapping_eviction_interval"`
 }
 
 // GetAllowedHTTPVerbs returns the allowed verbs to cache
@@ -380,6 +402,14 @@ func (d *DefaultCache) IsCoalescingDisable() bool {
 	return d.DisableCoalescing
 }
 
+// GetMappingEvictionInterval returns the interval for mapping eviction
+func (d *DefaultCache) GetMappingEvictionInterval() time.Duration {
+	if d.MappingEvictionInterval.Duration == 0 {
+		return time.Minute
+	}
+	return d.MappingEvictionInterval.Duration
+}
+
 // DefaultCacheInterface interface
 type DefaultCacheInterface interface {
 	GetAllowedHTTPVerbs() []string
@@ -406,6 +436,7 @@ type DefaultCacheInterface interface {
 	GetDefaultCacheControl() string
 	GetMaxBodyBytes() uint64
 	IsCoalescingDisable() bool
+	GetMappingEvictionInterval() time.Duration
 }
 
 // APIEndpoint is the minimal structure to define an endpoint
@@ -456,7 +487,10 @@ type AbstractConfigurationInterface interface {
 	GetDefaultCache() DefaultCacheInterface
 	GetAPI() API
 	GetLogLevel() string
+	GetLogger() core.Logger
+	SetLogger(core.Logger)
 	GetYkeys() map[string]SurrogateKeys
 	GetSurrogateKeys() map[string]SurrogateKeys
+	IsSurrogateDisabled() bool
 	GetCacheKeys() CacheKeys
 }

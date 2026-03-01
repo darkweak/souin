@@ -31,7 +31,7 @@ import (
 
 	"github.com/quic-go/quic-go"
 	"github.com/quic-go/quic-go/http3"
-	"github.com/quic-go/quic-go/qlog"
+	h3qlog "github.com/quic-go/quic-go/http3/qlog"
 	"go.uber.org/zap"
 	"golang.org/x/time/rate"
 
@@ -382,7 +382,7 @@ func SplitNetworkAddress(a string) (network, host, port string, err error) {
 		a = afterSlash
 		if IsUnixNetwork(network) || IsFdNetwork(network) {
 			host = a
-			return
+			return network, host, port, err
 		}
 	}
 
@@ -402,7 +402,7 @@ func SplitNetworkAddress(a string) (network, host, port string, err error) {
 		err = errors.Join(firstErr, err)
 	}
 
-	return
+	return network, host, port, err
 }
 
 // JoinNetworkAddress combines network, host, and port into a single
@@ -430,7 +430,8 @@ func JoinNetworkAddress(network, host, port string) string {
 // address instead.
 //
 // NOTE: This API is EXPERIMENTAL and may be changed or removed.
-func (na NetworkAddress) ListenQUIC(ctx context.Context, portOffset uint, config net.ListenConfig, tlsConf *tls.Config) (http3.QUICEarlyListener, error) {
+// NOTE: user should close the returned listener twice, once to stop accepting new connections, the second time to free up the packet conn.
+func (na NetworkAddress) ListenQUIC(ctx context.Context, portOffset uint, config net.ListenConfig, tlsConf *tls.Config, pcWrappers []PacketConnWrapper, allow0rttconf *bool) (http3.QUICListener, error) {
 	lnKey := listenerKey("quic"+na.Network, na.JoinHostPort(portOffset))
 
 	sharedEarlyListener, _, err := listenerPool.LoadOrNew(lnKey, func() (Destructor, error) {
@@ -442,12 +443,19 @@ func (na NetworkAddress) ListenQUIC(ctx context.Context, portOffset uint, config
 		ln := lnAny.(net.PacketConn)
 
 		h3ln := ln
-		for {
-			// retrieve the underlying socket, so quic-go can optimize.
-			if unwrapper, ok := h3ln.(interface{ Unwrap() net.PacketConn }); ok {
-				h3ln = unwrapper.Unwrap()
-			} else {
-				break
+		if len(pcWrappers) == 0 {
+			for {
+				// retrieve the underlying socket, so quic-go can optimize.
+				if unwrapper, ok := h3ln.(interface{ Unwrap() net.PacketConn }); ok {
+					h3ln = unwrapper.Unwrap()
+				} else {
+					break
+				}
+			}
+		} else {
+			// wrap packet conn before QUIC
+			for _, pcWrapper := range pcWrappers {
+				h3ln = pcWrapper.WrapPacketConn(h3ln)
 			}
 		}
 
@@ -462,11 +470,15 @@ func (na NetworkAddress) ListenQUIC(ctx context.Context, portOffset uint, config
 			Conn:                h3ln,
 			VerifySourceAddress: func(addr net.Addr) bool { return !limiter.Allow() },
 		}
+		allow0rtt := true
+		if allow0rttconf != nil {
+			allow0rtt = *allow0rttconf
+		}
 		earlyLn, err := tr.ListenEarly(
 			http3.ConfigureTLSConfig(quicTlsConfig),
 			&quic.Config{
-				Allow0RTT: true,
-				Tracer:    qlog.DefaultConnectionTracer,
+				Allow0RTT: allow0rtt,
+				Tracer:    h3qlog.DefaultConnectionTracer,
 			},
 		)
 		if err != nil {
@@ -610,7 +622,7 @@ type fakeCloseQuicListener struct {
 // server on which Accept would be called with non-empty contexts
 // (mind that the default net listeners' Accept doesn't take a context argument)
 // sounds way too rare for us to sacrifice efficiency here.
-func (fcql *fakeCloseQuicListener) Accept(_ context.Context) (quic.EarlyConnection, error) {
+func (fcql *fakeCloseQuicListener) Accept(_ context.Context) (*quic.Conn, error) {
 	conn, err := fcql.sharedQuicListener.Accept(fcql.context)
 	if err == nil {
 		return conn, nil
@@ -626,6 +638,7 @@ func (fcql *fakeCloseQuicListener) Accept(_ context.Context) (quic.EarlyConnecti
 func (fcql *fakeCloseQuicListener) Close() error {
 	if atomic.CompareAndSwapInt32(&fcql.closed, 0, 1) {
 		fcql.contextCancel()
+	} else if atomic.CompareAndSwapInt32(&fcql.closed, 1, 2) {
 		_, _ = listenerPool.Delete(fcql.sharedQuicListener.key)
 	}
 	return nil
@@ -691,6 +704,19 @@ var networkTypes = map[string]ListenerFunc{}
 // appropriate.
 type ListenerWrapper interface {
 	WrapListener(net.Listener) net.Listener
+}
+
+// PacketConnWrapper is a type that wraps a packet conn
+// so it can modify the input packet conn methods.
+// Modules that implement this interface are found
+// in the caddy.packetconns namespace. Usually, to
+// wrap a packet conn, you will define your own struct
+// type that embeds the input packet conn, then
+// implement your own methods that you want to wrap,
+// calling the underlying packet conn methods where
+// appropriate.
+type PacketConnWrapper interface {
+	WrapPacketConn(net.PacketConn) net.PacketConn
 }
 
 // listenerPool stores and allows reuse of active listeners.

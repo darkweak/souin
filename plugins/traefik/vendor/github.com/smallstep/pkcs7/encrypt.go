@@ -443,8 +443,7 @@ func EncryptUsingPSK(content []byte, key []byte) ([]byte, error) {
 }
 
 func marshalEncryptedContent(content []byte) asn1.RawValue {
-	asn1Content, _ := asn1.Marshal(content)
-	return asn1.RawValue{Tag: 0, Class: 2, Bytes: asn1Content, IsCompound: true}
+	return asn1.RawValue{Bytes: content, Class: 2, IsCompound: false}
 }
 
 func encryptKey(key []byte, recipient *x509.Certificate, algorithm asn1.ObjectIdentifier, hash crypto.Hash) ([]byte, error) {

@@ -47,6 +47,12 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+// testCertMagicStorageOverride is a package-level test hook. Tests may set
+// this variable to provide a temporary certmagic.Storage so that cert
+// management in tests does not hit the real default storage on disk.
+// This must NOT be set in production code.
+var testCertMagicStorageOverride certmagic.Storage
+
 func init() {
 	// The hard-coded default `DefaultAdminListen` can be overridden
 	// by setting the `CADDY_ADMIN` environment variable.
@@ -424,6 +430,13 @@ func replaceLocalAdminServer(cfg *Config, ctx Context) error {
 
 	handler := cfg.Admin.newAdminHandler(addr, false, ctx)
 
+	// run the provisioners for loaded modules to make sure local
+	// state is properly re-initialized in the new admin server
+	err = cfg.Admin.provisionAdminRouters(ctx)
+	if err != nil {
+		return err
+	}
+
 	ln, err := addr.Listen(context.TODO(), 0, net.ListenConfig{})
 	if err != nil {
 		return err
@@ -545,6 +558,13 @@ func replaceRemoteAdminServer(ctx Context, cfg *Config) error {
 	// because we are using TLS authentication instead
 	handler := cfg.Admin.newAdminHandler(addr, true, ctx)
 
+	// run the provisioners for loaded modules to make sure local
+	// state is properly re-initialized in the new admin server
+	err = cfg.Admin.provisionAdminRouters(ctx)
+	if err != nil {
+		return err
+	}
+
 	// create client certificate pool for TLS mutual auth, and extract public keys
 	// so that we can enforce access controls at the application layer
 	clientCertPool := x509.NewCertPool()
@@ -619,8 +639,19 @@ func (ident *IdentityConfig) certmagicConfig(logger *zap.Logger, makeCache bool)
 		// certmagic config, although it'll be mostly useless for remote management
 		ident = new(IdentityConfig)
 	}
+	// Choose storage: prefer the package-level test override when present,
+	// otherwise use the configured DefaultStorage. Tests may set an override
+	// to divert storage into a temporary location. Otherwise, in production
+	// we use the DefaultStorage since we don't want to act as part of a
+	// cluster; this storage is for the server's local identity only.
+	var storage certmagic.Storage
+	if testCertMagicStorageOverride != nil {
+		storage = testCertMagicStorageOverride
+	} else {
+		storage = DefaultStorage
+	}
 	template := certmagic.Config{
-		Storage: DefaultStorage, // do not act as part of a cluster (this is for the server's local identity)
+		Storage: storage,
 		Logger:  logger,
 		Issuers: ident.issuers,
 	}
@@ -793,12 +824,37 @@ func (h adminHandler) serveHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// common mitigations in browser contexts
 	if strings.Contains(r.Header.Get("Upgrade"), "websocket") {
 		// I've never been able demonstrate a vulnerability myself, but apparently
 		// WebSocket connections originating from browsers aren't subject to CORS
 		// restrictions, so we'll just be on the safe side
-		h.handleError(w, r, fmt.Errorf("websocket connections aren't allowed"))
+		h.handleError(w, r, APIError{
+			HTTPStatus: http.StatusBadRequest,
+			Err:        errors.New("websocket connections aren't allowed"),
+			Message:    "WebSocket connections aren't allowed.",
+		})
 		return
+	}
+	if strings.Contains(r.Header.Get("Sec-Fetch-Mode"), "no-cors") {
+		// turns out web pages can just disable the same-origin policy (!???!?)
+		// but at least browsers let us know that's the case, holy heck
+		h.handleError(w, r, APIError{
+			HTTPStatus: http.StatusBadRequest,
+			Err:        errors.New("client attempted to make request by disabling same-origin policy using no-cors mode"),
+			Message:    "Disabling same-origin restrictions is not allowed.",
+		})
+		return
+	}
+	if r.Header.Get("Origin") == "null" {
+		// bug in Firefox in certain cross-origin situations (yikes?)
+		// (not strictly a security vuln on its own, but it's red flaggy,
+		// since it seems to manifest in cross-origin contexts)
+		h.handleError(w, r, APIError{
+			HTTPStatus: http.StatusBadRequest,
+			Err:        errors.New("invalid origin 'null'"),
+			Message:    "Buggy browser is sending null Origin header.",
+		})
 	}
 
 	if h.enforceHost {
@@ -810,7 +866,9 @@ func (h adminHandler) serveHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if h.enforceOrigin {
+	_, hasOriginHeader := r.Header["Origin"]
+	_, hasSecHeader := r.Header["Sec-Fetch-Mode"]
+	if h.enforceOrigin || hasOriginHeader || hasSecHeader {
 		// cross-site mitigation
 		origin, err := h.checkOrigin(r)
 		if err != nil {
@@ -932,7 +990,7 @@ func (h adminHandler) originAllowed(origin *url.URL) bool {
 	return false
 }
 
-// etagHasher returns a the hasher we used on the config to both
+// etagHasher returns the hasher we used on the config to both
 // produce and verify ETags.
 func etagHasher() hash.Hash { return xxhash.New() }
 
@@ -1015,6 +1073,13 @@ func handleConfig(w http.ResponseWriter, r *http.Request) error {
 			return err
 		}
 
+		// If this request changed the config, clear the last
+		// config info we have stored, if it is different from
+		// the original source.
+		ClearLastConfigIfDifferent(
+			r.Header.Get("Caddy-Config-Source-File"),
+			r.Header.Get("Caddy-Config-Source-Adapter"))
+
 	default:
 		return APIError{
 			HTTPStatus: http.StatusMethodNotAllowed,
@@ -1089,7 +1154,10 @@ func unsyncedConfigAccess(method, path string, body []byte, out io.Writer) error
 	if len(body) > 0 {
 		err = json.Unmarshal(body, &val)
 		if err != nil {
-			return fmt.Errorf("decoding request body: %v", err)
+			if jsonErr, ok := err.(*json.SyntaxError); ok {
+				return fmt.Errorf("decoding request body: %w, at offset %d", jsonErr, jsonErr.Offset)
+			}
+			return fmt.Errorf("decoding request body: %w", err)
 		}
 	}
 

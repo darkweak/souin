@@ -172,8 +172,12 @@ func addHTTPVarsToReplacer(repl *caddy.Replacer, req *http.Request, w http.Respo
 			// current URI, including any internal rewrites
 			case "http.request.uri":
 				return req.URL.RequestURI(), true
+			case "http.request.uri_escaped":
+				return url.QueryEscape(req.URL.RequestURI()), true
 			case "http.request.uri.path":
 				return req.URL.Path, true
+			case "http.request.uri.path_escaped":
+				return url.QueryEscape(req.URL.Path), true
 			case "http.request.uri.path.file":
 				_, file := path.Split(req.URL.Path)
 				return file, true
@@ -186,6 +190,8 @@ func addHTTPVarsToReplacer(repl *caddy.Replacer, req *http.Request, w http.Respo
 				return path.Ext(req.URL.Path), true
 			case "http.request.uri.query":
 				return req.URL.RawQuery, true
+			case "http.request.uri.query_escaped":
+				return url.QueryEscape(req.URL.RawQuery), true
 			case "http.request.uri.prefixed_query":
 				if req.URL.RawQuery == "" {
 					return "", true
@@ -222,6 +228,21 @@ func addHTTPVarsToReplacer(repl *caddy.Replacer, req *http.Request, w http.Respo
 				_, _ = io.Copy(buf, req.Body) // can't handle error, so just ignore it
 				req.Body = io.NopCloser(buf)  // replace real body with buffered data
 				return buf.String(), true
+
+			case "http.request.body_base64":
+				if req.Body == nil {
+					return "", true
+				}
+				// normally net/http will close the body for us, but since we
+				// are replacing it with a fake one, we have to ensure we close
+				// the real body ourselves when we're done
+				defer req.Body.Close()
+				// read the request body into a buffer (can't pool because we
+				// don't know its lifetime and would have to make a copy anyway)
+				buf := new(bytes.Buffer)
+				_, _ = io.Copy(buf, req.Body) // can't handle error, so just ignore it
+				req.Body = io.NopCloser(buf)  // replace real body with buffered data
+				return base64.StdEncoding.EncodeToString(buf.Bytes()), true
 
 			// original request, before any internal changes
 			case "http.request.orig_method":
@@ -283,7 +304,7 @@ func addHTTPVarsToReplacer(repl *caddy.Replacer, req *http.Request, w http.Respo
 				return prefix.String(), true
 			}
 
-			// hostname labels
+			// hostname labels (case insensitive, so normalize to lowercase)
 			if strings.HasPrefix(key, reqHostLabelsReplPrefix) {
 				idxStr := key[len(reqHostLabelsReplPrefix):]
 				idx, err := strconv.Atoi(idxStr)
@@ -298,7 +319,7 @@ func addHTTPVarsToReplacer(repl *caddy.Replacer, req *http.Request, w http.Respo
 				if idx >= len(hostLabels) {
 					return "", true
 				}
-				return hostLabels[len(hostLabels)-idx-1], true
+				return strings.ToLower(hostLabels[len(hostLabels)-idx-1]), true
 			}
 
 			// path parts
@@ -363,13 +384,13 @@ func addHTTPVarsToReplacer(repl *caddy.Replacer, req *http.Request, w http.Respo
 			}
 		}
 
-		switch {
-		case key == "http.shutting_down":
+		switch key {
+		case "http.shutting_down":
 			server := req.Context().Value(ServerCtxKey).(*Server)
 			server.shutdownAtMu.RLock()
 			defer server.shutdownAtMu.RUnlock()
 			return !server.shutdownAt.IsZero(), true
-		case key == "http.time_until_shutdown":
+		case "http.time_until_shutdown":
 			server := req.Context().Value(ServerCtxKey).(*Server)
 			server.shutdownAtMu.RLock()
 			defer server.shutdownAtMu.RUnlock()
@@ -505,6 +526,8 @@ func getReqTLSReplacement(req *http.Request, key string) (any, bool) {
 		return true, true
 	case "server_name":
 		return req.TLS.ServerName, true
+	case "ech":
+		return req.TLS.ECHAccepted, true
 	}
 	return nil, false
 }
