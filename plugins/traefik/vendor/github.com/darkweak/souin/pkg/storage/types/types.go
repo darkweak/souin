@@ -3,26 +3,11 @@ package types
 import (
 	"net/http"
 	"time"
+
+	"github.com/darkweak/storages/core"
 )
 
-type Revalidator struct {
-	Matched                     bool
-	IfNoneMatchPresent          bool
-	IfMatchPresent              bool
-	IfModifiedSincePresent      bool
-	IfUnmodifiedSincePresent    bool
-	IfUnmotModifiedSincePresent bool
-	NeedRevalidation            bool
-	NotModified                 bool
-	IfModifiedSince             time.Time
-	IfUnmodifiedSince           time.Time
-	IfNoneMatch                 []string
-	IfMatch                     []string
-	RequestETags                []string
-	ResponseETag                string
-}
-
-const DefaultStorageName = "CACHE"
+const DefaultStorageName = "DEFAULT"
 const OneYearDuration = 365 * 24 * time.Hour
 
 type Storer interface {
@@ -38,6 +23,6 @@ type Storer interface {
 	Reset() error
 
 	// Multi level storer to handle fresh/stale at once
-	GetMultiLevel(key string, req *http.Request, validator *Revalidator) (fresh *http.Response, stale *http.Response)
+	GetMultiLevel(key string, req *http.Request, validator *core.Revalidator) (fresh *http.Response, stale *http.Response)
 	SetMultiLevel(baseKey, variedKey string, value []byte, variedHeaders http.Header, etag string, duration time.Duration, realKey string) error
 }

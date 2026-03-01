@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/caddyserver/caddy/v2"
 )
@@ -110,14 +111,16 @@ func (r Route) Empty() bool {
 }
 
 func (r Route) String() string {
-	handlersRaw := "["
+	var handlersRaw strings.Builder
+	handlersRaw.WriteByte('[')
 	for _, hr := range r.HandlersRaw {
-		handlersRaw += " " + string(hr)
+		handlersRaw.WriteByte(' ')
+		handlersRaw.WriteString(string(hr))
 	}
-	handlersRaw += "]"
+	handlersRaw.WriteByte(']')
 
 	return fmt.Sprintf(`{Group:"%s" MatcherSetsRaw:%s HandlersRaw:%s Terminal:%t}`,
-		r.Group, r.MatcherSetsRaw, handlersRaw, r.Terminal)
+		r.Group, r.MatcherSetsRaw, handlersRaw.String(), r.Terminal)
 }
 
 // Provision sets up both the matchers and handlers in the route.
@@ -302,13 +305,7 @@ func wrapRoute(route Route) Middleware {
 
 // wrapMiddleware wraps mh such that it can be correctly
 // appended to a list of middleware in preparation for
-// compiling into a handler chain. We can't do this inline
-// inside a loop, because it relies on a reference to mh
-// not changing until the execution of its handler (which
-// is deferred by multiple func closures). In other words,
-// we need to pull this particular MiddlewareHandler
-// pointer into its own stack frame to preserve it so it
-// won't be overwritten in future loop iterations.
+// compiling into a handler chain.
 func wrapMiddleware(ctx caddy.Context, mh MiddlewareHandler, metrics *Metrics) Middleware {
 	handlerToUse := mh
 	if metrics != nil {
@@ -317,18 +314,12 @@ func wrapMiddleware(ctx caddy.Context, mh MiddlewareHandler, metrics *Metrics) M
 	}
 
 	return func(next Handler) Handler {
-		// copy the next handler (it's an interface, so it's
-		// just a very lightweight copy of a pointer); this
-		// is a safeguard against the handler changing the
-		// value, which could affect future requests (yikes)
-		nextCopy := next
-
 		return HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			// EXPERIMENTAL: Trace each module that gets invoked
 			if server, ok := r.Context().Value(ServerCtxKey).(*Server); ok && server != nil {
 				server.logTrace(handlerToUse)
 			}
-			return handlerToUse.ServeHTTP(w, r, nextCopy)
+			return handlerToUse.ServeHTTP(w, r, next)
 		})
 	}
 }
@@ -452,13 +443,15 @@ func (ms *MatcherSets) FromInterface(matcherSets any) error {
 
 // TODO: Is this used?
 func (ms MatcherSets) String() string {
-	result := "["
+	var result strings.Builder
+	result.WriteByte('[')
 	for _, matcherSet := range ms {
 		for _, matcher := range matcherSet {
-			result += fmt.Sprintf(" %#v", matcher)
+			fmt.Fprintf(&result, " %#v", matcher)
 		}
 	}
-	return result + " ]"
+	result.WriteByte(']')
+	return result.String()
 }
 
 var routeGroupCtxKey = caddy.CtxKey("route_group")

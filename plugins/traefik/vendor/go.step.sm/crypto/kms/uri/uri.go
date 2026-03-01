@@ -11,7 +11,12 @@ import (
 	"unicode"
 
 	"github.com/pkg/errors"
+	"go.step.sm/crypto/internal/termutil"
 )
+
+// readPIN defines the method used to read a pin, it can be changed for testing
+// purposes.
+var readPIN = termutil.ReadPassword
 
 // URI implements a parser for a URI format based on the the PKCS #11 URI Scheme
 // defined in https://tools.ietf.org/html/rfc7512
@@ -105,6 +110,11 @@ func (u *URI) String() string {
 	return u.URL.String()
 }
 
+// Has checks whether a given key is set.
+func (u *URI) Has(key string) bool {
+	return u.Values.Has(key) || u.URL.Query().Has(key)
+}
+
 // Get returns the first value in the uri with the given key, it will return
 // empty string if that field is not present.
 func (u *URI) Get(key string) string {
@@ -186,14 +196,39 @@ func (u *URI) Pin() string {
 			return string(bytes.TrimRightFunc(b, unicode.IsSpace))
 		}
 	}
+	if u.Has("pin-prompt") {
+		prompt := "Enter PIN:"
+		if s := u.Get("pin-prompt"); s != "" {
+			prompt = s
+		}
+		if b, err := readPIN(prompt); err == nil {
+			return string(bytes.TrimRightFunc(b, unicode.IsSpace))
+		}
+	}
 	return ""
+}
+
+// Read returns the raw content of the file in the given attribute key. This
+// method will return nil if the key is missing.
+func (u *URI) Read(key string) ([]byte, error) {
+	path := u.Get(key)
+	if path == "" {
+		return nil, nil
+	}
+	return readFile(path)
 }
 
 func readFile(path string) ([]byte, error) {
 	u, err := url.Parse(path)
-	if err == nil && (u.Scheme == "" || u.Scheme == "file") && u.Path != "" {
-		path = u.Path
+	if err == nil && (u.Scheme == "" || u.Scheme == "file") {
+		switch {
+		case u.Path != "":
+			path = u.Path
+		case u.Opaque != "":
+			path = u.Opaque
+		}
 	}
+	//nolint:gosec // path is validated by callers and used for reading KMS configuration files
 	b, err := os.ReadFile(path)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error reading %s", path)

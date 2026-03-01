@@ -11,11 +11,11 @@ import (
 
 	"github.com/pkg/errors"
 
+	"github.com/smallstep/linkedca"
 	"go.step.sm/crypto/jose"
 	"go.step.sm/crypto/pemutil"
 	"go.step.sm/crypto/sshutil"
 	"go.step.sm/crypto/x509util"
-	"go.step.sm/linkedca"
 
 	"github.com/smallstep/certificates/errs"
 )
@@ -73,7 +73,7 @@ func (p *K8sSA) GetIDForToken() string {
 
 // GetTokenID returns an unimplemented error and does not use the input ott.
 func (p *K8sSA) GetTokenID(string) (string, error) {
-	return "", errors.New("not implemented")
+	return "", ErrNotImplemented
 }
 
 // GetName returns the name of the provisioner.
