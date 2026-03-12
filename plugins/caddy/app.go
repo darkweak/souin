@@ -47,7 +47,6 @@ func (s *SouinApp) Provision(_ caddy.Context) error {
 
 // Start will start the App
 func (s SouinApp) Start() error {
-	core.ResetRegisteredStorages()
 	_, _ = up.Delete(stored_providers_key)
 	_, _ = up.LoadOrStore(stored_providers_key, newStorageProvider())
 
@@ -56,6 +55,8 @@ func (s SouinApp) Start() error {
 
 // Stop will stop the App
 func (s SouinApp) Stop() error {
+	core.ResetRegisteredStorages()
+
 	return nil
 }
 
