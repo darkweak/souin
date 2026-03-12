@@ -50,16 +50,65 @@ func reorderStorers(storers []types.Storer, expectedStorers []string) []types.St
 	return newStorers
 }
 
-func registerMappingKeysEviction(logger core.Logger, storers []types.Storer) {
-	for _, storer := range storers {
-		logger.Debugf("registering mapping eviction for storer %s", storer.Name())
-		go func(current types.Storer) {
-			for {
-				logger.Debugf("run mapping eviction for storer %s", current.Name())
+const (
+	evictionLockKey = "eviction-lock"
+	evictionLockTTL = 2 * time.Minute
+)
 
-				api.EvictMapping(current)
+// evictionLockHolder is a unique identifier for this instance, used for distributed lock ownership.
+var evictionLockHolder = uuid.NewString()
+
+func tryAcquireEvictionLock(storer types.Storer) bool {
+	now := time.Now()
+	existing := storer.Get(evictionLockKey)
+
+	if len(existing) > 0 {
+		// Lock value format: "holder_id|expiry_timestamp"
+		parts := strings.SplitN(string(existing), "|", 2)
+		if len(parts) == 2 {
+			holderID := parts[0]
+			lockedUntil, err := time.Parse(time.RFC3339, parts[1])
+			if err == nil && now.Before(lockedUntil) {
+				// Lock is still valid - check if we own it
+				if holderID == evictionLockHolder {
+					return true
+				}
+				return false
 			}
-		}(storer)
+		}
+	}
+
+	// Lock expired or doesn't exist - attempt to claim it using optimistic locking
+	newLockExpiry := now.Add(evictionLockTTL)
+	lockValue := evictionLockHolder + "|" + newLockExpiry.Format(time.RFC3339)
+	if err := storer.Set(evictionLockKey, []byte(lockValue), evictionLockTTL); err != nil {
+		return false
+	}
+
+	// Verify we actually got the lock (optimistic locking)
+	// Another instance might have written between our check and set
+	time.Sleep(10 * time.Millisecond)
+	verifyValue := storer.Get(evictionLockKey)
+	return string(verifyValue) == lockValue
+}
+
+func registerMappingKeysEviction(logger core.Logger, storers []types.Storer, interval time.Duration) {
+	for _, storer := range storers {
+		logger.Debugf("registering mapping eviction for storer %s (interval: %s)", storer.Name(), interval)
+		go func(current types.Storer, currentInterval time.Duration) {
+			for {
+				if !tryAcquireEvictionLock(current) {
+					logger.Debugf("skipping mapping eviction for storer %s, another instance holds the lock", current.Name())
+					time.Sleep(currentInterval)
+
+					continue
+				}
+
+				logger.Debugf("run mapping eviction for storer %s", current.Name())
+				api.EvictMapping(current)
+				<-time.After(10 * time.Minute)
+			}
+		}(storer, interval)
 	}
 }
 
@@ -150,8 +199,9 @@ func NewHTTPCacheHandler(c configurationtypes.AbstractConfigurationInterface) *S
 		DefaultCacheControl: c.GetDefaultCache().GetDefaultCacheControl(),
 	}
 	c.GetLogger().Info("Souin configuration is now loaded.")
+	c.GetLogger().Debugf("Configuration: %#v.", c.GetDefaultCache())
 
-	registerMappingKeysEviction(c.GetLogger(), storers)
+	registerMappingKeysEviction(c.GetLogger(), storers, c.GetDefaultCache().GetMappingEvictionInterval())
 
 	return &SouinBaseHandler{
 		Configuration:            c,
@@ -516,12 +566,18 @@ func (s *SouinBaseHandler) Upstream(
 		}
 
 		err := s.Store(customWriter, rq, requestCc, cachedKey, uri)
+
+		// Copy the buffer bytes so the returned value is independent of the
+		// underlying buffer, which may be reset or returned to the pool.
+		bodySnapshot := make([]byte, customWriter.Buf.Len())
+		copy(bodySnapshot, customWriter.Buf.Bytes())
+
 		defer customWriter.handleBuffer(func(b *bytes.Buffer) {
 			b.Reset()
 		})
 
 		return singleflightValue{
-			body:              customWriter.Buf.Bytes(),
+			body:              bodySnapshot,
 			headers:           customWriter.Header().Clone(),
 			requestHeaders:    rq.Header,
 			code:              statusCode,
@@ -555,6 +611,7 @@ func (s *SouinBaseHandler) Upstream(
 		if shared {
 			s.Configuration.GetLogger().Infof("Reused response from concurrent request with the key %s", cachedKey)
 		}
+		customWriter.Buf.Reset()
 		_, _ = customWriter.Write(sfWriter.body)
 		maps.Copy(customWriter.Header(), sfWriter.headers)
 		customWriter.WriteHeader(sfWriter.code)
@@ -615,11 +672,16 @@ func (s *SouinBaseHandler) Revalidate(validator *core.Revalidator, next handlerF
 			),
 		)
 
+		// Copy the buffer bytes so the returned value is independent of the
+		// underlying buffer, which may be reset or returned to the pool.
+		bodySnapshot := make([]byte, customWriter.Buf.Len())
+		copy(bodySnapshot, customWriter.Buf.Bytes())
+
 		defer customWriter.handleBuffer(func(b *bytes.Buffer) {
 			b.Reset()
 		})
 		return singleflightValue{
-			body:    customWriter.Buf.Bytes(),
+			body:    bodySnapshot,
 			headers: customWriter.Header().Clone(),
 			code:    statusCode,
 		}, err
@@ -629,6 +691,7 @@ func (s *SouinBaseHandler) Revalidate(validator *core.Revalidator, next handlerF
 		if shared {
 			s.Configuration.GetLogger().Infof("Reused response from concurrent request with the key %s", cachedKey)
 		}
+		customWriter.Buf.Reset()
 		_, _ = customWriter.Write(sfWriter.body)
 		maps.Copy(customWriter.Header(), sfWriter.headers)
 		customWriter.WriteHeader(sfWriter.code)
@@ -787,7 +850,15 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 	uri := req.URL.Path
 	bufPool := s.bufPool.Get().(*bytes.Buffer)
 	bufPool.Reset()
-	defer s.bufPool.Put(bufPool)
+	// Track whether the buffer ownership has been handed off to the background
+	// goroutine. If so, we must not return it to the pool on exit because the
+	// goroutine may still be writing to it.
+	bufPoolOwned := true
+	defer func() {
+		if bufPoolOwned {
+			s.bufPool.Put(bufPool)
+		}
+	}()
 
 	customWriter := NewCustomWriter(req, rw, bufPool)
 	customWriter.Headers.Add("Range", req.Header.Get("Range"))
@@ -1029,15 +1100,13 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 		}
 	}
 
-	errorCacheCh := make(chan error)
-	defer close(errorCacheCh)
+	errorCacheCh := make(chan error, 1)
 
+	// Release buffer ownership before launching the goroutine. The goroutine
+	// writes to customWriter (which wraps bufPool) and will finish
+	// asynchronously if the context is cancelled.
+	bufPoolOwned = false
 	go func(vr *http.Request, cw *CustomWriter) {
-		defer func() {
-			if r := recover(); r != nil {
-				s.Configuration.GetLogger().Infof("recovered due to closed errorCacheCh chan, the request context has finished prematurely %s", req.URL)
-			}
-		}()
 		prometheus.Increment(prometheus.NoCachedResponseCounter)
 		errorCacheCh <- s.Upstream(cw, vr, next, requestCc, cachedKey, uri, false)
 	}(req, customWriter)
@@ -1057,6 +1126,8 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 			return nil
 		}
 	case v := <-errorCacheCh:
+		// Goroutine has finished — safe to reclaim the buffer.
+		s.bufPool.Put(bufPool)
 		switch v {
 		case nil:
 			_, _ = customWriter.Send()

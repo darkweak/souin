@@ -10,7 +10,7 @@ replace (
 require (
 	github.com/darkweak/souin v1.7.8
 	github.com/darkweak/souin/plugins/souin/storages v1.7.8
-	github.com/darkweak/storages/core v0.0.15
+	github.com/darkweak/storages/core v0.0.18
 	github.com/fsnotify/fsnotify v1.8.0
 	go.uber.org/zap v1.27.0
 	gopkg.in/yaml.v3 v3.0.1
@@ -123,7 +123,7 @@ require (
 	github.com/nutsdb/nutsdb v1.0.4 // indirect
 	github.com/onsi/ginkgo/v2 v2.15.0 // indirect
 	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58 // indirect
-	github.com/pierrec/lz4/v4 v4.1.22 // indirect
+	github.com/pierrec/lz4/v4 v4.1.23 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pquerna/cachecontrol v0.2.0 // indirect
 	github.com/prometheus/client_golang v1.22.0 // indirect

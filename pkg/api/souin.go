@@ -199,7 +199,6 @@ func EvictMapping(current types.Storer) {
 			current.Delete(core.MappingKeyPrefix + k)
 		}
 	}
-	time.Sleep(time.Minute)
 }
 
 func (s *SouinAPI) purgeMapping() {

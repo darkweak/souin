@@ -44,7 +44,7 @@ require (
 	github.com/coreos/go-systemd/v22 v22.6.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
 	github.com/darkweak/storages/badger v0.0.16 // indirect
-	github.com/darkweak/storages/core v0.0.16 // indirect
+	github.com/darkweak/storages/core v0.0.18 // indirect
 	github.com/darkweak/storages/etcd v0.0.16 // indirect
 	github.com/darkweak/storages/nats v0.0.16 // indirect
 	github.com/darkweak/storages/nuts v0.0.16 // indirect
@@ -112,7 +112,7 @@ require (
 	github.com/nutsdb/nutsdb v1.0.4 // indirect
 	github.com/onsi/gomega v1.38.2 // indirect
 	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58 // indirect
-	github.com/pierrec/lz4/v4 v4.1.22 // indirect
+	github.com/pierrec/lz4/v4 v4.1.23 // indirect
 	github.com/quic-go/qpack v0.5.1 // indirect
 	github.com/quic-go/quic-go v0.54.0 // indirect
 	github.com/redis/rueidis v1.0.64 // indirect

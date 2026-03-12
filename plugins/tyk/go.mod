@@ -2,8 +2,6 @@ module github.com/darkweak/souin/plugins/tyk
 
 go 1.25
 
-toolchain go1.25
-
 require (
 	github.com/cespare/xxhash/v2 v2.3.0
 	github.com/darkweak/souin v1.7.8

@@ -158,8 +158,8 @@ github.com/darkweak/go-esi v0.0.5 h1:b9LHI8Tz46R+i6p8avKPHAIBRQUCZDebNmKm5w/Zrns
 github.com/darkweak/go-esi v0.0.5/go.mod h1:koCJqwum1u6mslyZuq/Phm6hfG1K3ZK5Y7jrUBTH654=
 github.com/darkweak/storages/badger v0.0.13 h1:p54l0LGJUM33DaVWAc59B7RMqpWdVFOJLF1oOSioz7w=
 github.com/darkweak/storages/badger v0.0.13/go.mod h1:JegE7I+ThF+OMORiSX6od9Hgmf6r/g64EiOswFtqNNg=
-github.com/darkweak/storages/core v0.0.15 h1:LnCvkWiP2ngQ2s5br/Qnw/jhAP/vlmsZOWbU1fJTUno=
-github.com/darkweak/storages/core v0.0.15/go.mod h1:3qJqrenCLpu+0bWPOAq36CmGpzL3SGWAz6KGZGnur1U=
+github.com/darkweak/storages/core v0.0.18 h1:qE9vQb31of3f1a4Zm9/uvnamyJdecRNvtK60A4DNWKE=
+github.com/darkweak/storages/core v0.0.18/go.mod h1:h36sNSwQ36fdHFMUIqD3j403kv29R4FVJJDaLbyvofM=
 github.com/darkweak/storages/etcd v0.0.13 h1:oO5XfoOrSSvzM4X2vacFHCv2CNQvG9h4XVTizLcpGAU=
 github.com/darkweak/storages/etcd v0.0.13/go.mod h1:CfZVDHanzCNVCL3ZW52LPTIxnDoqQKXTRXGGOJTsmPw=
 github.com/darkweak/storages/nats v0.0.13 h1:WTKclCfKsgzGuvx4yodcyEryGDj8nMMXbwj7k6IwX7k=
@@ -536,8 +536,8 @@ github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58/go.mod h1:DXv8WO4yhM
 github.com/pelletier/go-toml v1.2.0/go.mod h1:5z9KED0ma1S8pY6P1sdut58dfprrGBbd/94hg7ilaic=
 github.com/peterbourgon/diskv/v3 v3.0.1 h1:x06SQA46+PKIUftmEujdwSEpIx8kR+M9eLYsUxeYveU=
 github.com/peterbourgon/diskv/v3 v3.0.1/go.mod h1:kJ5Ny7vLdARGU3WUuy6uzO6T0nb/2gWcT1JiBvRmb5o=
-github.com/pierrec/lz4/v4 v4.1.22 h1:cKFw6uJDK+/gfw5BcDL0JL5aBsAFdsIT18eRtLj7VIU=
-github.com/pierrec/lz4/v4 v4.1.22/go.mod h1:gZWDp/Ze/IJXGXf23ltt2EXimqmTUXEy0GFuRQyBid4=
+github.com/pierrec/lz4/v4 v4.1.23 h1:oJE7T90aYBGtFNrI8+KbETnPymobAhzRrR8Mu8n1yfU=
+github.com/pierrec/lz4/v4 v4.1.23/go.mod h1:EoQMVJgeeEOMsCqCzqFm2O0cJvljX2nGZjcRIPL34O4=
 github.com/pkg/errors v0.8.0/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=

@@ -70,6 +70,9 @@ func (a *adminAPI) Provision(ctx caddy.Context) error {
 				TTL: configurationtypes.Duration{
 					Duration: 120 * time.Second,
 				},
+				MappingEvictionInterval: configurationtypes.Duration{
+					Duration: time.Hour,
+				},
 			},
 		}
 		a.InternalEndpointHandlers = api.GenerateHandlerMap(&config, currentApp.Storers, item.SurrogateStorage)
