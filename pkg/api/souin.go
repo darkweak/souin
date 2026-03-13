@@ -23,6 +23,8 @@ type SouinAPI struct {
 	storers          []types.Storer
 	surrogateStorage providers.SurrogateInterface
 	allowedMethods   []string
+	compiledBP       *regexp.Regexp
+	extractArgsBP    *regexp.Regexp
 }
 
 type invalidationType string
@@ -62,6 +64,8 @@ func initializeSouin(
 		storers,
 		surrogateStorage,
 		allowedMethods,
+		regexp.MustCompile(basePath + "/.+"),
+		regexp.MustCompile(basePath + "/(.+)"),
 	}
 }
 
@@ -110,9 +114,9 @@ func (s *SouinAPI) Delete(key string) {
 	_, err := regexp.Compile(key)
 	for _, current := range s.storers {
 		if err != nil {
-			current.DeleteMany(key)
-		} else {
 			current.Delete(key)
+		} else {
+			current.DeleteMany(key)
 		}
 	}
 }
@@ -212,13 +216,13 @@ func (s *SouinAPI) purgeMapping() {
 // HandleRequest will handle the request
 func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 	res := []byte{}
-	compile := regexp.MustCompile(s.GetBasePath()+"/.+").FindString(r.RequestURI) != ""
+	compile := s.compiledBP.FindString(r.RequestURI) != ""
 	switch r.Method {
 	case http.MethodGet:
-		if regexp.MustCompile(s.GetBasePath()+"/surrogate_keys").FindString(r.RequestURI) != "" {
+		if strings.Contains(r.RequestURI, s.GetBasePath()+"/surrogate_keys") {
 			res, _ = json.Marshal(s.surrogateStorage.List())
 		} else if compile {
-			search := regexp.MustCompile(s.GetBasePath()+"/(.+)").FindAllStringSubmatch(r.RequestURI, -1)[0][1]
+			search := s.extractArgsBP.FindAllStringSubmatch(r.RequestURI, -1)[0][1]
 			res, _ = json.Marshal(s.listKeys(search))
 			if len(res) == 2 {
 				w.WriteHeader(http.StatusNotFound)
@@ -304,11 +308,7 @@ func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	case "PURGE":
 		if compile {
-			keysRg := regexp.MustCompile(s.GetBasePath() + "/(.+)")
-			flushRg := regexp.MustCompile(s.GetBasePath() + "/flush$")
-			mappingRg := regexp.MustCompile(s.GetBasePath() + "/mapping$")
-
-			if flushRg.FindString(r.RequestURI) != "" {
+			if strings.HasSuffix(r.RequestURI, s.GetBasePath()+"/flush") {
 				for _, current := range s.storers {
 					current.DeleteMany(".+")
 				}
@@ -317,10 +317,10 @@ func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 					fmt.Printf("Error while purging the surrogate keys: %+v.", e)
 				}
 				fmt.Println("Successfully clear the cache and the surrogate keys storage.")
-			} else if mappingRg.FindString(r.RequestURI) != "" {
+			} else if strings.HasSuffix(r.RequestURI, s.GetBasePath()+"/mapping") {
 				s.purgeMapping()
 			} else {
-				submatch := keysRg.FindAllStringSubmatch(r.RequestURI, -1)[0][1]
+				submatch := s.extractArgsBP.FindAllStringSubmatch(r.RequestURI, -1)[0][1]
 				for _, current := range s.storers {
 					current.DeleteMany(submatch)
 				}

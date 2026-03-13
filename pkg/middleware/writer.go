@@ -35,9 +35,9 @@ type CustomWriter struct {
 	Rw          http.ResponseWriter
 	Req         *http.Request
 	Headers     http.Header
-	headersSent bool
 	mutex       sync.Mutex
 	statusCode  int
+	headersSent bool
 }
 
 func (r *CustomWriter) handleBuffer(callback func(*bytes.Buffer)) {
@@ -91,6 +91,7 @@ func (r *CustomWriter) Send() (int, error) {
 	defer r.handleBuffer(func(b *bytes.Buffer) {
 		b.Reset()
 	})
+
 	storedLength := r.Header().Get(rfc.StoredLengthHeader)
 	if storedLength != "" {
 		r.Header().Set("Content-Length", storedLength)
@@ -137,10 +138,17 @@ func (r *CustomWriter) Send() (int, error) {
 		r.Header().Set("Content-Length", strconv.Itoa(len(result)))
 	}
 
+	r.Header().Del(rfc.StoredLengthHeader)
+	r.Header().Del(rfc.StoredTTLHeader)
+
+	r.mutex.Lock()
+
 	if !r.headersSent {
-		r.Rw.WriteHeader(r.GetStatusCode())
+		r.Rw.WriteHeader(r.statusCode)
 		r.headersSent = true
 	}
+
+	r.mutex.Unlock()
 
 	return r.Rw.Write(result)
 }

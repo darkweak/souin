@@ -54,7 +54,7 @@ func TestGetCacheKeyFromCtx(t *testing.T) {
 	if GetCacheKeyFromCtx(context.WithValue(context.WithValue(context.Background(), souinCtx.Key, "MyKey"), souinCtx.DisplayableKey, true)) != "MyKey" {
 		t.Error("GetCacheKeyFromCtx must return the key when displayable")
 	}
-	if GetCacheKeyFromCtx(context.WithValue(context.WithValue(context.Background(), souinCtx.Key, "MyKey"), souinCtx.DisplayableKey, false)) != "" {
+	if GetCacheKeyFromCtx(context.WithValue(context.WithValue(context.Background(), souinCtx.Key, "MyKey"), souinCtx.DisplayableKey, false)) != "*****" {
 		t.Error("GetCacheKeyFromCtx must not return the key when hidden")
 	}
 }
