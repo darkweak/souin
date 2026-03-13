@@ -8,10 +8,13 @@ import (
 	"io"
 	"maps"
 	"net/http"
+	"os"
+	"os/signal"
 	"regexp"
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/cespare/xxhash/v2"
@@ -207,7 +210,7 @@ func NewHTTPCacheHandler(c configurationtypes.AbstractConfigurationInterface) *S
 	c.GetLogger().Info("Souin configuration is now loaded.")
 	c.GetLogger().Debugf("Configuration: %#v.", c.GetDefaultCache())
 
-	evictionCtx, _ := baseCtx.WithCancel(baseCtx.Background())
+	evictionCtx, _ := signal.NotifyContext(baseCtx.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
 	registerMappingKeysEviction(evictionCtx, c.GetLogger(), storers, c.GetDefaultCache().GetMappingEvictionInterval())
 
 	return &SouinBaseHandler{
@@ -286,21 +289,27 @@ func (s *SouinBaseHandler) hasAllowedAdditionalStatusCodesToCache(code int) bool
 	return false
 }
 
-func dumpResponse(resp *http.Response) ([]byte, error) {
-	if resp.Body == nil {
-		resp.Body = io.NopCloser(strings.NewReader(""))
-	}
+func dumpResponse(statusCode int, headers http.Header, body []byte) ([]byte, error) {
+	var buf bytes.Buffer
+	buf.Grow(256 + len(body))
 
-	buf := new(bytes.Buffer)
+	_, _ = buf.WriteString("HTTP/1.1 ")
+	_, _ = buf.WriteString(strconv.Itoa(statusCode))
+	_, _ = buf.WriteString(" ")
+	_, _ = buf.WriteString(http.StatusText(statusCode))
+	_, _ = buf.WriteString("\r\n")
 
-	err := resp.Write(buf)
+	err := headers.Write(&buf)
 	if err != nil {
-		return nil, fmt.Errorf("cannot copy HTTP response: %w", err)
+		return nil, fmt.Errorf("cannot write headers to the buffer: %w", err)
 	}
 
-	_ = resp.Body.Close()
+	_, _ = buf.WriteString("\r\n")
 
-	resp.Body = io.NopCloser(bytes.NewReader(buf.Bytes()))
+	_, err = buf.Write(body)
+	if err != nil {
+		return nil, fmt.Errorf("cannot write headers to the buffer: %w", err)
+	}
 
 	return buf.Bytes(), nil
 }
@@ -427,7 +436,7 @@ func (s *SouinBaseHandler) Store(
 			return nil
 		}
 		res.Header.Set(rfc.StoredLengthHeader, res.Header.Get("Content-Length"))
-		response, err := dumpResponse(&res)
+		response, err := dumpResponse(res.StatusCode, res.Header, b)
 		if err == nil && (bLen > 0 || rq.Method == http.MethodHead || canStatusCodeEmptyContent(statusCode) || s.hasAllowedAdditionalStatusCodesToCache(statusCode)) {
 			variedHeaders, isVaryStar := rfc.VariedHeaderAllCommaSepValues(res.Header)
 			if isVaryStar {
@@ -607,7 +616,7 @@ func (s *SouinBaseHandler) Upstream(
 		return singleflightValue{
 			body:              bodySnapshot,
 			headers:           customWriter.Header().Clone(),
-			requestHeaders:    rq.Header,
+			requestHeaders:    rq.Header.Clone(),
 			code:              statusCode,
 			disableCoalescing: strings.Contains(cacheControl, "private") || customWriter.Header().Get("Set-Cookie") != "",
 		}, err
@@ -784,7 +793,12 @@ func (s *SouinBaseHandler) backfillStorers(idx int, cachedKey string, rq *http.R
 		vhs.Set(hn[0], rq.Header.Get(hn[0]))
 	}
 
-	res, _ := dumpResponse(response)
+	bodyResponse := new(bytes.Buffer)
+	_, _ = io.Copy(bodyResponse, response.Body)
+
+	_ = response.Body.Close()
+	response.Body = io.NopCloser(bytes.NewReader(bodyResponse.Bytes()))
+	res, _ := dumpResponse(response.StatusCode, response.Header, bodyResponse.Bytes())
 
 	for _, currentStorer := range s.Storers[:idx] {
 		err = currentStorer.SetMultiLevel(
@@ -813,6 +827,14 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 	}
 
 	req := s.context.SetBaseContext(rq)
+	defer func() {
+		toCancel := req.Context().Value(context.TimeoutCancel)
+
+		if toCancel != nil {
+			toCancel.(baseCtx.CancelFunc)()
+		}
+	}()
+
 	cacheName := req.Context().Value(context.CacheName).(string)
 
 	if rq.Header.Get("Upgrade") == "websocket" || rq.Header.Get("Accept") == "text/event-stream" || (s.ExcludeRegex != nil && s.ExcludeRegex.MatchString(rq.RequestURI)) {

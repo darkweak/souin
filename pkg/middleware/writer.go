@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/darkweak/go-esi/esi"
 	"github.com/darkweak/souin/pkg/rfc"
@@ -38,7 +39,7 @@ type CustomWriter struct {
 	Headers     http.Header
 	mutex       sync.Mutex
 	statusCode  int
-	headersSent bool
+	headersSent atomic.Bool
 }
 
 func (r *CustomWriter) handleBuffer(callback func(*bytes.Buffer)) {
@@ -52,7 +53,7 @@ func (r *CustomWriter) Header() http.Header {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
-	if r.headersSent || r.Req.Context().Err() != nil {
+	if r.headersSent.Load() || r.Req.Context().Err() != nil {
 		return http.Header{}
 	}
 
@@ -69,12 +70,13 @@ func (r *CustomWriter) GetStatusCode() int {
 
 // WriteHeader will write the response headers
 func (r *CustomWriter) WriteHeader(code int) {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-	if r.headersSent {
+	if r.headersSent.Load() {
 		return
 	}
+
+	r.mutex.Lock()
 	r.statusCode = code
+	r.mutex.Unlock()
 }
 
 // Write will write the response body
@@ -138,11 +140,15 @@ func parseRange(rangeHeaders []string, contentRange string) ([]rangeValue, range
 			continue
 		}
 
-		rv.from, _ = strconv.ParseInt(ranges[0], 10, 64)
+		if len(ranges) >= 1 {
+			rv.from, _ = strconv.ParseInt(ranges[0], 10, 64)
 
-		if ranges[1] != "" {
-			rv.to, _ = strconv.ParseInt(ranges[1], 10, 64)
-			rv.to++
+			if len(ranges) > 1 {
+				if ranges[1] != "" {
+					rv.to, _ = strconv.ParseInt(ranges[1], 10, 64)
+					rv.to++
+				}
+			}
 		}
 
 		values[idx] = rv
@@ -162,7 +168,9 @@ func (r *CustomWriter) Send() (int, error) {
 		r.Header().Set("Content-Length", storedLength)
 	}
 
+	r.mutex.Lock()
 	result := r.Buf.Bytes()
+	r.mutex.Unlock()
 
 	result = esi.Parse(result, r.Req)
 
@@ -230,14 +238,13 @@ Content-Range: bytes %d-%d/%d
 	r.Header().Del(rfc.StoredLengthHeader)
 	r.Header().Del(rfc.StoredTTLHeader)
 
-	r.mutex.Lock()
-
-	if !r.headersSent {
+	if !r.headersSent.Load() {
+		r.mutex.Lock()
 		r.Rw.WriteHeader(r.statusCode)
-		r.headersSent = true
-	}
+		r.mutex.Unlock()
 
-	r.mutex.Unlock()
+		r.headersSent.Store(true)
+	}
 
 	return r.Rw.Write(result)
 }
