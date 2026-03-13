@@ -8,8 +8,8 @@ import (
 	"io"
 	"maps"
 	"net/http"
-	"net/http/httputil"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -92,21 +92,27 @@ func tryAcquireEvictionLock(storer types.Storer) bool {
 	return string(verifyValue) == lockValue
 }
 
-func registerMappingKeysEviction(logger core.Logger, storers []types.Storer, interval time.Duration) {
+func registerMappingKeysEviction(ctx baseCtx.Context, logger core.Logger, storers []types.Storer, interval time.Duration) {
 	for _, storer := range storers {
 		logger.Debugf("registering mapping eviction for storer %s (interval: %s)", storer.Name(), interval)
 		go func(current types.Storer, currentInterval time.Duration) {
+			ticker := time.NewTicker(interval)
+			defer ticker.Stop()
+
 			for {
-				if !tryAcquireEvictionLock(current) {
-					logger.Debugf("skipping mapping eviction for storer %s, another instance holds the lock", current.Name())
-					time.Sleep(currentInterval)
+				select {
+				case <-ctx.Done():
+					return
+				case <-ticker.C:
+					if !tryAcquireEvictionLock(current) {
+						logger.Debugf("skipping mapping eviction for storer %s, another instance holds the lock", current.Name())
 
-					continue
+						continue
+					}
+
+					logger.Debugf("run mapping eviction for storer %s", current.Name())
+					api.EvictMapping(current)
 				}
-
-				logger.Debugf("run mapping eviction for storer %s", current.Name())
-				api.EvictMapping(current)
-				<-time.After(10 * time.Minute)
 			}
 		}(storer, interval)
 	}
@@ -201,7 +207,8 @@ func NewHTTPCacheHandler(c configurationtypes.AbstractConfigurationInterface) *S
 	c.GetLogger().Info("Souin configuration is now loaded.")
 	c.GetLogger().Debugf("Configuration: %#v.", c.GetDefaultCache())
 
-	registerMappingKeysEviction(c.GetLogger(), storers, c.GetDefaultCache().GetMappingEvictionInterval())
+	evictionCtx, _ := baseCtx.WithCancel(baseCtx.Background())
+	registerMappingKeysEviction(evictionCtx, c.GetLogger(), storers, c.GetDefaultCache().GetMappingEvictionInterval())
 
 	return &SouinBaseHandler{
 		Configuration:            c,
@@ -279,6 +286,25 @@ func (s *SouinBaseHandler) hasAllowedAdditionalStatusCodesToCache(code int) bool
 	return false
 }
 
+func dumpResponse(resp *http.Response) ([]byte, error) {
+	if resp.Body == nil {
+		resp.Body = io.NopCloser(strings.NewReader(""))
+	}
+
+	buf := new(bytes.Buffer)
+
+	err := resp.Write(buf)
+	if err != nil {
+		return nil, fmt.Errorf("cannot copy HTTP response: %w", err)
+	}
+
+	_ = resp.Body.Close()
+
+	resp.Body = io.NopCloser(bytes.NewReader(buf.Bytes()))
+
+	return buf.Bytes(), nil
+}
+
 func (s *SouinBaseHandler) Store(
 	customWriter *CustomWriter,
 	rq *http.Request,
@@ -288,7 +314,9 @@ func (s *SouinBaseHandler) Store(
 ) error {
 	statusCode := customWriter.GetStatusCode()
 	if !isCacheableCode(statusCode) && !s.hasAllowedAdditionalStatusCodesToCache(statusCode) {
-		customWriter.Header().Set("Cache-Status", fmt.Sprintf("%s; fwd=uri-miss; key=%s; detail=UNCACHEABLE-STATUS-CODE", rq.Context().Value(context.CacheName), rfc.GetCacheKeyFromCtx(rq.Context())))
+		cacheName := rq.Context().Value(context.CacheName).(string)
+		cacheKey := rfc.GetCacheKeyFromCtx(rq.Context())
+		customWriter.Header().Set("Cache-Status", cacheName+"; fwd=uri-miss; key="+cacheKey+"; detail=UNCACHEABLE-STATUS-CODE")
 
 		switch statusCode {
 		case 500, 502, 503, 504:
@@ -399,7 +427,7 @@ func (s *SouinBaseHandler) Store(
 			return nil
 		}
 		res.Header.Set(rfc.StoredLengthHeader, res.Header.Get("Content-Length"))
-		response, err := httputil.DumpResponse(&res, true)
+		response, err := dumpResponse(&res)
 		if err == nil && (bLen > 0 || rq.Method == http.MethodHead || canStatusCodeEmptyContent(statusCode) || s.hasAllowedAdditionalStatusCodesToCache(statusCode)) {
 			variedHeaders, isVaryStar := rfc.VariedHeaderAllCommaSepValues(res.Header)
 			if isVaryStar {
@@ -408,8 +436,8 @@ func (s *SouinBaseHandler) Store(
 			} else {
 				variedKey := cachedKey + rfc.GetVariedCacheKey(rq, variedHeaders)
 				if rq.Context().Value(context.Hashed).(bool) {
-					cachedKey = fmt.Sprint(xxhash.Sum64String(cachedKey))
-					variedKey = fmt.Sprint(xxhash.Sum64String(variedKey))
+					cachedKey = strconv.FormatUint(xxhash.Sum64String(cachedKey), 10)
+					variedKey = strconv.FormatUint(xxhash.Sum64String(variedKey), 10)
 				}
 				s.Configuration.GetLogger().Debugf("Store the response for %s with duration %v", variedKey, ma)
 
@@ -746,8 +774,8 @@ func (s *SouinBaseHandler) backfillStorers(idx int, cachedKey string, rq *http.R
 	variedKey := cachedKey + rfc.GetVariedCacheKey(rq, variedHeaders)
 
 	if rq.Context().Value(context.Hashed).(bool) {
-		cachedKey = fmt.Sprint(xxhash.Sum64String(cachedKey))
-		variedKey = fmt.Sprint(xxhash.Sum64String(variedKey))
+		cachedKey = strconv.FormatUint(xxhash.Sum64String(cachedKey), 10)
+		variedKey = strconv.FormatUint(xxhash.Sum64String(variedKey), 10)
 	}
 
 	vhs := http.Header{}
@@ -756,7 +784,7 @@ func (s *SouinBaseHandler) backfillStorers(idx int, cachedKey string, rq *http.R
 		vhs.Set(hn[0], rq.Header.Get(hn[0]))
 	}
 
-	res, _ := httputil.DumpResponse(response, true)
+	res, _ := dumpResponse(response)
 
 	for _, currentStorer := range s.Storers[:idx] {
 		err = currentStorer.SetMultiLevel(
@@ -864,12 +892,12 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 	customWriter.Headers.Add("Range", req.Header.Get("Range"))
 	req.Header.Del("Range")
 
-	go func(req *http.Request, crw *CustomWriter) {
-		<-req.Context().Done()
-		crw.mutex.Lock()
-		crw.headersSent = true
-		crw.mutex.Unlock()
-	}(req, customWriter)
+	// Keep it while waiting for a confirmation that everything is fine.
+	// if req.Context().Err() != nil {
+	// 	// crw.mutex.Lock()
+	// 	// crw.headersSent = true
+	// 	// crw.mutex.Unlock()
+	// }
 
 	backfillIds := 0
 
@@ -896,9 +924,10 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 
 		headerName, _ := s.SurrogateKeyStorer.GetSurrogateControl(customWriter.Header())
 		if fresh != nil && (!modeContext.Strict || rfc.ValidateCacheControl(fresh, requestCc)) {
-			go func() {
-				s.backfillStorers(backfillIds, cachedKey, req, fresh)
-			}()
+			freshClone := *fresh
+			freshClone.Header = fresh.Header.Clone()
+
+			go s.backfillStorers(backfillIds, cachedKey, req.Clone(req.Context()), &freshClone)
 
 			response := fresh
 
@@ -972,13 +1001,10 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 						_, _ = io.Copy(b, response.Body)
 					})
 					_, err := customWriter.Send()
-					customWriter = NewCustomWriter(req, rw, bufPool)
+					customWriter = NewCustomWriter(req, rw, new(bytes.Buffer))
 					go func(v *core.Revalidator, goCw *CustomWriter, goRq *http.Request, goNext func(http.ResponseWriter, *http.Request) error, goCc *cacheobject.RequestCacheDirectives, goCk string, goUri string) {
 						_ = s.Revalidate(v, goNext, goCw, goRq, goCc, goCk, goUri)
 					}(validator, customWriter, req, next, requestCc, cachedKey, uri)
-					buf := s.bufPool.Get().(*bytes.Buffer)
-					buf.Reset()
-					defer s.bufPool.Put(buf)
 
 					return err
 				}
@@ -1127,7 +1153,10 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 		}
 	case v := <-errorCacheCh:
 		// Goroutine has finished — safe to reclaim the buffer.
-		s.bufPool.Put(bufPool)
+		defer func() {
+			bufPool.Reset()
+			s.bufPool.Put(bufPool)
+		}()
 		switch v {
 		case nil:
 			_, _ = customWriter.Send()

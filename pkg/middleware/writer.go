@@ -36,9 +36,9 @@ type CustomWriter struct {
 	Rw          http.ResponseWriter
 	Req         *http.Request
 	Headers     http.Header
-	headersSent bool
 	mutex       sync.Mutex
 	statusCode  int
+	headersSent bool
 }
 
 func (r *CustomWriter) handleBuffer(callback func(*bytes.Buffer)) {
@@ -102,12 +102,23 @@ func parseRange(rangeHeaders []string, contentRange string) ([]rangeValue, range
 	var total int64 = -1
 	if contentRange != "" {
 		crVal := strings.Split(strings.TrimPrefix(contentRange, "bytes "), "/")
-		total, _ = strconv.ParseInt(crVal[1], 10, 64)
-		total--
 
-		crSplit := strings.Split(crVal[0], "-")
-		crv.from, _ = strconv.ParseInt(crSplit[0], 10, 64)
-		crv.to, _ = strconv.ParseInt(crSplit[1], 10, 64)
+		if len(crVal) >= 2 {
+			total, _ = strconv.ParseInt(crVal[1], 10, 64)
+			total--
+		}
+
+		if len(crVal) >= 1 {
+			crSplit := strings.Split(crVal[0], "-")
+
+			if len(crSplit) >= 1 {
+				crv.from, _ = strconv.ParseInt(crSplit[0], 10, 64)
+
+				if len(crSplit) >= 2 {
+					crv.to, _ = strconv.ParseInt(crSplit[1], 10, 64)
+				}
+			}
+		}
 	}
 
 	values := make([]rangeValue, len(rangeHeaders))
@@ -145,6 +156,7 @@ func (r *CustomWriter) Send() (int, error) {
 	defer r.handleBuffer(func(b *bytes.Buffer) {
 		b.Reset()
 	})
+
 	storedLength := r.Header().Get(rfc.StoredLengthHeader)
 	if storedLength != "" {
 		r.Header().Set("Content-Length", storedLength)
@@ -218,10 +230,14 @@ Content-Range: bytes %d-%d/%d
 	r.Header().Del(rfc.StoredLengthHeader)
 	r.Header().Del(rfc.StoredTTLHeader)
 
+	r.mutex.Lock()
+
 	if !r.headersSent {
-		r.Rw.WriteHeader(r.GetStatusCode())
+		r.Rw.WriteHeader(r.statusCode)
 		r.headersSent = true
 	}
+
+	r.mutex.Unlock()
 
 	return r.Rw.Write(result)
 }
