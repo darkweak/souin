@@ -7,11 +7,18 @@ import (
 	"bytes"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/pierrec/lz4/v4"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
+)
+
+var (
+	lz4ReaderPool = sync.Pool{New: func() any { return lz4.NewReader(nil) }}
+	bufReaderPool = sync.Pool{New: func() any { return bufio.NewReader(nil) }}
+	Lz4WriterPool = sync.Pool{New: func() any { return lz4.NewWriter(nil) }}
 )
 
 type Storer interface {
@@ -55,9 +62,15 @@ func DecodeMapping(item []byte) (*StorageMapper, error) {
 }
 
 func readResponse(data []byte, req *http.Request) (*http.Response, error) {
-	reader := lz4.NewReader(bytes.NewReader(data))
+	lz4r := lz4ReaderPool.Get().(*lz4.Reader)
+	lz4r.Reset(bytes.NewReader(data))
+	defer lz4ReaderPool.Put(lz4r)
 
-	return http.ReadResponse(bufio.NewReader(reader), req)
+	br := bufReaderPool.Get().(*bufio.Reader)
+	br.Reset(lz4r)
+	defer bufReaderPool.Put(br)
+
+	return http.ReadResponse(br, req)
 }
 
 func MappingElection(provider Storer, item []byte, req *http.Request, validator *Revalidator, logger Logger) (resultFresh *http.Response, resultStale *http.Response, e error) {

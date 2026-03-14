@@ -14,9 +14,23 @@ import (
 // Option modifies the Error type.
 type Option func(e *Error) error
 
-// withDefaultMessage returns an Option that modifies the error by overwriting the
-// message only if it is empty.
-func withDefaultMessage(format string, args ...interface{}) Option {
+// withDefaultMessage returns an Option that modifies the error by overwriting
+// the message only if it is empty. Having withDefaultMessage and
+// withFormattedMessage avoid vet errors when the "format" passed to
+// "fmt.Sprintf" is not a constant.
+func withDefaultMessage(message string) Option {
+	return func(e *Error) error {
+		if e.Msg != "" {
+			return e
+		}
+		e.Msg = message
+		return e
+	}
+}
+
+// withFormattedMessage returns an Option that modifies the error by overwriting
+// the formatted message only if it is empty.
+func withFormattedMessage(format string, args ...interface{}) Option {
 	return func(e *Error) error {
 		if e.Msg != "" {
 			return e
@@ -27,10 +41,19 @@ func withDefaultMessage(format string, args ...interface{}) Option {
 }
 
 // WithMessage returns an Option that modifies the error by overwriting the
-// message only if it is empty.
+// message with the formatted string.
 func WithMessage(format string, args ...interface{}) Option {
 	return func(e *Error) error {
 		e.Msg = fmt.Sprintf(format, args...)
+		return e
+	}
+}
+
+// WithErrorMessage returns an Option that modifies the error by overwriting the
+// message with the error string.
+func WithErrorMessage() Option {
+	return func(e *Error) error {
+		e.Msg = e.Error()
 		return e
 	}
 }
@@ -60,6 +83,11 @@ type Error struct {
 type ErrorResponse struct {
 	Status  int    `json:"status"`
 	Message string `json:"message"`
+}
+
+// Unwrap implements the Unwrap interface and returns the original error.
+func (e *Error) Unwrap() error {
+	return e.Err
 }
 
 // Cause implements the errors.Causer interface and returns the original error.
@@ -177,8 +205,9 @@ func StatusCodeError(code int, e error, opts ...Option) error {
 	}
 }
 
-var (
-	seeLogs = "Please see the certificate authority logs for more info."
+const (
+	seeLogs    = "Please see the certificate authority logs for more info."
+	defaultMsg = "The requested could not be completed. " + seeLogs
 	// BadRequestDefaultMsg 400 default msg
 	BadRequestDefaultMsg = "The request could not be completed; malformed or missing data. " + seeLogs
 	// UnauthorizedDefaultMsg 401 default msg
@@ -193,7 +222,26 @@ var (
 	NotImplementedDefaultMsg = "The requested method is not implemented by the certificate authority. " + seeLogs
 )
 
-var (
+func defaultMessage(status int) string {
+	switch status {
+	case http.StatusBadRequest:
+		return BadRequestDefaultMsg
+	case http.StatusUnauthorized:
+		return UnauthorizedDefaultMsg
+	case http.StatusForbidden:
+		return ForbiddenDefaultMsg
+	case http.StatusNotFound:
+		return NotFoundDefaultMsg
+	case http.StatusInternalServerError:
+		return InternalServerErrorDefaultMsg
+	case http.StatusNotImplemented:
+		return NotImplementedDefaultMsg
+	default:
+		return defaultMsg
+	}
+}
+
+const (
 	// BadRequestPrefix is the prefix added to the bad request messages that are
 	// directly sent to the cli.
 	BadRequestPrefix = "The request could not be completed: "
@@ -287,7 +335,7 @@ func NewErr(status int, err error, opts ...Option) error {
 // Errorf creates a new error using the given format and status code.
 func Errorf(code int, format string, args ...interface{}) error {
 	as, opts := splitOptionArgs(args)
-	opts = append(opts, withDefaultMessage(NotImplementedDefaultMsg))
+	opts = append(opts, withDefaultMessage(defaultMessage(code)))
 	e := &Error{Status: code, Err: fmt.Errorf(format, as...)}
 	for _, o := range opts {
 		o(e)
@@ -379,7 +427,6 @@ func NotFoundErr(err error, opts ...Option) error {
 // UnexpectedErr will be used when the certificate authority makes an outgoing
 // request and receives an unhandled status code.
 func UnexpectedErr(code int, err error, opts ...Option) error {
-	opts = append(opts, withDefaultMessage("The certificate authority received an "+
-		"unexpected HTTP status code - '%d'. "+seeLogs, code))
+	opts = append(opts, withFormattedMessage("The certificate authority received an unexpected HTTP status code - '%d'. "+seeLogs, code))
 	return NewErr(code, err, opts...)
 }

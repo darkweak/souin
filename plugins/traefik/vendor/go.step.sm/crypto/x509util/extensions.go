@@ -16,11 +16,18 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	asn1utils "go.step.sm/crypto/internal/utils/asn1"
 )
 
 func convertName(s string) string {
 	return strings.ReplaceAll(strings.ToLower(s), "_", "")
 }
+
+var (
+	oidExtensionKeyUsage         = []int{2, 5, 29, 15}
+	oidExtensionExtendedKeyUsage = []int{2, 5, 29, 37}
+	oidExtensionBasicConstraints = []int{2, 5, 29, 19}
+)
 
 // Names used for key usages.
 const (
@@ -33,6 +40,8 @@ const (
 	KeyUsageCRLSign           = "crlSign"
 	KeyUsageEncipherOnly      = "encipherOnly"
 	KeyUsageDecipherOnly      = "decipherOnly"
+
+	keyUsageNonRepudiation = "nonRepudiation" // old name for contentCommitment
 )
 
 // Names used for extended key usages.
@@ -52,6 +61,74 @@ const (
 	ExtKeyUsageMicrosoftCommercialCodeSigning = "microsoftCommercialCodeSigning"
 	ExtKeyUsageMicrosoftKernelCodeSigning     = "microsoftKernelCodeSigning"
 )
+
+// RFC 5280, 4.2.1.12  Extended Key Usage
+//
+//	anyExtendedKeyUsage OBJECT IDENTIFIER ::= { id-ce-extKeyUsage 0 }
+//
+//	id-kp OBJECT IDENTIFIER ::= { id-pkix 3 }
+//
+//	id-kp-serverAuth             OBJECT IDENTIFIER ::= { id-kp 1 }
+//	id-kp-clientAuth             OBJECT IDENTIFIER ::= { id-kp 2 }
+//	id-kp-codeSigning            OBJECT IDENTIFIER ::= { id-kp 3 }
+//	id-kp-emailProtection        OBJECT IDENTIFIER ::= { id-kp 4 }
+//	id-kp-timeStamping           OBJECT IDENTIFIER ::= { id-kp 8 }
+//	id-kp-OCSPSigning            OBJECT IDENTIFIER ::= { id-kp 9 }
+var (
+	oidExtKeyUsageAny                            = asn1.ObjectIdentifier{2, 5, 29, 37, 0}
+	oidExtKeyUsageServerAuth                     = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 3, 1}
+	oidExtKeyUsageClientAuth                     = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 3, 2}
+	oidExtKeyUsageCodeSigning                    = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 3, 3}
+	oidExtKeyUsageEmailProtection                = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 3, 4}
+	oidExtKeyUsageIPSECEndSystem                 = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 3, 5}
+	oidExtKeyUsageIPSECTunnel                    = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 3, 6}
+	oidExtKeyUsageIPSECUser                      = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 3, 7}
+	oidExtKeyUsageTimeStamping                   = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 3, 8}
+	oidExtKeyUsageOCSPSigning                    = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 3, 9}
+	oidExtKeyUsageMicrosoftServerGatedCrypto     = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 311, 10, 3, 3}
+	oidExtKeyUsageNetscapeServerGatedCrypto      = asn1.ObjectIdentifier{2, 16, 840, 1, 113730, 4, 1}
+	oidExtKeyUsageMicrosoftCommercialCodeSigning = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 311, 2, 1, 22}
+	oidExtKeyUsageMicrosoftKernelCodeSigning     = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 311, 61, 1, 1}
+)
+
+// extKeyUsageOIDs contains the mapping between an ExtKeyUsage and its OID.
+var extKeyUsageOIDs = []struct {
+	extKeyUsage x509.ExtKeyUsage
+	oid         asn1.ObjectIdentifier
+}{
+	{x509.ExtKeyUsageAny, oidExtKeyUsageAny},
+	{x509.ExtKeyUsageServerAuth, oidExtKeyUsageServerAuth},
+	{x509.ExtKeyUsageClientAuth, oidExtKeyUsageClientAuth},
+	{x509.ExtKeyUsageCodeSigning, oidExtKeyUsageCodeSigning},
+	{x509.ExtKeyUsageEmailProtection, oidExtKeyUsageEmailProtection},
+	{x509.ExtKeyUsageIPSECEndSystem, oidExtKeyUsageIPSECEndSystem},
+	{x509.ExtKeyUsageIPSECTunnel, oidExtKeyUsageIPSECTunnel},
+	{x509.ExtKeyUsageIPSECUser, oidExtKeyUsageIPSECUser},
+	{x509.ExtKeyUsageTimeStamping, oidExtKeyUsageTimeStamping},
+	{x509.ExtKeyUsageOCSPSigning, oidExtKeyUsageOCSPSigning},
+	{x509.ExtKeyUsageMicrosoftServerGatedCrypto, oidExtKeyUsageMicrosoftServerGatedCrypto},
+	{x509.ExtKeyUsageNetscapeServerGatedCrypto, oidExtKeyUsageNetscapeServerGatedCrypto},
+	{x509.ExtKeyUsageMicrosoftCommercialCodeSigning, oidExtKeyUsageMicrosoftCommercialCodeSigning},
+	{x509.ExtKeyUsageMicrosoftKernelCodeSigning, oidExtKeyUsageMicrosoftKernelCodeSigning},
+}
+
+func extKeyUsageFromOID(oid asn1.ObjectIdentifier) (eku x509.ExtKeyUsage, ok bool) {
+	for _, pair := range extKeyUsageOIDs {
+		if oid.Equal(pair.oid) {
+			return pair.extKeyUsage, true
+		}
+	}
+	return
+}
+
+func oidFromExtKeyUsage(eku x509.ExtKeyUsage) (oid asn1.ObjectIdentifier, ok bool) {
+	for _, pair := range extKeyUsageOIDs {
+		if eku == pair.extKeyUsage {
+			return pair.oid, true
+		}
+	}
+	return
+}
 
 // Names used and SubjectAlternativeNames types.
 const (
@@ -200,13 +277,15 @@ func newExtensions(extensions []pkix.Extension) []Extension {
 	return ret
 }
 
-// Set adds the extension to the given X509 certificate.
+// Set adds a non empty extension to the given X509 certificate.
 func (e Extension) Set(c *x509.Certificate) {
-	c.ExtraExtensions = append(c.ExtraExtensions, pkix.Extension{
-		Id:       asn1.ObjectIdentifier(e.ID),
-		Critical: e.Critical,
-		Value:    e.Value,
-	})
+	if len(e.ID) > 0 {
+		c.ExtraExtensions = append(c.ExtraExtensions, pkix.Extension{
+			Id:       asn1.ObjectIdentifier(e.ID),
+			Critical: e.Critical,
+			Value:    e.Value,
+		})
+	}
 }
 
 // ObjectIdentifier represents a JSON strings that unmarshals into an ASN1
@@ -260,8 +339,13 @@ type SubjectAlternativeName struct {
 	ASN1Value json.RawMessage `json:"asn1Value,omitempty"`
 }
 
-// Set sets the subject alternative name in the given x509.Certificate.
+// Set sets the subject alternative name in the given x509.Certificate. This
+// method will not set any SAN if the value is empty.
 func (s SubjectAlternativeName) Set(c *x509.Certificate) {
+	if s.Value == "" {
+		return
+	}
+
 	switch strings.ToLower(s.Type) {
 	case DNSType:
 		c.DNSNames = append(c.DNSNames, s.Value)
@@ -559,7 +643,7 @@ func marshalValue(value, params string) ([]byte, error) {
 		}
 		return asn1.MarshalWithParams(value, p.Params)
 	case "printable":
-		if !isPrintableString(value, true, true) {
+		if !asn1utils.IsPrintableString(value, true, true) {
 			return nil, fmt.Errorf("invalid printable value")
 		}
 		return asn1.MarshalWithParams(value, p.Params)
@@ -581,7 +665,7 @@ func marshalValue(value, params string) ([]byte, error) {
 		}
 		return asn1.MarshalWithParams(b, p.Params)
 	default: // if it's an unknown type, default to printable
-		if !isPrintableString(value, true, true) {
+		if !asn1utils.IsPrintableString(value, true, true) {
 			return nil, fmt.Errorf("invalid printable value")
 		}
 		return asn1.MarshalWithParams(value, p.Params)
@@ -603,6 +687,40 @@ func (k KeyUsage) Set(c *x509.Certificate) {
 	c.KeyUsage = x509.KeyUsage(k)
 }
 
+// Extension marshals the key usage to an [Extension].  It will return an empty
+// extension if key usages is empty.
+func (k KeyUsage) Extension() (Extension, error) {
+	if k == 0 {
+		return Extension{}, nil
+	}
+
+	var b [2]byte
+	//nolint:gosec // KeyUsage is an int representing bit flags, conversion to byte is intentional
+	b[0] = reverseBitsInAByte(byte(k))
+	//nolint:gosec // KeyUsage is an int representing bit flags, conversion to byte is intentional
+	b[1] = reverseBitsInAByte(byte(k >> 8))
+
+	l := 1
+	if b[1] != 0 {
+		l = 2
+	}
+
+	bitString := b[:l]
+	value, err := asn1.Marshal(asn1.BitString{
+		Bytes:     bitString,
+		BitLength: asn1BitLength(bitString),
+	})
+	if err != nil {
+		return Extension{}, fmt.Errorf("error marshaling keyUsage extension to ASN1: %w", err)
+	}
+
+	return Extension{
+		ID:       oidExtensionKeyUsage,
+		Critical: true,
+		Value:    value,
+	}, nil
+}
+
 // UnmarshalJSON implements the json.Unmarshaler interface and coverts a string
 // or a list of strings into a key usage.
 func (k *KeyUsage) UnmarshalJSON(data []byte) error {
@@ -618,7 +736,9 @@ func (k *KeyUsage) UnmarshalJSON(data []byte) error {
 		switch convertName(s) {
 		case convertName(KeyUsageDigitalSignature):
 			ku = x509.KeyUsageDigitalSignature
-		case convertName(KeyUsageContentCommitment):
+		// support legacy name for better user experience for users coming from
+		// OpenSSL
+		case convertName(KeyUsageContentCommitment), convertName(keyUsageNonRepudiation):
 			ku = x509.KeyUsageContentCommitment
 		case convertName(KeyUsageKeyEncipherment):
 			ku = x509.KeyUsageKeyEncipherment
@@ -689,6 +809,36 @@ type ExtKeyUsage []x509.ExtKeyUsage
 // Set sets the extended key usages in the given certificate.
 func (k ExtKeyUsage) Set(c *x509.Certificate) {
 	c.ExtKeyUsage = []x509.ExtKeyUsage(k)
+}
+
+// Extension marshals the extended key usages to an [Extension]. It will return
+// an empty extension if there are no extended key usages.
+func (k ExtKeyUsage) Extension(unknownUsages UnknownExtKeyUsage) (Extension, error) {
+	size := len(k) + len(unknownUsages)
+	if size == 0 {
+		return Extension{}, nil
+	}
+
+	oids := make([]asn1.ObjectIdentifier, size)
+	for i, u := range k {
+		if oid, ok := oidFromExtKeyUsage(u); ok {
+			oids[i] = oid
+		} else {
+			return Extension{}, errors.New("unknown extended key usage")
+		}
+	}
+
+	copy(oids[len(k):], unknownUsages)
+
+	value, err := asn1.Marshal(oids)
+	if err != nil {
+		return Extension{}, fmt.Errorf("error marshaling extKeyUsage extension to ASN1: %w", err)
+	}
+
+	return Extension{
+		ID:    oidExtensionExtendedKeyUsage,
+		Value: value,
+	}, nil
 }
 
 // UnmarshalJSON implements the json.Unmarshaler interface and coverts a string
@@ -889,16 +1039,16 @@ func (u CRLDistributionPoints) Set(c *x509.Certificate) {
 
 // PolicyIdentifiers represents the list of OIDs to set in the certificate
 // policies extension.
-type PolicyIdentifiers MultiObjectIdentifier
+type PolicyIdentifiers MultiOID
 
 // MarshalJSON implements the json.Marshaler interface in PolicyIdentifiers.
 func (p PolicyIdentifiers) MarshalJSON() ([]byte, error) {
-	return MultiObjectIdentifier(p).MarshalJSON()
+	return MultiOID(p).MarshalJSON()
 }
 
 // UnmarshalJSON implements the json.Unmarshaler interface in PolicyIdentifiers.
 func (p *PolicyIdentifiers) UnmarshalJSON(data []byte) error {
-	var v MultiObjectIdentifier
+	var v MultiOID
 	if err := json.Unmarshal(data, &v); err != nil {
 		return errors.Wrap(err, "error unmarshaling json")
 	}
@@ -906,9 +1056,20 @@ func (p *PolicyIdentifiers) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// Set sets the policy identifiers to the given certificate.
+// Set sets the policy identifiers to the given certificate. To ensure
+// compatibility between different versions of Go, set will set
+// PolicyIdentifiers and Policies with the same data.
+//
+// Programs using go.mod 1.24+ will only marshal the Policies field, older
+// versions will only marshal PolicyIdentifiers. This can be changed with the
+// GODEBUG setting "x509usepolicies".
 func (p PolicyIdentifiers) Set(c *x509.Certificate) {
-	c.PolicyIdentifiers = p
+	c.Policies = p
+	for _, pp := range p {
+		if oid, err := parseObjectIdentifier(pp.String()); err == nil {
+			c.PolicyIdentifiers = append(c.PolicyIdentifiers, oid)
+		}
+	}
 }
 
 // BasicConstraints represents the X509 basic constraints extension and defines
@@ -917,8 +1078,8 @@ func (p PolicyIdentifiers) Set(c *x509.Certificate) {
 // self-issued intermediate CA certificates may follow in a valid certification
 // path. To do not impose a limit the MaxPathLen should be set to -1.
 type BasicConstraints struct {
-	IsCA       bool `json:"isCA"`
-	MaxPathLen int  `json:"maxPathLen"`
+	IsCA       bool `json:"isCA" asn1:"optional"`
+	MaxPathLen int  `json:"maxPathLen" asn1:"optional,default:-1"`
 }
 
 // Set sets the basic constraints to the given certificate.
@@ -941,6 +1102,25 @@ func (b BasicConstraints) Set(c *x509.Certificate) {
 		c.MaxPathLen = 0
 		c.MaxPathLenZero = false
 	}
+}
+
+// Extension marshals the basic constraints to an [Extension].
+func (b BasicConstraints) Extension() (Extension, error) {
+	// When IsCA is false the MaxPathLen must be the default -1.
+	if !b.IsCA || b.MaxPathLen < 0 {
+		b.MaxPathLen = -1
+	}
+
+	value, err := asn1.Marshal(b)
+	if err != nil {
+		return Extension{}, fmt.Errorf("error marshaling basicConstraints extension to ASN1: %w", err)
+	}
+
+	return Extension{
+		ID:       oidExtensionBasicConstraints,
+		Critical: true,
+		Value:    value,
+	}, nil
 }
 
 // NameConstraints represents the X509 Name constraints extension and defines a
@@ -1042,6 +1222,10 @@ func createSubjectAltNameExtension(dnsNames, emailAddresses MultiString, ipAddre
 
 	var rawValues []asn1.RawValue
 	for _, dnsName := range dnsNames {
+		if dnsName == "" {
+			continue
+		}
+
 		rawValue, err := SubjectAlternativeName{
 			Type: DNSType, Value: dnsName,
 		}.RawValue()
@@ -1053,6 +1237,10 @@ func createSubjectAltNameExtension(dnsNames, emailAddresses MultiString, ipAddre
 	}
 
 	for _, emailAddress := range emailAddresses {
+		if emailAddress == "" {
+			continue
+		}
+
 		rawValue, err := SubjectAlternativeName{
 			Type: EmailType, Value: emailAddress,
 		}.RawValue()
@@ -1064,6 +1252,10 @@ func createSubjectAltNameExtension(dnsNames, emailAddresses MultiString, ipAddre
 	}
 
 	for _, ip := range ipAddresses {
+		if len(ip) == 0 {
+			continue
+		}
+
 		rawValue, err := SubjectAlternativeName{
 			Type: IPType, Value: ip.String(),
 		}.RawValue()
@@ -1075,8 +1267,13 @@ func createSubjectAltNameExtension(dnsNames, emailAddresses MultiString, ipAddre
 	}
 
 	for _, uri := range uris {
+		v := uri.String()
+		if v == "" {
+			continue
+		}
+
 		rawValue, err := SubjectAlternativeName{
-			Type: URIType, Value: uri.String(),
+			Type: URIType, Value: v,
 		}.RawValue()
 		if err != nil {
 			return zero, err
@@ -1086,6 +1283,10 @@ func createSubjectAltNameExtension(dnsNames, emailAddresses MultiString, ipAddre
 	}
 
 	for _, san := range sans {
+		if san.Value == "" && len(san.ASN1Value) == 0 {
+			continue
+		}
+
 		rawValue, err := san.RawValue()
 		if err != nil {
 			return zero, err
@@ -1273,4 +1474,31 @@ func forEachSAN(extension []byte, callback func(ext asn1.RawValue) error) error 
 	}
 
 	return nil
+}
+
+func reverseBitsInAByte(in byte) byte {
+	b1 := in>>4 | in<<4
+	b2 := b1>>2&0x33 | b1<<2&0xcc
+	b3 := b2>>1&0x55 | b2<<1&0xaa
+	return b3
+}
+
+// asn1BitLength returns the bit-length of bitString by considering the
+// most-significant bit in a byte to be the "first" bit. This convention matches
+// ASN.1, but differs from almost everything else.
+func asn1BitLength(bitString []byte) int {
+	bitLen := len(bitString) * 8
+
+	for i := range bitString {
+		b := bitString[len(bitString)-i-1]
+
+		for bit := uint(0); bit < 8; bit++ {
+			if (b>>bit)&1 == 1 {
+				return bitLen
+			}
+			bitLen--
+		}
+	}
+
+	return 0
 }

@@ -21,12 +21,14 @@ import (
 	"log"
 	"log/slog"
 	"reflect"
+	"sync"
 
 	"github.com/caddyserver/certmagic"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"go.uber.org/zap"
 	"go.uber.org/zap/exp/zapslog"
+	"go.uber.org/zap/zapcore"
 
 	"github.com/caddyserver/caddy/v2/internal/filesystems"
 )
@@ -61,10 +63,17 @@ type Context struct {
 // modules which are loaded will be properly unloaded.
 // See standard library context package's documentation.
 func NewContext(ctx Context) (Context, context.CancelFunc) {
+	newCtx, cancelCause := NewContextWithCause(ctx)
+	return newCtx, func() { cancelCause(nil) }
+}
+
+// NewContextWithCause is like NewContext but returns a context.CancelCauseFunc.
+// EXPERIMENTAL: This API is subject to change.
+func NewContextWithCause(ctx Context) (Context, context.CancelCauseFunc) {
 	newCtx := Context{moduleInstances: make(map[string][]Module), cfg: ctx.cfg, metricsRegistry: prometheus.NewPedanticRegistry()}
-	c, cancel := context.WithCancel(ctx.Context)
-	wrappedCancel := func() {
-		cancel()
+	c, cancel := context.WithCancelCause(ctx.Context)
+	wrappedCancel := func(cause error) {
+		cancel(cause)
 
 		for _, f := range ctx.cleanupFuncs {
 			f()
@@ -393,6 +402,8 @@ func (ctx Context) LoadModuleByID(id string, rawMsg json.RawMessage) (any, error
 		return nil, fmt.Errorf("module value cannot be null")
 	}
 
+	var err error
+
 	// if this is an app module, keep a reference to it,
 	// since submodules may need to reference it during
 	// provisioning (even though the parent app module
@@ -402,12 +413,17 @@ func (ctx Context) LoadModuleByID(id string, rawMsg json.RawMessage) (any, error
 	// module has been configured for DNS challenges)
 	if appModule, ok := val.(App); ok {
 		ctx.cfg.apps[id] = appModule
+		defer func() {
+			if err != nil {
+				ctx.cfg.failedApps[id] = err
+			}
+		}()
 	}
 
 	ctx.ancestry = append(ctx.ancestry, val)
 
 	if prov, ok := val.(Provisioner); ok {
-		err := prov.Provision(ctx)
+		err = prov.Provision(ctx)
 		if err != nil {
 			// incomplete provisioning could have left state
 			// dangling, so make sure it gets cleaned up
@@ -422,7 +438,7 @@ func (ctx Context) LoadModuleByID(id string, rawMsg json.RawMessage) (any, error
 	}
 
 	if validator, ok := val.(Validator); ok {
-		err := validator.Validate()
+		err = validator.Validate()
 		if err != nil {
 			// since the module was already provisioned, make sure we clean up
 			if cleanerUpper, ok := val.(CleanerUpper); ok {
@@ -487,6 +503,10 @@ func (ctx Context) loadModuleInline(moduleNameKey, moduleScope string, raw json.
 // or stop App modules. The caller is expected to assert to the
 // concrete type.
 func (ctx Context) App(name string) (any, error) {
+	// if the app failed to load before, return the cached error
+	if err, ok := ctx.cfg.failedApps[name]; ok {
+		return nil, fmt.Errorf("loading %s app module: %v", name, err)
+	}
 	if app, ok := ctx.cfg.apps[name]; ok {
 		return app, nil
 	}
@@ -510,6 +530,10 @@ func (ctx Context) App(name string) (any, error) {
 func (ctx Context) AppIfConfigured(name string) (any, error) {
 	if ctx.cfg == nil {
 		return nil, fmt.Errorf("app module %s: %w", name, ErrNotConfigured)
+	}
+	// if the app failed to load before, return the cached error
+	if err, ok := ctx.cfg.failedApps[name]; ok {
+		return nil, fmt.Errorf("loading %s app module: %v", name, err)
 	}
 	if app, ok := ctx.cfg.apps[name]; ok {
 		return app, nil
@@ -568,24 +592,62 @@ func (ctx Context) Logger(module ...Module) *zap.Logger {
 	return ctx.cfg.Logging.Logger(mod)
 }
 
+type slogHandlerFactory func(handler slog.Handler, core zapcore.Core, moduleID string) slog.Handler
+
+var (
+	slogHandlerFactories   []slogHandlerFactory
+	slogHandlerFactoriesMu sync.RWMutex
+)
+
+// RegisterSlogHandlerFactory allows modules to register custom log/slog.Handler,
+// for instance, to add contextual data to the logs.
+func RegisterSlogHandlerFactory(factory slogHandlerFactory) {
+	slogHandlerFactoriesMu.Lock()
+	slogHandlerFactories = append(slogHandlerFactories, factory)
+	slogHandlerFactoriesMu.Unlock()
+}
+
 // Slogger returns a slog logger that is intended for use by
 // the most recent module associated with the context.
 func (ctx Context) Slogger() *slog.Logger {
+	var (
+		handler  slog.Handler
+		core     zapcore.Core
+		moduleID string
+	)
+
+	// the default enables traces at ERROR level, this disables
+	// them by setting it to a level higher than any other level
+	tracesOpt := zapslog.AddStacktraceAt(slog.Level(127))
+
 	if ctx.cfg == nil {
 		// often the case in tests; just use a dev logger
 		l, err := zap.NewDevelopment()
 		if err != nil {
 			panic("config missing, unable to create dev logger: " + err.Error())
 		}
-		return slog.New(zapslog.NewHandler(l.Core(), nil))
+
+		core = l.Core()
+		handler = zapslog.NewHandler(core, tracesOpt)
+	} else {
+		mod := ctx.Module()
+		if mod == nil {
+			core = Log().Core()
+			handler = zapslog.NewHandler(core, tracesOpt)
+		} else {
+			moduleID = string(mod.CaddyModule().ID)
+			core = ctx.cfg.Logging.Logger(mod).Core()
+			handler = zapslog.NewHandler(core, zapslog.WithName(moduleID), tracesOpt)
+		}
 	}
-	mod := ctx.Module()
-	if mod == nil {
-		return slog.New(zapslog.NewHandler(Log().Core(), nil))
+
+	slogHandlerFactoriesMu.RLock()
+	for _, f := range slogHandlerFactories {
+		handler = f(handler, core, moduleID)
 	}
-	return slog.New(zapslog.NewHandler(ctx.cfg.Logging.Logger(mod).Core(),
-		zapslog.WithName(string(mod.CaddyModule().ID)),
-	))
+	slogHandlerFactoriesMu.RUnlock()
+
+	return slog.New(handler)
 }
 
 // Modules returns the lineage of modules that this context provisioned,

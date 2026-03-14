@@ -14,10 +14,10 @@ import (
 
 	"github.com/pkg/errors"
 
+	"github.com/smallstep/linkedca"
 	"go.step.sm/crypto/jose"
 	"go.step.sm/crypto/sshutil"
 	"go.step.sm/crypto/x509util"
-	"go.step.sm/linkedca"
 
 	"github.com/smallstep/certificates/errs"
 	"github.com/smallstep/certificates/webhook"
@@ -66,8 +66,8 @@ func newAzureConfig(tenantID string) *azureConfig {
 }
 
 type azureIdentityToken struct {
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
+	AccessToken  string `json:"access_token"`  //nolint:gosec // field name required by Azure API
+	RefreshToken string `json:"refresh_token"` //nolint:gosec // field name required by Azure API
 	ClientID     string `json:"client_id"`
 	ExpiresIn    int64  `json:"expires_in,string"`
 	ExpiresOn    int64  `json:"expires_on,string"`
@@ -212,7 +212,7 @@ func (p *Azure) GetIdentityToken(subject, caURL string) (string, error) {
 	query.Add("api-version", azureIdentityTokenAPIVersion)
 	req.URL.RawQuery = query.Encode()
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := http.DefaultClient.Do(req) //nolint:gosec // request to Azure metadata service
 	if err != nil {
 		return "", errors.Wrap(err, "error getting identity token, are you in a Azure VM?")
 	}
@@ -251,14 +251,14 @@ func (p *Azure) Init(config Config) (err error) {
 	p.assertConfig()
 
 	// Decode and validate openid-configuration endpoint
-	if err = getAndDecode(p.config.oidcDiscoveryURL, &p.oidcConfig); err != nil {
+	if err = getAndDecode(http.DefaultClient, p.config.oidcDiscoveryURL, &p.oidcConfig); err != nil {
 		return
 	}
 	if err := p.oidcConfig.Validate(); err != nil {
 		return errors.Wrapf(err, "error parsing %s", p.config.oidcDiscoveryURL)
 	}
 	// Get JWK key set
-	if p.keyStore, err = newKeyStore(p.oidcConfig.JWKSetURI); err != nil {
+	if p.keyStore, err = newKeyStore(http.DefaultClient, p.oidcConfig.JWKSetURI); err != nil {
 		return
 	}
 
@@ -379,7 +379,7 @@ func (p *Azure) AuthorizeSign(ctx context.Context, token string) ([]SignOption, 
 		// name will work only inside the virtual network
 		so = append(so,
 			commonNameValidator(name),
-			dnsNamesValidator([]string{name}),
+			dnsNamesSubsetValidator([]string{name}),
 			ipAddressesValidator(nil),
 			emailAddressesValidator(nil),
 			newURIsValidator(ctx, nil),
@@ -510,7 +510,7 @@ func (p *Azure) getAzureEnvironment() (string, error) {
 	query.Add("api-version", "2021-02-01")
 	req.URL.RawQuery = query.Encode()
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := http.DefaultClient.Do(req) //nolint:gosec // request to Azure metadata service
 	if err != nil {
 		return "", errors.Wrap(err, "error getting azure instance environment, are you in a Azure VM?")
 	}
