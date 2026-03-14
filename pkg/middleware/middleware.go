@@ -906,6 +906,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 	bufPoolOwned := true
 	defer func() {
 		if bufPoolOwned {
+			bufPool.Reset()
 			s.bufPool.Put(bufPool)
 		}
 	}()
@@ -1181,11 +1182,6 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 			return nil
 		}
 	case v := <-errorCacheCh:
-		// Goroutine has finished — safe to reclaim the buffer.
-		defer func() {
-			bufPool.Reset()
-			s.bufPool.Put(bufPool)
-		}()
 		switch v {
 		case nil:
 			_, _ = customWriter.Send()

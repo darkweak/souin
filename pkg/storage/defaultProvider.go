@@ -140,7 +140,9 @@ func (provider *Default) SetMultiLevel(baseKey, variedKey string, value []byte, 
 	var e error
 
 	compressed := new(bytes.Buffer)
-	writer := lz4.NewWriter(compressed)
+	writer := core.Lz4WriterPool.Get().(*lz4.Writer)
+	writer.Reset(compressed)
+	defer core.Lz4WriterPool.Put(writer)
 
 	_, e = writer.Write(value)
 	_ = writer.Close()

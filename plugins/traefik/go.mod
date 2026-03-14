@@ -27,7 +27,7 @@ require (
 	github.com/cloudflare/circl v1.6.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.6 // indirect
 	github.com/darkweak/go-esi v0.0.5 // indirect
-	github.com/darkweak/storages/core v0.0.18 // indirect
+	github.com/darkweak/storages/core v0.0.19 // indirect
 	github.com/dgraph-io/badger v1.6.2 // indirect
 	github.com/dgraph-io/badger/v2 v2.2007.4 // indirect
 	github.com/dgryski/go-farm v0.0.0-20200201041132-a6ae2369ad13 // indirect

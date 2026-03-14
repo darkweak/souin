@@ -12,3 +12,6 @@ plugins/caddy/.github/*
 /vendor/
 
 testing/
+
+*.prof
+*.test
