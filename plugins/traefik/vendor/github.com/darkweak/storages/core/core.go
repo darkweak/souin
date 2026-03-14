@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"net/http"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/pierrec/lz4/v4"
@@ -55,23 +54,10 @@ func DecodeMapping(item []byte) (*StorageMapper, error) {
 	return mapping, e
 }
 
-var bufPool = sync.Pool{New: func() any { return new(bytes.Buffer) }}
-
 func readResponse(data []byte, req *http.Request) (*http.Response, error) {
-	reader := lz4.NewReader(bytes.NewBuffer(data))
-	buf := bufPool.Get().(*bytes.Buffer)
+	reader := lz4.NewReader(bytes.NewReader(data))
 
-	defer func() {
-		reader.Reset(buf)
-		buf.Reset()
-		bufPool.Put(buf)
-	}()
-
-	_, _ = reader.WriteTo(buf)
-
-	bufReader := bufio.NewReader(buf)
-
-	return http.ReadResponse(bufReader, req)
+	return http.ReadResponse(bufio.NewReader(reader), req)
 }
 
 func MappingElection(provider Storer, item []byte, req *http.Request, validator *Revalidator, logger Logger) (resultFresh *http.Response, resultStale *http.Response, e error) {

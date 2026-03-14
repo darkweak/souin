@@ -50,9 +50,6 @@ func (r *CustomWriter) handleBuffer(callback func(*bytes.Buffer)) {
 
 // Header will write the response headers
 func (r *CustomWriter) Header() http.Header {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
 	if r.headersSent.Load() || r.Req.Context().Err() != nil {
 		return http.Header{}
 	}
