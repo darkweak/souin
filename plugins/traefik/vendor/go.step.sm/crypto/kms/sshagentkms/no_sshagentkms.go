@@ -1,5 +1,4 @@
 //go:build nosshagentkms
-// +build nosshagentkms
 
 package sshagentkms
 

@@ -24,6 +24,7 @@ import (
 	"io"
 	"io/fs"
 	"log"
+	"maps"
 	"net"
 	"net/http"
 	"os"
@@ -73,7 +74,7 @@ func cmdStart(fl Flags) (int, error) {
 	// ensure it's the process we're expecting - we can be
 	// sure by giving it some random bytes and having it echo
 	// them back to us)
-	cmd := exec.Command(os.Args[0], "run", "--pingback", ln.Addr().String())
+	cmd := exec.Command(os.Args[0], "run", "--pingback", ln.Addr().String()) //nolint:gosec // no command injection that I can determine...
 	// we should be able to run caddy in relative paths
 	if errors.Is(cmd.Err, exec.ErrDot) {
 		cmd.Err = nil
@@ -171,9 +172,19 @@ func cmdStart(fl Flags) (int, error) {
 func cmdRun(fl Flags) (int, error) {
 	caddy.TrapSignals()
 
-	logger := caddy.Log()
+	// set up buffered logging for early startup
+	// so that we can hold onto logs until after
+	// the config is loaded (or fails to load)
+	// so that we can write the logs to the user's
+	// configured output. we must be sure to flush
+	// on any error before the config is loaded.
+	logger, defaultLogger, logBuffer := caddy.BufferedLog()
+
 	undoMaxProcs := setResourceLimits(logger)
 	defer undoMaxProcs()
+	// release the local reference to the undo function so it can be GC'd;
+	// the deferred call above has already captured the actual function value.
+	undoMaxProcs = nil //nolint:ineffassign,wastedassign
 
 	configFlag := fl.String("config")
 	configAdapterFlag := fl.String("adapter")
@@ -186,6 +197,7 @@ func cmdRun(fl Flags) (int, error) {
 	// load all additional envs as soon as possible
 	err := handleEnvFileFlag(fl)
 	if err != nil {
+		logBuffer.FlushTo(defaultLogger)
 		return caddy.ExitCodeFailedStartup, err
 	}
 
@@ -203,6 +215,7 @@ func cmdRun(fl Flags) (int, error) {
 			logger.Info("no autosave file exists", zap.String("autosave_file", caddy.ConfigAutosavePath))
 			resumeFlag = false
 		} else if err != nil {
+			logBuffer.FlushTo(defaultLogger)
 			return caddy.ExitCodeFailedStartup, err
 		} else {
 			if configFlag == "" {
@@ -218,9 +231,11 @@ func cmdRun(fl Flags) (int, error) {
 	}
 	// we don't use 'else' here since this value might have been changed in 'if' block; i.e. not mutually exclusive
 	var configFile string
+	var adapterUsed string
 	if !resumeFlag {
-		config, configFile, err = LoadConfig(configFlag, configAdapterFlag)
+		config, configFile, adapterUsed, err = LoadConfig(configFlag, configAdapterFlag)
 		if err != nil {
+			logBuffer.FlushTo(defaultLogger)
 			return caddy.ExitCodeFailedStartup, err
 		}
 	}
@@ -235,11 +250,35 @@ func cmdRun(fl Flags) (int, error) {
 		}
 	}
 
+	// If we have a source config file (we're running via 'caddy run --config ...'),
+	// record it so SIGUSR1 can reload from the same file. Also provide a callback
+	// that knows how to load/adapt that source when requested by the main process.
+	if configFile != "" {
+		caddy.SetLastConfig(configFile, adapterUsed, func(file, adapter string) error {
+			cfg, _, _, err := LoadConfig(file, adapter)
+			if err != nil {
+				return err
+			}
+			return caddy.Load(cfg, true)
+		})
+	}
+
 	// run the initial config
 	err = caddy.Load(config, true)
 	if err != nil {
+		logBuffer.FlushTo(defaultLogger)
 		return caddy.ExitCodeFailedStartup, fmt.Errorf("loading initial config: %v", err)
 	}
+	// release the reference to the config so it can be GC'd
+	config = nil //nolint:ineffassign,wastedassign
+
+	// at this stage the config will have replaced the
+	// default logger to the configured one, so we can
+	// log normally, now that the config is running.
+	// also clear our ref to the buffer so it can get GC'd
+	logger = caddy.Log()
+	defaultLogger = nil //nolint:ineffassign,wastedassign
+	logBuffer = nil     //nolint:wastedassign,ineffassign
 	logger.Info("serving initial configuration")
 
 	// if we are to report to another process the successful start
@@ -255,18 +294,22 @@ func cmdRun(fl Flags) (int, error) {
 			return caddy.ExitCodeFailedStartup,
 				fmt.Errorf("dialing confirmation address: %v", err)
 		}
-		defer conn.Close()
 		_, err = conn.Write(confirmationBytes)
 		if err != nil {
 			return caddy.ExitCodeFailedStartup,
 				fmt.Errorf("writing confirmation bytes to %s: %v", pingbackFlag, err)
 		}
+		// close (non-defer because we `select {}` below)
+		// and release references so they can be GC'd
+		conn.Close()
+		confirmationBytes = nil //nolint:ineffassign,wastedassign
+		conn = nil              //nolint:wastedassign,ineffassign
 	}
 
 	// if enabled, reload config file automatically on changes
 	// (this better only be used in dev!)
 	if watchFlag {
-		go watchConfigFile(configFile, configAdapterFlag)
+		go watchConfigFile(configFile, adapterUsed)
 	}
 
 	// warn if the environment does not provide enough information about the disk
@@ -287,6 +330,9 @@ func cmdRun(fl Flags) (int, error) {
 			logger.Warn("$HOME environment variable is empty - please fix; some assets might be stored in ./caddy")
 		}
 	}
+
+	// release the last local logger reference
+	logger = nil //nolint:wastedassign,ineffassign
 
 	select {}
 }
@@ -318,7 +364,7 @@ func cmdReload(fl Flags) (int, error) {
 	forceFlag := fl.Bool("force")
 
 	// get the config in caddy's native format
-	config, configFile, err := LoadConfig(configFlag, configAdapterFlag)
+	config, configFile, adapterUsed, err := LoadConfig(configFlag, configAdapterFlag)
 	if err != nil {
 		return caddy.ExitCodeFailedStartup, err
 	}
@@ -326,7 +372,7 @@ func cmdReload(fl Flags) (int, error) {
 		return caddy.ExitCodeFailedStartup, fmt.Errorf("no config file to load")
 	}
 
-	adminAddr, err := DetermineAdminAPIAddress(addressFlag, config, configFlag, configAdapterFlag)
+	adminAddr, err := DetermineAdminAPIAddress(addressFlag, config, configFile, configAdapterFlag)
 	if err != nil {
 		return caddy.ExitCodeFailedStartup, fmt.Errorf("couldn't determine admin API address: %v", err)
 	}
@@ -336,6 +382,10 @@ func cmdReload(fl Flags) (int, error) {
 	if forceFlag {
 		headers.Set("Cache-Control", "must-revalidate")
 	}
+	// Provide the source file/adapter to the running process so it can
+	// preserve its last-config knowledge if this reload came from the same source.
+	headers.Set("Caddy-Config-Source-File", configFile)
+	headers.Set("Caddy-Config-Source-Adapter", adapterUsed)
 
 	resp, err := AdminAPIRequest(adminAddr, http.MethodPost, "/load", headers, bytes.NewReader(config))
 	if err != nil {
@@ -361,11 +411,65 @@ func cmdBuildInfo(_ Flags) (int, error) {
 	return caddy.ExitCodeSuccess, nil
 }
 
+// jsonModuleInfo holds metadata about a Caddy module for JSON output.
+type jsonModuleInfo struct {
+	ModuleName string `json:"module_name"`
+	ModuleType string `json:"module_type"`
+	Version    string `json:"version,omitempty"`
+	PackageURL string `json:"package_url,omitempty"`
+}
+
 func cmdListModules(fl Flags) (int, error) {
 	packages := fl.Bool("packages")
 	versions := fl.Bool("versions")
 	skipStandard := fl.Bool("skip-standard")
+	jsonOutput := fl.Bool("json")
 
+	// Organize modules by whether they come with the standard distribution
+	standard, nonstandard, unknown, err := getModules()
+	if err != nil {
+		// If module info can't be fetched, just print the IDs and exit
+		for _, m := range caddy.Modules() {
+			fmt.Println(m)
+		}
+		return caddy.ExitCodeSuccess, nil
+	}
+
+	// Logic for JSON output
+	if jsonOutput {
+		output := []jsonModuleInfo{}
+
+		// addToOutput is a helper to convert internal module info to the JSON-serializable struct
+		addToOutput := func(list []moduleInfo, moduleType string) {
+			for _, mi := range list {
+				item := jsonModuleInfo{
+					ModuleName: mi.caddyModuleID,
+					ModuleType: moduleType, // Mapping the type here
+				}
+				if mi.goModule != nil {
+					item.Version = mi.goModule.Version
+					item.PackageURL = mi.goModule.Path
+				}
+				output = append(output, item)
+			}
+		}
+
+		// Pass the respective type for each category
+		if !skipStandard {
+			addToOutput(standard, "standard")
+		}
+		addToOutput(nonstandard, "non-standard")
+		addToOutput(unknown, "unknown")
+
+		jsonBytes, err := json.MarshalIndent(output, "", "  ")
+		if err != nil {
+			return caddy.ExitCodeFailedQuit, err
+		}
+		fmt.Println(string(jsonBytes))
+		return caddy.ExitCodeSuccess, nil
+	}
+
+	// Logic for Text output (Fallback)
 	printModuleInfo := func(mi moduleInfo) {
 		fmt.Print(mi.caddyModuleID)
 		if versions && mi.goModule != nil {
@@ -381,16 +485,6 @@ func cmdListModules(fl Flags) (int, error) {
 			fmt.Printf(" [%v]", mi.err)
 		}
 		fmt.Println()
-	}
-
-	// organize modules by whether they come with the standard distribution
-	standard, nonstandard, unknown, err := getModules()
-	if err != nil {
-		// oh well, just print the module IDs and exit
-		for _, m := range caddy.Modules() {
-			fmt.Println(m)
-		}
-		return caddy.ExitCodeSuccess, nil
 	}
 
 	// Standard modules (always shipped with Caddy)
@@ -411,8 +505,8 @@ func cmdListModules(fl Flags) (int, error) {
 		for _, mod := range nonstandard {
 			printModuleInfo(mod)
 		}
+		fmt.Printf("\n  Non-standard modules: %d\n", len(nonstandard))
 	}
-	fmt.Printf("\n  Non-standard modules: %d\n", len(nonstandard))
 
 	// Unknown modules (couldn't get Caddy module info)
 	if len(unknown) > 0 {
@@ -422,8 +516,8 @@ func cmdListModules(fl Flags) (int, error) {
 		for _, mod := range unknown {
 			printModuleInfo(mod)
 		}
+		fmt.Printf("\n  Unknown modules: %d\n", len(unknown))
 	}
-	fmt.Printf("\n  Unknown modules: %d\n", len(unknown))
 
 	return caddy.ExitCodeSuccess, nil
 }
@@ -440,15 +534,19 @@ func cmdEnviron(fl Flags) (int, error) {
 }
 
 func cmdAdaptConfig(fl Flags) (int, error) {
-	inputFlag := fl.String("config")
+	configFlag := fl.String("config")
 	adapterFlag := fl.String("adapter")
 	prettyFlag := fl.Bool("pretty")
 	validateFlag := fl.Bool("validate")
 
 	var err error
-	inputFlag, err = configFileWithRespectToDefault(caddy.Log(), inputFlag)
+	configFlag, err = configFileWithRespectToDefault(caddy.Log(), configFlag)
 	if err != nil {
 		return caddy.ExitCodeFailedStartup, err
+	}
+	if configFlag == "" {
+		return caddy.ExitCodeFailedStartup,
+			fmt.Errorf("input file required when there is no Caddyfile in current directory (use --config flag)")
 	}
 
 	// load all additional envs as soon as possible
@@ -468,13 +566,19 @@ func cmdAdaptConfig(fl Flags) (int, error) {
 			fmt.Errorf("unrecognized config adapter: %s", adapterFlag)
 	}
 
-	input, err := os.ReadFile(inputFlag)
+	var input []byte
+	// read from stdin if the file name is "-"
+	if configFlag == "-" {
+		input, err = io.ReadAll(os.Stdin)
+	} else {
+		input, err = os.ReadFile(configFlag)
+	}
 	if err != nil {
 		return caddy.ExitCodeFailedStartup,
 			fmt.Errorf("reading input file: %v", err)
 	}
 
-	opts := map[string]any{"filename": inputFlag}
+	opts := map[string]any{"filename": configFlag}
 
 	adaptedConfig, warnings, err := cfgAdapter.Adapt(input, opts)
 	if err != nil {
@@ -540,7 +644,7 @@ func cmdValidateConfig(fl Flags) (int, error) {
 			fmt.Errorf("input file required when there is no Caddyfile in current directory (use --config flag)")
 	}
 
-	input, _, err := LoadConfig(configFlag, adapterFlag)
+	input, _, _, err := LoadConfig(configFlag, adapterFlag)
 	if err != nil {
 		return caddy.ExitCodeFailedStartup, err
 	}
@@ -703,9 +807,7 @@ func AdminAPIRequest(adminAddr, method, uri string, headers http.Header, body io
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
-	for k, v := range headers {
-		req.Header[k] = v
-	}
+	maps.Copy(req.Header, headers)
 
 	// make an HTTP client that dials our network type, since admin
 	// endpoints aren't always TCP, which is what the default transport
@@ -718,7 +820,7 @@ func AdminAPIRequest(adminAddr, method, uri string, headers http.Header, body io
 		},
 	}
 
-	resp, err := client.Do(req)
+	resp, err := client.Do(req) //nolint:gosec // the only SSRF here would be self-sabatoge I think
 	if err != nil {
 		return nil, fmt.Errorf("performing request: %v", err)
 	}
@@ -757,7 +859,7 @@ func DetermineAdminAPIAddress(address string, config []byte, configFile, configA
 		loadedConfig := config
 		if len(loadedConfig) == 0 {
 			// get the config in caddy's native format
-			loadedConfig, loadedConfigFile, err = LoadConfig(configFile, configAdapter)
+			loadedConfig, loadedConfigFile, _, err = LoadConfig(configFile, configAdapter)
 			if err != nil {
 				return "", err
 			}

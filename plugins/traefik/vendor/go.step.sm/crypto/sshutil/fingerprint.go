@@ -7,8 +7,9 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
-	"go.step.sm/crypto/fingerprint"
 	"golang.org/x/crypto/ssh"
+
+	"go.step.sm/crypto/fingerprint"
 )
 
 // FingerprintEncoding defines the supported encodings for SSH key and
@@ -158,7 +159,7 @@ func publicKeyTypeAndSize(key ssh.PublicKey) (string, int, error) {
 			return "", 0, errors.New("unsupported key: not an RSA public key")
 		}
 		size = 8 * k.Size()
-	case ssh.KeyAlgoDSA:
+	case ssh.InsecureKeyAlgoDSA: //nolint:staticcheck // compatibility with older tooling
 		typ = "DSA"
 		cpk, err := CryptoPublicKey(key)
 		if err != nil {

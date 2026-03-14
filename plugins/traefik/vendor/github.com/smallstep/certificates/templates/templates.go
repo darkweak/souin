@@ -5,12 +5,14 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"text/template"
 
 	"github.com/Masterminds/sprig/v3"
 	"github.com/pkg/errors"
-	"go.step.sm/cli-utils/fileutil"
-	"go.step.sm/cli-utils/step"
+
+	"github.com/smallstep/cli-utils/fileutil"
+	"github.com/smallstep/cli-utils/step"
 )
 
 // TemplateType defines how a template will be written in disk.
@@ -27,6 +29,22 @@ const (
 	// Directory will mark a template as a directory.
 	Directory TemplateType = "directory"
 )
+
+var (
+	stepFuncMap  template.FuncMap
+	stepFuncOnce sync.Once
+)
+
+// StepFuncMap returns sprig.TxtFuncMap but removing the "env" and "expandenv"
+// functions to avoid any leak of information.
+func StepFuncMap() template.FuncMap {
+	stepFuncOnce.Do(func() {
+		stepFuncMap = sprig.TxtFuncMap()
+		delete(stepFuncMap, "env")
+		delete(stepFuncMap, "expandenv")
+	})
+	return stepFuncMap
+}
 
 // Templates is a collection of templates and variables.
 type Templates struct {
@@ -280,13 +298,4 @@ func mkdir(path string, perm os.FileMode) error {
 		return errors.Wrapf(err, "error creating %s", path)
 	}
 	return nil
-}
-
-// StepFuncMap returns sprig.TxtFuncMap but removing the "env" and "expandenv"
-// functions to avoid any leak of information.
-func StepFuncMap() template.FuncMap {
-	m := sprig.TxtFuncMap()
-	delete(m, "env")
-	delete(m, "expandenv")
-	return m
 }

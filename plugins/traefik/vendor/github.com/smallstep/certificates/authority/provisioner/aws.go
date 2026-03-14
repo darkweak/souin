@@ -18,10 +18,10 @@ import (
 
 	"github.com/pkg/errors"
 
+	"github.com/smallstep/linkedca"
 	"go.step.sm/crypto/jose"
 	"go.step.sm/crypto/sshutil"
 	"go.step.sm/crypto/x509util"
-	"go.step.sm/linkedca"
 
 	"github.com/smallstep/certificates/errs"
 	"github.com/smallstep/certificates/webhook"
@@ -358,7 +358,7 @@ func (p *AWS) AuthorizeSign(ctx context.Context, token string) ([]SignOption, er
 	if p.DisableCustomSANs {
 		dnsName := fmt.Sprintf("ip-%s.%s.compute.internal", strings.ReplaceAll(doc.PrivateIP, ".", "-"), doc.Region)
 		so = append(so,
-			dnsNamesValidator([]string{dnsName}),
+			dnsNamesSubsetValidator([]string{dnsName}),
 			ipAddressesValidator([]net.IP{
 				net.ParseIP(doc.PrivateIP),
 			}),
@@ -469,7 +469,7 @@ func (p *AWS) readURLv1(url string) (*http.Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	resp, err := client.Do(req)
+	resp, err := client.Do(req) //nolint:gosec // request to AWS metadata service
 	if err != nil {
 		return nil, err
 	}
@@ -485,7 +485,7 @@ func (p *AWS) readURLv2(url string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header.Set(awsMetadataTokenTTLHeader, p.config.tokenTTL)
-	resp, err := client.Do(req)
+	resp, err := client.Do(req) //nolint:gosec // request to AWS metadata service
 	if err != nil {
 		return nil, err
 	}
@@ -504,7 +504,7 @@ func (p *AWS) readURLv2(url string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header.Set(awsMetadataTokenHeader, string(token))
-	resp, err = client.Do(req)
+	resp, err = client.Do(req) //nolint:gosec // request to AWS metadata service
 	if err != nil {
 		return nil, err
 	}

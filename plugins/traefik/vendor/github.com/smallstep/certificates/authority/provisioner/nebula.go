@@ -2,23 +2,30 @@ package provisioner
 
 import (
 	"context"
+	"crypto/ecdh"
+	"crypto/ecdsa"
 	"crypto/ed25519"
+	"crypto/elliptic"
 	"crypto/x509"
 	"encoding/base64"
+	"encoding/pem"
+	"math/big"
 	"net"
+	"net/netip"
 	"time"
 
 	"github.com/pkg/errors"
 	nebula "github.com/slackhq/nebula/cert"
+	"golang.org/x/crypto/ssh"
 
+	"github.com/smallstep/linkedca"
 	"go.step.sm/crypto/jose"
 	"go.step.sm/crypto/sshutil"
 	"go.step.sm/crypto/x25519"
 	"go.step.sm/crypto/x509util"
-	"go.step.sm/linkedca"
-	"golang.org/x/crypto/ssh"
 
 	"github.com/smallstep/certificates/errs"
+	"github.com/smallstep/certificates/internal/cast"
 )
 
 const (
@@ -43,7 +50,7 @@ type Nebula struct {
 	Roots   []byte   `json:"roots"`
 	Claims  *Claims  `json:"claims,omitempty"`
 	Options *Options `json:"options,omitempty"`
-	caPool  *nebula.NebulaCAPool
+	caPool  *nebula.CAPool
 	ctl     *Controller
 }
 
@@ -58,9 +65,9 @@ func (p *Nebula) Init(config Config) (err error) {
 		return errors.New("provisioner root(s) cannot be empty")
 	}
 
-	p.caPool, err = nebula.NewCAPoolFromBytes(p.Roots)
+	p.caPool, err = nebula.NewCAPoolFromPEM(p.Roots)
 	if err != nil {
-		return errs.InternalServer("failed to create ca pool: %v", err)
+		return errs.InternalServer("failed to create CA pool: %v", err)
 	}
 
 	config.Audiences = config.Audiences.WithFragment(p.GetIDForToken())
@@ -124,10 +131,11 @@ func (p *Nebula) AuthorizeSign(_ context.Context, token string) ([]SignOption, e
 
 	sans := claims.SANs
 	if len(sans) == 0 {
-		sans = make([]string, len(crt.Details.Ips)+1)
-		sans[0] = crt.Details.Name
-		for i, ipnet := range crt.Details.Ips {
-			sans[i+1] = ipnet.IP.String()
+		networks := crt.Networks()
+		sans = make([]string, len(networks)+1)
+		sans[0] = crt.Name()
+		for i, network := range networks {
+			sans[i+1] = network.Addr().String()
 		}
 	}
 
@@ -153,14 +161,14 @@ func (p *Nebula) AuthorizeSign(_ context.Context, token string) ([]SignOption, e
 		newProvisionerExtensionOption(TypeNebula, p.Name, "").WithControllerOptions(p.ctl),
 		profileLimitDuration{
 			def:       p.ctl.Claimer.DefaultTLSCertDuration(),
-			notBefore: crt.Details.NotBefore,
-			notAfter:  crt.Details.NotAfter,
+			notBefore: crt.NotBefore(),
+			notAfter:  crt.NotAfter(),
 		},
 		// validators
 		commonNameValidator(claims.Subject),
 		nebulaSANsValidator{
-			Name: crt.Details.Name,
-			IPs:  crt.Details.Ips,
+			Name:     crt.Name(),
+			Networks: crt.Networks(),
 		},
 		defaultPublicKeyValidator{},
 		newValidityValidator(p.ctl.Claimer.MinTLSCertDuration(), p.ctl.Claimer.MaxTLSCertDuration()),
@@ -183,10 +191,11 @@ func (p *Nebula) AuthorizeSSHSign(_ context.Context, token string) ([]SignOption
 
 	// Default template attributes.
 	keyID := claims.Subject
-	principals := make([]string, len(crt.Details.Ips)+1)
-	principals[0] = crt.Details.Name
-	for i, ipnet := range crt.Details.Ips {
-		principals[i+1] = ipnet.IP.String()
+	networks := crt.Networks()
+	principals := make([]string, len(networks)+1)
+	principals[0] = crt.Name()
+	for i, network := range networks {
+		principals[i+1] = network.Addr().String()
 	}
 
 	var signOptions []SignOption
@@ -197,8 +206,8 @@ func (p *Nebula) AuthorizeSSHSign(_ context.Context, token string) ([]SignOption
 
 		// Check that the token only contains valid principals.
 		v := nebulaPrincipalsValidator{
-			Name: crt.Details.Name,
-			IPs:  crt.Details.Ips,
+			Name:     crt.Name(),
+			Networks: crt.Networks(),
 		}
 		if err := v.Valid(*opts); err != nil {
 			return nil, err
@@ -229,10 +238,10 @@ func (p *Nebula) AuthorizeSSHSign(_ context.Context, token string) ([]SignOption
 		// Add modifiers from custom claims
 		t := now()
 		if !opts.ValidAfter.IsZero() {
-			signOptions = append(signOptions, sshCertValidAfterModifier(opts.ValidAfter.RelativeTime(t).Unix()))
+			signOptions = append(signOptions, sshCertValidAfterModifier(cast.Uint64(opts.ValidAfter.RelativeTime(t).Unix())))
 		}
 		if !opts.ValidBefore.IsZero() {
-			signOptions = append(signOptions, sshCertValidBeforeModifier(opts.ValidBefore.RelativeTime(t).Unix()))
+			signOptions = append(signOptions, sshCertValidBeforeModifier(cast.Uint64(opts.ValidBefore.RelativeTime(t).Unix())))
 		}
 	}
 
@@ -255,7 +264,7 @@ func (p *Nebula) AuthorizeSSHSign(_ context.Context, token string) ([]SignOption
 		p,
 		templateOptions,
 		// Checks the validity bounds, and set the validity if has not been set.
-		&sshLimitDuration{p.ctl.Claimer, crt.Details.NotAfter},
+		&sshLimitDuration{p.ctl.Claimer, crt.NotAfter()},
 		// Validate public key.
 		&sshDefaultPublicKeyValidator{},
 		// Validate the validity period.
@@ -274,20 +283,14 @@ func (p *Nebula) AuthorizeRenew(ctx context.Context, crt *x509.Certificate) erro
 	return p.ctl.AuthorizeRenew(ctx, crt)
 }
 
-// AuthorizeRevoke returns an error if the token is not valid.
-func (p *Nebula) AuthorizeRevoke(_ context.Context, token string) error {
-	return p.validateToken(token, p.ctl.Audiences.Revoke)
+// AuthorizeRevoke returns an unauthorized error.
+func (p *Nebula) AuthorizeRevoke(context.Context, string) error {
+	return errs.Unauthorized("nebula provisioner does not support revoke")
 }
 
-// AuthorizeSSHRevoke returns an error if SSH is disabled or the token is invalid.
-func (p *Nebula) AuthorizeSSHRevoke(_ context.Context, token string) error {
-	if !p.ctl.Claimer.IsSSHCAEnabled() {
-		return errs.Unauthorized("ssh is disabled for nebula provisioner '%s'", p.Name)
-	}
-	if _, _, err := p.authorizeToken(token, p.ctl.Audiences.SSHRevoke); err != nil {
-		return err
-	}
-	return nil
+// AuthorizeSSHRevoke returns an unauthorized error.
+func (p *Nebula) AuthorizeSSHRevoke(context.Context, string) error {
+	return errs.Unauthorized("nebula provisioner does not support SSH revoke")
 }
 
 // AuthorizeSSHRenew returns an unauthorized error.
@@ -300,12 +303,7 @@ func (p *Nebula) AuthorizeSSHRekey(context.Context, string) (*ssh.Certificate, [
 	return nil, nil, errs.Unauthorized("nebula provisioner does not support SSH rekey")
 }
 
-func (p *Nebula) validateToken(token string, audiences []string) error {
-	_, _, err := p.authorizeToken(token, audiences)
-	return err
-}
-
-func (p *Nebula) authorizeToken(token string, audiences []string) (*nebula.NebulaCertificate, *jwtPayload, error) {
+func (p *Nebula) authorizeToken(token string, audiences []string) (nebula.Certificate, *jwtPayload, error) {
 	jwt, err := jose.ParseSigned(token)
 	if err != nil {
 		return nil, nil, errs.UnauthorizedErr(err, errs.WithMessage("failed to parse token"))
@@ -324,24 +322,41 @@ func (p *Nebula) authorizeToken(token string, audiences []string) (*nebula.Nebul
 	if err != nil {
 		return nil, nil, errs.UnauthorizedErr(err, errs.WithMessage("failed to parse token: nebula header is not valid"))
 	}
-	c, err := nebula.UnmarshalNebulaCertificate(b)
+	// Wrap raw certificate bytes in PEM for unmarshaling. Try v1 banner
+	// first, then fall back to v2 if that fails.
+	pemData := pem.EncodeToMemory(&pem.Block{Type: nebula.CertificateBanner, Bytes: b})
+	c, _, err := nebula.UnmarshalCertificateFromPEM(pemData)
+	if err != nil {
+		pemData = pem.EncodeToMemory(&pem.Block{Type: nebula.CertificateV2Banner, Bytes: b})
+		c, _, err = nebula.UnmarshalCertificateFromPEM(pemData)
+	}
 	if err != nil {
 		return nil, nil, errs.UnauthorizedErr(err, errs.WithMessage("failed to parse nebula certificate: nebula header is not valid"))
 	}
 
 	// Validate nebula certificate against CAs
-	if valid, err := c.Verify(now(), p.caPool); !valid {
-		if err != nil {
-			return nil, nil, errs.UnauthorizedErr(err, errs.WithMessage("token is not valid: failed to verify certificate against configured CA"))
-		}
-		return nil, nil, errs.Unauthorized("token is not valid: failed to verify certificate against configured CA")
+	if _, err := p.caPool.VerifyCertificate(now(), c); err != nil {
+		return nil, nil, errs.UnauthorizedErr(err, errs.WithMessage("token is not valid: failed to verify certificate against configured CA"))
 	}
 
-	var pub interface{}
-	if c.Details.IsCA {
-		pub = ed25519.PublicKey(c.Details.PublicKey)
-	} else {
-		pub = x25519.PublicKey(c.Details.PublicKey)
+	var pub any
+	switch {
+	case c.Curve() == nebula.Curve_P256:
+		// When Nebula is used with ECDSA P-256 keys, both CAs and clients use the same type.
+		ecdhPub, err := ecdh.P256().NewPublicKey(c.PublicKey())
+		if err != nil {
+			return nil, nil, errs.UnauthorizedErr(err, errs.WithMessage("failed to parse nebula public key"))
+		}
+		publicKeyBytes := ecdhPub.Bytes()
+		pub = &ecdsa.PublicKey{ // convert back to *ecdsa.PublicKey, because our jose package nor go-jose supports *ecdh.PublicKey
+			Curve: elliptic.P256(),
+			X:     big.NewInt(0).SetBytes(publicKeyBytes[1:33]),
+			Y:     big.NewInt(0).SetBytes(publicKeyBytes[33:]),
+		}
+	case c.IsCA():
+		pub = ed25519.PublicKey(c.PublicKey())
+	default:
+		pub = x25519.PublicKey(c.PublicKey())
 	}
 
 	// Validate token with public key
@@ -358,6 +373,7 @@ func (p *Nebula) authorizeToken(token string, audiences []string) (*nebula.Nebul
 	}, time.Minute); err != nil {
 		return nil, nil, errs.UnauthorizedErr(err, errs.WithMessage("token is not valid: invalid claims"))
 	}
+
 	// Validate token and subject too.
 	if !matchesAudience(claims.Audience, audiences) {
 		return nil, nil, errs.Unauthorized("token is not valid: invalid claims")
@@ -370,8 +386,8 @@ func (p *Nebula) authorizeToken(token string, audiences []string) (*nebula.Nebul
 }
 
 type nebulaSANsValidator struct {
-	Name string
-	IPs  []*net.IPNet
+	Name     string
+	Networks []netip.Prefix
 }
 
 // Valid verifies that the SANs stored in the validator are contained with those
@@ -405,16 +421,16 @@ func (v nebulaSANsValidator) Valid(req *x509.CertificateRequest) error {
 			}
 			// Check ip network
 			if !valid {
-				for _, ipNet := range v.IPs {
-					if ip.Equal(ipNet.IP) {
+				for _, network := range v.Networks {
+					if ip.Equal(net.IP(network.Addr().AsSlice())) {
 						valid = true
 						break
 					}
 				}
 			}
 			if !valid {
-				for _, ipNet := range v.IPs {
-					ips = append(ips, ipNet.IP)
+				for _, network := range v.Networks {
+					ips = append(ips, net.IP(network.Addr().AsSlice()))
 				}
 				return errs.Forbidden("certificate request contains invalid IP addresses - got %v, want %v", req.IPAddresses, ips)
 			}
@@ -425,8 +441,8 @@ func (v nebulaSANsValidator) Valid(req *x509.CertificateRequest) error {
 }
 
 type nebulaPrincipalsValidator struct {
-	Name string
-	IPs  []*net.IPNet
+	Name     string
+	Networks []netip.Prefix
 }
 
 // Valid checks that the SignSSHOptions principals contains only names in the
@@ -439,8 +455,8 @@ func (v nebulaPrincipalsValidator) Valid(got SignSSHOptions) error {
 		}
 		if !valid {
 			if ip := net.ParseIP(p); ip != nil {
-				for _, ipnet := range v.IPs {
-					if ip.Equal(ipnet.IP) {
+				for _, network := range v.Networks {
+					if ip.Equal(net.IP(network.Addr().AsSlice())) {
 						valid = true
 						break
 					}
@@ -449,9 +465,9 @@ func (v nebulaPrincipalsValidator) Valid(got SignSSHOptions) error {
 		}
 
 		if !valid {
-			ips := make([]net.IP, len(v.IPs))
-			for i, ipNet := range v.IPs {
-				ips[i] = ipNet.IP
+			ips := make([]net.IP, len(v.Networks))
+			for i, network := range v.Networks {
+				ips[i] = net.IP(network.Addr().AsSlice())
 			}
 			return errs.Forbidden(
 				"ssh certificate principals contains invalid name or IP addresses - got %v, want %s or %v",
