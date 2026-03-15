@@ -81,11 +81,14 @@ type Config struct {
 	// associated value.
 	AppsRaw ModuleMap `json:"apps,omitempty" caddy:"namespace="`
 
-	apps         map[string]App
+	apps map[string]App
+
+	// failedApps is a map of apps that failed to provision with their underlying error.
+	failedApps   map[string]error
 	storage      certmagic.Storage
 	eventEmitter eventEmitter
 
-	cancelFunc context.CancelFunc
+	cancelFunc context.CancelCauseFunc
 
 	// fileSystems is a dict of fileSystems that will later be loaded from and added to.
 	fileSystems FileSystems
@@ -144,8 +147,8 @@ func Load(cfgJSON []byte, forceReload bool) error {
 // the new value (if applicable; i.e. "DELETE" doesn't have an input).
 // If the resulting config is the same as the previous, no reload will
 // occur unless forceReload is true. If the config is unchanged and not
-// forcefully reloaded, then errConfigUnchanged This function is safe for
-// concurrent use.
+// forcefully reloaded, then errConfigUnchanged is returned. This function
+// is safe for concurrent use.
 // The ifMatchHeader can optionally be given a string of the format:
 //
 //	"<path> <hash>"
@@ -224,8 +227,18 @@ func changeConfig(method, path string, input []byte, ifMatchHeader string, force
 	idx := make(map[string]string)
 	err = indexConfigObjects(rawCfg[rawConfigKey], "/"+rawConfigKey, idx)
 	if err != nil {
+		if len(rawCfgJSON) > 0 {
+			var oldCfg any
+			err2 := json.Unmarshal(rawCfgJSON, &oldCfg)
+			if err2 != nil {
+				err = fmt.Errorf("%v; additionally, restoring old config: %v", err, err2)
+			}
+			rawCfg[rawConfigKey] = oldCfg
+		} else {
+			rawCfg[rawConfigKey] = nil
+		}
 		return APIError{
-			HTTPStatus: http.StatusInternalServerError,
+			HTTPStatus: http.StatusBadRequest,
 			Err:        fmt.Errorf("indexing config: %v", err),
 		}
 	}
@@ -245,6 +258,8 @@ func changeConfig(method, path string, input []byte, ifMatchHeader string, force
 				err = fmt.Errorf("%v; additionally, restoring old config: %v", err, err2)
 			}
 			rawCfg[rawConfigKey] = oldCfg
+		} else {
+			rawCfg[rawConfigKey] = nil
 		}
 
 		return fmt.Errorf("loading new config: %v", err)
@@ -278,14 +293,19 @@ func indexConfigObjects(ptr any, configPath string, index map[string]string) err
 	case map[string]any:
 		for k, v := range val {
 			if k == idKey {
+				var idStr string
 				switch idVal := v.(type) {
 				case string:
-					index[idVal] = configPath
+					idStr = idVal
 				case float64: // all JSON numbers decode as float64
-					index[fmt.Sprintf("%v", idVal)] = configPath
+					idStr = fmt.Sprintf("%v", idVal)
 				default:
 					return fmt.Errorf("%s: %s field must be a string or number", configPath, idKey)
 				}
+				if existingPath, ok := index[idStr]; ok {
+					return fmt.Errorf("duplicate ID '%s' found at %s and %s", idStr, existingPath, configPath)
+				}
+				index[idStr] = configPath
 				continue
 			}
 			// traverse this object property recursively
@@ -408,11 +428,23 @@ func run(newCfg *Config, start bool) (Context, error) {
 		return ctx, nil
 	}
 
+	defer func() {
+		// if newCfg fails to start completely, clean up the already provisioned modules
+		// partially copied from provisionContext
+		if err != nil {
+			globalMetrics.configSuccess.Set(0)
+			ctx.cfg.cancelFunc(fmt.Errorf("configuration start error: %w", err))
+
+			if currentCtx.cfg != nil {
+				certmagic.Default.Storage = currentCtx.cfg.storage
+			}
+		}
+	}()
+
 	// Provision any admin routers which may need to access
 	// some of the other apps at runtime
 	err = ctx.cfg.Admin.provisionAdminRouters(ctx)
 	if err != nil {
-		globalMetrics.configSuccess.Set(0)
 		return ctx, err
 	}
 
@@ -438,7 +470,6 @@ func run(newCfg *Config, start bool) (Context, error) {
 		return nil
 	}()
 	if err != nil {
-		globalMetrics.configSuccess.Set(0)
 		return ctx, err
 	}
 	globalMetrics.configSuccess.Set(1)
@@ -449,7 +480,8 @@ func run(newCfg *Config, start bool) (Context, error) {
 
 	// now that the user's config is running, finish setting up anything else,
 	// such as remote admin endpoint, config loader, etc.
-	return ctx, finishSettingUp(ctx, ctx.cfg)
+	err = finishSettingUp(ctx, ctx.cfg)
+	return ctx, err
 }
 
 // provisionContext creates a new context from the given configuration and provisions
@@ -477,7 +509,7 @@ func provisionContext(newCfg *Config, replaceAdminServer bool) (Context, error) 
 	// cleanup occurs when we return if there
 	// was an error; if no error, it will get
 	// cleaned up on next config cycle
-	ctx, cancel := NewContext(Context{Context: context.Background(), cfg: newCfg})
+	ctx, cancelCause := NewContextWithCause(Context{Context: context.Background(), cfg: newCfg})
 	defer func() {
 		if err != nil {
 			globalMetrics.configSuccess.Set(0)
@@ -486,7 +518,7 @@ func provisionContext(newCfg *Config, replaceAdminServer bool) (Context, error) 
 			// since the associated config won't be used;
 			// this will cause all modules that were newly
 			// provisioned to clean themselves up
-			cancel()
+			cancelCause(fmt.Errorf("configuration error: %w", err))
 
 			// also undo any other state changes we made
 			if currentCtx.cfg != nil {
@@ -494,7 +526,7 @@ func provisionContext(newCfg *Config, replaceAdminServer bool) (Context, error) 
 			}
 		}
 	}()
-	newCfg.cancelFunc = cancel // clean up later
+	newCfg.cancelFunc = cancelCause // clean up later
 
 	// set up logging before anything bad happens
 	if newCfg.Logging == nil {
@@ -505,19 +537,12 @@ func provisionContext(newCfg *Config, replaceAdminServer bool) (Context, error) 
 		return ctx, err
 	}
 
-	// start the admin endpoint (and stop any prior one)
-	if replaceAdminServer {
-		err = replaceLocalAdminServer(newCfg, ctx)
-		if err != nil {
-			return ctx, fmt.Errorf("starting caddy administration endpoint: %v", err)
-		}
-	}
-
 	// create the new filesystem map
 	newCfg.fileSystems = &filesystems.FileSystemMap{}
 
 	// prepare the new config for use
 	newCfg.apps = make(map[string]App)
+	newCfg.failedApps = make(map[string]error)
 
 	// set up global storage and make it CertMagic's default storage, too
 	err = func() error {
@@ -542,6 +567,14 @@ func provisionContext(newCfg *Config, replaceAdminServer bool) (Context, error) 
 	}()
 	if err != nil {
 		return ctx, err
+	}
+
+	// start the admin endpoint (and stop any prior one)
+	if replaceAdminServer {
+		err = replaceLocalAdminServer(newCfg, ctx)
+		if err != nil {
+			return ctx, fmt.Errorf("starting caddy administration endpoint: %v", err)
+		}
 	}
 
 	// Load and Provision each app and their submodules
@@ -713,7 +746,7 @@ func unsyncedStop(ctx Context) {
 	}
 
 	// clean up all modules
-	ctx.cfg.cancelFunc()
+	ctx.cfg.cancelFunc(fmt.Errorf("stopping apps"))
 }
 
 // Validate loads, provisions, and validates
@@ -721,7 +754,7 @@ func unsyncedStop(ctx Context) {
 func Validate(cfg *Config) error {
 	_, err := run(cfg, false)
 	if err == nil {
-		cfg.cancelFunc() // call Cleanup on all modules
+		cfg.cancelFunc(fmt.Errorf("validation complete")) // call Cleanup on all modules
 	}
 	return err
 }
@@ -929,6 +962,34 @@ func InstanceID() (uuid.UUID, error) {
 // for example.
 var CustomVersion string
 
+// CustomBinaryName is an optional string that overrides the root
+// command name from the default of "caddy". This is useful for
+// downstream projects that embed Caddy but use a different binary
+// name. Shell completions and help text will use this name instead
+// of "caddy".
+//
+// Set this variable during `go build` with `-ldflags`:
+//
+//	-ldflags '-X github.com/caddyserver/caddy/v2.CustomBinaryName=my_custom_caddy'
+//
+// for example.
+var CustomBinaryName string
+
+// CustomLongDescription is an optional string that overrides the
+// long description of the root Cobra command. This is useful for
+// downstream projects that embed Caddy but want different help
+// output.
+//
+// Set this variable in an init() function of a package that is
+// imported by your main:
+//
+//	func init() {
+//	    caddy.CustomLongDescription = "My custom server based on Caddy..."
+//	}
+//
+// for example.
+var CustomLongDescription string
+
 // Version returns the Caddy version in a simple/short form, and
 // a full version string. The short form will not have spaces and
 // is intended for User-Agent strings and similar, but may be
@@ -959,11 +1020,11 @@ func Version() (simple, full string) {
 		if CustomVersion != "" {
 			full = CustomVersion
 			simple = CustomVersion
-			return
+			return simple, full
 		}
 		full = "unknown"
 		simple = "unknown"
-		return
+		return simple, full
 	}
 	// find the Caddy module in the dependency list
 	for _, dep := range bi.Deps {
@@ -1043,7 +1104,7 @@ func Version() (simple, full string) {
 		}
 	}
 
-	return
+	return simple, full
 }
 
 // Event represents something that has happened or is happening.
@@ -1076,7 +1137,7 @@ type Event struct {
 }
 
 // NewEvent creates a new event, but does not emit the event. To emit an
-// event, call Emit() on the current instance of the caddyevents app insteaad.
+// event, call Emit() on the current instance of the caddyevents app instead.
 //
 // EXPERIMENTAL: Subject to change.
 func NewEvent(ctx Context, name string, data map[string]any) (Event, error) {
@@ -1104,9 +1165,15 @@ func (e Event) Origin() Module       { return e.origin } // Returns the module t
 // CloudEvents spec.
 func (e Event) CloudEvent() CloudEvent {
 	dataJSON, _ := json.Marshal(e.Data)
+	var source string
+	if e.Origin() == nil {
+		source = "caddy"
+	} else {
+		source = string(e.Origin().CaddyModule().ID)
+	}
 	return CloudEvent{
 		ID:              e.id.String(),
-		Source:          e.origin.CaddyModule().String(),
+		Source:          source,
 		SpecVersion:     "1.0",
 		Type:            e.name,
 		Time:            e.ts,
@@ -1174,6 +1241,91 @@ var (
 	// essentially synchronizes config changes/reloads.
 	rawCfgMu sync.RWMutex
 )
+
+// lastConfigFile and lastConfigAdapter remember the source config
+// file and adapter used when Caddy was started via the CLI "run" command.
+// These are consulted by the SIGUSR1 handler to attempt reloading from
+// the same source. They are intentionally not set for other entrypoints
+// such as "caddy start" or subcommands like file-server.
+var (
+	lastConfigMu      sync.RWMutex
+	lastConfigFile    string
+	lastConfigAdapter string
+)
+
+// reloadFromSourceFunc is the type of stored callback
+// which is called when we receive a SIGUSR1 signal.
+type reloadFromSourceFunc func(file, adapter string) error
+
+// reloadFromSourceCallback is the stored callback
+// which is called when we receive a SIGUSR1 signal.
+var reloadFromSourceCallback reloadFromSourceFunc
+
+// errReloadFromSourceUnavailable is returned when no reload-from-source callback is set.
+var errReloadFromSourceUnavailable = errors.New("reload from source unavailable in this process") //nolint:unused
+
+// SetLastConfig records the given source file and adapter as the
+// last-known external configuration source. Intended to be called
+// only when starting via "caddy run --config <file> --adapter <adapter>".
+func SetLastConfig(file, adapter string, fn reloadFromSourceFunc) {
+	lastConfigMu.Lock()
+	lastConfigFile = file
+	lastConfigAdapter = adapter
+	reloadFromSourceCallback = fn
+	lastConfigMu.Unlock()
+}
+
+// ClearLastConfigIfDifferent clears the recorded last-config if the provided
+// source file/adapter do not match the recorded last-config. If both srcFile
+// and srcAdapter are empty, the last-config is cleared.
+func ClearLastConfigIfDifferent(srcFile, srcAdapter string) {
+	if (srcFile != "" || srcAdapter != "") && lastConfigMatches(srcFile, srcAdapter) {
+		return
+	}
+	SetLastConfig("", "", nil)
+}
+
+// getLastConfig returns the last-known config file and adapter.
+func getLastConfig() (file, adapter string, fn reloadFromSourceFunc) {
+	lastConfigMu.RLock()
+	f, a, cb := lastConfigFile, lastConfigAdapter, reloadFromSourceCallback
+	lastConfigMu.RUnlock()
+	return f, a, cb
+}
+
+// lastConfigMatches returns true if the provided source file and/or adapter
+// matches the recorded last-config. Matching rules (in priority order):
+// 1. If srcAdapter is provided and differs from the recorded adapter, no match.
+// 2. If srcFile exactly equals the recorded file, match.
+// 3. If both sides can be made absolute and equal, match.
+// 4. If basenames are equal, match.
+func lastConfigMatches(srcFile, srcAdapter string) bool {
+	lf, la, _ := getLastConfig()
+
+	// If adapter is provided, it must match.
+	if srcAdapter != "" && srcAdapter != la {
+		return false
+	}
+
+	// Quick equality check.
+	if srcFile == lf {
+		return true
+	}
+
+	// Try absolute path comparison.
+	sAbs, sErr := filepath.Abs(srcFile)
+	lAbs, lErr := filepath.Abs(lf)
+	if sErr == nil && lErr == nil && sAbs == lAbs {
+		return true
+	}
+
+	// Final fallback: basename equality.
+	if filepath.Base(srcFile) == filepath.Base(lf) {
+		return true
+	}
+
+	return false
+}
 
 // errSameConfig is returned if the new config is the same
 // as the old one. This isn't usually an actual, actionable

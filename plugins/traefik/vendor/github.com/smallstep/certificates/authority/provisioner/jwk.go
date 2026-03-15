@@ -8,24 +8,30 @@ import (
 
 	"github.com/pkg/errors"
 
+	"github.com/smallstep/linkedca"
 	"go.step.sm/crypto/jose"
 	"go.step.sm/crypto/sshutil"
 	"go.step.sm/crypto/x509util"
-	"go.step.sm/linkedca"
 
 	"github.com/smallstep/certificates/errs"
+	"github.com/smallstep/certificates/internal/cast"
 )
 
 // jwtPayload extends jwt.Claims with step attributes.
 type jwtPayload struct {
 	jose.Claims
-	SANs []string     `json:"sans,omitempty"`
-	Step *stepPayload `json:"step,omitempty"`
+	SANs         []string     `json:"sans,omitempty"`
+	Step         *stepPayload `json:"step,omitempty"`
+	Confirmation *cnfPayload  `json:"cnf,omitempty"`
 }
 
 type stepPayload struct {
 	SSH *SignSSHOptions `json:"ssh,omitempty"`
 	RA  *RAInfo         `json:"ra,omitempty"`
+}
+
+type cnfPayload struct {
+	Fingerprint string `json:"x5rt#S256,omitempty"`
 }
 
 // JWK is the default provisioner, an entity that can sign tokens necessary for
@@ -183,6 +189,12 @@ func (p *JWK) AuthorizeSign(ctx context.Context, token string) ([]SignOption, er
 		}
 	}
 
+	// Check the fingerprint of the certificate request if given.
+	var fingerprint string
+	if claims.Confirmation != nil {
+		fingerprint = claims.Confirmation.Fingerprint
+	}
+
 	return []SignOption{
 		self,
 		templateOptions,
@@ -190,6 +202,7 @@ func (p *JWK) AuthorizeSign(ctx context.Context, token string) ([]SignOption, er
 		newProvisionerExtensionOption(TypeJWK, p.Name, p.Key.KeyID).WithControllerOptions(p.ctl),
 		profileDefaultDuration(p.ctl.Claimer.DefaultTLSCertDuration()),
 		// validators
+		csrFingerprintValidator(fingerprint),
 		commonNameSliceValidator(append([]string{claims.Subject}, claims.SANs...)),
 		defaultPublicKeyValidator{},
 		newDefaultSANsValidator(ctx, claims.SANs),
@@ -237,7 +250,7 @@ func (p *JWK) AuthorizeSSHSign(_ context.Context, token string) ([]SignOption, e
 	// Use options in the token.
 	if opts.CertType != "" {
 		if certType, err = sshutil.CertTypeFromString(opts.CertType); err != nil {
-			return nil, errs.BadRequestErr(err, err.Error())
+			return nil, errs.BadRequestErr(err, "%s", err.Error())
 		}
 	}
 	if opts.KeyID != "" {
@@ -262,10 +275,10 @@ func (p *JWK) AuthorizeSSHSign(_ context.Context, token string) ([]SignOption, e
 	// Add modifiers from custom claims
 	t := now()
 	if !opts.ValidAfter.IsZero() {
-		signOptions = append(signOptions, sshCertValidAfterModifier(opts.ValidAfter.RelativeTime(t).Unix()))
+		signOptions = append(signOptions, sshCertValidAfterModifier(cast.Uint64(opts.ValidAfter.RelativeTime(t).Unix())))
 	}
 	if !opts.ValidBefore.IsZero() {
-		signOptions = append(signOptions, sshCertValidBeforeModifier(opts.ValidBefore.RelativeTime(t).Unix()))
+		signOptions = append(signOptions, sshCertValidBeforeModifier(cast.Uint64(opts.ValidBefore.RelativeTime(t).Unix())))
 	}
 
 	return append(signOptions,

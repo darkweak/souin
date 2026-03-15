@@ -138,8 +138,15 @@ func (provider *Default) SetMultiLevel(baseKey, variedKey string, value []byte, 
 	now := time.Now()
 
 	var e error
+
 	compressed := new(bytes.Buffer)
-	if _, e = lz4.NewWriter(compressed).ReadFrom(bytes.NewReader(value)); e != nil {
+	writer := core.Lz4WriterPool.Get().(*lz4.Writer)
+	writer.Reset(compressed)
+	defer core.Lz4WriterPool.Put(writer)
+
+	_, e = writer.Write(value)
+	_ = writer.Close()
+	if e != nil {
 		provider.logger.Errorf("Impossible to compress the key %s into Badger, %v", variedKey, e)
 		return e
 	}
