@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -903,9 +904,10 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 	// Track whether the buffer ownership has been handed off to the background
 	// goroutine. If so, we must not return it to the pool on exit because the
 	// goroutine may still be writing to it.
-	bufPoolOwned := true
+	var bufPoolOwned atomic.Bool
+	bufPoolOwned.Store(true)
 	defer func() {
-		if bufPoolOwned {
+		if bufPoolOwned.Load() {
 			bufPool.Reset()
 			s.bufPool.Put(bufPool)
 		}
@@ -1151,17 +1153,22 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 
 	errorCacheCh := make(chan error, 1)
 
-	// Release buffer ownership before launching the goroutine. The goroutine
-	// writes to customWriter (which wraps bufPool) and will finish
-	// asynchronously if the context is cancelled.
-	bufPoolOwned = false
 	go func(vr *http.Request, cw *CustomWriter) {
 		prometheus.Increment(prometheus.NoCachedResponseCounter)
-		errorCacheCh <- s.Upstream(cw, vr, next, requestCc, cachedKey, uri, false)
+		err := s.Upstream(cw, vr, next, requestCc, cachedKey, uri, false)
+		// If the parent already returned (context timeout), we own the buffer now.
+		if !bufPoolOwned.Load() {
+			bufPool.Reset()
+			s.bufPool.Put(bufPool)
+		}
+		errorCacheCh <- err
 	}(req, customWriter)
 
 	select {
 	case <-req.Context().Done():
+		// Transfer buffer ownership to the goroutine so it can return the
+		// buffer to the pool once Upstream finishes.
+		bufPoolOwned.Store(false)
 		switch req.Context().Err() {
 		case baseCtx.DeadlineExceeded:
 			rw.Header().Set("Cache-Status", cacheName+"; fwd=bypass; detail=DEADLINE-EXCEEDED")
