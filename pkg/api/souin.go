@@ -185,6 +185,9 @@ func EvictMapping(current types.Storer) {
 		updated := false
 		for key, val := range mapping.GetMapping() {
 			if now.Sub(val.FreshTime.AsTime()) > 0 && now.Sub(val.StaleTime.AsTime()) > 0 {
+				current.Delete(key)
+				current.Delete(mapping.GetMapping()[key].RealKey)
+
 				delete(mapping.GetMapping(), key)
 				updated = true
 			}
