@@ -146,22 +146,34 @@ func NewHTTPCacheHandler(c configurationtypes.AbstractConfigurationInterface) *S
 	storers := []types.Storer{}
 	if len(storedStorers) != 0 {
 		dc := c.GetDefaultCache()
+		c.GetLogger().Warn("Initializing storers with configuration", zap.Any("redis", dc.GetRedis()), zap.Any("storers", dc.GetStorers()))
+		c.GetLogger().Warn("Redis configuration details",
+			zap.String("url", dc.GetRedis().URL),
+			zap.String("uuid", dc.GetRedis().Uuid))
+
 		for _, s := range []string{dc.GetBadger().Uuid, dc.GetEtcd().Uuid, dc.GetNats().Uuid, dc.GetNuts().Uuid, dc.GetOlric().Uuid, dc.GetOtter().Uuid, dc.GetRedis().Uuid, dc.GetSimpleFS().Uuid} {
 			if s != "" {
+				c.GetLogger().Warn("Attempting to get storer with UUID", zap.String("uuid", s))
 				if st := core.GetRegisteredStorer(s); st != nil {
 					storers = append(storers, st.(types.Storer))
+					c.GetLogger().Warn("Successfully registered storer",
+						zap.String("name", st.(types.Storer).Name()),
+						zap.String("uuid", st.(types.Storer).Uuid()))
+				} else {
+					c.GetLogger().Warn("Failed to get storer with UUID", zap.String("uuid", s))
 				}
 			}
 		}
 
 		storers = reorderStorers(storers, c.GetDefaultCache().GetStorers())
+		c.GetLogger().Warn("Storers after reordering", zap.Any("storers", storers))
 
 		if len(storers) > 0 {
 			names := []string{}
 			for _, storer := range storers {
 				names = append(names, storer.Name())
 			}
-			c.GetLogger().Debugf("You're running Souin with the following storages in this order %s", strings.Join(names, ", "))
+			c.GetLogger().Warn("Running Souin with storages", zap.Strings("storages", names))
 		}
 	}
 	if len(storers) == 0 {
@@ -170,7 +182,13 @@ func NewHTTPCacheHandler(c configurationtypes.AbstractConfigurationInterface) *S
 		memoryStorer, _ := storage.Factory(c)
 		if st := core.GetRegisteredStorer(types.DefaultStorageName + "-"); st != nil {
 			memoryStorer = st.(types.Storer)
+			c.GetLogger().Warn("Using existing default storer",
+				zap.String("name", memoryStorer.Name()),
+				zap.String("uuid", memoryStorer.Uuid()))
 		} else {
+			c.GetLogger().Warn("Registering new default storer",
+				zap.String("name", memoryStorer.Name()),
+				zap.String("uuid", memoryStorer.Uuid()))
 			core.RegisterStorage(memoryStorer)
 		}
 		storers = append(storers, memoryStorer)
