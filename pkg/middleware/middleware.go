@@ -230,6 +230,7 @@ type SouinBaseHandler struct {
 	context                  *context.Context
 	singleflightPool         singleflight.Group
 	bufPool                  *sync.Pool
+	backgroundRefreshes      sync.Map
 	storersLen               int
 }
 
@@ -399,8 +400,7 @@ func (s *SouinBaseHandler) Store(
 			return nil
 		}
 		res.Header.Set(rfc.StoredLengthHeader, res.Header.Get("Content-Length"))
-		response, err := httputil.DumpResponse(&res, true)
-		if err == nil && (bLen > 0 || rq.Method == http.MethodHead || canStatusCodeEmptyContent(statusCode) || s.hasAllowedAdditionalStatusCodesToCache(statusCode)) {
+		if bLen > 0 || rq.Method == http.MethodHead || canStatusCodeEmptyContent(statusCode) || s.hasAllowedAdditionalStatusCodesToCache(statusCode) {
 			variedHeaders, isVaryStar := rfc.VariedHeaderAllCommaSepValues(res.Header)
 			if isVaryStar {
 				// "Implies that the response is uncacheable"
@@ -412,6 +412,14 @@ func (s *SouinBaseHandler) Store(
 					variedKey = fmt.Sprint(xxhash.Sum64String(variedKey))
 				}
 				s.Configuration.GetLogger().Debugf("Store the response for %s with duration %v", variedKey, ma)
+				res.Header.Set(rfc.StoredKeyHeader, variedKey)
+				response, err := httputil.DumpResponse(&res, true)
+				if err != nil {
+					status += "; detail=UPSTREAM-ERROR-OR-EMPTY-RESPONSE"
+					customWriter.Header().Set("Cache-Status", status+"; key="+rfc.GetCacheKeyFromCtx(rq.Context()))
+
+					return nil
+				}
 
 				var wg sync.WaitGroup
 				mu := sync.Mutex{}
@@ -443,6 +451,7 @@ func (s *SouinBaseHandler) Store(
 							res.Header.Get("Etag"), ma,
 							variedKey,
 						) == nil {
+							s.clearSoftPurgeMarker(overridedStorer, variedKey)
 							s.Configuration.GetLogger().Debugf("Stored the key %s in the %s provider", variedKey, overridedStorer.Name())
 							res.Request = rq
 						} else {
@@ -461,6 +470,7 @@ func (s *SouinBaseHandler) Store(
 									currentRes.Header.Get("Etag"), ma,
 									variedKey,
 								) == nil {
+									s.clearSoftPurgeMarker(currentStorer, variedKey)
 									s.Configuration.GetLogger().Debugf("Stored the key %s in the %s provider", variedKey, currentStorer.Name())
 									currentRes.Request = rq
 								} else {
@@ -488,7 +498,6 @@ func (s *SouinBaseHandler) Store(
 					}
 				}
 			}
-
 		} else {
 			status += "; detail=UPSTREAM-ERROR-OR-EMPTY-RESPONSE"
 		}
@@ -878,6 +887,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 		validator := rfc.ParseRequest(req)
 		var fresh, stale *http.Response
 		var storerName string
+		var matchedStorer types.Storer
 		finalKey := cachedKey
 		if req.Context().Value(context.Hashed).(bool) {
 			finalKey = fmt.Sprint(xxhash.Sum64String(finalKey))
@@ -887,6 +897,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 
 			if fresh != nil || stale != nil {
 				storerName = currentStorer.Name()
+				matchedStorer = currentStorer
 				s.Configuration.GetLogger().Debugf("Found at least one valid response in the %s storage", storerName)
 				break
 			}
@@ -901,6 +912,9 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 			}()
 
 			response := fresh
+			if s.isSoftPurgedResponse(matchedStorer, response) {
+				return s.serveSoftPurgedResponse(customWriter, response, storerName, req, next, requestCc, cachedKey, uri)
+			}
 
 			if validator.ResponseETag != "" && validator.Matched {
 				rfc.SetCacheStatusHeader(response, storerName)
@@ -954,6 +968,8 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 
 				return err
 			}
+		} else if s.isSoftPurgedResponse(matchedStorer, stale) {
+			return s.serveSoftPurgedResponse(customWriter, stale, storerName, req, next, requestCc, cachedKey, uri)
 		} else if !requestCc.OnlyIfCached && (requestCc.MaxStaleSet || requestCc.MaxStale > -1) {
 			response := stale
 

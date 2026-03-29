@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strings"
 	"time"
@@ -23,6 +24,7 @@ type SouinAPI struct {
 	storers          []types.Storer
 	surrogateStorage providers.SurrogateInterface
 	allowedMethods   []string
+	logger           core.Logger
 }
 
 type invalidationType string
@@ -32,6 +34,10 @@ const (
 	uriPrefixInvalidationType invalidationType = "uri-prefix"
 	originInvalidationType    invalidationType = "origin"
 	groupInvalidationType     invalidationType = "group"
+
+	SoftPurgeModeHeader = "Souin-Purge-Mode"
+	softPurgeModeValue  = "soft"
+	softPurgeKeyPrefix  = "SOFTPURGE_"
 )
 
 type invalidation struct {
@@ -62,46 +68,84 @@ func initializeSouin(
 		storers,
 		surrogateStorage,
 		allowedMethods,
+		configuration.GetLogger(),
 	}
+}
+
+func SoftPurgeMarkerKey(key string) string {
+	return softPurgeKeyPrefix + key
+}
+
+func (s *SouinAPI) logInfof(template string, args ...any) {
+	if s.logger != nil {
+		s.logger.Infof(template, args...)
+	}
+}
+
+func (s *SouinAPI) logWarnf(template string, args ...any) {
+	if s.logger != nil {
+		s.logger.Warnf(template, args...)
+	}
+}
+
+func IsSoftPurgeRequest(r *http.Request) bool {
+	if strings.EqualFold(r.Header.Get(SoftPurgeModeHeader), softPurgeModeValue) {
+		return true
+	}
+
+	return strings.EqualFold(r.URL.Query().Get("mode"), softPurgeModeValue)
 }
 
 // BulkDelete allow user to delete multiple items with regexp
 func (s *SouinAPI) BulkDelete(key string, purge bool) {
 	key, _ = strings.CutPrefix(key, core.MappingKeyPrefix)
 	for _, current := range s.storers {
+		infiniteStoreDuration := storageToInfiniteTTLMap[current.Name()]
+		decodedKey, _ := url.QueryUnescape(key)
+
+		if purge {
+			current.Delete(SoftPurgeMarkerKey(key))
+		} else if err := current.Set(SoftPurgeMarkerKey(key), []byte(time.Now().UTC().Format(time.RFC3339Nano)), infiniteStoreDuration); err != nil {
+			s.logWarnf("Unable to soft-purge cache key %s in %s: %v", decodedKey, current.Name(), err)
+		} else {
+			s.logInfof("Soft-purged cache key %s in %s", decodedKey, current.Name())
+		}
+
 		if b := current.Get(core.MappingKeyPrefix + key); len(b) > 0 {
 			var mapping core.StorageMapper
 
 			if e := proto.Unmarshal(b, &mapping); e == nil {
-				for k := range mapping.GetMapping() {
-					current.Delete(k)
-				}
-			}
+				if purge {
+					for k := range mapping.GetMapping() {
+						current.Delete(k)
+					}
+				} else {
+					newFreshTime := time.Now().Add(-time.Second)
+					for k, v := range mapping.Mapping {
+						v.FreshTime = timestamppb.New(newFreshTime)
+						mapping.Mapping[k] = v
+					}
 
-			if !purge {
-				newFreshTime := time.Now()
-				for k, v := range mapping.Mapping {
-					v.FreshTime = timestamppb.New(newFreshTime)
-					mapping.Mapping[k] = v
+					v, e := proto.Marshal(&mapping)
+					if e != nil {
+						fmt.Println("Impossible to re-encode the mapping", core.MappingKeyPrefix+key)
+						current.Delete(core.MappingKeyPrefix + key)
+					} else {
+						_ = current.Set(core.MappingKeyPrefix+key, v, infiniteStoreDuration)
+					}
 				}
-
-				v, e := proto.Marshal(&mapping)
-				if e != nil {
-					fmt.Println("Impossible to re-encode the mapping", core.MappingKeyPrefix+key)
-					current.Delete(core.MappingKeyPrefix + key)
-				}
-				_ = current.Set(core.MappingKeyPrefix+key, v, storageToInfiniteTTLMap[current.Name()])
 			}
 		}
 
 		if purge {
 			current.Delete(core.MappingKeyPrefix + key)
+			current.Delete(key)
 		}
-
-		current.Delete(key)
 	}
 
-	s.Delete(key)
+	if purge {
+		s.Delete(key)
+	}
 }
 
 // Delete will delete a record into the provider cache system and will update the Souin API if enabled
@@ -212,13 +256,14 @@ func (s *SouinAPI) purgeMapping() {
 // HandleRequest will handle the request
 func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 	res := []byte{}
-	compile := regexp.MustCompile(s.GetBasePath()+"/.+").FindString(r.RequestURI) != ""
+	requestPath := r.URL.Path
+	compile := regexp.MustCompile(s.GetBasePath()+"/.+").FindString(requestPath) != ""
 	switch r.Method {
 	case http.MethodGet:
-		if regexp.MustCompile(s.GetBasePath()+"/surrogate_keys").FindString(r.RequestURI) != "" {
+		if regexp.MustCompile(s.GetBasePath()+"/surrogate_keys").FindString(requestPath) != "" {
 			res, _ = json.Marshal(s.surrogateStorage.List())
 		} else if compile {
-			search := regexp.MustCompile(s.GetBasePath()+"/(.+)").FindAllStringSubmatch(r.RequestURI, -1)[0][1]
+			search := regexp.MustCompile(s.GetBasePath()+"/(.+)").FindAllStringSubmatch(requestPath, -1)[0][1]
 			res, _ = json.Marshal(s.listKeys(search))
 			if len(res) == 2 {
 				w.WriteHeader(http.StatusNotFound)
@@ -303,12 +348,18 @@ func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 		}
 		w.WriteHeader(http.StatusOK)
 	case "PURGE":
+		softPurge := IsSoftPurgeRequest(r)
 		if compile {
 			keysRg := regexp.MustCompile(s.GetBasePath() + "/(.+)")
 			flushRg := regexp.MustCompile(s.GetBasePath() + "/flush$")
 			mappingRg := regexp.MustCompile(s.GetBasePath() + "/mapping$")
 
-			if flushRg.FindString(r.RequestURI) != "" {
+			if flushRg.FindString(requestPath) != "" {
+				if softPurge {
+					w.WriteHeader(http.StatusBadRequest)
+					_, _ = w.Write([]byte("soft purge is not supported for flush"))
+					return
+				}
 				for _, current := range s.storers {
 					current.DeleteMany(".+")
 				}
@@ -317,21 +368,38 @@ func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 					fmt.Printf("Error while purging the surrogate keys: %+v.", e)
 				}
 				fmt.Println("Successfully clear the cache and the surrogate keys storage.")
-			} else if mappingRg.FindString(r.RequestURI) != "" {
+			} else if mappingRg.FindString(requestPath) != "" {
 				s.purgeMapping()
 			} else {
-				submatch := keysRg.FindAllStringSubmatch(r.RequestURI, -1)[0][1]
-				for _, current := range s.storers {
-					current.DeleteMany(submatch)
+				submatch := keysRg.FindAllStringSubmatch(requestPath, -1)[0][1]
+				if softPurge {
+					s.BulkDelete(submatch, false)
+				} else {
+					for _, current := range s.storers {
+						current.DeleteMany(submatch)
+					}
 				}
 			}
 		} else {
-			ck, surrogateKeys := s.surrogateStorage.Purge(r.Header)
-			for _, k := range ck {
-				s.BulkDelete(k, true)
+			if s.surrogateStorage == nil {
+				w.WriteHeader(http.StatusServiceUnavailable)
+				_, _ = w.Write([]byte("surrogate storage is not initialized"))
+				return
 			}
-			for _, k := range surrogateKeys {
-				s.BulkDelete("SURROGATE_"+k, true)
+			ck, surrogateKeys := s.surrogateStorage.Purge(r.Header)
+			if softPurge {
+				s.logInfof("Soft purge requested for surrogate keys: %s", strings.Join(surrogateKeys, ", "))
+				for _, k := range ck {
+					s.BulkDelete(k, false)
+				}
+			} else {
+				s.logInfof("Hard purge requested for surrogate keys: %s", strings.Join(surrogateKeys, ", "))
+				for _, k := range ck {
+					s.BulkDelete(k, true)
+				}
+				for _, k := range surrogateKeys {
+					s.BulkDelete("SURROGATE_"+k, true)
+				}
 			}
 		}
 		w.WriteHeader(http.StatusNoContent)

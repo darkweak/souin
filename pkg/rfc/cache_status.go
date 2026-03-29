@@ -15,6 +15,7 @@ import (
 const (
 	StoredTTLHeader    = "X-Souin-Stored-TTL"
 	StoredLengthHeader = "X-Souin-Stored-Length"
+	StoredKeyHeader    = "X-Souin-Stored-Key"
 )
 
 var emptyHeaders = []string{"Expires", "Last-Modified"}

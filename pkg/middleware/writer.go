@@ -217,6 +217,7 @@ Content-Range: bytes %d-%d/%d
 
 	r.Header().Del(rfc.StoredLengthHeader)
 	r.Header().Del(rfc.StoredTTLHeader)
+	r.Header().Del(rfc.StoredKeyHeader)
 
 	if !r.headersSent {
 		r.Rw.WriteHeader(r.GetStatusCode())
