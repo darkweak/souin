@@ -35,8 +35,9 @@ func (adminAPI) CaddyModule() caddy.ModuleInfo {
 
 func (a *adminAPI) handleAPIEndpoints(writer http.ResponseWriter, request *http.Request) error {
 	if a.InternalEndpointHandlers != nil {
+		requestPath := request.URL.Path
 		for k, handler := range *a.InternalEndpointHandlers.Handlers {
-			if strings.Contains(request.RequestURI, k) {
+			if strings.Contains(requestPath, k) {
 				handler(writer, request)
 				return nil
 			}
@@ -63,6 +64,10 @@ func (a *adminAPI) Provision(ctx caddy.Context) error {
 		currentApp := app.(*SouinApp)
 
 		item := <-currentApp.onMiddlewareLoaded()
+		surrogateStorage := item.SurrogateStorage
+		if surrogateStorage == nil {
+			surrogateStorage = currentApp.SurrogateStorage
+		}
 
 		config := Configuration{
 			API: item.API,
@@ -75,7 +80,8 @@ func (a *adminAPI) Provision(ctx caddy.Context) error {
 				},
 			},
 		}
-		a.InternalEndpointHandlers = api.GenerateHandlerMap(&config, currentApp.Storers, item.SurrogateStorage)
+		config.SetLogger(a.logger)
+		a.InternalEndpointHandlers = api.GenerateHandlerMap(&config, currentApp.Storers, surrogateStorage)
 	}()
 
 	return nil

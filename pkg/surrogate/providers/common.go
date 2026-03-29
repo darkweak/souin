@@ -304,6 +304,13 @@ func (s *baseStorage) List() map[string]string {
 	return s.Storage.MapKeys(surrogatePrefix)
 }
 
+// Clear removes only surrogate index entries without resetting the underlying storage.
+func (s *baseStorage) Clear() {
+	for key := range s.List() {
+		s.Storage.Delete(surrogatePrefix + key)
+	}
+}
+
 // Destruct method will shutdown properly the provider
 func (s *baseStorage) Destruct() error {
 	return s.Storage.Reset()
