@@ -88,7 +88,7 @@ func TestSoftPurgeServesStaleThenRefreshesInBackground(t *testing.T) {
 
 	origin.setVersion("version-2")
 
-	purgeReq, _ := http.NewRequest("PURGE", "http://localhost:2999/souin-api/souin?mode=soft", nil)
+	purgeReq, _ := http.NewRequest("PURGE", "http://localhost:2999/souin-api/souin", nil)
 	purgeReq.Header.Set("Surrogate-Key", "post-1")
 	purgeReq.Header.Set("Souin-Purge-Mode", "soft")
 	_, _ = tester.AssertResponse(purgeReq, http.StatusNoContent, "")
@@ -161,7 +161,7 @@ func TestSoftPurgeConditionalRevalidationWithNotModified(t *testing.T) {
 
 	_, _ = tester.AssertGetResponse("http://localhost:9080/soft-purge-conditional", http.StatusOK, "version-1")
 
-	purgeReq, _ := http.NewRequest("PURGE", "http://localhost:2999/souin-api/souin?mode=soft", nil)
+	purgeReq, _ := http.NewRequest("PURGE", "http://localhost:2999/souin-api/souin", nil)
 	purgeReq.Header.Set("Surrogate-Key", "post-1")
 	purgeReq.Header.Set("Souin-Purge-Mode", "soft")
 	_, _ = tester.AssertResponse(purgeReq, http.StatusNoContent, "")
@@ -235,7 +235,7 @@ func TestSoftPurgeWithBypassRequestModeStillServesStaleAndRefreshes(t *testing.T
 
 	origin.setVersion("version-2")
 
-	purgeReq, _ := http.NewRequest("PURGE", "http://localhost:2999/souin-api/souin?mode=soft", nil)
+	purgeReq, _ := http.NewRequest("PURGE", "http://localhost:2999/souin-api/souin", nil)
 	purgeReq.Header.Set("Surrogate-Key", "post-1")
 	purgeReq.Header.Set("Souin-Purge-Mode", "soft")
 	_, _ = tester.AssertResponse(purgeReq, http.StatusNoContent, "")

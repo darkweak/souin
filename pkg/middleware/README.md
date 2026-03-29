@@ -20,7 +20,6 @@ hit, a stale hit, a revalidation, or a miss.
 ### In a soft purge request
 The client sends a `PURGE` request to the API endpoint with surrogate keys, and sets either:
 * `Souin-Purge-Mode: soft`
-* `?mode=soft`
 
 The middleware-related behavior is different from a hard purge:
 * the cached object is kept in storage

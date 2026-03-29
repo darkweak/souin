@@ -33,8 +33,8 @@ func TestIsSoftPurgeRequest(t *testing.T) {
 	}
 
 	reqWithQuery, _ := http.NewRequest("PURGE", "http://example.com/souin-api/souin?mode=soft", nil)
-	if !IsSoftPurgeRequest(reqWithQuery) {
-		t.Fatal("request with soft purge query parameter should be detected as soft purge")
+	if IsSoftPurgeRequest(reqWithQuery) {
+		t.Fatal("request with only soft purge query parameter should not be detected as soft purge")
 	}
 
 	reqHard, _ := http.NewRequest("PURGE", "http://example.com/souin-api/souin", nil)
@@ -129,7 +129,7 @@ func TestSoftPurgeFlushIsRejected(t *testing.T) {
 	api, _ := newTestSouinAPI(t)
 	api.basePath = "/souin"
 
-	req := httptest.NewRequest("PURGE", "/souin/flush?mode=soft", nil)
+	req := httptest.NewRequest("PURGE", "/souin/flush", nil)
 	req.Header.Set(SoftPurgeModeHeader, "soft")
 	res := httptest.NewRecorder()
 

@@ -89,11 +89,7 @@ func (s *SouinAPI) logWarnf(template string, args ...any) {
 }
 
 func IsSoftPurgeRequest(r *http.Request) bool {
-	if strings.EqualFold(r.Header.Get(SoftPurgeModeHeader), softPurgeModeValue) {
-		return true
-	}
-
-	return strings.EqualFold(r.URL.Query().Get("mode"), softPurgeModeValue)
+	return strings.EqualFold(r.Header.Get(SoftPurgeModeHeader), softPurgeModeValue)
 }
 
 // BulkDelete allow user to delete multiple items with regexp
