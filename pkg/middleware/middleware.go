@@ -970,7 +970,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 			}
 		} else if s.isSoftPurgedResponse(matchedStorer, stale) {
 			return s.serveSoftPurgedResponse(customWriter, stale, storerName, req, next, requestCc, cachedKey, uri)
-		} else if !requestCc.OnlyIfCached && (requestCc.MaxStaleSet || requestCc.MaxStale > -1) {
+		} else if stale != nil {
 			response := stale
 
 			if nil != response && (!modeContext.Strict || rfc.ValidateCacheControl(response, requestCc)) {
@@ -979,27 +979,12 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 
 				responseCc, _ := cacheobject.ParseResponseCacheControl(rfc.HeaderAllCommaSepValuesString(response.Header, "Cache-Control"))
 				if responseCc.StaleWhileRevalidate > 0 {
-					for h, v := range response.Header {
-						customWriter.Header()[h] = v
+					if !modeContext.Strict || rfc.ValidateMaxAgeCachedStaleResponse(requestCc, responseCc, response, int(addTime.Seconds())) != nil {
+						return s.serveStaleWhileRevalidateResponse(customWriter, response, req, next, validator, requestCc, cachedKey, uri)
 					}
-					customWriter.WriteHeader(response.StatusCode)
-					rfc.HitStaleCache(&response.Header)
-					customWriter.handleBuffer(func(b *bytes.Buffer) {
-						_, _ = io.Copy(b, response.Body)
-					})
-					_, err := customWriter.Send()
-					customWriter = NewCustomWriter(req, rw, bufPool)
-					go func(v *core.Revalidator, goCw *CustomWriter, goRq *http.Request, goNext func(http.ResponseWriter, *http.Request) error, goCc *cacheobject.RequestCacheDirectives, goCk string, goUri string) {
-						_ = s.Revalidate(v, goNext, goCw, goRq, goCc, goCk, goUri)
-					}(validator, customWriter, req, next, requestCc, cachedKey, uri)
-					buf := s.bufPool.Get().(*bytes.Buffer)
-					buf.Reset()
-					defer s.bufPool.Put(buf)
-
-					return err
 				}
 
-				if modeContext.Bypass_response || responseCc.MustRevalidate || responseCc.NoCachePresent || validator.NeedRevalidation {
+				if !requestCc.OnlyIfCached && (requestCc.MaxStaleSet || requestCc.MaxStale > -1) && (modeContext.Bypass_response || responseCc.MustRevalidate || responseCc.NoCachePresent || validator.NeedRevalidation) {
 					req.Header["If-None-Match"] = append(req.Header["If-None-Match"], validator.ResponseETag)
 					err := s.Revalidate(validator, next, customWriter, req, requestCc, cachedKey, uri)
 					statusCode := customWriter.GetStatusCode()

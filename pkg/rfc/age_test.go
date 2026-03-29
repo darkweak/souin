@@ -80,3 +80,30 @@ func Test_ValidateMaxStaleCachedResponse(t *testing.T) {
 		t.Errorf("The max-stale validation should return the response instead of nil with the given parameters:\nRequestCacheDirectives: %+v\nResponse: %+v\n", coWithMaxStale, expiredMaxAge)
 	}
 }
+
+func Test_ValidateMaxStaleCachedResponseWithStaleWhileRevalidate(t *testing.T) {
+	coWithoutMaxStale := cacheobject.RequestCacheDirectives{
+		MaxStale: -1,
+	}
+	responseCc := cacheobject.ResponseCacheDirectives{
+		StaleWhileRevalidate: 30,
+	}
+
+	validStaleWhileRevalidate := http.Response{
+		Header: http.Header{
+			"Age": []string{"20"},
+		},
+	}
+	expiredStaleWhileRevalidate := http.Response{
+		Header: http.Header{
+			"Age": []string{"50"},
+		},
+	}
+
+	if ValidateMaxAgeCachedStaleResponse(&coWithoutMaxStale, &responseCc, &validStaleWhileRevalidate, 1) == nil {
+		t.Errorf("The stale-while-revalidate validation should return the response instead of nil with the given parameters:\nRequestCacheDirectives: %+v\nResponseCacheDirectives: %+v\nResponse: %+v\n", coWithoutMaxStale, responseCc, validStaleWhileRevalidate)
+	}
+	if ValidateMaxAgeCachedStaleResponse(&coWithoutMaxStale, &responseCc, &expiredStaleWhileRevalidate, 1) != nil {
+		t.Errorf("The stale-while-revalidate validation should return nil instead of the response with the given parameters:\nRequestCacheDirectives: %+v\nResponseCacheDirectives: %+v\nResponse: %+v\n", coWithoutMaxStale, responseCc, expiredStaleWhileRevalidate)
+	}
+}
