@@ -363,9 +363,8 @@ func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 				for _, current := range s.storers {
 					current.DeleteMany(".+")
 				}
-				e := s.surrogateStorage.Destruct()
-				if e != nil {
-					fmt.Printf("Error while purging the surrogate keys: %+v.", e)
+				if s.surrogateStorage != nil {
+					s.surrogateStorage.Clear()
 				}
 				fmt.Println("Successfully clear the cache and the surrogate keys storage.")
 			} else if mappingRg.FindString(requestPath) != "" {

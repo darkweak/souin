@@ -8,6 +8,7 @@ import (
 
 	"github.com/darkweak/souin/pkg/storage"
 	"github.com/darkweak/souin/pkg/storage/types"
+	"github.com/darkweak/souin/pkg/surrogate/providers"
 	"github.com/darkweak/souin/tests"
 	"github.com/darkweak/storages/core"
 	"google.golang.org/protobuf/proto"
@@ -140,5 +141,43 @@ func TestSoftPurgeFlushIsRejected(t *testing.T) {
 
 	if body := res.Body.String(); body != "soft purge is not supported for flush" {
 		t.Fatalf("unexpected soft purge flush response body %q", body)
+	}
+}
+
+func TestFlushClearsSharedSurrogateStorageWithoutResettingStorer(t *testing.T) {
+	cfg := tests.MockConfiguration(tests.BaseConfiguration)
+	storer, _ := storage.Factory(cfg)
+	core.RegisterStorage(storer)
+
+	surrogateStorage := providers.SurrogateFactory(cfg, storer.Name())
+	api := initializeSouin(cfg, []types.Storer{storer}, surrogateStorage)
+	api.basePath = "/souin"
+
+	cacheKey := "GET-http-example.com-/"
+	if err := storer.Set(cacheKey, []byte("payload"), types.OneYearDuration); err != nil {
+		t.Fatalf("unable to store cache entry: %v", err)
+	}
+	if err := storer.Set("SURROGATE_blog-1-home", []byte(","+cacheKey), types.OneYearDuration); err != nil {
+		t.Fatalf("unable to store surrogate entry: %v", err)
+	}
+
+	req := httptest.NewRequest("PURGE", "/souin/flush", nil)
+	res := httptest.NewRecorder()
+	api.HandleRequest(res, req)
+
+	if res.Code != http.StatusNoContent {
+		t.Fatalf("expected flush to return %d, got %d", http.StatusNoContent, res.Code)
+	}
+
+	if got := storer.Get(cacheKey); len(got) != 0 {
+		t.Fatal("flush should remove cached entries")
+	}
+
+	if got := storer.Get("SURROGATE_blog-1-home"); len(got) != 0 {
+		t.Fatal("flush should remove surrogate entries")
+	}
+
+	if err := storer.Set("still-open", []byte("ok"), time.Minute); err != nil {
+		t.Fatalf("flush should not reset the shared storage: %v", err)
 	}
 }
