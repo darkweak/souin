@@ -197,7 +197,7 @@ func (r *CustomWriter) Send() (int, error) {
 
 			r.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", contentRangeValue.from, contentRangeValue.to, bufLen))
 
-			if internalTo >= 0 {
+			if internalTo >= 0 && int64(len(content)) >= (internalTo-internalFrom) {
 				content = content[:internalTo-internalFrom]
 				r.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", header.from, header.to, bufLen))
 			}
