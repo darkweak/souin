@@ -2,6 +2,7 @@ package protocol
 
 import (
 	"fmt"
+	"sync/atomic"
 	"time"
 )
 
@@ -95,6 +96,8 @@ func (e ECN) String() string {
 // A ByteCount in QUIC
 type ByteCount int64
 
+type AtomicByteCount atomic.Int64
+
 // MaxByteCount is the maximum value of a ByteCount
 const MaxByteCount = ByteCount(1<<62 - 1)
 
@@ -122,6 +125,10 @@ const MinUnknownVersionPacketSize = MinInitialPacketSize
 
 // MinStatelessResetSize is the minimum size of a stateless reset packet that we send
 const MinStatelessResetSize = 1 /* first byte */ + 20 /* max. conn ID length */ + 4 /* max. packet number length */ + 1 /* min. payload length */ + 16 /* token */
+
+// MinReceivedStatelessResetSize is the minimum size of a received stateless reset,
+// as specified in section 10.3 of RFC 9000.
+const MinReceivedStatelessResetSize = 5 + 16
 
 // MinConnectionIDLenInitial is the minimum length of the destination connection ID on an Initial packet.
 const MinConnectionIDLenInitial = 8

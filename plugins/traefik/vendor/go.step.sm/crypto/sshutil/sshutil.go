@@ -3,11 +3,13 @@ package sshutil
 import (
 	"crypto"
 	"crypto/dsa" //nolint:staticcheck // support for DSA fingerprints
+	"crypto/ecdh"
 	"crypto/ecdsa"
 	"crypto/ed25519"
 	"crypto/elliptic"
 	"crypto/rsa"
 	"fmt"
+	"math/big"
 
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
@@ -48,13 +50,17 @@ func cryptoSKPublicKey(pub ssh.PublicKey) (crypto.PublicKey, error) {
 		if err := ssh.Unmarshal(pub.Marshal(), &w); err != nil {
 			return nil, err
 		}
-		key := new(ecdsa.PublicKey)
-		key.Curve = elliptic.P256()
-		key.X, key.Y = elliptic.Unmarshal(key.Curve, w.Key)
-		if key.X == nil || key.Y == nil {
-			return nil, fmt.Errorf("invalid curve point")
+
+		p, err := ecdh.P256().NewPublicKey(w.Key)
+		if err != nil {
+			return nil, fmt.Errorf("failed decoding ECDSA key: %w", err)
 		}
-		return key, nil
+
+		return &ecdsa.PublicKey{
+			Curve: elliptic.P256(),
+			X:     big.NewInt(0).SetBytes(p.Bytes()[1:33]),
+			Y:     big.NewInt(0).SetBytes(p.Bytes()[33:]),
+		}, nil
 	case "sk-ssh-ed25519@openssh.com":
 		var w struct {
 			Name        string

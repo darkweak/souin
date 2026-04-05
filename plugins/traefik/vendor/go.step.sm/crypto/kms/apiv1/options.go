@@ -18,6 +18,18 @@ type KeyManager interface {
 	Close() error
 }
 
+// SearchableKeyManager is an optional interface for KMS implementations
+// that support searching for keys based on certain attributes.
+//
+// # Experimental
+//
+// Notice: This API is EXPERIMENTAL and may be changed or removed in a later
+// release.
+type SearchableKeyManager interface {
+	KeyManager
+	SearchKeys(req *SearchKeysRequest) (*SearchKeysResponse, error)
+}
+
 // Decrypter is an interface implemented by KMSes that are used
 // in operations that require decryption
 type Decrypter interface {

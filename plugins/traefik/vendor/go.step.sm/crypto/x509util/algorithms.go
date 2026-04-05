@@ -87,10 +87,14 @@ func (s SignatureAlgorithm) Set(c *x509.Certificate) {
 
 // MarshalJSON implements the json.Marshaller interface.
 func (s SignatureAlgorithm) MarshalJSON() ([]byte, error) {
-	if s == SignatureAlgorithm(x509.UnknownSignatureAlgorithm) {
+	switch s {
+	case SignatureAlgorithm(x509.UnknownSignatureAlgorithm):
 		return []byte(`""`), nil
+	case SignatureAlgorithm(x509.MD2WithRSA): // removed from stdlib in https://github.com/golang/go/commit/c96159c25217c84a252be5d74d48861af715ecf8
+		return []byte(`"` + MD2WithRSA + `"`), nil
+	default:
+		return []byte(`"` + x509.SignatureAlgorithm(s).String() + `"`), nil
 	}
-	return []byte(`"` + x509.SignatureAlgorithm(s).String() + `"`), nil
 }
 
 // UnmarshalJSON implements the json.Unmarshal interface and unmarshals and

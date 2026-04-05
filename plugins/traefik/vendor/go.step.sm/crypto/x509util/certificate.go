@@ -7,6 +7,7 @@ import (
 	"crypto/rand"
 	"crypto/x509"
 	"encoding/json"
+	"time"
 
 	"github.com/pkg/errors"
 )
@@ -16,6 +17,7 @@ import (
 type Certificate struct {
 	Version               int                      `json:"version"`
 	Subject               Subject                  `json:"subject"`
+	RawSubject            []byte                   `json:"rawSubject"`
 	Issuer                Issuer                   `json:"issuer"`
 	SerialNumber          SerialNumber             `json:"serialNumber"`
 	DNSNames              MultiString              `json:"dnsNames"`
@@ -23,6 +25,8 @@ type Certificate struct {
 	IPAddresses           MultiIP                  `json:"ipAddresses"`
 	URIs                  MultiURL                 `json:"uris"`
 	SANs                  []SubjectAlternativeName `json:"sans"`
+	NotBefore             time.Time                `json:"notBefore"`
+	NotAfter              time.Time                `json:"notAfter"`
 	Extensions            []Extension              `json:"extensions"`
 	KeyUsage              KeyUsage                 `json:"keyUsage"`
 	ExtKeyUsage           ExtKeyUsage              `json:"extKeyUsage"`
@@ -125,6 +129,7 @@ func (c *Certificate) GetCertificate() *x509.Certificate {
 	// Unparsed data
 	cert.PublicKey = c.PublicKey
 	cert.PublicKeyAlgorithm = c.PublicKeyAlgorithm
+	cert.RawSubject = c.RawSubject
 
 	// Subject
 	c.Subject.Set(cert)
@@ -165,6 +170,10 @@ func (c *Certificate) GetCertificate() *x509.Certificate {
 		e.Set(cert)
 	}
 
+	// Validity bounds.
+	cert.NotBefore = c.NotBefore
+	cert.NotAfter = c.NotAfter
+
 	// Others.
 	c.SerialNumber.Set(cert)
 	c.SignatureAlgorithm.Set(cert)
@@ -179,7 +188,7 @@ func (c *Certificate) GetCertificate() *x509.Certificate {
 // See also https://datatracker.ietf.org/doc/html/rfc5280.html#section-4.2.1.6
 func (c *Certificate) hasExtendedSANs() bool {
 	for _, san := range c.SANs {
-		if !(san.Type == DNSType || san.Type == EmailType || san.Type == IPType || san.Type == URIType || san.Type == AutoType || san.Type == "") {
+		if !(san.Type == DNSType || san.Type == EmailType || san.Type == IPType || san.Type == URIType || san.Type == AutoType || san.Type == "") { //nolint:staticcheck // QF1001, this version is more semantically readable
 			return true
 		}
 	}

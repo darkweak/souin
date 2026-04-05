@@ -1,6 +1,7 @@
 package x509util
 
 import (
+	"crypto/x509"
 	"encoding/asn1"
 	"encoding/json"
 	"net"
@@ -125,6 +126,44 @@ func (m *MultiURL) UnmarshalJSON(data []byte) error {
 		}
 
 		*m = MultiURL(urls)
+	}
+	return nil
+}
+
+// MultiOID is a type used to unmarshal a JSON string or an array
+// of strings into a []x509.OID.
+type MultiOID []x509.OID
+
+// MarshalJSON implements the json.Marshaler interface for MultiOID.
+func (m MultiOID) MarshalJSON() ([]byte, error) {
+	if m == nil {
+		return []byte("null"), nil
+	}
+	oids := make([]string, len(m))
+	for i, u := range m {
+		oids[i] = u.String()
+	}
+	return json.Marshal(oids)
+}
+
+// UnmarshalJSON implements the json.Unmarshaler interface for
+// MultiOID.
+func (m *MultiOID) UnmarshalJSON(data []byte) error {
+	ms, err := unmarshalMultiString(data)
+	if err != nil {
+		return err
+	}
+	if ms != nil {
+		oids := make([]x509.OID, len(ms))
+		for i, s := range ms {
+			oid, err := x509.ParseOID(s)
+			if err != nil {
+				return err
+			}
+			oids[i] = oid
+		}
+
+		*m = MultiOID(oids)
 	}
 	return nil
 }

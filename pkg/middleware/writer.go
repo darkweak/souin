@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/darkweak/go-esi/esi"
 	"github.com/darkweak/souin/pkg/rfc"
@@ -36,9 +37,9 @@ type CustomWriter struct {
 	Rw          http.ResponseWriter
 	Req         *http.Request
 	Headers     http.Header
-	headersSent bool
 	mutex       sync.Mutex
 	statusCode  int
+	headersSent atomic.Bool
 }
 
 func (r *CustomWriter) handleBuffer(callback func(*bytes.Buffer)) {
@@ -49,10 +50,7 @@ func (r *CustomWriter) handleBuffer(callback func(*bytes.Buffer)) {
 
 // Header will write the response headers
 func (r *CustomWriter) Header() http.Header {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	if r.headersSent || r.Req.Context().Err() != nil {
+	if r.headersSent.Load() || r.Req.Context().Err() != nil {
 		return http.Header{}
 	}
 
@@ -69,12 +67,13 @@ func (r *CustomWriter) GetStatusCode() int {
 
 // WriteHeader will write the response headers
 func (r *CustomWriter) WriteHeader(code int) {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-	if r.headersSent {
+	if r.headersSent.Load() {
 		return
 	}
+
+	r.mutex.Lock()
 	r.statusCode = code
+	r.mutex.Unlock()
 }
 
 // Write will write the response body
@@ -102,12 +101,23 @@ func parseRange(rangeHeaders []string, contentRange string) ([]rangeValue, range
 	var total int64 = -1
 	if contentRange != "" {
 		crVal := strings.Split(strings.TrimPrefix(contentRange, "bytes "), "/")
-		total, _ = strconv.ParseInt(crVal[1], 10, 64)
-		total--
 
-		crSplit := strings.Split(crVal[0], "-")
-		crv.from, _ = strconv.ParseInt(crSplit[0], 10, 64)
-		crv.to, _ = strconv.ParseInt(crSplit[1], 10, 64)
+		if len(crVal) >= 2 {
+			total, _ = strconv.ParseInt(crVal[1], 10, 64)
+			total--
+		}
+
+		if len(crVal) >= 1 {
+			crSplit := strings.Split(crVal[0], "-")
+
+			if len(crSplit) >= 1 {
+				crv.from, _ = strconv.ParseInt(crSplit[0], 10, 64)
+
+				if len(crSplit) >= 2 {
+					crv.to, _ = strconv.ParseInt(crSplit[1], 10, 64)
+				}
+			}
+		}
 	}
 
 	values := make([]rangeValue, len(rangeHeaders))
@@ -127,11 +137,15 @@ func parseRange(rangeHeaders []string, contentRange string) ([]rangeValue, range
 			continue
 		}
 
-		rv.from, _ = strconv.ParseInt(ranges[0], 10, 64)
+		if len(ranges) >= 1 {
+			rv.from, _ = strconv.ParseInt(ranges[0], 10, 64)
 
-		if ranges[1] != "" {
-			rv.to, _ = strconv.ParseInt(ranges[1], 10, 64)
-			rv.to++
+			if len(ranges) > 1 {
+				if ranges[1] != "" {
+					rv.to, _ = strconv.ParseInt(ranges[1], 10, 64)
+					rv.to++
+				}
+			}
 		}
 
 		values[idx] = rv
@@ -145,12 +159,15 @@ func (r *CustomWriter) Send() (int, error) {
 	defer r.handleBuffer(func(b *bytes.Buffer) {
 		b.Reset()
 	})
+
 	storedLength := r.Header().Get(rfc.StoredLengthHeader)
 	if storedLength != "" {
 		r.Header().Set("Content-Length", storedLength)
 	}
 
+	r.mutex.Lock()
 	result := r.Buf.Bytes()
+	r.mutex.Unlock()
 
 	result = esi.Parse(result, r.Req)
 
@@ -180,7 +197,7 @@ func (r *CustomWriter) Send() (int, error) {
 
 			r.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", contentRangeValue.from, contentRangeValue.to, bufLen))
 
-			if internalTo >= 0 {
+			if internalTo >= 0 && int64(len(content)) >= (internalTo-internalFrom) {
 				content = content[:internalTo-internalFrom]
 				r.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", header.from, header.to, bufLen))
 			}
@@ -218,9 +235,12 @@ Content-Range: bytes %d-%d/%d
 	r.Header().Del(rfc.StoredLengthHeader)
 	r.Header().Del(rfc.StoredTTLHeader)
 
-	if !r.headersSent {
-		r.Rw.WriteHeader(r.GetStatusCode())
-		r.headersSent = true
+	if !r.headersSent.Load() {
+		r.mutex.Lock()
+		r.Rw.WriteHeader(r.statusCode)
+		r.mutex.Unlock()
+
+		r.headersSent.Store(true)
 	}
 
 	return r.Rw.Write(result)

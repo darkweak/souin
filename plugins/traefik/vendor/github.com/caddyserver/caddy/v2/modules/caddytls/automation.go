@@ -173,6 +173,9 @@ type AutomationPolicy struct {
 	subjects []string
 	magic    *certmagic.Config
 	storage  certmagic.Storage
+
+	// Whether this policy had explicit managers configured directly on it.
+	hadExplicitManagers bool
 }
 
 // Provision sets up ap and builds its underlying CertMagic config.
@@ -209,9 +212,8 @@ func (ap *AutomationPolicy) Provision(tlsApp *TLS) error {
 	// store them on the policy before putting it on the config
 
 	// load and provision any cert manager modules
-	var hadExplicitManagers bool
 	if ap.ManagersRaw != nil {
-		hadExplicitManagers = true
+		ap.hadExplicitManagers = true
 		vals, err := tlsApp.ctx.LoadModule(ap, "ManagersRaw")
 		if err != nil {
 			return fmt.Errorf("loading external certificate manager modules: %v", err)
@@ -241,22 +243,49 @@ func (ap *AutomationPolicy) Provision(tlsApp *TLS) error {
 		}
 	}
 
+	// build certmagic.Config and attach it to the policy
+	storage := ap.storage
+	if storage == nil {
+		storage = tlsApp.ctx.Storage()
+	}
+	cfg, err := ap.makeCertMagicConfig(tlsApp, issuers, storage)
+	if err != nil {
+		return err
+	}
+	certCacheMu.RLock()
+	ap.magic = certmagic.New(certCache, cfg)
+	certCacheMu.RUnlock()
+
+	// give issuers a chance to see the config pointer
+	for _, issuer := range ap.magic.Issuers {
+		if annoying, ok := issuer.(ConfigSetter); ok {
+			annoying.SetConfig(ap.magic)
+		}
+	}
+
+	return nil
+}
+
+// makeCertMagicConfig constructs a certmagic.Config for this policy using the
+// provided issuers and storage. It encapsulates common logic shared between
+// Provision and RebuildCertMagic so we don't duplicate code.
+func (ap *AutomationPolicy) makeCertMagicConfig(tlsApp *TLS, issuers []certmagic.Issuer, storage certmagic.Storage) (certmagic.Config, error) {
+	// key source
 	keyType := ap.KeyType
 	if keyType != "" {
 		var err error
 		keyType, err = caddy.NewReplacer().ReplaceOrErr(ap.KeyType, true, true)
 		if err != nil {
-			return fmt.Errorf("invalid key type %s: %s", ap.KeyType, err)
+			return certmagic.Config{}, fmt.Errorf("invalid key type %s: %s", ap.KeyType, err)
 		}
 		if _, ok := supportedCertKeyTypes[keyType]; !ok {
-			return fmt.Errorf("unrecognized key type: %s", keyType)
+			return certmagic.Config{}, fmt.Errorf("unrecognized key type: %s", keyType)
 		}
 	}
 	keySource := certmagic.StandardKeyGenerator{
 		KeyType: supportedCertKeyTypes[keyType],
 	}
 
-	storage := ap.storage
 	if storage == nil {
 		storage = tlsApp.ctx.Storage()
 	}
@@ -271,11 +300,11 @@ func (ap *AutomationPolicy) Provision(tlsApp *TLS) error {
 		// prevent issuance from Issuers (when Managers don't provide a certificate) if there's no
 		// permission module configured
 		noProtections := ap.isWildcardOrDefault() && !ap.onlyInternalIssuer() && (tlsApp.Automation == nil || tlsApp.Automation.OnDemand == nil || tlsApp.Automation.OnDemand.permission == nil)
-		failClosed := noProtections && !hadExplicitManagers // don't allow on-demand issuance (other than implicit managers) if no managers have been explicitly configured
+		failClosed := noProtections && !ap.hadExplicitManagers // don't allow on-demand issuance (other than implicit managers) if no managers have been explicitly configured
 		if noProtections {
-			if !hadExplicitManagers {
+			if !ap.hadExplicitManagers {
 				// no managers, no explicitly-configured permission module, this is a config error
-				return fmt.Errorf("on-demand TLS cannot be enabled without a permission module to prevent abuse; please refer to documentation for details")
+				return certmagic.Config{}, fmt.Errorf("on-demand TLS cannot be enabled without a permission module to prevent abuse; please refer to documentation for details")
 			}
 			// allow on-demand to be enabled but only for the purpose of the Managers; issuance won't be allowed from Issuers
 			tlsApp.logger.Warn("on-demand TLS can only get certificates from the configured external manager(s) because no ask endpoint / permission module is specified")
@@ -332,7 +361,7 @@ func (ap *AutomationPolicy) Provision(tlsApp *TLS) error {
 		}
 	}
 
-	template := certmagic.Config{
+	cfg := certmagic.Config{
 		MustStaple:         ap.MustStaple,
 		RenewalWindowRatio: ap.RenewalWindowRatio,
 		KeySource:          keySource,
@@ -347,8 +376,31 @@ func (ap *AutomationPolicy) Provision(tlsApp *TLS) error {
 		Issuers: issuers,
 		Logger:  tlsApp.logger,
 	}
+
+	return cfg, nil
+}
+
+// IsProvisioned reports whether the automation policy has been
+// provisioned. A provisioned policy has an initialized CertMagic
+// instance (i.e. ap.magic != nil).
+func (ap *AutomationPolicy) IsProvisioned() bool { return ap.magic != nil }
+
+// RebuildCertMagic rebuilds the policy's CertMagic configuration from the
+// policy's already-populated fields (Issuers, Managers, storage, etc.) and
+// replaces the internal CertMagic instance. This is a lightweight
+// alternative to calling Provision because it does not re-provision
+// modules or re-run module Provision; instead, it constructs a new
+// certmagic.Config and calls SetConfig on issuers so they receive updated
+// templates (for example, alternate HTTP/TLS ports supplied by the HTTP
+// app). RebuildCertMagic should only be called when the policy's required
+// fields are already populated.
+func (ap *AutomationPolicy) RebuildCertMagic(tlsApp *TLS) error {
+	cfg, err := ap.makeCertMagicConfig(tlsApp, ap.Issuers, ap.storage)
+	if err != nil {
+		return err
+	}
 	certCacheMu.RLock()
-	ap.magic = certmagic.New(certCache, template)
+	ap.magic = certmagic.New(certCache, cfg)
 	certCacheMu.RUnlock()
 
 	// sometimes issuers may need the parent certmagic.Config in
@@ -388,10 +440,8 @@ func (ap *AutomationPolicy) onlyInternalIssuer() bool {
 // isWildcardOrDefault determines if the subjects include any wildcard domains,
 // or is the "default" policy (i.e. no subjects) which is unbounded.
 func (ap *AutomationPolicy) isWildcardOrDefault() bool {
-	isWildcardOrDefault := false
-	if len(ap.subjects) == 0 {
-		isWildcardOrDefault = true
-	}
+	isWildcardOrDefault := len(ap.subjects) == 0
+
 	for _, sub := range ap.subjects {
 		if strings.HasPrefix(sub, "*") {
 			isWildcardOrDefault = true
@@ -456,6 +506,22 @@ type ChallengesConfig struct {
 	// Optionally customize the host to which a listener
 	// is bound if required for solving a challenge.
 	BindHost string `json:"bind_host,omitempty"`
+
+	// Whether distributed solving is enabled. This is
+	// enabled by default, so this is only used to
+	// disable it, which should only need to be done if
+	// you cannot reliably or affordably use storage
+	// backend for writing/distributing challenge info.
+	// (Applies to HTTP and TLS-ALPN challenges.)
+	// If set to false, challenges can only be solved
+	// from the Caddy instance that initiated the
+	// challenge, with the exception of HTTP challenges
+	// initiated with the same ACME account that this
+	// config uses. (Caddy can still solve those challenges
+	// without explicitly writing the info to storage.)
+	//
+	// Default: true
+	Distributed *bool `json:"distributed,omitempty"`
 }
 
 // HTTPChallengeConfig configures the ACME HTTP challenge.
