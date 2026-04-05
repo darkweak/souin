@@ -974,6 +974,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 				customWriter.WriteHeader(response.StatusCode)
 				customWriter.handleBuffer(func(b *bytes.Buffer) {
 					_, _ = io.Copy(b, response.Body)
+					_ = response.Body.Close()
 				})
 				_, _ = customWriter.Send()
 
@@ -1002,6 +1003,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 				s.Configuration.GetLogger().Debugf("Serve from cache %+v", req)
 				customWriter.handleBuffer(func(b *bytes.Buffer) {
 					_, _ = io.Copy(b, response.Body)
+					_ = response.Body.Close()
 				})
 				_, err := customWriter.Send()
 				prometheus.Increment(prometheus.CachedResponseCounter)
@@ -1024,6 +1026,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 					rfc.HitStaleCache(&response.Header)
 					customWriter.handleBuffer(func(b *bytes.Buffer) {
 						_, _ = io.Copy(b, response.Body)
+						_ = response.Body.Close()
 					})
 					_, err := customWriter.Send()
 					customWriter = NewCustomWriter(req, rw, new(bytes.Buffer))
@@ -1048,6 +1051,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 							customWriter.handleBuffer(func(b *bytes.Buffer) {
 								b.Reset()
 								_, _ = io.Copy(b, response.Body)
+								_ = response.Body.Close()
 							})
 							_, err := customWriter.Send()
 
@@ -1076,6 +1080,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 							maps.Copy(customWriter.Header(), response.Header)
 							customWriter.handleBuffer(func(b *bytes.Buffer) {
 								_, _ = io.Copy(b, response.Body)
+								_ = response.Body.Close()
 							})
 							_, _ = customWriter.Send()
 
@@ -1104,6 +1109,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 					maps.Copy(customWriter.Header(), response.Header)
 					customWriter.handleBuffer(func(b *bytes.Buffer) {
 						_, _ = io.Copy(b, response.Body)
+						_ = response.Body.Close()
 					})
 					_, err := customWriter.Send()
 
@@ -1120,6 +1126,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 				maps.Copy(customWriter.Header(), response.Header)
 				customWriter.handleBuffer(func(b *bytes.Buffer) {
 					_, _ = io.Copy(b, response.Body)
+					_ = response.Body.Close()
 				})
 				_, err := customWriter.Send()
 
@@ -1147,6 +1154,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 						customWriter.handleBuffer(func(b *bytes.Buffer) {
 							b.Reset()
 							_, _ = io.Copy(b, response.Body)
+							_ = response.Body.Close()
 						})
 						_, err := customWriter.Send()
 

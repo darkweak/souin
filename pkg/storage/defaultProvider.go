@@ -118,6 +118,8 @@ func (provider *Default) Get(key string) []byte {
 		return res.value
 	}
 
+	provider.m.Delete(key)
+
 	return nil
 }
 
