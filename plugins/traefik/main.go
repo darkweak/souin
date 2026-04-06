@@ -41,6 +41,8 @@ func configCacheKey(keyConfiguration map[string]interface{}) configurationtypes.
 			key.DisableMethod = cast.ToBool(keyV)
 		case "disable_query":
 			key.DisableQuery = cast.ToBool(keyV)
+		case "sort_query":
+			key.SortQuery = cast.ToBool(keyV)
 		case "disable_scheme":
 			key.DisableScheme = cast.ToBool(keyV)
 		case "disable_vary":
