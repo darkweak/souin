@@ -146,4 +146,25 @@ func Test_KeyContext_SetContext(t *testing.T) {
 		t.Errorf("The Key context must be equal to GET-http-domain.com-/matched?query=string, %s given.", req6.Context().Value(Key).(string))
 	}
 
+	// Added tests for sort_query
+	ctx6 := keyContext{
+		sort_query:     true,
+		disable_query:  false,
+		disable_method: false,
+		disable_host:   false,
+		initializer: func(r *http.Request) *http.Request {
+			return r.WithContext(context.WithValue(r.Context(), caddy.ReplacerCtxKey, caddy.NewReplacer()))
+		},
+	}
+	req7 := httptest.NewRequest(http.MethodGet, "http://domain.com/matched?b=2&a=1", nil)
+	req7 = ctx6.SetContext(req7.WithContext(context.WithValue(req7.Context(), HashBody, "")))
+	if req7.Context().Value(Key).(string) != "GET-http-domain.com-/matched?a=1&b=2" {
+		t.Errorf("The Key context must be equal to GET-http-domain.com-/matched?a=1&b=2, %s given.", req7.Context().Value(Key).(string))
+	}
+
+	req8 := httptest.NewRequest(http.MethodGet, "http://domain.com/matched?word=beta&word=alpha", nil)
+	req8 = ctx6.SetContext(req8.WithContext(context.WithValue(req8.Context(), HashBody, "")))
+	if req8.Context().Value(Key).(string) != "GET-http-domain.com-/matched?word=alpha&word=beta" {
+		t.Errorf("The Key context must be equal to GET-http-domain.com-/matched?word=alpha&word=beta, %s given.", req8.Context().Value(Key).(string))
+	}
 }

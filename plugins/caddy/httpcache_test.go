@@ -116,6 +116,40 @@ func TestQueryString(t *testing.T) {
 	}
 }
 
+func TestQueryStringSort(t *testing.T) {
+	tester := caddytest.NewTester(t)
+	tester.InitServer(`
+	{
+		admin localhost:2999
+		http_port     9080
+		https_port    9443
+		cache {
+			key {
+				sort_query
+			}
+		}
+	}
+	localhost:9080 {
+		route /query-string-sort {
+			cache
+			respond "Hello, query string sort!"
+		}
+	}`, "caddyfile")
+
+	resp1, _ := tester.AssertGetResponse(`http://localhost:9080/query-string-sort?b=2&a=1`, 200, "Hello, query string sort!")
+	if resp1.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-http-localhost:9080-/query-string-sort?a=1&b=2" {
+		t.Errorf("unexpected Cache-Status header %v", resp1.Header.Get("Cache-Status"))
+	}
+
+	resp2, _ := tester.AssertGetResponse(`http://localhost:9080/query-string-sort?a=1&b=2`, 200, "Hello, query string sort!")
+	compareHit(t, resp2.Header, "GET-http-localhost:9080-/query-string-sort?a=1&b=2", "DEFAULT", 119)
+
+	resp3, _ := tester.AssertGetResponse(`http://localhost:9080/query-string-sort?word=beta&word=alpha`, 200, "Hello, query string sort!")
+	if resp3.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-http-localhost:9080-/query-string-sort?word=alpha&word=beta" {
+		t.Errorf("unexpected Cache-Status header %v", resp3.Header.Get("Cache-Status"))
+	}
+}
+
 func TestMaxAge(t *testing.T) {
 	tester := caddytest.NewTester(t)
 	tester.InitServer(`
