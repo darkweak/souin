@@ -94,15 +94,17 @@ func parseKeyInformations(req *http.Request, kCtx keyContext) (query, body, host
 	hash = kCtx.hash
 
 	if !kCtx.disable_query && len(req.URL.RawQuery) > 0 {
+		queryPart := req.URL.RawQuery
+
 		if kCtx.sort_query {
 			v, _ := url.ParseQuery(req.URL.RawQuery)
 			for _, values := range v {
 				sort.Strings(values)
 			}
-			query += "?" + v.Encode()
-		} else {
-			query += "?" + req.URL.RawQuery
+			queryPart = v.Encode()
 		}
+		
+		query += "?" + queryPart
 	}
 
 	if !kCtx.disable_body {
