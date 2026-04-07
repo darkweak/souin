@@ -3,7 +3,9 @@ package context
 import (
 	"context"
 	"net/http"
+	"net/url"
 	"regexp"
+	"sort"
 
 	"github.com/darkweak/souin/configurationtypes"
 )
@@ -20,6 +22,7 @@ type keyContext struct {
 	disable_host   bool
 	disable_method bool
 	disable_query  bool
+	sort_query     bool
 	disable_scheme bool
 	disable_vary   bool
 	displayable    bool
@@ -41,6 +44,7 @@ func (g *keyContext) SetupContext(c configurationtypes.AbstractConfigurationInte
 	g.disable_host = k.DisableHost
 	g.disable_method = k.DisableMethod
 	g.disable_query = k.DisableQuery
+	g.sort_query = k.SortQuery
 	g.disable_scheme = k.DisableScheme
 	g.disable_vary = k.DisableVary
 	g.hash = k.Hash
@@ -76,7 +80,15 @@ func parseKeyInformations(req *http.Request, kCtx keyContext) (query, body, host
 	hash = kCtx.hash
 
 	if !kCtx.disable_query && len(req.URL.RawQuery) > 0 {
-		query += "?" + req.URL.RawQuery
+		if kCtx.sort_query {
+			v, _ := url.ParseQuery(req.URL.RawQuery)
+			for _, values := range v {
+				sort.Strings(values)
+			}
+			query += "?" + v.Encode()
+		} else {
+			query += "?" + req.URL.RawQuery
+		}
 	}
 
 	if !kCtx.disable_body {

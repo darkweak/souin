@@ -223,6 +223,7 @@ type Key struct {
 	DisableHost   bool     `json:"disable_host,omitempty" yaml:"disable_host,omitempty"`
 	DisableMethod bool     `json:"disable_method,omitempty" yaml:"disable_method,omitempty"`
 	DisableQuery  bool     `json:"disable_query,omitempty" yaml:"disable_query,omitempty"`
+	SortQuery     bool     `json:"sort_query,omitempty" yaml:"sort_query,omitempty"`
 	DisableScheme bool     `json:"disable_scheme,omitempty" yaml:"disable_scheme,omitempty"`
 	DisableVary   bool     `json:"disable_vary,omitempty" yaml:"disable_vary,omitempty"`
 	Hash          bool     `json:"hash,omitempty" yaml:"hash,omitempty"`
