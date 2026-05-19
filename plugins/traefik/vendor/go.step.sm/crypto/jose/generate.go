@@ -9,6 +9,7 @@ import (
 	"encoding/base64"
 
 	"github.com/pkg/errors"
+
 	"go.step.sm/crypto/keyutil"
 	"go.step.sm/crypto/pemutil"
 	"go.step.sm/crypto/x25519"

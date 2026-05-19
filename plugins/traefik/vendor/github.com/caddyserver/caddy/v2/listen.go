@@ -30,10 +30,6 @@ import (
 	"go.uber.org/zap"
 )
 
-func reuseUnixSocket(_, _ string) (any, error) {
-	return nil, nil
-}
-
 func listenReusable(ctx context.Context, lnKey string, network, address string, config net.ListenConfig) (any, error) {
 	var socketFile *os.File
 
@@ -107,7 +103,8 @@ func listenReusable(ctx context.Context, lnKey string, network, address string, 
 	if err != nil {
 		return nil, err
 	}
-	return &fakeCloseListener{sharedListener: sharedLn.(*sharedListener), keepAlivePeriod: config.KeepAlive}, nil
+
+	return &fakeCloseListener{sharedListener: sharedLn.(*sharedListener), keepAliveConfig: config.KeepAliveConfig}, nil
 }
 
 // fakeCloseListener is a private wrapper over a listener that
@@ -119,19 +116,18 @@ func listenReusable(ctx context.Context, lnKey string, network, address string, 
 // re-wrapped in a new fakeCloseListener each time the listener
 // is reused. This type is atomic and values must not be copied.
 type fakeCloseListener struct {
-	closed          int32 // accessed atomically; belongs to this struct only
-	*sharedListener       // embedded, so we also become a net.Listener
-	keepAlivePeriod time.Duration
+	closed          atomic.Bool
+	*sharedListener // embedded, so we also become a net.Listener
+	keepAliveConfig net.KeepAliveConfig
 }
 
-type canSetKeepAlive interface {
-	SetKeepAlivePeriod(d time.Duration) error
-	SetKeepAlive(bool) error
+type canSetKeepAliveConfig interface {
+	SetKeepAliveConfig(config net.KeepAliveConfig) error
 }
 
 func (fcl *fakeCloseListener) Accept() (net.Conn, error) {
 	// if the listener is already "closed", return error
-	if atomic.LoadInt32(&fcl.closed) == 1 {
+	if fcl.closed.Load() {
 		return nil, fakeClosedErr(fcl)
 	}
 
@@ -140,12 +136,8 @@ func (fcl *fakeCloseListener) Accept() (net.Conn, error) {
 	if err == nil {
 		// if 0, do nothing, Go's default is already set
 		// and if the connection allows setting KeepAlive, set it
-		if tconn, ok := conn.(canSetKeepAlive); ok && fcl.keepAlivePeriod != 0 {
-			if fcl.keepAlivePeriod > 0 {
-				err = tconn.SetKeepAlivePeriod(fcl.keepAlivePeriod)
-			} else { // negative
-				err = tconn.SetKeepAlive(false)
-			}
+		if tconn, ok := conn.(canSetKeepAliveConfig); ok && fcl.keepAliveConfig.Enable {
+			err = tconn.SetKeepAliveConfig(fcl.keepAliveConfig)
 			if err != nil {
 				Log().With(zap.String("server", fcl.sharedListener.key)).Warn("unable to set keepalive for new connection:", zap.Error(err))
 			}
@@ -159,7 +151,7 @@ func (fcl *fakeCloseListener) Accept() (net.Conn, error) {
 	// that we set when Close() was called, and return a non-temporary and
 	// non-timeout error value to the caller, masking the "true" error, so
 	// that server loops / goroutines won't retry, linger, and leak
-	if atomic.LoadInt32(&fcl.closed) == 1 {
+	if fcl.closed.Load() {
 		// we dereference the sharedListener explicitly even though it's embedded
 		// so that it's clear in the code that side-effects are shared with other
 		// users of this listener, not just our own reference to it; we also don't
@@ -179,7 +171,7 @@ func (fcl *fakeCloseListener) Accept() (net.Conn, error) {
 // underlying listener. The underlying listener is only closed
 // if the caller is the last known user of the socket.
 func (fcl *fakeCloseListener) Close() error {
-	if atomic.CompareAndSwapInt32(&fcl.closed, 0, 1) {
+	if fcl.closed.CompareAndSwap(false, true) {
 		// There are two ways I know of to get an Accept()
 		// function to return to the server loop that called
 		// it: close the listener, or set a deadline in the
@@ -242,13 +234,13 @@ func (sl *sharedListener) Destruct() error {
 // fakeClosePacketConn is like fakeCloseListener, but for PacketConns,
 // or more specifically, *net.UDPConn
 type fakeClosePacketConn struct {
-	closed            int32 // accessed atomically; belongs to this struct only
-	*sharedPacketConn       // embedded, so we also become a net.PacketConn; its key is used in Close
+	closed            atomic.Bool
+	*sharedPacketConn // embedded, so we also become a net.PacketConn; its key is used in Close
 }
 
 func (fcpc *fakeClosePacketConn) ReadFrom(p []byte) (n int, addr net.Addr, err error) {
 	// if the listener is already "closed", return error
-	if atomic.LoadInt32(&fcpc.closed) == 1 {
+	if fcpc.closed.Load() {
 		return 0, nil, &net.OpError{
 			Op:   "readfrom",
 			Net:  fcpc.LocalAddr().Network(),
@@ -262,22 +254,22 @@ func (fcpc *fakeClosePacketConn) ReadFrom(p []byte) (n int, addr net.Addr, err e
 	if err != nil {
 		// this server was stopped, so clear the deadline and let
 		// any new server continue reading; but we will exit
-		if atomic.LoadInt32(&fcpc.closed) == 1 {
+		if fcpc.closed.Load() {
 			if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
 				if err = fcpc.SetReadDeadline(time.Time{}); err != nil {
-					return
+					return n, addr, err
 				}
 			}
 		}
-		return
+		return n, addr, err
 	}
 
-	return
+	return n, addr, err
 }
 
 // Close won't close the underlying socket unless there is no more reference, then listenerPool will close it.
 func (fcpc *fakeClosePacketConn) Close() error {
-	if atomic.CompareAndSwapInt32(&fcpc.closed, 0, 1) {
+	if fcpc.closed.CompareAndSwap(false, true) {
 		_ = fcpc.SetReadDeadline(time.Now()) // unblock ReadFrom() calls to kick old servers out of their loops
 		_, _ = listenerPool.Delete(fcpc.sharedPacketConn.key)
 	}

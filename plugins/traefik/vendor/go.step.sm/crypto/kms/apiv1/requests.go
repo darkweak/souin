@@ -178,6 +178,24 @@ type CreateKeyResponse struct {
 	CreateSignerRequest CreateSignerRequest
 }
 
+// SearchKeysRequest is the request for the SearchKeys method. It takes
+// a Query string with the attributes to match when searching the
+// KMS.
+type SearchKeysRequest struct {
+	Query string
+}
+
+// SearchKeyResult is a single result returned from the SearchKeys
+// method.
+type SearchKeyResult CreateKeyResponse
+
+// SearchKeysResponse is the response for the SearchKeys method. It
+// wraps a slice of SearchKeyResult structs. The Results slice can
+// be empty in case no key was found for the search query.
+type SearchKeysResponse struct {
+	Results []SearchKeyResult
+}
+
 // CreateSignerRequest is the parameter used in the kms.CreateSigner method.
 type CreateSignerRequest struct {
 	Signer           crypto.Signer
@@ -245,6 +263,29 @@ type CreateAttestationRequest struct {
 // attesting Attestation Keys (AKs).
 type AttestationClient interface {
 	Attest(context.Context) ([]*x509.Certificate, error)
+}
+
+type attestSignerCtx struct{}
+
+// NewAttestSignerContext creates a new context with the given signer.
+//
+// # Experimental
+//
+// Notice: This API is EXPERIMENTAL and may be changed or removed in a later
+// release.
+func NewAttestSignerContext(ctx context.Context, signer crypto.Signer) context.Context {
+	return context.WithValue(ctx, attestSignerCtx{}, signer)
+}
+
+// AttestSignerFromContext returns the signer from the context.
+//
+// # Experimental
+//
+// Notice: This API is EXPERIMENTAL and may be changed or removed in a later
+// release.
+func AttestSignerFromContext(ctx context.Context) (crypto.Signer, bool) {
+	signer, ok := ctx.Value(attestSignerCtx{}).(crypto.Signer)
+	return signer, ok
 }
 
 // CertificationParameters encapsulates the inputs for certifying an application key.

@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"io"
 	"slices"
+	"strings"
 	"unicode"
 )
 
@@ -52,18 +53,42 @@ func Format(input []byte) []byte {
 
 		newLines int // count of newlines consumed
 
-		comment bool // whether we're in a comment
-		quoted  bool // whether we're in a quoted segment
-		escaped bool // whether current char is escaped
+		comment bool   // whether we're in a comment
+		quotes  string // encountered quotes ('', '`', '"', '"`', '`"')
+		escaped bool   // whether current char is escaped
 
 		heredoc              heredocState // whether we're in a heredoc
 		heredocEscaped       bool         // whether heredoc is escaped
 		heredocMarker        []rune
 		heredocClosingMarker []rune
 
-		nesting         int // indentation level
-		withinBackquote bool
+		nesting int // indentation level
+
+		currentToken                  strings.Builder
+		currentLineFirstToken         string
+		previousLineWasTopLevelImport bool
+		openBraceOwnLine              bool
 	)
+
+	finishToken := func() {
+		if currentToken.Len() == 0 {
+			return
+		}
+		if currentLineFirstToken == "" {
+			currentLineFirstToken = currentToken.String()
+		}
+		currentToken.Reset()
+	}
+
+	finishLine := func() {
+		finishToken()
+		if currentLineFirstToken != "" {
+			previousLineWasTopLevelImport = nesting == 0 && currentLineFirstToken == "import"
+		} else if !openBrace || !openBraceOwnLine || openBraceWritten {
+			previousLineWasTopLevelImport = false
+		}
+		currentLineFirstToken = ""
+	}
 
 	write := func(ch rune) {
 		out.WriteRune(ch)
@@ -89,12 +114,8 @@ func Format(input []byte) []byte {
 			}
 			panic(err)
 		}
-		if ch == '`' {
-			withinBackquote = !withinBackquote
-		}
-
 		// detect whether we have the start of a heredoc
-		if !quoted && !(heredoc != heredocClosed || heredocEscaped) &&
+		if quotes == "" && (heredoc == heredocClosed && !heredocEscaped) &&
 			space && last == '<' && ch == '<' {
 			write(ch)
 			heredoc = heredocOpening
@@ -180,22 +201,55 @@ func Format(input []byte) []byte {
 			continue
 		}
 
-		if quoted {
+		if ch == '`' {
+			switch quotes {
+			case "\"`":
+				quotes = "\""
+			case "`":
+				quotes = ""
+			case "\"":
+				quotes = "\"`"
+			default:
+				quotes = "`"
+			}
+		}
+
+		if quotes == "\"" {
 			if ch == '"' {
-				quoted = false
+				quotes = ""
 			}
 			write(ch)
 			continue
 		}
 
-		if space && ch == '"' {
-			quoted = true
+		if ch == '"' {
+			switch quotes {
+			case "":
+				if space {
+					quotes = "\""
+				}
+			case "`\"":
+				quotes = "`"
+			case "\"`":
+				quotes = ""
+			}
+		}
+
+		if strings.Contains(quotes, "`") {
+			if ch == '`' && space && !beginningOfLine {
+				write(' ')
+			}
+			write(ch)
+			space = false
+			continue
 		}
 
 		if unicode.IsSpace(ch) {
+			finishToken()
 			space = true
 			heredocEscaped = false
 			if ch == '\n' {
+				finishLine()
 				newLines++
 			}
 			continue
@@ -222,13 +276,19 @@ func Format(input []byte) []byte {
 			}
 
 			openBrace = false
-			if beginningOfLine {
+			if openBraceOwnLine && previousLineWasTopLevelImport {
+				if last != '\n' {
+					nextLine()
+				}
 				indent()
-			} else if !openBraceSpace {
+			} else if beginningOfLine {
+				indent()
+			} else if !openBraceSpace || !unicode.IsSpace(last) {
 				write(' ')
 			}
 			write('{')
 			openBraceWritten = true
+			openBraceOwnLine = false
 			nextLine()
 			newLines = 0
 			// prevent infinite nesting from ridiculous inputs (issue #4169)
@@ -239,21 +299,25 @@ func Format(input []byte) []byte {
 
 		switch {
 		case ch == '{':
+			finishToken()
 			openBrace = true
 			openBraceSpace = spacePrior && !beginningOfLine
-			if openBraceSpace {
+			openBraceOwnLine = newLines > 0
+			if openBraceSpace && newLines == 0 {
 				write(' ')
 			}
 			openBraceWritten = false
-			if withinBackquote {
+			if quotes == "`" {
 				write('{')
 				openBraceWritten = true
+				openBraceOwnLine = false
 				continue
 			}
 			continue
 
 		case ch == '}' && (spacePrior || !openBrace):
-			if withinBackquote {
+			finishToken()
+			if quotes == "`" {
 				write('}')
 				continue
 			}
@@ -297,6 +361,7 @@ func Format(input []byte) []byte {
 			space = true
 		}
 
+		currentToken.WriteRune(ch)
 		write(ch)
 
 		beginningOfLine = false

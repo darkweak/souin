@@ -18,6 +18,29 @@ type KeyManager interface {
 	Close() error
 }
 
+// KeyDeleter is an optional interface for KMS implementations that support
+// deleting keys.
+//
+// # Experimental
+//
+// Notice: This API is EXPERIMENTAL and may be changed or removed in a later
+// release.
+type KeyDeleter interface {
+	DeleteKey(req *DeleteKeyRequest) error
+}
+
+// SearchableKeyManager is an optional interface for KMS implementations
+// that support searching for keys based on certain attributes.
+//
+// # Experimental
+//
+// Notice: This API is EXPERIMENTAL and may be changed or removed in a later
+// release.
+type SearchableKeyManager interface {
+	KeyManager
+	SearchKeys(req *SearchKeysRequest) (*SearchKeysResponse, error)
+}
+
 // Decrypter is an interface implemented by KMSes that are used
 // in operations that require decryption
 type Decrypter interface {
@@ -40,6 +63,17 @@ type CertificateManager interface {
 type CertificateChainManager interface {
 	LoadCertificateChain(req *LoadCertificateChainRequest) ([]*x509.Certificate, error)
 	StoreCertificateChain(req *StoreCertificateChainRequest) error
+}
+
+// CertificateDeleter is an optional interface for KMS implementations that
+// support deleting certificates.
+//
+// # Experimental
+//
+// Notice: This API is EXPERIMENTAL and may be changed or removed in a later
+// release.
+type CertificateDeleter interface {
+	DeleteCertificate(req *DeleteCertificateRequest) error
 }
 
 // NameValidator is an interface that KeyManager can implement to validate a
@@ -139,6 +173,9 @@ const (
 	TPMKMS Type = "tpmkms"
 	// MacKMS is the KMS implementation using macOS Keychain and Secure Enclave.
 	MacKMS Type = "mackms"
+	// PlatformKMS is the KMS implementation that uses TPMKMS on Windows and
+	// Linux and MacKMS on macOS.
+	PlatformKMS Type = "kms"
 )
 
 // TypeOf returns the type of of the given uri.
@@ -169,7 +206,7 @@ func (t Type) Validate() error {
 		return nil
 	case YubiKey, PKCS11, TPMKMS: // Hardware based kms.
 		return nil
-	case SSHAgentKMS, CAPIKMS, MacKMS: // Others
+	case SSHAgentKMS, CAPIKMS, MacKMS, PlatformKMS: // Others
 		return nil
 	}
 

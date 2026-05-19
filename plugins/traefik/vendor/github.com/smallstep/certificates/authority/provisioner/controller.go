@@ -8,10 +8,14 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/smallstep/certificates/errs"
-	"github.com/smallstep/certificates/webhook"
-	"go.step.sm/linkedca"
 	"golang.org/x/crypto/ssh"
+
+	"github.com/smallstep/linkedca"
+
+	"github.com/smallstep/certificates/errs"
+	"github.com/smallstep/certificates/internal/cast"
+	"github.com/smallstep/certificates/internal/httptransport"
+	"github.com/smallstep/certificates/webhook"
 )
 
 // Controller wraps a provisioner with other attributes useful in callback
@@ -24,8 +28,10 @@ type Controller struct {
 	AuthorizeRenewFunc    AuthorizeRenewFunc
 	AuthorizeSSHRenewFunc AuthorizeSSHRenewFunc
 	policy                *policyEngine
-	webhookClient         *http.Client
+	httpClient            HTTPClient
+	webhookClient         HTTPClient
 	webhooks              []*Webhook
+	wrapTransport         httptransport.Wrapper
 }
 
 // NewController initializes a new provisioner controller.
@@ -38,6 +44,16 @@ func NewController(p Interface, claims *Claims, config Config, options *Options)
 	if err != nil {
 		return nil, err
 	}
+	wt := config.WrapTransport
+	if wt == nil {
+		wt = httptransport.NoopWrapper()
+	}
+	for _, wh := range options.GetWebhooks() {
+		if err := wh.Validate(); err != nil {
+			return nil, err
+		}
+	}
+
 	return &Controller{
 		Interface:             p,
 		Audiences:             &config.Audiences,
@@ -48,7 +64,18 @@ func NewController(p Interface, claims *Claims, config Config, options *Options)
 		policy:                policy,
 		webhookClient:         config.WebhookClient,
 		webhooks:              options.GetWebhooks(),
+		httpClient:            config.HTTPClient,
+		wrapTransport:         wt,
 	}, nil
+}
+
+// GetHTTPClient returns the configured HTTP client or the default one if none
+// is configured.
+func (c *Controller) GetHTTPClient() HTTPClient {
+	if c.httpClient != nil {
+		return c.httpClient
+	}
+	return &http.Client{}
 }
 
 // GetIdentity returns the identity for a given email.
@@ -80,14 +107,18 @@ func (c *Controller) AuthorizeSSHRenew(ctx context.Context, cert *ssh.Certificat
 func (c *Controller) newWebhookController(templateData WebhookSetter, certType linkedca.Webhook_CertType, opts ...webhook.RequestBodyOption) *WebhookController {
 	client := c.webhookClient
 	if client == nil {
-		client = http.DefaultClient
+		client = &http.Client{
+			Transport: c.wrapTransport(httptransport.New()),
+		}
 	}
+
 	return &WebhookController{
-		TemplateData: templateData,
-		client:       client,
-		webhooks:     c.webhooks,
-		certType:     certType,
-		options:      opts,
+		TemplateData:  templateData,
+		client:        client,
+		wrapTransport: c.wrapTransport,
+		webhooks:      c.webhooks,
+		certType:      certType,
+		options:       opts,
 	}
 }
 
@@ -167,10 +198,10 @@ func DefaultAuthorizeSSHRenew(_ context.Context, p *Controller, cert *ssh.Certif
 	}
 
 	unixNow := time.Now().Unix()
-	if after := int64(cert.ValidAfter); after < 0 || unixNow < int64(cert.ValidAfter) {
+	if after := cast.Int64(cert.ValidAfter); after < 0 || unixNow < cast.Int64(cert.ValidAfter) {
 		return errs.Unauthorized("certificate is not yet valid")
 	}
-	if before := int64(cert.ValidBefore); cert.ValidBefore != uint64(ssh.CertTimeInfinity) && (unixNow >= before || before < 0) && !p.Claimer.AllowRenewalAfterExpiry() {
+	if before := cast.Int64(cert.ValidBefore); cert.ValidBefore != uint64(ssh.CertTimeInfinity) && (unixNow >= before || before < 0) && !p.Claimer.AllowRenewalAfterExpiry() {
 		return errs.Unauthorized("certificate has expired")
 	}
 

@@ -1,4 +1,3 @@
-//nolint:revive // ignore mocked methods for unsupported DB type
 package database
 
 // NotSupportedDB is a db implementation used on database drivers when the

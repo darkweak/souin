@@ -10,7 +10,6 @@ import (
 	"crypto/cipher"
 	"crypto/ecdsa"
 	"crypto/ed25519"
-	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
 	"encoding/binary"
@@ -18,9 +17,10 @@ import (
 	"math/big"
 
 	"github.com/pkg/errors"
+	"golang.org/x/crypto/ssh"
+
 	bcryptpbkdf "go.step.sm/crypto/internal/bcrypt_pbkdf"
 	"go.step.sm/crypto/randutil"
-	"golang.org/x/crypto/ssh"
 )
 
 const (
@@ -188,7 +188,10 @@ func SerializeOpenSSHPrivateKey(key crypto.PrivateKey, opts ...Options) (*pem.Bl
 			return nil, errors.Errorf("error serializing key: unsupported curve %s", k.Curve.Params().Name)
 		}
 
-		pub := elliptic.Marshal(k.Curve, k.PublicKey.X, k.PublicKey.Y)
+		p, err := k.PublicKey.ECDH()
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed converting *ecdsa.PublicKey to *ecdh.PublicKey")
+		}
 
 		// Marshal public key.
 		pubKey := struct {
@@ -196,7 +199,7 @@ func SerializeOpenSSHPrivateKey(key crypto.PrivateKey, opts ...Options) (*pem.Bl
 			Curve   string
 			Pub     []byte
 		}{
-			keyType, curve, pub,
+			keyType, curve, p.Bytes(),
 		}
 		w.PubKey = ssh.Marshal(pubKey)
 
@@ -207,7 +210,7 @@ func SerializeOpenSSHPrivateKey(key crypto.PrivateKey, opts ...Options) (*pem.Bl
 			D       *big.Int
 			Comment string
 		}{
-			curve, pub, k.D,
+			curve, p.Bytes(), k.D,
 			ctx.comment,
 		}
 		pk1.Keytype = keyType

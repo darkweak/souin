@@ -28,6 +28,8 @@ import (
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
 )
 
+var stringSliceType = reflect.TypeFor[[]string]()
+
 func init() {
 	caddy.RegisterModule(VarsMiddleware{})
 	caddy.RegisterModule(VarsMatcher{})
@@ -179,8 +181,9 @@ func (m VarsMatcher) MatchWithError(r *http.Request) (bool, error) {
 	vars := r.Context().Value(VarsCtxKey).(map[string]any)
 	repl := r.Context().Value(caddy.ReplacerCtxKey).(*caddy.Replacer)
 
+	var matcherValExpanded, varStr, v string
+	var varValue any
 	for key, vals := range m {
-		var varValue any
 		if strings.HasPrefix(key, "{") &&
 			strings.HasSuffix(key, "}") &&
 			strings.Count(key, "{") == 1 {
@@ -189,22 +192,27 @@ func (m VarsMatcher) MatchWithError(r *http.Request) (bool, error) {
 			varValue = vars[key]
 		}
 
+		switch vv := varValue.(type) {
+		case string:
+			varStr = vv
+		case fmt.Stringer:
+			varStr = vv.String()
+		case error:
+			varStr = vv.Error()
+		case nil:
+			varStr = ""
+		default:
+			varStr = fmt.Sprintf("%v", vv)
+		}
+
+		// Don't expand placeholders in values from literal variable names
+		// (e.g. map outputs) or other placeholders. These values are
+		// already final and must not be re-expanded, as that would allow
+		// user input like {env.SECRET} to be evaluated.
+
 		// see if any of the values given in the matcher match the actual value
-		for _, v := range vals {
-			matcherValExpanded := repl.ReplaceAll(v, "")
-			var varStr string
-			switch vv := varValue.(type) {
-			case string:
-				varStr = vv
-			case fmt.Stringer:
-				varStr = vv.String()
-			case error:
-				varStr = vv.Error()
-			case nil:
-				varStr = ""
-			default:
-				varStr = fmt.Sprintf("%v", vv)
-			}
+		for _, v = range vals {
+			matcherValExpanded = repl.ReplaceAll(v, "")
 			if varStr == matcherValExpanded {
 				return true, nil
 			}
@@ -308,8 +316,11 @@ func (m MatchVarsRE) Match(r *http.Request) bool {
 func (m MatchVarsRE) MatchWithError(r *http.Request) (bool, error) {
 	vars := r.Context().Value(VarsCtxKey).(map[string]any)
 	repl := r.Context().Value(caddy.ReplacerCtxKey).(*caddy.Replacer)
+
+	var match bool
+	var varStr string
+	var varValue any
 	for key, val := range m {
-		var varValue any
 		if strings.HasPrefix(key, "{") &&
 			strings.HasSuffix(key, "}") &&
 			strings.Count(key, "{") == 1 {
@@ -318,7 +329,6 @@ func (m MatchVarsRE) MatchWithError(r *http.Request) (bool, error) {
 			varValue = vars[key]
 		}
 
-		var varStr string
 		switch vv := varValue.(type) {
 		case string:
 			varStr = vv
@@ -332,8 +342,12 @@ func (m MatchVarsRE) MatchWithError(r *http.Request) (bool, error) {
 			varStr = fmt.Sprintf("%v", vv)
 		}
 
-		valExpanded := repl.ReplaceAll(varStr, "")
-		if match := val.Match(valExpanded, repl); match {
+		// Don't expand placeholders in values from literal variable names
+		// (e.g. map outputs) or other placeholders. These values are
+		// already final and must not be re-expanded, as that would allow
+		// user input like {env.SECRET} to be evaluated.
+
+		if match = val.Match(varStr, repl); match {
 			return match, nil
 		}
 	}
@@ -353,7 +367,7 @@ func (MatchVarsRE) CELLibrary(ctx caddy.Context) (cel.Library, error) {
 		"vars_regexp_request_string_string",
 		[]*cel.Type{cel.StringType, cel.StringType},
 		func(data ref.Val) (RequestMatcherWithError, error) {
-			refStringList := reflect.TypeOf([]string{})
+			refStringList := stringSliceType
 			params, err := data.ConvertToNative(refStringList)
 			if err != nil {
 				return nil, err
@@ -376,7 +390,7 @@ func (MatchVarsRE) CELLibrary(ctx caddy.Context) (cel.Library, error) {
 		"vars_regexp_request_string_string_string",
 		[]*cel.Type{cel.StringType, cel.StringType, cel.StringType},
 		func(data ref.Val) (RequestMatcherWithError, error) {
-			refStringList := reflect.TypeOf([]string{})
+			refStringList := stringSliceType
 			params, err := data.ConvertToNative(refStringList)
 			if err != nil {
 				return nil, err

@@ -14,10 +14,10 @@ import (
 
 	"github.com/pkg/errors"
 
+	"github.com/smallstep/linkedca"
 	"go.step.sm/crypto/jose"
 	"go.step.sm/crypto/sshutil"
 	"go.step.sm/crypto/x509util"
-	"go.step.sm/linkedca"
 
 	"github.com/smallstep/certificates/errs"
 	"github.com/smallstep/certificates/webhook"
@@ -251,14 +251,14 @@ func (p *Azure) Init(config Config) (err error) {
 	p.assertConfig()
 
 	// Decode and validate openid-configuration endpoint
-	if err = getAndDecode(p.config.oidcDiscoveryURL, &p.oidcConfig); err != nil {
+	if err = getAndDecode(http.DefaultClient, p.config.oidcDiscoveryURL, &p.oidcConfig); err != nil {
 		return
 	}
 	if err := p.oidcConfig.Validate(); err != nil {
 		return errors.Wrapf(err, "error parsing %s", p.config.oidcDiscoveryURL)
 	}
 	// Get JWK key set
-	if p.keyStore, err = newKeyStore(p.oidcConfig.JWKSetURI); err != nil {
+	if p.keyStore, err = newKeyStore(http.DefaultClient, p.oidcConfig.JWKSetURI); err != nil {
 		return
 	}
 
@@ -379,7 +379,7 @@ func (p *Azure) AuthorizeSign(ctx context.Context, token string) ([]SignOption, 
 		// name will work only inside the virtual network
 		so = append(so,
 			commonNameValidator(name),
-			dnsNamesValidator([]string{name}),
+			dnsNamesSubsetValidator([]string{name}),
 			ipAddressesValidator(nil),
 			emailAddressesValidator(nil),
 			newURIsValidator(ctx, nil),

@@ -1,5 +1,4 @@
 //go:build !nobbolt
-// +build !nobbolt
 
 package bolt
 
@@ -10,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/smallstep/nosql/database"
 	bolt "go.etcd.io/bbolt"
+	berrors "go.etcd.io/bbolt/errors"
 )
 
 var boltDBSep = []byte("/")
@@ -261,7 +261,7 @@ func (db *DB) deleteBucket(tx *bolt.Tx, name []byte) (err error) {
 		}
 	}
 	err = b.DeleteBucket(buckets[last])
-	if errors.Is(err, bolt.ErrBucketNotFound) {
+	if errors.Is(err, berrors.ErrBucketNotFound) {
 		return errors.Wrapf(database.ErrNotFound, "bucket %s does not exist", name)
 	}
 	return

@@ -14,8 +14,9 @@ import (
 	"sync/atomic"
 
 	"github.com/pkg/errors"
-	"go.step.sm/crypto/x25519"
 	"golang.org/x/crypto/ssh"
+
+	"go.step.sm/crypto/x25519"
 )
 
 var (
@@ -219,8 +220,8 @@ func generateECKey(crv string) (crypto.Signer, error) {
 }
 
 func generateRSAKey(bits int) (crypto.Signer, error) {
-	if min := MinRSAKeyBytes * 8; !insecureMode.isSet() && bits < min {
-		return nil, errors.Errorf("the size of the RSA key should be at least %d bits", min)
+	if minBits := MinRSAKeyBytes * 8; !insecureMode.isSet() && bits < minBits {
+		return nil, errors.Errorf("the size of the RSA key should be at least %d bits", minBits)
 	}
 
 	key, err := rsa.GenerateKey(rand.Reader, bits)

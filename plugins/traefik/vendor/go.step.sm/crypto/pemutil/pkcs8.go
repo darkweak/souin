@@ -174,8 +174,7 @@ func (c rfc1423Algo) deriveKey(password, salt []byte, h func() hash.Hash) []byte
 // key derived using PBKDF2 over the given password.
 func DecryptPEMBlock(block *pem.Block, password []byte) ([]byte, error) {
 	if block.Headers["Proc-Type"] == "4,ENCRYPTED" {
-		//nolint:staticcheck // required for legacy compatibility
-		return x509.DecryptPEMBlock(block, password)
+		return x509.DecryptPEMBlock(block, password) //nolint:staticcheck // support legacy use cases
 	}
 
 	// PKCS#8 header defined in RFC7468 section 11
@@ -314,6 +313,7 @@ func EncryptPKCS8PrivateKey(rand io.Reader, data, password []byte, alg x509.PEMC
 	copy(encrypted, data)
 	// See RFC 1423, section 1.1
 	for i := 0; i < pad; i++ {
+		//nolint:gosec // pad is bounded by blockSize which is at most 16 (AES block size)
 		encrypted = append(encrypted, byte(pad))
 	}
 	enc.CryptBlocks(encrypted, encrypted)

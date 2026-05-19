@@ -7,8 +7,10 @@ import (
 	"crypto/ed25519"
 	"crypto/rsa"
 	"crypto/x509"
+	"fmt"
 
 	"github.com/pkg/errors"
+
 	"go.step.sm/crypto/keyutil"
 	"go.step.sm/crypto/kms/apiv1"
 	"go.step.sm/crypto/kms/uri"
@@ -190,12 +192,42 @@ func (k *SoftKMS) CreateDecrypter(req *apiv1.CreateDecrypterRequest) (crypto.Dec
 	}
 }
 
+// LoadCertificate returns a x509.Certificate from the file passed in the
+// request name.
+func (k *SoftKMS) LoadCertificate(req *apiv1.LoadCertificateRequest) (*x509.Certificate, error) {
+	if req.Name == "" {
+		return nil, fmt.Errorf("loadCertificateRequest 'name' cannot be empty")
+	}
+
+	bundle, err := pemutil.ReadCertificateBundle(filename(req.Name))
+	if err != nil {
+		return nil, err
+	}
+
+	return bundle[0], nil
+}
+
+// LoadCertificateChain returns a slice of x509.Certificate from the file passed
+// in the request name.
+func (k *SoftKMS) LoadCertificateChain(req *apiv1.LoadCertificateChainRequest) ([]*x509.Certificate, error) {
+	if req.Name == "" {
+		return nil, fmt.Errorf("loadCertificateChainRequest 'name' cannot be empty")
+	}
+
+	return pemutil.ReadCertificateBundle(filename(req.Name))
+}
+
 func filename(s string) string {
 	if u, err := uri.ParseWithScheme(Scheme, s); err == nil {
 		if f := u.Get("path"); f != "" {
 			return f
 		}
-		return u.Opaque
+		switch {
+		case u.Path != "":
+			return u.Path
+		default:
+			return u.Opaque
+		}
 	}
 	return s
 }

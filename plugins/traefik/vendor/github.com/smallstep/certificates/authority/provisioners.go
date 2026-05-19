@@ -11,10 +11,10 @@ import (
 
 	"github.com/pkg/errors"
 
-	"go.step.sm/cli-utils/step"
-	"go.step.sm/cli-utils/ui"
+	"github.com/smallstep/cli-utils/step"
+	"github.com/smallstep/cli-utils/ui"
+	"github.com/smallstep/linkedca"
 	"go.step.sm/crypto/jose"
-	"go.step.sm/linkedca"
 
 	"github.com/smallstep/certificates/authority/admin"
 	"github.com/smallstep/certificates/authority/config"
@@ -22,6 +22,7 @@ import (
 	"github.com/smallstep/certificates/authority/provisioner"
 	"github.com/smallstep/certificates/db"
 	"github.com/smallstep/certificates/errs"
+	"github.com/smallstep/certificates/internal/cast"
 )
 
 type raProvisioner interface {
@@ -201,6 +202,8 @@ func (a *Authority) generateProvisionerConfig(ctx context.Context) (provisioner.
 		AuthorizeRenewFunc:    a.authorizeRenewFunc,
 		AuthorizeSSHRenewFunc: a.authorizeSSHRenewFunc,
 		WebhookClient:         a.webhookClient,
+		HTTPClient:            a.httpClient,
+		WrapTransport:         a.wrapTransport,
 		SCEPKeyManager:        a.scepKeyManager,
 	}, nil
 }
@@ -426,25 +429,25 @@ func ValidateClaims(c *linkedca.Claims) error {
 // ValidateDurations validates the Durations type.
 func ValidateDurations(d *linkedca.Durations) error {
 	var (
-		err           error
-		min, max, def *provisioner.Duration
+		err                 error
+		minDur, maxDur, def *provisioner.Duration
 	)
 
 	if d.Min != "" {
-		min, err = provisioner.NewDuration(d.Min)
+		minDur, err = provisioner.NewDuration(d.Min)
 		if err != nil {
 			return admin.WrapError(admin.ErrorBadRequestType, err, "min duration '%s' is invalid", d.Min)
 		}
-		if min.Value() < 0 {
+		if minDur.Value() < 0 {
 			return admin.WrapError(admin.ErrorBadRequestType, err, "min duration '%s' cannot be less than 0", d.Min)
 		}
 	}
 	if d.Max != "" {
-		max, err = provisioner.NewDuration(d.Max)
+		maxDur, err = provisioner.NewDuration(d.Max)
 		if err != nil {
 			return admin.WrapError(admin.ErrorBadRequestType, err, "max duration '%s' is invalid", d.Max)
 		}
-		if max.Value() < 0 {
+		if maxDur.Value() < 0 {
 			return admin.WrapError(admin.ErrorBadRequestType, err, "max duration '%s' cannot be less than 0", d.Max)
 		}
 	}
@@ -457,15 +460,15 @@ func ValidateDurations(d *linkedca.Durations) error {
 			return admin.WrapError(admin.ErrorBadRequestType, err, "default duration '%s' cannot be less than 0", d.Default)
 		}
 	}
-	if d.Min != "" && d.Max != "" && min.Value() > max.Value() {
+	if d.Min != "" && d.Max != "" && minDur.Value() > maxDur.Value() {
 		return admin.NewError(admin.ErrorBadRequestType,
 			"min duration '%s' cannot be greater than max duration '%s'", d.Min, d.Max)
 	}
-	if d.Min != "" && d.Default != "" && min.Value() > def.Value() {
+	if d.Min != "" && d.Default != "" && minDur.Value() > def.Value() {
 		return admin.NewError(admin.ErrorBadRequestType,
 			"min duration '%s' cannot be greater than default duration '%s'", d.Min, d.Default)
 	}
-	if d.Default != "" && d.Max != "" && min.Value() > def.Value() {
+	if d.Default != "" && d.Max != "" && minDur.Value() > def.Value() {
 		return admin.NewError(admin.ErrorBadRequestType,
 			"default duration '%s' cannot be greater than max duration '%s'", d.Default, d.Max)
 	}
@@ -608,15 +611,15 @@ func provisionerWebhookToLinkedca(pwh *provisioner.Webhook) *linkedca.Webhook {
 	return lwh
 }
 
-func durationsToCertificates(d *linkedca.Durations) (min, max, def *provisioner.Duration, err error) {
+func durationsToCertificates(d *linkedca.Durations) (minDur, maxDur, def *provisioner.Duration, err error) {
 	if d.Min != "" {
-		min, err = provisioner.NewDuration(d.Min)
+		minDur, err = provisioner.NewDuration(d.Min)
 		if err != nil {
 			return nil, nil, nil, admin.WrapErrorISE(err, "error parsing minimum duration '%s'", d.Min)
 		}
 	}
 	if d.Max != "" {
-		max, err = provisioner.NewDuration(d.Max)
+		maxDur, err = provisioner.NewDuration(d.Max)
 		if err != nil {
 			return nil, nil, nil, admin.WrapErrorISE(err, "error parsing maximum duration '%s'", d.Max)
 		}
@@ -918,6 +921,8 @@ func ProvisionerToCertificates(p *linkedca.Provisioner) (provisioner.Interface, 
 			Domains:               cfg.Domains,
 			Groups:                cfg.Groups,
 			ListenAddress:         cfg.ListenAddress,
+			Scopes:                cfg.Scopes,
+			AuthParams:            cfg.AuthParams,
 			Claims:                claims,
 			Options:               options,
 		}, nil
@@ -950,8 +955,11 @@ func ProvisionerToCertificates(p *linkedca.Provisioner) (provisioner.Interface, 
 			Name:                   p.Name,
 			ServiceAccounts:        cfg.ServiceAccounts,
 			ProjectIDs:             cfg.ProjectIds,
+			OrganizationID:         cfg.OrganizationId,
 			DisableCustomSANs:      cfg.DisableCustomSans,
 			DisableTrustOnFirstUse: cfg.DisableTrustOnFirstUse,
+			DisableSSHCAUser:       cfg.DisableSshCaUser,
+			DisableSSHCAHost:       cfg.DisableSshCaHost,
 			InstanceAge:            instanceAge,
 			Claims:                 claims,
 			Options:                options,
@@ -1066,6 +1074,8 @@ func ProvisionerToLinkedca(p provisioner.Interface) (*linkedca.Provisioner, erro
 						Groups:                p.Groups,
 						ListenAddress:         p.ListenAddress,
 						TenantId:              p.TenantID,
+						Scopes:                p.Scopes,
+						AuthParams:            p.AuthParams,
 					},
 				},
 			},
@@ -1088,8 +1098,11 @@ func ProvisionerToLinkedca(p provisioner.Interface) (*linkedca.Provisioner, erro
 					GCP: &linkedca.GCPProvisioner{
 						ServiceAccounts:        p.ServiceAccounts,
 						ProjectIds:             p.ProjectIDs,
+						OrganizationId:         p.OrganizationID,
 						DisableCustomSans:      p.DisableCustomSANs,
 						DisableTrustOnFirstUse: p.DisableTrustOnFirstUse,
+						DisableSshCaUser:       p.DisableSSHCAUser,
+						DisableSshCaHost:       p.DisableSSHCAHost,
 						InstanceAge:            p.InstanceAge.String(),
 					},
 				},
@@ -1247,10 +1260,10 @@ func ProvisionerToLinkedca(p provisioner.Interface) (*linkedca.Provisioner, erro
 						ForceCn:                       p.ForceCN,
 						Challenge:                     p.ChallengePassword,
 						Capabilities:                  p.Capabilities,
-						MinimumPublicKeyLength:        int32(p.MinimumPublicKeyLength),
+						MinimumPublicKeyLength:        cast.Int32(p.MinimumPublicKeyLength),
 						IncludeRoot:                   p.IncludeRoot,
 						ExcludeIntermediate:           p.ExcludeIntermediate,
-						EncryptionAlgorithmIdentifier: int32(p.EncryptionAlgorithmIdentifier),
+						EncryptionAlgorithmIdentifier: cast.Int32(p.EncryptionAlgorithmIdentifier),
 						Decrypter: &linkedca.SCEPDecrypter{
 							Certificate: p.DecrypterCertificate,
 							Key:         p.DecrypterKeyPEM,

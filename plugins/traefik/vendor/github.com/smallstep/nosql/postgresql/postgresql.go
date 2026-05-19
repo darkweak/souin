@@ -1,5 +1,4 @@
 //go:build !nopgx
-// +build !nopgx
 
 package postgresql
 
@@ -10,8 +9,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/jackc/pgx/v4"
-	pgxstdlib "github.com/jackc/pgx/v4/stdlib"
+	"github.com/jackc/pgx/v5"
+	pgxstdlib "github.com/jackc/pgx/v5/stdlib"
 	"github.com/pkg/errors"
 	"github.com/smallstep/nosql/database"
 )
@@ -104,7 +103,7 @@ func (db *DB) Close() error {
 }
 
 func getAllQry(bucket []byte) string {
-	return fmt.Sprintf("SELECT * FROM %s", quoteIdentifier(string(bucket)))
+	return fmt.Sprintf("SELECT nkey, nvalue FROM %s", quoteIdentifier(string(bucket)))
 }
 
 func getQry(bucket []byte) string {
@@ -166,7 +165,7 @@ func (db *DB) List(bucket []byte) ([]*database.Entry, error) {
 	if err != nil {
 		estr := err.Error()
 		if strings.Contains(estr, "(SQLSTATE 42P01)") {
-			return nil, errors.Wrapf(database.ErrNotFound, estr)
+			return nil, errors.Wrapf(database.ErrNotFound, "%s", estr)
 		}
 		return nil, errors.Wrapf(err, "error querying table %s", bucket)
 	}
@@ -263,7 +262,7 @@ func (db *DB) Update(tx *database.Tx) error {
 			if err != nil {
 				estr := err.Error()
 				if strings.Contains(estr, "(SQLSTATE 42P01)") {
-					return errors.Wrapf(database.ErrNotFound, estr)
+					return errors.Wrapf(database.ErrNotFound, "%s", estr)
 				}
 				return errors.Wrapf(err, "failed to delete table %s", q.Bucket)
 			}
@@ -319,7 +318,7 @@ func (db *DB) DeleteTable(bucket []byte) error {
 	if err != nil {
 		estr := err.Error()
 		if strings.Contains(estr, "(SQLSTATE 42P01)") {
-			return errors.Wrapf(database.ErrNotFound, estr)
+			return errors.Wrapf(database.ErrNotFound, "%s", estr)
 		}
 		return errors.Wrapf(err, "failed to delete table %s", bucket)
 	}

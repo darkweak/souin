@@ -121,6 +121,18 @@ func (r *Replacer) Delete(variable string) {
 	r.mapMutex.Unlock()
 }
 
+// DeleteByPrefix removes all static variables with
+// keys starting with the given prefix
+func (r *Replacer) DeleteByPrefix(prefix string) {
+	r.mapMutex.Lock()
+	for key := range r.static {
+		if strings.HasPrefix(key, prefix) {
+			delete(r.static, key)
+		}
+	}
+	r.mapMutex.Unlock()
+}
+
 // fromStatic provides values from r.static.
 func (r *Replacer) fromStatic(key string) (any, bool) {
 	r.mapMutex.RLock()
@@ -335,7 +347,7 @@ type replacementProvider interface {
 	replace(key string) (any, bool)
 }
 
-// fileReplacementsProvider handles {file.*} replacements,
+// fileReplacementProvider handles {file.*} replacements,
 // reading a file from disk and replacing with its contents.
 type fileReplacementProvider struct{}
 
@@ -360,7 +372,7 @@ func (f fileReplacementProvider) replace(key string) (any, bool) {
 	return string(body), true
 }
 
-// globalDefaultReplacementsProvider handles replacements
+// globalDefaultReplacementProvider handles replacements
 // that can be used in any context, such as system variables,
 // time, or environment variables.
 type globalDefaultReplacementProvider struct{}
