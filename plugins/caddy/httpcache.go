@@ -90,8 +90,8 @@ func (SouinCaddyMiddleware) CaddyModule() caddy.ModuleInfo {
 
 // ServeHTTP implements caddyhttp.MiddlewareHandler.
 func (s *SouinCaddyMiddleware) ServeHTTP(rw http.ResponseWriter, r *http.Request, next caddyhttp.Handler) error {
-	return s.SouinBaseHandler.ServeHTTP(rw, r, func(w http.ResponseWriter, _ *http.Request) error {
-		return next.ServeHTTP(w, r)
+	return s.SouinBaseHandler.ServeHTTP(rw, r, func(w http.ResponseWriter, req *http.Request) error {
+		return next.ServeHTTP(w, req)
 	})
 }
 

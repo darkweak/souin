@@ -20,5 +20,6 @@ type SurrogateInterface interface {
 	ParseHeaders(string) []string
 	List() map[string]string
 	candidateStore(string) bool
+	Clear()
 	Destruct() error
 }

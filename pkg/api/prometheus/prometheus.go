@@ -17,6 +17,11 @@ const (
 	RequestRevalidationCounter = "souin_request_revalidation_counter"
 	NoCachedResponseCounter    = "souin_no_cached_response_counter"
 	CachedResponseCounter      = "souin_cached_response_counter"
+	SoftPurgeHitCounter        = "souin_soft_purge_hit_counter"
+	SoftPurgeRefreshCounter    = "souin_soft_purge_refresh_counter"
+	SoftPurgeRefreshSuccess    = "souin_soft_purge_refresh_success_counter"
+	SoftPurgeRefreshFailure    = "souin_soft_purge_refresh_failure_counter"
+	SoftPurgeRefreshDeduped    = "souin_soft_purge_refresh_deduped_counter"
 	AvgResponseTime            = "souin_avg_response_time"
 )
 
@@ -103,5 +108,10 @@ func run() {
 	push(counter, RequestRevalidationCounter, "Total revalidation request revalidation counter")
 	push(counter, NoCachedResponseCounter, "No cached response counter")
 	push(counter, CachedResponseCounter, "Cached response counter")
+	push(counter, SoftPurgeHitCounter, "Soft purge stale hit counter")
+	push(counter, SoftPurgeRefreshCounter, "Soft purge background refresh counter")
+	push(counter, SoftPurgeRefreshSuccess, "Soft purge background refresh success counter")
+	push(counter, SoftPurgeRefreshFailure, "Soft purge background refresh failure counter")
+	push(counter, SoftPurgeRefreshDeduped, "Soft purge background refresh deduplicated counter")
 	push(average, AvgResponseTime, "Average response time")
 }

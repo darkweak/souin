@@ -13,8 +13,8 @@ func Test_Run(t *testing.T) {
 	}
 
 	run()
-	if len(registered) != 5 {
-		t.Error("The registered additional metrics array must have 5 items.")
+	if len(registered) != 10 {
+		t.Error("The registered additional metrics array must have 10 items.")
 	}
 
 	i, ok := registered[RequestCounter]
@@ -51,6 +51,17 @@ func Test_Run(t *testing.T) {
 	_, ok = i.(*prometheus.Counter)
 	if ok {
 		t.Errorf("The souin_cached_response_counter element must be a *prometheus.Counter object, %T given.", i)
+	}
+
+	for _, key := range []string{SoftPurgeHitCounter, SoftPurgeRefreshCounter, SoftPurgeRefreshSuccess, SoftPurgeRefreshFailure, SoftPurgeRefreshDeduped} {
+		i, ok = registered[key]
+		if !ok {
+			t.Errorf("The registered array must have the %s key", key)
+			continue
+		}
+		if _, counterOK := i.(*prometheus.Counter); counterOK {
+			t.Errorf("The %s element must be a *prometheus.Counter object, %T given.", key, i)
+		}
 	}
 
 	i, ok = registered[AvgResponseTime]
