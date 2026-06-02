@@ -778,7 +778,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 	defer func(s time.Time) {
 		prometheus.Add(prometheus.AvgResponseTime, float64(time.Since(s).Milliseconds()))
 	}(start)
-	s.Configuration.GetLogger().Debugf("Incomming request %+v", rq)
+	s.Configuration.GetLogger().Debugf("Incoming request %+v", rq)
 	if b, handler := s.HandleInternally(rq); b {
 		handler(rw, rq)
 		return nil
