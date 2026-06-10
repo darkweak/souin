@@ -3,7 +3,9 @@ package context
 import (
 	"context"
 	"net/http"
+	"net/url"
 	"regexp"
+	"sort"
 
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
@@ -23,6 +25,7 @@ type keyContext struct {
 	disable_host   bool
 	disable_method bool
 	disable_query  bool
+	sort_query     bool
 	disable_vary   bool
 	disable_scheme bool
 	displayable    bool
@@ -44,6 +47,7 @@ func (g *keyContext) SetupContext(c configurationtypes.AbstractConfigurationInte
 	g.disable_host = k.DisableHost
 	g.disable_method = k.DisableMethod
 	g.disable_query = k.DisableQuery
+	g.sort_query = k.SortQuery
 	g.disable_scheme = k.DisableScheme
 	g.disable_vary = k.DisableVary
 	g.hash = k.Hash
@@ -60,6 +64,7 @@ func (g *keyContext) SetupContext(c configurationtypes.AbstractConfigurationInte
 				disable_host:   v.DisableHost,
 				disable_method: v.DisableMethod,
 				disable_query:  v.DisableQuery,
+				sort_query:     v.SortQuery,
 				disable_scheme: v.DisableScheme,
 				disable_vary:   v.DisableVary,
 				hash:           v.Hash,
@@ -89,7 +94,17 @@ func parseKeyInformations(req *http.Request, kCtx keyContext) (query, body, host
 	hash = kCtx.hash
 
 	if !kCtx.disable_query && len(req.URL.RawQuery) > 0 {
-		query += "?" + req.URL.RawQuery
+		queryPart := req.URL.RawQuery
+
+		if kCtx.sort_query {
+			v, _ := url.ParseQuery(req.URL.RawQuery)
+			for _, values := range v {
+				sort.Strings(values)
+			}
+			queryPart = v.Encode()
+		}
+		
+		query += "?" + queryPart
 	}
 
 	if !kCtx.disable_body {
