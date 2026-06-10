@@ -1011,8 +1011,15 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 						return err
 					}
 
+					// A 304 may only be returned to the client when the client
+					// itself issued a conditional request. The upstream 304 here
+					// is often triggered by the If-None-Match we injected above
+					// for revalidation, so for unconditional requests we must
+					// turn it back into the full cached response.
+					clientConditional := validator.IfNoneMatchPresent || validator.IfModifiedSincePresent
+
 					if statusCode == http.StatusNotModified {
-						if !validator.Matched {
+						if !validator.Matched || !clientConditional {
 							rfc.SetCacheStatusHeader(response, storerName)
 							customWriter.WriteHeader(response.StatusCode)
 							maps.Copy(customWriter.Header(), response.Header)
@@ -1025,7 +1032,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 						}
 					}
 
-					if statusCode != http.StatusNotModified && validator.Matched {
+					if statusCode != http.StatusNotModified && validator.Matched && clientConditional {
 						customWriter.WriteHeader(http.StatusNotModified)
 						customWriter.handleBuffer(func(b *bytes.Buffer) {
 							b.Reset()
