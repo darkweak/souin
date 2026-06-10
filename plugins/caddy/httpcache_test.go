@@ -4,7 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"mime"
+	"mime/multipart"
 	"net/http"
+	"reflect"
 	"strings"
 	"sync"
 	"testing"
@@ -1482,19 +1486,16 @@ func TestRange(t *testing.T) {
 	reqRange, _ := http.NewRequest(http.MethodGet, "http://localhost:9080/range-request", nil)
 	reqRange.Header.Set("Range", "bytes=0-4, 6-10")
 
-	resp1, _ := tester.AssertResponse(reqRange, http.StatusPartialContent, `
---SOUIN-HTTP-CACHE-SEPARATOR
-Content-Type: text/plain; charset=utf-8
-Content-Range: bytes 0-5/20
+	// The multipart byteranges payload is produced by http.ServeContent, whose
+	// boundary is randomly generated per response, so the body cannot be matched
+	// verbatim. Parse the multipart instead and assert the individual parts.
+	wantParts := []rangePart{
+		{contentRange: "bytes 0-4/20", body: "Hello"},
+		{contentRange: "bytes 6-10/20", body: "range"},
+	}
 
-Hello
-
---SOUIN-HTTP-CACHE-SEPARATOR
-Content-Type: text/plain; charset=utf-8
-Content-Range: bytes 6-11/20
-
-range
---SOUIN-HTTP-CACHE-SEPARATOR--`)
+	resp1 := tester.AssertResponseCode(reqRange, http.StatusPartialContent)
+	assertMultipartRanges(t, resp1, wantParts)
 
 	if resp1.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-http-localhost:9080-/range-request" {
 		t.Errorf("unexpected resp1 Cache-Status header %v", resp1.Header.Get("Cache-Status"))
@@ -1504,24 +1505,58 @@ range
 		t.Errorf("unexpected resp1 Age header %v", resp1.Header.Get("Age"))
 	}
 
-	resp2, _ := tester.AssertResponse(reqRange, http.StatusPartialContent, `
---SOUIN-HTTP-CACHE-SEPARATOR
-Content-Type: text/plain; charset=utf-8
-Content-Range: bytes 0-5/20
-
-Hello
-
---SOUIN-HTTP-CACHE-SEPARATOR
-Content-Type: text/plain; charset=utf-8
-Content-Range: bytes 6-11/20
-
-range
---SOUIN-HTTP-CACHE-SEPARATOR--`)
+	resp2 := tester.AssertResponseCode(reqRange, http.StatusPartialContent)
+	assertMultipartRanges(t, resp2, wantParts)
 
 	compareHit(t, resp2.Header, "GET-http-localhost:9080-/range-request", "DEFAULT", 119)
 
 	if resp2.Header.Get("Age") != "1" {
 		t.Errorf("unexpected resp2 Age header %v", resp2.Header.Get("Age"))
+	}
+}
+
+type rangePart struct {
+	contentRange string
+	body         string
+}
+
+// assertMultipartRanges parses a multipart/byteranges response body and asserts
+// the Content-Range header and payload of each part, ignoring the randomly
+// generated multipart boundary.
+func assertMultipartRanges(t *testing.T, resp *http.Response, want []rangePart) {
+	t.Helper()
+
+	defer resp.Body.Close()
+
+	mediaType, params, err := mime.ParseMediaType(resp.Header.Get("Content-Type"))
+	if err != nil {
+		t.Fatalf("cannot parse Content-Type %q: %v", resp.Header.Get("Content-Type"), err)
+	}
+	if mediaType != "multipart/byteranges" {
+		t.Fatalf("expected multipart/byteranges Content-Type, got %q", mediaType)
+	}
+
+	mr := multipart.NewReader(resp.Body, params["boundary"])
+	got := make([]rangePart, 0, len(want))
+	for {
+		part, err := mr.NextPart()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			t.Fatalf("reading multipart part: %v", err)
+		}
+
+		body, err := io.ReadAll(part)
+		if err != nil {
+			t.Fatalf("reading multipart part body: %v", err)
+		}
+
+		got = append(got, rangePart{contentRange: part.Header.Get("Content-Range"), body: string(body)})
+	}
+
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("unexpected multipart parts\n got: %#v\nwant: %#v", got, want)
 	}
 }
 
