@@ -28,6 +28,8 @@ import (
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
 )
 
+var stringSliceType = reflect.TypeFor[[]string]()
+
 func init() {
 	caddy.RegisterModule(VarsMiddleware{})
 	caddy.RegisterModule(VarsMatcher{})
@@ -310,10 +312,12 @@ func (m MatchVarsRE) MatchWithError(r *http.Request) (bool, error) {
 	repl := r.Context().Value(caddy.ReplacerCtxKey).(*caddy.Replacer)
 	for key, val := range m {
 		var varValue any
+		var fromPlaceholder bool
 		if strings.HasPrefix(key, "{") &&
 			strings.HasSuffix(key, "}") &&
 			strings.Count(key, "{") == 1 {
 			varValue, _ = repl.Get(strings.Trim(key, "{}"))
+			fromPlaceholder = true
 		} else {
 			varValue = vars[key]
 		}
@@ -332,7 +336,14 @@ func (m MatchVarsRE) MatchWithError(r *http.Request) (bool, error) {
 			varStr = fmt.Sprintf("%v", vv)
 		}
 
-		valExpanded := repl.ReplaceAll(varStr, "")
+		// Only expand placeholders in values from literal variable names
+		// (e.g. map outputs). Values resolved from placeholder keys are
+		// already final and must not be re-expanded, as that would allow
+		// user input like {env.SECRET} to be evaluated.
+		valExpanded := varStr
+		if !fromPlaceholder {
+			valExpanded = repl.ReplaceAll(varStr, "")
+		}
 		if match := val.Match(valExpanded, repl); match {
 			return match, nil
 		}
@@ -353,7 +364,7 @@ func (MatchVarsRE) CELLibrary(ctx caddy.Context) (cel.Library, error) {
 		"vars_regexp_request_string_string",
 		[]*cel.Type{cel.StringType, cel.StringType},
 		func(data ref.Val) (RequestMatcherWithError, error) {
-			refStringList := reflect.TypeOf([]string{})
+			refStringList := stringSliceType
 			params, err := data.ConvertToNative(refStringList)
 			if err != nil {
 				return nil, err
@@ -376,7 +387,7 @@ func (MatchVarsRE) CELLibrary(ctx caddy.Context) (cel.Library, error) {
 		"vars_regexp_request_string_string_string",
 		[]*cel.Type{cel.StringType, cel.StringType, cel.StringType},
 		func(data ref.Val) (RequestMatcherWithError, error) {
-			refStringList := reflect.TypeOf([]string{})
+			refStringList := stringSliceType
 			params, err := data.ConvertToNative(refStringList)
 			if err != nil {
 				return nil, err

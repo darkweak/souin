@@ -47,7 +47,7 @@ It also supports the [Cache-Status HTTP response header](https://www.rfc-editor.
 It supports the ESI tags, thanks to the [go-esi package](https://github.com/darkweak/go-esi).
 
 > [!WARNING]
-> Since `v1.7.0` Souin implements only one storage. If you need a specific storage you have to take it from [the storages repository](https://github.com/darkweak/storages) and add it either in your code, during the build otherwise.  
+> Since `v1.7.0` Souin implements only one in-memory map storage. If you need a specific storage you have to take it from [the storages repository](https://github.com/darkweak/storages) and add it either in your code, during the build otherwise.  
 (e.g. with otter using caddy) You have to build your caddy module with the desired storage `xcaddy build --with github.com/darkweak/souin/plugins/caddy --with github.com/darkweak/storages/otter/caddy` and configure otter in your Caddyfile/JSON configuration file.  
 See the [storages section](#storages) or the [documentation website about the storages](https://docs.souin.io/docs/storages).
 

@@ -8,8 +8,8 @@ import (
 	"crypto/sha256"
 	"crypto/x509"
 	"encoding/hex"
+	"fmt"
 	"log"
-	"net/http"
 	"strings"
 	"sync"
 	"time"
@@ -17,11 +17,11 @@ import (
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/ssh"
 
+	"github.com/smallstep/linkedca"
 	"go.step.sm/crypto/kms"
 	kmsapi "go.step.sm/crypto/kms/apiv1"
 	"go.step.sm/crypto/kms/sshagentkms"
 	"go.step.sm/crypto/pemutil"
-	"go.step.sm/linkedca"
 
 	"github.com/smallstep/certificates/authority/admin"
 	adminDBNosql "github.com/smallstep/certificates/authority/admin/db/nosql"
@@ -33,6 +33,7 @@ import (
 	"github.com/smallstep/certificates/cas"
 	casapi "github.com/smallstep/certificates/cas/apiv1"
 	"github.com/smallstep/certificates/db"
+	"github.com/smallstep/certificates/internal/httptransport"
 	"github.com/smallstep/certificates/scep"
 	"github.com/smallstep/certificates/templates"
 	"github.com/smallstep/nosql"
@@ -48,7 +49,9 @@ type Authority struct {
 	adminDB       admin.DB
 	templates     *templates.Templates
 	linkedCAToken string
-	webhookClient *http.Client
+	wrapTransport httptransport.Wrapper
+	webhookClient provisioner.HTTPClient
+	httpClient    provisioner.HTTPClient
 
 	// X509 CA
 	password              []byte
@@ -127,10 +130,11 @@ func New(cfg *config.Config, opts ...Option) (*Authority, error) {
 	}
 
 	var a = &Authority{
-		config:       cfg,
-		certificates: new(sync.Map),
-		validateSCEP: true,
-		meter:        noopMeter{},
+		config:        cfg,
+		certificates:  new(sync.Map),
+		validateSCEP:  true,
+		meter:         noopMeter{},
+		wrapTransport: httptransport.NoopWrapper(),
 	}
 
 	// Apply options.
@@ -141,6 +145,11 @@ func New(cfg *config.Config, opts ...Option) (*Authority, error) {
 	}
 	if a.keyManager != nil {
 		a.keyManager = newInstrumentedKeyManager(a.keyManager, a.meter)
+	}
+
+	// Initialize system cert pool
+	if err := initializeSystemCertPool(); err != nil {
+		return nil, fmt.Errorf("failed to initialize the system cert pool: %w", err)
 	}
 
 	if !a.skipInit {
@@ -157,9 +166,10 @@ func New(cfg *config.Config, opts ...Option) (*Authority, error) {
 // project without the limitations of the config.
 func NewEmbedded(opts ...Option) (*Authority, error) {
 	a := &Authority{
-		config:       &config.Config{},
-		certificates: new(sync.Map),
-		meter:        noopMeter{},
+		config:        &config.Config{},
+		certificates:  new(sync.Map),
+		meter:         noopMeter{},
+		wrapTransport: httptransport.NoopWrapper(),
 	}
 
 	// Apply options.
@@ -170,6 +180,11 @@ func NewEmbedded(opts ...Option) (*Authority, error) {
 	}
 	if a.keyManager != nil {
 		a.keyManager = newInstrumentedKeyManager(a.keyManager, a.meter)
+	}
+
+	// Initialize system cert pool
+	if err := initializeSystemCertPool(); err != nil {
+		return nil, fmt.Errorf("failed to initialize the system cert pool: %w", err)
 	}
 
 	// Validate required options
@@ -256,7 +271,10 @@ func (a *Authority) ReloadAdminResources(ctx context.Context) error {
 	provClxn := provisioner.NewCollection(provisionerConfig.Audiences)
 	for _, p := range provList {
 		if err := p.Init(provisionerConfig); err != nil {
-			return err
+			log.Printf("failed to initialize %s provisioner %q: %v\n", p.GetType(), p.GetName(), err)
+			p = provisioner.Uninitialized{
+				Interface: p, Reason: err,
+			}
 		}
 		if err := provClxn.Store(p); err != nil {
 			return err
@@ -486,6 +504,15 @@ func (a *Authority) init() error {
 	for _, crt := range a.federatedX509Certs {
 		sum := sha256.Sum256(crt.Raw)
 		a.certificates.Store(hex.EncodeToString(sum[:]), crt)
+	}
+
+	// Initialize HTTPClient with all root certs
+	clientRoots := make([]*x509.Certificate, 0, len(a.rootX509Certs)+len(a.federatedX509Certs))
+	clientRoots = append(clientRoots, a.rootX509Certs...)
+	clientRoots = append(clientRoots, a.federatedX509Certs...)
+	a.httpClient = newHTTPClient(a.wrapTransport, clientRoots...)
+	if err != nil {
+		return err
 	}
 
 	// Decrypt and load SSH keys
@@ -730,7 +757,11 @@ func (a *Authority) init() error {
 						// only pass the decrypter down when it was successfully created,
 						// meaning it's an RSA key, and `CreateDecrypter` did not fail.
 						options.Decrypter = decrypter
-						options.DecrypterCert = options.Intermediates[0]
+
+						// intermediate certificates can be empty in RA mode
+						if len(options.Intermediates) > 0 {
+							options.DecrypterCert = options.Intermediates[0]
+						}
 					}
 				}
 			}
@@ -855,6 +886,17 @@ func (a *Authority) GetConfig() *config.Config {
 	return a.config
 }
 
+// GetBackdate returns the [time.Duration] representing the
+// amount of time that is to be subtracted from the current
+// time when issuing a new certificate.
+func (a *Authority) GetBackdate() *time.Duration {
+	if a.config == nil || a.config.AuthorityConfig == nil || a.config.AuthorityConfig.Backdate == nil {
+		return nil
+	}
+
+	return &a.config.AuthorityConfig.Backdate.Duration
+}
+
 // GetInfo returns information about the authority.
 func (a *Authority) GetInfo() Info {
 	ai := Info{
@@ -944,6 +986,16 @@ func (a *Authority) getSCEPProvisionerNames() (names []string) {
 // GetSCEP returns the configured SCEP Authority
 func (a *Authority) GetSCEP() *scep.Authority {
 	return a.scepAuthority
+}
+
+// HasACMEProvisioner returns true if at least one ACME provisioner is configured.
+func (a *Authority) HasACMEProvisioner() bool {
+	for _, p := range a.config.AuthorityConfig.Provisioners {
+		if p.GetType() == provisioner.TypeACME {
+			return true
+		}
+	}
+	return false
 }
 
 func (a *Authority) startCRLGenerator() error {

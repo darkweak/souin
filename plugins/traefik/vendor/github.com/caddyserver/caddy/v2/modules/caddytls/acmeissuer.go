@@ -178,6 +178,7 @@ func (iss *ACMEIssuer) Provision(ctx caddy.Context) error {
 				PropagationTimeout: time.Duration(iss.Challenges.DNS.PropagationTimeout),
 				Resolvers:          iss.Challenges.DNS.Resolvers,
 				OverrideDomain:     iss.Challenges.DNS.OverrideDomain,
+				Logger:             iss.logger.Named("dns_manager"),
 			},
 		}
 	}
@@ -220,7 +221,7 @@ func (iss *ACMEIssuer) makeIssuerTemplate(ctx caddy.Context) (certmagic.ACMEIssu
 	}
 
 	if len(iss.NetworkProxyRaw) != 0 {
-		proxyMod, err := ctx.LoadModule(iss, "ForwardProxyRaw")
+		proxyMod, err := ctx.LoadModule(iss, "NetworkProxyRaw")
 		if err != nil {
 			return template, fmt.Errorf("failed to load network_proxy module: %v", err)
 		}
@@ -244,6 +245,9 @@ func (iss *ACMEIssuer) makeIssuerTemplate(ctx caddy.Context) (certmagic.ACMEIssu
 			template.DNS01Solver = iss.Challenges.DNS.solver
 		}
 		template.ListenHost = iss.Challenges.BindHost
+		if iss.Challenges.Distributed != nil {
+			template.DisableDistributedSolvers = !*iss.Challenges.Distributed
+		}
 	}
 
 	if iss.PreferredChains != nil {
@@ -333,7 +337,7 @@ func (iss *ACMEIssuer) generateZeroSSLEABCredentials(ctx context.Context, acct a
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("User-Agent", certmagic.UserAgent)
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := http.DefaultClient.Do(req) //nolint:gosec // no SSRF since URL is from trusted config
 	if err != nil {
 		return nil, acct, fmt.Errorf("performing EAB credentials request: %v", err)
 	}
@@ -479,6 +483,20 @@ func (iss *ACMEIssuer) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 				iss.Challenges.TLSALPN = new(TLSALPNChallengeConfig)
 			}
 			iss.Challenges.TLSALPN.Disabled = true
+
+		case "distributed":
+			if !d.NextArg() {
+				return d.ArgErr()
+			}
+			if d.Val() != "false" {
+				return d.Errf("only accepted value is 'false'")
+			}
+			if iss.Challenges == nil {
+				iss.Challenges = new(ChallengesConfig)
+			}
+			if iss.Challenges.Distributed == nil {
+				iss.Challenges.Distributed = new(bool)
+			}
 
 		case "alt_http_port":
 			if !d.NextArg() {
@@ -654,7 +672,7 @@ func ParseCaddyfilePreferredChainsOptions(d *caddyfile.Dispenser) (*ChainPrefere
 		switch d.Val() {
 		case "root_common_name":
 			rootCommonNameOpt := d.RemainingArgs()
-			chainPref.RootCommonName = rootCommonNameOpt
+			chainPref.RootCommonName = append(chainPref.RootCommonName, rootCommonNameOpt...)
 			if rootCommonNameOpt == nil {
 				return nil, d.ArgErr()
 			}
@@ -664,7 +682,7 @@ func ParseCaddyfilePreferredChainsOptions(d *caddyfile.Dispenser) (*ChainPrefere
 
 		case "any_common_name":
 			anyCommonNameOpt := d.RemainingArgs()
-			chainPref.AnyCommonName = anyCommonNameOpt
+			chainPref.AnyCommonName = append(chainPref.AnyCommonName, anyCommonNameOpt...)
 			if anyCommonNameOpt == nil {
 				return nil, d.ArgErr()
 			}

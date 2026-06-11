@@ -28,7 +28,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	weakrand "math/rand"
+	weakrand "math/rand/v2"
 	"net"
 	"net/http"
 	"net/url"
@@ -490,6 +490,33 @@ func (cfg *Config) manageOne(ctx context.Context, domainName string, async bool)
 	return renew()
 }
 
+// renewLockLease extends the lease duration on an existing lock if the storage
+// backend supports it. The lease duration is calculated based on the retry attempt
+// number and includes the certificate obtain timeout. This prevents locks from
+// expiring during long-running certificate operations with retries.
+func (cfg *Config) renewLockLease(ctx context.Context, storage Storage, lockKey string, attempt int) error {
+	l, ok := storage.(LockLeaseRenewer)
+	if !ok {
+		return nil
+	}
+
+	leaseDuration := maxRetryDuration
+	if attempt < len(retryIntervals) && attempt >= 0 {
+		leaseDuration = retryIntervals[attempt]
+	}
+	leaseDuration = leaseDuration + DefaultACME.CertObtainTimeout
+	log := cfg.Logger.Named("renewLockLease")
+	log.Debug("renewing lock lease", zap.String("lockKey", lockKey), zap.Int("attempt", attempt))
+
+	err := l.RenewLockLease(ctx, lockKey, leaseDuration)
+	if err == nil {
+		locksMu.Lock()
+		locks[lockKey] = storage
+		locksMu.Unlock()
+	}
+	return err
+}
+
 // ObtainCertSync generates a new private key and obtains a certificate for
 // name using cfg in the foreground; i.e. interactively and without retries.
 // It stows the renewed certificate and its assets in storage if successful.
@@ -546,6 +573,15 @@ func (cfg *Config) obtainCert(ctx context.Context, name string, interactive bool
 	log.Info("lock acquired", zap.String("identifier", name))
 
 	f := func(ctx context.Context) error {
+		// renew lease on the lock if the certificate store supports it
+		attempt, ok := ctx.Value(AttemptsCtxKey).(*int)
+		if ok {
+			err = cfg.renewLockLease(ctx, cfg.Storage, lockKey, *attempt)
+			if err != nil {
+				return fmt.Errorf("unable to renew lock lease '%s': %v", lockKey, err)
+			}
+		}
+
 		// check if obtain is still needed -- might have been obtained during lock
 		if cfg.storageHasCertResourcesAnyIssuer(ctx, name) {
 			log.Info("certificate already exists in storage", zap.String("identifier", name))
@@ -805,6 +841,16 @@ func (cfg *Config) renewCert(ctx context.Context, name string, force, interactiv
 	log.Info("lock acquired", zap.String("identifier", name))
 
 	f := func(ctx context.Context) error {
+		// renew lease on the certificate store lock if the store implementation supports it;
+		// prevents the lock from being acquired by another process/instance while we're renewing
+		attempt, ok := ctx.Value(AttemptsCtxKey).(*int)
+		if ok {
+			err = cfg.renewLockLease(ctx, cfg.Storage, lockKey, *attempt)
+			if err != nil {
+				return fmt.Errorf("unable to renew lock lease '%s': %v", lockKey, err)
+			}
+		}
+
 		// prepare for renewal (load PEM cert, key, and meta)
 		certRes, err := cfg.loadCertResourceAnyIssuer(ctx, name)
 		if err != nil {
@@ -1112,20 +1158,29 @@ func (cfg *Config) TLSConfig() *tls.Config {
 	}
 }
 
-// getChallengeInfo loads the challenge info from either the internal challenge memory
+// getACMEChallengeInfo loads the challenge info from either the internal challenge memory
 // or the external storage (implying distributed solving). The second return value
 // indicates whether challenge info was loaded from external storage. If true, the
 // challenge is being solved in a distributed fashion; if false, from internal memory.
 // If no matching challenge information can be found, an error is returned.
-func (cfg *Config) getChallengeInfo(ctx context.Context, identifier string) (Challenge, bool, error) {
+func (cfg *Config) getACMEChallengeInfo(ctx context.Context, identifier string, allowDistributed bool) (Challenge, bool, error) {
 	// first, check if our process initiated this challenge; if so, just return it
 	chalData, ok := GetACMEChallenge(identifier)
 	if ok {
 		return chalData, false, nil
 	}
 
+	// if distributed solving is disabled, and we don't have it in memory, return an error
+	if !allowDistributed {
+		return Challenge{}, false, fmt.Errorf("distributed solving disabled and no challenge information found internally for identifier: %s", identifier)
+	}
+
 	// otherwise, perhaps another instance in the cluster initiated it; check
-	// the configured storage to retrieve challenge data
+	// the configured storage to retrieve challenge data (requires storage)
+
+	if cfg.Storage == nil {
+		return Challenge{}, false, errors.New("challenge was not initiated internally and no storage is configured for distributed solving")
+	}
 
 	var chalInfo acme.Challenge
 	var chalInfoBytes []byte
@@ -1181,11 +1236,20 @@ func (cfg *Config) checkStorage(ctx context.Context) error {
 	}
 	key := fmt.Sprintf("rw_test_%d", weakrand.Int())
 	contents := make([]byte, 1024*10) // size sufficient for one or two ACME resources
-	_, err := weakrand.Read(contents)
-	if err != nil {
-		return err
+	// This is how ChaCha8.Read works, without handling the case where the slice length is not a multiple of 8.
+	// This also avoids the use of a mutex and an import.
+	for i := 0; i < len(contents); i += 8 {
+		v := weakrand.Uint64()
+		contents[i] = byte(v)
+		contents[i+1] = byte(v >> 8)
+		contents[i+2] = byte(v >> 16)
+		contents[i+3] = byte(v >> 24)
+		contents[i+4] = byte(v >> 32)
+		contents[i+5] = byte(v >> 40)
+		contents[i+6] = byte(v >> 48)
+		contents[i+7] = byte(v >> 56)
 	}
-	err = cfg.Storage.Store(ctx, key, contents)
+	err := cfg.Storage.Store(ctx, key, contents)
 	if err != nil {
 		return err
 	}

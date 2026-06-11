@@ -28,6 +28,8 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"golang.org/x/term"
+
+	"github.com/caddyserver/caddy/v2/internal"
 )
 
 func init() {
@@ -162,7 +164,9 @@ func (logging *Logging) setupNewDefault(ctx Context) error {
 	if err != nil {
 		return fmt.Errorf("setting up default log: %v", err)
 	}
-	newDefault.logger = zap.New(newDefault.CustomLog.core, options...)
+
+	filteringCore := &filteringCore{newDefault.CustomLog.core, newDefault.CustomLog}
+	newDefault.logger = zap.New(filteringCore, options...)
 
 	// redirect the default caddy logs
 	defaultLoggerMu.Lock()
@@ -186,6 +190,13 @@ func (logging *Logging) setupNewDefault(ctx Context) error {
 			zap.String("from", currentDefaultLogWriterStr),
 			zap.String("to", newDefaultLogWriterStr),
 		)
+	}
+
+	// if we had a buffered core, flush its contents ASAP
+	// before we try to log anything else, so the order of
+	// logs is preserved
+	if oldBufferCore, ok := oldDefault.logger.Core().(*internal.LogBufferCore); ok {
+		oldBufferCore.FlushTo(newDefault.logger)
 	}
 
 	return nil
@@ -769,6 +780,21 @@ func Log() *zap.Logger {
 	defaultLoggerMu.RLock()
 	defer defaultLoggerMu.RUnlock()
 	return defaultLogger.logger
+}
+
+// BufferedLog sets the default logger to one that buffers
+// logs before a config is loaded.
+// Returns the buffered logger, the original default logger
+// (for flushing on errors), and the buffer core so that the
+// caller can flush the logs after the config is loaded or
+// fails to load.
+func BufferedLog() (*zap.Logger, *zap.Logger, *internal.LogBufferCore) {
+	defaultLoggerMu.Lock()
+	defer defaultLoggerMu.Unlock()
+	origLogger := defaultLogger.logger
+	bufferCore := internal.NewLogBufferCore(zap.InfoLevel)
+	defaultLogger.logger = zap.New(bufferCore)
+	return defaultLogger.logger, origLogger, bufferCore
 }
 
 var (

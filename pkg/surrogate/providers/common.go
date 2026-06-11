@@ -194,7 +194,14 @@ func (s *baseStorage) storeTag(tag string, cacheKey string) {
 	currentValue := string(s.Storage.Get(surrogatePrefix + tag))
 	if !containsCacheKey(currentValue, cacheKey) {
 		s.logger.Debugf("Store the tag %s", tag)
-		_ = s.Storage.Set(surrogatePrefix+tag, []byte(currentValue+souinStorageSeparator+cacheKey), s.duration)
+
+		if currentValue == "" {
+			currentValue = cacheKey
+		} else {
+			currentValue += souinStorageSeparator + cacheKey
+		}
+
+		_ = s.Storage.Set(surrogatePrefix+tag, []byte(currentValue), s.duration)
 	}
 }
 

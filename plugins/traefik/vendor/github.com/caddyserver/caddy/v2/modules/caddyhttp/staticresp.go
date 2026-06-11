@@ -22,6 +22,7 @@ import (
 	"net/http"
 	"net/textproto"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"text/template"
@@ -78,7 +79,7 @@ Response headers may be added using the --header flag for each header field.
 			cmd.Flags().StringP("body", "b", "", "The body of the HTTP response")
 			cmd.Flags().BoolP("access-log", "", false, "Enable the access log")
 			cmd.Flags().BoolP("debug", "v", false, "Enable more verbose debug-level logging")
-			cmd.Flags().StringSliceP("header", "H", []string{}, "Set a header on the response (format: \"Field: value\")")
+			cmd.Flags().StringArrayP("header", "H", []string{}, "Set a header on the response (format: \"Field: value\")")
 			cmd.RunE = caddycmd.WrapCommandFuncForCobra(cmdRespond)
 		},
 	})
@@ -245,7 +246,7 @@ func (s StaticResponse) ServeHTTP(w http.ResponseWriter, r *http.Request, next H
 
 	// write response body
 	if statusCode != http.StatusEarlyHints && body != "" {
-		fmt.Fprint(w, body)
+		fmt.Fprint(w, body) //nolint:gosec // no XSS unless you sabatoge your own config
 	}
 
 	// continue handling after Early Hints as they are not the final response
@@ -256,7 +257,16 @@ func (s StaticResponse) ServeHTTP(w http.ResponseWriter, r *http.Request, next H
 	return nil
 }
 
-func buildHTTPServer(i int, port uint, addr string, statusCode int, hdr http.Header, body string, accessLog bool) (*Server, error) {
+func buildHTTPServer(
+	i int,
+	port uint,
+	addr string,
+	statusCode int,
+	hdr http.Header,
+	body string,
+	accessLog bool,
+) (*Server, error) {
+	// nolint:prealloc
 	var handlers []json.RawMessage
 
 	// response body supports a basic template; evaluate it
@@ -323,13 +333,7 @@ func cmdRespond(fl caddycmd.Flags) (int, error) {
 
 	// figure out if status code was explicitly specified; this lets
 	// us set a non-zero value as the default but is a little hacky
-	var statusCodeFlagSpecified bool
-	for _, fl := range os.Args {
-		if fl == "--status" {
-			statusCodeFlagSpecified = true
-			break
-		}
-	}
+	statusCodeFlagSpecified := slices.Contains(os.Args, "--status")
 
 	// try to determine what kind of parameter the unnamed argument is
 	if arg != "" {
@@ -364,7 +368,7 @@ func cmdRespond(fl caddycmd.Flags) (int, error) {
 	}
 
 	// build headers map
-	headers, err := fl.GetStringSlice("header")
+	headers, err := fl.GetStringArray("header")
 	if err != nil {
 		return caddy.ExitCodeFailedStartup, fmt.Errorf("invalid header flag: %v", err)
 	}

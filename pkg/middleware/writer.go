@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
-	"github.com/darkweak/go-esi/esi"
 	"github.com/darkweak/souin/pkg/rfc"
 )
 
@@ -35,9 +35,9 @@ type CustomWriter struct {
 	Rw          http.ResponseWriter
 	Req         *http.Request
 	Headers     http.Header
-	headersSent bool
 	mutex       sync.Mutex
 	statusCode  int
+	headersSent atomic.Bool
 }
 
 func (r *CustomWriter) handleBuffer(callback func(*bytes.Buffer)) {
@@ -48,10 +48,7 @@ func (r *CustomWriter) handleBuffer(callback func(*bytes.Buffer)) {
 
 // Header will write the response headers
 func (r *CustomWriter) Header() http.Header {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	if r.headersSent || r.Req.Context().Err() != nil {
+	if r.headersSent.Load() || r.Req.Context().Err() != nil {
 		return http.Header{}
 	}
 
@@ -68,12 +65,13 @@ func (r *CustomWriter) GetStatusCode() int {
 
 // WriteHeader will write the response headers
 func (r *CustomWriter) WriteHeader(code int) {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-	if r.headersSent {
+	if r.headersSent.Load() {
 		return
 	}
+
+	r.mutex.Lock()
 	r.statusCode = code
+	r.mutex.Unlock()
 }
 
 // Write will write the response body
@@ -91,12 +89,15 @@ func (r *CustomWriter) Send() (int, error) {
 	defer r.handleBuffer(func(b *bytes.Buffer) {
 		b.Reset()
 	})
+
 	storedLength := r.Header().Get(rfc.StoredLengthHeader)
 	if storedLength != "" {
 		r.Header().Set("Content-Length", storedLength)
 	}
 
-	result := esi.Parse(r.Buf.Bytes(), r.Req)
+	r.mutex.Lock()
+	result := r.Buf.Bytes()
+	r.mutex.Unlock()
 
 	r.Header().Del(rfc.StoredLengthHeader)
 	r.Header().Del(rfc.StoredTTLHeader)
@@ -106,7 +107,7 @@ func (r *CustomWriter) Send() (int, error) {
 	// in full (single/suffix/multipart ranges, If-Range, 416 with Content-Range,
 	// Accept-Ranges and CRLF-delimited multipart payloads), which avoids the
 	// off-by-one and out-of-bounds issues of a hand-rolled implementation.
-	if rangeHeader := r.Headers.Get("Range"); rangeHeader != "" && r.GetStatusCode() == http.StatusOK && !r.headersSent {
+	if rangeHeader := r.Headers.Get("Range"); rangeHeader != "" && r.GetStatusCode() == http.StatusOK && !r.headersSent.Load() {
 		r.Header().Set("Accept-Ranges", "bytes")
 
 		// ServeContent reads Range/If-Range from the request. Build a minimal
@@ -125,7 +126,7 @@ func (r *CustomWriter) Send() (int, error) {
 			}
 		}
 
-		r.headersSent = true
+		r.headersSent.Swap(true)
 		// An empty name skips extension-based sniffing so the cached
 		// Content-Type is preserved.
 		http.ServeContent(r.Rw, rangeReq, "", modtime, bytes.NewReader(result))
@@ -137,9 +138,15 @@ func (r *CustomWriter) Send() (int, error) {
 		r.Header().Set("Content-Length", strconv.Itoa(len(result)))
 	}
 
-	if !r.headersSent {
-		r.Rw.WriteHeader(r.GetStatusCode())
-		r.headersSent = true
+	r.Header().Del(rfc.StoredLengthHeader)
+	r.Header().Del(rfc.StoredTTLHeader)
+
+	if !r.headersSent.Load() {
+		r.mutex.Lock()
+		r.Rw.WriteHeader(r.statusCode)
+		r.mutex.Unlock()
+
+		r.headersSent.Store(true)
 	}
 
 	return r.Rw.Write(result)
