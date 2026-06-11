@@ -1,6 +1,8 @@
 package pkcs7
 
 import (
+	"bytes"
+	"crypto"
 	"crypto/subtle"
 	"crypto/x509"
 	"crypto/x509/pkix"
@@ -54,6 +56,21 @@ func (p7 *PKCS7) VerifyWithChainAtTime(truststore *x509.CertPool, currentTime ti
 	return nil
 }
 
+// SigningTimeNotValidError is returned when the signing time attribute
+// falls outside of the signer certificate validity.
+type SigningTimeNotValidError struct {
+	SigningTime time.Time
+	NotBefore   time.Time // NotBefore of signer
+	NotAfter    time.Time // NotAfter of signer
+}
+
+func (e *SigningTimeNotValidError) Error() string {
+	return fmt.Sprintf("pkcs7: signing time %q is outside of certificate validity %q to %q",
+		e.SigningTime.Format(time.RFC3339),
+		e.NotBefore.Format(time.RFC3339),
+		e.NotAfter.Format(time.RFC3339))
+}
+
 func verifySignatureAtTime(p7 *PKCS7, signer signerInfo, truststore *x509.CertPool, currentTime time.Time) (err error) {
 	signedData := p7.Content
 	ee := getCertFromCertsByIssuerAndSerial(p7.Certificates, signer.IssuerAndSerialNumber)
@@ -74,9 +91,10 @@ func verifySignatureAtTime(p7 *PKCS7, signer signerInfo, truststore *x509.CertPo
 		if err != nil {
 			return err
 		}
-		h := hash.New()
-		h.Write(p7.Content)
-		computed := h.Sum(nil)
+		computed, err := calculateHash(p7.Hasher, hash, p7.Content)
+		if err != nil {
+			return err
+		}
 		if subtle.ConstantTimeCompare(digest, computed) != 1 {
 			return &MessageDigestMismatchError{
 				ExpectedDigest: digest,
@@ -91,10 +109,11 @@ func verifySignatureAtTime(p7 *PKCS7, signer signerInfo, truststore *x509.CertPo
 		if err == nil {
 			// signing time found, performing validity check
 			if signingTime.After(ee.NotAfter) || signingTime.Before(ee.NotBefore) {
-				return fmt.Errorf("pkcs7: signing time %q is outside of certificate validity %q to %q",
-					signingTime.Format(time.RFC3339),
-					ee.NotBefore.Format(time.RFC3339),
-					ee.NotAfter.Format(time.RFC3339))
+				return &SigningTimeNotValidError{
+					SigningTime: signingTime,
+					NotBefore:   ee.NotBefore,
+					NotAfter:    ee.NotAfter,
+				}
 			}
 		}
 	}
@@ -129,9 +148,10 @@ func verifySignature(p7 *PKCS7, signer signerInfo, truststore *x509.CertPool) (e
 		if err != nil {
 			return err
 		}
-		h := hash.New()
-		h.Write(p7.Content)
-		computed := h.Sum(nil)
+		computed, err := calculateHash(p7.Hasher, hash, p7.Content)
+		if err != nil {
+			return err
+		}
 		if subtle.ConstantTimeCompare(digest, computed) != 1 {
 			return &MessageDigestMismatchError{
 				ExpectedDigest: digest,
@@ -146,10 +166,11 @@ func verifySignature(p7 *PKCS7, signer signerInfo, truststore *x509.CertPool) (e
 		if err == nil {
 			// signing time found, performing validity check
 			if signingTime.After(ee.NotAfter) || signingTime.Before(ee.NotBefore) {
-				return fmt.Errorf("pkcs7: signing time %q is outside of certificate validity %q to %q",
-					signingTime.Format(time.RFC3339),
-					ee.NotBefore.Format(time.RFC3339),
-					ee.NotAfter.Format(time.RFC3339))
+				return &SigningTimeNotValidError{
+					SigningTime: signingTime,
+					NotBefore:   ee.NotBefore,
+					NotAfter:    ee.NotAfter,
+				}
 			}
 		}
 	}
@@ -345,4 +366,20 @@ func unmarshalAttribute(attrs []attribute, attributeType asn1.ObjectIdentifier, 
 		}
 	}
 	return errors.New("pkcs7: attribute type not in attributes")
+}
+
+func calculateHash(hasher Hasher, hashFunc crypto.Hash, content []byte) (computed []byte, err error) {
+	if hasher != nil {
+		computed, err = hasher.Hash(hashFunc, bytes.NewReader(content))
+	} else {
+		if !hashFunc.Available() {
+			return nil, fmt.Errorf("hash function %v not available", hashFunc)
+		}
+
+		h := hashFunc.New()
+		_, _ = h.Write(content)
+		computed = h.Sum(nil)
+	}
+
+	return
 }

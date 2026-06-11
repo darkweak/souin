@@ -1,7 +1,7 @@
 # pkcs7
 
-[![GoDoc](https://godoc.org/go.mozilla.org/pkcs7?status.svg)](https://godoc.org/go.mozilla.org/pkcs7)
-[![Build Status](https://github.com/mozilla-services/pkcs7/workflows/CI/badge.svg?branch=master&event=push)](https://github.com/mozilla-services/pkcs7/actions/workflows/ci.yml?query=branch%3Amaster+event%3Apush)
+[![Go Reference](https://pkg.go.dev/badge/github.com/smallstep/pkcs7.svg)](https://pkg.go.dev/github.com/smallstep/pkcs7)
+[![Build Status](https://github.com/smallstep/pkcs7/workflows/CI/badge.svg?query=branch%3Amain+event%3Apush)](https://github.com/smallstep/pkcs7/actions/workflows/ci.yml?query=branch%3Amain+event%3Apush)
 
 pkcs7 implements parsing and creating signed and enveloped messages.
 
@@ -16,18 +16,16 @@ import (
 	"fmt"
 	"os"
 
-    "go.mozilla.org/pkcs7"
+    "github.com/smallstep/pkcs7"
 )
 
 func SignAndDetach(content []byte, cert *x509.Certificate, privkey *rsa.PrivateKey) (signed []byte, err error) {
 	toBeSigned, err := NewSignedData(content)
 	if err != nil {
-		err = fmt.Errorf("Cannot initialize signed data: %s", err)
-		return
+		return fmt.Errorf("Cannot initialize signed data: %w", err)
 	}
 	if err = toBeSigned.AddSigner(cert, privkey, SignerInfoConfig{}); err != nil {
-		err = fmt.Errorf("Cannot add signer: %s", err)
-		return
+		return fmt.Errorf("Cannot add signer: %w", err)
 	}
 
 	// Detach signature, omit if you want an embedded signature
@@ -35,28 +33,24 @@ func SignAndDetach(content []byte, cert *x509.Certificate, privkey *rsa.PrivateK
 
 	signed, err = toBeSigned.Finish()
 	if err != nil {
-		err = fmt.Errorf("Cannot finish signing data: %s", err)
-		return
+		return fmt.Errorf("Cannot finish signing data: %w", err)
 	}
 
 	// Verify the signature
 	pem.Encode(os.Stdout, &pem.Block{Type: "PKCS7", Bytes: signed})
 	p7, err := pkcs7.Parse(signed)
 	if err != nil {
-		err = fmt.Errorf("Cannot parse our signed data: %s", err)
-		return
+		return fmt.Errorf("Cannot parse our signed data: %w", err)
 	}
 
 	// since the signature was detached, reattach the content here
 	p7.Content = content
 
 	if bytes.Compare(content, p7.Content) != 0 {
-		err = fmt.Errorf("Our content was not in the parsed data:\n\tExpected: %s\n\tActual: %s", content, p7.Content)
-		return
+		return fmt.Errorf("Our content was not in the parsed data:\n\tExpected: %s\n\tActual: %s", content, p7.Content)
 	}
 	if err = p7.Verify(); err != nil {
-		err = fmt.Errorf("Cannot verify our signed data: %s", err)
-		return
+		return fmt.Errorf("Cannot verify our signed data: %w", err)
 	}
 
 	return signed, nil
@@ -64,6 +58,6 @@ func SignAndDetach(content []byte, cert *x509.Certificate, privkey *rsa.PrivateK
 ```
 
 
-
 ## Credits
-This is a fork of [fullsailor/pkcs7](https://github.com/fullsailor/pkcs7)
+
+This is a fork of [mozilla-services/pkcs7](https://github.com/mozilla-services/pkcs7) which, itself, was a fork of [fullsailor/pkcs7](https://github.com/fullsailor/pkcs7).

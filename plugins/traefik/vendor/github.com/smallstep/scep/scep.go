@@ -14,7 +14,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/go-kit/kit/log/level"
 	"github.com/smallstep/pkcs7"
 
 	"github.com/smallstep/scep/cryptoutil"
@@ -25,12 +24,6 @@ import (
 var (
 	errNotImplemented     = errors.New("scep: not implemented")
 	errUnknownMessageType = errors.New("scep: unknown messageType")
-)
-
-// prepare the go-kit leveled logging configuration
-var (
-	levelKey   = level.Key()
-	levelDebug = level.DebugValue()
 )
 
 // The MessageType attribute specifies the type of operation performed
@@ -149,7 +142,7 @@ func WithLogger(logger Logger) Option {
 }
 
 // WithCACerts adds option CA certificates to the SCEP operations.
-// Note: This changes the verification behavior of PKCS #7 messages. If this
+// Note: This changes the verification behavior of PKCS#7 messages. If this
 // option is specified, only caCerts will be used as expected signers.
 func WithCACerts(caCerts []*x509.Certificate) Option {
 	return func(c *config) {
@@ -161,7 +154,7 @@ func WithCACerts(caCerts []*x509.Certificate) Option {
 // operations.
 // This option is effective when used with NewCSRRequest function. In
 // this case, only certificates selected with the certsSelector will be used
-// as the PKCS #7 message recipients.
+// as the PKCS#7 message recipients.
 func WithCertsSelector(selector CertsSelector) Option {
 	return func(c *config) {
 		c.certsSelector = selector
@@ -198,7 +191,7 @@ type PKIMessage struct {
 	Recipients []*x509.Certificate
 
 	// Signer info
-	SignerKey  *rsa.PrivateKey
+	SignerKey  crypto.PrivateKey
 	SignerCert *x509.Certificate
 
 	logger Logger
@@ -247,7 +240,7 @@ func ParsePKIMessage(data []byte, opts ...Option) (*PKIMessage, error) {
 		// signatures have an alternate means of obtaining necessary certificates.
 		// In SCEP case, an alternate means is to use GetCaCert request.
 		// Note: The https://github.com/jscep/jscep implementation logs a warning if
-		// no certificates were found for signers in the PKCS #7 received from the
+		// no certificates were found for signers in the PKCS#7 received from the
 		// server, but the certificates obtained from GetCaCert request are still
 		// used for decoding the message.
 		p7.Certificates = conf.caCerts
@@ -276,7 +269,6 @@ func ParsePKIMessage(data []byte, opts ...Option) (*PKIMessage, error) {
 	}
 
 	msg.logger.Log(
-		levelKey, levelDebug,
 		"msg", "parsed scep pkiMessage",
 		"scep_message_type", msgType,
 		"transaction_id", tID,
@@ -343,8 +335,22 @@ func (msg *PKIMessage) parseMessageType() error {
 	}
 }
 
-// DecryptPKIEnvelope decrypts the pkcs envelopedData inside the SCEP PKIMessage
-func (msg *PKIMessage) DecryptPKIEnvelope(cert *x509.Certificate, key *rsa.PrivateKey) error {
+// DecryptPKIEnvelope decrypts the PKCS#7 envelopedData inside the SCEP PKIMessage
+func (msg *PKIMessage) DecryptPKIEnvelope(cert *x509.Certificate, key crypto.PrivateKey) error {
+	if cert == nil {
+		return errors.New("scep: cert must not be nil")
+	}
+	if key == nil {
+		return errors.New("scep: key must not be nil")
+	}
+	decrypter, ok := key.(crypto.Decrypter)
+	if !ok {
+		return errors.New("scep: private key does not implement crypto.Decrypter")
+	}
+	if _, ok := decrypter.Public().(*rsa.PublicKey); !ok {
+		return fmt.Errorf("scep: key.Public() returned type %T; expected *rsa.PublicKey", decrypter.Public())
+	}
+
 	p7, err := pkcs7.Parse(msg.p7.Content)
 	if err != nil {
 		return err
@@ -355,7 +361,6 @@ func (msg *PKIMessage) DecryptPKIEnvelope(cert *x509.Certificate, key *rsa.Priva
 	}
 
 	logKeyVals := []interface{}{
-		levelKey, levelDebug,
 		"msg", "decrypt pkiEnvelope",
 	}
 	defer func() { msg.logger.Log(logKeyVals...) }()
@@ -393,7 +398,8 @@ func (msg *PKIMessage) DecryptPKIEnvelope(cert *x509.Certificate, key *rsa.Priva
 	}
 }
 
-func (msg *PKIMessage) Fail(crtAuth *x509.Certificate, keyAuth *rsa.PrivateKey, info FailInfo) (*PKIMessage, error) {
+// Fail returns a new PKIMessage with CertRep data indicating a failure
+func (msg *PKIMessage) Fail(crtAuth *x509.Certificate, keyAuth crypto.PrivateKey, info FailInfo) (*PKIMessage, error) {
 	config := pkcs7.SignerInfoConfig{
 		ExtraSignedAttributes: []pkcs7.Attribute{
 			{
@@ -456,9 +462,9 @@ func (msg *PKIMessage) Fail(crtAuth *x509.Certificate, keyAuth *rsa.PrivateKey, 
 }
 
 // Success returns a new PKIMessage with CertRep data using an already-issued certificate
-func (msg *PKIMessage) Success(crtAuth *x509.Certificate, keyAuth *rsa.PrivateKey, crt *x509.Certificate) (*PKIMessage, error) {
+func (msg *PKIMessage) Success(crtAuth *x509.Certificate, keyAuth crypto.PrivateKey, crt *x509.Certificate) (*PKIMessage, error) {
 	// check if CSRReqMessage has already been decrypted
-	if msg.CSRReqMessage.CSR == nil {
+	if msg.CSRReqMessage.CSR == nil { // TODO(hslatman): remove this; just require decryption before, so that we can make keyAuth a crypto.Signer
 		if err := msg.DecryptPKIEnvelope(crtAuth, keyAuth); err != nil {
 			return nil, err
 		}
@@ -538,7 +544,7 @@ func (msg *PKIMessage) Success(crtAuth *x509.Certificate, keyAuth *rsa.PrivateKe
 	return crepMsg, nil
 }
 
-// DegenerateCertificates creates degenerate certificates pkcs#7 type
+// DegenerateCertificates creates degenerate certificates PKCS#7 type
 func DegenerateCertificates(certs []*x509.Certificate) ([]byte, error) {
 	var buf bytes.Buffer
 	for _, cert := range certs {
@@ -551,7 +557,7 @@ func DegenerateCertificates(certs []*x509.Certificate) ([]byte, error) {
 	return degenerate, nil
 }
 
-// CACerts extract CA Certificate or chain from pkcs7 degenerate signed data
+// CACerts extract CA Certificate or chain from PKCS#7 degenerate signed data
 func CACerts(data []byte) ([]*x509.Certificate, error) {
 	p7, err := pkcs7.Parse(data)
 	if err != nil {
@@ -598,7 +604,6 @@ func NewCSRRequest(csr *x509.CertificateRequest, tmpl *PKIMessage, opts ...Optio
 	}
 
 	conf.logger.Log(
-		levelKey, levelDebug,
 		"msg", "creating SCEP CSR request",
 		"transaction_id", tID,
 		"signer_cn", tmpl.SignerCert.Subject.CommonName,

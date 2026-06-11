@@ -195,7 +195,12 @@ func filename(s string) string {
 		if f := u.Get("path"); f != "" {
 			return f
 		}
-		return u.Opaque
+		switch {
+		case u.Path != "":
+			return u.Path
+		default:
+			return u.Opaque
+		}
 	}
 	return s
 }

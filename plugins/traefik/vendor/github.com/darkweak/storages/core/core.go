@@ -15,6 +15,12 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
+var (
+	lz4ReaderPool = sync.Pool{New: func() any { return lz4.NewReader(nil) }}
+	bufReaderPool = sync.Pool{New: func() any { return bufio.NewReader(nil) }}
+	Lz4WriterPool = sync.Pool{New: func() any { return lz4.NewWriter(nil) }}
+)
+
 type Storer interface {
 	MapKeys(prefix string) map[string]string
 	ListKeys() []string
@@ -55,23 +61,16 @@ func DecodeMapping(item []byte) (*StorageMapper, error) {
 	return mapping, e
 }
 
-var bufPool = sync.Pool{New: func() any { return new(bytes.Buffer) }}
-
 func readResponse(data []byte, req *http.Request) (*http.Response, error) {
-	reader := lz4.NewReader(bytes.NewBuffer(data))
-	buf := bufPool.Get().(*bytes.Buffer)
+	lz4r := lz4ReaderPool.Get().(*lz4.Reader)
+	lz4r.Reset(bytes.NewReader(data))
+	defer lz4ReaderPool.Put(lz4r)
 
-	defer func() {
-		reader.Reset(buf)
-		buf.Reset()
-		bufPool.Put(buf)
-	}()
+	br := bufReaderPool.Get().(*bufio.Reader)
+	br.Reset(lz4r)
+	defer bufReaderPool.Put(br)
 
-	_, _ = reader.WriteTo(buf)
-
-	bufReader := bufio.NewReader(buf)
-
-	return http.ReadResponse(bufReader, req)
+	return http.ReadResponse(br, req)
 }
 
 func MappingElection(provider Storer, item []byte, req *http.Request, validator *Revalidator, logger Logger) (resultFresh *http.Response, resultStale *http.Response, e error) {

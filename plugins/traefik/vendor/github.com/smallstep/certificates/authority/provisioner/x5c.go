@@ -9,21 +9,23 @@ import (
 
 	"github.com/pkg/errors"
 
+	"github.com/smallstep/linkedca"
 	"go.step.sm/crypto/jose"
 	"go.step.sm/crypto/sshutil"
 	"go.step.sm/crypto/x509util"
-	"go.step.sm/linkedca"
 
 	"github.com/smallstep/certificates/errs"
+	"github.com/smallstep/certificates/internal/cast"
 	"github.com/smallstep/certificates/webhook"
 )
 
 // x5cPayload extends jwt.Claims with step attributes.
 type x5cPayload struct {
 	jose.Claims
-	SANs   []string     `json:"sans,omitempty"`
-	Step   *stepPayload `json:"step,omitempty"`
-	chains [][]*x509.Certificate
+	SANs         []string     `json:"sans,omitempty"`
+	Step         *stepPayload `json:"step,omitempty"`
+	Confirmation *cnfPayload  `json:"cnf,omitempty"`
+	chains       [][]*x509.Certificate
 }
 
 // X5C is the default provisioner, an entity that can sign tokens necessary for
@@ -152,7 +154,7 @@ func (p *X5C) authorizeToken(token string, audiences []string) (*x5cPayload, err
 		return nil, errs.Unauthorized("x5c.authorizeToken; certificate used to sign x5c token cannot be used for digital signature")
 	}
 
-	// Using the leaf certificates key to validate the claims accomplishes two
+	// Using the leaf certificate's key to validate the claims accomplishes two
 	// things:
 	//   1. Asserts that the private key used to sign the token corresponds
 	//      to the public certificate in the `x5c` header of the token.
@@ -233,6 +235,12 @@ func (p *X5C) AuthorizeSign(ctx context.Context, token string) ([]SignOption, er
 		}
 	}
 
+	// Check the fingerprint of the certificate request if given.
+	var fingerprint string
+	if claims.Confirmation != nil {
+		fingerprint = claims.Confirmation.Fingerprint
+	}
+
 	return []SignOption{
 		self,
 		templateOptions,
@@ -243,6 +251,7 @@ func (p *X5C) AuthorizeSign(ctx context.Context, token string) ([]SignOption, er
 			x5cLeaf.NotBefore, x5cLeaf.NotAfter,
 		},
 		// validators
+		csrFingerprintValidator(fingerprint),
 		commonNameValidator(claims.Subject),
 		newDefaultSANsValidator(ctx, claims.SANs),
 		defaultPublicKeyValidator{},
@@ -293,7 +302,7 @@ func (p *X5C) AuthorizeSSHSign(_ context.Context, token string) ([]SignOption, e
 	// Use options in the token.
 	if opts.CertType != "" {
 		if certType, err = sshutil.CertTypeFromString(opts.CertType); err != nil {
-			return nil, errs.BadRequestErr(err, err.Error())
+			return nil, errs.BadRequestErr(err, "%s", err.Error())
 		}
 	}
 	if opts.KeyID != "" {
@@ -324,10 +333,10 @@ func (p *X5C) AuthorizeSSHSign(_ context.Context, token string) ([]SignOption, e
 	// Add modifiers from custom claims
 	t := now()
 	if !opts.ValidAfter.IsZero() {
-		signOptions = append(signOptions, sshCertValidAfterModifier(opts.ValidAfter.RelativeTime(t).Unix()))
+		signOptions = append(signOptions, sshCertValidAfterModifier(cast.Uint64(opts.ValidAfter.RelativeTime(t).Unix())))
 	}
 	if !opts.ValidBefore.IsZero() {
-		signOptions = append(signOptions, sshCertValidBeforeModifier(opts.ValidBefore.RelativeTime(t).Unix()))
+		signOptions = append(signOptions, sshCertValidBeforeModifier(cast.Uint64(opts.ValidBefore.RelativeTime(t).Unix())))
 	}
 
 	return append(signOptions,

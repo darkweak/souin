@@ -12,9 +12,13 @@ import (
 	"encoding/asn1"
 	"errors"
 	"fmt"
+	"io"
 	"sort"
+	"sync"
 
 	_ "crypto/sha1" // for crypto.SHA1
+
+	legacyx509 "github.com/smallstep/pkcs7/internal/legacy/x509"
 )
 
 // PKCS7 Represents a PKCS7 structure
@@ -23,7 +27,13 @@ type PKCS7 struct {
 	Certificates []*x509.Certificate
 	CRLs         []pkix.CertificateList
 	Signers      []signerInfo
+	Hasher       Hasher
 	raw          interface{}
+}
+
+// Hasher is an interface defining a custom hash calculator.
+type Hasher interface {
+	Hash(crypto.Hash, io.Reader) ([]byte, error)
 }
 
 type contentInfo struct {
@@ -213,6 +223,40 @@ func parseEncryptedData(data []byte) (*PKCS7, error) {
 	}, nil
 }
 
+// SetFallbackLegacyX509CertificateParserEnabled enables parsing certificates
+// embedded in a PKCS7 message using the logic from crypto/x509 from before
+// Go 1.23. Go 1.23 introduced a breaking change in case a certificate contains
+// a critical authority key identifier, which is the correct thing to do based
+// on RFC 5280, but it breaks Windows devices performing the Simple Certificate
+// Enrolment Protocol (SCEP), as the certificates embedded in those requests
+// apparently have authority key identifier extensions marked critical.
+//
+// See https://go-review.googlesource.com/c/go/+/562341 for the change in the
+// Go source.
+//
+// When [SetFallbackLegacyX509CertificateParserEnabled] is called with true, it
+// enables parsing using the legacy crypto/x509 certificate parser. It'll first
+// try to parse the certificates using the regular Go crypto/x509 package, but
+// if it fails on the above case, it'll retry parsing the certificates using a
+// copy of the crypto/x509 package based on Go 1.23, but skips checking the
+// authority key identifier extension being critical or not.
+func SetFallbackLegacyX509CertificateParserEnabled(v bool) {
+	legacyX509CertificateParser.Lock()
+	legacyX509CertificateParser.enabled = v
+	legacyX509CertificateParser.Unlock()
+}
+
+var legacyX509CertificateParser struct {
+	sync.RWMutex
+	enabled bool
+}
+
+func isLegacyX509ParserEnabled() bool {
+	legacyX509CertificateParser.RLock()
+	defer legacyX509CertificateParser.RUnlock()
+	return legacyX509CertificateParser.enabled
+}
+
 func (raw rawCertificates) Parse() ([]*x509.Certificate, error) {
 	if len(raw.Raw) == 0 {
 		return nil, nil
@@ -223,7 +267,14 @@ func (raw rawCertificates) Parse() ([]*x509.Certificate, error) {
 		return nil, err
 	}
 
-	return x509.ParseCertificates(val.Bytes)
+	certificates, err := x509.ParseCertificates(val.Bytes)
+	if err != nil && err.Error() == "x509: authority key identifier incorrectly marked critical" {
+		if isLegacyX509ParserEnabled() {
+			certificates, err = legacyx509.ParseCertificates(val.Bytes)
+		}
+	}
+
+	return certificates, err
 }
 
 func isCertMatchForIssuerAndSerial(cert *x509.Certificate, ias issuerAndSerial) bool {

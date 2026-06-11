@@ -91,6 +91,21 @@ func withDefaultASN1DN(def *config.ASN1DN) provisioner.CertificateModifierFunc {
 	}
 }
 
+// GetX509Signer returns a [crypto.Signer] implementation using the intermediate
+// key.
+//
+// This method can return a [NotImplementedError] if the CA is configured with a
+// Certificate Authority Service (CAS) that does not implement the
+// CertificateAuthoritySigner interface.
+//
+// [NotImplementedError]: https://pkg.go.dev/github.com/smallstep/certificates/cas/apiv1#NotImplementedError
+func (a *Authority) GetX509Signer() (crypto.Signer, error) {
+	if s, ok := a.x509CAService.(casapi.CertificateAuthoritySigner); ok {
+		return s.GetSigner()
+	}
+	return nil, casapi.NotImplementedError{}
+}
+
 // Sign creates a signed certificate from a certificate signing request. It
 // creates a new context.Context, and calls into SignWithContext.
 //
@@ -103,7 +118,7 @@ func (a *Authority) Sign(csr *x509.CertificateRequest, signOpts provisioner.Sign
 // request, taking the provided context.Context.
 func (a *Authority) SignWithContext(ctx context.Context, csr *x509.CertificateRequest, signOpts provisioner.SignOptions, extraOpts ...provisioner.SignOption) ([]*x509.Certificate, error) {
 	chain, prov, err := a.signX509(ctx, csr, signOpts, extraOpts...)
-	a.meter.X509Signed(prov, err)
+	a.meter.X509Signed(chain, prov, err)
 	return chain, err
 }
 
@@ -182,7 +197,7 @@ func (a *Authority) signX509(ctx context.Context, csr *x509.CertificateRequest, 
 
 	if err := a.callEnrichingWebhooksX509(ctx, prov, webhookCtl, attData, csr); err != nil {
 		return nil, prov, errs.ApplyOptions(
-			errs.ForbiddenErr(err, err.Error()),
+			errs.ForbiddenErr(err, "%s", err.Error()),
 			errs.WithKeyVal("csr", csr),
 			errs.WithKeyVal("signOptions", signOpts),
 		)
@@ -194,7 +209,7 @@ func (a *Authority) signX509(ctx context.Context, csr *x509.CertificateRequest, 
 		switch {
 		case errors.As(err, &te):
 			return nil, prov, errs.ApplyOptions(
-				errs.BadRequestErr(err, err.Error()),
+				errs.BadRequestErr(err, "%s", err.Error()),
 				errs.WithKeyVal("csr", csr),
 				errs.WithKeyVal("signOptions", signOpts),
 			)
@@ -357,9 +372,9 @@ func (a *Authority) Rekey(oldCert *x509.Certificate, pk crypto.PublicKey) ([]*x5
 func (a *Authority) RenewContext(ctx context.Context, oldCert *x509.Certificate, pk crypto.PublicKey) ([]*x509.Certificate, error) {
 	chain, prov, err := a.renewContext(ctx, oldCert, pk)
 	if pk == nil {
-		a.meter.X509Renewed(prov, err)
+		a.meter.X509Renewed(chain, prov, err)
 	} else {
-		a.meter.X509Rekeyed(prov, err)
+		a.meter.X509Rekeyed(chain, prov, err)
 	}
 	return chain, err
 }
@@ -595,7 +610,7 @@ func (a *Authority) Revoke(ctx context.Context, revokeOpts *RevokeOptions) error
 	}
 
 	// If not mTLS nor ACME, then get the TokenID of the token.
-	if !(revokeOpts.MTLS || revokeOpts.ACME) {
+	if !revokeOpts.MTLS && !revokeOpts.ACME {
 		token, err := jose.ParseSigned(revokeOpts.OTT)
 		if err != nil {
 			return errs.Wrap(http.StatusUnauthorized, err, "authority.Revoke; error parsing token", opts...)
@@ -605,6 +620,16 @@ func (a *Authority) Revoke(ctx context.Context, revokeOpts *RevokeOptions) error
 		var claims Claims
 		if err = token.UnsafeClaimsWithoutVerification(&claims); err != nil {
 			return errs.Wrap(http.StatusUnauthorized, err, "authority.Revoke", opts...)
+		}
+
+		// Verify that the serial in the token matches the serial from the request.
+		if revokeOpts.Serial != claims.Subject {
+			return errs.ApplyOptions(
+				errs.Forbidden(
+					"request serial number %q and token subject %q do not match",
+					revokeOpts.Serial, claims.Subject,
+				), opts...,
+			)
 		}
 
 		// This method will also validate the audiences for JWK provisioners.

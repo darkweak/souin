@@ -1,6 +1,6 @@
 module github.com/darkweak/souin/plugins/tyk
 
-go 1.25
+go 1.25.0
 
 require (
 	github.com/cespare/xxhash/v2 v2.3.0
@@ -8,7 +8,7 @@ require (
 	github.com/darkweak/souin/plugins/souin v1.7.8
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pquerna/cachecontrol v0.2.0
-	go.uber.org/zap v1.27.0
+	go.uber.org/zap v1.27.1
 )
 
 replace (

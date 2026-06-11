@@ -1,5 +1,4 @@
 //go:build !nosshagentkms
-// +build !nosshagentkms
 
 package sshagentkms
 
@@ -37,6 +36,7 @@ type SSHAgentKMS struct {
 // New returns a new SSHAgentKMS.
 func New(_ context.Context, _ apiv1.Options) (*SSHAgentKMS, error) {
 	socket := os.Getenv("SSH_AUTH_SOCK")
+	//nolint:gosec // socket is from SSH_AUTH_SOCK env var, a standard SSH agent interface
 	conn, err := net.Dial("unix", socket)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to open SSH_AUTH_SOCK")

@@ -144,9 +144,9 @@ func (hcg HTTPCertGetter) GetCertificate(ctx context.Context, hello *tls.ClientH
 	qs.Set("server_name", hello.ServerName)
 	qs.Set("signature_schemes", strings.Join(sigs, ","))
 	qs.Set("cipher_suites", strings.Join(suites, ","))
-	remoteIP, _, err := net.SplitHostPort(hello.Conn.RemoteAddr().String())
-	if err == nil && remoteIP != "" {
-		qs.Set("remote_ip", remoteIP)
+	localIP, _, err := net.SplitHostPort(hello.Conn.LocalAddr().String())
+	if err == nil && localIP != "" {
+		qs.Set("local_ip", localIP)
 	}
 	parsed.RawQuery = qs.Encode()
 
@@ -155,7 +155,7 @@ func (hcg HTTPCertGetter) GetCertificate(ctx context.Context, hello *tls.ClientH
 		return nil, err
 	}
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := http.DefaultClient.Do(req) //nolint:gosec // SSRF false positive... request URI comes from config
 	if err != nil {
 		return nil, err
 	}

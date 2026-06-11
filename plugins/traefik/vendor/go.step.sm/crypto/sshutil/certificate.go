@@ -6,10 +6,13 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"encoding/json"
+	"time"
 
 	"github.com/pkg/errors"
-	"go.step.sm/crypto/randutil"
 	"golang.org/x/crypto/ssh"
+
+	"go.step.sm/crypto/internal/utils/convert"
+	"go.step.sm/crypto/randutil"
 )
 
 // Certificate is the json representation of ssh.Certificate.
@@ -20,8 +23,8 @@ type Certificate struct {
 	Type            CertType          `json:"type"`
 	KeyID           string            `json:"keyId"`
 	Principals      []string          `json:"principals"`
-	ValidAfter      uint64            `json:"-"`
-	ValidBefore     uint64            `json:"-"`
+	ValidAfter      time.Time         `json:"validAfter"`
+	ValidBefore     time.Time         `json:"validBefore"`
 	CriticalOptions map[string]string `json:"criticalOptions"`
 	Extensions      map[string]string `json:"extensions"`
 	Reserved        []byte            `json:"reserved"`
@@ -62,8 +65,8 @@ func (c *Certificate) GetCertificate() *ssh.Certificate {
 		CertType:        uint32(c.Type),
 		KeyId:           c.KeyID,
 		ValidPrincipals: c.Principals,
-		ValidAfter:      c.ValidAfter,
-		ValidBefore:     c.ValidBefore,
+		ValidAfter:      toValidity(c.ValidAfter),
+		ValidBefore:     toValidity(c.ValidBefore),
 		Permissions: ssh.Permissions{
 			CriticalOptions: c.CriticalOptions,
 			Extensions:      c.Extensions,
@@ -123,4 +126,12 @@ func CreateCertificate(cert *ssh.Certificate, signer ssh.Signer) (*ssh.Certifica
 	cert.Signature = sig
 
 	return cert, nil
+}
+
+func toValidity(t time.Time) uint64 {
+	if t.IsZero() {
+		return 0
+	}
+
+	return convert.MustUint64(t.Unix())
 }

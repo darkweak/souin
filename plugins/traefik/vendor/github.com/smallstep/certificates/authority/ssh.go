@@ -19,6 +19,7 @@ import (
 	"github.com/smallstep/certificates/authority/provisioner"
 	"github.com/smallstep/certificates/db"
 	"github.com/smallstep/certificates/errs"
+	"github.com/smallstep/certificates/internal/cast"
 	"github.com/smallstep/certificates/templates"
 	"github.com/smallstep/certificates/webhook"
 )
@@ -148,18 +149,22 @@ func (a *Authority) GetSSHBastion(ctx context.Context, user, hostname string) (*
 // SignSSH creates a signed SSH certificate with the given public key and options.
 func (a *Authority) SignSSH(ctx context.Context, key ssh.PublicKey, opts provisioner.SignSSHOptions, signOpts ...provisioner.SignOption) (*ssh.Certificate, error) {
 	cert, prov, err := a.signSSH(ctx, key, opts, signOpts...)
-	a.meter.SSHSigned(prov, err)
+	a.meter.SSHSigned(cert, prov, err)
 	return cert, err
 }
 
 func (a *Authority) signSSH(ctx context.Context, key ssh.PublicKey, opts provisioner.SignSSHOptions, signOpts ...provisioner.SignOption) (*ssh.Certificate, provisioner.Interface, error) {
 	var (
-		certOptions []sshutil.Option
-		mods        []provisioner.SSHCertModifier
-		validators  []provisioner.SSHCertValidator
+		certOptions   []sshutil.Option
+		mods          []provisioner.SSHCertModifier
+		validators    []provisioner.SSHCertValidator
+		keyValidators []provisioner.SSHPublicKeyValidator
 	)
 
-	// Validate given options.
+	// Validate given key and options
+	if key == nil {
+		return nil, nil, errs.BadRequest("ssh public key cannot be nil")
+	}
 	if err := opts.Validate(); err != nil {
 		return nil, nil, err
 	}
@@ -183,6 +188,10 @@ func (a *Authority) signSSH(ctx context.Context, key ssh.PublicKey, opts provisi
 		case provisioner.SSHCertModifier:
 			mods = append(mods, o)
 
+		// validate the ssh public key
+		case provisioner.SSHPublicKeyValidator:
+			keyValidators = append(keyValidators, o)
+
 		// validate the ssh.Certificate
 		case provisioner.SSHCertValidator:
 			validators = append(validators, o)
@@ -202,6 +211,16 @@ func (a *Authority) signSSH(ctx context.Context, key ssh.PublicKey, opts provisi
 		}
 	}
 
+	// Validate public key
+	for _, v := range keyValidators {
+		if err := v.Valid(key); err != nil {
+			return nil, nil, errs.ApplyOptions(
+				errs.ForbiddenErr(err, "%s", err.Error()),
+				errs.WithKeyVal("signOptions", signOpts),
+			)
+		}
+	}
+
 	// Simulated certificate request with request options.
 	cr := sshutil.CertificateRequest{
 		Type:       opts.CertType,
@@ -213,7 +232,7 @@ func (a *Authority) signSSH(ctx context.Context, key ssh.PublicKey, opts provisi
 	// Call enriching webhooks
 	if err := a.callEnrichingWebhooksSSH(ctx, prov, webhookCtl, cr); err != nil {
 		return nil, prov, errs.ApplyOptions(
-			errs.ForbiddenErr(err, err.Error()),
+			errs.ForbiddenErr(err, "%s", err.Error()),
 			errs.WithKeyVal("signOptions", signOpts),
 		)
 	}
@@ -225,7 +244,7 @@ func (a *Authority) signSSH(ctx context.Context, key ssh.PublicKey, opts provisi
 		switch {
 		case errors.As(err, &te):
 			return nil, prov, errs.ApplyOptions(
-				errs.BadRequestErr(err, err.Error()),
+				errs.BadRequestErr(err, "%s", err.Error()),
 				errs.WithKeyVal("signOptions", signOpts),
 			)
 		case strings.HasPrefix(err.Error(), "error unmarshaling certificate"):
@@ -245,7 +264,7 @@ func (a *Authority) signSSH(ctx context.Context, key ssh.PublicKey, opts provisi
 	// Use SignSSHOptions to modify the certificate validity. It will be later
 	// checked or set if not defined.
 	if err := opts.ModifyValidity(certTpl); err != nil {
-		return nil, prov, errs.BadRequestErr(err, err.Error())
+		return nil, prov, errs.BadRequestErr(err, "%s", err.Error())
 	}
 
 	// Use provisioner modifiers.
@@ -318,7 +337,7 @@ func (a *Authority) isAllowedToSignSSHCertificate(cert *ssh.Certificate) error {
 // RenewSSH creates a signed SSH certificate using the old SSH certificate as a template.
 func (a *Authority) RenewSSH(ctx context.Context, oldCert *ssh.Certificate) (*ssh.Certificate, error) {
 	cert, prov, err := a.renewSSH(ctx, oldCert)
-	a.meter.SSHRenewed(prov, err)
+	a.meter.SSHRenewed(cert, prov, err)
 	return cert, err
 }
 
@@ -338,7 +357,7 @@ func (a *Authority) renewSSH(ctx context.Context, oldCert *ssh.Certificate) (*ss
 	}
 
 	backdate := a.config.AuthorityConfig.Backdate.Duration
-	duration := time.Duration(oldCert.ValidBefore-oldCert.ValidAfter) * time.Second
+	duration := time.Duration(cast.Int64(oldCert.ValidBefore-oldCert.ValidAfter)) * time.Second
 	now := time.Now()
 	va := now.Add(-1 * backdate)
 	vb := now.Add(duration - backdate)
@@ -352,8 +371,8 @@ func (a *Authority) renewSSH(ctx context.Context, oldCert *ssh.Certificate) (*ss
 		ValidPrincipals: oldCert.ValidPrincipals,
 		Permissions:     oldCert.Permissions,
 		Reserved:        oldCert.Reserved,
-		ValidAfter:      uint64(va.Unix()),
-		ValidBefore:     uint64(vb.Unix()),
+		ValidAfter:      cast.Uint64(va.Unix()),
+		ValidBefore:     cast.Uint64(vb.Unix()),
 	}
 
 	// Get signer from authority keys
@@ -389,7 +408,7 @@ func (a *Authority) renewSSH(ctx context.Context, oldCert *ssh.Certificate) (*ss
 // RekeySSH creates a signed SSH certificate using the old SSH certificate as a template.
 func (a *Authority) RekeySSH(ctx context.Context, oldCert *ssh.Certificate, pub ssh.PublicKey, signOpts ...provisioner.SignOption) (*ssh.Certificate, error) {
 	cert, prov, err := a.rekeySSH(ctx, oldCert, pub, signOpts...)
-	a.meter.SSHRekeyed(prov, err)
+	a.meter.SSHRekeyed(cert, prov, err)
 	return cert, err
 }
 
@@ -418,7 +437,7 @@ func (a *Authority) rekeySSH(ctx context.Context, oldCert *ssh.Certificate, pub 
 	}
 
 	backdate := a.config.AuthorityConfig.Backdate.Duration
-	duration := time.Duration(oldCert.ValidBefore-oldCert.ValidAfter) * time.Second
+	duration := time.Duration(cast.Int64(oldCert.ValidBefore-oldCert.ValidAfter)) * time.Second
 	now := time.Now()
 	va := now.Add(-1 * backdate)
 	vb := now.Add(duration - backdate)
@@ -432,8 +451,8 @@ func (a *Authority) rekeySSH(ctx context.Context, oldCert *ssh.Certificate, pub 
 		ValidPrincipals: oldCert.ValidPrincipals,
 		Permissions:     oldCert.Permissions,
 		Reserved:        oldCert.Reserved,
-		ValidAfter:      uint64(va.Unix()),
-		ValidBefore:     uint64(vb.Unix()),
+		ValidAfter:      cast.Uint64(va.Unix()),
+		ValidBefore:     cast.Uint64(vb.Unix()),
 	}
 
 	// Get signer from authority keys
