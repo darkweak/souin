@@ -351,3 +351,66 @@ func TestBufferBytesSliceCorruption(t *testing.T) {
 		t.Errorf("safe copy was corrupted — should never happen: got %q", string(safeCopy))
 	}
 }
+
+// cacheableNext returns a handlerFunc writing a cacheable response, optionally
+// carrying a Set-Cookie header.
+func cacheableNext(body string, setCookie string) handlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) error {
+		w.Header().Set("Cache-Control", "public, max-age=60")
+		if setCookie != "" {
+			w.Header().Set("Set-Cookie", setCookie)
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(body))
+		return nil
+	}
+}
+
+// TestSetCookieResponseIsNotStored ensures a response carrying a Set-Cookie
+// header is never written to the cache, so one user's cookie can't be replayed
+// to other clients. Most reverse proxies (nginx, Varnish, Fastly, Cloudflare)
+// treat such responses as uncacheable by default; Souin matches that.
+func TestSetCookieResponseIsNotStored(t *testing.T) {
+	handler, storer := newTestHandler(t)
+
+	req := httptest.NewRequest(http.MethodGet, "http://example.com/with-cookie", nil)
+	rec := httptest.NewRecorder()
+
+	if err := handler.ServeHTTP(rec, req, cacheableNext("BODY", "session=abc123")); err != nil {
+		t.Fatalf("ServeHTTP failed: %v", err)
+	}
+
+	for _, k := range storer.ListKeys() {
+		if strings.Contains(k, "/with-cookie") {
+			t.Errorf("Set-Cookie response must not be stored, found key: %q", k)
+		}
+	}
+	if cs := rec.Header().Get("Cache-Status"); !strings.Contains(cs, "UNCACHEABLE-SET-COOKIE") {
+		t.Errorf("expected Cache-Status detail UNCACHEABLE-SET-COOKIE, got %q", cs)
+	}
+}
+
+// TestResponseWithoutSetCookieIsStored is the positive control for
+// TestSetCookieResponseIsNotStored: the same response without a Set-Cookie
+// header must still be cached, proving the guard is specific to Set-Cookie.
+func TestResponseWithoutSetCookieIsStored(t *testing.T) {
+	handler, storer := newTestHandler(t)
+
+	req := httptest.NewRequest(http.MethodGet, "http://example.com/no-cookie", nil)
+	rec := httptest.NewRecorder()
+
+	if err := handler.ServeHTTP(rec, req, cacheableNext("BODY", "")); err != nil {
+		t.Fatalf("ServeHTTP failed: %v", err)
+	}
+
+	stored := false
+	for _, k := range storer.ListKeys() {
+		if strings.Contains(k, "/no-cookie") {
+			stored = true
+			break
+		}
+	}
+	if !stored {
+		t.Error("a cacheable response without Set-Cookie should be stored, found no matching key")
+	}
+}
