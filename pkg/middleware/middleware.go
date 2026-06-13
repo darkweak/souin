@@ -315,6 +315,34 @@ func dumpResponse(statusCode int, headers http.Header, body []byte) ([]byte, err
 	return buf.Bytes(), nil
 }
 
+// hopByHopHeaders are the connection-specific header fields an intermediary
+// must not forward (RFC 9110 §7.6.1). Stripping them before storage keeps one
+// connection's framing/handshake from being replayed to later clients. This is
+// a message transformation that does not change the content, so it is allowed
+// even when the response carries Cache-Control: no-transform (RFC 9110 §7.7).
+var hopByHopHeaders = []string{
+	"Connection",
+	"Proxy-Connection",
+	"Keep-Alive",
+	"Proxy-Authenticate",
+	"Proxy-Authorization",
+	"TE",
+	"Trailer",
+	"Transfer-Encoding",
+	"Upgrade",
+}
+
+// removeHopByHopHeaders deletes the connection-specific headers from h,
+// including any field-names listed in the Connection header itself.
+func removeHopByHopHeaders(h http.Header) {
+	for _, name := range rfc.HeaderAllCommaSepValues(h, "Connection") {
+		h.Del(name)
+	}
+	for _, name := range hopByHopHeaders {
+		h.Del(name)
+	}
+}
+
 func (s *SouinBaseHandler) Store(
 	customWriter *CustomWriter,
 	rq *http.Request,
@@ -412,6 +440,7 @@ func (s *SouinBaseHandler) Store(
 				headers.Del(hname)
 			}
 		}
+		removeHopByHopHeaders(headers)
 
 		customWriter.mutex.Lock()
 		b := customWriter.Buf.Bytes()
