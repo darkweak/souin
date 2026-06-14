@@ -351,3 +351,53 @@ func TestBufferBytesSliceCorruption(t *testing.T) {
 		t.Errorf("safe copy was corrupted — should never happen: got %q", string(safeCopy))
 	}
 }
+
+// TestHopByHopHeadersAreNotCached verifies that connection-specific headers
+// (RFC 9110 §7.6.1), including field-names listed in the Connection header,
+// are stripped before storage and therefore not replayed from cache to later
+// clients. The first request populates the cache; the second is served from
+// it and must not carry any hop-by-hop header.
+func TestHopByHopHeadersAreNotCached(t *testing.T) {
+	handler, _ := newTestHandler(t)
+
+	var upstreamCalls int
+	next := func(w http.ResponseWriter, r *http.Request) error {
+		upstreamCalls++
+		w.Header().Set("Cache-Control", "public, max-age=60")
+		w.Header().Set("X-Marker", "from-upstream")
+		w.Header().Set("Connection", "keep-alive, X-Custom-Hop")
+		w.Header().Set("Keep-Alive", "timeout=5")
+		w.Header().Set("Proxy-Authenticate", "Basic")
+		w.Header().Set("Upgrade", "h2c")
+		w.Header().Set("X-Custom-Hop", "listed-in-connection")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("BODY"))
+		return nil
+	}
+
+	// First request: MISS, populates the cache.
+	req1 := httptest.NewRequest(http.MethodGet, "http://example.com/hop-by-hop", nil)
+	if err := handler.ServeHTTP(httptest.NewRecorder(), req1, next); err != nil {
+		t.Fatalf("first ServeHTTP failed: %v", err)
+	}
+
+	// Second request: should be served from cache.
+	req2 := httptest.NewRequest(http.MethodGet, "http://example.com/hop-by-hop", nil)
+	rec2 := httptest.NewRecorder()
+	if err := handler.ServeHTTP(rec2, req2, next); err != nil {
+		t.Fatalf("second ServeHTTP failed: %v", err)
+	}
+
+	if upstreamCalls != 1 {
+		t.Fatalf("expected the second request to be a cache hit (1 upstream call), got %d calls", upstreamCalls)
+	}
+	if got := rec2.Header().Get("X-Marker"); got != "from-upstream" {
+		t.Fatalf("second response not served from cache (X-Marker=%q)", got)
+	}
+
+	for _, h := range []string{"Connection", "Keep-Alive", "Proxy-Authenticate", "Upgrade", "X-Custom-Hop"} {
+		if v := rec2.Header().Get(h); v != "" {
+			t.Errorf("hop-by-hop header %q must not be served from cache, got %q", h, v)
+		}
+	}
+}
