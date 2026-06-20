@@ -35,7 +35,7 @@ const PBKDF2Iterations = 600000
 type pkcs8 struct {
 	Version    int
 	Algo       pkix.AlgorithmIdentifier
-	PrivateKey []byte //nolint:gosec // PrivateKey field for PKCS#8 structure
+	PrivateKey []byte
 	// optional attributes omitted.
 }
 
@@ -81,7 +81,7 @@ type encryptedlAlgorithmIdentifier struct {
 
 type encryptedPrivateKeyInfo struct {
 	Algo       encryptedlAlgorithmIdentifier
-	PrivateKey []byte //nolint:gosec // PrivateKey field for encrypted PKCS#8 structure
+	PrivateKey []byte
 }
 
 var (

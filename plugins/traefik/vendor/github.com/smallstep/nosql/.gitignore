@@ -13,3 +13,6 @@
 
 # Vendor directory
 vendor/*
+
+# JetBrains' IDEs
+.idea

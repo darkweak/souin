@@ -12,8 +12,9 @@ import (
 	"os"
 
 	"github.com/pkg/errors"
-	"go.step.sm/crypto/keyutil"
 	"golang.org/x/crypto/ssh"
+
+	"go.step.sm/crypto/keyutil"
 )
 
 // ValidateSSHPOP validates the given SSH certificate and key for use in an

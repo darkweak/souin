@@ -11,6 +11,7 @@ import (
 	jose "github.com/go-jose/go-jose/v3"
 	"github.com/go-jose/go-jose/v3/cryptosigner"
 	"github.com/go-jose/go-jose/v3/jwt"
+
 	"go.step.sm/crypto/x25519"
 )
 

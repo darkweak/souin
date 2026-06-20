@@ -204,7 +204,7 @@ type CreateSignerRequest struct {
 	TokenLabel       string
 	PublicKey        string
 	PublicKeyPEM     []byte
-	Password         []byte //nolint:gosec // Password field for KMS authentication
+	Password         []byte
 	PasswordPrompter PasswordPrompter
 }
 
@@ -213,7 +213,7 @@ type CreateDecrypterRequest struct {
 	Decrypter        crypto.Decrypter
 	DecryptionKey    string
 	DecryptionKeyPEM []byte
-	Password         []byte //nolint:gosec // Password field for KMS authentication
+	Password         []byte
 	PasswordPrompter PasswordPrompter
 }
 
@@ -263,6 +263,29 @@ type CreateAttestationRequest struct {
 // attesting Attestation Keys (AKs).
 type AttestationClient interface {
 	Attest(context.Context) ([]*x509.Certificate, error)
+}
+
+type attestSignerCtx struct{}
+
+// NewAttestSignerContext creates a new context with the given signer.
+//
+// # Experimental
+//
+// Notice: This API is EXPERIMENTAL and may be changed or removed in a later
+// release.
+func NewAttestSignerContext(ctx context.Context, signer crypto.Signer) context.Context {
+	return context.WithValue(ctx, attestSignerCtx{}, signer)
+}
+
+// AttestSignerFromContext returns the signer from the context.
+//
+// # Experimental
+//
+// Notice: This API is EXPERIMENTAL and may be changed or removed in a later
+// release.
+func AttestSignerFromContext(ctx context.Context) (crypto.Signer, bool) {
+	signer, ok := ctx.Value(attestSignerCtx{}).(crypto.Signer)
+	return signer, ok
 }
 
 // CertificationParameters encapsulates the inputs for certifying an application key.
@@ -326,4 +349,20 @@ type DeleteKeyRequest struct {
 // release.
 type DeleteCertificateRequest struct {
 	Name string
+}
+
+// CleanupCredentialsRequest is the parameter used in the CleanupCredentials
+// method of a CredentialsCleaner. It identifies a certificate-store scope
+// (issuer, store location, store name) and a subject for which expired
+// certificates should be removed.
+//
+// # Experimental
+//
+// Notice: This API is EXPERIMENTAL and may be changed or removed in a later
+// release.
+type CleanupCredentialsRequest struct {
+	Issuer        string
+	StoreLocation string
+	Store         string
+	RawSubject    []byte
 }

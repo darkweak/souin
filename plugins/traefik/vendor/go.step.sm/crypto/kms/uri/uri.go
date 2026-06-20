@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"maps"
+	"math/big"
 	"net/url"
 	"os"
 	"strconv"
@@ -11,6 +13,7 @@ import (
 	"unicode"
 
 	"github.com/pkg/errors"
+
 	"go.step.sm/crypto/internal/termutil"
 )
 
@@ -152,6 +155,38 @@ func (u *URI) GetInt(key string) *int64 {
 	return nil
 }
 
+// GetBigInt returns the first [*big.Int] value in the URI with the given key.
+// It returns nil if the field is not present. It parses as a hexadecimal
+// string if the value starts with 0x (0x12), 0X (0X1A), contains a colon
+// (00:01), or contains only hex characters with at least one letter A-F
+// (e.g. "0A01"); otherwise it parses as a base-10 number.
+func (u *URI) GetBigInt(key string) (*big.Int, error) {
+	v := u.Get(key)
+	if v == "" {
+		return nil, nil //nolint:nilnil // return nil value
+	}
+
+	if hx, ok, isHex := hexString(v); ok && isHex {
+		if hx == "" {
+			return nil, fmt.Errorf("value %q is not a valid hexadecimal number", v)
+		}
+
+		b, err := hex.DecodeString(hx)
+		if err != nil {
+			return nil, err
+		}
+
+		return new(big.Int).SetBytes(b), nil
+	}
+
+	bi, ok := new(big.Int).SetString(v, 10)
+	if !ok {
+		return nil, fmt.Errorf("value %q is not a valid number", v)
+	}
+
+	return bi, nil
+}
+
 // GetEncoded returns the first value in the uri with the given key, it will
 // return empty nil if that field is not present or is empty. If the return
 // value is hex encoded it will decode it and return it.
@@ -160,8 +195,8 @@ func (u *URI) GetEncoded(key string) []byte {
 	if v == "" {
 		return nil
 	}
-	if len(v)%2 == 0 {
-		if b, err := hex.DecodeString(strings.TrimPrefix(v, "0x")); err == nil {
+	if hx, ok, _ := hexString(v); ok {
+		if b, err := hex.DecodeString(hx); err == nil {
 			return b
 		}
 	}
@@ -177,12 +212,17 @@ func (u *URI) GetHexEncoded(key string) ([]byte, error) {
 		return nil, nil
 	}
 
-	b, err := hex.DecodeString(strings.TrimPrefix(v, "0x"))
-	if err != nil {
-		return nil, fmt.Errorf("failed decoding %q: %w", v, err)
+	hx, ok, _ := hexString(v)
+	if !ok || hx == "" {
+		return nil, fmt.Errorf("value %q is not a valid hexadecimal number", v)
 	}
 
-	return b, nil
+	return hex.DecodeString(hx)
+}
+
+// Set sets the key to value. It replaces any existing values.
+func (u *URI) Set(key, value string) {
+	u.Values.Set(key, value)
 }
 
 // Pin returns the pin encoded in the url. It will read the pin from the
@@ -218,6 +258,66 @@ func (u *URI) Read(key string) ([]byte, error) {
 	return readFile(path)
 }
 
+// Values returns the [url.Values] merging the values in the opaque and query
+// string of the given [*URI].
+func Values(u *URI) url.Values {
+	uv := url.Values{}
+	maps.Copy(uv, u.Values)
+	for k, v := range u.URL.Query() {
+		if !uv.Has(k) {
+			uv[k] = v
+			continue
+		}
+		for _, s := range v {
+			uv.Add(k, s)
+		}
+	}
+	return uv
+}
+
+// hexString returns a clean hexadecimal string, a boolean indicating if s is a
+// valid hexadecimal string, and a boolean indicating if s was explicitly
+// identifiable as hexadecimal. If s starts with 0x (0x12), 0X (0X1A), or
+// contains colons (01:1A) it will remove them. The third boolean is true if s
+// had a 0x/0X prefix, contained colons, or contained at least one letter A-F
+// (010A). The string is prefixed with 0 if its length is odd.
+func hexString(s string) (string, bool, bool) {
+	hx := strings.TrimPrefix(s, "0x")
+	hx = strings.TrimPrefix(hx, "0X")
+	hx = strings.ReplaceAll(hx, ":", "")
+	changed := (len(s) != len(hx))
+
+	if len(hx)%2 != 0 {
+		hx = "0" + hx
+	}
+
+	valid, hasLetter := isValidHexString(hx)
+	if !valid {
+		return "", false, false
+	}
+
+	return hx, valid, (changed || hasLetter)
+}
+
+// isValidHexString returns two booleans, the first indicating s contains only
+// hexadecimal characters and the second if at least one letter (a-f or A-F),
+// indicating it should be treated as hex.
+func isValidHexString(s string) (bool, bool) {
+	var hasLetter bool
+	for _, c := range s {
+		switch {
+		case c >= '0' && c <= '9':
+		case c >= 'a' && c <= 'f':
+			hasLetter = true
+		case c >= 'A' && c <= 'F':
+			hasLetter = true
+		default:
+			return false, false
+		}
+	}
+	return true, hasLetter
+}
+
 func readFile(path string) ([]byte, error) {
 	u, err := url.Parse(path)
 	if err == nil && (u.Scheme == "" || u.Scheme == "file") {
@@ -228,7 +328,6 @@ func readFile(path string) ([]byte, error) {
 			path = u.Opaque
 		}
 	}
-	//nolint:gosec // path is validated by callers and used for reading KMS configuration files
 	b, err := os.ReadFile(path)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error reading %s", path)

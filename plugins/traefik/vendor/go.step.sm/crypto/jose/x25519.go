@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
+
 	"go.step.sm/crypto/x25519"
 )
 

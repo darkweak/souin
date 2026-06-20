@@ -550,7 +550,11 @@ func (p *parser) doImport(nesting int) error {
 		}
 
 		if foundBlockDirective {
-			tokensCopy = append(tokensCopy, tokensToAdd...)
+			if maybeSnippet {
+				tokensCopy = append(tokensCopy, token)
+			} else {
+				tokensCopy = append(tokensCopy, tokensToAdd...)
+			}
 			continue
 		}
 
@@ -679,12 +683,29 @@ func (p *parser) directive() error {
 // openCurlyBrace expects the current token to be an
 // opening curly brace. This acts like an assertion
 // because it returns an error if the token is not
-// a opening curly brace. It does NOT advance the token.
+// an opening curly brace. It does NOT advance the token.
 func (p *parser) openCurlyBrace() error {
 	if p.Val() != "{" {
+		if p.valLooksLikeGlobalOptionsAfterImportedSnippets() {
+			return p.Err("global options block must appear before import directives; move the global options block to the top of the Caddyfile")
+		}
 		return p.SyntaxErr("{")
 	}
 	return nil
+}
+
+func (p *parser) valLooksLikeGlobalOptionsAfterImportedSnippets() bool {
+	if p.Val() != "import" || len(p.block.Keys) == 0 {
+		return false
+	}
+
+	for _, key := range p.block.Keys {
+		if !strings.HasPrefix(key.Text, "(") || !strings.HasSuffix(key.Text, ")") {
+			return false
+		}
+	}
+
+	return true
 }
 
 // closeCurlyBrace expects the current token to be

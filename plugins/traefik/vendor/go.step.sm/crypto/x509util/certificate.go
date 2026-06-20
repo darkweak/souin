@@ -216,7 +216,7 @@ func CreateCertificate(template, parent *x509.Certificate, pub crypto.PublicKey,
 		}
 	}
 	if template.SubjectKeyId == nil {
-		if template.SubjectKeyId, err = generateSubjectKeyID(pub); err != nil {
+		if template.SubjectKeyId, err = GenerateSubjectKeyID(pub); err != nil {
 			return nil, err
 		}
 	}

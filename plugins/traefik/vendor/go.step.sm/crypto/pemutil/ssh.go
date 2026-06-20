@@ -17,9 +17,10 @@ import (
 	"math/big"
 
 	"github.com/pkg/errors"
+	"golang.org/x/crypto/ssh"
+
 	bcryptpbkdf "go.step.sm/crypto/internal/bcrypt_pbkdf"
 	"go.step.sm/crypto/randutil"
-	"golang.org/x/crypto/ssh"
 )
 
 const (

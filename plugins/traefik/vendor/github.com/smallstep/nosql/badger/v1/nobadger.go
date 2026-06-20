@@ -1,5 +1,4 @@
 //go:build nobadger || nobadgerv1
-// +build nobadger nobadgerv1
 
 package badger
 

@@ -14,8 +14,9 @@ import (
 	"sync/atomic"
 
 	"github.com/pkg/errors"
-	"go.step.sm/crypto/x25519"
 	"golang.org/x/crypto/ssh"
+
+	"go.step.sm/crypto/x25519"
 )
 
 var (

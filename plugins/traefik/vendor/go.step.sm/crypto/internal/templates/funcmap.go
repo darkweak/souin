@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/Masterminds/sprig/v3"
+
 	"go.step.sm/crypto/jose"
 )
 

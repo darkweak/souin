@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/pkg/errors"
+
 	"go.step.sm/crypto/randutil"
 )
 
