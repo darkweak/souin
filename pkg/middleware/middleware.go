@@ -679,7 +679,7 @@ func (s *SouinBaseHandler) Revalidate(validator *core.Revalidator, next handlerF
 				customWriter.handleBuffer(func(b *bytes.Buffer) {
 					b.Reset()
 				})
-				customWriter.Rw.WriteHeader(http.StatusPreconditionFailed)
+				customWriter.WriteHeader(http.StatusPreconditionFailed)
 
 				return nil, errors.New("")
 			}
@@ -689,7 +689,7 @@ func (s *SouinBaseHandler) Revalidate(validator *core.Revalidator, next handlerF
 					customWriter.handleBuffer(func(b *bytes.Buffer) {
 						b.Reset()
 					})
-					customWriter.Rw.WriteHeader(http.StatusNotModified)
+					customWriter.WriteHeader(http.StatusNotModified)
 
 					return nil, errors.New("")
 				}
@@ -914,7 +914,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 	}()
 
 	customWriter := NewCustomWriter(req, rw, bufPool)
-	customWriter.Headers.Add("Range", req.Header.Get("Range"))
+	customWriter.RequestHeaders.Set("Range", req.Header.Get("Range"))
 	req.Header.Del("Range")
 
 	// Keep it while waiting for a confirmation that everything is fine.
@@ -1057,7 +1057,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 
 							return err
 						}
-						rw.WriteHeader(http.StatusGatewayTimeout)
+						customWriter.WriteHeader(http.StatusGatewayTimeout)
 						customWriter.handleBuffer(func(b *bytes.Buffer) {
 							b.Reset()
 						})

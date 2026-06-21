@@ -2,10 +2,48 @@ package middleware
 
 import (
 	"bytes"
+	baseCtx "context"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
 )
+
+// TestHeaderRace_DeadlinePath reproduces the concurrent map writes crash that
+// occurs when the deadline path writes to rw.Header() while the upstream
+// goroutine writes headers through customWriter.Header(). After the fix,
+// customWriter.Header() returns an internal map so the two goroutines never
+// touch the same map. Run with -race.
+func TestHeaderRace_DeadlinePath(t *testing.T) {
+	ctx, cancel := baseCtx.WithCancel(baseCtx.Background())
+	req := httptest.NewRequest(http.MethodGet, "http://example.com/race", nil)
+	req = req.WithContext(ctx)
+	rec := httptest.NewRecorder()
+	cw := NewCustomWriter(req, rec, &bytes.Buffer{})
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		for i := range 500 {
+			h := cw.Header()
+			if h != nil {
+				h.Set("X-Test", http.StatusText(i))
+			}
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		cancel()
+		for i := range 500 {
+			rec.Header().Set("Cache-Status", http.StatusText(i))
+		}
+	}()
+
+	wg.Wait()
+}
 
 // sendWithRange builds a CustomWriter holding the given body, simulates the
 // stashed Range header (see ServeHTTP) and returns the result of Send().
@@ -17,7 +55,7 @@ func sendWithRange(t *testing.T, body, rangeHeader string) *httptest.ResponseRec
 	cw := NewCustomWriter(req, rec, &bytes.Buffer{})
 	rec.Header().Set("Content-Type", "video/mp2t")
 	if rangeHeader != "" {
-		cw.Headers.Set("Range", rangeHeader)
+		cw.RequestHeaders.Set("Range", rangeHeader)
 	}
 	_, _ = cw.Write([]byte(body))
 	if _, err := cw.Send(); err != nil {

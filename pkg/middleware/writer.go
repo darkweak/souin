@@ -20,24 +20,26 @@ var _ SouinWriterInterface = (*CustomWriter)(nil)
 
 func NewCustomWriter(rq *http.Request, rw http.ResponseWriter, b *bytes.Buffer) *CustomWriter {
 	return &CustomWriter{
-		statusCode: 200,
-		Buf:        b,
-		Req:        rq,
-		Rw:         rw,
-		Headers:    http.Header{},
-		mutex:      sync.Mutex{},
+		statusCode:     200,
+		Buf:            b,
+		Req:            rq,
+		Rw:             rw,
+		Headers:        http.Header{},
+		RequestHeaders: http.Header{},
+		mutex:          sync.Mutex{},
 	}
 }
 
 // CustomWriter handles the response and provide the way to cache the value
 type CustomWriter struct {
-	Buf         *bytes.Buffer
-	Rw          http.ResponseWriter
-	Req         *http.Request
-	Headers     http.Header
-	mutex       sync.Mutex
-	statusCode  int
-	headersSent atomic.Bool
+	Buf            *bytes.Buffer
+	Rw             http.ResponseWriter
+	Req            *http.Request
+	Headers        http.Header
+	RequestHeaders http.Header
+	mutex          sync.Mutex
+	statusCode     int
+	headersSent    atomic.Bool
 }
 
 func (r *CustomWriter) handleBuffer(callback func(*bytes.Buffer)) {
@@ -46,13 +48,21 @@ func (r *CustomWriter) handleBuffer(callback func(*bytes.Buffer)) {
 	r.mutex.Unlock()
 }
 
-// Header will write the response headers
+// Header returns the internal header buffer, not the real ResponseWriter's map
 func (r *CustomWriter) Header() http.Header {
 	if r.headersSent.Load() || r.Req.Context().Err() != nil {
 		return http.Header{}
 	}
 
-	return r.Rw.Header()
+	return r.Headers
+}
+
+// flushHeaders copies buffered headers to the real ResponseWriter
+func (r *CustomWriter) flushHeaders() {
+	dst := r.Rw.Header()
+	for k, v := range r.Headers {
+		dst[k] = v
+	}
 }
 
 // GetStatusCode returns the response status code
@@ -107,7 +117,7 @@ func (r *CustomWriter) Send() (int, error) {
 	// in full (single/suffix/multipart ranges, If-Range, 416 with Content-Range,
 	// Accept-Ranges and CRLF-delimited multipart payloads), which avoids the
 	// off-by-one and out-of-bounds issues of a hand-rolled implementation.
-	if rangeHeader := r.Headers.Get("Range"); rangeHeader != "" && r.GetStatusCode() == http.StatusOK && !r.headersSent.Load() {
+	if rangeHeader := r.RequestHeaders.Get("Range"); rangeHeader != "" && r.GetStatusCode() == http.StatusOK && !r.headersSent.Load() {
 		r.Header().Set("Accept-Ranges", "bytes")
 
 		// ServeContent reads Range/If-Range from the request. Build a minimal
@@ -127,8 +137,7 @@ func (r *CustomWriter) Send() (int, error) {
 		}
 
 		r.headersSent.Swap(true)
-		// An empty name skips extension-based sniffing so the cached
-		// Content-Type is preserved.
+		r.flushHeaders()
 		http.ServeContent(r.Rw, rangeReq, "", modtime, bytes.NewReader(result))
 
 		return len(result), nil
@@ -142,6 +151,7 @@ func (r *CustomWriter) Send() (int, error) {
 	r.Header().Del(rfc.StoredTTLHeader)
 
 	if !r.headersSent.Load() {
+		r.flushHeaders()
 		r.mutex.Lock()
 		r.Rw.WriteHeader(r.statusCode)
 		r.mutex.Unlock()

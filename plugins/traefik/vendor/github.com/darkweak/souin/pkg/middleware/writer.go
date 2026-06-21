@@ -19,24 +19,26 @@ var _ SouinWriterInterface = (*CustomWriter)(nil)
 
 func NewCustomWriter(rq *http.Request, rw http.ResponseWriter, b *bytes.Buffer) *CustomWriter {
 	return &CustomWriter{
-		statusCode: 200,
-		Buf:        b,
-		Req:        rq,
-		Rw:         rw,
-		Headers:    http.Header{},
-		mutex:      sync.Mutex{},
+		statusCode:     200,
+		Buf:            b,
+		Req:            rq,
+		Rw:             rw,
+		Headers:        http.Header{},
+		RequestHeaders: http.Header{},
+		mutex:          sync.Mutex{},
 	}
 }
 
 // CustomWriter handles the response and provide the way to cache the value
 type CustomWriter struct {
-	Buf         *bytes.Buffer
-	Rw          http.ResponseWriter
-	Req         *http.Request
-	Headers     http.Header
-	headersSent bool
-	mutex       sync.Mutex
-	statusCode  int
+	Buf            *bytes.Buffer
+	Rw             http.ResponseWriter
+	Req            *http.Request
+	Headers        http.Header
+	RequestHeaders http.Header
+	headersSent    bool
+	mutex          sync.Mutex
+	statusCode     int
 }
 
 func (r *CustomWriter) handleBuffer(callback func(*bytes.Buffer)) {
@@ -45,7 +47,7 @@ func (r *CustomWriter) handleBuffer(callback func(*bytes.Buffer)) {
 	r.mutex.Unlock()
 }
 
-// Header will write the response headers
+// Header returns the internal header buffer, not the real ResponseWriter's map
 func (r *CustomWriter) Header() http.Header {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
@@ -54,7 +56,15 @@ func (r *CustomWriter) Header() http.Header {
 		return http.Header{}
 	}
 
-	return r.Rw.Header()
+	return r.Headers
+}
+
+// flushHeaders copies buffered headers to the real ResponseWriter
+func (r *CustomWriter) flushHeaders() {
+	dst := r.Rw.Header()
+	for k, v := range r.Headers {
+		dst[k] = v
+	}
 }
 
 // GetStatusCode returns the response status code
@@ -101,6 +111,7 @@ func (r *CustomWriter) Send() (int, error) {
 	r.Header().Del(rfc.StoredTTLHeader)
 
 	if !r.headersSent {
+		r.flushHeaders()
 		r.Rw.WriteHeader(r.GetStatusCode())
 		r.headersSent = true
 	}
