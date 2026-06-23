@@ -687,7 +687,60 @@ func (s *SouinBaseHandler) Upstream(
 	return nil
 }
 
-func (s *SouinBaseHandler) Revalidate(validator *core.Revalidator, next handlerFunc, customWriter *CustomWriter, rq *http.Request, requestCc *cacheobject.RequestCacheDirectives, cachedKey string, uri string) error {
+// headerOnlyResponseWriter is a minimal http.ResponseWriter used to drive
+// Store() for a freshening re-store without touching the client connection.
+type headerOnlyResponseWriter struct{ header http.Header }
+
+func (h *headerOnlyResponseWriter) Header() http.Header         { return h.header }
+func (h *headerOnlyResponseWriter) Write(b []byte) (int, error) { return len(b), nil }
+func (h *headerOnlyResponseWriter) WriteHeader(int)             {}
+
+// freshenStoredResponse updates a stored response with the header fields from a
+// 304 (Not Modified) revalidation and re-stores it, as required by RFC 9111
+// §4.3.4 (with the §3.2 update semantics). Without it a validated entry keeps
+// its old freshness metadata and is revalidated on every subsequent request.
+//
+// The re-store runs through a throwaway writer so the caller's client-facing
+// response (typically a 304 for a conditional client) is left untouched.
+func (s *SouinBaseHandler) freshenStoredResponse(rq *http.Request, requestCc *cacheobject.RequestCacheDirectives, cachedKey, uri string, notModified http.Header, stored *http.Response) error {
+	if rq.Context().Err() != nil {
+		return nil
+	}
+
+	// §3.2: replace the stored header fields with the ones carried by the 304,
+	// keeping the stored fields the 304 didn't include.
+	merged := stored.Header.Clone()
+	// Drop Souin-computed/transient fields from the stored side so stale values
+	// aren't persisted; Store recomputes the lengths/TTL and the caller resets
+	// the Cache-Status. A 304 that re-sends Age still wins (applied below).
+	for _, k := range []string{"Age", "Cache-Status", rfc.StoredTTLHeader, rfc.StoredLengthHeader} {
+		merged.Del(k)
+	}
+	for k, vv := range notModified {
+		switch k {
+		case "Cache-Status", rfc.StoredTTLHeader, rfc.StoredLengthHeader:
+			continue
+		}
+		merged[k] = vv
+	}
+
+	// A 304 carries no body, so reuse the stored one. Read it once and reset
+	// stored.Body so the caller can still stream it to the client.
+	body, err := io.ReadAll(stored.Body)
+	_ = stored.Body.Close()
+	if err != nil {
+		return err
+	}
+	stored.Body = io.NopCloser(bytes.NewReader(body))
+
+	fw := NewCustomWriter(rq, &headerOnlyResponseWriter{header: http.Header{}}, bytes.NewBuffer(body))
+	maps.Copy(fw.Header(), merged)
+	fw.WriteHeader(stored.StatusCode)
+
+	return s.Store(fw, rq, requestCc, cachedKey, uri)
+}
+
+func (s *SouinBaseHandler) Revalidate(validator *core.Revalidator, next handlerFunc, customWriter *CustomWriter, rq *http.Request, requestCc *cacheobject.RequestCacheDirectives, cachedKey string, uri string, validatedResponse *http.Response) error {
 	s.Configuration.GetLogger().Debug("Revalidate the request with the upstream server")
 	prometheus.Increment(prometheus.RequestRevalidationCounter)
 
@@ -726,6 +779,10 @@ func (s *SouinBaseHandler) Revalidate(validator *core.Revalidator, next handlerF
 
 			if statusCode != http.StatusNotModified {
 				err = s.Store(customWriter, rq, requestCc, cachedKey, uri)
+			} else if validatedResponse != nil {
+				// RFC 9111 §4.3.4: freshen the stored response with the 304's
+				// header fields so the validated entry becomes fresh again.
+				err = s.freshenStoredResponse(rq, requestCc, cachedKey, uri, customWriter.Header().Clone(), validatedResponse)
 			}
 		}
 
@@ -1011,14 +1068,14 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 			}
 
 			if !modeContext.Bypass_request && validator.NeedRevalidation {
-				err := s.Revalidate(validator, next, customWriter, req, requestCc, cachedKey, uri)
+				err := s.Revalidate(validator, next, customWriter, req, requestCc, cachedKey, uri, response)
 				_, _ = customWriter.Send()
 
 				return err
 			}
 			if resCc, _ := cacheobject.ParseResponseCacheControl(rfc.HeaderAllCommaSepValuesString(response.Header, headerName)); !modeContext.Bypass_response && resCc.NoCachePresent {
 				prometheus.Increment(prometheus.NoCachedResponseCounter)
-				err := s.Revalidate(validator, next, customWriter, req, requestCc, cachedKey, uri)
+				err := s.Revalidate(validator, next, customWriter, req, requestCc, cachedKey, uri, response)
 				_, _ = customWriter.Send()
 
 				return err
@@ -1053,22 +1110,27 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 					}
 					customWriter.WriteHeader(response.StatusCode)
 					rfc.HitStaleCache(&response.Header)
+					// Snapshot the stale body so both the client response and the
+					// background revalidation (which may freshen it on a 304) can
+					// read it.
+					staleBody, _ := io.ReadAll(response.Body)
+					_ = response.Body.Close()
+					response.Body = io.NopCloser(bytes.NewReader(staleBody))
 					customWriter.handleBuffer(func(b *bytes.Buffer) {
-						_, _ = io.Copy(b, response.Body)
-						_ = response.Body.Close()
+						_, _ = b.Write(staleBody)
 					})
 					_, err := customWriter.Send()
 					customWriter = NewCustomWriter(req, rw, new(bytes.Buffer))
-					go func(v *core.Revalidator, goCw *CustomWriter, goRq *http.Request, goNext func(http.ResponseWriter, *http.Request) error, goCc *cacheobject.RequestCacheDirectives, goCk string, goUri string) {
-						_ = s.Revalidate(v, goNext, goCw, goRq, goCc, goCk, goUri)
-					}(validator, customWriter, req, next, requestCc, cachedKey, uri)
+					go func(v *core.Revalidator, goCw *CustomWriter, goRq *http.Request, goNext func(http.ResponseWriter, *http.Request) error, goCc *cacheobject.RequestCacheDirectives, goCk string, goUri string, goResp *http.Response) {
+						_ = s.Revalidate(v, goNext, goCw, goRq, goCc, goCk, goUri, goResp)
+					}(validator, customWriter, req, next, requestCc, cachedKey, uri, response)
 
 					return err
 				}
 
 				if modeContext.Bypass_response || responseCc.MustRevalidate || responseCc.NoCachePresent || validator.NeedRevalidation {
 					req.Header["If-None-Match"] = append(req.Header["If-None-Match"], validator.ResponseETag)
-					err := s.Revalidate(validator, next, customWriter, req, requestCc, cachedKey, uri)
+					err := s.Revalidate(validator, next, customWriter, req, requestCc, cachedKey, uri, response)
 					statusCode := customWriter.GetStatusCode()
 					if err != nil {
 						if responseCc.StaleIfError > -1 || requestCc.StaleIfError > 0 {
@@ -1172,7 +1234,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 				responseCc, _ := cacheobject.ParseResponseCacheControl(rfc.HeaderAllCommaSepValuesString(response.Header, "Cache-Control"))
 
 				if responseCc.StaleIfError > -1 || requestCc.StaleIfError > 0 {
-					err := s.Revalidate(validator, next, customWriter, req, requestCc, cachedKey, uri)
+					err := s.Revalidate(validator, next, customWriter, req, requestCc, cachedKey, uri, response)
 					statusCode := customWriter.GetStatusCode()
 					if err != nil {
 						code := fmt.Sprintf("; fwd-status=%d", statusCode)

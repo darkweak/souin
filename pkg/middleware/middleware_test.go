@@ -401,3 +401,81 @@ func TestHopByHopHeadersAreNotCached(t *testing.T) {
 		}
 	}
 }
+
+// TestStoredResponseIsFreshenedOn304 verifies RFC 9111 §4.3.4: when a
+// revalidation returns 304, Souin must update the stored response with the
+// 304's headers so the entry becomes fresh again. Otherwise the entry stays
+// stale and every later request re-revalidates.
+//
+// The upstream is hit once for the initial MISS and once for the revalidation
+// that returns 304. A third request, issued right after the entry has been
+// freshened, must be served from cache without a third upstream call.
+func TestStoredResponseIsFreshenedOn304(t *testing.T) {
+	handler, _ := newTestHandler(t)
+
+	var (
+		mu            sync.Mutex
+		upstreamCalls int
+	)
+	const body = "ORIGINAL"
+
+	next := func(w http.ResponseWriter, r *http.Request) error {
+		mu.Lock()
+		upstreamCalls++
+		mu.Unlock()
+
+		w.Header().Set("Cache-Control", "must-revalidate, max-age=1")
+		w.Header().Set("ETag", `"v1"`)
+		w.Header().Set("Date", time.Now().UTC().Format(http.TimeFormat))
+
+		for _, inm := range r.Header.Values("If-None-Match") {
+			if strings.Contains(inm, `"v1"`) {
+				w.WriteHeader(http.StatusNotModified)
+				return nil
+			}
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(body))
+		return nil
+	}
+
+	const url = "http://example.com/freshen-304"
+
+	// 1) MISS — stores the response with max-age=1.
+	if err := handler.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, url, nil), next); err != nil {
+		t.Fatalf("request 1 failed: %v", err)
+	}
+
+	// Let the entry go stale (max-age=1) while staying within the stale window.
+	time.Sleep(1100 * time.Millisecond)
+
+	// 2) Stale + max-stale + must-revalidate — triggers an upstream 304.
+	req2 := httptest.NewRequest(http.MethodGet, url, nil)
+	req2.Header.Set("Cache-Control", "max-stale=30")
+	if err := handler.ServeHTTP(httptest.NewRecorder(), req2, next); err != nil {
+		t.Fatalf("request 2 failed: %v", err)
+	}
+	mu.Lock()
+	callsAfter2 := upstreamCalls
+	mu.Unlock()
+	if callsAfter2 != 2 {
+		t.Fatalf("expected request 2 to revalidate (2 upstream calls), got %d", callsAfter2)
+	}
+
+	// 3) The entry was just freshened, so this is a cache hit with no upstream call.
+	req3 := httptest.NewRequest(http.MethodGet, url, nil)
+	req3.Header.Set("Cache-Control", "max-stale=30")
+	rec3 := httptest.NewRecorder()
+	if err := handler.ServeHTTP(rec3, req3, next); err != nil {
+		t.Fatalf("request 3 failed: %v", err)
+	}
+	mu.Lock()
+	callsAfter3 := upstreamCalls
+	mu.Unlock()
+	if callsAfter3 != 2 {
+		t.Errorf("RFC 9111 §4.3.4: stored response not freshened after 304 — request 3 re-revalidated (upstream calls=%d, want 2)", callsAfter3)
+	}
+	if got := rec3.Body.String(); got != body {
+		t.Errorf("request 3 body = %q, want %q (served from cache)", got, body)
+	}
+}
