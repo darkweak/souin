@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"bytes"
+	"fmt"
 	"net/http"
 	"strconv"
 	"sync"
@@ -18,26 +19,33 @@ type SouinWriterInterface interface {
 
 var _ SouinWriterInterface = (*CustomWriter)(nil)
 
-func NewCustomWriter(rq *http.Request, rw http.ResponseWriter, b *bytes.Buffer) *CustomWriter {
+func NewCustomWriter(
+	rq *http.Request,
+	rw http.ResponseWriter,
+	b *bytes.Buffer,
+	earlyHintStore func(http.Header),
+) *CustomWriter {
 	return &CustomWriter{
-		statusCode: 200,
-		Buf:        b,
-		Req:        rq,
-		Rw:         rw,
-		Headers:    http.Header{},
-		mutex:      sync.Mutex{},
+		statusCode:     200,
+		Buf:            b,
+		Req:            rq,
+		Rw:             rw,
+		Headers:        http.Header{},
+		mutex:          sync.Mutex{},
+		earlyHintStore: earlyHintStore,
 	}
 }
 
 // CustomWriter handles the response and provide the way to cache the value
 type CustomWriter struct {
-	Buf         *bytes.Buffer
-	Rw          http.ResponseWriter
-	Req         *http.Request
-	Headers     http.Header
-	mutex       sync.Mutex
-	statusCode  int
-	headersSent atomic.Bool
+	Buf            *bytes.Buffer
+	Rw             http.ResponseWriter
+	Req            *http.Request
+	Headers        http.Header
+	mutex          sync.Mutex
+	statusCode     int
+	headersSent    atomic.Bool
+	earlyHintStore func(http.Header)
 }
 
 func (r *CustomWriter) handleBuffer(callback func(*bytes.Buffer)) {
@@ -69,9 +77,19 @@ func (r *CustomWriter) WriteHeader(code int) {
 		return
 	}
 
+	defer func(h http.Header) {
+		if code == http.StatusEarlyHints {
+			r.earlyHintStore(h)
+		}
+	}(r.Header())
+
 	r.mutex.Lock()
 	r.statusCode = code
 	r.mutex.Unlock()
+
+	if code == http.StatusEarlyHints {
+		r.Rw.WriteHeader(code)
+	}
 }
 
 // Write will write the response body
@@ -82,6 +100,16 @@ func (r *CustomWriter) Write(b []byte) (int, error) {
 	})
 
 	return len(b), nil
+}
+
+// Push implements http.Pusher
+func (r *CustomWriter) Push(target string, opts *http.PushOptions) error {
+	pusher, ok := r.Rw.(http.Pusher)
+	if !ok {
+		return fmt.Errorf("ResponseWriter does not implement http.Pusher")
+	}
+
+	return pusher.Push(target, opts)
 }
 
 // Send delays the response to handle Cache-Status

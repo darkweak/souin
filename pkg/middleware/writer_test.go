@@ -14,7 +14,7 @@ func sendWithRange(t *testing.T, body, rangeHeader string) *httptest.ResponseRec
 
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "http://example.com/segment.ts", nil)
-	cw := NewCustomWriter(req, rec, &bytes.Buffer{})
+	cw := NewCustomWriter(req, rec, &bytes.Buffer{}, func(http.Header) {})
 	rec.Header().Set("Content-Type", "video/mp2t")
 	if rangeHeader != "" {
 		cw.Headers.Set("Range", rangeHeader)
