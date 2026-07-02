@@ -1197,6 +1197,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 			return nil
 		}
 	case v := <-errorCacheCh:
+		customWriter.flushHeaders()
 		switch v {
 		case nil:
 			_, _ = customWriter.Send()
