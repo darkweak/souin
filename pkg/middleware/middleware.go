@@ -926,7 +926,8 @@ func (s *SouinBaseHandler) Upstream(
 			}
 		}
 
-		if shared {
+		if shared && !executed {
+			prometheus.Increment(prometheus.SharedResponseCounter)
 			s.Configuration.GetLogger().Infof("Reused response from concurrent request with the key %s", cachedKey)
 		}
 		customWriter.Buf.Reset()
