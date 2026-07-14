@@ -606,7 +606,9 @@ func (s *SouinBaseHandler) Upstream(
 	if s.Configuration.GetDefaultCache().IsCoalescingDisable() || disableCoalescing {
 		singleflightCacheKey += uuid.NewString()
 	}
+	var executedUpstream bool
 	sfValue, err, shared := s.singleflightPool.Do(singleflightCacheKey, func() (interface{}, error) {
+		executedUpstream = true
 		if e := next(customWriter, rq); e != nil {
 			s.Configuration.GetLogger().Warnf("%#v", e)
 			customWriter.Header().Set("Cache-Status", fmt.Sprintf("%s; fwd=uri-miss; key=%s; detail=SERVE-HTTP-ERROR", rq.Context().Value(context.CacheName), rfc.GetCacheKeyFromCtx(rq.Context())))
@@ -675,7 +677,8 @@ func (s *SouinBaseHandler) Upstream(
 			}
 		}
 
-		if shared {
+		if shared && !executedUpstream {
+			prometheus.Increment(prometheus.SharedResponseCounter)
 			s.Configuration.GetLogger().Infof("Reused response from concurrent request with the key %s", cachedKey)
 		}
 		customWriter.Buf.Reset()
