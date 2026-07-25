@@ -189,6 +189,19 @@ func containsCacheKey(currentValue, cacheKey string) bool {
 }
 
 func (s *baseStorage) storeTag(tag string, cacheKey string) {
+	if tag == "" {
+		// A response carrying none of the surrogate-key headers still reaches
+		// here with an empty tag: getSurrogateKey returns "" and ParseHeaders is
+		// strings.Split, which returns [""] for an empty input rather than an
+		// empty slice, so Store's loop runs once with an empty key.
+		//
+		// Indexing under "" collects every cache key of every response into the
+		// single SURROGATE_ entry, which this function then read-modify-writes
+		// while holding s.mu on every store. That makes each store O(number of
+		// cached objects) and degrades as the cache grows.
+		return
+	}
+
 	defer s.mu.Unlock()
 	s.mu.Lock()
 	currentValue := string(s.Storage.Get(surrogatePrefix + tag))
