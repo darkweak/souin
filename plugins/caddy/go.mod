@@ -37,7 +37,6 @@ require (
 	github.com/cloudflare/circl v1.6.3 // indirect
 	github.com/coreos/go-oidc/v3 v3.17.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
-	github.com/darkweak/go-esi v0.0.6 // indirect
 	github.com/dgraph-io/badger v1.6.2 // indirect
 	github.com/dgraph-io/badger/v2 v2.2007.4 // indirect
 	github.com/dgraph-io/ristretto v0.2.0 // indirect
@@ -54,7 +53,7 @@ require (
 	github.com/go-sql-driver/mysql v1.9.3 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/golang/snappy v1.0.0 // indirect
-	github.com/google/cel-go v0.27.0 // indirect
+	github.com/google/cel-go v0.29.0 // indirect
 	github.com/google/certificate-transparency-go v1.1.8-0.20240110162603-74a5dd331745 // indirect
 	github.com/google/go-tpm v0.9.8 // indirect
 	github.com/google/go-tspi v0.3.0 // indirect
