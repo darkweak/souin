@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	lz4 "github.com/pierrec/lz4/v4"
+	"github.com/pierrec/lz4/v4"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -38,7 +38,7 @@ type CacheProvider struct {
 	// Path to the configuration file.
 	Path string `json:"path" yaml:"path"`
 	// Declare the cache provider directly in the Souin configuration.
-	Configuration interface{} `json:"configuration" yaml:"configuration"`
+	Configuration any `json:"configuration" yaml:"configuration"`
 }
 
 const MappingKeyPrefix = "IDX_"

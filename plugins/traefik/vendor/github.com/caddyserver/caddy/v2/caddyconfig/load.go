@@ -106,7 +106,7 @@ func (adminLoad) handleLoad(w http.ResponseWriter, r *http.Request) error {
 			if err != nil {
 				caddy.Log().Named("admin.api.load").Error(err.Error())
 			}
-			_, _ = w.Write(respBody)
+			_, _ = w.Write(respBody) //nolint:gosec // false positive: no XSS here
 		}
 		body = result
 	}
@@ -120,6 +120,13 @@ func (adminLoad) handleLoad(w http.ResponseWriter, r *http.Request) error {
 			Err:        fmt.Errorf("loading config: %v", err),
 		}
 	}
+
+	// If this request changed the config, clear the last
+	// config info we have stored, if it is different from
+	// the original source.
+	caddy.ClearLastConfigIfDifferent(
+		r.Header.Get("Caddy-Config-Source-File"),
+		r.Header.Get("Caddy-Config-Source-Adapter"))
 
 	caddy.Log().Named("admin.api").Info("load complete")
 

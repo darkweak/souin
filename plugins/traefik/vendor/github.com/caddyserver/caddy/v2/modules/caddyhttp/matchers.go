@@ -23,7 +23,6 @@ import (
 	"net/textproto"
 	"net/url"
 	"path"
-	"reflect"
 	"regexp"
 	"runtime"
 	"slices"
@@ -263,12 +262,16 @@ func (m MatchHost) Provision(_ caddy.Context) error {
 		if err != nil {
 			return fmt.Errorf("converting hostname '%s' to ASCII: %v", host, err)
 		}
-		if asciiHost != host {
-			m[i] = asciiHost
-		}
 		normalizedHost := strings.ToLower(asciiHost)
 		if firstI, ok := seen[normalizedHost]; ok {
 			return fmt.Errorf("host at index %d is repeated at index %d: %s", firstI, i, host)
+		}
+		// Normalize exact hosts for standardized comparison in large-list fastpath later on.
+		// Keep wildcards/placeholders untouched.
+		if m.fuzzy(asciiHost) {
+			m[i] = asciiHost
+		} else {
+			m[i] = normalizedHost
 		}
 		seen[normalizedHost] = i
 	}
@@ -313,14 +316,15 @@ func (m MatchHost) MatchWithError(r *http.Request) (bool, error) {
 	}
 
 	if m.large() {
+		reqHostLower := strings.ToLower(reqHost)
 		// fast path: locate exact match using binary search (about 100-1000x faster for large lists)
 		pos := sort.Search(len(m), func(i int) bool {
 			if m.fuzzy(m[i]) {
 				return false
 			}
-			return m[i] >= reqHost
+			return m[i] >= reqHostLower
 		})
-		if pos < len(m) && m[pos] == reqHost {
+		if pos < len(m) && m[pos] == reqHostLower {
 			return true, nil
 		}
 	}
@@ -373,7 +377,7 @@ func (MatchHost) CELLibrary(ctx caddy.Context) (cel.Library, error) {
 		"host_match_request_list",
 		[]*cel.Type{cel.ListType(cel.StringType)},
 		func(data ref.Val) (RequestMatcherWithError, error) {
-			refStringList := reflect.TypeOf([]string{})
+			refStringList := stringSliceType
 			strList, err := data.ConvertToNative(refStringList)
 			if err != nil {
 				return nil, err
@@ -534,6 +538,7 @@ func (m MatchPath) MatchWithError(r *http.Request) (bool, error) {
 }
 
 func (MatchPath) matchPatternWithEscapeSequence(escapedPath, matchPath string) bool {
+	escapedPath = strings.ToLower(escapedPath)
 	// We would just compare the pattern against r.URL.Path,
 	// but the pattern contains %, indicating that we should
 	// compare at least some part of the path in raw/escaped
@@ -552,7 +557,6 @@ func (MatchPath) matchPatternWithEscapeSequence(escapedPath, matchPath string) b
 		if iPattern >= len(matchPath) || iPath >= len(escapedPath) {
 			break
 		}
-
 		// get the next character from the request path
 
 		pathCh := string(escapedPath[iPath])
@@ -634,8 +638,8 @@ func (MatchPath) matchPatternWithEscapeSequence(escapedPath, matchPath string) b
 	// we can now treat rawpath globs (%*) as regular globs (*)
 	matchPath = strings.ReplaceAll(matchPath, "%*", "*")
 
-	// ignore error here because we can't handle it anyway=
-	matches, _ := path.Match(matchPath, sb.String())
+	// ignore error here because we can't handle it anyway
+	matches, _ := path.Match(matchPath, strings.ToLower(sb.String()))
 	return matches
 }
 
@@ -655,7 +659,7 @@ func (MatchPath) CELLibrary(ctx caddy.Context) (cel.Library, error) {
 		[]*cel.Type{cel.ListType(cel.StringType)},
 		// function to convert a constant list of strings to a MatchPath instance.
 		func(data ref.Val) (RequestMatcherWithError, error) {
-			refStringList := reflect.TypeOf([]string{})
+			refStringList := stringSliceType
 			strList, err := data.ConvertToNative(refStringList)
 			if err != nil {
 				return nil, err
@@ -734,7 +738,7 @@ func (MatchPathRE) CELLibrary(ctx caddy.Context) (cel.Library, error) {
 		"path_regexp_request_string_string",
 		[]*cel.Type{cel.StringType, cel.StringType},
 		func(data ref.Val) (RequestMatcherWithError, error) {
-			refStringList := reflect.TypeOf([]string{})
+			refStringList := stringSliceType
 			params, err := data.ConvertToNative(refStringList)
 			if err != nil {
 				return nil, err
@@ -803,7 +807,7 @@ func (MatchMethod) CELLibrary(_ caddy.Context) (cel.Library, error) {
 		"method_request_list",
 		[]*cel.Type{cel.ListType(cel.StringType)},
 		func(data ref.Val) (RequestMatcherWithError, error) {
-			refStringList := reflect.TypeOf([]string{})
+			refStringList := stringSliceType
 			strList, err := data.ConvertToNative(refStringList)
 			if err != nil {
 				return nil, err
@@ -1174,7 +1178,7 @@ func (MatchHeaderRE) CELLibrary(ctx caddy.Context) (cel.Library, error) {
 		"header_regexp_request_string_string",
 		[]*cel.Type{cel.StringType, cel.StringType},
 		func(data ref.Val) (RequestMatcherWithError, error) {
-			refStringList := reflect.TypeOf([]string{})
+			refStringList := stringSliceType
 			params, err := data.ConvertToNative(refStringList)
 			if err != nil {
 				return nil, err
@@ -1197,7 +1201,7 @@ func (MatchHeaderRE) CELLibrary(ctx caddy.Context) (cel.Library, error) {
 		"header_regexp_request_string_string_string",
 		[]*cel.Type{cel.StringType, cel.StringType, cel.StringType},
 		func(data ref.Val) (RequestMatcherWithError, error) {
-			refStringList := reflect.TypeOf([]string{})
+			refStringList := stringSliceType
 			params, err := data.ConvertToNative(refStringList)
 			if err != nil {
 				return nil, err
@@ -1547,7 +1551,7 @@ func (mre *MatchRegexp) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 	return nil
 }
 
-// ParseCaddyfileNestedMatcher parses the Caddyfile tokens for a nested
+// ParseCaddyfileNestedMatcherSet parses the Caddyfile tokens for a nested
 // matcher set, and returns its raw module map value.
 func ParseCaddyfileNestedMatcherSet(d *caddyfile.Dispenser) (caddy.ModuleMap, error) {
 	matcherMap := make(map[string]any)

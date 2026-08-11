@@ -8,6 +8,11 @@ import (
 	"github.com/darkweak/storages/core"
 )
 
+type notifierItem struct {
+	API              configurationtypes.API
+	SurrogateStorage providers.SurrogateInterface
+}
+
 // SouinApp contains the whole Souin necessary items
 type SouinApp struct {
 	DefaultCache
@@ -23,20 +28,25 @@ type SouinApp struct {
 	API configurationtypes.API `json:"api,omitempty"`
 	// Logger level, fallback on caddy's one when not redefined.
 	LogLevel string `json:"log_level,omitempty"`
+
+	notifier chan notifierItem
 }
 
 func init() {
-	caddy.RegisterModule(SouinApp{})
+	caddy.RegisterModule(new(SouinApp))
 }
 
 // Provision implements caddy.Provisioner
-func (s SouinApp) Provision(_ caddy.Context) error {
+func (s *SouinApp) Provision(_ caddy.Context) error {
+	if s.notifier == nil {
+		s.notifier = make(chan notifierItem, 1)
+	}
+
 	return nil
 }
 
 // Start will start the App
 func (s SouinApp) Start() error {
-	core.ResetRegisteredStorages()
 	_, _ = up.Delete(stored_providers_key)
 	_, _ = up.LoadOrStore(stored_providers_key, newStorageProvider())
 
@@ -45,6 +55,8 @@ func (s SouinApp) Start() error {
 
 // Stop will stop the App
 func (s SouinApp) Stop() error {
+	core.ResetRegisteredStorages()
+
 	return nil
 }
 
@@ -56,8 +68,27 @@ func (s SouinApp) CaddyModule() caddy.ModuleInfo {
 	}
 }
 
+func (s *SouinApp) withSurrogateStorer(surrogate providers.SurrogateInterface) {
+	defer close(s.notifier)
+
+	s.SurrogateStorage = surrogate
+	s.notifier <- notifierItem{
+		API:              s.API,
+		SurrogateStorage: surrogate,
+	}
+}
+
+func (s *SouinApp) Validate() error {
+	return nil
+}
+
+func (s *SouinApp) onMiddlewareLoaded() chan notifierItem {
+	return s.notifier
+}
+
 var (
 	_ caddy.App         = (*SouinApp)(nil)
 	_ caddy.Module      = (*SouinApp)(nil)
 	_ caddy.Provisioner = (*SouinApp)(nil)
+	_ caddy.Validator   = (*SouinApp)(nil)
 )

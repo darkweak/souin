@@ -358,6 +358,19 @@ func guessJWKAlgorithm(ctx *context, jwk *JSONWebKey) {
 	}
 }
 
+func guessOpaqueSigner(key crypto.PrivateKey) crypto.PrivateKey {
+	switch k := key.(type) {
+	case []byte, *ecdsa.PrivateKey, *rsa.PrivateKey, ed25519.PrivateKey:
+		return key
+	case x25519.PrivateKey:
+		return X25519Signer(k)
+	case crypto.Signer:
+		return NewOpaqueSigner(k)
+	default:
+		return key
+	}
+}
+
 // guessSignatureAlgorithm returns the signature algorithm for a given private key.
 func guessSignatureAlgorithm(key crypto.PrivateKey) SignatureAlgorithm {
 	switch k := key.(type) {
@@ -370,6 +383,29 @@ func guessSignatureAlgorithm(key crypto.PrivateKey) SignatureAlgorithm {
 	case ed25519.PrivateKey:
 		return EdDSA
 	case x25519.PrivateKey, X25519Signer:
+		return XEdDSA
+	case crypto.Signer:
+		return guessSignatureAlgorithmFromPublicKey(k.Public())
+	case OpaqueSigner:
+		if algs := k.Algs(); len(algs) > 0 {
+			return algs[0]
+		}
+		if pub := k.Public(); pub != nil && pub.Key != nil {
+			return guessSignatureAlgorithmFromPublicKey(pub.Key)
+		}
+	}
+	return ""
+}
+
+func guessSignatureAlgorithmFromPublicKey(key crypto.PublicKey) SignatureAlgorithm {
+	switch k := key.(type) {
+	case *ecdsa.PublicKey:
+		return SignatureAlgorithm(getECAlgorithm(k.Curve))
+	case *rsa.PublicKey:
+		return DefaultRSASigAlgorithm
+	case ed25519.PublicKey:
+		return EdDSA
+	case x25519.PublicKey:
 		return XEdDSA
 	default:
 		return ""

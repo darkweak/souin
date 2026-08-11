@@ -55,7 +55,7 @@ type CertificateRequest struct {
 // challengePassword attribute.
 //
 // See https://github.com/golang/go/issues/15995
-func CreateCertificateRequest(rand io.Reader, template *CertificateRequest, priv interface{}) (csr []byte, err error) {
+func CreateCertificateRequest(rand io.Reader, template *CertificateRequest, priv crypto.PrivateKey) (csr []byte, err error) {
 	if template.ChallengePassword == "" {
 		// if no challenge password, return a stdlib CSR.
 		return x509.CreateCertificateRequest(rand, &template.CertificateRequest, priv)

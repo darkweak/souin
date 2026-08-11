@@ -7,11 +7,18 @@ import (
 	"bytes"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/pierrec/lz4/v4"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
+)
+
+var (
+	lz4ReaderPool = sync.Pool{New: func() any { return lz4.NewReader(nil) }}
+	bufReaderPool = sync.Pool{New: func() any { return bufio.NewReader(nil) }}
+	Lz4WriterPool = sync.Pool{New: func() any { return lz4.NewWriter(nil) }}
 )
 
 type Storer interface {
@@ -38,7 +45,7 @@ type CacheProvider struct {
 	// Path to the configuration file.
 	Path string `json:"path" yaml:"path"`
 	// Declare the cache provider directly in the Souin configuration.
-	Configuration interface{} `json:"configuration" yaml:"configuration"`
+	Configuration any `json:"configuration" yaml:"configuration"`
 }
 
 const (
@@ -52,6 +59,18 @@ func DecodeMapping(item []byte) (*StorageMapper, error) {
 	e := proto.Unmarshal(item, mapping)
 
 	return mapping, e
+}
+
+func readResponse(data []byte, req *http.Request) (*http.Response, error) {
+	lz4r := lz4ReaderPool.Get().(*lz4.Reader)
+	lz4r.Reset(bytes.NewReader(data))
+	defer lz4ReaderPool.Put(lz4r)
+
+	br := bufReaderPool.Get().(*bufio.Reader)
+	br.Reset(lz4r)
+	defer bufReaderPool.Put(br)
+
+	return http.ReadResponse(br, req)
 }
 
 func MappingElection(provider Storer, item []byte, req *http.Request, validator *Revalidator, logger Logger) (resultFresh *http.Response, resultStale *http.Response, e error) {
@@ -88,11 +107,7 @@ func MappingElection(provider Storer, item []byte, req *http.Request, validator 
 			if time.Since(keyItem.GetFreshTime().AsTime()) < 0 {
 				response := provider.Get(keyName)
 				if response != nil {
-					bufW := new(bytes.Buffer)
-					reader := lz4.NewReader(bytes.NewBuffer(response))
-					_, _ = reader.WriteTo(bufW)
-
-					if resultFresh, e = http.ReadResponse(bufio.NewReader(bufW), req); e != nil {
+					if resultFresh, e = readResponse(response, req); e != nil {
 						logger.Errorf("An error occurred while reading response for the key %s: %v", keyName, e)
 
 						return resultFresh, resultStale, e
@@ -108,11 +123,7 @@ func MappingElection(provider Storer, item []byte, req *http.Request, validator 
 			if time.Since(keyItem.GetStaleTime().AsTime()) < 0 {
 				response := provider.Get(keyName)
 				if response != nil {
-					bufW := new(bytes.Buffer)
-					reader := lz4.NewReader(bytes.NewBuffer(response))
-					_, _ = reader.WriteTo(bufW)
-
-					if resultStale, e = http.ReadResponse(bufio.NewReader(bufW), req); e != nil {
+					if resultStale, e = readResponse(response, req); e != nil {
 						logger.Errorf("An error occurred while reading response for the key %s: %v", keyName, e)
 
 						return resultFresh, resultStale, e

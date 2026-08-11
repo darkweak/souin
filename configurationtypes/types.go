@@ -55,6 +55,9 @@ func (c *CacheKeys) parseJSON(rootDecoder *json.Decoder) {
 			case "disable_vary":
 				val, _ := rootDecoder.Token()
 				key.DisableVary, _ = strconv.ParseBool(fmt.Sprint(val))
+			case "sort_query":
+				val, _ := rootDecoder.Token()
+				key.SortQuery, _ = strconv.ParseBool(fmt.Sprint(val))
 			case "hash":
 				val, _ := rootDecoder.Token()
 				key.Hash, _ = strconv.ParseBool(fmt.Sprint(val))
@@ -246,6 +249,7 @@ type Key struct {
 	DisableQuery  bool     `json:"disable_query,omitempty" yaml:"disable_query,omitempty"`
 	DisableScheme bool     `json:"disable_scheme,omitempty" yaml:"disable_scheme,omitempty"`
 	DisableVary   bool     `json:"disable_vary,omitempty" yaml:"disable_vary,omitempty"`
+	SortQuery     bool     `json:"sort_query,omitempty" yaml:"sort_query,omitempty"`
 	Hash          bool     `json:"hash,omitempty" yaml:"hash,omitempty"`
 	Hide          bool     `json:"hide,omitempty" yaml:"hide,omitempty"`
 	Template      string   `json:"template,omitempty" yaml:"template,omitempty"`
@@ -279,6 +283,7 @@ type DefaultCache struct {
 	DefaultCacheControl          string        `json:"default_cache_control" yaml:"default_cache_control"`
 	MaxBodyBytes                 uint64        `json:"max_cacheable_body_bytes" yaml:"max_cacheable_body_bytes"`
 	DisableCoalescing            bool          `json:"disable_coalescing" yaml:"disable_coalescing"`
+	MappingEvictionInterval      Duration      `json:"mapping_eviction_interval" yaml:"mapping_eviction_interval"`
 }
 
 // GetAllowedHTTPVerbs returns the allowed verbs to cache
@@ -401,6 +406,14 @@ func (d *DefaultCache) IsCoalescingDisable() bool {
 	return d.DisableCoalescing
 }
 
+// GetMappingEvictionInterval returns the interval for mapping eviction
+func (d *DefaultCache) GetMappingEvictionInterval() time.Duration {
+	if d.MappingEvictionInterval.Duration == 0 {
+		return time.Minute
+	}
+	return d.MappingEvictionInterval.Duration
+}
+
 // DefaultCacheInterface interface
 type DefaultCacheInterface interface {
 	GetAllowedHTTPVerbs() []string
@@ -427,6 +440,7 @@ type DefaultCacheInterface interface {
 	GetDefaultCacheControl() string
 	GetMaxBodyBytes() uint64
 	IsCoalescingDisable() bool
+	GetMappingEvictionInterval() time.Duration
 }
 
 // APIEndpoint is the minimal structure to define an endpoint

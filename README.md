@@ -42,12 +42,12 @@
 Souin is a new HTTP cache system suitable for every reverse-proxy. It can be either placed on top of your current reverse-proxy whether it's Apache, Nginx or as plugin in your favorite reverse-proxy like Træfik, Caddy or Tyk.  
 Since it's written in go, it can be deployed on any server and thanks to the docker integration, it will be easy to install on top of a Swarm, or a kubernetes instance.  
 It's RFC compatible, supporting Vary, request coalescing, stale cache-control and other specifications related to the [RFC-7234](https://tools.ietf.org/html/rfc7234).  
-It supports the newly written RFCs (currently in draft) [http-cache-groups](https://datatracker.ietf.org/doc/draft-nottingham-http-cache-groups/) and [http-invalidation](https://datatracker.ietf.org/doc/draft-nottingham-http-invalidation/).  
+It supports the newly written RFCs (currently in draft) [http-cache-groups](https://datatracker.ietf.org/doc/draft-ietf-httpbis-cache-groups/) and [http-invalidation](https://datatracker.ietf.org/doc/draft-nottingham-http-invalidation/).  
 It also supports the [Cache-Status HTTP response header](https://www.rfc-editor.org/rfc/rfc9211), the YKey group such as Varnish, the [Targeted HTTP Cache Control RFC](https://www.rfc-editor.org/rfc/rfc9213), .  
 It supports the ESI tags, thanks to the [go-esi package](https://github.com/darkweak/go-esi).
 
 > [!WARNING]
-> Since `v1.7.0` Souin implements only one storage. If you need a specific storage you have to take it from [the storages repository](https://github.com/darkweak/storages) and add it either in your code, during the build otherwise.  
+> Since `v1.7.0` Souin implements only one in-memory map storage. If you need a specific storage you have to take it from [the storages repository](https://github.com/darkweak/storages) and add it either in your code, during the build otherwise.  
 (e.g. with otter using caddy) You have to build your caddy module with the desired storage `xcaddy build --with github.com/darkweak/souin/plugins/caddy --with github.com/darkweak/storages/otter/caddy` and configure otter in your Caddyfile/JSON configuration file.  
 See the [storages section](#storages) or the [documentation website about the storages](https://docs.souin.io/docs/storages).
 
@@ -685,7 +685,7 @@ func main(){
 
     // ...
 	e := echo.New()
-	s := souin_echo.New(souin_echo.DefaultConfiguration)
+	s := souin_echo.NewMiddleware(souin_echo.DefaultConfiguration)
 	e.Use(s.Process)
     // ...
 
@@ -985,7 +985,7 @@ experimental:
   plugins:
     souin:
       moduleName: github.com/darkweak/souin
-      version: v1.7.7
+      version: v1.7.8
 ```
 After that you can declare either the whole configuration at once in the middleware block or by service. See the examples below.
 ```yaml

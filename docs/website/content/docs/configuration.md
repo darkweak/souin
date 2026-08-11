@@ -70,6 +70,9 @@ default: `false`
 * **disable_query**: Prevent the URL query to be part of the generated key.  
 default: `false`
 
+* **sort_query**: Sort the query string parameters alphabetically by name, and parameters with the same name will be sorted by their values. This ensures consistent cache keys regardless of query parameter order.  
+default: `false`
+
 * **disable_scheme**: Prevent the scheme to be part of the generated key.  
 default: `false`
 
@@ -161,6 +164,9 @@ default: `false`
 default: `false`
 
 * **disable_query**: Prevent the URL query to be part of the generated key.  
+default: `false`
+
+* **sort_query**: Sort the query string parameters alphabetically by name, and parameters with the same name will be sorted by their values. This ensures consistent cache keys regardless of query parameter order.  
 default: `false`
 
 * **disable_scheme**: Prevent the scheme to be part of the generated key.  

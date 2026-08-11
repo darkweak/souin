@@ -2,11 +2,9 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package bcrypt_pbkdf implements password-based key derivation function based
+// Package bcryptpbkdf implements password-based key derivation function based
 // on bcrypt compatible with bcrypt_pbkdf(3) from OpenBSD.
-//
-//nolint:revive,stylecheck // ignore underscore in package
-package bcrypt_pbkdf
+package bcryptpbkdf
 
 import (
 	"crypto/sha512"
@@ -95,6 +93,7 @@ func bcryptHash(out, shapass, shasalt []byte) {
 	}
 	// Swap bytes due to different endianness.
 	for i := 0; i < 32; i += 4 {
+		//nolint:gosec // i+3 is guaranteed to be in bounds since i < 32 and i increments by 4
 		out[i+3], out[i+2], out[i+1], out[i] = out[i], out[i+1], out[i+2], out[i+3]
 	}
 }

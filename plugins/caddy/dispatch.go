@@ -15,8 +15,8 @@ func (s *SouinCaddyMiddleware) parseStorages(ctx caddy.Context) {
 			s.logger.Errorf("Error during Badger init, did you include the Badger storage (--with github.com/darkweak/storages/badger/caddy)? %v", e)
 		} else {
 			badger := s.Configuration.DefaultCache.Badger
-			dir := ""
-			vdir := ""
+			dir := badger.Path
+			vdir := badger.Path
 			if c := badger.Configuration; c != nil {
 				p, ok := c.(map[string]interface{})
 				if ok {
@@ -27,6 +27,13 @@ func (s *SouinCaddyMiddleware) parseStorages(ctx caddy.Context) {
 					if d, ok := p["ValueDir"]; ok {
 						vdir = fmt.Sprint(d)
 					}
+				}
+
+				if dir == "" {
+					dir = "souin_dir"
+				}
+				if vdir == "" {
+					vdir = dir
 				}
 			}
 			s.Configuration.DefaultCache.Badger.Uuid = fmt.Sprintf(

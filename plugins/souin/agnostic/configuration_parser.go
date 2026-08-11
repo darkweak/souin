@@ -69,6 +69,8 @@ func parseCacheKeys(ccConfiguration map[string]interface{}) configurationtypes.C
 				ck.DisableMethod = true
 			case "disable_query":
 				ck.DisableQuery = true
+			case "sort_query":
+				ck.SortQuery = true
 			case "disable_scheme":
 				ck.DisableScheme = true
 			case "disable_vary":
@@ -104,9 +106,10 @@ func parseDefaultCache(dcConfiguration map[string]interface{}) *configurationtyp
 			Path:          "",
 			Configuration: nil,
 		},
-		Regex:               configurationtypes.Regex{},
-		TTL:                 configurationtypes.Duration{},
-		DefaultCacheControl: "",
+		Regex:                   configurationtypes.Regex{},
+		TTL:                     configurationtypes.Duration{},
+		MappingEvictionInterval: configurationtypes.Duration{Duration: time.Hour},
+		DefaultCacheControl:     "",
 	}
 	for defaultCacheK, defaultCacheV := range dcConfiguration {
 		switch defaultCacheK {
@@ -194,6 +197,11 @@ func parseDefaultCache(dcConfiguration map[string]interface{}) *configurationtyp
 						dc.Headers = append(dc.Headers, hv.(string))
 					}
 				}
+			}
+		case "mapping_eviction_interval":
+			eviction, err := time.ParseDuration(defaultCacheV.(string))
+			if err == nil {
+				dc.MappingEvictionInterval = configurationtypes.Duration{Duration: eviction}
 			}
 		case "mode":
 			dc.Mode, _ = defaultCacheV.(string)

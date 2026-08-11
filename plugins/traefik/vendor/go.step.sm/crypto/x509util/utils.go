@@ -5,6 +5,7 @@ import (
 	"crypto"
 	"crypto/rand"
 	"crypto/sha1" //nolint:gosec // SubjectKeyIdentifier by RFC 5280
+	"crypto/sha256"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/asn1"
@@ -17,6 +18,8 @@ import (
 
 	"github.com/pkg/errors"
 	"golang.org/x/net/idna"
+
+	"go.step.sm/crypto/fipsutil"
 )
 
 var emptyASN1Subject = []byte{0x30, 0}
@@ -52,6 +55,9 @@ func SplitSANs(sans []string) (dnsNames []string, ips []net.IP, emails []string,
 	emails = []string{}
 	uris = []*url.URL{}
 	for _, san := range sans {
+		if san == "" {
+			continue
+		}
 		ip := net.ParseIP(san)
 		u, err := url.Parse(san)
 		switch {
@@ -110,6 +116,9 @@ type subjectPublicKeyInfo struct {
 // The keyIdentifier is composed of the 160-bit SHA-1 hash of the value of the
 // BIT STRING subjectPublicKey (excluding the tag, length, and number of unused
 // bits).
+//
+// If FIPS 140-3 mode is enabled, instead of SHA-1, it will use the leftmost
+// 160-bits of the SHA-256 hash according to RFC 7093 section 2.
 func generateSubjectKeyID(pub crypto.PublicKey) ([]byte, error) {
 	b, err := x509.MarshalPKIXPublicKey(pub)
 	if err != nil {
@@ -119,9 +128,22 @@ func generateSubjectKeyID(pub crypto.PublicKey) ([]byte, error) {
 	if _, err = asn1.Unmarshal(b, &info); err != nil {
 		return nil, errors.Wrap(err, "error unmarshaling public key")
 	}
+	return marshalSubjectKeyID(info.SubjectPublicKey.Bytes), nil
+}
+
+// marshalSubjectKeyID marshals the key identifier data using SHA-1 according to
+// the RFC 5280 section 4.2.1.2. If FIPS 140-3 mode is enabled it will use the
+// leftmost 160-bits of the SHA-256 hash according to RFC 7093 section 2
+// instead.
+func marshalSubjectKeyID(data []byte) []byte {
+	if fipsutil.Enabled() {
+		hash := sha256.Sum256(data)
+		return hash[:20]
+	}
+
 	//nolint:gosec // SubjectKeyIdentifier by RFC 5280
-	hash := sha1.Sum(info.SubjectPublicKey.Bytes)
-	return hash[:], nil
+	hash := sha1.Sum(data)
+	return hash[:]
 }
 
 // subjectIsEmpty returns whether the given pkix.Name (aka Subject) is an empty sequence
@@ -153,38 +175,6 @@ func isIA5String(s string) bool {
 func isNumericString(s string) bool {
 	for _, b := range s {
 		valid := '0' <= b && b <= '9' || b == ' '
-		if !valid {
-			return false
-		}
-	}
-
-	return true
-}
-
-// isPrintableString reports whether the given s is a valid ASN.1 PrintableString.
-// If asterisk is allowAsterisk then '*' is also allowed, reflecting existing
-// practice. If ampersand is allowAmpersand then '&' is allowed as well.
-func isPrintableString(s string, asterisk, ampersand bool) bool {
-	for _, b := range s {
-		valid := 'a' <= b && b <= 'z' ||
-			'A' <= b && b <= 'Z' ||
-			'0' <= b && b <= '9' ||
-			'\'' <= b && b <= ')' ||
-			'+' <= b && b <= '/' ||
-			b == ' ' ||
-			b == ':' ||
-			b == '=' ||
-			b == '?' ||
-			// This is technically not allowed in a PrintableString.
-			// However, x509 certificates with wildcard strings don't
-			// always use the correct string type so we permit it.
-			(asterisk && b == '*') ||
-			// This is not technically allowed either. However, not
-			// only is it relatively common, but there are also a
-			// handful of CA certificates that contain it. At least
-			// one of which will not expire until 2027.
-			(ampersand && b == '&')
-
 		if !valid {
 			return false
 		}

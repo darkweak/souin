@@ -60,6 +60,8 @@ type DefaultCache struct {
 	Stale configurationtypes.Duration `json:"stale"`
 	// Disable the coalescing system.
 	DisableCoalescing bool `json:"disable_coalescing"`
+	// MappingEvictionInterval interval between eviction
+	MappingEvictionInterval configurationtypes.Duration `json:"mapping_eviction_interval"`
 }
 
 // GetAllowedHTTPVerbs returns the allowed verbs to cache
@@ -105,6 +107,11 @@ func (d *DefaultCache) GetKey() configurationtypes.Key {
 // GetEtcd returns etcd configuration
 func (d *DefaultCache) GetEtcd() configurationtypes.CacheProvider {
 	return d.Etcd
+}
+
+// GetMappingEvictionInterval returns the interval between eviction
+func (d *DefaultCache) GetMappingEvictionInterval() time.Duration {
+	return d.MappingEvictionInterval.Duration
 }
 
 // GetMode returns mdoe configuration
@@ -490,6 +497,8 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isGlobal boo
 							ck.DisableMethod = true
 						case "disable_query":
 							ck.DisableQuery = true
+						case "sort_query":
+							ck.SortQuery = true
 						case "disable_scheme":
 							ck.DisableScheme = true
 						case "disable_vary":
@@ -586,6 +595,8 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isGlobal boo
 						config_key.DisableMethod = true
 					case "disable_query":
 						config_key.DisableQuery = true
+					case "sort_query":
+						config_key.SortQuery = true
 					case "disable_scheme":
 						config_key.DisableScheme = true
 					case "disable_vary":
@@ -763,6 +774,12 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isGlobal boo
 				}
 			case "disable_coalescing":
 				cfg.DefaultCache.DisableCoalescing = true
+			case "mapping_eviction_interval":
+				args := h.RemainingArgs()
+				interval, err := time.ParseDuration(args[0])
+				if err == nil {
+					cfg.DefaultCache.MappingEvictionInterval.Duration = interval
+				}
 			case "disable_surrogate_key":
 				cfg.SurrogateKeyDisabled = true
 			default:
