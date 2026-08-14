@@ -606,7 +606,17 @@ func (s *SouinBaseHandler) Upstream(
 	if s.Configuration.GetDefaultCache().IsCoalescingDisable() || disableCoalescing {
 		singleflightCacheKey += uuid.NewString()
 	}
-	sfValue, err, shared := s.singleflightPool.Do(singleflightCacheKey, func() (interface{}, error) {
+	var recoveredFromCallback interface{} = nil
+	singleflightChan := s.singleflightPool.DoChan(singleflightCacheKey, func() (interface{}, error) {
+		// With DoChan the callback doesn't run in the caller goroutine anymore,
+		// so the panic has to be caught here and rethrown below, otherwise
+		// singleflight rethrows it in a goroutine nobody can recover from.
+		defer func() {
+			if r := recover(); r != nil {
+				recoveredFromCallback = r
+			}
+		}()
+
 		if e := next(customWriter, rq); e != nil {
 			s.Configuration.GetLogger().Warnf("%#v", e)
 			customWriter.Header().Set("Cache-Status", fmt.Sprintf("%s; fwd=uri-miss; key=%s; detail=SERVE-HTTP-ERROR", rq.Context().Value(context.CacheName), rfc.GetCacheKeyFromCtx(rq.Context())))
@@ -651,6 +661,26 @@ func (s *SouinBaseHandler) Upstream(
 			disableCoalescing: strings.Contains(cacheControl, "private") || customWriter.Header().Get("Set-Cookie") != "",
 		}, err
 	})
+
+	var sfValue interface{}
+	var err error
+	var shared bool
+
+	select {
+	case <-rq.Context().Done():
+		// The request context carries the backend timeout, so a stalled upstream
+		// costs one timeout instead of the key: forget it to allow the next
+		// request to run a new call instead of joining a call that may never end.
+		s.singleflightPool.Forget(singleflightCacheKey)
+
+		return rq.Context().Err()
+	case result := <-singleflightChan:
+		sfValue, err, shared = result.Val, result.Err, result.Shared
+	}
+
+	if recoveredFromCallback != nil {
+		panic(recoveredFromCallback)
+	}
 	if recoveredFromErr != nil {
 		panic(recoveredFromErr)
 	}
@@ -1201,7 +1231,9 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 		prometheus.Increment(prometheus.NoCachedResponseCounter)
 		err := s.Upstream(cw, vr, next, requestCc, cachedKey, uri, false)
 		// If the parent already returned (context timeout), we own the buffer now.
-		if !bufPoolOwned.Load() {
+		// It's only recyclable when the context is still valid: otherwise the
+		// upstream call may have been abandoned and may still write into it.
+		if !bufPoolOwned.Load() && vr.Context().Err() == nil {
 			bufPool.Reset()
 			s.bufPool.Put(bufPool)
 		}
