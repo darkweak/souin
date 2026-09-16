@@ -5,15 +5,15 @@ go 1.25.0
 require (
 	github.com/caddyserver/caddy/v2 v2.11.2
 	github.com/cespare/xxhash/v2 v2.3.0
-	github.com/darkweak/storages/core v0.0.20-0.20260314133624-4df176921261
+	github.com/darkweak/storages/core v0.0.20
 	github.com/google/uuid v1.6.0
-	github.com/pierrec/lz4/v4 v4.1.23
+	github.com/pierrec/lz4/v4 v4.1.29
 	github.com/pquerna/cachecontrol v0.2.0
 	github.com/prometheus/client_golang v1.23.2
 	github.com/prometheus/client_model v0.6.2
 	go.uber.org/zap v1.27.1
 	golang.org/x/sync v0.19.0
-	google.golang.org/protobuf v1.36.11
+	google.golang.org/protobuf v1.36.12
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -127,7 +127,6 @@ require (
 )
 
 require (
-	github.com/darkweak/go-esi v0.0.5
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/klauspost/compress v1.18.4 // indirect
 	github.com/miekg/dns v1.1.72 // indirect

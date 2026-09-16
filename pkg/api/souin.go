@@ -168,18 +168,30 @@ var storageToInfiniteTTLMap = map[string]time.Duration{
 	types.DefaultStorageName: types.OneYearDuration,
 }
 
+// maxMappingValueSize bounds the mapping values the eviction is willing to
+// decode. Anything larger is dropped undecoded: unmarshalling a pathological
+// value would materialize it in memory, and its response keys expire through
+// their own TTLs anyway.
+const maxMappingValueSize = 1 << 20
+
 func EvictMapping(current types.Storer) {
-	values := current.MapKeys(core.MappingKeyPrefix)
 	now := time.Now()
 	infiniteStoreDuration := storageToInfiniteTTLMap[current.Name()]
 
-	for k, v := range values {
+	processMapping := func(k string, v []byte) bool {
+		if len(v) > maxMappingValueSize {
+			fmt.Println("Deleting the oversized mapping", core.MappingKeyPrefix+k)
+			current.Delete(core.MappingKeyPrefix + k)
+
+			return true
+		}
+
 		mapping := &core.StorageMapper{}
 
-		e := proto.Unmarshal([]byte(v), mapping)
+		e := proto.Unmarshal(v, mapping)
 		if e != nil {
 			current.Delete(core.MappingKeyPrefix + k)
-			continue
+			return true
 		}
 
 		updated := false
@@ -205,6 +217,20 @@ func EvictMapping(current types.Storer) {
 		if len(mapping.GetMapping()) == 0 {
 			current.Delete(core.MappingKeyPrefix + k)
 		}
+
+		return true
+	}
+
+	// Stream the mapping index in bounded batches when the storer supports
+	// it, so the whole index is never materialized in memory at once.
+	if walker, ok := current.(core.MappingWalker); ok {
+		_ = walker.WalkMappings(core.MappingKeyPrefix, processMapping)
+
+		return
+	}
+
+	for k, v := range current.MapKeys(core.MappingKeyPrefix) {
+		processMapping(k, []byte(v))
 	}
 }
 

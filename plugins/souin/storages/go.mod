@@ -7,7 +7,7 @@ replace github.com/darkweak/souin => ../../..
 require (
 	github.com/darkweak/souin v1.7.8
 	github.com/darkweak/storages/badger v0.0.19
-	github.com/darkweak/storages/core v0.0.20-0.20260314133624-4df176921261
+	github.com/darkweak/storages/core v0.0.20
 	github.com/darkweak/storages/etcd v0.0.19
 	github.com/darkweak/storages/nats v0.0.19
 	github.com/darkweak/storages/nuts v0.0.19
@@ -63,7 +63,7 @@ require (
 	github.com/nats-io/nkeys v0.4.9 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/nutsdb/nutsdb v1.0.4 // indirect
-	github.com/pierrec/lz4/v4 v4.1.26 // indirect
+	github.com/pierrec/lz4/v4 v4.1.29 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/redis/rueidis v1.0.54 // indirect
 	github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529 // indirect
@@ -92,7 +92,7 @@ require (
 	google.golang.org/genproto/googleapis/api v0.0.0-20260128011058-8636f8732409 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260203192932-546029d2fa20 // indirect
 	google.golang.org/grpc v1.79.1 // indirect
-	google.golang.org/protobuf v1.36.11 // indirect
+	google.golang.org/protobuf v1.36.12 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

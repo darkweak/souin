@@ -33,6 +33,7 @@ const (
 var storageToInfiniteTTLMap = map[string]time.Duration{
 	"BADGER":                 types.OneYearDuration,
 	"ETCD":                   types.OneYearDuration,
+	"GO-REDIS":               types.OneYearDuration,
 	"NUTS":                   0,
 	"OLRIC":                  types.OneYearDuration,
 	"OTTER":                  types.OneYearDuration,
@@ -191,6 +192,16 @@ func containsCacheKey(currentValue, cacheKey string) bool {
 func (s *baseStorage) storeTag(tag string, cacheKey string) {
 	defer s.mu.Unlock()
 	s.mu.Lock()
+
+	// Native sets avoid rereading and rewriting the whole tag value on every
+	// stored response.
+	if setStorer, ok := s.Storage.(core.SetStorer); ok {
+		s.logger.Debugf("Store the tag %s", tag)
+		_ = setStorer.AddToSet(surrogatePrefix+tag, []string{cacheKey}, s.duration)
+
+		return
+	}
+
 	currentValue := string(s.Storage.Get(surrogatePrefix + tag))
 	if !containsCacheKey(currentValue, cacheKey) {
 		s.logger.Debugf("Store the tag %s", tag)
@@ -241,12 +252,20 @@ func (s *baseStorage) getSurrogateKey(header http.Header) string {
 }
 
 func (s *baseStorage) purgeTag(tag string) []string {
-	toInvalidate := string(s.Storage.Get(surrogatePrefix + tag))
+	var toInvalidate []string
+	if setStorer, ok := s.Storage.(core.SetStorer); ok {
+		toInvalidate = setStorer.GetSet(surrogatePrefix + tag)
+	} else {
+		toInvalidate = strings.Split(string(s.Storage.Get(surrogatePrefix+tag)), souinStorageSeparator)
+	}
+
 	s.logger.Debugf("Purge the tag %s", tag)
+
 	if !s.keepStale {
 		s.Storage.Delete(surrogatePrefix + tag)
 	}
-	return strings.Split(toInvalidate, souinStorageSeparator)
+
+	return toInvalidate
 }
 
 // Store will take the lead to store the cache key for each provided Surrogate-key
@@ -308,6 +327,19 @@ func (s *baseStorage) Invalidate(method string, headers http.Header) {
 
 // List returns the stored keys associated to resources
 func (s *baseStorage) List() map[string]string {
+	// Set-backed tags are invisible to MapKeys, which only reads string values.
+	if setStorer, ok := s.Storage.(core.SetStorer); ok {
+		keys := map[string]string{}
+
+		_ = setStorer.WalkSets(surrogatePrefix, func(key string, members []string) bool {
+			keys[key] = strings.Join(members, souinStorageSeparator)
+
+			return true
+		})
+
+		return keys
+	}
+
 	return s.Storage.MapKeys(surrogatePrefix)
 }
 

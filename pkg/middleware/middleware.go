@@ -75,6 +75,10 @@ func tryAcquireEvictionLock(storer types.Storer) bool {
 			if err == nil && now.Before(lockedUntil) {
 				// Lock is still valid - check if we own it
 				if holderID == evictionLockHolder {
+					// Extend the expiry so walks longer than the TTL keep ownership.
+					renewed := evictionLockHolder + "|" + now.Add(evictionLockTTL).Format(time.RFC3339)
+					_ = storer.Set(evictionLockKey, []byte(renewed), evictionLockTTL)
+
 					return true
 				}
 				return false
@@ -96,26 +100,58 @@ func tryAcquireEvictionLock(storer types.Storer) bool {
 	return string(verifyValue) == lockValue
 }
 
+// evictionRegistry tracks storers that already have an eviction goroutine so
+// re-instantiated handlers (e.g. on config reload or multiple cache blocks)
+// don't spawn concurrent walkers for the same storer.
+var evictionRegistry = sync.Map{}
+
 func registerMappingKeysEviction(ctx baseCtx.Context, logger core.Logger, storers []types.Storer, interval time.Duration) {
 	for _, storer := range storers {
+		if _, alreadyRegistered := evictionRegistry.LoadOrStore(storer.Name()+"-"+storer.Uuid(), true); alreadyRegistered {
+			logger.Debugf("mapping eviction already registered for storer %s", storer.Name())
+
+			continue
+		}
+
 		logger.Debugf("registering mapping eviction for storer %s (interval: %s)", storer.Name(), interval)
 		go func(current types.Storer, currentInterval time.Duration) {
-			ticker := time.NewTicker(interval)
-			defer ticker.Stop()
+			// A timer reset after each walk guarantees a full interval of
+			// rest between walks; a ticker would fire immediately after a
+			// walk longer than the interval.
+			timer := time.NewTimer(currentInterval)
+			defer timer.Stop()
 
 			for {
 				select {
 				case <-ctx.Done():
 					return
-				case <-ticker.C:
-					if !tryAcquireEvictionLock(current) {
-						logger.Debugf("skipping mapping eviction for storer %s, another instance holds the lock", current.Name())
+				case <-timer.C:
+					if tryAcquireEvictionLock(current) {
+						// Keep extending the lock while the walk runs so other
+						// replicas don't join once the TTL elapses mid-walk.
+						walkDone := make(chan struct{})
+						go func() {
+							keepalive := time.NewTicker(evictionLockTTL / 2)
+							defer keepalive.Stop()
 
-						continue
+							for {
+								select {
+								case <-walkDone:
+									return
+								case <-keepalive.C:
+									_ = tryAcquireEvictionLock(current)
+								}
+							}
+						}()
+
+						logger.Debugf("run mapping eviction for storer %s", current.Name())
+						api.EvictMapping(current)
+						close(walkDone)
+					} else {
+						logger.Debugf("skipping mapping eviction for storer %s, another instance holds the lock", current.Name())
 					}
 
-					logger.Debugf("run mapping eviction for storer %s", current.Name())
-					api.EvictMapping(current)
+					timer.Reset(currentInterval)
 				}
 			}
 		}(storer, interval)

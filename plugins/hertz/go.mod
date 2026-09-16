@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	github.com/darkweak/souin v1.7.8
-	github.com/darkweak/souin/plugins/souin/storages v1.7.8
+	github.com/darkweak/souin/plugins/souin/storages v0.0.20
 )
 
 require (
@@ -44,7 +44,7 @@ require (
 	github.com/coreos/go-systemd/v22 v22.7.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
 	github.com/darkweak/storages/badger v0.0.19 // indirect
-	github.com/darkweak/storages/core v0.0.20-0.20260314133624-4df176921261 // indirect
+	github.com/darkweak/storages/core v0.0.20 // indirect
 	github.com/darkweak/storages/etcd v0.0.19 // indirect
 	github.com/darkweak/storages/nats v0.0.19 // indirect
 	github.com/darkweak/storages/nuts v0.0.19 // indirect
@@ -110,7 +110,7 @@ require (
 	github.com/nutsdb/nutsdb v1.0.4 // indirect
 	github.com/onsi/gomega v1.38.2 // indirect
 	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58 // indirect
-	github.com/pierrec/lz4/v4 v4.1.26 // indirect
+	github.com/pierrec/lz4/v4 v4.1.29 // indirect
 	github.com/quic-go/qpack v0.6.0 // indirect
 	github.com/quic-go/quic-go v0.59.0 // indirect
 	github.com/redis/rueidis v1.0.64 // indirect
@@ -177,7 +177,6 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cloudwego/hertz v0.10.2
 	github.com/cloudwego/netpoll v0.7.1 // indirect
-	github.com/darkweak/go-esi v0.0.6 // indirect
 	github.com/dgraph-io/ristretto v0.2.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
@@ -207,7 +206,7 @@ require (
 	golang.org/x/text v0.34.0 // indirect
 	golang.org/x/tools v0.42.0 // indirect
 	google.golang.org/grpc v1.79.1 // indirect
-	google.golang.org/protobuf v1.36.11 // indirect
+	google.golang.org/protobuf v1.36.12 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
