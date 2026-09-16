@@ -5,7 +5,7 @@ go 1.25.0
 require (
 	github.com/darkweak/souin v1.7.8
 	github.com/darkweak/souin/plugins/souin v1.7.8
-	github.com/darkweak/souin/plugins/souin/storages v0.0.20-0.20260913094707-81250fe6fc63
+	github.com/darkweak/souin/plugins/souin/storages v0.0.20
 	github.com/roadrunner-server/errors v1.4.1
 	go.uber.org/zap v1.27.1
 	gopkg.in/yaml.v3 v3.0.1
@@ -48,7 +48,7 @@ require (
 	github.com/coreos/go-systemd/v22 v22.7.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
 	github.com/darkweak/storages/badger v0.0.19 // indirect
-	github.com/darkweak/storages/core v0.0.20-0.20260913094707-81250fe6fc63 // indirect
+	github.com/darkweak/storages/core v0.0.20 // indirect
 	github.com/darkweak/storages/etcd v0.0.19 // indirect
 	github.com/darkweak/storages/nats v0.0.19 // indirect
 	github.com/darkweak/storages/nuts v0.0.19 // indirect

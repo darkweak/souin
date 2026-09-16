@@ -107,8 +107,8 @@ github.com/cpuguy83/go-md2man v1.0.10/go.mod h1:SmD6nW6nTyfqj6ABTjUi3V3JVMnlJmwc
 github.com/cpuguy83/go-md2man/v2 v2.0.6/go.mod h1:oOW0eioCTA6cOiMLiUPZOpcVxMig6NIQQ7OS05n1F4g=
 github.com/cpuguy83/go-md2man/v2 v2.0.7 h1:zbFlGlXEAKlwXpmvle3d8Oe3YnkKIK4xSRTd3sHPnBo=
 github.com/cpuguy83/go-md2man/v2 v2.0.7/go.mod h1:oOW0eioCTA6cOiMLiUPZOpcVxMig6NIQQ7OS05n1F4g=
-github.com/darkweak/storages/core v0.0.20-0.20260913094707-81250fe6fc63 h1:ZcCTfBoihVKNWdPBfA3/cklC/EJQFYX99k20GzU/7XY=
-github.com/darkweak/storages/core v0.0.20-0.20260913094707-81250fe6fc63/go.mod h1:h36sNSwQ36fdHFMUIqD3j403kv29R4FVJJDaLbyvofM=
+github.com/darkweak/storages/core v0.0.20 h1:Aj8HIbZpuBuyvoOVXXAu8EY03oDh1ZC5d85LxAOkY9A=
+github.com/darkweak/storages/core v0.0.20/go.mod h1:h36sNSwQ36fdHFMUIqD3j403kv29R4FVJJDaLbyvofM=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

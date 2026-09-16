@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	github.com/darkweak/souin v1.7.8
-	github.com/darkweak/souin/plugins/souin/storages v0.0.20-0.20260913094707-81250fe6fc63
+	github.com/darkweak/souin/plugins/souin/storages v0.0.20
 	github.com/gofiber/fiber/v2 v2.52.9
 	github.com/valyala/fasthttp v1.65.0
 )
@@ -47,7 +47,7 @@ require (
 	github.com/coreos/go-systemd/v22 v22.7.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
 	github.com/darkweak/storages/badger v0.0.19 // indirect
-	github.com/darkweak/storages/core v0.0.20-0.20260913094707-81250fe6fc63 // indirect
+	github.com/darkweak/storages/core v0.0.20 // indirect
 	github.com/darkweak/storages/etcd v0.0.19 // indirect
 	github.com/darkweak/storages/nats v0.0.19 // indirect
 	github.com/darkweak/storages/nuts v0.0.19 // indirect

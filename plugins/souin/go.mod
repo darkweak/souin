@@ -9,8 +9,8 @@ replace (
 
 require (
 	github.com/darkweak/souin v1.7.8
-	github.com/darkweak/souin/plugins/souin/storages v0.0.20-0.20260913094707-81250fe6fc63
-	github.com/darkweak/storages/core v0.0.20-0.20260913094707-81250fe6fc63
+	github.com/darkweak/souin/plugins/souin/storages v0.0.20
+	github.com/darkweak/storages/core v0.0.20
 	github.com/fsnotify/fsnotify v1.9.0
 	go.uber.org/zap v1.27.1
 	gopkg.in/yaml.v3 v3.0.1

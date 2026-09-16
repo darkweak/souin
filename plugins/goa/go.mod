@@ -4,8 +4,8 @@ go 1.25.0
 
 require (
 	github.com/darkweak/souin v1.7.8
-	github.com/darkweak/souin/plugins/souin/storages v0.0.20-0.20260913094707-81250fe6fc63
-	github.com/darkweak/storages/core v0.0.20-0.20260913094707-81250fe6fc63
+	github.com/darkweak/souin/plugins/souin/storages v0.0.20
+	github.com/darkweak/storages/core v0.0.20
 	goa.design/goa/v3 v3.22.1
 )
 
