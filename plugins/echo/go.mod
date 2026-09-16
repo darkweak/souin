@@ -3,7 +3,7 @@ module github.com/darkweak/souin/plugins/echo
 go 1.25.0
 
 require (
-	github.com/darkweak/souin v1.7.8
+	github.com/darkweak/souin v1.7.9
 	github.com/darkweak/souin/plugins/souin/storages v0.0.20
 	github.com/darkweak/storages/core v0.0.20
 	github.com/labstack/echo/v4 v4.13.4
@@ -199,6 +199,6 @@ require (
 )
 
 replace (
-	github.com/darkweak/souin v1.7.8 => ../..
+	github.com/darkweak/souin v1.7.9 => ../..
 	github.com/darkweak/souin/plugins/souin/storages => ../souin/storages
 )
