@@ -1,33 +1,25 @@
 name: Build and validate Souin as plugins
-
 on:
   - pull_request
-
 jobs:
   build-caddy-validator:
     name: Caddy
     runs-on: ubuntu-latest
     steps:
-      -
-        name: Add domain.com host to /etc/hosts
+      - name: Add domain.com host to /etc/hosts
         run: |
           sudo echo "127.0.0.1 domain.com etcd redis" | sudo tee -a /etc/hosts
-      -
-        name: Install Go
-        uses: actions/setup-go@v3
+      - name: Install Go
+        uses: actions/setup-go@be3c94b385c4f180051c996d336f57a34c397495 # v3 [pinned by action-pin]
         with:
           go-version: '1.25'
-      -
-        name: Checkout code
-        uses: actions/checkout@v4
-      -
-        name: Install xcaddy
+      - name: Checkout code
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4 [pinned by action-pin]
+      - name: Install xcaddy
         run: go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest
-      -
-        name: Build Souin as caddy module
+      - name: Build Souin as caddy module
         run: cd plugins/caddy && xcaddy build --with github.com/darkweak/souin/plugins/caddy=./ --with github.com/darkweak/souin=../.. --with github.com/darkweak/storages/badger/caddy --with github.com/darkweak/storages/etcd/caddy --with github.com/darkweak/storages/nats/caddy --with github.com/darkweak/storages/nuts/caddy --with github.com/darkweak/storages/olric/caddy --with github.com/darkweak/storages/otter/caddy --with github.com/darkweak/storages/redis/caddy
-      -
-        name: Run Caddy tests
+      - name: Run Caddy tests
         run: cd plugins/caddy && go test -v ./...
   build-caddy-validator-e2e:
     needs: build-caddy-validator
@@ -54,43 +46,33 @@ jobs:
           - 2380:2380
           - 4001:4001
     steps:
-      -
-        name: Add domain.com host to /etc/hosts
+      - name: Add domain.com host to /etc/hosts
         run: |
           sudo echo "127.0.0.1 domain.com etcd redis" | sudo tee -a /etc/hosts
-      -
-        name: Install Go
-        uses: actions/setup-go@v3
+      - name: Install Go
+        uses: actions/setup-go@be3c94b385c4f180051c996d336f57a34c397495 # v3 [pinned by action-pin]
         with:
           go-version: '1.25'
-      -
-        name: Checkout code
-        uses: actions/checkout@v4
-      -
-        name: Install xcaddy
+      - name: Checkout code
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4 [pinned by action-pin]
+      - name: Install xcaddy
         run: go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest
-      -
-        name: Build Souin as caddy module
+      - name: Build Souin as caddy module
         run: cd plugins/caddy && xcaddy build --with github.com/darkweak/souin/plugins/caddy=./ --with github.com/darkweak/souin=../.. --with github.com/darkweak/storages/badger/caddy --with github.com/darkweak/storages/etcd/caddy --with github.com/darkweak/storages/nats/caddy --with github.com/darkweak/storages/nuts/caddy --with github.com/darkweak/storages/olric/caddy --with github.com/darkweak/storages/otter/caddy --with github.com/darkweak/storages/redis/caddy
-      -
-        name: Run detached caddy
+      - name: Run detached caddy
         run: cd plugins/caddy && ./caddy run &
-      -
-        name: Run Caddy E2E tests
-        uses: matt-ball/newman-action@master
+      - name: Run Caddy E2E tests
+        uses: matt-ball/newman-action@170d252f10d199d75d6be4c739b48a3bd5f15ece # master [pinned by action-pin]
         with:
           collection: "docs/e2e/Souin E2E.postman_collection.json"
           folder: '["Caddy"]'
           delayRequest: 5000
-      -
-        name: Run detached caddy
+      - name: Run detached caddy
         run: cd plugins/caddy && ./caddy stop
-      -
-        name: Run detached caddy
+      - name: Run detached caddy
         run: cd plugins/caddy && ./caddy run --config ./configuration.json &
-      -
-        name: Run Caddy E2E tests
-        uses: matt-ball/newman-action@master
+      - name: Run Caddy E2E tests
+        uses: matt-ball/newman-action@170d252f10d199d75d6be4c739b48a3bd5f15ece # master [pinned by action-pin]
         with:
           collection: "docs/e2e/Souin E2E.postman_collection.json"
           folder: '["Caddy"]'
@@ -100,63 +82,49 @@ jobs:
     name: Run cache-tests suite requirements and add the generated screenshot to the PR
     runs-on: ubuntu-latest
     steps:
-      -
-        name: Add domain.com host to /etc/hosts
+      - name: Add domain.com host to /etc/hosts
         run: |
           sudo echo "127.0.0.1 domain.com etcd redis" | sudo tee -a /etc/hosts
-      -
-        name: Install Go
-        uses: actions/setup-go@v5
+      - name: Install Go
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5 [pinned by action-pin]
         with:
           go-version: '1.25'
-
       - name: Install Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4 [pinned by action-pin]
         with:
           node-version: 22
-
-      - uses: pnpm/action-setup@v3
+      - uses: pnpm/action-setup@a3252b78c470c02df07e9d59298aecedc3ccdd6d # v3 [pinned by action-pin]
         name: Install pnpm
         with:
           version: 11.5.1
-      -
-        name: Checkout Souin code
-        uses: actions/checkout@v4
+      - name: Checkout Souin code
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4 [pinned by action-pin]
         with:
           repository: darkweak/souin
           path: souin
-      -
-        name: Checkout cache-tests code
-        uses: actions/checkout@v4
+      - name: Checkout cache-tests code
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4 [pinned by action-pin]
         with:
           repository: http-tests/cache-tests
           path: cache-tests
-      -
-        name: Install xcaddy
+      - name: Install xcaddy
         run: go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest
-      -
-        name: Build Souin as caddy module for current commit
+      - name: Build Souin as caddy module for current commit
         run: cd souin/plugins/caddy && xcaddy build --with github.com/darkweak/souin/plugins/caddy=./ --with github.com/darkweak/souin=../.. --with github.com/darkweak/storages/badger/caddy --with github.com/darkweak/storages/etcd/caddy --with github.com/darkweak/storages/nats/caddy --with github.com/darkweak/storages/nuts/caddy --with github.com/darkweak/storages/olric/caddy --with github.com/darkweak/storages/otter/caddy --with github.com/darkweak/storages/redis/caddy
-      -
-        name: Run detached caddy
+      - name: Run detached caddy
         run: cd souin/plugins/caddy && ./caddy run --config ../../docs/cache-tests/cache-tests-caddyfile --adapter caddyfile &
-      -
-        name: Sync index.mjs from souin to cache-tests
+      - name: Sync index.mjs from souin to cache-tests
         run: cp souin/docs/cache-tests/index.mjs cache-tests/results/index.mjs
-      -
-        name: Run detached cache-tests server
+      - name: Run detached cache-tests server
         run: cd cache-tests && pnpm install && pnpm run server &
-      -
-        name: Run cache-tests test suite
+      - name: Run cache-tests test suite
         run: cd cache-tests && ./test-host.sh 127.0.0.1:4443 > results/mr.json
-      - 
-        name: install puppeteer-headful
-        uses: mujo-code/puppeteer-headful@master
+      - name: install puppeteer-headful
+        uses: mujo-code/puppeteer-headful@bc2b5958b7446b44440b8a4f2ff40c0ce308f5ad # master [pinned by action-pin]
         env:
           CI: 'true'
-      - 
-        name: screenshots-ci-action
-        uses: flameddd/screenshots-ci-action@master
+      - name: screenshots-ci-action
+        uses: flameddd/screenshots-ci-action@225596eecd48e9d7eeb4b27d169f8ae81a555f18 # master [pinned by action-pin]
         with:
           url: http://127.0.0.1:8000/
           devices: iPad Pro landscape
@@ -166,15 +134,13 @@ jobs:
           releaseId: 144343803
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - 
-        name: Upload screenshot artifacts
+      - name: Upload screenshot artifacts
         id: screenshot-uploader
-        uses: edunad/actions-image@master
+        uses: edunad/actions-image@eef0041f6e888b797e3d11c3eee4791c01e08780 # master [pinned by action-pin]
         with:
-            path: screenshots/iPad_Pro_landscape.jpeg
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-            title: 'cache-tests suite result'
-
+          path: screenshots/iPad_Pro_landscape.jpeg
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          title: 'cache-tests suite result'
   build-beego-validator:
     uses: ./.github/workflows/plugin_template.yml
     secrets: inherit

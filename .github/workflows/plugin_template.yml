@@ -1,5 +1,4 @@
 name: Atomic plugin
-
 on:
   workflow_call:
     inputs:
@@ -12,61 +11,50 @@ on:
       GO_VERSION:
         required: true
         type: string
-
 jobs:
   plugin-test:
     name: ${{ inputs.CAPITALIZED_NAME }}
     runs-on: ubuntu-latest
-    env: 
+    env:
       GO_VERSION: ${{ inputs.GO_VERSION }}
     steps:
-      -
-        name: Add domain.com host to /etc/hosts
+      - name: Add domain.com host to /etc/hosts
         run: |
           sudo echo "127.0.0.1 domain.com" | sudo tee -a /etc/hosts
-      -
-        name: Install Go
-        uses: actions/setup-go@v3
+      - name: Install Go
+        uses: actions/setup-go@be3c94b385c4f180051c996d336f57a34c397495 # v3 [pinned by action-pin]
         with:
           go-version: ${{ inputs.GO_VERSION }}
-      -
-        name: Checkout code
-        uses: actions/checkout@v4
-      - 
-        name: golangci-lint
-        uses: golangci/golangci-lint-action@v8
+      - name: Checkout code
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4 [pinned by action-pin]
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@4afd733a84b1f43292c63897423277bb7f4313a9 # v8 [pinned by action-pin]
         with:
           version: latest
           working-directory: plugins/${{ inputs.LOWER_NAME }}
           args: -c ../../.golangci.yml
         if: ${{ ! startsWith(inputs.LOWER_NAME, 'traefik') }}
-      -
-        name: Run ${{ inputs.CAPITALIZED_NAME }} tests
+      - name: Run ${{ inputs.CAPITALIZED_NAME }} tests
         run: cd plugins/${{ inputs.LOWER_NAME }} && go test -v .
-      -
-        name: Build Souin as ${{ inputs.CAPITALIZED_NAME }} plugin
+      - name: Build Souin as ${{ inputs.CAPITALIZED_NAME }} plugin
         run: make build-and-run-${{ inputs.LOWER_NAME }}
         env:
           GH_APP_TOKEN: ${{ secrets.GH_APP_TOKEN }}
           CURRENT_SHA: ${{ github.event.pull_request.head.sha }}
-      -
-        name: Wait for Souin is really loaded inside ${{ inputs.CAPITALIZED_NAME }} as middleware
-        uses: jakejarvis/wait-action@master
+      - name: Wait for Souin is really loaded inside ${{ inputs.CAPITALIZED_NAME }} as middleware
+        uses: jakejarvis/wait-action@919fc193e07906705e5b7a50f90ea9e74d20b2b0 # master [pinned by action-pin]
         with:
           time: 75s
-      -
-        name: Set ${{ inputs.CAPITALIZED_NAME }} logs configuration result as environment variable
+      - name: Set ${{ inputs.CAPITALIZED_NAME }} logs configuration result as environment variable
         run: cd plugins/${{ inputs.LOWER_NAME }} && echo "$(make load-checker)" >> $GITHUB_ENV
-      -
-        name: Check if the configuration is loaded to define if Souin is loaded too
-        uses: nick-invision/assert-action@v1
+      - name: Check if the configuration is loaded to define if Souin is loaded too
+        uses: nick-invision/assert-action@1e012cc9f1bf73ccc96470b56c8887478c647e8a # v1 [pinned by action-pin]
         with:
           expected: 'Souin configuration is now loaded.'
           actual: ${{ env.MIDDLEWARE_RESULT }}
           comparison: contains
-      -
-        name: Run ${{ inputs.CAPITALIZED_NAME }} E2E tests
-        uses: matt-ball/newman-action@master
+      - name: Run ${{ inputs.CAPITALIZED_NAME }} E2E tests
+        uses: matt-ball/newman-action@170d252f10d199d75d6be4c739b48a3bd5f15ece # master [pinned by action-pin]
         with:
           collection: "docs/e2e/Souin E2E.postman_collection.json"
           folder: '["${{ inputs.CAPITALIZED_NAME }}"]'

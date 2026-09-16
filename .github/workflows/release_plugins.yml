@@ -1,20 +1,16 @@
 name: Tag submodules on release
-
 on:
   create:
     tags: ["v*"]
-
 permissions:
   contents: write
-
 jobs:
   tag-all-submodules:
     runs-on: ubuntu-latest
     name: Tag all submodules
     steps:
-      -
-        name: Create Beego tag
-        uses: actions/github-script@v7
+      - name: Create Beego tag
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7 [pinned by action-pin]
         with:
           script: |
             github.rest.git.createRef({
@@ -23,9 +19,8 @@ jobs:
               ref: 'refs/tags/plugins/beego/${{ github.ref_name }}',
               sha: context.sha
             })
-      -
-        name: Create Caddy tag
-        uses: actions/github-script@v7
+      - name: Create Caddy tag
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7 [pinned by action-pin]
         with:
           script: |
             github.rest.git.createRef({
@@ -34,9 +29,8 @@ jobs:
               ref: 'refs/tags/plugins/caddy/${{ github.ref_name }}',
               sha: context.sha
             })
-      -
-        name: Create Chi tag
-        uses: actions/github-script@v7
+      - name: Create Chi tag
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7 [pinned by action-pin]
         with:
           script: |
             github.rest.git.createRef({
@@ -45,9 +39,8 @@ jobs:
               ref: 'refs/tags/plugins/chi/${{ github.ref_name }}',
               sha: context.sha
             })
-      -
-        name: Create Dotweb tag
-        uses: actions/github-script@v7
+      - name: Create Dotweb tag
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7 [pinned by action-pin]
         with:
           script: |
             github.rest.git.createRef({
@@ -56,9 +49,8 @@ jobs:
               ref: 'refs/tags/plugins/dotweb/${{ github.ref_name }}',
               sha: context.sha
             })
-      -
-        name: Create Echo tag
-        uses: actions/github-script@v7
+      - name: Create Echo tag
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7 [pinned by action-pin]
         with:
           script: |
             github.rest.git.createRef({
@@ -67,9 +59,8 @@ jobs:
               ref: 'refs/tags/plugins/echo/${{ github.ref_name }}',
               sha: context.sha
             })
-      -
-        name: Create Fiber tag
-        uses: actions/github-script@v7
+      - name: Create Fiber tag
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7 [pinned by action-pin]
         with:
           script: |
             github.rest.git.createRef({
@@ -78,9 +69,8 @@ jobs:
               ref: 'refs/tags/plugins/fiber/${{ github.ref_name }}',
               sha: context.sha
             })
-      -
-        name: Create Gin tag
-        uses: actions/github-script@v7
+      - name: Create Gin tag
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7 [pinned by action-pin]
         with:
           script: |
             github.rest.git.createRef({
@@ -89,9 +79,8 @@ jobs:
               ref: 'refs/tags/plugins/gin/${{ github.ref_name }}',
               sha: context.sha
             })
-      -
-        name: Create Go-zero tag
-        uses: actions/github-script@v7
+      - name: Create Go-zero tag
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7 [pinned by action-pin]
         with:
           script: |
             github.rest.git.createRef({
@@ -100,9 +89,8 @@ jobs:
               ref: 'refs/tags/plugins/go-zero/${{ github.ref_name }}',
               sha: context.sha
             })
-      -
-        name: Create Goa tag
-        uses: actions/github-script@v7
+      - name: Create Goa tag
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7 [pinned by action-pin]
         with:
           script: |
             github.rest.git.createRef({
@@ -111,9 +99,8 @@ jobs:
               ref: 'refs/tags/plugins/goa/${{ github.ref_name }}',
               sha: context.sha
             })
-      -
-        name: Create Goyave tag
-        uses: actions/github-script@v7
+      - name: Create Goyave tag
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7 [pinned by action-pin]
         with:
           script: |
             github.rest.git.createRef({
@@ -122,9 +109,8 @@ jobs:
               ref: 'refs/tags/plugins/goyave/${{ github.ref_name }}',
               sha: context.sha
             })
-      -
-        name: Create Hertz tag
-        uses: actions/github-script@v7
+      - name: Create Hertz tag
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7 [pinned by action-pin]
         with:
           script: |
             github.rest.git.createRef({
@@ -133,9 +119,8 @@ jobs:
               ref: 'refs/tags/plugins/hertz/${{ github.ref_name }}',
               sha: context.sha
             })
-      -
-        name: Create Kratos tag
-        uses: actions/github-script@v7
+      - name: Create Kratos tag
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7 [pinned by action-pin]
         with:
           script: |
             github.rest.git.createRef({
@@ -144,9 +129,8 @@ jobs:
               ref: 'refs/tags/plugins/kratos/${{ github.ref_name }}',
               sha: context.sha
             })
-      -
-        name: Create Roadrunner tag
-        uses: actions/github-script@v7
+      - name: Create Roadrunner tag
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7 [pinned by action-pin]
         with:
           script: |
             github.rest.git.createRef({
@@ -155,9 +139,8 @@ jobs:
               ref: 'refs/tags/plugins/roadrunner/${{ github.ref_name }}',
               sha: context.sha
             })
-      -
-        name: Create Skipper tag
-        uses: actions/github-script@v7
+      - name: Create Skipper tag
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7 [pinned by action-pin]
         with:
           script: |
             github.rest.git.createRef({
@@ -166,9 +149,8 @@ jobs:
               ref: 'refs/tags/plugins/skipper/${{ github.ref_name }}',
               sha: context.sha
             })
-      -
-        name: Create Souin tag
-        uses: actions/github-script@v7
+      - name: Create Souin tag
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7 [pinned by action-pin]
         with:
           script: |
             github.rest.git.createRef({
@@ -177,9 +159,8 @@ jobs:
               ref: 'refs/tags/plugins/souin/${{ github.ref_name }}',
               sha: context.sha
             })
-      -
-        name: Create Souin/storages tag
-        uses: actions/github-script@v7
+      - name: Create Souin/storages tag
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7 [pinned by action-pin]
         with:
           script: |
             github.rest.git.createRef({
@@ -188,9 +169,8 @@ jobs:
               ref: 'refs/tags/plugins/souin/storages/${{ github.ref_name }}',
               sha: context.sha
             })
-      -
-        name: Create Traefik tag
-        uses: actions/github-script@v7
+      - name: Create Traefik tag
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7 [pinned by action-pin]
         with:
           script: |
             github.rest.git.createRef({
@@ -199,9 +179,8 @@ jobs:
               ref: 'refs/tags/plugins/traefik/${{ github.ref_name }}',
               sha: context.sha
             })
-      -
-        name: Create Tyk tag
-        uses: actions/github-script@v7
+      - name: Create Tyk tag
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7 [pinned by action-pin]
         with:
           script: |
             github.rest.git.createRef({
@@ -210,9 +189,8 @@ jobs:
               ref: 'refs/tags/plugins/tyk/${{ github.ref_name }}',
               sha: context.sha
             })
-      -
-        name: Create Webgo tag
-        uses: actions/github-script@v7
+      - name: Create Webgo tag
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7 [pinned by action-pin]
         with:
           script: |
             github.rest.git.createRef({

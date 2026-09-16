@@ -1,25 +1,22 @@
 name: Build container and validate lint/tests
-
 on:
   pull_request:
   workflow_dispatch:
-
 env:
   GO_VERSION: '1.25'
-
 jobs:
   lint-validation:
     name: Validate Go code linting
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4 [pinned by action-pin]
       - name: Install Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@be3c94b385c4f180051c996d336f57a34c397495 # v3 [pinned by action-pin]
         with:
           go-version: ${{ env.GO_VERSION }}
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v8
+        uses: golangci/golangci-lint-action@4afd733a84b1f43292c63897423277bb7f4313a9 # v8 [pinned by action-pin]
         with:
           args: --timeout=240s
   unit-test-golang:
@@ -28,9 +25,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4 [pinned by action-pin]
       - name: Install Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@be3c94b385c4f180051c996d336f57a34c397495 # v3 [pinned by action-pin]
         with:
           go-version: ${{ env.GO_VERSION }}
       - name: Run unit static tests
@@ -40,15 +37,11 @@ jobs:
     name: Validate that the container build for prod
     runs-on: ubuntu-latest
     steps:
-      -
-        name: Checkout code
-        uses: actions/checkout@v4
-      -
-        name: Build the stack
+      - name: Checkout code
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4 [pinned by action-pin]
+      - name: Build the stack
         run: docker network create your_network || true
-      -
-        name: Build the stack
+      - name: Build the stack
         run: docker compose -f docker-compose.yml.prod up -d --build --force-recreate --remove-orphans
-      -
-        name: Souin container healthcheck
+      - name: Souin container healthcheck
         run: docker compose -f docker-compose.yml.prod exec -T souin ls
