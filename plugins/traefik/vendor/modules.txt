@@ -119,9 +119,6 @@ github.com/coreos/go-oidc/v3/oidc
 # github.com/cpuguy83/go-md2man/v2 v2.0.7
 ## explicit; go 1.12
 github.com/cpuguy83/go-md2man/v2/md2man
-# github.com/darkweak/go-esi v0.0.5
-## explicit; go 1.18
-github.com/darkweak/go-esi/esi
 # github.com/darkweak/souin v1.7.8 => ../..
 ## explicit; go 1.25.0
 github.com/darkweak/souin/configurationtypes
@@ -136,7 +133,7 @@ github.com/darkweak/souin/pkg/storage
 github.com/darkweak/souin/pkg/storage/types
 github.com/darkweak/souin/pkg/surrogate
 github.com/darkweak/souin/pkg/surrogate/providers
-# github.com/darkweak/storages/core v0.0.20-0.20260314133624-4df176921261
+# github.com/darkweak/storages/core v0.0.20-0.20260913094707-81250fe6fc63
 ## explicit; go 1.22.1
 github.com/darkweak/storages/core
 # github.com/dgraph-io/badger v1.6.2
@@ -345,7 +342,7 @@ github.com/munnerz/goautoneg
 # github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58
 ## explicit; go 1.16
 github.com/pbnjay/memory
-# github.com/pierrec/lz4/v4 v4.1.23
+# github.com/pierrec/lz4/v4 v4.1.29
 ## explicit; go 1.17
 github.com/pierrec/lz4/v4
 github.com/pierrec/lz4/v4/internal/lz4block
@@ -819,7 +816,7 @@ google.golang.org/grpc/tap
 # google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.5.1
 ## explicit; go 1.21
 google.golang.org/grpc/cmd/protoc-gen-go-grpc
-# google.golang.org/protobuf v1.36.11
+# google.golang.org/protobuf v1.36.12
 ## explicit; go 1.23
 google.golang.org/protobuf/cmd/protoc-gen-go
 google.golang.org/protobuf/cmd/protoc-gen-go/internal_gengo

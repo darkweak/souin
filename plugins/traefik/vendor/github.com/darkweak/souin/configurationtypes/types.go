@@ -48,6 +48,9 @@ func (c *CacheKeys) parseJSON(rootDecoder *json.Decoder) {
 			case "disable_query":
 				val, _ := rootDecoder.Token()
 				key.DisableQuery, _ = strconv.ParseBool(fmt.Sprint(val))
+			case "sort_query":
+				val, _ := rootDecoder.Token()
+				key.SortQuery, _ = strconv.ParseBool(fmt.Sprint(val))
 			case "disable_scheme":
 				val, _ := rootDecoder.Token()
 				key.DisableScheme, _ = strconv.ParseBool(fmt.Sprint(val))
