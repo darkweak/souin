@@ -3,14 +3,17 @@ package middleware
 import (
 	"bytes"
 	baseCtx "context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/darkweak/souin/configurationtypes"
+	"github.com/darkweak/souin/pkg/api/prometheus"
 	"github.com/darkweak/souin/pkg/storage/types"
 )
 
@@ -399,5 +402,82 @@ func TestHopByHopHeadersAreNotCached(t *testing.T) {
 		if v := rec2.Header().Get(h); v != "" {
 			t.Errorf("hop-by-hop header %q must not be served from cache, got %q", h, v)
 		}
+	}
+}
+
+// scrapeCounterValue renders the Prometheus text exposition format via the
+// real /metrics handler and extracts the current value of a single counter.
+// Returns 0 if the metric line is not present yet (e.g. never incremented).
+func scrapeCounterValue(t *testing.T, promAPI *prometheus.PrometheusAPI, name string) float64 {
+	t.Helper()
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/metrics", nil)
+	promAPI.HandleRequest(rec, req)
+
+	for _, line := range strings.Split(rec.Body.String(), "\n") {
+		if !strings.HasPrefix(line, name+" ") {
+			continue
+		}
+		fields := strings.Fields(line)
+		v, err := strconv.ParseFloat(fields[len(fields)-1], 64)
+		if err != nil {
+			t.Fatalf("failed to parse metric line %q: %v", line, err)
+		}
+		return v
+	}
+	return 0
+}
+
+// TestSharedResponseCounterCountsFollowersOnly fires 3 concurrent requests
+// for the same cache-miss key. Souin's singleflight pool must send exactly
+// one of them to the upstream (the leader) and share its response with the
+// other 2 (the followers). souin_shared_response_counter must increase by
+// exactly 2 (followers only) — not 3 (which would wrongly include the
+// leader) and not 0 (which would mean coalescing isn't observed at all).
+func TestSharedResponseCounterCountsFollowersOnly(t *testing.T) {
+	handler, _ := newTestHandler(t)
+	promAPI := prometheus.InitializePrometheus(handler.Configuration)
+
+	before := scrapeCounterValue(t, promAPI, "souin_shared_response_counter")
+
+	const (
+		expectedBody = "SHARED_RESPONSE_COUNTER_BODY"
+		concurrency  = 3
+	)
+
+	upstream := slowNext(expectedBody, 150*time.Millisecond)
+
+	// The default storer is registered in a process-wide global registry
+	// (core.GetRegisteredStorers), so it outlives this handler and persists
+	// across repeated runs of this test (e.g. `go test -count=N`). A fixed
+	// URL would be a cache HIT on every run after the first, never reaching
+	// Upstream() at all. Make the cache key unique per run.
+	url := fmt.Sprintf("http://example.com/test-shared-response-counter-%d", time.Now().UnixNano())
+
+	var wg sync.WaitGroup
+	errs := make([]error, concurrency)
+	for i := 0; i < concurrency; i++ {
+		wg.Add(1)
+		go func(idx int) {
+			defer wg.Done()
+			req := httptest.NewRequest(http.MethodGet, url, nil)
+			rec := httptest.NewRecorder()
+			errs[idx] = handler.ServeHTTP(rec, req, upstream)
+		}(i)
+	}
+	wg.Wait()
+
+	for i, err := range errs {
+		if err != nil {
+			t.Fatalf("request %d failed: %v", i, err)
+		}
+	}
+
+	after := scrapeCounterValue(t, promAPI, "souin_shared_response_counter")
+	got := after - before
+	want := float64(concurrency - 1)
+	if got != want {
+		t.Errorf("souin_shared_response_counter increased by %v, want %v (concurrency=%d)", got, want, concurrency)
 	}
 }

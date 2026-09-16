@@ -17,6 +17,7 @@ const (
 	RequestRevalidationCounter = "souin_request_revalidation_counter"
 	NoCachedResponseCounter    = "souin_no_cached_response_counter"
 	CachedResponseCounter      = "souin_cached_response_counter"
+	SharedResponseCounter      = "souin_shared_response_counter"
 	AvgResponseTime            = "souin_avg_response_time"
 )
 
@@ -103,5 +104,6 @@ func run() {
 	push(counter, RequestRevalidationCounter, "Total revalidation request revalidation counter")
 	push(counter, NoCachedResponseCounter, "No cached response counter")
 	push(counter, CachedResponseCounter, "Cached response counter")
+	push(counter, SharedResponseCounter, "Concurrent requests count that reused a leader's response instead of calling the upstream")
 	push(average, AvgResponseTime, "Average response time")
 }
