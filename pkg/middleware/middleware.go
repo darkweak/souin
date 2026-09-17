@@ -423,6 +423,18 @@ func (s *SouinBaseHandler) Store(
 		return nil
 	}
 
+	// A Set-Cookie response is usually tied to a single user; storing it in a
+	// shared cache would replay one user's cookie to every subsequent client.
+	// RFC 9111 §7.3 allows caching such responses, but most reverse proxies
+	// (nginx, Varnish, Fastly, Cloudflare) treat them as uncacheable by default,
+	// so we never store them. The exception is an explicit no-cache="Set-Cookie"
+	// directive: the field is stripped from the stored response below, so there
+	// is nothing to leak and the rest of the response can still be cached.
+	if customWriter.Header().Get("Set-Cookie") != "" && !responseCc.NoCache["Set-Cookie"] {
+		customWriter.Header().Set("Cache-Status", fmt.Sprintf("%s; fwd=uri-miss; key=%s; detail=UNCACHEABLE-SET-COOKIE", rq.Context().Value(context.CacheName), rfc.GetCacheKeyFromCtx(rq.Context())))
+		return nil
+	}
+
 	currentMatchedURL := s.DefaultMatchedUrl
 	if regexpURL := s.RegexpUrls.FindString(rq.Host + rq.URL.Path); regexpURL != "" {
 		u := s.Configuration.GetUrls()[regexpURL]
