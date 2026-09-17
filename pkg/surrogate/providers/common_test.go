@@ -6,6 +6,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/storage"
@@ -206,5 +207,34 @@ func TestContainsCacheKey(t *testing.T) {
 					tc.currentValue, tc.cacheKey, result, tc.expected)
 			}
 		})
+	}
+}
+
+func TestBaseStorage_Store_NoSurrogateKeyHeaderDoesNotIndexUnderEmptyTag(t *testing.T) {
+	// A response carrying none of the surrogate-key headers must not be indexed
+	// at all under the empty tag. getSurrogateKey returns "" for such a
+	// response and ParseHeaders (strings.Split) turns that into [""], so Store
+	// still iterates once with an empty key. Writing that to SURROGATE_ funnels
+	// every cache key of every response into one entry, which storeTag
+	// read-modify-writes under a global mutex on each store.
+	res := http.Response{Header: http.Header{}}
+	bs := mockCommonProvider()
+	// The mock storer maps to a zero TTL, under which nothing is retained; give
+	// it a real one so the assertions below observe what was actually written.
+	bs.duration = time.Minute
+
+	for i := 0; i < 50; i++ {
+		if e := bs.Store(&res, fmt.Sprintf("cache_key_%d", i), fmt.Sprintf("/uri/%d", i)); e != nil {
+			t.Errorf("It shouldn't throw an error: %v.", e)
+		}
+	}
+
+	if v := bs.Storage.Get(surrogatePrefix); len(v) != 0 {
+		t.Errorf("The empty surrogate tag must stay empty, %q given.", string(v))
+	}
+
+	// The per-URI tags must still be written, so purge-by-URI keeps working.
+	if v := bs.Storage.Get(surrogatePrefix + "/uri/7"); !strings.Contains(string(v), "cache_key_7") {
+		t.Errorf("The URI tag must still index its cache key, %q given.", string(v))
 	}
 }
