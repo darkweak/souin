@@ -418,7 +418,22 @@ func (s *SouinBaseHandler) Store(
 	}
 
 	modeContext := rq.Context().Value(context.Mode).(*context.ModeContext)
-	if !modeContext.Bypass_request && (responseCc.PrivatePresent || rq.Header.Get("Authorization") != "") && !canBypassAuthorizationRestriction(customWriter.Header(), rq.Context().Value(context.IgnoredHeaders).([]string)) {
+	// RFC 9111 draws two separate rules here, and they answer different questions.
+	//
+	// §5.2.2.7 is about STORING, keyed on a directive the origin set on the
+	// RESPONSE: "the unqualified private response directive indicates that a
+	// shared cache MUST NOT store the response". §3.5 is about REUSING a stored
+	// response, keyed on the REQUEST carrying an Authorization header.
+	// canBypassAuthorizationRestriction answers §3.5 — whether this deployment
+	// has opted into keying/serving responses to authorized requests — so gating
+	// §5.2.2.7 behind it means a deployment that answers §3.5 one way stops
+	// honoring §5.2.2.7 at all, for every response, including ones the origin
+	// explicitly marked non-shareable.
+	if !modeContext.Bypass_request && responseCc.PrivatePresent {
+		customWriter.Header().Set("Cache-Status", fmt.Sprintf("%s; fwd=uri-miss; key=%s; detail=PRIVATE-OR-AUTHENTICATED-RESPONSE", rq.Context().Value(context.CacheName), rfc.GetCacheKeyFromCtx(rq.Context())))
+		return nil
+	}
+	if !modeContext.Bypass_request && rq.Header.Get("Authorization") != "" && !canBypassAuthorizationRestriction(customWriter.Header(), rq.Context().Value(context.IgnoredHeaders).([]string)) {
 		customWriter.Header().Set("Cache-Status", fmt.Sprintf("%s; fwd=uri-miss; key=%s; detail=PRIVATE-OR-AUTHENTICATED-RESPONSE", rq.Context().Value(context.CacheName), rfc.GetCacheKeyFromCtx(rq.Context())))
 		return nil
 	}
