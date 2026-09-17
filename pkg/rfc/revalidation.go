@@ -26,13 +26,10 @@ type Revalidator struct {
 }
 
 func ParseRequest(req *http.Request) *core.Revalidator {
-	var rqEtags []string
-	if len(req.Header.Get("If-None-Match")) > 0 {
-		rqEtags = strings.Split(req.Header.Get("If-None-Match"), ",")
-	}
-	for i, tag := range rqEtags {
-		rqEtags[i] = strings.Trim(tag, " ")
-	}
+	// The entity-tags may be spread over several lines as well as comma
+	// separated on a single one, so they are flattened before any of them can
+	// be compared to a stored tag.
+	rqEtags := withQuotingVariants(HeaderAllCommaSepValues(req.Header, "If-None-Match"))
 	validator := core.Revalidator{
 		NotModified:  len(rqEtags) > 0,
 		RequestETags: rqEtags,
@@ -40,22 +37,44 @@ func ParseRequest(req *http.Request) *core.Revalidator {
 	// If-Modified-Since
 	if ifModifiedSince := req.Header.Get("If-Modified-Since"); ifModifiedSince != "" {
 		validator.IfModifiedSincePresent = true
-		validator.IfModifiedSince, _ = time.Parse(time.RFC1123, ifModifiedSince)
+		validator.IfModifiedSince, _ = ParseHTTPDate(ifModifiedSince)
 		validator.NeedRevalidation = true
 	}
 
 	// If-Unmodified-Since
 	if ifUnmodifiedSince := req.Header.Get("If-Unmodified-Since"); ifUnmodifiedSince != "" {
 		validator.IfUnmodifiedSincePresent = true
-		validator.IfUnmodifiedSince, _ = time.Parse(time.RFC1123, ifUnmodifiedSince)
+		validator.IfUnmodifiedSince, _ = ParseHTTPDate(ifUnmodifiedSince)
 		validator.NeedRevalidation = true
 	}
 
 	// If-None-Match
-	if ifNoneMatches := req.Header.Values("If-None-Match"); len(ifNoneMatches) > 0 {
+	if len(rqEtags) > 0 {
 		validator.IfNoneMatchPresent = true
-		validator.IfNoneMatch = ifNoneMatches
+		validator.IfNoneMatch = rqEtags
 	}
 
 	return &validator
+}
+
+// withQuotingVariants adds the quoted twin of every unquoted entity-tag and
+// the other way around. Entity-tags are meant to be quoted, but origins do
+// send them bare, and a stored tag should still match the one a client
+// presents when only the quoting differs.
+func withQuotingVariants(etags []string) []string {
+	variants := make([]string, 0, len(etags)*2)
+
+	for _, etag := range etags {
+		variants = append(variants, etag)
+
+		switch {
+		case etag == "" || etag == "*":
+		case strings.HasPrefix(etag, `"`) && strings.HasSuffix(etag, `"`) && len(etag) > 1:
+			variants = append(variants, strings.Trim(etag, `"`))
+		case !strings.HasPrefix(etag, "W/"):
+			variants = append(variants, `"`+etag+`"`)
+		}
+	}
+
+	return variants
 }
