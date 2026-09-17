@@ -401,3 +401,110 @@ func TestHopByHopHeadersAreNotCached(t *testing.T) {
 		}
 	}
 }
+
+// newAuthorizationKeyedHandler builds a handler configured the way a
+// deployment keys per-principal responses: Authorization is part of the cache
+// key, which also places it in IgnoredHeaders and therefore makes
+// canBypassAuthorizationRestriction return true for every request.
+func newAuthorizationKeyedHandler(t *testing.T) *SouinBaseHandler {
+	t.Helper()
+
+	cfg := newTestConfig()
+	cfg.DefaultCache.Key = configurationtypes.Key{Headers: []string{"Authorization"}}
+
+	handler := NewHTTPCacheHandler(cfg)
+	if len(handler.Storers) == 0 {
+		t.Fatal("expected at least one storer to be registered")
+	}
+
+	return handler
+}
+
+// TestPrivateResponseIsNotStoredWhenAuthorizationIsKeyed asserts that
+// `Cache-Control: private` keeps a response out of a shared cache even when
+// Authorization is configured as a keying header.
+//
+// RFC 9111 §5.2.2.7 ("a shared cache MUST NOT store the response") is a
+// property of the RESPONSE and is independent of §3.5, which governs whether a
+// stored response may be REUSED for a request carrying Authorization.
+// canBypassAuthorizationRestriction answers §3.5; gating §5.2.2.7 behind it
+// means opting into Authorization keying silently disables the private check
+// for every response.
+func TestPrivateResponseIsNotStoredWhenAuthorizationIsKeyed(t *testing.T) {
+	handler := newAuthorizationKeyedHandler(t)
+
+	var upstreamCalls int
+	next := func(w http.ResponseWriter, r *http.Request) error {
+		upstreamCalls++
+		w.Header().Set("Cache-Control", "private, s-maxage=30")
+		w.Header().Set("X-Marker", "from-upstream")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("PRIVATE_BODY"))
+
+		return nil
+	}
+
+	req1 := httptest.NewRequest(http.MethodGet, "http://example.com/private-resource", nil)
+	req1.Header.Set("Authorization", "Bearer token-a")
+	rec1 := httptest.NewRecorder()
+
+	if err := handler.ServeHTTP(rec1, req1, next); err != nil {
+		t.Fatalf("first ServeHTTP failed: %v", err)
+	}
+
+	if status := rec1.Header().Get("Cache-Status"); !strings.Contains(status, "PRIVATE-OR-AUTHENTICATED-RESPONSE") {
+		t.Errorf("a private response must be refused by the shared cache, got Cache-Status %q", status)
+	}
+
+	req2 := httptest.NewRequest(http.MethodGet, "http://example.com/private-resource", nil)
+	req2.Header.Set("Authorization", "Bearer token-a")
+
+	if err := handler.ServeHTTP(httptest.NewRecorder(), req2, next); err != nil {
+		t.Fatalf("second ServeHTTP failed: %v", err)
+	}
+
+	if upstreamCalls != 2 {
+		t.Fatalf("a private response must not be served from the cache: expected 2 upstream calls, got %d", upstreamCalls)
+	}
+}
+
+// TestPublicResponseIsStillStoredWhenAuthorizationIsKeyed is the counter-case:
+// keying on Authorization must keep working for responses the origin marked
+// shareable. Without this, honoring `private` unconditionally could be
+// mistaken for disabling the bypass feature (#283) altogether.
+func TestPublicResponseIsStillStoredWhenAuthorizationIsKeyed(t *testing.T) {
+	handler := newAuthorizationKeyedHandler(t)
+
+	var upstreamCalls int
+	next := func(w http.ResponseWriter, r *http.Request) error {
+		upstreamCalls++
+		w.Header().Set("Cache-Control", "public, s-maxage=30")
+		w.Header().Set("X-Marker", "from-upstream")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("PUBLIC_BODY"))
+
+		return nil
+	}
+
+	req1 := httptest.NewRequest(http.MethodGet, "http://example.com/public-resource", nil)
+	req1.Header.Set("Authorization", "Bearer token-a")
+
+	if err := handler.ServeHTTP(httptest.NewRecorder(), req1, next); err != nil {
+		t.Fatalf("first ServeHTTP failed: %v", err)
+	}
+
+	req2 := httptest.NewRequest(http.MethodGet, "http://example.com/public-resource", nil)
+	req2.Header.Set("Authorization", "Bearer token-a")
+	rec2 := httptest.NewRecorder()
+
+	if err := handler.ServeHTTP(rec2, req2, next); err != nil {
+		t.Fatalf("second ServeHTTP failed: %v", err)
+	}
+
+	if upstreamCalls != 1 {
+		t.Fatalf("an authorized public response must still be served from the cache: expected 1 upstream call, got %d", upstreamCalls)
+	}
+	if got := rec2.Header().Get("X-Marker"); got != "from-upstream" {
+		t.Fatalf("second response was not served from the cache (X-Marker=%q)", got)
+	}
+}
