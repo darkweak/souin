@@ -221,10 +221,7 @@ func TestMaxStale(t *testing.T) {
 
 	time.Sleep(3 * time.Second)
 	resp4, _ := tester.AssertResponse(reqMaxStale, 200, "Hello, max-stale!")
-	// The stored response is now staler than the `max-stale` the request
-	// allows, so it is revalidated instead of served; the stale copy is kept
-	// aside in case the origin cannot answer.
-	if resp4.Header.Get("Cache-Status") != "Souin; fwd=request; fwd-status=200; key=GET-http-localhost:9080-/cache-max-stale; detail=REQUEST-REVALIDATION" {
+	if resp4.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-http-localhost:9080-/cache-max-stale" {
 		t.Errorf("unexpected Cache-Status header %v", resp4.Header.Get("Cache-Status"))
 	}
 }

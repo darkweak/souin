@@ -447,26 +447,16 @@ func removeHopByHopHeaders(h http.Header) {
 	}
 }
 
-// revalidationRetention is how long a stale response is kept on top of any
-// explicitly configured stale window. Without it the cache would have nothing
-// left to revalidate the moment a response turns stale, and would have to
-// refetch a body the origin could have answered with a bare `304`.
-const revalidationRetention = 5 * time.Minute
-
 // retentionWindow returns for how long a response is kept once it turned
+// stale, which is how long it remains available to be revalidated or served
 // stale. The storer adds the configured stale window on its own, so what is
-// left to cover here is the room a `stale-while-revalidate` may need and the
-// room a revalidation needs.
-func (s *SouinBaseHandler) retentionWindow(responseCc *cacheobject.ResponseCacheDirectives) time.Duration {
-	window := revalidationRetention
-
-	if responseCc != nil {
-		if swr := time.Duration(responseCc.StaleWhileRevalidate) * time.Second; swr > window {
-			window = swr
-		}
+// left to cover here is the extra room a `stale-while-revalidate` asks for.
+func retentionWindow(responseCc *cacheobject.ResponseCacheDirectives) time.Duration {
+	if responseCc == nil {
+		return 0
 	}
 
-	return window
+	return max(time.Duration(responseCc.StaleWhileRevalidate)*time.Second, 0)
 }
 
 func (s *SouinBaseHandler) Store(
@@ -607,7 +597,7 @@ func (s *SouinBaseHandler) Store(
 	// allow stale content to be served need something to serve. How long it
 	// is kept is decided by the retention window, not by what is left of its
 	// lifetime.
-	storeDuration := s.retentionWindow(responseCc)
+	storeDuration := retentionWindow(responseCc)
 	if ma > 0 {
 		storeDuration += ma
 	}
@@ -996,7 +986,7 @@ func (s *SouinBaseHandler) backfillStorers(idx int, cachedKey string, rq *http.R
 	headerName, _ := s.SurrogateKeyStorer.GetSurrogateControl(response.Header)
 	responseCc, _ := cacheobject.ParseResponseCacheControl(rfc.HeaderAllCommaSepValuesString(response.Header, headerName))
 
-	ma := s.retentionWindow(responseCc)
+	ma := retentionWindow(responseCc)
 	if remaining := time.Until(expiry); remaining > 0 {
 		ma += remaining
 	}
@@ -1173,10 +1163,10 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 	backfillIds := 0
 
 	s.Configuration.GetLogger().Debugf("Request cache-control %+v", requestCc)
-	// RFC 9111 section 5.2.1.5: a request carrying `no-store` is not answered
-	// from the cache at all. `no-cache` on the other hand keeps the stored
-	// response usable, provided it is revalidated first.
-	if modeContext.Bypass_request || !requestCc.NoStore {
+	// RFC 9111 section 5.2.1.4: a request carrying `no-cache` may not be
+	// answered from what is stored, so it is forwarded to the origin
+	// untouched. `no-store` only forbids storing, not reusing.
+	if modeContext.Bypass_request || !requestCc.NoCache {
 		validator := rfc.ParseRequest(req)
 		var fresh, stale *http.Response
 		var storerName string
@@ -1201,8 +1191,8 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 		// it can still be revalidated, so its own fresh/stale split is looser
 		// than the RFC one: the stored expiry is what decides whether the
 		// response may be reused without asking the origin first.
-		forceRevalidation := !modeContext.Bypass_request && requestCc.NoCache
-		if fresh != nil && !forceRevalidation && !modeContext.Bypass_response {
+		forceRevalidation := false
+		if fresh != nil && !modeContext.Bypass_response {
 			// A stored `no-cache` response may not be reused before the
 			// origin confirmed it is still valid, so it goes down the same
 			// road as a stale one and gets revalidated conditionally.
@@ -1434,8 +1424,7 @@ func (s *SouinBaseHandler) serveStale(
 	withinStaleWindow := staleness <= s.Configuration.GetDefaultCache().GetStale()
 	// `must-revalidate` and `no-cache` both forbid reusing the response
 	// without contacting the origin first, whatever the client allows.
-	mustRevalidate := responseCc.MustRevalidate || responseCc.NoCachePresent ||
-		validator.NeedRevalidation || requestCc.NoCache
+	mustRevalidate := responseCc.MustRevalidate || responseCc.NoCachePresent || validator.NeedRevalidation
 
 	storedBody := new(bytes.Buffer)
 	_, _ = io.Copy(storedBody, stale.Body)
@@ -1495,17 +1484,10 @@ func (s *SouinBaseHandler) serveStale(
 		}
 	}
 
-	// RFC 9111 section 4.2.4: a stale response may stand in for an origin
-	// that cannot be reached, unless the response forbids it. A
-	// `stale-if-error` directive asks for it explicitly and overrides that
-	// prohibition.
-	// A shared cache reads `s-maxage` and `proxy-revalidate` as forbidding
-	// stale content just like `must-revalidate` does (RFC 9111 sections
-	// 5.2.2.9 and 5.2.2.10).
-	forbidsStale := responseCc.MustRevalidate || responseCc.NoCachePresent ||
-		responseCc.ProxyRevalidate || responseCc.SMaxAge >= 0
-	staleIfError := responseCc.StaleIfError > -1 || requestCc.StaleIfError > 0
-	canServeOnError := withinStaleWindow && (staleIfError || !forbidsStale)
+	// RFC 5861 section 4: the stale response may stand in for an origin that
+	// cannot be reached, but only because `stale-if-error` asked for it.
+	canServeOnError := withinStaleWindow &&
+		(responseCc.StaleIfError > -1 || requestCc.StaleIfError > 0)
 
 	hasValidator := storedHeaders.Get("Etag") != "" || storedHeaders.Get("Last-Modified") != ""
 	if !mustRevalidate && !hasValidator && !canServeOnError {
