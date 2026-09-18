@@ -15,7 +15,43 @@ import (
 const (
 	StoredTTLHeader    = "X-Souin-Stored-TTL"
 	StoredLengthHeader = "X-Souin-Stored-Length"
+	// StoredExpiryHeader carries the instant a stored response stops being
+	// fresh. A storer keeps a response longer than that so it can be
+	// revalidated instead of refetched, so its own notion of freshness is
+	// deliberately looser and this header is what decides.
+	StoredExpiryHeader = "X-Souin-Stored-Expiry"
 )
+
+// SetStoredExpiry records when the stored response stops being fresh.
+func SetStoredExpiry(h http.Header, expiry time.Time) {
+	h.Set(StoredExpiryHeader, expiry.Format(time.RFC3339Nano))
+}
+
+// StoredExpiry returns the instant the stored response stops being fresh, and
+// whether it could be read at all.
+func StoredExpiry(h http.Header) (time.Time, bool) {
+	expiry, err := time.Parse(time.RFC3339Nano, h.Get(StoredExpiryHeader))
+
+	return expiry, err == nil
+}
+
+// IsStoredFresh tells whether a stored response may still be reused without
+// being revalidated first.
+func IsStoredFresh(h http.Header, now time.Time) bool {
+	expiry, ok := StoredExpiry(h)
+
+	return !ok || now.Before(expiry)
+}
+
+// StoredStaleness returns for how long a stored response has been stale.
+func StoredStaleness(h http.Header, now time.Time) time.Duration {
+	expiry, ok := StoredExpiry(h)
+	if !ok {
+		return 0
+	}
+
+	return now.Sub(expiry)
+}
 
 var emptyHeaders = []string{"Expires", "Last-Modified"}
 
@@ -99,6 +135,7 @@ func manageAge(h *http.Header, ttl time.Duration, cacheName, key, storerName str
 		ttl, _ = time.ParseDuration(h.Get(StoredTTLHeader))
 		h.Del(StoredTTLHeader)
 	}
+	h.Del(StoredExpiryHeader)
 
 	apparentAge := utc1.Sub(utc2)
 	if apparentAge < 0 {

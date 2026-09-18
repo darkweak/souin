@@ -69,6 +69,15 @@ func (r *CustomWriter) WriteHeader(code int) {
 		return
 	}
 
+	// An interim response belongs to the exchange with the client, not to the
+	// representation being cached (RFC 9111 section 3): forward it as it
+	// comes and keep waiting for the final status.
+	if code >= http.StatusContinue && code < http.StatusOK {
+		r.Rw.WriteHeader(code)
+
+		return
+	}
+
 	r.mutex.Lock()
 	r.statusCode = code
 	r.mutex.Unlock()
@@ -101,6 +110,7 @@ func (r *CustomWriter) Send() (int, error) {
 
 	r.Header().Del(rfc.StoredLengthHeader)
 	r.Header().Del(rfc.StoredTTLHeader)
+	r.Header().Del(rfc.StoredExpiryHeader)
 
 	// When the client issued a range request, serve it from the fully cached
 	// body through the standard library. http.ServeContent implements RFC 7233
@@ -140,6 +150,7 @@ func (r *CustomWriter) Send() (int, error) {
 
 	r.Header().Del(rfc.StoredLengthHeader)
 	r.Header().Del(rfc.StoredTTLHeader)
+	r.Header().Del(rfc.StoredExpiryHeader)
 
 	if !r.headersSent.Load() {
 		r.mutex.Lock()

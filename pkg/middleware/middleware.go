@@ -8,9 +8,11 @@ import (
 	"io"
 	"maps"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -288,6 +290,72 @@ func (upstream50xError) Error() string {
 	return "Upstream 50x error"
 }
 
+// A representation that has not changed for a while is assumed to stay valid
+// for a tenth of that time, and never for more than a day. RFC 9111 section
+// 4.2.2 leaves the exact heuristic to the cache but warns against long
+// lifetimes.
+const (
+	heuristicFreshnessRatio = 10
+	heuristicFreshnessCap   = 24 * time.Hour
+)
+
+// heuristicFreshness derives a freshness lifetime from the `Last-Modified` of
+// a response that carries no explicit expiry, and reports whether it could.
+func heuristicFreshness(headers http.Header, statusCode int, responseCc *cacheobject.ResponseCacheDirectives) (time.Duration, bool) {
+	if !isCacheableCode(statusCode) && !responseCc.Public {
+		return 0, false
+	}
+
+	lastModified, err := rfc.ParseHTTPDate(headers.Get("Last-Modified"))
+	if err != nil {
+		return 0, false
+	}
+
+	date, err := rfc.ParseHTTPDate(headers.Get("Date"))
+	if err != nil {
+		return 0, false
+	}
+
+	delta := date.Sub(lastModified)
+	if delta <= 0 {
+		return 0, false
+	}
+
+	lifetime := delta / heuristicFreshnessRatio
+	if lifetime > heuristicFreshnessCap {
+		lifetime = heuristicFreshnessCap
+	}
+
+	return lifetime, true
+}
+
+// isStorableCode tells whether a response may be stored at all. RFC 9111
+// section 3 lets a cache keep any final status code, as long as the response
+// says for how long it stays fresh; the hardcoded list only covers the codes
+// that are cacheable by default, without the origin saying anything.
+func (s *SouinBaseHandler) isStorableCode(code int, headers http.Header) bool {
+	if isCacheableCode(code) || s.hasAllowedAdditionalStatusCodesToCache(code) {
+		return true
+	}
+
+	if code < 200 || code > 599 {
+		return false
+	}
+
+	if headers.Get("Expires") != "" {
+		return true
+	}
+
+	headerName, cacheControl := s.SurrogateKeyStorer.GetSurrogateControl(headers)
+	if cacheControl == "" {
+		return false
+	}
+
+	responseCc, _ := cacheobject.ParseResponseCacheControl(rfc.HeaderAllCommaSepValuesString(headers, headerName))
+
+	return responseCc != nil && (responseCc.MaxAge >= 0 || responseCc.SMaxAge >= 0 || responseCc.Public)
+}
+
 func isCacheableCode(code int) bool {
 	switch code {
 	case 200, 203, 204, 206, 300, 301, 404, 405, 410, 414, 501:
@@ -379,6 +447,18 @@ func removeHopByHopHeaders(h http.Header) {
 	}
 }
 
+// retentionWindow returns for how long a response is kept once it turned
+// stale, which is how long it remains available to be revalidated or served
+// stale. The storer adds the configured stale window on its own, so what is
+// left to cover here is the extra room a `stale-while-revalidate` asks for.
+func retentionWindow(responseCc *cacheobject.ResponseCacheDirectives) time.Duration {
+	if responseCc == nil {
+		return 0
+	}
+
+	return max(time.Duration(responseCc.StaleWhileRevalidate)*time.Second, 0)
+}
+
 func (s *SouinBaseHandler) Store(
 	customWriter *CustomWriter,
 	rq *http.Request,
@@ -387,7 +467,7 @@ func (s *SouinBaseHandler) Store(
 	uri string,
 ) error {
 	statusCode := customWriter.GetStatusCode()
-	if !isCacheableCode(statusCode) && !s.hasAllowedAdditionalStatusCodesToCache(statusCode) {
+	if !s.isStorableCode(statusCode, customWriter.Header()) {
 		cacheName := rq.Context().Value(context.CacheName).(string)
 		cacheKey := rfc.GetCacheKeyFromCtx(rq.Context())
 		customWriter.Header().Set("Cache-Status", cacheName+"; fwd=uri-miss; key="+cacheKey+"; detail=UNCACHEABLE-STATUS-CODE")
@@ -401,7 +481,12 @@ func (s *SouinBaseHandler) Store(
 	}
 
 	headerName, cacheControl := s.SurrogateKeyStorer.GetSurrogateControl(customWriter.Header())
-	if cacheControl == "" {
+	// The configured default only stands in for a response that carries no
+	// cache directives of its own. Keeping track of it lets the explicit
+	// freshness information the response may still hold (`Expires`) win over
+	// that default.
+	usesDefaultCacheControl := cacheControl == ""
+	if usesDefaultCacheControl {
 		// TODO see with @mnot if mandatory to not store the response when no Cache-Control given.
 		// if s.DefaultMatchedUrl.DefaultCacheControl == "" {
 		// 	customWriter.Header().Set("Cache-Status", fmt.Sprintf("%s; fwd=uri-miss; key=%s; detail=EMPTY-RESPONSE-CACHE-CONTROL", rq.Context().Value(context.CacheName), rfc.GetCacheKeyFromCtx(rq.Context())))
@@ -417,8 +502,13 @@ func (s *SouinBaseHandler) Store(
 		return nil
 	}
 
+	// RFC 9111 section 3.5: a shared cache may store the response to an
+	// authenticated request when the response explicitly allows it.
+	authenticatedButStorable := responseCc.MustRevalidate || responseCc.Public || responseCc.SMaxAge >= 0 ||
+		canBypassAuthorizationRestriction(customWriter.Header(), rq.Context().Value(context.IgnoredHeaders).([]string))
+
 	modeContext := rq.Context().Value(context.Mode).(*context.ModeContext)
-	if !modeContext.Bypass_request && (responseCc.PrivatePresent || rq.Header.Get("Authorization") != "") && !canBypassAuthorizationRestriction(customWriter.Header(), rq.Context().Value(context.IgnoredHeaders).([]string)) {
+	if !modeContext.Bypass_request && (responseCc.PrivatePresent || rq.Header.Get("Authorization") != "") && !authenticatedButStorable {
 		customWriter.Header().Set("Cache-Status", fmt.Sprintf("%s; fwd=uri-miss; key=%s; detail=PRIVATE-OR-AUTHENTICATED-RESPONSE", rq.Context().Value(context.CacheName), rfc.GetCacheKeyFromCtx(rq.Context())))
 		return nil
 	}
@@ -434,42 +524,94 @@ func (s *SouinBaseHandler) Store(
 		}
 	}
 
-	hasFreshness := false
+	now := rq.Context().Value(context.Now).(time.Time)
+
 	ma := currentMatchedURL.TTL.Duration
+	hasExplicitFreshness := false
 	if !modeContext.Bypass_response {
 		if responseCc.SMaxAge >= 0 {
 			ma = time.Duration(responseCc.SMaxAge) * time.Second
+			hasExplicitFreshness = true
 		} else if responseCc.MaxAge >= 0 {
 			ma = time.Duration(responseCc.MaxAge) * time.Second
-		} else if customWriter.Header().Get("Expires") != "" {
-			exp, err := time.Parse(time.RFC1123, customWriter.Header().Get("Expires"))
+			hasExplicitFreshness = true
+		} else if expires := customWriter.Header().Values("Expires"); len(expires) > 0 {
+			// A response carrying several `Expires` lines has no single
+			// expiry to honour, so it is treated as already expired.
+			exp, err := rfc.ParseHTTPDate(expires[0])
+			if len(expires) > 1 {
+				err = errors.New("several Expires header lines")
+			}
 			if err != nil {
+				customWriter.Header().Set("Cache-Status", fmt.Sprintf("%s; fwd=uri-miss; key=%s; detail=MALFORMED-EXPIRES", rq.Context().Value(context.CacheName), rfc.GetCacheKeyFromCtx(rq.Context())))
+
 				return nil
 			}
 
-			duration := time.Until(exp)
-			if duration <= 0 || duration > 10*types.OneYearDuration {
+			// RFC 9111 section 4.2.1: the freshness lifetime an `Expires`
+			// header conveys is `Expires` minus `Date`, not the delay until
+			// `Expires` measured on the cache clock.
+			date, dateErr := rfc.ParseHTTPDate(customWriter.Header().Get("Date"))
+			if dateErr != nil {
+				date = now
+			}
+
+			duration := exp.Sub(date)
+			if duration <= 0 {
+				customWriter.Header().Set("Cache-Status", fmt.Sprintf("%s; fwd=uri-miss; key=%s; detail=EXPIRED-RESPONSE", rq.Context().Value(context.CacheName), rfc.GetCacheKeyFromCtx(rq.Context())))
+
 				return nil
 			}
 
-			date, _ := time.Parse(time.RFC1123, customWriter.Header().Get("Date"))
-			if date.Sub(exp) > 0 {
-				return nil
+			// An `Expires` far enough in the future means "as long as you
+			// like": clamp it rather than refuse to store the response.
+			if duration > 10*types.OneYearDuration {
+				duration = 10 * types.OneYearDuration
 			}
 
 			ma = duration
-			hasFreshness = true
+			hasExplicitFreshness = true
 		}
 	}
 
-	now := rq.Context().Value(context.Now).(time.Time)
-	date, _ := http.ParseTime(now.Format(http.TimeFormat))
+	usesHeuristicFreshness := false
+	if !modeContext.Bypass_response && !hasExplicitFreshness {
+		if heuristic, ok := heuristicFreshness(customWriter.Header(), statusCode, responseCc); ok {
+			ma = heuristic
+			usesHeuristicFreshness = true
+		}
+	}
+
+	// The stored TTL is the freshness lifetime the response was given, which
+	// is what the `ttl` of the Cache-Status header counts down from. The
+	// instant the response turns stale is a different thing: RFC 9111
+	// section 4.2 measures freshness against the response age, so the age it
+	// already carried when it reached this cache eats into its lifetime.
 	customWriter.Header().Set(rfc.StoredTTLHeader, ma.String())
-	ma = ma - time.Since(date)
+
+	ma -= rfc.InitialAge(customWriter.Header(), now)
+	rfc.SetStoredExpiry(customWriter.Header(), now.Add(ma))
+
+	// A response that already reached the end of its freshness lifetime is
+	// still worth storing: it can be revalidated, and the directives that
+	// allow stale content to be served need something to serve. How long it
+	// is kept is decided by the retention window, not by what is left of its
+	// lifetime.
+	storeDuration := retentionWindow(responseCc)
+	if ma > 0 {
+		storeDuration += ma
+	}
+
+	// RFC 9111 section 5.2.2.3: `must-understand` tells a cache that does
+	// understand the status code to ignore an accompanying `no-store`.
+	mustUnderstand := hasExplicitFreshness && isCacheableCode(statusCode) &&
+		slices.Contains(rfc.HeaderAllCommaSepValues(customWriter.Header(), headerName), "must-understand")
 
 	status := fmt.Sprintf("%s; fwd=uri-miss", rq.Context().Value(context.CacheName))
+
 	if (modeContext.Bypass_request || !requestCc.NoStore) &&
-		(modeContext.Bypass_response || !responseCc.NoStore || hasFreshness) {
+		(modeContext.Bypass_response || !responseCc.NoStore || mustUnderstand ||
+			(usesDefaultCacheControl && (hasExplicitFreshness || usesHeuristicFreshness))) {
 		headers := customWriter.Header().Clone()
 		for hname, shouldDelete := range responseCc.NoCache {
 			if shouldDelete {
@@ -514,7 +656,7 @@ func (s *SouinBaseHandler) Store(
 					cachedKey = strconv.FormatUint(xxhash.Sum64String(cachedKey), 10)
 					variedKey = strconv.FormatUint(xxhash.Sum64String(variedKey), 10)
 				}
-				s.Configuration.GetLogger().Debugf("Store the response for %s with duration %v", variedKey, ma)
+				s.Configuration.GetLogger().Debugf("Store the response for %s with duration %v", variedKey, storeDuration)
 
 				var wg sync.WaitGroup
 				mu := sync.Mutex{}
@@ -543,7 +685,7 @@ func (s *SouinBaseHandler) Store(
 							variedKey,
 							response,
 							vhs,
-							res.Header.Get("Etag"), ma,
+							res.Header.Get("Etag"), storeDuration,
 							variedKey,
 						) == nil {
 							s.Configuration.GetLogger().Debugf("Stored the key %s in the %s provider", variedKey, overridedStorer.Name())
@@ -561,7 +703,7 @@ func (s *SouinBaseHandler) Store(
 									variedKey,
 									response,
 									vhs,
-									currentRes.Header.Get("Etag"), ma,
+									currentRes.Header.Get("Etag"), storeDuration,
 									variedKey,
 								) == nil {
 									s.Configuration.GetLogger().Debugf("Stored the key %s in the %s provider", variedKey, currentStorer.Name())
@@ -654,7 +796,7 @@ func (s *SouinBaseHandler) Upstream(
 		}
 
 		statusCode := customWriter.GetStatusCode()
-		if !isCacheableCode(statusCode) && !s.hasAllowedAdditionalStatusCodesToCache(statusCode) {
+		if !s.isStorableCode(statusCode, customWriter.Header()) {
 			customWriter.Header().Set("Cache-Status", fmt.Sprintf("%s; fwd=uri-miss; key=%s; detail=UNCACHEABLE-STATUS-CODE", rq.Context().Value(context.CacheName), rfc.GetCacheKeyFromCtx(rq.Context())))
 
 			switch statusCode {
@@ -663,12 +805,17 @@ func (s *SouinBaseHandler) Upstream(
 			}
 		}
 
+		err := s.Store(customWriter, rq, requestCc, cachedKey, uri)
+
+		// Store applies the configured default when the response carries no
+		// cache directives, so it has to run first: overwriting the header
+		// here would hide from it whether the directives are the response's
+		// own ones or the configured fallback.
 		headerName, cacheControl := s.SurrogateKeyStorer.GetSurrogateControl(customWriter.Header())
 		if cacheControl == "" {
-			customWriter.Header().Set(headerName, s.DefaultMatchedUrl.DefaultCacheControl)
+			cacheControl = s.DefaultMatchedUrl.DefaultCacheControl
+			customWriter.Header().Set(headerName, cacheControl)
 		}
-
-		err := s.Store(customWriter, rq, requestCc, cachedKey, uri)
 
 		// Copy the buffer bytes so the returned value is independent of the
 		// underlying buffer, which may be reset or returned to the pool.
@@ -831,19 +978,18 @@ func (s *SouinBaseHandler) backfillStorers(idx int, cachedKey string, rq *http.R
 		return
 	}
 
-	storedDuration, err := time.ParseDuration(response.Header.Get(rfc.StoredTTLHeader))
-	if err != nil {
+	expiry, ok := rfc.StoredExpiry(response.Header)
+	if !ok {
 		return
 	}
 
-	dateHeader, err := http.ParseTime(response.Header.Get("Date"))
-	if err != nil {
-		return
+	headerName, _ := s.SurrogateKeyStorer.GetSurrogateControl(response.Header)
+	responseCc, _ := cacheobject.ParseResponseCacheControl(rfc.HeaderAllCommaSepValuesString(response.Header, headerName))
+
+	ma := retentionWindow(responseCc)
+	if remaining := time.Until(expiry); remaining > 0 {
+		ma += remaining
 	}
-
-	now := time.Now()
-
-	ma := storedDuration - now.Sub(dateHeader)
 
 	variedHeaders, _ := rfc.VariedHeaderAllCommaSepValues(response.Header)
 	variedKey := cachedKey + rfc.GetVariedCacheKey(rq, variedHeaders)
@@ -867,7 +1013,7 @@ func (s *SouinBaseHandler) backfillStorers(idx int, cachedKey string, rq *http.R
 	res, _ := dumpResponse(response.StatusCode, response.Header, bodyResponse.Bytes())
 
 	for _, currentStorer := range s.Storers[:idx] {
-		err = currentStorer.SetMultiLevel(
+		err := currentStorer.SetMultiLevel(
 			cachedKey,
 			variedKey,
 			res,
@@ -922,11 +1068,36 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 		}
 
 		if err == nil && req.Method != http.MethodGet && nrw.statusCode < http.StatusBadRequest {
+			// RFC 9111 section 4.4: an unsafe method that succeeded
+			// invalidates the target URI, and with it the `Location` and
+			// `Content-Location` it points at as long as they share the
+			// target's origin.
+			targets := []*url.URL{req.URL}
+			for _, name := range []string{"Location", "Content-Location"} {
+				value := rw.Header().Get(name)
+				if value == "" {
+					continue
+				}
+
+				target, parseErr := req.URL.Parse(value)
+				if parseErr != nil || (target.Host != "" && target.Host != req.Host) {
+					continue
+				}
+
+				targets = append(targets, target)
+			}
+
 			// Invalidate related GET keys when the method is not allowed and the response is valid
 			req.Method = http.MethodGet
-			keyname := s.context.SetContext(req, rq).Context().Value(context.Key).(string)
-			for _, storer := range s.Storers {
-				storer.Delete(core.MappingKeyPrefix + keyname)
+			for _, target := range targets {
+				invalidated := req.Clone(req.Context())
+				invalidated.URL = target
+				invalidated.RequestURI = target.RequestURI()
+
+				keyname := s.context.SetContext(invalidated, rq).Context().Value(context.Key).(string)
+				for _, storer := range s.Storers {
+					storer.Delete(core.MappingKeyPrefix + keyname)
+				}
 			}
 		}
 
@@ -992,6 +1163,9 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 	backfillIds := 0
 
 	s.Configuration.GetLogger().Debugf("Request cache-control %+v", requestCc)
+	// RFC 9111 section 5.2.1.4: a request carrying `no-cache` may not be
+	// answered from what is stored, so it is forwarded to the origin
+	// untouched. `no-store` only forbids storing, not reusing.
 	if modeContext.Bypass_request || !requestCc.NoCache {
 		validator := rfc.ParseRequest(req)
 		var fresh, stale *http.Response
@@ -1012,7 +1186,28 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 			backfillIds++
 		}
 
-		headerName, _ := s.SurrogateKeyStorer.GetSurrogateControl(customWriter.Header())
+		now := req.Context().Value(context.Now).(time.Time)
+		// A storer keeps a response around past the instant it turns stale so
+		// it can still be revalidated, so its own fresh/stale split is looser
+		// than the RFC one: the stored expiry is what decides whether the
+		// response may be reused without asking the origin first.
+		forceRevalidation := false
+		if fresh != nil && !modeContext.Bypass_response {
+			// A stored `no-cache` response may not be reused before the
+			// origin confirmed it is still valid, so it goes down the same
+			// road as a stale one and gets revalidated conditionally.
+			storedControlName, _ := s.SurrogateKeyStorer.GetSurrogateControl(fresh.Header)
+			if storedCc, _ := cacheobject.ParseResponseCacheControl(rfc.HeaderAllCommaSepValuesString(fresh.Header, storedControlName)); storedCc != nil && storedCc.NoCachePresent {
+				prometheus.Increment(prometheus.NoCachedResponseCounter)
+
+				forceRevalidation = true
+			}
+		}
+
+		if fresh != nil && (forceRevalidation || !rfc.IsStoredFresh(fresh.Header, now)) {
+			fresh, stale = nil, fresh
+		}
+
 		if fresh != nil && (!modeContext.Strict || rfc.ValidateCacheControl(fresh, requestCc)) {
 			freshClone := *fresh
 			freshClone.Header = fresh.Header.Clone()
@@ -1021,7 +1216,10 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 
 			response := fresh
 
-			if validator.ResponseETag != "" && validator.Matched {
+			// This shortcut answers a conditional client request; an
+			// unconditional one still has to go through the directives the
+			// stored response carries.
+			if validator.ResponseETag != "" && validator.Matched && len(validator.RequestETags) > 0 {
 				rfc.SetCacheStatusHeader(response, storerName)
 				for h, v := range response.Header {
 					customWriter.Header()[h] = v
@@ -1046,14 +1244,24 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 				return nil
 			}
 
-			if !modeContext.Bypass_request && validator.NeedRevalidation {
-				err := s.Revalidate(validator, next, customWriter, req, requestCc, cachedKey, uri)
-				_, _ = customWriter.Send()
+			// RFC 9110 section 13.1.3: a fresh stored response that has not
+			// been modified since the date the client presents can be
+			// answered with a `304` without asking the origin.
+			if validator.IfModifiedSincePresent && !validator.IfNoneMatchPresent {
+				if lastModified, err := rfc.ParseHTTPDate(response.Header.Get("Last-Modified")); err == nil && !lastModified.After(validator.IfModifiedSince) {
+					rfc.SetCacheStatusHeader(response, storerName)
+					maps.Copy(customWriter.Header(), response.Header)
+					customWriter.WriteHeader(http.StatusNotModified)
+					customWriter.handleBuffer(func(b *bytes.Buffer) {
+						b.Reset()
+					})
+					_, _ = customWriter.Send()
 
-				return err
+					return nil
+				}
 			}
-			if resCc, _ := cacheobject.ParseResponseCacheControl(rfc.HeaderAllCommaSepValuesString(response.Header, headerName)); !modeContext.Bypass_response && resCc.NoCachePresent {
-				prometheus.Increment(prometheus.NoCachedResponseCounter)
+
+			if !modeContext.Bypass_request && validator.NeedRevalidation {
 				err := s.Revalidate(validator, next, customWriter, req, requestCc, cachedKey, uri)
 				_, _ = customWriter.Send()
 
@@ -1075,160 +1283,24 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 
 				return err
 			}
-		} else if !requestCc.OnlyIfCached && (requestCc.MaxStaleSet || requestCc.MaxStale > -1) {
-			response := stale
-
-			if nil != response && (!modeContext.Strict || rfc.ValidateCacheControl(response, requestCc)) {
-				addTime, _ := time.ParseDuration(response.Header.Get(rfc.StoredTTLHeader))
-				rfc.SetCacheStatusHeader(response, storerName)
-
-				responseCc, _ := cacheobject.ParseResponseCacheControl(rfc.HeaderAllCommaSepValuesString(response.Header, "Cache-Control"))
-				if responseCc.StaleWhileRevalidate > 0 {
-					for h, v := range response.Header {
-						customWriter.Header()[h] = v
-					}
-					customWriter.WriteHeader(response.StatusCode)
-					rfc.HitStaleCache(&response.Header)
-					customWriter.handleBuffer(func(b *bytes.Buffer) {
-						_, _ = io.Copy(b, response.Body)
-						_ = response.Body.Close()
-					})
-					_, err := customWriter.Send()
-					customWriter = NewCustomWriter(req, rw, new(bytes.Buffer))
-					go func(v *core.Revalidator, goCw *CustomWriter, goRq *http.Request, goNext func(http.ResponseWriter, *http.Request) error, goCc *cacheobject.RequestCacheDirectives, goCk string, goUri string) {
-						_ = s.Revalidate(v, goNext, goCw, goRq, goCc, goCk, goUri)
-					}(validator, customWriter, req, next, requestCc, cachedKey, uri)
-
-					return err
-				}
-
-				if modeContext.Bypass_response || responseCc.MustRevalidate || responseCc.NoCachePresent || validator.NeedRevalidation {
-					req.Header["If-None-Match"] = append(req.Header["If-None-Match"], validator.ResponseETag)
-					err := s.Revalidate(validator, next, customWriter, req, requestCc, cachedKey, uri)
-					statusCode := customWriter.GetStatusCode()
-					if err != nil {
-						if responseCc.StaleIfError > -1 || requestCc.StaleIfError > 0 {
-							code := fmt.Sprintf("; fwd-status=%d", statusCode)
-							rfc.HitStaleCache(&response.Header)
-							response.Header.Set("Cache-Status", response.Header.Get("Cache-Status")+code)
-							maps.Copy(customWriter.Header(), response.Header)
-							customWriter.WriteHeader(response.StatusCode)
-							customWriter.handleBuffer(func(b *bytes.Buffer) {
-								b.Reset()
-								_, _ = io.Copy(b, response.Body)
-								_ = response.Body.Close()
-							})
-							_, err := customWriter.Send()
-
-							return err
-						}
-						rw.WriteHeader(http.StatusGatewayTimeout)
-						customWriter.handleBuffer(func(b *bytes.Buffer) {
-							b.Reset()
-						})
-						_, err := customWriter.Send()
-
-						return err
-					}
-
-					// A 304 may only be returned to the client when the client
-					// itself issued a conditional request. The upstream 304 here
-					// is often triggered by the If-None-Match we injected above
-					// for revalidation, so for unconditional requests we must
-					// turn it back into the full cached response.
-					clientConditional := validator.IfNoneMatchPresent || validator.IfModifiedSincePresent
-
-					if statusCode == http.StatusNotModified {
-						if !validator.Matched || !clientConditional {
-							rfc.SetCacheStatusHeader(response, storerName)
-							customWriter.WriteHeader(response.StatusCode)
-							maps.Copy(customWriter.Header(), response.Header)
-							customWriter.handleBuffer(func(b *bytes.Buffer) {
-								_, _ = io.Copy(b, response.Body)
-								_ = response.Body.Close()
-							})
-							_, _ = customWriter.Send()
-
-							return err
-						}
-					}
-
-					if statusCode != http.StatusNotModified && validator.Matched && clientConditional {
-						customWriter.WriteHeader(http.StatusNotModified)
-						customWriter.handleBuffer(func(b *bytes.Buffer) {
-							b.Reset()
-						})
-						_, _ = customWriter.Send()
-
-						return err
-					}
-
-					_, _ = customWriter.Send()
-
-					return err
-				}
-
-				if !modeContext.Strict || rfc.ValidateMaxAgeCachedStaleResponse(requestCc, responseCc, response, int(addTime.Seconds())) != nil {
-					customWriter.WriteHeader(response.StatusCode)
-					rfc.HitStaleCache(&response.Header)
-					maps.Copy(customWriter.Header(), response.Header)
-					customWriter.handleBuffer(func(b *bytes.Buffer) {
-						_, _ = io.Copy(b, response.Body)
-						_ = response.Body.Close()
-					})
-					_, err := customWriter.Send()
-
-					return err
-				}
-			}
 		} else if stale != nil {
-			response := stale
-
-			if !modeContext.Strict {
-				rfc.SetCacheStatusHeader(response, storerName)
-				customWriter.WriteHeader(response.StatusCode)
-				rfc.HitStaleCache(&response.Header)
-				maps.Copy(customWriter.Header(), response.Header)
-				customWriter.handleBuffer(func(b *bytes.Buffer) {
-					_, _ = io.Copy(b, response.Body)
-					_ = response.Body.Close()
-				})
-				_, err := customWriter.Send()
-
+			if handled, err := s.serveStale(stale, storerName, validator, next, customWriter, req, requestCc, cachedKey, uri, now); handled {
 				return err
 			}
-
-			addTime, _ := time.ParseDuration(response.Header.Get(rfc.StoredTTLHeader))
-			responseCc, _ := cacheobject.ParseResponseCacheControl(rfc.HeaderAllCommaSepValuesString(response.Header, "Cache-Control"))
-
-			if !modeContext.Strict || rfc.ValidateMaxAgeCachedStaleResponse(requestCc, responseCc, response, int(addTime.Seconds())) != nil {
-				_, _ = time.ParseDuration(response.Header.Get(rfc.StoredTTLHeader))
-				rfc.SetCacheStatusHeader(response, storerName)
-
-				responseCc, _ := cacheobject.ParseResponseCacheControl(rfc.HeaderAllCommaSepValuesString(response.Header, "Cache-Control"))
-
-				if responseCc.StaleIfError > -1 || requestCc.StaleIfError > 0 {
-					err := s.Revalidate(validator, next, customWriter, req, requestCc, cachedKey, uri)
-					statusCode := customWriter.GetStatusCode()
-					if err != nil {
-						code := fmt.Sprintf("; fwd-status=%d", statusCode)
-						rfc.HitStaleCache(&response.Header)
-						response.Header.Set("Cache-Status", response.Header.Get("Cache-Status")+code)
-						maps.Copy(customWriter.Header(), response.Header)
-						customWriter.WriteHeader(response.StatusCode)
-						customWriter.handleBuffer(func(b *bytes.Buffer) {
-							b.Reset()
-							_, _ = io.Copy(b, response.Body)
-							_ = response.Body.Close()
-						})
-						_, err := customWriter.Send()
-
-						return err
-					}
-				}
-
-			}
 		}
+	}
+
+	// RFC 9111 section 5.2.1.7: `only-if-cached` forbids forwarding the
+	// request, so with nothing left to serve the cache answers itself.
+	if !modeContext.Bypass_request && requestCc.OnlyIfCached {
+		rw.Header().Set("Cache-Status", cacheName+"; fwd=uri-miss; detail=ONLY-IF-CACHED")
+		customWriter.WriteHeader(http.StatusGatewayTimeout)
+		customWriter.handleBuffer(func(b *bytes.Buffer) {
+			b.Reset()
+		})
+		_, err := customWriter.Send()
+
+		return err
 	}
 
 	errorCacheCh := make(chan error, 1)
@@ -1271,4 +1343,225 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 		}
 		return v
 	}
+}
+
+// headersKeptOnRevalidation are the stored header fields a `304` must not
+// overwrite. The body that gets served is the stored one, so its framing
+// stays authoritative, and the bookkeeping fields Souin adds itself are
+// recomputed when the refreshed response is stored again.
+var headersKeptOnRevalidation = map[string]bool{
+	"Content-Length":       true,
+	"Cache-Status":         true,
+	rfc.StoredLengthHeader: true,
+	rfc.StoredTTLHeader:    true,
+	rfc.StoredExpiryHeader: true,
+}
+
+// refreshStoredHeaders applies the header fields of a `304` to the stored
+// ones, as RFC 9111 section 4.3.4 requires.
+func refreshStoredHeaders(stored, from http.Header) http.Header {
+	refreshed := stored.Clone()
+	// The stored response has just been validated, so whatever age it had
+	// accumulated is gone unless the origin says otherwise.
+	refreshed.Del("Age")
+
+	for name, values := range from {
+		if headersKeptOnRevalidation[http.CanonicalHeaderKey(name)] {
+			continue
+		}
+
+		refreshed[http.CanonicalHeaderKey(name)] = values
+	}
+
+	removeHopByHopHeaders(refreshed)
+
+	return refreshed
+}
+
+func writeCachedResponse(customWriter *CustomWriter, headers http.Header, statusCode int, body []byte) {
+	current := customWriter.Header()
+	for name := range current {
+		delete(current, name)
+	}
+	maps.Copy(current, headers)
+
+	customWriter.WriteHeader(statusCode)
+	customWriter.handleBuffer(func(b *bytes.Buffer) {
+		b.Reset()
+		_, _ = b.Write(body)
+	})
+}
+
+// serveStale decides what to do with a stored response that is no longer
+// fresh: serve it as is when the request (`max-stale`) or the response
+// (`stale-while-revalidate`, `stale-if-error`) allows it, and otherwise
+// revalidate it with the origin before reusing it (RFC 9111 sections 4.2.4
+// and 4.3). It reports whether it handled the request at all: a stale
+// response with no validator and no reason to be served is left to the
+// regular upstream path.
+func (s *SouinBaseHandler) serveStale(
+	stale *http.Response,
+	storerName string,
+	validator *core.Revalidator,
+	next handlerFunc,
+	customWriter *CustomWriter,
+	rq *http.Request,
+	requestCc *cacheobject.RequestCacheDirectives,
+	cachedKey string,
+	uri string,
+	now time.Time,
+) (bool, error) {
+	modeContext := rq.Context().Value(context.Mode).(*context.ModeContext)
+	headerName, _ := s.SurrogateKeyStorer.GetSurrogateControl(stale.Header)
+	responseCc, _ := cacheobject.ParseResponseCacheControl(rfc.HeaderAllCommaSepValuesString(stale.Header, headerName))
+	if responseCc == nil {
+		responseCc = &cacheobject.ResponseCacheDirectives{}
+	}
+
+	staleness := rfc.StoredStaleness(stale.Header, now)
+	// Past the configured stale window the stored response may no longer be
+	// served, whatever the request asks for; it is only good to revalidate.
+	withinStaleWindow := staleness <= s.Configuration.GetDefaultCache().GetStale()
+	// `must-revalidate` and `no-cache` both forbid reusing the response
+	// without contacting the origin first, whatever the client allows.
+	mustRevalidate := responseCc.MustRevalidate || responseCc.NoCachePresent || validator.NeedRevalidation
+
+	storedBody := new(bytes.Buffer)
+	_, _ = io.Copy(storedBody, stale.Body)
+	_ = stale.Body.Close()
+	storedHeaders := stale.Header.Clone()
+
+	serveStored := func() (bool, error) {
+		rfc.SetCacheStatusHeader(stale, storerName)
+		rfc.HitStaleCache(&stale.Header)
+		writeCachedResponse(customWriter, stale.Header, stale.StatusCode, storedBody.Bytes())
+		_, err := customWriter.Send()
+
+		return true, err
+	}
+
+	if !modeContext.Strict {
+		if withinStaleWindow {
+			return serveStored()
+		}
+
+		return false, nil
+	}
+
+	if requestCc.OnlyIfCached {
+		if withinStaleWindow {
+			return serveStored()
+		}
+
+		customWriter.WriteHeader(http.StatusGatewayTimeout)
+		customWriter.handleBuffer(func(b *bytes.Buffer) {
+			b.Reset()
+		})
+		_, err := customWriter.Send()
+
+		return true, err
+	}
+
+	if !mustRevalidate {
+		acceptsStale := requestCc.MaxStaleSet ||
+			(requestCc.MaxStale > -1 && staleness <= time.Duration(requestCc.MaxStale)*time.Second)
+		if withinStaleWindow && acceptsStale && rfc.ValidateCacheControl(stale, requestCc) {
+			return serveStored()
+		}
+
+		// RFC 5861 section 3: within the stale-while-revalidate window the
+		// stale response is served right away and refreshed in the
+		// background. That window is the response's own, it does not depend
+		// on how long this cache was configured to keep stale content.
+		if staleness <= time.Duration(responseCc.StaleWhileRevalidate)*time.Second {
+			handled, err := serveStored()
+			backgroundWriter := NewCustomWriter(rq, customWriter.Rw, new(bytes.Buffer))
+			go func(goRq *http.Request) {
+				_ = s.Revalidate(validator, next, backgroundWriter, goRq, requestCc, cachedKey, uri)
+			}(rq)
+
+			return handled, err
+		}
+	}
+
+	// RFC 5861 section 4: the stale response may stand in for an origin that
+	// cannot be reached, but only because `stale-if-error` asked for it.
+	canServeOnError := withinStaleWindow &&
+		(responseCc.StaleIfError > -1 || requestCc.StaleIfError > 0)
+
+	hasValidator := storedHeaders.Get("Etag") != "" || storedHeaders.Get("Last-Modified") != ""
+	if !mustRevalidate && !hasValidator && !canServeOnError {
+		// Nothing to revalidate with and no reason to keep the stored
+		// response around for this request: a plain fetch it is. A response
+		// under `must-revalidate` is not in that case, it has to go through a
+		// revalidation that fails loudly.
+		return false, nil
+	}
+
+	clientConditional := validator.IfNoneMatchPresent || validator.IfModifiedSincePresent
+
+	// RFC 9111 section 4.3.1: revalidate with the validators of the stored
+	// response so the origin can answer with a bare `304`.
+	if etag := storedHeaders.Get("Etag"); etag != "" {
+		// Entity-tags travel quoted, whatever shape the origin stored them
+		// in, otherwise the validator it gets back is not the one it sent.
+		if !strings.HasPrefix(etag, `"`) && !strings.HasPrefix(etag, "W/") {
+			etag = `"` + etag + `"`
+		}
+
+		rq.Header.Set("If-None-Match", etag)
+	}
+	if lastModified := storedHeaders.Get("Last-Modified"); lastModified != "" {
+		rq.Header.Set("If-Modified-Since", lastModified)
+	}
+
+	err := s.Revalidate(validator, next, customWriter, rq, requestCc, cachedKey, uri)
+	statusCode := customWriter.GetStatusCode()
+
+	if err != nil {
+		if canServeOnError {
+			rfc.SetCacheStatusHeader(stale, storerName)
+			rfc.HitStaleCache(&stale.Header)
+			stale.Header.Set("Cache-Status", stale.Header.Get("Cache-Status")+fmt.Sprintf("; fwd-status=%d", statusCode))
+			writeCachedResponse(customWriter, stale.Header, stale.StatusCode, storedBody.Bytes())
+			_, sendErr := customWriter.Send()
+
+			return true, sendErr
+		}
+
+		customWriter.Rw.WriteHeader(http.StatusGatewayTimeout)
+		customWriter.handleBuffer(func(b *bytes.Buffer) {
+			b.Reset()
+		})
+		_, sendErr := customWriter.Send()
+
+		return true, sendErr
+	}
+
+	if statusCode != http.StatusNotModified {
+		_, sendErr := customWriter.Send()
+
+		return true, sendErr
+	}
+
+	// RFC 9111 section 4.3.4: the stored response is refreshed with what the
+	// `304` carries, then reused.
+	refreshed := refreshStoredHeaders(storedHeaders, customWriter.Header())
+	writeCachedResponse(customWriter, refreshed, stale.StatusCode, storedBody.Bytes())
+
+	_ = s.Store(customWriter, rq, requestCc, cachedKey, uri)
+
+	// A `304` may only reach the client when the client asked conditionally
+	// itself; the one the origin just sent answers the validators this cache
+	// added on its own behalf.
+	if clientConditional && validator.Matched {
+		customWriter.WriteHeader(http.StatusNotModified)
+		customWriter.handleBuffer(func(b *bytes.Buffer) {
+			b.Reset()
+		})
+	}
+
+	_, sendErr := customWriter.Send()
+
+	return true, sendErr
 }

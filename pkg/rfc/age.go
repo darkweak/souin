@@ -3,6 +3,8 @@ package rfc
 import (
 	"net/http"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/pquerna/cachecontrol/cacheobject"
 )
@@ -17,18 +19,12 @@ func validateMaxAgeCachedResponse(res *http.Response, maxAge int, addTime int) *
 	return res
 }
 
+// ValidateMaxAgeCachedResponse checks a stored response against the `max-age`
+// the request asks for. RFC 9111 section 5.2.1.1 makes it a ceiling on the
+// age of what the client is willing to accept, so the response's own
+// freshness lifetime has no say in it.
 func ValidateMaxAgeCachedResponse(co *cacheobject.RequestCacheDirectives, res *http.Response) *http.Response {
-	responseCc, _ := cacheobject.ParseResponseCacheControl(HeaderAllCommaSepValuesString(res.Header, "Cache-Control"))
-	ma := co.MaxAge
-	if responseCc.MaxAge > -1 {
-		ma = responseCc.MaxAge
-	}
-	// s-maxage overwrites max-age in the response if available together
-	if responseCc.SMaxAge > -1 {
-		ma = responseCc.SMaxAge
-	}
-
-	return validateMaxAgeCachedResponse(res, int(ma), 0)
+	return validateMaxAgeCachedResponse(res, int(co.MaxAge), 0)
 }
 
 func ValidateMaxAgeCachedStaleResponse(co *cacheobject.RequestCacheDirectives, resCo *cacheobject.ResponseCacheDirectives, res *http.Response, addTime int) *http.Response {
@@ -55,4 +51,46 @@ func ValidateMaxAgeCachedStaleResponse(co *cacheobject.RequestCacheDirectives, r
 	}
 
 	return validateMaxAgeCachedResponse(res, int(co.MaxStale), addTime)
+}
+
+// ParseAge parses an `Age` header value. RFC 9111 section 5.1 defines it as a
+// single delta-seconds. A sender combining several `Age` values onto one line
+// produces a comma separated list, of which only the first element is
+// meaningful. Trailing parameters are not part of the delta-seconds either,
+// and a value that is not a delta-seconds at all cannot be used and is
+// ignored.
+func ParseAge(value string) time.Duration {
+	if value == "" {
+		return 0
+	}
+
+	first, _, _ := strings.Cut(value, ",")
+	first, _, _ = strings.Cut(first, ";")
+
+	seconds, err := strconv.Atoi(strings.TrimSpace(first))
+	if err != nil || seconds < 0 {
+		return 0
+	}
+
+	return time.Duration(seconds) * time.Second
+}
+
+// InitialAge returns the age a response already had when it reached this
+// cache, following the corrected_initial_age computation of RFC 9111 section
+// 4.2.3.
+func InitialAge(headers http.Header, responseTime time.Time) time.Duration {
+	age := ParseAge(headers.Get("Age"))
+
+	apparentAge := time.Duration(0)
+	if date, dateErr := ParseHTTPDate(headers.Get("Date")); dateErr == nil {
+		if apparentAge = responseTime.Sub(date); apparentAge < 0 {
+			apparentAge = 0
+		}
+	}
+
+	if apparentAge > age {
+		return apparentAge
+	}
+
+	return age
 }
