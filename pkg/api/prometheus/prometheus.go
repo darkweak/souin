@@ -7,6 +7,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	io_prometheus_client "github.com/prometheus/client_model/go"
 )
 
 const (
@@ -59,6 +60,30 @@ func (p *PrometheusAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 }
 
 var registered map[string]interface{}
+
+// Get current value of a Counter metric
+func GetCounter(name string) *float64 {
+	if _, ok := registered[name]; ok {
+		m := io_prometheus_client.Metric{}
+		registered[name].(prometheus.Counter).Write(&m)
+		return m.Counter.Value
+	}
+	return nil
+}
+
+// Get current value of an Average metric
+func GetAverage(name string) *float64 {
+	if _, ok := registered[name]; ok {
+		m := io_prometheus_client.Metric{}
+		registered[name].(prometheus.Histogram).Write(&m)
+		if m.Histogram.SampleSum != nil && m.Histogram.SampleCountFloat != nil {
+			average := *m.Histogram.SampleSum / *m.Histogram.SampleCountFloat
+			return &average
+		}
+		return nil
+	}
+	return nil
+}
 
 // Increment will increment the counter.
 func Increment(name string) {
