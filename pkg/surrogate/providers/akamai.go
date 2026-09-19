@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/darkweak/souin/configurationtypes"
 )
@@ -14,7 +15,7 @@ type AkamaiSurrogateStorage struct {
 	url string
 }
 
-func generateAkamaiInstance(config configurationtypes.AbstractConfigurationInterface, defaultStorerName string) *AkamaiSurrogateStorage {
+func generateAkamaiInstance(config configurationtypes.AbstractConfigurationInterface, defaultStorerName string, defaultTTL time.Duration) *AkamaiSurrogateStorage {
 	cdn := config.GetDefaultCache().GetCDN()
 	a := &AkamaiSurrogateStorage{baseStorage: &baseStorage{}}
 
@@ -28,7 +29,7 @@ func generateAkamaiInstance(config configurationtypes.AbstractConfigurationInter
 		a.url += "/" + cdn.Network
 	}
 
-	a.init(config, defaultStorerName)
+	a.init(config, defaultStorerName, defaultTTL)
 	a.parent = a
 
 	return a
