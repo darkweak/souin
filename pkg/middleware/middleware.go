@@ -859,12 +859,8 @@ func (s *SouinBaseHandler) backfillStorers(idx int, cachedKey string, rq *http.R
 		vhs.Set(hn[0], rq.Header.Get(hn[0]))
 	}
 
-	bodyResponse := new(bytes.Buffer)
-	_, _ = io.Copy(bodyResponse, response.Body)
-
-	_ = response.Body.Close()
-	response.Body = io.NopCloser(bytes.NewReader(bodyResponse.Bytes()))
-	res, _ := dumpResponse(response.StatusCode, response.Header, bodyResponse.Bytes())
+	body, _ := io.ReadAll(response.Body)
+	res, _ := dumpResponse(response.StatusCode, response.Header, body)
 
 	for _, currentStorer := range s.Storers[:idx] {
 		err = currentStorer.SetMultiLevel(
@@ -1014,10 +1010,9 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 
 		headerName, _ := s.SurrogateKeyStorer.GetSurrogateControl(customWriter.Header())
 		if fresh != nil && (!modeContext.Strict || rfc.ValidateCacheControl(fresh, requestCc)) {
-			freshClone := *fresh
-			freshClone.Header = fresh.Header.Clone()
+			freshClone, _ := cloneResponse(fresh)
 
-			go s.backfillStorers(backfillIds, cachedKey, req.Clone(req.Context()), &freshClone)
+			go s.backfillStorers(backfillIds, cachedKey, req.Clone(req.Context()), freshClone)
 
 			response := fresh
 
@@ -1271,4 +1266,27 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 		}
 		return v
 	}
+}
+
+func cloneResponse(res *http.Response) (*http.Response, error) {
+	if res == nil {
+		return nil, nil
+	}
+
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	res.Body.Close()
+	res.Body = io.NopCloser(bytes.NewReader(body))
+
+	clone := *res
+	clone.Body = io.NopCloser(bytes.NewReader(body))
+
+	if res.Header != nil {
+		clone.Header = res.Header.Clone()
+	}
+
+	return &clone, nil
 }
