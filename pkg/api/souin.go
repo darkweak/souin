@@ -69,7 +69,8 @@ func initializeSouin(
 	}
 }
 
-// BulkDelete allow user to delete multiple items with regexp
+// BulkDelete deletes the given key, its mapping and the keys referenced by that mapping.
+// Every deletion is exact: the key is never interpreted as a regexp.
 func (s *SouinAPI) BulkDelete(key string, purge bool) {
 	key, _ = strings.CutPrefix(key, core.MappingKeyPrefix)
 	for _, current := range s.storers {
@@ -104,8 +105,6 @@ func (s *SouinAPI) BulkDelete(key string, purge bool) {
 
 		current.Delete(key)
 	}
-
-	s.Delete(key)
 }
 
 // Delete will delete a record into the provider cache system and will update the Souin API if enabled
@@ -276,7 +275,9 @@ func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 		case groupInvalidationType:
 			var surrogateKeys []string
 			keysToInvalidate, surrogateKeys = s.surrogateStorage.Purge(http.Header{"Surrogate-Key": invalidator.Groups})
-			keysToInvalidate = append(keysToInvalidate, surrogateKeys...)
+			for _, k := range surrogateKeys {
+				keysToInvalidate = append(keysToInvalidate, "SURROGATE_"+k)
+			}
 		case uriPrefixInvalidationType, uriInvalidationType:
 			bodyKeys := []string{}
 			listedKeys := s.GetAll()
@@ -360,7 +361,9 @@ func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 				s.BulkDelete(k, true)
 			}
 			for _, k := range surrogateKeys {
-				s.BulkDelete("SURROGATE_"+k, true)
+				for _, current := range s.storers {
+					current.Delete("SURROGATE_" + k)
+				}
 			}
 		}
 		w.WriteHeader(http.StatusNoContent)
