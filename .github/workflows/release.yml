@@ -117,8 +117,9 @@ jobs:
       -
         name: Generate Tyk amd64 artifacts
         run: cd plugins/tyk && make vendor && docker compose -f docker-compose.yml.artifacts up
-      - 
+      -
         name: Upload Tyk amd64 artifacts
-        uses: actions/upload-artifact@v3
-        with: 
+        uses: actions/upload-artifact@v4
+        with:
+          name: tyk-amd64-artifacts
           path: plugins/tyk/*.so
