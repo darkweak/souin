@@ -1239,10 +1239,9 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 		}
 
 		if fresh != nil && (!modeContext.Strict || rfc.ValidateCacheControl(fresh, requestCc)) {
-			freshClone := *fresh
-			freshClone.Header = fresh.Header.Clone()
+			freshClone, _ := cloneResponse(fresh)
 
-			go s.backfillStorers(backfillIds, cachedKey, req.Clone(req.Context()), &freshClone)
+			go s.backfillStorers(backfillIds, cachedKey, req.Clone(req.Context()), freshClone)
 
 			response := fresh
 
@@ -1596,4 +1595,27 @@ func (s *SouinBaseHandler) serveStale(
 	_, sendErr := customWriter.Send()
 
 	return true, sendErr
+}
+
+func cloneResponse(res *http.Response) (*http.Response, error) {
+	if res == nil {
+		return nil, nil
+	}
+
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	res.Body.Close()
+	res.Body = io.NopCloser(bytes.NewReader(body))
+
+	clone := *res
+	clone.Body = io.NopCloser(bytes.NewReader(body))
+
+	if res.Header != nil {
+		clone.Header = res.Header.Clone()
+	}
+
+	return &clone, nil
 }
