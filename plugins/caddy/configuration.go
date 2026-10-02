@@ -62,6 +62,8 @@ type DefaultCache struct {
 	DisableCoalescing bool `json:"disable_coalescing"`
 	// MappingEvictionInterval interval between eviction
 	MappingEvictionInterval configurationtypes.Duration `json:"mapping_eviction_interval"`
+	// Store responses carrying a Set-Cookie header.
+	CacheSetCookie bool `json:"cache_set_cookie"`
 }
 
 // GetAllowedHTTPVerbs returns the allowed verbs to cache
@@ -187,6 +189,11 @@ func (d *DefaultCache) GetMaxBodyBytes() uint64 {
 // IsCoalescingDisable returns if the coalescing is disabled
 func (d *DefaultCache) IsCoalescingDisable() bool {
 	return d.DisableCoalescing
+}
+
+// GetCacheSetCookie returns if responses carrying a Set-Cookie header can be stored
+func (d *DefaultCache) GetCacheSetCookie() bool {
+	return d.CacheSetCookie
 }
 
 // Configuration holder
@@ -774,6 +781,8 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isGlobal boo
 				}
 			case "disable_coalescing":
 				cfg.DefaultCache.DisableCoalescing = true
+			case "cache_set_cookie":
+				cfg.DefaultCache.CacheSetCookie = true
 			case "mapping_eviction_interval":
 				args := h.RemainingArgs()
 				interval, err := time.ParseDuration(args[0])

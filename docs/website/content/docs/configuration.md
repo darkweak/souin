@@ -137,6 +137,11 @@ The badger prefix configure the badger storage. (e.g. `default_cache.badger`).
 * **configuration**: Configure Badger directly in your configuration file.  
 [See the Badger configuration for the options]({{% relref "/docs/storages/badger" %}})
 
+#### Cache Set-Cookie
+The cache_set_cookie prefix allows storing responses carrying a `Set-Cookie` header. (e.g. `default_cache.cache_set_cookie`).  
+By default such responses are not stored, so one user's cookie can't be replayed to other clients. Only enable it if your upstream never sends user-specific cookies on cacheable responses.  
+default: `false`
+
 #### Default Cache-Control
 The default_cache_control prefix configure the Cache-Control to set if the upstream server doesn't return any. (e.g. `default_cache.default_cache_control`).  
 example: `public, max-age=3600`

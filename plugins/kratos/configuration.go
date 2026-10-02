@@ -382,6 +382,8 @@ func parseDefaultCache(dcConfiguration map[string]config.Value) *configurationty
 			if ok {
 				dc.MaxBodyBytes = mbb
 			}
+		case "cache_set_cookie":
+			dc.CacheSetCookie, _ = defaultCacheV.Bool()
 		}
 	}
 

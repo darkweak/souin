@@ -284,6 +284,7 @@ type DefaultCache struct {
 	MaxBodyBytes                 uint64        `json:"max_cacheable_body_bytes" yaml:"max_cacheable_body_bytes"`
 	DisableCoalescing            bool          `json:"disable_coalescing" yaml:"disable_coalescing"`
 	MappingEvictionInterval      Duration      `json:"mapping_eviction_interval" yaml:"mapping_eviction_interval"`
+	CacheSetCookie               bool          `json:"cache_set_cookie" yaml:"cache_set_cookie"`
 }
 
 // GetAllowedHTTPVerbs returns the allowed verbs to cache
@@ -406,6 +407,11 @@ func (d *DefaultCache) IsCoalescingDisable() bool {
 	return d.DisableCoalescing
 }
 
+// GetCacheSetCookie returns if responses carrying a Set-Cookie header can be stored
+func (d *DefaultCache) GetCacheSetCookie() bool {
+	return d.CacheSetCookie
+}
+
 // GetMappingEvictionInterval returns the interval for mapping eviction
 func (d *DefaultCache) GetMappingEvictionInterval() time.Duration {
 	if d.MappingEvictionInterval.Duration == 0 {
@@ -441,6 +447,7 @@ type DefaultCacheInterface interface {
 	GetMaxBodyBytes() uint64
 	IsCoalescingDisable() bool
 	GetMappingEvictionInterval() time.Duration
+	GetCacheSetCookie() bool
 }
 
 // APIEndpoint is the minimal structure to define an endpoint

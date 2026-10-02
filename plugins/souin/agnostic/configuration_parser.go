@@ -338,6 +338,8 @@ func parseDefaultCache(dcConfiguration map[string]interface{}) *configurationtyp
 			dc.DefaultCacheControl, _ = defaultCacheV.(string)
 		case "max_cacheable_body_bytes":
 			dc.MaxBodyBytes, _ = defaultCacheV.(uint64)
+		case "cache_set_cookie":
+			dc.CacheSetCookie, _ = defaultCacheV.(bool)
 		}
 	}
 

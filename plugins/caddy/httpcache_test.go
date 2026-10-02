@@ -120,6 +120,46 @@ func TestQueryString(t *testing.T) {
 	}
 }
 
+func TestCacheSetCookie(t *testing.T) {
+	tester := caddytest.NewTester(t)
+	tester.InitServer(`
+	{
+		admin localhost:2999
+		http_port     9080
+		https_port    9443
+		cache {
+			ttl 1000s
+		}
+	}
+	localhost:9080 {
+		route /set-cookie-default {
+			cache
+			header Set-Cookie "session=abc123"
+			respond "Hello, Set-Cookie!"
+		}
+		route /set-cookie-enabled {
+			cache {
+				cache_set_cookie
+			}
+			header Set-Cookie "session=abc123"
+			respond "Hello, Set-Cookie!"
+		}
+	}`, "caddyfile")
+
+	resp1, _ := tester.AssertGetResponse(`http://localhost:9080/set-cookie-default`, 200, "Hello, Set-Cookie!")
+	if resp1.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; key=GET-http-localhost:9080-/set-cookie-default; detail=UNCACHEABLE-SET-COOKIE" {
+		t.Errorf("unexpected Cache-Status header %v", resp1.Header.Get("Cache-Status"))
+	}
+
+	resp2, _ := tester.AssertGetResponse(`http://localhost:9080/set-cookie-enabled`, 200, "Hello, Set-Cookie!")
+	if resp2.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-http-localhost:9080-/set-cookie-enabled" {
+		t.Errorf("unexpected Cache-Status header %v", resp2.Header.Get("Cache-Status"))
+	}
+
+	resp3, _ := tester.AssertGetResponse(`http://localhost:9080/set-cookie-enabled`, 200, "Hello, Set-Cookie!")
+	compareHit(t, resp3.Header, "GET-http-localhost:9080-/set-cookie-enabled", "DEFAULT", 1000)
+}
+
 func TestQueryStringSort(t *testing.T) {
 	tester := caddytest.NewTester(t)
 	tester.InitServer(`
