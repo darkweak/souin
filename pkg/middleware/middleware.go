@@ -1021,6 +1021,37 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 
 			response := fresh
 
+			// A stored no-cache response must not be reused without a
+			// successful validation (RFC 9111 §5.2.2.4), so this has to run
+			// before the ETag shortcut below, which matches any unconditional
+			// request.
+			if resCc, _ := cacheobject.ParseResponseCacheControl(rfc.HeaderAllCommaSepValuesString(response.Header, headerName)); !modeContext.Bypass_response && resCc.NoCachePresent {
+				prometheus.Increment(prometheus.NoCachedResponseCounter)
+
+				// Validate with the stored ETag when the client did not send
+				// its own validators, and turn an upstream 304 back into the
+				// stored response.
+				clientConditional := validator.IfNoneMatchPresent || validator.IfModifiedSincePresent
+				if !clientConditional && validator.ResponseETag != "" {
+					req.Header.Set("If-None-Match", validator.ResponseETag)
+				}
+				err := s.Revalidate(validator, next, customWriter, req, requestCc, cachedKey, uri)
+				if err == nil && !clientConditional && customWriter.GetStatusCode() == http.StatusNotModified {
+					cacheStatus := customWriter.Header().Get("Cache-Status")
+					maps.Copy(customWriter.Header(), response.Header)
+					customWriter.Header().Set("Cache-Status", cacheStatus)
+					customWriter.WriteHeader(response.StatusCode)
+					customWriter.handleBuffer(func(b *bytes.Buffer) {
+						b.Reset()
+						_, _ = io.Copy(b, response.Body)
+						_ = response.Body.Close()
+					})
+				}
+				_, _ = customWriter.Send()
+
+				return err
+			}
+
 			if validator.ResponseETag != "" && validator.Matched {
 				rfc.SetCacheStatusHeader(response, storerName)
 				for h, v := range response.Header {
@@ -1047,13 +1078,6 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 			}
 
 			if !modeContext.Bypass_request && validator.NeedRevalidation {
-				err := s.Revalidate(validator, next, customWriter, req, requestCc, cachedKey, uri)
-				_, _ = customWriter.Send()
-
-				return err
-			}
-			if resCc, _ := cacheobject.ParseResponseCacheControl(rfc.HeaderAllCommaSepValuesString(response.Header, headerName)); !modeContext.Bypass_response && resCc.NoCachePresent {
-				prometheus.Increment(prometheus.NoCachedResponseCounter)
 				err := s.Revalidate(validator, next, customWriter, req, requestCc, cachedKey, uri)
 				_, _ = customWriter.Send()
 
