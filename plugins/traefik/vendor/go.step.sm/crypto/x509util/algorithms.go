@@ -27,6 +27,9 @@ const (
 	SHA384WithRSAPSS = "SHA384-RSAPSS"
 	SHA512WithRSAPSS = "SHA512-RSAPSS"
 	PureEd25519      = "Ed25519"
+	MLDSA44          = "ML-DSA-44"
+	MLDSA65          = "ML-DSA-65"
+	MLDSA87          = "ML-DSA-87"
 )
 
 var (
@@ -51,12 +54,19 @@ var (
 	oidISOSignatureSHA1WithRSA = asn1.ObjectIdentifier{1, 3, 14, 3, 2, 29}
 )
 
-var signatureAlgorithmMapping = []struct {
+type signatureAlgorithmDetail struct {
 	name  string
 	value x509.SignatureAlgorithm
 	oid   asn1.ObjectIdentifier
 	hash  crypto.Hash
-}{
+}
+
+// signatureAlgorithmMapping is the effective list of supported signature
+// algorithms. It is the base list plus any algorithms that are only available
+// on newer Go toolchains (e.g. ML-DSA on Go 1.27+, see algorithms_go127.go).
+var signatureAlgorithmMapping = append(baseSignatureAlgorithmMapping, mldsaSignatureAlgorithms...)
+
+var baseSignatureAlgorithmMapping = []signatureAlgorithmDetail{
 	{"", x509.UnknownSignatureAlgorithm, nil, crypto.Hash(0)},
 	{MD2WithRSA, x509.MD2WithRSA, oidSignatureMD2WithRSA, crypto.Hash(0) /* no value for MD2 */},
 	{MD5WithRSA, x509.MD5WithRSA, oidSignatureMD5WithRSA, crypto.MD5},

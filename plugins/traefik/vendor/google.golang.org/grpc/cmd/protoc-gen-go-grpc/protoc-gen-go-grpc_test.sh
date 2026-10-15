@@ -15,7 +15,7 @@
 # limitations under the License.
 
 # Uncomment to enable debugging.
-# set -x 
+# set -x
 
 WORKDIR="$(dirname $0)"
 TEMPDIR=$(mktemp -d)
@@ -24,13 +24,13 @@ trap "rm -rf ${TEMPDIR}" EXIT
 
 # Build protoc-gen-go-grpc binary and add to $PATH.
 pushd "${WORKDIR}"
-go build -o "${TEMPDIR}" . 
+go build -o "${TEMPDIR}" .
 PATH="${TEMPDIR}:${PATH}"
 popd
 
 protoc \
     --go-grpc_out="${TEMPDIR}" \
-    --go-grpc_opt=paths=source_relative,use_generic_streams_experimental=true \
+    --go-grpc_opt=paths=source_relative \
     "examples/route_guide/routeguide/route_guide.proto"
 
 GOLDENFILE="examples/route_guide/routeguide/route_guide_grpc.pb.go"
@@ -38,7 +38,7 @@ GENFILE="${TEMPDIR}/examples/route_guide/routeguide/route_guide_grpc.pb.go"
 
 # diff is piped to [[ $? == 1 ]] to avoid exiting on diff but exit on error
 # (like if the file was not found). See man diff for more info.
-DIFF=$(diff "${GOLDENFILE}" "${GENFILE}" || [[ $? == 1 ]]) 
+DIFF=$(diff "${GOLDENFILE}" "${GENFILE}" || [[ $? == 1 ]])
 if [[ -n "${DIFF}" ]]; then
     echo -e "ERROR: Generated file differs from golden file:\n${DIFF}"
     echo -e "If you have made recent changes to protoc-gen-go-grpc," \

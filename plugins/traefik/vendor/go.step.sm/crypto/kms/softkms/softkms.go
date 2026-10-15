@@ -7,11 +7,16 @@ import (
 	"crypto/ed25519"
 	"crypto/rsa"
 	"crypto/x509"
+	"fmt"
+	"os"
+	"syscall"
 
 	"github.com/pkg/errors"
+
 	"go.step.sm/crypto/keyutil"
 	"go.step.sm/crypto/kms/apiv1"
 	"go.step.sm/crypto/kms/uri"
+	"go.step.sm/crypto/mldsa"
 	"go.step.sm/crypto/pemutil"
 	"go.step.sm/crypto/x25519"
 )
@@ -39,10 +44,13 @@ var signatureAlgorithmMapping = map[apiv1.SignatureAlgorithm]algorithmAttributes
 	apiv1.ECDSAWithSHA384:          {"EC", "P-384"},
 	apiv1.ECDSAWithSHA512:          {"EC", "P-521"},
 	apiv1.PureEd25519:              {"OKP", "Ed25519"},
+	apiv1.MLDSA44:                  {"AKP", "ML-DSA-44"},
+	apiv1.MLDSA65:                  {"AKP", "ML-DSA-65"},
+	apiv1.MLDSA87:                  {"AKP", "ML-DSA-87"},
 }
 
 // generateKey is used for testing purposes.
-var generateKey = func(kty, crv string, size int) (interface{}, interface{}, error) {
+var generateKey = func(kty, crv string, size int) (any, any, error) {
 	if kty == "RSA" && size == 0 {
 		size = DefaultRSAKeySize
 	}
@@ -93,7 +101,7 @@ func (k *SoftKMS) CreateSigner(req *apiv1.CreateSignerRequest) (crypto.Signer, e
 	case req.SigningKey != "":
 		v, err := pemutil.Read(filename(req.SigningKey), opts...)
 		if err != nil {
-			return nil, err
+			return nil, toKMSError(err, "key not found")
 		}
 		sig, ok := v.(crypto.Signer)
 		if !ok {
@@ -138,13 +146,13 @@ func (k *SoftKMS) CreateKey(req *apiv1.CreateKeyRequest) (*apiv1.CreateKeyRespon
 func (k *SoftKMS) GetPublicKey(req *apiv1.GetPublicKeyRequest) (crypto.PublicKey, error) {
 	v, err := pemutil.Read(filename(req.Name))
 	if err != nil {
-		return nil, err
+		return nil, toKMSError(err, "key not found")
 	}
 
 	switch vv := v.(type) {
 	case *x509.Certificate:
 		return vv.PublicKey, nil
-	case *rsa.PublicKey, *ecdsa.PublicKey, ed25519.PublicKey, x25519.PublicKey:
+	case *rsa.PublicKey, *ecdsa.PublicKey, *mldsa.PublicKey, ed25519.PublicKey, x25519.PublicKey:
 		return vv, nil
 	case crypto.Signer:
 		return vv.Public(), nil
@@ -178,7 +186,7 @@ func (k *SoftKMS) CreateDecrypter(req *apiv1.CreateDecrypterRequest) (crypto.Dec
 	case req.DecryptionKey != "":
 		v, err := pemutil.Read(filename(req.DecryptionKey), opts...)
 		if err != nil {
-			return nil, err
+			return nil, toKMSError(err, "key not found")
 		}
 		decrypter, ok := v.(crypto.Decrypter)
 		if !ok {
@@ -188,6 +196,36 @@ func (k *SoftKMS) CreateDecrypter(req *apiv1.CreateDecrypterRequest) (crypto.Dec
 	default:
 		return nil, errors.New("failed to load softKMS: please define decryptionKeyPEM or decryptionKey")
 	}
+}
+
+// LoadCertificate returns a x509.Certificate from the file passed in the
+// request name.
+func (k *SoftKMS) LoadCertificate(req *apiv1.LoadCertificateRequest) (*x509.Certificate, error) {
+	if req.Name == "" {
+		return nil, fmt.Errorf("loadCertificateRequest 'name' cannot be empty")
+	}
+
+	bundle, err := pemutil.ReadCertificateBundle(filename(req.Name))
+	if err != nil {
+		return nil, toKMSError(err, "certificate not found")
+	}
+
+	return bundle[0], nil
+}
+
+// LoadCertificateChain returns a slice of x509.Certificate from the file passed
+// in the request name.
+func (k *SoftKMS) LoadCertificateChain(req *apiv1.LoadCertificateChainRequest) ([]*x509.Certificate, error) {
+	if req.Name == "" {
+		return nil, fmt.Errorf("loadCertificateChainRequest 'name' cannot be empty")
+	}
+
+	chain, err := pemutil.ReadCertificateBundle(filename(req.Name))
+	if err != nil {
+		return nil, toKMSError(err, "certificate not found")
+	}
+
+	return chain, nil
 }
 
 func filename(s string) string {
@@ -203,4 +241,15 @@ func filename(s string) string {
 		}
 	}
 	return s
+}
+
+func toKMSError(err error, message string) error {
+	switch {
+	case errors.Is(err, os.ErrNotExist), errors.Is(err, syscall.ENOENT):
+		return apiv1.NotFoundError{
+			Message: message,
+		}
+	default:
+		return err
+	}
 }

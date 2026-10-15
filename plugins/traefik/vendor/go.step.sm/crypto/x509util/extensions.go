@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+
 	asn1utils "go.step.sm/crypto/internal/utils/asn1"
 )
 
@@ -297,7 +298,7 @@ func (o ObjectIdentifier) Equal(v ObjectIdentifier) bool {
 	if len(o) != len(v) {
 		return false
 	}
-	for i := 0; i < len(o); i++ {
+	for i := range o {
 		if o[i] != v[i] {
 			return false
 		}
@@ -548,7 +549,7 @@ func (s SubjectAlternativeName) RawValue() (asn1.RawValue, error) {
 
 // marshalOtherName marshals an otherName field with the given oid and value and
 // returns the raw bytes to use.
-func marshalOtherName(oid asn1.ObjectIdentifier, value interface{}) (asn1.RawValue, error) {
+func marshalOtherName(oid asn1.ObjectIdentifier, value any) (asn1.RawValue, error) {
 	valueBytes, err := asn1.MarshalWithParams(value, "explicit,tag:0")
 	if err != nil {
 		return asn1.RawValue{}, err
@@ -1492,7 +1493,7 @@ func asn1BitLength(bitString []byte) int {
 	for i := range bitString {
 		b := bitString[len(bitString)-i-1]
 
-		for bit := uint(0); bit < 8; bit++ {
+		for bit := range uint(8) {
 			if (b>>bit)&1 == 1 {
 				return bitLen
 			}

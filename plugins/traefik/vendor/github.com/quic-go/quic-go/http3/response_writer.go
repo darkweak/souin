@@ -16,7 +16,8 @@ import (
 	"golang.org/x/net/http/httpguts"
 )
 
-// The HTTPStreamer allows taking over a HTTP/3 stream. The interface is implemented by the http.ResponseWriter.
+// HTTPStreamer allows an HTTP handler to take over an HTTP/3 stream.
+// It is implemented by the [http.ResponseWriter] passed to HTTP/3 handlers.
 // When a stream is taken over, it's the caller's responsibility to close the stream.
 type HTTPStreamer interface {
 	HTTPStream() *Stream
@@ -167,7 +168,7 @@ func (w *responseWriter) doWrite(p []byte) (int, error) {
 	if !w.headerWritten {
 		w.sniffContentType(w.smallResponseBuf)
 		if err := w.writeHeader(w.status); err != nil {
-			return 0, maybeReplaceError(err)
+			return 0, err
 		}
 		w.headerWritten = true
 	}
@@ -187,11 +188,11 @@ func (w *responseWriter) doWrite(p []byte) (int, error) {
 		})
 	}
 	if _, err := w.str.writeUnframed(w.buf); err != nil {
-		return 0, maybeReplaceError(err)
+		return 0, err
 	}
 	if len(w.smallResponseBuf) > 0 {
 		if _, err := w.str.writeUnframed(w.smallResponseBuf); err != nil {
-			return 0, maybeReplaceError(err)
+			return 0, err
 		}
 		w.smallResponseBuf = nil
 	}
@@ -200,7 +201,7 @@ func (w *responseWriter) doWrite(p []byte) (int, error) {
 		var err error
 		n, err = w.str.writeUnframed(p)
 		if err != nil {
-			return n, maybeReplaceError(err)
+			return n, err
 		}
 	}
 	return n, nil
@@ -220,7 +221,7 @@ func (w *responseWriter) writeHeader(status int) error {
 	// Handle trailer fields
 	if vals, ok := w.header["Trailer"]; ok {
 		for _, val := range vals {
-			for _, trailer := range strings.Split(val, ",") {
+			for trailer := range strings.SplitSeq(val, ",") {
 				// We need to convert to the canonical header key value here because this will be called when using
 				// headers.Add or headers.Set.
 				trailer = textproto.CanonicalMIMEHeaderKey(strings.TrimSpace(trailer))
@@ -274,7 +275,9 @@ func (w *responseWriter) flushTrailers() {
 		return
 	}
 	if err := w.writeTrailers(); err != nil {
-		w.logger.Debug("could not write trailers", "error", err)
+		if w.logger != nil {
+			w.logger.Debug("could not write trailers", "error", err)
+		}
 	}
 }
 
@@ -291,7 +294,9 @@ func (w *responseWriter) Flush() {
 func (w *responseWriter) declareTrailer(k string) {
 	if !httpguts.ValidTrailerHeader(k) {
 		// Forbidden by RFC 9110, section 6.5.1.
-		w.logger.Debug("ignoring invalid trailer", slog.String("header", k))
+		if w.logger != nil {
+			w.logger.Debug("ignoring invalid trailer", slog.String("header", k))
+		}
 		return
 	}
 	if w.trailers == nil {
@@ -325,7 +330,7 @@ func (w *responseWriter) writeTrailers() error {
 	if written {
 		w.trailerWritten = true
 	}
-	return err
+	return maybeReplaceError(err)
 }
 
 func (w *responseWriter) HTTPStream() *Stream {

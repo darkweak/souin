@@ -2,7 +2,6 @@ package pgtype
 
 import (
 	"database/sql/driver"
-	"encoding/binary"
 	"fmt"
 	"math"
 	"strconv"
@@ -24,31 +23,32 @@ type Polygon struct {
 	Valid bool
 }
 
+// ScanPolygon implements the [PolygonScanner] interface.
 func (p *Polygon) ScanPolygon(v Polygon) error {
 	*p = v
 	return nil
 }
 
+// PolygonValue implements the [PolygonValuer] interface.
 func (p Polygon) PolygonValue() (Polygon, error) {
 	return p, nil
 }
 
-// Scan implements the database/sql Scanner interface.
+// Scan implements the [database/sql.Scanner] interface.
 func (p *Polygon) Scan(src any) error {
 	if src == nil {
 		*p = Polygon{}
 		return nil
 	}
 
-	switch src := src.(type) {
-	case string:
+	if src, ok := src.(string); ok {
 		return scanPlanTextAnyToPolygonScanner{}.Scan([]byte(src), p)
 	}
 
 	return fmt.Errorf("cannot scan %T", src)
 }
 
-// Value implements the database/sql/driver Valuer interface.
+// Value implements the [database/sql/driver.Valuer] interface.
 func (p Polygon) Value() (driver.Value, error) {
 	if !p.Valid {
 		return nil, nil
@@ -139,16 +139,13 @@ func (encodePlanPolygonCodecText) Encode(value any, buf []byte) (newBuf []byte, 
 }
 
 func (PolygonCodec) PlanScan(m *Map, oid uint32, format int16, target any) ScanPlan {
-
 	switch format {
 	case BinaryFormatCode:
-		switch target.(type) {
-		case PolygonScanner:
+		if _, ok := target.(PolygonScanner); ok {
 			return scanPlanBinaryPolygonToPolygonScanner{}
 		}
 	case TextFormatCode:
-		switch target.(type) {
-		case PolygonScanner:
+		if _, ok := target.(PolygonScanner); ok {
 			return scanPlanTextAnyToPolygonScanner{}
 		}
 	}
@@ -159,30 +156,29 @@ func (PolygonCodec) PlanScan(m *Map, oid uint32, format int16, target any) ScanP
 type scanPlanBinaryPolygonToPolygonScanner struct{}
 
 func (scanPlanBinaryPolygonToPolygonScanner) Scan(src []byte, dst any) error {
-	scanner := (dst).(PolygonScanner)
+	scanner := dst.(PolygonScanner)
 
 	if src == nil {
 		return scanner.ScanPolygon(Polygon{})
 	}
 
-	if len(src) < 5 {
-		return fmt.Errorf("invalid length for polygon: %v", len(src))
-	}
+	r := pgio.NewReader(src)
 
-	pointCount := int(binary.BigEndian.Uint32(src))
-	rp := 4
-
-	if 4+pointCount*16 != len(src) {
-		return fmt.Errorf("invalid length for Polygon with %d points: %v", pointCount, len(src))
+	// Each point is two float64s.
+	pointCount := r.Count(16)
+	if err := r.Err(); err != nil {
+		return fmt.Errorf("invalid length for polygon: %w", err)
 	}
 
 	points := make([]Vec2, pointCount)
-	for i := 0; i < len(points); i++ {
-		x := binary.BigEndian.Uint64(src[rp:])
-		rp += 8
-		y := binary.BigEndian.Uint64(src[rp:])
-		rp += 8
+	for i := range points {
+		x := r.Uint64()
+		y := r.Uint64()
 		points[i] = Vec2{math.Float64frombits(x), math.Float64frombits(y)}
+	}
+
+	if err := r.Finish(); err != nil {
+		return fmt.Errorf("invalid length for Polygon with %d points: %w", pointCount, err)
 	}
 
 	return scanner.ScanPolygon(Polygon{
@@ -194,7 +190,7 @@ func (scanPlanBinaryPolygonToPolygonScanner) Scan(src []byte, dst any) error {
 type scanPlanTextAnyToPolygonScanner struct{}
 
 func (scanPlanTextAnyToPolygonScanner) Scan(src []byte, dst any) error {
-	scanner := (dst).(PolygonScanner)
+	scanner := dst.(PolygonScanner)
 
 	if src == nil {
 		return scanner.ScanPolygon(Polygon{})
@@ -206,29 +202,39 @@ func (scanPlanTextAnyToPolygonScanner) Scan(src []byte, dst any) error {
 
 	points := make([]Vec2, 0)
 
-	str := string(src[2:])
+	// Expected format: ((x1,y1),...,(xn,yn))
+	str := string(src[1 : len(src)-1])
 
 	for {
-		end := strings.IndexByte(str, ',')
-		x, err := strconv.ParseFloat(str[:end], 64)
+		if len(str) == 0 || str[0] != '(' {
+			return fmt.Errorf("invalid format for Polygon")
+		}
+		body, rest, found := strings.Cut(str[1:], ")")
+		if !found {
+			return fmt.Errorf("invalid format for Polygon")
+		}
+
+		sx, sy, found := strings.Cut(body, ",")
+		if !found {
+			return fmt.Errorf("invalid format for Polygon")
+		}
+		x, err := strconv.ParseFloat(sx, 64)
 		if err != nil {
 			return err
 		}
-
-		str = str[end+1:]
-		end = strings.IndexByte(str, ')')
-
-		y, err := strconv.ParseFloat(str[:end], 64)
+		y, err := strconv.ParseFloat(sy, 64)
 		if err != nil {
 			return err
 		}
 
 		points = append(points, Vec2{x, y})
 
-		if end+3 < len(str) {
-			str = str[end+3:]
-		} else {
+		if rest == "" {
 			break
+		}
+		str, found = strings.CutPrefix(rest, ",")
+		if !found {
+			return fmt.Errorf("invalid format for Polygon")
 		}
 	}
 

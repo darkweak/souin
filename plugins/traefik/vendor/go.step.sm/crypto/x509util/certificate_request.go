@@ -61,7 +61,7 @@ type CertificateRequest struct {
 	BasicConstraints   *BasicConstraints        `json:"basicConstraints"`
 	SignatureAlgorithm SignatureAlgorithm       `json:"signatureAlgorithm"`
 	ChallengePassword  string                   `json:"-"`
-	PublicKey          interface{}              `json:"-"`
+	PublicKey          any                      `json:"-"`
 	PublicKeyAlgorithm x509.PublicKeyAlgorithm  `json:"-"`
 	Signature          []byte                   `json:"-"`
 	Signer             crypto.Signer            `json:"-"`
@@ -448,7 +448,7 @@ func parseKeyUsageExtension(der cryptobyte.String) (KeyUsage, error) {
 	}
 
 	var usage int
-	for i := 0; i < 9; i++ {
+	for i := range 9 {
 		if usageBits.At(i) != 0 {
 			usage |= 1 << uint(i)
 		}

@@ -1,5 +1,4 @@
 //go:build nomysql
-// +build nomysql
 
 package mysql
 

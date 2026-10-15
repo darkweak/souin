@@ -1,0 +1,25 @@
+version: "2"
+
+linters:
+  enable:
+    - err113
+    - goconst
+    - gocritic
+    - intrange
+    - modernize
+    - perfsprint
+    - thelper
+    - unconvert
+    - unparam
+    - wastedassign
+    - whitespace
+  settings:
+    staticcheck:
+      checks:
+        - "all"
+        # ST1020/ST1021: exported symbols are documented with their
+        # corresponding WHATWG spec URL, not a "Foo does..." sentence.
+        # The URL is the most useful pointer for maintainers of a
+        # spec-conforming implementation.
+        - "-ST1020"
+        - "-ST1021"

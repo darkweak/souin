@@ -2,16 +2,17 @@ package pgtype
 
 import (
 	"database/sql/driver"
-	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"strings"
 	"time"
 
+	"github.com/jackc/pgx/v5/internal/pgdatetime"
 	"github.com/jackc/pgx/v5/internal/pgio"
 )
 
-const pgTimestampFormat = "2006-01-02 15:04:05.999999999"
+const (
+	jsonISO8601 = "2006-01-02T15:04:05.999999999"
+)
 
 type TimestampScanner interface {
 	ScanTimestamp(v Timestamp) error
@@ -28,16 +29,18 @@ type Timestamp struct {
 	Valid            bool
 }
 
+// ScanTimestamp implements the [TimestampScanner] interface.
 func (ts *Timestamp) ScanTimestamp(v Timestamp) error {
 	*ts = v
 	return nil
 }
 
+// TimestampValue implements the [TimestampValuer] interface.
 func (ts Timestamp) TimestampValue() (Timestamp, error) {
 	return ts, nil
 }
 
-// Scan implements the database/sql Scanner interface.
+// Scan implements the [database/sql.Scanner] interface.
 func (ts *Timestamp) Scan(src any) error {
 	if src == nil {
 		*ts = Timestamp{}
@@ -55,7 +58,7 @@ func (ts *Timestamp) Scan(src any) error {
 	return fmt.Errorf("cannot scan %T", src)
 }
 
-// Value implements the database/sql/driver Valuer interface.
+// Value implements the [database/sql/driver.Valuer] interface.
 func (ts Timestamp) Value() (driver.Value, error) {
 	if !ts.Valid {
 		return nil, nil
@@ -67,6 +70,7 @@ func (ts Timestamp) Value() (driver.Value, error) {
 	return ts.Time, nil
 }
 
+// MarshalJSON implements the [encoding/json.Marshaler] interface.
 func (ts Timestamp) MarshalJSON() ([]byte, error) {
 	if !ts.Valid {
 		return []byte("null"), nil
@@ -76,7 +80,7 @@ func (ts Timestamp) MarshalJSON() ([]byte, error) {
 
 	switch ts.InfinityModifier {
 	case Finite:
-		s = ts.Time.Format(time.RFC3339Nano)
+		s = ts.Time.Format(jsonISO8601)
 	case Infinity:
 		s = "infinity"
 	case NegativeInfinity:
@@ -86,6 +90,7 @@ func (ts Timestamp) MarshalJSON() ([]byte, error) {
 	return json.Marshal(s)
 }
 
+// UnmarshalJSON implements the [encoding/json.Unmarshaler] interface.
 func (ts *Timestamp) UnmarshalJSON(b []byte) error {
 	var s *string
 	err := json.Unmarshal(b, &s)
@@ -104,15 +109,23 @@ func (ts *Timestamp) UnmarshalJSON(b []byte) error {
 	case "-infinity":
 		*ts = Timestamp{Valid: true, InfinityModifier: -Infinity}
 	default:
-		// PostgreSQL uses ISO 8601 for to_json function and casting from a string to timestamptz
-		tim, err := time.Parse(time.RFC3339Nano, *s)
-		if err != nil {
-			return err
+		// Parse time with or without timezone
+		tss := *s
+		// PostgreSQL uses ISO 8601 without timezone for to_json function and casting from a string to timestamp
+		tim, err := time.Parse(time.RFC3339Nano, tss)
+		if err == nil {
+			*ts = Timestamp{Time: tim, Valid: true}
+			return nil
 		}
-
-		*ts = Timestamp{Time: tim, Valid: true}
+		tim, err = time.ParseInLocation(jsonISO8601, tss, time.UTC)
+		if err == nil {
+			*ts = Timestamp{Time: tim, Valid: true}
+			return nil
+		}
+		ts.Valid = false
+		return fmt.Errorf("cannot unmarshal %s to timestamp with layout %s or %s (%w)",
+			*s, time.RFC3339Nano, jsonISO8601, err)
 	}
-
 	return nil
 }
 
@@ -161,7 +174,7 @@ func (encodePlanTimestampCodecBinary) Encode(value any, buf []byte) (newBuf []by
 	switch ts.InfinityModifier {
 	case Finite:
 		t := discardTimeZone(ts.Time)
-		microsecSinceUnixEpoch := t.Unix()*1000000 + int64(t.Nanosecond())/1000
+		microsecSinceUnixEpoch := t.Unix()*1_000_000 + int64(t.Nanosecond())/1000
 		microsecSinceY2K = microsecSinceUnixEpoch - microsecFromUnixEpochToY2K
 	case Infinity:
 		microsecSinceY2K = infinityMicrosecondOffset
@@ -186,32 +199,16 @@ func (encodePlanTimestampCodecText) Encode(value any, buf []byte) (newBuf []byte
 		return nil, nil
 	}
 
-	var s string
-
 	switch ts.InfinityModifier {
 	case Finite:
-		t := discardTimeZone(ts.Time)
-
-		// Year 0000 is 1 BC
-		bc := false
-		if year := t.Year(); year <= 0 {
-			year = -year + 1
-			t = time.Date(year, t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second(), t.Nanosecond(), time.UTC)
-			bc = true
-		}
-
-		s = t.Truncate(time.Microsecond).Format(pgTimestampFormat)
-
-		if bc {
-			s = s + " BC"
-		}
+		// The fields are read in ts.Time's own location, so there is no zone to discard
+		// and nothing to append after the time.
+		buf = pgdatetime.AppendTimestamp(buf, ts.Time, "")
 	case Infinity:
-		s = "infinity"
+		buf = append(buf, "infinity"...)
 	case NegativeInfinity:
-		s = "-infinity"
+		buf = append(buf, "-infinity"...)
 	}
-
-	buf = append(buf, s...)
 
 	return buf, nil
 }
@@ -225,16 +222,13 @@ func discardTimeZone(t time.Time) time.Time {
 }
 
 func (c *TimestampCodec) PlanScan(m *Map, oid uint32, format int16, target any) ScanPlan {
-
 	switch format {
 	case BinaryFormatCode:
-		switch target.(type) {
-		case TimestampScanner:
+		if _, ok := target.(TimestampScanner); ok {
 			return &scanPlanBinaryTimestampToTimestampScanner{location: c.ScanLocation}
 		}
 	case TextFormatCode:
-		switch target.(type) {
-		case TimestampScanner:
+		if _, ok := target.(TimestampScanner); ok {
 			return &scanPlanTextTimestampToTimestampScanner{location: c.ScanLocation}
 		}
 	}
@@ -245,18 +239,19 @@ func (c *TimestampCodec) PlanScan(m *Map, oid uint32, format int16, target any) 
 type scanPlanBinaryTimestampToTimestampScanner struct{ location *time.Location }
 
 func (plan *scanPlanBinaryTimestampToTimestampScanner) Scan(src []byte, dst any) error {
-	scanner := (dst).(TimestampScanner)
+	scanner := dst.(TimestampScanner)
 
 	if src == nil {
 		return scanner.ScanTimestamp(Timestamp{})
 	}
 
-	if len(src) != 8 {
-		return fmt.Errorf("invalid length for timestamp: %v", len(src))
+	raw, err := pgio.Uint64Exact(src)
+	if err != nil {
+		return fmt.Errorf("timestamp: %w", err)
 	}
 
 	var ts Timestamp
-	microsecSinceY2K := int64(binary.BigEndian.Uint64(src))
+	microsecSinceY2K := int64(raw)
 
 	switch microsecSinceY2K {
 	case infinityMicrosecondOffset:
@@ -265,9 +260,12 @@ func (plan *scanPlanBinaryTimestampToTimestampScanner) Scan(src []byte, dst any)
 		ts = Timestamp{Valid: true, InfinityModifier: -Infinity}
 	default:
 		tim := time.Unix(
-			microsecFromUnixEpochToY2K/1000000+microsecSinceY2K/1000000,
-			(microsecFromUnixEpochToY2K%1000000*1000)+(microsecSinceY2K%1000000*1000),
+			microsecFromUnixEpochToY2K/1_000_000+microsecSinceY2K/1_000_000,
+			(microsecFromUnixEpochToY2K%1_000_000*1_000)+(microsecSinceY2K%1_000_000*1000),
 		).UTC()
+		if tim.Before(minDateTime) || !tim.Before(endTimestamp) {
+			return fmt.Errorf("timestamp %d microseconds from 2000-01-01 is out of range", microsecSinceY2K)
+		}
 		if plan.location != nil {
 			tim = time.Date(tim.Year(), tim.Month(), tim.Day(), tim.Hour(), tim.Minute(), tim.Second(), tim.Nanosecond(), plan.location)
 		}
@@ -280,37 +278,34 @@ func (plan *scanPlanBinaryTimestampToTimestampScanner) Scan(src []byte, dst any)
 type scanPlanTextTimestampToTimestampScanner struct{ location *time.Location }
 
 func (plan *scanPlanTextTimestampToTimestampScanner) Scan(src []byte, dst any) error {
-	scanner := (dst).(TimestampScanner)
+	scanner := dst.(TimestampScanner)
 
 	if src == nil {
 		return scanner.ScanTimestamp(Timestamp{})
 	}
 
+	dt, err := parseTextDateTime(src)
+	if err != nil {
+		return err
+	}
+
 	var ts Timestamp
-	sbuf := string(src)
-	switch sbuf {
-	case "infinity":
-		ts = Timestamp{Valid: true, InfinityModifier: Infinity}
-	case "-infinity":
-		ts = Timestamp{Valid: true, InfinityModifier: -Infinity}
-	default:
-		bc := false
-		if strings.HasSuffix(sbuf, " BC") {
-			sbuf = sbuf[:len(sbuf)-3]
-			bc = true
+	if dt.infinity != Finite {
+		ts = Timestamp{Valid: true, InfinityModifier: dt.infinity}
+	} else {
+		if !dt.hasTime || dt.hasOffset {
+			return badDateTime(src)
 		}
-		tim, err := time.Parse(pgTimestampFormat, sbuf)
+
+		tim, err := dt.toTime(src, "timestamp", endTimestamp)
 		if err != nil {
 			return err
 		}
 
-		if bc {
-			year := -tim.Year() + 1
-			tim = time.Date(year, tim.Month(), tim.Day(), tim.Hour(), tim.Minute(), tim.Second(), tim.Nanosecond(), tim.Location())
-		}
-
+		// timestamp has no time zone, so ScanLocation reinterprets the same wall clock
+		// reading rather than converting the instant.
 		if plan.location != nil {
-			tim = time.Date(tim.Year(), tim.Month(), tim.Day(), tim.Hour(), tim.Minute(), tim.Second(), tim.Nanosecond(), plan.location)
+			tim = dt.in(plan.location)
 		}
 
 		ts = Timestamp{Time: tim, Valid: true}

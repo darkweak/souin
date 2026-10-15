@@ -9,5 +9,6 @@ local-cache-tests: ## Run local cache-tests
 	./caddy run --config ../../docs/cache-tests/cache-tests-caddyfile --adapter caddyfile &
 	cp ../../docs/cache-tests/index.mjs .local-cache-tests/results/index.mjs
 	cd .local-cache-tests && pnpm install && pnpm run server &
+	sleep 1
 	cd .local-cache-tests && ./test-host.sh 127.0.0.1:4443 > results/mr.json
 	killall node caddy

@@ -5,10 +5,9 @@ import (
 	"encoding/json"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
-
-	"github.com/spf13/cast"
 
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/middleware"
@@ -34,25 +33,25 @@ func configCacheKey(keyConfiguration map[string]interface{}) configurationtypes.
 	for keyK, keyV := range keyConfiguration {
 		switch keyK {
 		case "disable_body":
-			key.DisableBody = cast.ToBool(keyV)
+			key.DisableBody = parseBool(keyV)
 		case "disable_host":
-			key.DisableHost = cast.ToBool(keyV)
+			key.DisableHost = parseBool(keyV)
 		case "disable_method":
-			key.DisableMethod = cast.ToBool(keyV)
+			key.DisableMethod = parseBool(keyV)
 		case "disable_query":
-			key.DisableQuery = cast.ToBool(keyV)
+			key.DisableQuery = parseBool(keyV)
 		case "sort_query":
-			key.SortQuery = cast.ToBool(keyV)
+			key.SortQuery = parseBool(keyV)
 		case "disable_scheme":
-			key.DisableScheme = cast.ToBool(keyV)
+			key.DisableScheme = parseBool(keyV)
 		case "disable_vary":
-			key.DisableVary = cast.ToBool(keyV)
+			key.DisableVary = parseBool(keyV)
 		case "hash":
 			key.Hash = true
 		case "headers":
 			key.Headers = parseStringSlice(keyV)
 		case "hide":
-			key.Hide = cast.ToBool(keyV)
+			key.Hide = parseBool(keyV)
 		case "template":
 			key.Template = keyV.(string)
 		}
@@ -146,7 +145,7 @@ func parseConfiguration(c map[string]interface{}) Configuration {
 						case "api_key":
 							cdn.APIKey = cdnV.(string)
 						case "dynamic":
-							cdn.Dynamic = cast.ToBool(cdnV)
+							cdn.Dynamic = parseBool(cdnV)
 						case "email":
 							cdn.Email = cdnV.(string)
 						case "hostname":
@@ -283,6 +282,26 @@ func parseStringSlice(i interface{}) []string {
 	}
 
 	return nil
+}
+
+// parseBool returns the boolean corresponding to the given interface.
+// The interface can be of type bool, a string parsable by strconv.ParseBool (e.g. true, 1, false) or a number.
+func parseBool(i interface{}) bool {
+	switch value := i.(type) {
+	case bool:
+		return value
+	case string:
+		b, _ := strconv.ParseBool(strings.TrimSpace(value))
+		return b
+	case int:
+		return value != 0
+	case int64:
+		return value != 0
+	case float64:
+		return value != 0
+	}
+
+	return false
 }
 
 func parseIntSlice(i interface{}) []int {

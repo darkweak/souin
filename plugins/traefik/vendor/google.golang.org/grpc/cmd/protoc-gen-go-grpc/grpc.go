@@ -73,11 +73,11 @@ func (serviceGenerateHelper) generateClientStruct(g *protogen.GeneratedFile, cli
 	g.P()
 }
 
-func (serviceGenerateHelper) generateNewClientDefinitions(g *protogen.GeneratedFile, service *protogen.Service, clientName string) {
+func (serviceGenerateHelper) generateNewClientDefinitions(g *protogen.GeneratedFile, _ *protogen.Service, clientName string) {
 	g.P("return &", unexport(clientName), "{cc}")
 }
 
-func (serviceGenerateHelper) generateUnimplementedServerType(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service) {
+func (serviceGenerateHelper) generateUnimplementedServerType(_ *protogen.Plugin, _ *protogen.File, g *protogen.GeneratedFile, service *protogen.Service) {
 	serverType := service.GoName + "Server"
 	mustOrShould := "must"
 	if !*requireUnimplemented {
@@ -97,7 +97,7 @@ func (serviceGenerateHelper) generateUnimplementedServerType(gen *protogen.Plugi
 			nilArg = "nil,"
 		}
 		g.P("func (Unimplemented", serverType, ") ", serverSignature(g, method), "{")
-		g.P("return ", nilArg, statusPackage.Ident("Errorf"), "(", codesPackage.Ident("Unimplemented"), `, "method `, method.GoName, ` not implemented")`)
+		g.P("return ", nilArg, statusPackage.Ident("Error"), "(", codesPackage.Ident("Unimplemented"), `, "method `, method.GoName, ` not implemented")`)
 		g.P("}")
 	}
 	if *requireUnimplemented {
@@ -119,7 +119,7 @@ func (serviceGenerateHelper) generateServerFunctions(gen *protogen.Plugin, file 
 	genServiceDesc(file, g, serviceDescVar, serverType, service, handlerNames)
 }
 
-func (serviceGenerateHelper) formatHandlerFuncName(service *protogen.Service, hname string) string {
+func (serviceGenerateHelper) formatHandlerFuncName(_ *protogen.Service, hname string) string {
 	return hname
 }
 
@@ -178,13 +178,8 @@ func generateFileContent(gen *protogen.Plugin, file *protogen.File, g *protogen.
 
 	g.P("// This is a compile-time assertion to ensure that this generated file")
 	g.P("// is compatible with the grpc package it is being compiled against.")
-	if *useGenericStreams {
-		g.P("// Requires gRPC-Go v1.64.0 or later.")
-		g.P("const _ = ", grpcPackage.Ident("SupportPackageIsVersion9"))
-	} else {
-		g.P("// Requires gRPC-Go v1.62.0 or later.")
-		g.P("const _ = ", grpcPackage.Ident("SupportPackageIsVersion8")) // When changing, update version number above.
-	}
+	g.P("// Requires gRPC-Go v1.64.0 or later.")
+	g.P("const _ = ", grpcPackage.Ident("SupportPackageIsVersion9"))
 	g.P()
 	for _, service := range file.Services {
 		genService(gen, file, g, service)
@@ -310,7 +305,7 @@ func genService(gen *protogen.Plugin, file *protogen.File, g *protogen.Generated
 	}
 	serviceDescVar := service.GoName + "_ServiceDesc"
 	g.P("func Register", service.GoName, "Server(s ", grpcPackage.Ident("ServiceRegistrar"), ", srv ", serverType, ") {")
-	g.P("// If the following call pancis, it indicates Unimplemented", serverType, " was")
+	g.P("// If the following call panics, it indicates Unimplemented", serverType, " was")
 	g.P("// embedded by pointer and is nil.  This will cause panics if an")
 	g.P("// unimplemented method is ever invoked, so we test this at initialization")
 	g.P("// time to prevent it from happening at runtime later due to I/O.")
@@ -333,11 +328,7 @@ func clientSignature(g *protogen.GeneratedFile, method *protogen.Method) string 
 	if !method.Desc.IsStreamingClient() && !method.Desc.IsStreamingServer() {
 		s += "*" + g.QualifiedGoIdent(method.Output.GoIdent)
 	} else {
-		if *useGenericStreams {
-			s += clientStreamInterface(g, method)
-		} else {
-			s += method.Parent.GoName + "_" + method.GoName + "Client"
-		}
+		s += clientStreamInterface(g, method)
 	}
 	s += ", error)"
 	return s
@@ -347,14 +338,14 @@ func clientStreamInterface(g *protogen.GeneratedFile, method *protogen.Method) s
 	typeParam := g.QualifiedGoIdent(method.Input.GoIdent) + ", " + g.QualifiedGoIdent(method.Output.GoIdent)
 	if method.Desc.IsStreamingClient() && method.Desc.IsStreamingServer() {
 		return g.QualifiedGoIdent(grpcPackage.Ident("BidiStreamingClient")) + "[" + typeParam + "]"
-	} else if method.Desc.IsStreamingClient() {
-		return g.QualifiedGoIdent(grpcPackage.Ident("ClientStreamingClient")) + "[" + typeParam + "]"
-	} else { // i.e. if method.Desc.IsStreamingServer()
-		return g.QualifiedGoIdent(grpcPackage.Ident("ServerStreamingClient")) + "[" + g.QualifiedGoIdent(method.Output.GoIdent) + "]"
 	}
+	if method.Desc.IsStreamingClient() {
+		return g.QualifiedGoIdent(grpcPackage.Ident("ClientStreamingClient")) + "[" + typeParam + "]"
+	}
+	return g.QualifiedGoIdent(grpcPackage.Ident("ServerStreamingClient")) + "[" + g.QualifiedGoIdent(method.Output.GoIdent) + "]"
 }
 
-func genClientMethod(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, method *protogen.Method, index int) {
+func genClientMethod(_ *protogen.Plugin, _ *protogen.File, g *protogen.GeneratedFile, method *protogen.Method, index int) {
 	service := method.Parent
 	fmSymbol := helper.formatFullMethodSymbol(service, method)
 
@@ -373,12 +364,8 @@ func genClientMethod(gen *protogen.Plugin, file *protogen.File, g *protogen.Gene
 		return
 	}
 
-	streamImpl := unexport(service.GoName) + method.GoName + "Client"
-	if *useGenericStreams {
-		typeParam := g.QualifiedGoIdent(method.Input.GoIdent) + ", " + g.QualifiedGoIdent(method.Output.GoIdent)
-		streamImpl = g.QualifiedGoIdent(grpcPackage.Ident("GenericClientStream")) + "[" + typeParam + "]"
-	}
-
+	typeParam := g.QualifiedGoIdent(method.Input.GoIdent) + ", " + g.QualifiedGoIdent(method.Output.GoIdent)
+	streamImpl := g.QualifiedGoIdent(grpcPackage.Ident("GenericClientStream")) + "[" + typeParam + "]"
 	serviceDescVar := service.GoName + "_ServiceDesc"
 	g.P("stream, err := c.cc.NewStream(ctx, &", serviceDescVar, ".Streams[", index, `], `, fmSymbol, `, cOpts...)`)
 	g.P("if err != nil { return nil, err }")
@@ -392,61 +379,9 @@ func genClientMethod(gen *protogen.Plugin, file *protogen.File, g *protogen.Gene
 	g.P()
 
 	// Auxiliary types aliases, for backwards compatibility.
-	if *useGenericStreams {
-		g.P("// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.")
-		g.P("type ", service.GoName, "_", method.GoName, "Client = ", clientStreamInterface(g, method))
-		g.P()
-		return
-	}
-
-	// Stream auxiliary types and methods, if we're not taking advantage of the
-	// pre-implemented generic types and their methods.
-	genSend := method.Desc.IsStreamingClient()
-	genRecv := method.Desc.IsStreamingServer()
-	genCloseAndRecv := !method.Desc.IsStreamingServer()
-
-	g.P("type ", service.GoName, "_", method.GoName, "Client interface {")
-	if genSend {
-		g.P("Send(*", method.Input.GoIdent, ") error")
-	}
-	if genRecv {
-		g.P("Recv() (*", method.Output.GoIdent, ", error)")
-	}
-	if genCloseAndRecv {
-		g.P("CloseAndRecv() (*", method.Output.GoIdent, ", error)")
-	}
-	g.P(grpcPackage.Ident("ClientStream"))
-	g.P("}")
+	g.P("// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.")
+	g.P("type ", service.GoName, "_", method.GoName, "Client = ", clientStreamInterface(g, method))
 	g.P()
-
-	g.P("type ", streamImpl, " struct {")
-	g.P(grpcPackage.Ident("ClientStream"))
-	g.P("}")
-	g.P()
-
-	if genSend {
-		g.P("func (x *", streamImpl, ") Send(m *", method.Input.GoIdent, ") error {")
-		g.P("return x.ClientStream.SendMsg(m)")
-		g.P("}")
-		g.P()
-	}
-	if genRecv {
-		g.P("func (x *", streamImpl, ") Recv() (*", method.Output.GoIdent, ", error) {")
-		g.P("m := new(", method.Output.GoIdent, ")")
-		g.P("if err := x.ClientStream.RecvMsg(m); err != nil { return nil, err }")
-		g.P("return m, nil")
-		g.P("}")
-		g.P()
-	}
-	if genCloseAndRecv {
-		g.P("func (x *", streamImpl, ") CloseAndRecv() (*", method.Output.GoIdent, ", error) {")
-		g.P("if err := x.ClientStream.CloseSend(); err != nil { return nil, err }")
-		g.P("m := new(", method.Output.GoIdent, ")")
-		g.P("if err := x.ClientStream.RecvMsg(m); err != nil { return nil, err }")
-		g.P("return m, nil")
-		g.P("}")
-		g.P()
-	}
 }
 
 func serverSignature(g *protogen.GeneratedFile, method *protogen.Method) string {
@@ -460,11 +395,7 @@ func serverSignature(g *protogen.GeneratedFile, method *protogen.Method) string 
 		reqArgs = append(reqArgs, "*"+g.QualifiedGoIdent(method.Input.GoIdent))
 	}
 	if method.Desc.IsStreamingClient() || method.Desc.IsStreamingServer() {
-		if *useGenericStreams {
-			reqArgs = append(reqArgs, serverStreamInterface(g, method))
-		} else {
-			reqArgs = append(reqArgs, method.Parent.GoName+"_"+method.GoName+"Server")
-		}
+		reqArgs = append(reqArgs, serverStreamInterface(g, method))
 	}
 	return method.GoName + "(" + strings.Join(reqArgs, ", ") + ") " + ret
 }
@@ -514,14 +445,15 @@ func serverStreamInterface(g *protogen.GeneratedFile, method *protogen.Method) s
 	typeParam := g.QualifiedGoIdent(method.Input.GoIdent) + ", " + g.QualifiedGoIdent(method.Output.GoIdent)
 	if method.Desc.IsStreamingClient() && method.Desc.IsStreamingServer() {
 		return g.QualifiedGoIdent(grpcPackage.Ident("BidiStreamingServer")) + "[" + typeParam + "]"
-	} else if method.Desc.IsStreamingClient() {
-		return g.QualifiedGoIdent(grpcPackage.Ident("ClientStreamingServer")) + "[" + typeParam + "]"
-	} else { // i.e. if method.Desc.IsStreamingServer()
-		return g.QualifiedGoIdent(grpcPackage.Ident("ServerStreamingServer")) + "[" + g.QualifiedGoIdent(method.Output.GoIdent) + "]"
 	}
+	if method.Desc.IsStreamingClient() {
+		return g.QualifiedGoIdent(grpcPackage.Ident("ClientStreamingServer")) + "[" + typeParam + "]"
+	}
+
+	return g.QualifiedGoIdent(grpcPackage.Ident("ServerStreamingServer")) + "[" + g.QualifiedGoIdent(method.Output.GoIdent) + "]"
 }
 
-func genServerMethod(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, method *protogen.Method, hnameFuncNameFormatter func(string) string) string {
+func genServerMethod(_ *protogen.Plugin, _ *protogen.File, g *protogen.GeneratedFile, method *protogen.Method, hnameFuncNameFormatter func(string) string) string {
 	service := method.Parent
 	hname := fmt.Sprintf("_%s_%s_Handler", service.GoName, method.GoName)
 
@@ -544,11 +476,8 @@ func genServerMethod(gen *protogen.Plugin, file *protogen.File, g *protogen.Gene
 		return hname
 	}
 
-	streamImpl := unexport(service.GoName) + method.GoName + "Server"
-	if *useGenericStreams {
-		typeParam := g.QualifiedGoIdent(method.Input.GoIdent) + ", " + g.QualifiedGoIdent(method.Output.GoIdent)
-		streamImpl = g.QualifiedGoIdent(grpcPackage.Ident("GenericServerStream")) + "[" + typeParam + "]"
-	}
+	typeParam := g.QualifiedGoIdent(method.Input.GoIdent) + ", " + g.QualifiedGoIdent(method.Output.GoIdent)
+	streamImpl := g.QualifiedGoIdent(grpcPackage.Ident("GenericServerStream")) + "[" + typeParam + "]"
 
 	g.P("func ", hnameFuncNameFormatter(hname), "(srv interface{}, stream ", grpcPackage.Ident("ServerStream"), ") error {")
 	if !method.Desc.IsStreamingClient() {
@@ -562,59 +491,9 @@ func genServerMethod(gen *protogen.Plugin, file *protogen.File, g *protogen.Gene
 	g.P()
 
 	// Auxiliary types aliases, for backwards compatibility.
-	if *useGenericStreams {
-		g.P("// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.")
-		g.P("type ", service.GoName, "_", method.GoName, "Server = ", serverStreamInterface(g, method))
-		g.P()
-		return hname
-	}
-
-	// Stream auxiliary types and methods, if we're not taking advantage of the
-	// pre-implemented generic types and their methods.
-	genSend := method.Desc.IsStreamingServer()
-	genSendAndClose := !method.Desc.IsStreamingServer()
-	genRecv := method.Desc.IsStreamingClient()
-
-	g.P("type ", service.GoName, "_", method.GoName, "Server interface {")
-	if genSend {
-		g.P("Send(*", method.Output.GoIdent, ") error")
-	}
-	if genSendAndClose {
-		g.P("SendAndClose(*", method.Output.GoIdent, ") error")
-	}
-	if genRecv {
-		g.P("Recv() (*", method.Input.GoIdent, ", error)")
-	}
-	g.P(grpcPackage.Ident("ServerStream"))
-	g.P("}")
+	g.P("// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.")
+	g.P("type ", service.GoName, "_", method.GoName, "Server = ", serverStreamInterface(g, method))
 	g.P()
-
-	g.P("type ", streamImpl, " struct {")
-	g.P(grpcPackage.Ident("ServerStream"))
-	g.P("}")
-	g.P()
-
-	if genSend {
-		g.P("func (x *", streamImpl, ") Send(m *", method.Output.GoIdent, ") error {")
-		g.P("return x.ServerStream.SendMsg(m)")
-		g.P("}")
-		g.P()
-	}
-	if genSendAndClose {
-		g.P("func (x *", streamImpl, ") SendAndClose(m *", method.Output.GoIdent, ") error {")
-		g.P("return x.ServerStream.SendMsg(m)")
-		g.P("}")
-		g.P()
-	}
-	if genRecv {
-		g.P("func (x *", streamImpl, ") Recv() (*", method.Input.GoIdent, ", error) {")
-		g.P("m := new(", method.Input.GoIdent, ")")
-		g.P("if err := x.ServerStream.RecvMsg(m); err != nil { return nil, err }")
-		g.P("return m, nil")
-		g.P("}")
-		g.P()
-	}
-
 	return hname
 }
 

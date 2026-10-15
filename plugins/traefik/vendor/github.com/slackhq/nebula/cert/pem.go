@@ -1,11 +1,65 @@
 package cert
 
 import (
+	"bytes"
 	"encoding/pem"
+	"errors"
 	"fmt"
 
 	"golang.org/x/crypto/ed25519"
 )
+
+var ErrTruncatedPEMBlock = errors.New("truncated PEM block")
+
+// SplitPEM is a split function for bufio.Scanner that returns each PEM block.
+func SplitPEM(data []byte, atEOF bool) (advance int, token []byte, err error) {
+	// Look for the start of a PEM block
+	start := bytes.Index(data, []byte("-----BEGIN "))
+	if start == -1 {
+		if atEOF && len(bytes.TrimSpace(data)) > 0 {
+			// Non-whitespace content with no PEM block
+			return 0, nil, ErrTruncatedPEMBlock
+		}
+		if atEOF {
+			return len(data), nil, nil
+		}
+		// Request more data
+		return 0, nil, nil
+	}
+
+	// Look for the end marker
+	endMarkerStart := bytes.Index(data[start:], []byte("-----END "))
+	if endMarkerStart == -1 {
+		if atEOF {
+			// Incomplete PEM block at EOF
+			return 0, nil, ErrTruncatedPEMBlock
+		}
+		// Need more data to find the end
+		return 0, nil, nil
+	}
+
+	// Find the actual end of the END line (after the newline)
+	endMarkerStart += start
+	endLineEnd := bytes.IndexByte(data[endMarkerStart:], '\n')
+	var end int
+	if endLineEnd == -1 {
+		if atEOF {
+			// END marker without newline at EOF - take it anyway
+			end = len(data)
+		} else {
+			// Need more data
+			return 0, nil, nil
+		}
+	} else {
+		end = endMarkerStart + endLineEnd + 1
+	}
+
+	// Extract the PEM block
+	pemBlock := data[start:end]
+
+	// Return the valid PEM block
+	return end, pemBlock, nil
+}
 
 const ( //cert banners
 	CertificateBanner   = "NEBULA CERTIFICATE"
@@ -37,25 +91,27 @@ func UnmarshalCertificateFromPEM(b []byte) (Certificate, []byte, error) {
 		return nil, r, ErrInvalidPEMBlock
 	}
 
-	var c Certificate
-	var err error
-
-	switch p.Type {
-	// Implementations must validate the resulting certificate contains valid information
-	case CertificateBanner:
-		c, err = unmarshalCertificateV1(p.Bytes, nil)
-	case CertificateV2Banner:
-		c, err = unmarshalCertificateV2(p.Bytes, nil, Curve_CURVE25519)
-	default:
-		return nil, r, ErrInvalidPEMCertificateBanner
-	}
-
+	c, err := unmarshalCertificateBlock(p)
 	if err != nil {
 		return nil, r, err
 	}
 
 	return c, r, nil
 
+}
+
+// unmarshalCertificateBlock decodes a single PEM block into a certificate.
+// It expects a Nebula certificate banner and returns ErrInvalidPEMCertificateBanner otherwise.
+func unmarshalCertificateBlock(block *pem.Block) (Certificate, error) {
+	switch block.Type {
+	// Implementations must validate the resulting certificate contains valid information
+	case CertificateBanner:
+		return unmarshalCertificateV1(block.Bytes, nil)
+	case CertificateV2Banner:
+		return unmarshalCertificateV2(block.Bytes, nil, Curve_CURVE25519)
+	default:
+		return nil, ErrInvalidPEMCertificateBanner
+	}
 }
 
 func marshalCertPublicKeyToPEM(c Certificate) []byte {
@@ -92,6 +148,9 @@ func MarshalSigningPublicKeyToPEM(curve Curve, b []byte) []byte {
 	}
 }
 
+// UnmarshalPublicKeyFromPEM will try to unmarshal the first pem block in a byte array, returning any non
+// consumed data or an error on failure. Only key-agreement (ECDH) public key banners are accepted.
+// Use UnmarshalSigningPublicKeyFromPEM for Ed25519/ECDSA banners.
 func UnmarshalPublicKeyFromPEM(b []byte) ([]byte, []byte, Curve, error) {
 	k, r := pem.Decode(b)
 	if k == nil {
@@ -100,15 +159,42 @@ func UnmarshalPublicKeyFromPEM(b []byte) ([]byte, []byte, Curve, error) {
 	var expectedLen int
 	var curve Curve
 	switch k.Type {
-	case X25519PublicKeyBanner, Ed25519PublicKeyBanner:
+	case X25519PublicKeyBanner:
 		expectedLen = 32
 		curve = Curve_CURVE25519
-	case P256PublicKeyBanner, ECDSAP256PublicKeyBanner:
+	case P256PublicKeyBanner:
 		// Uncompressed
 		expectedLen = 65
 		curve = Curve_P256
 	default:
 		return nil, r, 0, fmt.Errorf("bytes did not contain a proper public key banner")
+	}
+	if len(k.Bytes) != expectedLen {
+		return nil, r, 0, fmt.Errorf("key was not %d bytes, is invalid %s public key", expectedLen, curve)
+	}
+	return k.Bytes, r, curve, nil
+}
+
+// UnmarshalSigningPublicKeyFromPEM will try to unmarshal the first pem block in a byte array, returning any non
+// consumed data or an error on failure. Only Ed25519/ECDSA public key banners are accepted.
+// Use UnmarshalPublicKeyFromPEM for X25519/P256 (ECDH) banners.
+func UnmarshalSigningPublicKeyFromPEM(b []byte) ([]byte, []byte, Curve, error) {
+	k, r := pem.Decode(b)
+	if k == nil {
+		return nil, r, 0, fmt.Errorf("input did not contain a valid PEM encoded block")
+	}
+	var expectedLen int
+	var curve Curve
+	switch k.Type {
+	case Ed25519PublicKeyBanner:
+		expectedLen = 32
+		curve = Curve_CURVE25519
+	case ECDSAP256PublicKeyBanner:
+		// Uncompressed
+		expectedLen = 65
+		curve = Curve_P256
+	default:
+		return nil, r, 0, fmt.Errorf("bytes did not contain a proper Ed25519/ECDSA public key banner")
 	}
 	if len(k.Bytes) != expectedLen {
 		return nil, r, 0, fmt.Errorf("key was not %d bytes, is invalid %s public key", expectedLen, curve)
