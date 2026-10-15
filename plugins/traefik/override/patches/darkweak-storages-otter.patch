@@ -1,0 +1,37 @@
+Use the concrete type of the Yaegi compatible github.com/maypok86/otter replacement (override/third_party/maypok86/otter).
+
+--- a/github.com/darkweak/storages/otter/otter.go
++++ b/github.com/darkweak/storages/otter/otter.go
+@@ -17,7 +17,7 @@
+ 
+ // Otter provider type.
+ type Otter struct {
+-	cache       *otter.CacheWithVariableTTL[string, []byte]
++	cache       *otter.StringBytesCache
+ 	stale       time.Duration
+ 	logger      core.Logger
+ 	instanceKey int
+@@ -47,7 +47,7 @@
+ 	}
+ 
+ 	if instance, ok := instanceMap.Load(defaultStorageSize); ok && instance != nil {
+-		cache := instance.(otter.CacheWithVariableTTL[string, []byte])
++		cache := instance.(otter.StringBytesCache)
+ 
+ 		return &Otter{
+ 			cache:       &cache,
+@@ -57,13 +57,7 @@
+ 		}, nil
+ 	}
+ 
+-	cache, err := otter.MustBuilder[string, []byte](defaultStorageSize).
+-		CollectStats().
+-		Cost(func(key string, value []byte) uint32 {
+-			return 1
+-		}).
+-		WithVariableTTL().
+-		Build()
++	cache, err := otter.NewStringBytesCache(defaultStorageSize)
+ 	if err != nil {
+ 		logger.Error("Impossible to instantiate the Otter DB.", err)
+ 	}

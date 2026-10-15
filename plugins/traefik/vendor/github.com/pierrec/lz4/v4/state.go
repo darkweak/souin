@@ -10,6 +10,8 @@ import (
 
 //go:generate go run golang.org/x/tools/cmd/stringer -type=aState -output state_gen.go
 
+type aState uint8
+
 const (
 	noState     aState = iota // uninitialized reader
 	errorState                // unrecoverable error encountered
@@ -20,7 +22,6 @@ const (
 )
 
 type (
-	aState uint8
 	_State struct {
 		states []aState
 		state  aState

@@ -1,0 +1,87 @@
+Use the concrete types of the Yaegi compatible github.com/jellydator/ttlcache/v3 replacement (override/third_party/jellydator/ttlcache/v3).
+
+--- a/github.com/darkweak/storages/simplefs/simplefs.go
++++ b/github.com/darkweak/storages/simplefs/simplefs.go
+@@ -25,7 +25,7 @@
+ 
+ // Simplefs provider type.
+ type Simplefs struct {
+-	cache         *ttlcache.Cache[string, []byte]
++	cache         *ttlcache.StringBytesCache
+ 	stale         time.Duration
+ 	size          int
+ 	path          string
+@@ -126,9 +126,7 @@
+ 		}
+ 	}
+ 
+-	cache := ttlcache.New(
+-		ttlcache.WithCapacity[string, []byte](uint64(size)),
+-	)
++	cache := ttlcache.NewStringBytes(uint64(size))
+ 
+ 	if cache == nil {
+ 		err = errors.New("impossible to initialize the simplefs storage")
+@@ -177,7 +175,7 @@
+ 	provider.mu.Lock()
+ 	defer provider.mu.Unlock()
+ 
+-	provider.cache.Range(func(item *ttlcache.Item[string, []byte]) bool {
++	provider.cache.Range(func(item *ttlcache.StringBytesItem) bool {
+ 		if strings.HasPrefix(item.Key(), prefix) {
+ 			k, _ := strings.CutPrefix(item.Key(), prefix)
+ 			keys[k] = string(item.Value())
+@@ -284,7 +282,7 @@
+ 	if item == nil {
+ 		provider.logger.Debugf("Impossible to get the mapping key %s in Simplefs", mappingKey)
+ 
+-		item = &ttlcache.Item[string, []byte]{}
++		item = &ttlcache.StringBytesItem{}
+ 	}
+ 
+ 	val, e := core.MappingUpdater(variedKey, item.Value(), provider.logger, now, now.Add(duration), now.Add(duration+provider.stale), variedHeaders, etag, realKey)
+@@ -330,7 +328,7 @@
+ 		return
+ 	}
+ 
+-	provider.cache.Range(func(item *ttlcache.Item[string, []byte]) bool {
++	provider.cache.Range(func(item *ttlcache.StringBytesItem) bool {
+ 		if rgKey.MatchString(item.Key()) {
+ 			provider.Delete(item.Key())
+ 		}
+@@ -341,7 +339,7 @@
+ 
+ // Init method will.
+ func (provider *Simplefs) Init() error {
+-	provider.cache.OnInsertion(func(_ context.Context, item *ttlcache.Item[string, []byte]) {
++	provider.cache.OnInsertion(func(_ context.Context, item *ttlcache.StringBytesItem) {
+ 		if strings.Contains(item.Key(), core.MappingKeyPrefix) || strings.Contains(item.Key(), core.SurrogateKeyPrefix) {
+ 			return
+ 		}
+@@ -356,7 +354,7 @@
+ 		provider.logger.Debugf("Actual size add: %d, new: %d", provider.actualSize.Add(info.Size()), info.Size())
+ 	})
+ 
+-	provider.cache.OnEviction(func(_ context.Context, _ ttlcache.EvictionReason, item *ttlcache.Item[string, []byte]) {
++	provider.cache.OnEviction(func(_ context.Context, _ ttlcache.EvictionReason, item *ttlcache.StringBytesItem) {
+ 		if strings.HasPrefix(item.Key(), core.MappingKeyPrefix) {
+ 			// The mapping left the index, its persisted copy has to go as well.
+ 			provider.removeIndex(strings.TrimPrefix(item.Key(), core.MappingKeyPrefix))
+@@ -422,7 +420,7 @@
+ 
+ 	provider.mu.Lock()
+ 
+-	provider.cache.RangeBackwards(func(item *ttlcache.Item[string, []byte]) bool {
++	provider.cache.RangeBackwards(func(item *ttlcache.StringBytesItem) bool {
+ 		// The mapping and the surrogate keys are stored in memory only, evicting
+ 		// them wouldn't free any space on the disk.
+ 		if strings.HasPrefix(item.Key(), core.MappingKeyPrefix) || strings.HasPrefix(item.Key(), core.SurrogateKeyPrefix) {
+@@ -469,7 +467,7 @@
+ 
+ 	provider.mu.Lock()
+ 
+-	provider.cache.Range(func(item *ttlcache.Item[string, []byte]) bool {
++	provider.cache.Range(func(item *ttlcache.StringBytesItem) bool {
+ 		// Only the stored responses are backed by a file, the mapping and the
+ 		// surrogate keys keep their value in memory.
+ 		if strings.HasPrefix(item.Key(), core.MappingKeyPrefix) || strings.HasPrefix(item.Key(), core.SurrogateKeyPrefix) {

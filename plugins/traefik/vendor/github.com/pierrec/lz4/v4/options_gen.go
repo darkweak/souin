@@ -4,16 +4,6 @@ package lz4
 
 import "strconv"
 
-func _() {
-	// An "invalid array index" compiler error signifies that the constant values have changed.
-	// Re-run the stringer command to generate them again.
-	var x [1]struct{}
-	_ = x[Block64Kb-65536]
-	_ = x[Block256Kb-262144]
-	_ = x[Block1Mb-1048576]
-	_ = x[Block4Mb-4194304]
-}
-
 const (
 	_BlockSize_name_0 = "Block64Kb"
 	_BlockSize_name_1 = "Block256Kb"

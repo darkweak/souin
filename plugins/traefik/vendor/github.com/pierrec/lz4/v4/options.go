@@ -33,15 +33,15 @@ var (
 	defaultOnBlockDone     = OnBlockDoneOption(nil)
 )
 
+// BlockSizeIndex defines the size of the blocks to be compressed.
+type BlockSize uint32
+
 const (
 	Block64Kb BlockSize = 1 << (16 + iota*2)
 	Block256Kb
 	Block1Mb
 	Block4Mb
 )
-
-// BlockSizeIndex defines the size of the blocks to be compressed.
-type BlockSize uint32
 
 // BlockSizeOption defines the maximum size of compressed blocks (default=Block4Mb).
 func BlockSizeOption(size BlockSize) Option {

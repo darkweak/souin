@@ -128,9 +128,9 @@ func (r *Reader) Read(buf []byte) (n int, err error) {
 					err = r.frame.Blocks.ErrorR()
 				}
 			}
-			switch err {
-			case nil:
-			case lz4errors.ErrEndOfStream:
+			switch {
+			case err == nil:
+			case isError(err, lz4errors.ErrEndOfStream):
 
 				// Read Checksum.
 				err = r.frame.CloseR(r.src)
@@ -145,7 +145,7 @@ func (r *Reader) Read(buf []byte) (n int, err error) {
 				}
 
 				goto read
-			case io.EOF:
+			case err == io.EOF:
 				if er := r.frame.CloseR(r.src); er != nil {
 					err = er
 				}
@@ -263,9 +263,9 @@ func (r *Reader) WriteTo(w io.Writer) (n int64, err error) {
 				err = r.frame.Blocks.ErrorR()
 			}
 		}
-		switch err {
-		case nil:
-		case lz4errors.ErrEndOfStream:
+		switch {
+		case err == nil:
+		case isError(err, lz4errors.ErrEndOfStream):
 			// Read Checksum.
 			err = r.frame.CloseR(r.src)
 			if err != nil {
@@ -280,7 +280,7 @@ func (r *Reader) WriteTo(w io.Writer) (n int64, err error) {
 				return
 			}
 			goto read
-		case io.EOF:
+		case err == io.EOF:
 			err = r.frame.CloseR(r.src)
 			return
 		default:
@@ -302,8 +302,16 @@ func ValidFrameHeader(in []byte) (bool, error) {
 	if err == nil {
 		return true, nil
 	}
-	if err == lz4errors.ErrInvalidFrame {
+	if isError(err, lz4errors.ErrInvalidFrame) {
 		return false, nil
 	}
 	return false, err
+}
+
+// isError replaces err == target: Yaegi can't compare an error interface
+// with a typed string constant (silently false, or a panic in a switch).
+func isError(err error, target lz4errors.Error) bool {
+	e, ok := err.(lz4errors.Error)
+
+	return ok && e == target
 }

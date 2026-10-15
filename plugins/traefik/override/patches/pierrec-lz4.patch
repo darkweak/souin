@@ -1,0 +1,197 @@
+Yaegi workarounds: it rejects the stringer duplicate-element guards (func _() { var x [1]struct{}; _ = x[...] }), evaluates every implicitly repeated typed iota constant to 0 when the const block is declared before its type, types an untyped 1 shifted by a uint32 as int (reflect: call of reflect.Value.Uint on int Value), and can't compare an error with a typed string constant It also never matches a switch whose tag converts a variable declared in the switch init statement.
+
+--- a/github.com/pierrec/lz4/v4/internal/lz4block/block.go
++++ b/github.com/pierrec/lz4/v4/internal/lz4block/block.go
+@@ -74,7 +74,7 @@
+ func (c *Compressor) get(h uint32, si int) int {
+ 	h &= htSize - 1
+ 	i := 0
+-	if c.inUse[h/32]&(1<<(h%32)) != 0 {
++	if c.inUse[h/32]&(uint32(1)<<(h%32)) != 0 {
+ 		i = int(c.table[h])
+ 	}
+ 	i += si &^ winMask
+@@ -88,7 +88,7 @@
+ func (c *Compressor) put(h uint32, si int) {
+ 	h &= htSize - 1
+ 	c.table[h] = uint16(si)
+-	c.inUse[h/32] |= 1 << (h % 32)
++	c.inUse[h/32] |= uint32(1) << (h % 32)
+ }
+ 
+ func (c *Compressor) reset() { c.inUse = [htSize / 32]uint32{} }
+--- a/github.com/pierrec/lz4/v4/internal/lz4block/blocks.go
++++ b/github.com/pierrec/lz4/v4/internal/lz4block/blocks.go
+@@ -71,7 +71,8 @@
+ 
+ func Put(buf []byte) {
+ 	// Safeguard: do not allow invalid buffers.
+-	switch c := cap(buf); uint32(c) {
++	c := cap(buf)
++	switch uint32(c) {
+ 	case Block64Kb:
+ 		blockPool64K.Put((*[Block64Kb]byte)(buf[:c]))
+ 	case Block256Kb:
+--- a/github.com/pierrec/lz4/v4/lz4.go
++++ b/github.com/pierrec/lz4/v4/lz4.go
+@@ -13,16 +13,6 @@
+ 	"github.com/pierrec/lz4/v4/internal/lz4errors"
+ )
+ 
+-func _() {
+-	// Safety checks for duplicated elements.
+-	var x [1]struct{}
+-	_ = x[lz4block.CompressionLevel(Fast)-lz4block.Fast]
+-	_ = x[Block64Kb-BlockSize(lz4block.Block64Kb)]
+-	_ = x[Block256Kb-BlockSize(lz4block.Block256Kb)]
+-	_ = x[Block1Mb-BlockSize(lz4block.Block1Mb)]
+-	_ = x[Block4Mb-BlockSize(lz4block.Block4Mb)]
+-}
+-
+ // CompressBlockBound returns the maximum size of a given buffer of size n, when not compressible.
+ func CompressBlockBound(n int) int {
+ 	return lz4block.CompressBlockBound(n)
+--- a/github.com/pierrec/lz4/v4/options.go
++++ b/github.com/pierrec/lz4/v4/options.go
+@@ -33,15 +33,15 @@
+ 	defaultOnBlockDone     = OnBlockDoneOption(nil)
+ )
+ 
++// BlockSizeIndex defines the size of the blocks to be compressed.
++type BlockSize uint32
++
+ const (
+ 	Block64Kb BlockSize = 1 << (16 + iota*2)
+ 	Block256Kb
+ 	Block1Mb
+ 	Block4Mb
+ )
+-
+-// BlockSizeIndex defines the size of the blocks to be compressed.
+-type BlockSize uint32
+ 
+ // BlockSizeOption defines the maximum size of compressed blocks (default=Block4Mb).
+ func BlockSizeOption(size BlockSize) Option {
+--- a/github.com/pierrec/lz4/v4/options_gen.go
++++ b/github.com/pierrec/lz4/v4/options_gen.go
+@@ -4,16 +4,6 @@
+ 
+ import "strconv"
+ 
+-func _() {
+-	// An "invalid array index" compiler error signifies that the constant values have changed.
+-	// Re-run the stringer command to generate them again.
+-	var x [1]struct{}
+-	_ = x[Block64Kb-65536]
+-	_ = x[Block256Kb-262144]
+-	_ = x[Block1Mb-1048576]
+-	_ = x[Block4Mb-4194304]
+-}
+-
+ const (
+ 	_BlockSize_name_0 = "Block64Kb"
+ 	_BlockSize_name_1 = "Block256Kb"
+--- a/github.com/pierrec/lz4/v4/reader.go
++++ b/github.com/pierrec/lz4/v4/reader.go
+@@ -128,9 +128,9 @@
+ 					err = r.frame.Blocks.ErrorR()
+ 				}
+ 			}
+-			switch err {
+-			case nil:
+-			case lz4errors.ErrEndOfStream:
++			switch {
++			case err == nil:
++			case isError(err, lz4errors.ErrEndOfStream):
+ 
+ 				// Read Checksum.
+ 				err = r.frame.CloseR(r.src)
+@@ -145,7 +145,7 @@
+ 				}
+ 
+ 				goto read
+-			case io.EOF:
++			case err == io.EOF:
+ 				if er := r.frame.CloseR(r.src); er != nil {
+ 					err = er
+ 				}
+@@ -263,9 +263,9 @@
+ 				err = r.frame.Blocks.ErrorR()
+ 			}
+ 		}
+-		switch err {
+-		case nil:
+-		case lz4errors.ErrEndOfStream:
++		switch {
++		case err == nil:
++		case isError(err, lz4errors.ErrEndOfStream):
+ 			// Read Checksum.
+ 			err = r.frame.CloseR(r.src)
+ 			if err != nil {
+@@ -280,7 +280,7 @@
+ 				return
+ 			}
+ 			goto read
+-		case io.EOF:
++		case err == io.EOF:
+ 			err = r.frame.CloseR(r.src)
+ 			return
+ 		default:
+@@ -302,8 +302,16 @@
+ 	if err == nil {
+ 		return true, nil
+ 	}
+-	if err == lz4errors.ErrInvalidFrame {
++	if isError(err, lz4errors.ErrInvalidFrame) {
+ 		return false, nil
+ 	}
+ 	return false, err
++}
++
++// isError replaces err == target: Yaegi can't compare an error interface
++// with a typed string constant (silently false, or a panic in a switch).
++func isError(err error, target lz4errors.Error) bool {
++	e, ok := err.(lz4errors.Error)
++
++	return ok && e == target
+ }
+--- a/github.com/pierrec/lz4/v4/state.go
++++ b/github.com/pierrec/lz4/v4/state.go
+@@ -10,6 +10,8 @@
+ 
+ //go:generate go run golang.org/x/tools/cmd/stringer -type=aState -output state_gen.go
+ 
++type aState uint8
++
+ const (
+ 	noState     aState = iota // uninitialized reader
+ 	errorState                // unrecoverable error encountered
+@@ -20,7 +22,6 @@
+ )
+ 
+ type (
+-	aState uint8
+ 	_State struct {
+ 		states []aState
+ 		state  aState
+--- a/github.com/pierrec/lz4/v4/state_gen.go
++++ b/github.com/pierrec/lz4/v4/state_gen.go
+@@ -4,18 +4,6 @@
+ 
+ import "strconv"
+ 
+-func _() {
+-	// An "invalid array index" compiler error signifies that the constant values have changed.
+-	// Re-run the stringer command to generate them again.
+-	var x [1]struct{}
+-	_ = x[noState-0]
+-	_ = x[errorState-1]
+-	_ = x[newState-2]
+-	_ = x[readState-3]
+-	_ = x[writeState-4]
+-	_ = x[closedState-5]
+-}
+-
+ const _aState_name = "noStateerrorStatenewStatereadStatewriteStateclosedState"
+ 
+ var _aState_index = [...]uint8{0, 7, 17, 25, 34, 44, 55}

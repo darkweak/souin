@@ -22,6 +22,7 @@ import (
 	"github.com/darkweak/souin/pkg/storage/types"
 	"github.com/darkweak/souin/pkg/surrogate"
 	"github.com/darkweak/souin/pkg/surrogate/providers"
+	"github.com/darkweak/storages/core"
 	"github.com/google/uuid"
 	"github.com/pquerna/cachecontrol/cacheobject"
 	"golang.org/x/sync/singleflight"
@@ -416,7 +417,7 @@ func (s *SouinBaseHandler) Upstream(
 	return nil
 }
 
-func (s *SouinBaseHandler) Revalidate(validator *types.Revalidator, next handlerFunc, customWriter *CustomWriter, rq *http.Request, requestCc *cacheobject.RequestCacheDirectives, cachedKey string, uri string) error {
+func (s *SouinBaseHandler) Revalidate(validator *core.Revalidator, next handlerFunc, customWriter *CustomWriter, rq *http.Request, requestCc *cacheobject.RequestCacheDirectives, cachedKey string, uri string) error {
 	singleflightCacheKey := cachedKey
 	if s.Configuration.GetDefaultCache().IsCoalescingDisable() {
 		singleflightCacheKey += uuid.NewString()
@@ -537,7 +538,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 			req.Method = http.MethodGet
 			keyname := s.context.SetContext(req, rq).Context().Value(context.Key).(string)
 			for _, storer := range s.Storers {
-				storer.Delete("IDX_" + keyname)
+				storer.Delete(core.MappingKeyPrefix + keyname)
 			}
 		}
 
@@ -674,7 +675,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 					})
 					_, err := customWriter.Send()
 					customWriter = NewCustomWriter(req, rw, bufPool)
-					go func(v *types.Revalidator, goCw *CustomWriter, goRq *http.Request, goNext func(http.ResponseWriter, *http.Request) error, goCc *cacheobject.RequestCacheDirectives, goCk string, goUri string) {
+					go func(v *core.Revalidator, goCw *CustomWriter, goRq *http.Request, goNext func(http.ResponseWriter, *http.Request) error, goCc *cacheobject.RequestCacheDirectives, goCk string, goUri string) {
 						_ = s.Revalidate(v, goNext, goCw, goRq, goCc, goCk, goUri)
 					}(validator, customWriter, req, next, requestCc, cachedKey, uri)
 					buf := s.bufPool.Get().(*bytes.Buffer)

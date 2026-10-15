@@ -1,14 +1,13 @@
 package core
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"sync"
 	"time"
 
 	"github.com/pierrec/lz4/v4"
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // MaxMappingSize bounds the legacy mapping blobs a storer is willing to
@@ -49,63 +48,47 @@ type SetStorer interface {
 // MappingEntry marshals a single mapping entry for storers that keep one
 // value per varied key instead of one blob per base key.
 func MappingEntry(now, freshTime, staleTime time.Time, variedHeaders http.Header, etag, realKey string) ([]byte, error) {
-	var pbvariedeheader map[string]*KeyIndexStringList
-	if variedHeaders != nil {
-		pbvariedeheader = make(map[string]*KeyIndexStringList, len(variedHeaders))
-	}
-
-	for headerName, headerValues := range variedHeaders {
-		pbvariedeheader[headerName] = &KeyIndexStringList{HeaderValue: headerValues}
-	}
-
-	return proto.Marshal(&KeyIndex{
-		StoredAt:      timestamppb.New(now),
-		FreshTime:     timestamppb.New(freshTime),
-		StaleTime:     timestamppb.New(staleTime),
-		VariedHeaders: pbvariedeheader,
-		Etag:          etag,
-		RealKey:       realKey,
-	})
+	return json.Marshal(newKeyIndex(now, freshTime, staleTime, variedHeaders, etag, realKey))
 }
 
-var registered = sync.Map{}
+// registered is a plain map: Yaegi loses the methods of an interpreted value
+// stored in a sync.Map, so the Storer assertion of upstream always failed.
+var (
+	registeredMu sync.RWMutex
+	registered   = map[string]Storer{}
+)
 
 func RegisterStorage(s Storer) {
 	_ = s.Init()
-	registered.Store(fmt.Sprintf("%s-%s", s.Name(), s.Uuid()), s)
+
+	registeredMu.Lock()
+	defer registeredMu.Unlock()
+
+	registered[fmt.Sprintf("%s-%s", s.Name(), s.Uuid())] = s
 }
 
 func GetRegisteredStorer(name string) Storer {
-	s, _ := registered.Load(name)
-	if s != nil {
-		if v, ok := s.(Storer); ok {
-			return v
-		}
-	}
+	registeredMu.RLock()
+	defer registeredMu.RUnlock()
 
-	return nil
+	return registered[name]
 }
 
 func ResetRegisteredStorages() {
-	registered.Range(func(key, value any) bool {
-		registered.Delete(key)
+	registeredMu.Lock()
+	defer registeredMu.Unlock()
 
-		return true
-	})
-
-	registered = sync.Map{}
+	registered = map[string]Storer{}
 }
 
 func GetRegisteredStorers() []Storer {
-	storers := make([]Storer, 0)
+	registeredMu.RLock()
+	defer registeredMu.RUnlock()
 
-	registered.Range(func(_, value any) bool {
-		if s, ok := value.(Storer); ok {
-			storers = append(storers, s)
-		}
-
-		return true
-	})
+	storers := make([]Storer, 0, len(registered))
+	for _, s := range registered {
+		storers = append(storers, s)
+	}
 
 	return storers
 }

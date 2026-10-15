@@ -1,17 +1,18 @@
-//go:build !wasi && !wasm
-
 package core
+
+// Yaegi compatible replacement of github.com/darkweak/storages/core.
+// It keeps the upstream API but drops protobuf, which crashes the Yaegi
+// compiler: mappings are encoded as JSON instead.
 
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/pierrec/lz4/v4"
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type Storer interface {
@@ -49,7 +50,7 @@ const (
 
 func DecodeMapping(item []byte) (*StorageMapper, error) {
 	mapping := new(StorageMapper)
-	e := proto.Unmarshal(item, mapping)
+	e := json.Unmarshal(item, mapping)
 
 	return mapping, e
 }
@@ -58,6 +59,26 @@ func readResponse(data []byte, req *http.Request) (*http.Response, error) {
 	reader := lz4.NewReader(bytes.NewReader(data))
 
 	return http.ReadResponse(bufio.NewReader(reader), req)
+}
+
+func newKeyIndex(now, freshTime, staleTime time.Time, variedHeaders http.Header, etag, realKey string) *KeyIndex {
+	var variedHeadersList map[string]*KeyIndexStringList
+	if variedHeaders != nil {
+		variedHeadersList = make(map[string]*KeyIndexStringList, len(variedHeaders))
+	}
+
+	for headerName, headerValues := range variedHeaders {
+		variedHeadersList[headerName] = &KeyIndexStringList{HeaderValue: headerValues}
+	}
+
+	return &KeyIndex{
+		StoredAt:      NewTimestamp(now),
+		FreshTime:     NewTimestamp(freshTime),
+		StaleTime:     NewTimestamp(staleTime),
+		VariedHeaders: variedHeadersList,
+		Etag:          etag,
+		RealKey:       realKey,
+	}
 }
 
 func MappingElection(provider Storer, item []byte, req *http.Request, validator *Revalidator, logger Logger) (resultFresh *http.Response, resultStale *http.Response, e error) {
@@ -81,7 +102,7 @@ func MappingElectionEntries(provider Storer, entries map[string][]byte, req *htt
 
 	for keyName, raw := range entries {
 		keyItem := &KeyIndex{}
-		if err := proto.Unmarshal(raw, keyItem); err != nil {
+		if err := json.Unmarshal(raw, keyItem); err != nil {
 			logger.Errorf("Impossible to decode the mapping entry %s: %v", keyName, err)
 
 			continue
@@ -154,7 +175,7 @@ func electMapping(provider Storer, mapping map[string]*KeyIndex, req *http.Reque
 func MappingUpdater(key string, item []byte, logger Logger, now, freshTime, staleTime time.Time, variedHeaders http.Header, etag, realKey string) (val []byte, e error) {
 	mapping := new(StorageMapper)
 	if len(item) != 0 {
-		e = proto.Unmarshal(item, mapping)
+		e = json.Unmarshal(item, mapping)
 		if e != nil {
 			logger.Errorf("Impossible to decode the key %s, %v", key, e)
 
@@ -166,25 +187,9 @@ func MappingUpdater(key string, item []byte, logger Logger, now, freshTime, stal
 		mapping.Mapping = make(map[string]*KeyIndex)
 	}
 
-	var pbvariedeheader map[string]*KeyIndexStringList
-	if variedHeaders != nil {
-		pbvariedeheader = make(map[string]*KeyIndexStringList)
-	}
+	mapping.Mapping[key] = newKeyIndex(now, freshTime, staleTime, variedHeaders, etag, realKey)
 
-	for k, v := range variedHeaders {
-		pbvariedeheader[k] = &KeyIndexStringList{HeaderValue: v}
-	}
-
-	mapping.Mapping[key] = &KeyIndex{
-		StoredAt:      timestamppb.New(now),
-		FreshTime:     timestamppb.New(freshTime),
-		StaleTime:     timestamppb.New(staleTime),
-		VariedHeaders: pbvariedeheader,
-		Etag:          etag,
-		RealKey:       realKey,
-	}
-
-	val, e = proto.Marshal(mapping)
+	val, e = json.Marshal(mapping)
 	if e != nil {
 		logger.Errorf("Impossible to encode the mapping value for the key %s, %v", key, e)
 

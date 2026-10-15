@@ -3,13 +3,15 @@ module github.com/darkweak/souin/plugins/traefik
 go 1.27.1
 
 require (
-	github.com/akyoto/cache v1.0.6
 	github.com/darkweak/souin v1.7.9
+	github.com/darkweak/storages/core v0.0.21
+	github.com/darkweak/storages/otter v0.0.21
+	github.com/darkweak/storages/simplefs v0.0.21
 	github.com/google/uuid v1.6.0
+	github.com/pierrec/lz4/v4 v4.1.29
 	github.com/pquerna/cachecontrol v0.2.0
 	github.com/spf13/cast v1.10.0
 	golang.org/x/sync v0.23.0
-	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
@@ -41,15 +43,16 @@ require (
 	github.com/cloudflare/circl v1.6.5 // indirect
 	github.com/coreos/go-oidc/v3 v3.21.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
-	github.com/darkweak/storages/core v0.0.21 // indirect
 	github.com/dgraph-io/badger v1.6.2 // indirect
 	github.com/dgraph-io/badger/v2 v2.2007.4 // indirect
 	github.com/dgraph-io/ristretto v0.2.0 // indirect
 	github.com/dgryski/go-farm v0.0.0-20240924180020-3414d57e47da // indirect
+	github.com/dolthub/maphash v0.1.0 // indirect
 	github.com/dunglas/go-urlpattern v1.0.0 // indirect
 	github.com/dunglas/httpsfv v1.1.1 // indirect
 	github.com/dustin/go-humanize v1.1.0 // indirect
 	github.com/felixge/httpsnoop v1.1.0 // indirect
+	github.com/gammazero/deque v0.2.1 // indirect
 	github.com/go-jose/go-jose/v3 v3.0.5 // indirect
 	github.com/go-jose/go-jose/v4 v4.1.5 // indirect
 	github.com/go-logr/logr v1.4.4 // indirect
@@ -67,12 +70,14 @@ require (
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/pgx/v5 v5.11.0 // indirect
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
+	github.com/jellydator/ttlcache/v3 v3.3.0 // indirect
 	github.com/klauspost/compress v1.20.1 // indirect
 	github.com/klauspost/cpuid/v2 v2.4.0 // indirect
 	github.com/libdns/libdns v1.1.1 // indirect
 	github.com/manifoldco/promptui v0.9.0 // indirect
 	github.com/mattn/go-colorable v0.1.15 // indirect
 	github.com/mattn/go-isatty v0.0.24 // indirect
+	github.com/maypok86/otter v1.2.4 // indirect
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
 	github.com/mholt/acmez/v3 v3.1.7 // indirect
 	github.com/miekg/dns v1.1.73 // indirect
@@ -82,7 +87,6 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/nlnwa/whatwg-url v0.6.2 // indirect
 	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58 // indirect
-	github.com/pierrec/lz4/v4 v4.1.29 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_golang v1.24.1 // indirect
 	github.com/prometheus/client_model v0.6.3 // indirect
@@ -154,10 +158,13 @@ require (
 	google.golang.org/grpc v1.83.2 // indirect
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.6.2 // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 	howett.net/plist v1.0.1 // indirect
 )
 
 replace (
 	github.com/darkweak/souin v1.7.9 => ../..
+	// cast >= v1.8 uses generic type switches that Yaegi rejects
+	github.com/spf13/cast => github.com/spf13/cast v1.7.0
 	go.uber.org/zap v1.26.0 => go.uber.org/zap v1.21.0
 )

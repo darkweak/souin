@@ -13,16 +13,6 @@ import (
 	"github.com/pierrec/lz4/v4/internal/lz4errors"
 )
 
-func _() {
-	// Safety checks for duplicated elements.
-	var x [1]struct{}
-	_ = x[lz4block.CompressionLevel(Fast)-lz4block.Fast]
-	_ = x[Block64Kb-BlockSize(lz4block.Block64Kb)]
-	_ = x[Block256Kb-BlockSize(lz4block.Block256Kb)]
-	_ = x[Block1Mb-BlockSize(lz4block.Block1Mb)]
-	_ = x[Block4Mb-BlockSize(lz4block.Block4Mb)]
-}
-
 // CompressBlockBound returns the maximum size of a given buffer of size n, when not compressible.
 func CompressBlockBound(n int) int {
 	return lz4block.CompressBlockBound(n)

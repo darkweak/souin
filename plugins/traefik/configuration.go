@@ -2,6 +2,7 @@ package traefik
 
 import (
 	"github.com/darkweak/souin/configurationtypes"
+	"github.com/darkweak/storages/core"
 )
 
 // Configuration holder
@@ -14,6 +15,7 @@ type Configuration struct {
 	Ykeys                map[string]configurationtypes.SurrogateKeys `json:"ykeys" yaml:"ykeys"`
 	SurrogateKeys        map[string]configurationtypes.SurrogateKeys `json:"surrogate_keys" yaml:"surrogate_keys"`
 	SurrogateKeyDisabled bool                                        `json:"disable_surrogate_key" yaml:"disable_surrogate_key"`
+	Logger               core.Logger                                 `json:"-" yaml:"-"`
 }
 
 // GetUrls get the urls list in the configuration
@@ -54,6 +56,16 @@ func (c *Configuration) GetSurrogateKeys() map[string]configurationtypes.Surroga
 // IsSurrogateDisabled disable the surrogate storage
 func (c *Configuration) IsSurrogateDisabled() bool {
 	return c.SurrogateKeyDisabled
+}
+
+// GetLogger get the logger
+func (c *Configuration) GetLogger() core.Logger {
+	return c.Logger
+}
+
+// SetLogger set the logger
+func (c *Configuration) SetLogger(l core.Logger) {
+	c.Logger = l
 }
 
 // GetCacheKeys get the cache keys rules to override

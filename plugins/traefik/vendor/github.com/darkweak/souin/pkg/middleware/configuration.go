@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"github.com/darkweak/souin/configurationtypes"
+	"github.com/darkweak/storages/core"
 )
 
 // BaseConfiguration holder
@@ -11,6 +12,7 @@ type BaseConfiguration struct {
 	CacheKeys            configurationtypes.CacheKeys      `json:"cache_keys" yaml:"cache_keys"`
 	URLs                 map[string]configurationtypes.URL `json:"urls" yaml:"urls"`
 	LogLevel             string                            `json:"log_level" yaml:"log_level"`
+	Logger               core.Logger
 	PluginName           string
 	Ykeys                map[string]configurationtypes.SurrogateKeys `json:"ykeys" yaml:"ykeys"`
 	SurrogateKeys        map[string]configurationtypes.SurrogateKeys `json:"surrogate_keys" yaml:"surrogate_keys"`
@@ -40,6 +42,16 @@ func (c *BaseConfiguration) GetAPI() configurationtypes.API {
 // GetLogLevel get the log level
 func (c *BaseConfiguration) GetLogLevel() string {
 	return c.LogLevel
+}
+
+// GetLogger get the logger
+func (c *BaseConfiguration) GetLogger() core.Logger {
+	return c.Logger
+}
+
+// SetLogger set the logger
+func (c *BaseConfiguration) SetLogger(l core.Logger) {
+	c.Logger = l
 }
 
 // GetYkeys get the ykeys list

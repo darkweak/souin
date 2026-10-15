@@ -211,6 +211,10 @@ func parseConfiguration(c map[string]interface{}) Configuration {
 					if err == nil {
 						dc.Stale = configurationtypes.Duration{Duration: stale}
 					}
+				case "otter":
+					dc.Otter = parseCacheProvider(defaultCacheV)
+				case "simplefs":
+					dc.SimpleFS = parseCacheProvider(defaultCacheV)
 				case "storers":
 					dc.Storers = parseStringSlice(defaultCacheV)
 				case "default_cache_control":
@@ -255,6 +259,35 @@ func parseConfiguration(c map[string]interface{}) Configuration {
 	}
 
 	return configuration
+}
+
+// parseCacheProvider returns the storage configuration, e.g.
+//
+//	simplefs:
+//	  path: /tmp/souin
+//	  configuration:
+//	    size: 1000
+//
+// An empty block (otter: {}) enables the storage with its defaults.
+func parseCacheProvider(i interface{}) configurationtypes.CacheProvider {
+	provider := configurationtypes.CacheProvider{Found: true}
+	values, ok := i.(map[string]interface{})
+	if !ok {
+		return provider
+	}
+
+	for k, v := range values {
+		switch k {
+		case "url":
+			provider.URL, _ = v.(string)
+		case "path":
+			provider.Path, _ = v.(string)
+		case "configuration":
+			provider.Configuration = v
+		}
+	}
+
+	return provider
 }
 
 // parseStringSlice returns the string slice corresponding to the given interface.
@@ -303,6 +336,11 @@ func parseIntSlice(i interface{}) []int {
 // New create Souin instance.
 func New(_ context.Context, next http.Handler, config *TestConfiguration, name string) (http.Handler, error) {
 	c := parseConfiguration(*config)
+	if c.DefaultCache == nil {
+		c.DefaultCache = &configurationtypes.DefaultCache{}
+	}
+
+	initStorages(&c)
 
 	return &SouinTraefikMiddleware{
 		name:             name,

@@ -74,7 +74,7 @@ type Compressor struct {
 func (c *Compressor) get(h uint32, si int) int {
 	h &= htSize - 1
 	i := 0
-	if c.inUse[h/32]&(1<<(h%32)) != 0 {
+	if c.inUse[h/32]&(uint32(1)<<(h%32)) != 0 {
 		i = int(c.table[h])
 	}
 	i += si &^ winMask
@@ -88,7 +88,7 @@ func (c *Compressor) get(h uint32, si int) int {
 func (c *Compressor) put(h uint32, si int) {
 	h &= htSize - 1
 	c.table[h] = uint16(si)
-	c.inUse[h/32] |= 1 << (h % 32)
+	c.inUse[h/32] |= uint32(1) << (h % 32)
 }
 
 func (c *Compressor) reset() { c.inUse = [htSize / 32]uint32{} }

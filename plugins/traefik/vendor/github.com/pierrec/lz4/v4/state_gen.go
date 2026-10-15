@@ -4,18 +4,6 @@ package lz4
 
 import "strconv"
 
-func _() {
-	// An "invalid array index" compiler error signifies that the constant values have changed.
-	// Re-run the stringer command to generate them again.
-	var x [1]struct{}
-	_ = x[noState-0]
-	_ = x[errorState-1]
-	_ = x[newState-2]
-	_ = x[readState-3]
-	_ = x[writeState-4]
-	_ = x[closedState-5]
-}
-
 const _aState_name = "noStateerrorStatenewStatereadStatewriteStateclosedState"
 
 var _aState_index = [...]uint8{0, 7, 17, 25, 34, 44, 55}

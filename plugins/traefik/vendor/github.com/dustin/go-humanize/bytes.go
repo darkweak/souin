@@ -89,7 +89,7 @@ func humanateBytes(s uint64, base float64, minDigits int, sizes []string) string
 	// formatting (double rounding) can flip the result at a boundary due
 	// to floating point error (see #103).
 	intDigits := countDigits(int64(val))
-	digits := max(minDigits-intDigits, 0)
+	digits := nonNegative(minDigits-intDigits)
 	rounding := math.Pow10(digits)
 	val = math.Floor(val*rounding+0.5) / rounding
 
@@ -97,7 +97,7 @@ func humanateBytes(s uint64, base float64, minDigits int, sizes []string) string
 	// 9.996 -> 10.0), which means fewer decimal places should be shown
 	// than originally computed.
 	if newIntDigits := countDigits(int64(val)); newIntDigits > intDigits {
-		digits = max(digits-(newIntDigits-intDigits), 0)
+		digits = nonNegative(digits-(newIntDigits-intDigits))
 	}
 
 	ff := "%%.%df %%s"
@@ -204,4 +204,13 @@ func ParseBytes(s string) (uint64, error) {
 	}
 
 	return 0, fmt.Errorf("unhandled size name: %v", extra)
+}
+
+// nonNegative replaces max(n, 0): Yaegi does not know the go1.21 builtins.
+func nonNegative(n int) int {
+	if n < 0 {
+		return 0
+	}
+
+	return n
 }
