@@ -401,3 +401,73 @@ func TestHopByHopHeadersAreNotCached(t *testing.T) {
 		}
 	}
 }
+
+// TestNoCacheResponseWithETagIsRevalidated ensures that a stored response
+// carrying Cache-Control: no-cache and an ETag is not reused without being
+// validated with the upstream first (RFC 9111 §5.2.2.4).
+func TestNoCacheResponseWithETagIsRevalidated(t *testing.T) {
+	handler, _ := newTestHandler(t)
+
+	body := "v1-body"
+	etag := `"v1"`
+	var upstreamINM []string
+	next := func(w http.ResponseWriter, r *http.Request) error {
+		upstreamINM = append(upstreamINM, r.Header.Get("If-None-Match"))
+		w.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("ETag", etag)
+		if r.Header.Get("If-None-Match") == etag {
+			w.WriteHeader(http.StatusNotModified)
+			return nil
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(body))
+		return nil
+	}
+
+	serve := func() *httptest.ResponseRecorder {
+		t.Helper()
+		req := httptest.NewRequest(http.MethodGet, "http://example.com/no-cache", nil)
+		rec := httptest.NewRecorder()
+		if err := handler.ServeHTTP(rec, req, next); err != nil {
+			t.Fatalf("ServeHTTP failed: %v", err)
+		}
+		return rec
+	}
+
+	// First request: MISS, populates the cache.
+	serve()
+
+	// Second request: the stored response must be validated with its ETag,
+	// and the unconditional client must get the full stored response.
+	rec := serve()
+	if len(upstreamINM) != 2 {
+		t.Fatalf("expected the second request to be forwarded for validation (2 upstream calls), got %d", len(upstreamINM))
+	}
+	if upstreamINM[1] != etag {
+		t.Errorf("expected the validation request to carry If-None-Match %s, got %q", etag, upstreamINM[1])
+	}
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected 200 for an unconditional request, got %d", rec.Code)
+	}
+	if got := rec.Body.String(); got != body {
+		t.Errorf("expected the stored body %q, got %q", body, got)
+	}
+
+	// Third request: the representation changed upstream, so the new one
+	// must be served.
+	body = "v2-body"
+	etag = `"v2"`
+	rec = serve()
+	if len(upstreamINM) != 3 {
+		t.Fatalf("expected the third request to be forwarded for validation (3 upstream calls), got %d", len(upstreamINM))
+	}
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected 200, got %d", rec.Code)
+	}
+	if got := rec.Body.String(); got != body {
+		t.Errorf("expected the new body %q, got %q", body, got)
+	}
+	if got := rec.Header().Get("ETag"); got != etag {
+		t.Errorf("expected the new ETag %s, got %q", etag, got)
+	}
+}
