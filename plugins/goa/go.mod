@@ -1,6 +1,6 @@
 module github.com/darkweak/souin/plugins/goa
 
-go 1.25.0
+go 1.27.0
 
 require (
 	github.com/darkweak/souin v1.7.9

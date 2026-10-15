@@ -144,12 +144,14 @@ func (s *SouinCaddyMiddleware) parseStorages(ctx caddy.Context) {
 					// rueidis
 					if d, ok := p["InitAddress"]; ok {
 						elements := make([]string, 0)
+						if vals, ok := d.([]interface{}); ok {
+							for _, elt := range vals {
+								elements = append(elements, elt.(string))
+							}
 
-						for _, elt := range d.([]interface{}) {
-							elements = append(elements, elt.(string))
+							address = strings.Join(elements, ",")
 						}
 
-						address = strings.Join(elements, ",")
 					}
 					if d, ok := p["SelectDB"]; ok {
 						dbname = fmt.Sprint(d)

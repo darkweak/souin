@@ -1,6 +1,6 @@
 module github.com/darkweak/souin/plugins/caddy
 
-go 1.25.0
+go 1.27.0
 
 require (
 	github.com/caddyserver/caddy/v2 v2.11.2
