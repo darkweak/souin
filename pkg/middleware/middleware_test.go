@@ -11,7 +11,9 @@ import (
 	"time"
 
 	"github.com/darkweak/souin/configurationtypes"
+	"github.com/darkweak/souin/context"
 	"github.com/darkweak/souin/pkg/storage/types"
+	"github.com/pquerna/cachecontrol/cacheobject"
 )
 
 func newTestConfig() *BaseConfiguration {
@@ -399,5 +401,95 @@ func TestHopByHopHeadersAreNotCached(t *testing.T) {
 		if v := rec2.Header().Get(h); v != "" {
 			t.Errorf("hop-by-hop header %q must not be served from cache, got %q", h, v)
 		}
+	}
+}
+
+// TestStalledUpstreamDoesNotHoldTheSingleflightKey covers the upstream that
+// never returns: singleflight keeps its entry until the callback returns, so
+// the requests joining that call must not wait for it indefinitely and the key
+// must be usable again for the next requests instead of being stuck until the
+// process restarts.
+func TestStalledUpstreamDoesNotHoldTheSingleflightKey(t *testing.T) {
+	cfg := newTestConfig()
+	cfg.DefaultCache.Timeout.Backend = configurationtypes.Duration{Duration: 500 * time.Millisecond}
+	handler := NewHTTPCacheHandler(cfg)
+	requestCc, _ := cacheobject.ParseRequestCacheControl("")
+
+	callUpstream := func(next handlerFunc) (*httptest.ResponseRecorder, error) {
+		baseReq := httptest.NewRequest(http.MethodGet, "http://example.com/test-stalled-upstream", nil)
+		req := handler.context.SetContext(handler.context.SetBaseContext(baseReq), baseReq)
+		rec := httptest.NewRecorder()
+		customWriter := NewCustomWriter(req, rec, new(bytes.Buffer))
+
+		err := handler.Upstream(customWriter, req, next, requestCc, req.Context().Value(context.Key).(string), req.URL.Path, false)
+		if err == nil {
+			_, _ = customWriter.Send()
+		}
+
+		return rec, err
+	}
+
+	release := make(chan struct{})
+	defer close(release)
+	stalled := make(chan struct{})
+
+	// That request never returns from the upstream, it owns the singleflight call.
+	go func() {
+		_, _ = callUpstream(func(_ http.ResponseWriter, _ *http.Request) error {
+			close(stalled)
+			<-release
+
+			return nil
+		})
+	}()
+	<-stalled
+
+	var (
+		upstreamCalls int
+		mu            sync.Mutex
+	)
+	next := func(w http.ResponseWriter, _ *http.Request) error {
+		mu.Lock()
+		upstreamCalls++
+		mu.Unlock()
+
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("STALLED_UPSTREAM_BODY"))
+
+		return nil
+	}
+
+	// That request joins the stalled call, it must return when the backend
+	// timeout is exceeded instead of waiting for it indefinitely.
+	joined := make(chan error, 1)
+	go func() {
+		_, err := callUpstream(next)
+		joined <- err
+	}()
+
+	select {
+	case err := <-joined:
+		if err == nil {
+			t.Error("the request that joined the stalled upstream call must return the context error")
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("BUG: the request that joined the stalled upstream call waits for it indefinitely")
+	}
+
+	// The stalled call must not prevent the next requests to reach the upstream.
+	rec, err := callUpstream(next)
+	if err != nil {
+		t.Errorf("the request sent after the stalled one failed: %v", err)
+	}
+
+	mu.Lock()
+	calls := upstreamCalls
+	mu.Unlock()
+
+	if calls == 0 {
+		t.Error("BUG: the upstream is not requested anymore once a call stalled on that key")
+	}
+	if got := rec.Body.String(); got != "STALLED_UPSTREAM_BODY" {
+		t.Errorf("response body mismatch.\nwant: %q\ngot:  %q", "STALLED_UPSTREAM_BODY", got)
 	}
 }
