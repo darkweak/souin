@@ -174,14 +174,6 @@ jobs:
           releaseId: 144343803
         env:
           GITHUB_TOKEN: \${{ secrets.GITHUB_TOKEN }}
-      - 
-        name: Upload screenshot artifacts
-        id: screenshot-uploader
-        uses: edunad/actions-image@master
-        with:
-            path: screenshots/iPad_Pro_landscape.jpeg
-            GITHUB_TOKEN: \${{ secrets.GITHUB_TOKEN }}
-            title: 'cache-tests suite result'
 
 EOF
 workflow+="$tpl"

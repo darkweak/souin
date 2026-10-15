@@ -113,7 +113,7 @@ jobs:
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
 
       - uses: pnpm/action-setup@v3
         name: Install pnpm
@@ -166,14 +166,6 @@ jobs:
           releaseId: 144343803
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - 
-        name: Upload screenshot artifacts
-        id: screenshot-uploader
-        uses: edunad/actions-image@master
-        with:
-            path: screenshots/iPad_Pro_landscape.jpeg
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-            title: 'cache-tests suite result'
 
   build-beego-validator:
     uses: ./.github/workflows/plugin_template.yml
