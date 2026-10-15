@@ -12,8 +12,6 @@ import (
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/cryptobyte"
 	"golang.org/x/crypto/cryptobyte/asn1"
-
-	"go.step.sm/crypto/internal/templates"
 )
 
 // Options are the options that can be passed to NewCertificate.
@@ -51,12 +49,8 @@ func GetFuncMap() template.FuncMap {
 }
 
 func getFuncMap(err *TemplateError) template.FuncMap {
-	funcMap := templates.GetFuncMap(&err.Message)
-	// asn1 methods
-	funcMap["asn1Enc"] = asn1Encode
-	funcMap["asn1Marshal"] = asn1Marshal
-	funcMap["asn1Seq"] = asn1Sequence
-	funcMap["asn1Set"] = asn1Set
+	funcMap := builtinFuncMap(err)
+	templateFuncs.Apply(funcMap)
 	return funcMap
 }
 
@@ -124,7 +118,7 @@ func asn1Encode(str string) (string, error) {
 	return base64.StdEncoding.EncodeToString(b), nil
 }
 
-func asn1Marshal(v interface{}, params ...string) (string, error) {
+func asn1Marshal(v any, params ...string) (string, error) {
 	b, err := encoding_asn1.MarshalWithParams(v, strings.Join(params, ","))
 	if err != nil {
 		return "", err

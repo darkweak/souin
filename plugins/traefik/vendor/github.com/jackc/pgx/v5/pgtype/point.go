@@ -3,7 +3,6 @@ package pgtype
 import (
 	"bytes"
 	"database/sql/driver"
-	"encoding/binary"
 	"fmt"
 	"math"
 	"strconv"
@@ -30,11 +29,13 @@ type Point struct {
 	Valid bool
 }
 
+// ScanPoint implements the [PointScanner] interface.
 func (p *Point) ScanPoint(v Point) error {
 	*p = v
 	return nil
 }
 
+// PointValue implements the [PointValuer] interface.
 func (p Point) PointValue() (Point, error) {
 	return p, nil
 }
@@ -68,22 +69,21 @@ func parsePoint(src []byte) (*Point, error) {
 	return &Point{P: Vec2{x, y}, Valid: true}, nil
 }
 
-// Scan implements the database/sql Scanner interface.
+// Scan implements the [database/sql.Scanner] interface.
 func (dst *Point) Scan(src any) error {
 	if src == nil {
 		*dst = Point{}
 		return nil
 	}
 
-	switch src := src.(type) {
-	case string:
+	if src, ok := src.(string); ok {
 		return scanPlanTextAnyToPointScanner{}.Scan([]byte(src), dst)
 	}
 
 	return fmt.Errorf("cannot scan %T", src)
 }
 
-// Value implements the database/sql/driver Valuer interface.
+// Value implements the [database/sql/driver.Valuer] interface.
 func (src Point) Value() (driver.Value, error) {
 	if !src.Valid {
 		return nil, nil
@@ -96,6 +96,7 @@ func (src Point) Value() (driver.Value, error) {
 	return string(buf), err
 }
 
+// MarshalJSON implements the [encoding/json.Marshaler] interface.
 func (src Point) MarshalJSON() ([]byte, error) {
 	if !src.Valid {
 		return []byte("null"), nil
@@ -108,6 +109,7 @@ func (src Point) MarshalJSON() ([]byte, error) {
 	return buff.Bytes(), nil
 }
 
+// UnmarshalJSON implements the [encoding/json.Unmarshaler] interface.
 func (dst *Point) UnmarshalJSON(point []byte) error {
 	p, err := parsePoint(point)
 	if err != nil {
@@ -178,16 +180,13 @@ func (encodePlanPointCodecText) Encode(value any, buf []byte) (newBuf []byte, er
 }
 
 func (PointCodec) PlanScan(m *Map, oid uint32, format int16, target any) ScanPlan {
-
 	switch format {
 	case BinaryFormatCode:
-		switch target.(type) {
-		case PointScanner:
+		if _, ok := target.(PointScanner); ok {
 			return scanPlanBinaryPointToPointScanner{}
 		}
 	case TextFormatCode:
-		switch target.(type) {
-		case PointScanner:
+		if _, ok := target.(PointScanner); ok {
 			return scanPlanTextAnyToPointScanner{}
 		}
 	}
@@ -215,18 +214,20 @@ func (c PointCodec) DecodeValue(m *Map, oid uint32, format int16, src []byte) (a
 type scanPlanBinaryPointToPointScanner struct{}
 
 func (scanPlanBinaryPointToPointScanner) Scan(src []byte, dst any) error {
-	scanner := (dst).(PointScanner)
+	scanner := dst.(PointScanner)
 
 	if src == nil {
 		return scanner.ScanPoint(Point{})
 	}
 
-	if len(src) != 16 {
-		return fmt.Errorf("invalid length for point: %v", len(src))
-	}
+	r := pgio.NewReader(src)
 
-	x := binary.BigEndian.Uint64(src)
-	y := binary.BigEndian.Uint64(src[8:])
+	x := r.Uint64()
+	y := r.Uint64()
+
+	if err := r.Finish(); err != nil {
+		return fmt.Errorf("point: %w", err)
+	}
 
 	return scanner.ScanPoint(Point{
 		P:     Vec2{math.Float64frombits(x), math.Float64frombits(y)},
@@ -237,7 +238,7 @@ func (scanPlanBinaryPointToPointScanner) Scan(src []byte, dst any) error {
 type scanPlanTextAnyToPointScanner struct{}
 
 func (scanPlanTextAnyToPointScanner) Scan(src []byte, dst any) error {
-	scanner := (dst).(PointScanner)
+	scanner := dst.(PointScanner)
 
 	if src == nil {
 		return scanner.ScanPoint(Point{})

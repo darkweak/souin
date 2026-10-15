@@ -1,5 +1,4 @@
 //go:build !nobadger && !nobadgerv1
-// +build !nobadger,!nobadgerv1
 
 package badger
 
@@ -386,9 +385,10 @@ func parseBadgerEncode(bk []byte) (value, rest []byte) {
 	var (
 		keyLen uint16
 		start  = uint16(2)
+		//nolint:gosec // disable G115
 		length = uint16(len(bk))
 	)
-	if uint16(len(bk)) < start {
+	if length < start {
 		return nil, bk
 	}
 	// First 2 bytes stores the length of the value.

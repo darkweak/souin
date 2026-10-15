@@ -1,17 +1,13 @@
 //go:build go1.24
 
+// Package fipsutil reports how the running process relates to the FIPS 140-3
+// Go Cryptographic Module.
 package fipsutil
 
 import (
 	"crypto/fips140"
-	"os"
-	"strings"
+	"runtime/debug"
 	"sync"
-)
-
-var (
-	only bool
-	once sync.Once
 )
 
 // Enabled reports whether the cryptography libraries are operating in FIPS
@@ -26,24 +22,45 @@ func Enabled() bool {
 	return fips140.Enabled()
 }
 
-// Only reports whether the cryptography libraries are operating in FIPS 140-3
-// "only" mode. When in this mode, using non-approved cryptography functions
-// will return errors or panic.
-func Only() bool {
-	once.Do(func() {
-		if !fips140.Enabled() {
+var (
+	buildVersion     string
+	buildVersionOnce sync.Once
+)
+
+// BuildVersion returns the GOFIPS140 setting recorded in the binary, such as
+// "v1.0.0-c2097c7c", or the empty string if it was built without one.
+//
+// This is the resolved version rather than the value passed to the go command:
+// GOFIPS140=v1.0.0 is read through $GOROOT/lib/fips140/v1.0.0.txt and records
+// as the exact snapshot whose checksum is fixed in the module's security
+// policy.
+func BuildVersion() string {
+	buildVersionOnce.Do(func() {
+		info, ok := debug.ReadBuildInfo()
+		if !ok {
 			return
 		}
-
-		// Parse GODEBUG backwards as the last value is the correct one.
-		settings := strings.Split(os.Getenv("GODEBUG"), ",")
-		for i := len(settings) - 1; i >= 0; i-- {
-			if settings[i] == "fips140=only" {
-				only = true
+		for _, s := range info.Settings {
+			if s.Key == "GOFIPS140" {
+				buildVersion = s.Value
 				return
 			}
 		}
 	})
 
-	return only
+	return buildVersion
+}
+
+// Validated reports whether the binary links a frozen module snapshot rather
+// than the toolchain's in-tree crypto packages.
+//
+// It says nothing about whether FIPS 140-3 mode is currently on; use [Enabled]
+// for that.
+func Validated() bool {
+	switch BuildVersion() {
+	case "", "off", "latest":
+		return false
+	default:
+		return true
+	}
 }

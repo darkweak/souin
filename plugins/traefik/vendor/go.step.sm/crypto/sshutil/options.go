@@ -7,8 +7,6 @@ import (
 	"text/template"
 
 	"github.com/pkg/errors"
-
-	"go.step.sm/crypto/internal/templates"
 )
 
 // Options are the options that can be passed to NewCertificate.
@@ -36,7 +34,9 @@ func GetFuncMap() template.FuncMap {
 }
 
 func getFuncMap(err *TemplateError) template.FuncMap {
-	return templates.GetFuncMap(&err.Message)
+	funcMap := builtinFuncMap(err)
+	templateFuncs.Apply(funcMap)
+	return funcMap
 }
 
 // WithTemplate is an options that executes the given template text with the

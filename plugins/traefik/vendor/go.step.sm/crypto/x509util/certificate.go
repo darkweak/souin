@@ -41,7 +41,7 @@ type Certificate struct {
 	NameConstraints       *NameConstraints         `json:"nameConstraints"`
 	SignatureAlgorithm    SignatureAlgorithm       `json:"signatureAlgorithm"`
 	PublicKeyAlgorithm    x509.PublicKeyAlgorithm  `json:"-"`
-	PublicKey             interface{}              `json:"-"`
+	PublicKey             any                      `json:"-"`
 }
 
 // NewCertificate creates a new Certificate from an x509.CertificateRequest and
@@ -216,7 +216,7 @@ func CreateCertificate(template, parent *x509.Certificate, pub crypto.PublicKey,
 		}
 	}
 	if template.SubjectKeyId == nil {
-		if template.SubjectKeyId, err = generateSubjectKeyID(pub); err != nil {
+		if template.SubjectKeyId, err = GenerateSubjectKeyID(pub); err != nil {
 			return nil, err
 		}
 	}

@@ -41,9 +41,9 @@ func ValidateTemplateData(data []byte) error {
 	return templates.ValidateTemplateData(data)
 }
 
-// TemplateData is an alias for map[string]interface{}. It represents the data
-// passed to the templates.
-type TemplateData map[string]interface{}
+// TemplateData is an alias for map[string]any. It represents the data passed to
+// the templates.
+type TemplateData map[string]any
 
 // CreateTemplateData returns a TemplateData with the given certificate type,
 // key id, principals, and the default extensions.
@@ -57,10 +57,10 @@ func CreateTemplateData(ct CertType, keyID string, principals []string) Template
 }
 
 // DefaultExtensions returns the default extensions set in an SSH certificate.
-func DefaultExtensions(ct CertType) map[string]interface{} {
+func DefaultExtensions(ct CertType) map[string]any {
 	switch ct {
 	case UserCert:
-		return map[string]interface{}{
+		return map[string]any{
 			"permit-X11-forwarding":   "",
 			"permit-agent-forwarding": "",
 			"permit-port-forwarding":  "",
@@ -79,10 +79,10 @@ func NewTemplateData() TemplateData {
 
 // AddExtension adds one extension to the templates data.
 func (t TemplateData) AddExtension(key, value string) {
-	if m, ok := t[ExtensionsKey].(map[string]interface{}); ok {
+	if m, ok := t[ExtensionsKey].(map[string]any); ok {
 		m[key] = value
 	} else {
-		t[ExtensionsKey] = map[string]interface{}{
+		t[ExtensionsKey] = map[string]any{
 			key: value,
 		}
 	}
@@ -90,22 +90,22 @@ func (t TemplateData) AddExtension(key, value string) {
 
 // AddCriticalOption adds one critical option to the templates data.
 func (t TemplateData) AddCriticalOption(key, value string) {
-	if m, ok := t[CriticalOptionsKey].(map[string]interface{}); ok {
+	if m, ok := t[CriticalOptionsKey].(map[string]any); ok {
 		m[key] = value
 	} else {
-		t[CriticalOptionsKey] = map[string]interface{}{
+		t[CriticalOptionsKey] = map[string]any{
 			key: value,
 		}
 	}
 }
 
 // Set sets a key-value pair in the template data.
-func (t TemplateData) Set(key string, v interface{}) {
+func (t TemplateData) Set(key string, v any) {
 	t[key] = v
 }
 
 // SetInsecure sets a key-value pair in the insecure template data.
-func (t TemplateData) SetInsecure(key string, v interface{}) {
+func (t TemplateData) SetInsecure(key string, v any) {
 	if m, ok := t[InsecureKey].(TemplateData); ok {
 		m[key] = v
 	} else {
@@ -129,36 +129,36 @@ func (t TemplateData) SetPrincipals(p []string) {
 }
 
 // SetExtensions sets the certificate extensions in the template data.
-func (t TemplateData) SetExtensions(e map[string]interface{}) {
+func (t TemplateData) SetExtensions(e map[string]any) {
 	t.Set(ExtensionsKey, e)
 }
 
 // SetCriticalOptions sets the certificate critical options in the template
 // data.
-func (t TemplateData) SetCriticalOptions(o map[string]interface{}) {
+func (t TemplateData) SetCriticalOptions(o map[string]any) {
 	t.Set(CriticalOptionsKey, o)
 }
 
 // SetToken sets the given token in the template data.
-func (t TemplateData) SetToken(v interface{}) {
+func (t TemplateData) SetToken(v any) {
 	t.Set(TokenKey, v)
 }
 
 // SetUserData sets the given user provided object in the insecure template
 // data.
-func (t TemplateData) SetUserData(v interface{}) {
+func (t TemplateData) SetUserData(v any) {
 	t.SetInsecure(UserKey, v)
 }
 
 // SetAuthorizationCertificate sets the given certificate in the template. This
 // certificate is generally present in a token header.
-func (t TemplateData) SetAuthorizationCertificate(crt interface{}) {
+func (t TemplateData) SetAuthorizationCertificate(crt any) {
 	t.Set(AuthorizationCrtKey, crt)
 }
 
 // SetAuthorizationCertificateChain sets a the given certificate chain in the
 // template. These certificates are generally present in a token header.
-func (t TemplateData) SetAuthorizationCertificateChain(chain interface{}) {
+func (t TemplateData) SetAuthorizationCertificateChain(chain any) {
 	t.Set(AuthorizationChainKey, chain)
 }
 
@@ -169,11 +169,11 @@ func (t TemplateData) SetCertificateRequest(cr CertificateRequest) {
 }
 
 // SetWebhook sets the given webhook response in the webhooks template data.
-func (t TemplateData) SetWebhook(webhookName string, data interface{}) {
-	if webhooksMap, ok := t[WebhooksKey].(map[string]interface{}); ok {
+func (t TemplateData) SetWebhook(webhookName string, data any) {
+	if webhooksMap, ok := t[WebhooksKey].(map[string]any); ok {
 		webhooksMap[webhookName] = data
 	} else {
-		t[WebhooksKey] = map[string]interface{}{
+		t[WebhooksKey] = map[string]any{
 			webhookName: data,
 		}
 	}

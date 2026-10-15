@@ -20,11 +20,13 @@ type UUID struct {
 	Valid bool
 }
 
+// ScanUUID implements the [UUIDScanner] interface.
 func (b *UUID) ScanUUID(v UUID) error {
 	*b = v
 	return nil
 }
 
+// UUIDValue implements the [UUIDValuer] interface.
 func (b UUID) UUIDValue() (UUID, error) {
 	return b, nil
 }
@@ -67,15 +69,14 @@ func encodeUUID(src [16]byte) string {
 	return string(buf[:])
 }
 
-// Scan implements the database/sql Scanner interface.
+// Scan implements the [database/sql.Scanner] interface.
 func (dst *UUID) Scan(src any) error {
 	if src == nil {
 		*dst = UUID{}
 		return nil
 	}
 
-	switch src := src.(type) {
-	case string:
+	if src, ok := src.(string); ok {
 		buf, err := parseUUID(src)
 		if err != nil {
 			return err
@@ -87,7 +88,7 @@ func (dst *UUID) Scan(src any) error {
 	return fmt.Errorf("cannot scan %T", src)
 }
 
-// Value implements the database/sql/driver Valuer interface.
+// Value implements the [database/sql/driver.Valuer] interface.
 func (src UUID) Value() (driver.Value, error) {
 	if !src.Valid {
 		return nil, nil
@@ -96,6 +97,15 @@ func (src UUID) Value() (driver.Value, error) {
 	return encodeUUID(src.Bytes), nil
 }
 
+func (src UUID) String() string {
+	if !src.Valid {
+		return ""
+	}
+
+	return encodeUUID(src.Bytes)
+}
+
+// MarshalJSON implements the [encoding/json.Marshaler] interface.
 func (src UUID) MarshalJSON() ([]byte, error) {
 	if !src.Valid {
 		return []byte("null"), nil
@@ -108,6 +118,7 @@ func (src UUID) MarshalJSON() ([]byte, error) {
 	return buff.Bytes(), nil
 }
 
+// UnmarshalJSON implements the [encoding/json.Unmarshaler] interface.
 func (dst *UUID) UnmarshalJSON(src []byte) error {
 	if bytes.Equal(src, []byte("null")) {
 		*dst = UUID{}
@@ -189,8 +200,7 @@ func (UUIDCodec) PlanScan(m *Map, oid uint32, format int16, target any) ScanPlan
 			return scanPlanBinaryUUIDToTextScanner{}
 		}
 	case TextFormatCode:
-		switch target.(type) {
-		case UUIDScanner:
+		if _, ok := target.(UUIDScanner); ok {
 			return scanPlanTextAnyToUUIDScanner{}
 		}
 	}
@@ -201,7 +211,7 @@ func (UUIDCodec) PlanScan(m *Map, oid uint32, format int16, target any) ScanPlan
 type scanPlanBinaryUUIDToUUIDScanner struct{}
 
 func (scanPlanBinaryUUIDToUUIDScanner) Scan(src []byte, dst any) error {
-	scanner := (dst).(UUIDScanner)
+	scanner := dst.(UUIDScanner)
 
 	if src == nil {
 		return scanner.ScanUUID(UUID{})
@@ -220,7 +230,7 @@ func (scanPlanBinaryUUIDToUUIDScanner) Scan(src []byte, dst any) error {
 type scanPlanBinaryUUIDToTextScanner struct{}
 
 func (scanPlanBinaryUUIDToTextScanner) Scan(src []byte, dst any) error {
-	scanner := (dst).(TextScanner)
+	scanner := dst.(TextScanner)
 
 	if src == nil {
 		return scanner.ScanText(Text{})
@@ -239,7 +249,7 @@ func (scanPlanBinaryUUIDToTextScanner) Scan(src []byte, dst any) error {
 type scanPlanTextAnyToUUIDScanner struct{}
 
 func (scanPlanTextAnyToUUIDScanner) Scan(src []byte, dst any) error {
-	scanner := (dst).(UUIDScanner)
+	scanner := dst.(UUIDScanner)
 
 	if src == nil {
 		return scanner.ScanUUID(UUID{})

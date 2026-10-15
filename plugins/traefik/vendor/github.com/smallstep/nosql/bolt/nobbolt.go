@@ -1,5 +1,4 @@
 //go:build nobbolt
-// +build nobbolt
 
 package bolt
 

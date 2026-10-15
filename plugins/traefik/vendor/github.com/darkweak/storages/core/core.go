@@ -48,7 +48,7 @@ const (
 )
 
 func DecodeMapping(item []byte) (*StorageMapper, error) {
-	mapping := &StorageMapper{}
+	mapping := new(StorageMapper)
 	e := proto.Unmarshal(item, mapping)
 
 	return mapping, e
@@ -61,7 +61,7 @@ func readResponse(data []byte, req *http.Request) (*http.Response, error) {
 }
 
 func MappingElection(provider Storer, item []byte, req *http.Request, validator *Revalidator, logger Logger) (resultFresh *http.Response, resultStale *http.Response, e error) {
-	mapping := &StorageMapper{}
+	mapping := new(StorageMapper)
 
 	if len(item) != 0 {
 		mapping, e = DecodeMapping(item)
@@ -152,7 +152,7 @@ func electMapping(provider Storer, mapping map[string]*KeyIndex, req *http.Reque
 }
 
 func MappingUpdater(key string, item []byte, logger Logger, now, freshTime, staleTime time.Time, variedHeaders http.Header, etag, realKey string) (val []byte, e error) {
-	mapping := &StorageMapper{}
+	mapping := new(StorageMapper)
 	if len(item) != 0 {
 		e = proto.Unmarshal(item, mapping)
 		if e != nil {

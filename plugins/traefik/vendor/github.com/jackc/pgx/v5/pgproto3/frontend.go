@@ -52,17 +52,23 @@ type Frontend struct {
 	readyForQuery                   ReadyForQuery
 	rowDescription                  RowDescription
 	portalSuspended                 PortalSuspended
+	negotiateProtocolVersion        NegotiateProtocolVersion
 
 	bodyLen    int
+	maxBodyLen int // maxBodyLen is the maximum length of a message body in octets. If a message body exceeds this length, Receive will return an error.
 	msgType    byte
 	partialMsg bool
 	authType   uint32
 }
 
 // NewFrontend creates a new Frontend.
+//
+// The maximum accepted message body length defaults to the same ~1 GiB limit the PostgreSQL
+// server enforces on inbound messages (PQ_LARGE_MESSAGE_LIMIT in src/include/libpq/libpq.h).
+// Use [Frontend.SetMaxBodyLen] to change or remove the limit.
 func NewFrontend(r io.Reader, w io.Writer) *Frontend {
 	cr := newChunkReader(r, 0)
-	return &Frontend{cr: cr, w: w}
+	return &Frontend{cr: cr, w: w, maxBodyLen: maxMessageBodyLen}
 }
 
 // Send sends a message to the backend (i.e. the server). The message is buffered until Flush is called. Any error
@@ -229,7 +235,7 @@ func (f *Frontend) SendExecute(msg *Execute) {
 	f.wbuf = newBuf
 
 	if f.tracer != nil {
-		f.tracer.TraceQueryute('F', int32(len(f.wbuf)-prevLen), msg)
+		f.tracer.traceExecute('F', int32(len(f.wbuf)-prevLen), msg)
 	}
 }
 
@@ -311,12 +317,15 @@ func (f *Frontend) Receive() (BackendMessage, error) {
 
 		f.msgType = header[0]
 
-		msgLength := int(binary.BigEndian.Uint32(header[1:]))
+		msgLength := int(int32(binary.BigEndian.Uint32(header[1:])))
 		if msgLength < 4 {
 			return nil, fmt.Errorf("invalid message length: %d", msgLength)
 		}
 
 		f.bodyLen = msgLength - 4
+		if f.maxBodyLen > 0 && f.bodyLen > f.maxBodyLen {
+			return nil, &ExceededMaxBodyLenErr{f.maxBodyLen, f.bodyLen}
+		}
 		f.partialMsg = true
 	}
 
@@ -379,6 +388,8 @@ func (f *Frontend) Receive() (BackendMessage, error) {
 		msg = &f.copyBothResponse
 	case 'Z':
 		msg = &f.readyForQuery
+	case 'v':
+		msg = &f.negotiateProtocolVersion
 	default:
 		return nil, fmt.Errorf("unknown message type: %c", f.msgType)
 	}
@@ -451,4 +462,14 @@ func (f *Frontend) GetAuthType() uint32 {
 
 func (f *Frontend) ReadBufferLen() int {
 	return f.cr.wp - f.cr.rp
+}
+
+// SetMaxBodyLen sets the maximum length of a message body in octets.
+// If a message body exceeds this length, Receive will return an error.
+// This is useful for protecting against a corrupted server that sends
+// messages with incorrect length, which can cause memory exhaustion.
+// The default value is 0.
+// If maxBodyLen is 0, then no maximum is enforced.
+func (f *Frontend) SetMaxBodyLen(maxBodyLen int) {
+	f.maxBodyLen = maxBodyLen
 }

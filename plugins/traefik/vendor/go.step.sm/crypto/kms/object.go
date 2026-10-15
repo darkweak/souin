@@ -14,7 +14,7 @@ import (
 // object implements the fs.File and fs.FileMode interfaces.
 type object struct {
 	Path    string
-	Object  interface{}
+	Object  any
 	once    sync.Once
 	err     error
 	pemData *bytes.Buffer
@@ -26,7 +26,7 @@ func (o *object) Size() int64        { return int64(o.pemData.Len()) }
 func (o *object) Mode() fs.FileMode  { return 0400 }
 func (o *object) ModTime() time.Time { return time.Time{} }
 func (o *object) IsDir() bool        { return false }
-func (o *object) Sys() interface{}   { return o.Object }
+func (o *object) Sys() any           { return o.Object }
 
 func (o *object) load() error {
 	o.once.Do(func() {

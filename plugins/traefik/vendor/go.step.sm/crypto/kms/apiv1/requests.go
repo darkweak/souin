@@ -90,6 +90,12 @@ const (
 	ECDSAWithSHA512
 	// EdDSA on Curve25519 with a SHA512 digest.
 	PureEd25519
+	// ML-DSA-44 PQ algorithm defined in FIPS 204.
+	MLDSA44
+	// ML-DSA-65 PQ algorithm defined in FIPS 204.
+	MLDSA65
+	// ML-DSA-87 PQ algorithm defined in FIPS 204.
+	MLDSA87
 )
 
 // String returns a string representation of s.
@@ -204,7 +210,7 @@ type CreateSignerRequest struct {
 	TokenLabel       string
 	PublicKey        string
 	PublicKeyPEM     []byte
-	Password         []byte //nolint:gosec // Password field for KMS authentication
+	Password         []byte
 	PasswordPrompter PasswordPrompter
 }
 
@@ -213,7 +219,7 @@ type CreateDecrypterRequest struct {
 	Decrypter        crypto.Decrypter
 	DecryptionKey    string
 	DecryptionKeyPEM []byte
-	Password         []byte //nolint:gosec // Password field for KMS authentication
+	Password         []byte
 	PasswordPrompter PasswordPrompter
 }
 
@@ -263,6 +269,29 @@ type CreateAttestationRequest struct {
 // attesting Attestation Keys (AKs).
 type AttestationClient interface {
 	Attest(context.Context) ([]*x509.Certificate, error)
+}
+
+type attestSignerCtx struct{}
+
+// NewAttestSignerContext creates a new context with the given signer.
+//
+// # Experimental
+//
+// Notice: This API is EXPERIMENTAL and may be changed or removed in a later
+// release.
+func NewAttestSignerContext(ctx context.Context, signer crypto.Signer) context.Context {
+	return context.WithValue(ctx, attestSignerCtx{}, signer)
+}
+
+// AttestSignerFromContext returns the signer from the context.
+//
+// # Experimental
+//
+// Notice: This API is EXPERIMENTAL and may be changed or removed in a later
+// release.
+func AttestSignerFromContext(ctx context.Context) (crypto.Signer, bool) {
+	signer, ok := ctx.Value(attestSignerCtx{}).(crypto.Signer)
+	return signer, ok
 }
 
 // CertificationParameters encapsulates the inputs for certifying an application key.
@@ -326,4 +355,81 @@ type DeleteKeyRequest struct {
 // release.
 type DeleteCertificateRequest struct {
 	Name string
+}
+
+// CleanupCredentialsRequest is the parameter used in the CleanupCredentials
+// method of a CredentialsCleaner.
+//
+// Name is a KMS URI that encodes the certificate-store scope and behavior. The
+// supported fields depend on the KMS implementation, but generally include the
+// certificate "issuer", the "store-location" and "store" identifying the
+// certificate store, and a "delete-key" flag controlling whether the private
+// key paired with each expired certificate is removed along with it.
+//
+// RawSubject, when non-empty, restricts cleanup to certificates whose
+// DER-encoded Subject matches it. It is kept as a separate field because it is
+// not a string and does not encode well into a URI.
+//
+// # Experimental
+//
+// Notice: This API is EXPERIMENTAL and may be changed or removed in a later
+// release.
+type CleanupCredentialsRequest struct {
+	Name       string
+	RawSubject []byte
+}
+
+// SearchCertificatesRequest is the parameter used in the SearchCertificates
+// method of a SearchableCertificateManager.
+//
+// Name is a KMS URI selecting the certificate store to enumerate. For capi
+// the "store-location" ("machine" or "user") and "store" (e.g. "My")
+// attributes select the store, matching DeleteCertificate and
+// CleanupCredentials.
+//
+// # Experimental
+//
+// Notice: This API is EXPERIMENTAL and may be changed or removed in a later
+// release.
+type SearchCertificatesRequest struct {
+	Name string
+}
+
+// SearchCertificateResult is one certificate from a SearchCertificates
+// enumeration. KeyName names the private key the certificate is associated
+// with, in the KMS's own key namespace: it is the value a KMS URI's key
+// attribute takes, so it can be handed back to the same KMS to address the
+// key. It is empty both when the certificate records no key association and
+// when that association could not be read, which Err tells apart.
+//
+// For capi, KeyName is the CNG/CAPI key container name, the value of the
+// "key" URI attribute. It comes from the certificate's key-provider
+// properties rather than from opening the key, so it is populated even when
+// the key it names no longer exists.
+//
+// # Experimental
+//
+// Notice: This API is EXPERIMENTAL and may be changed or removed in a later
+// release.
+type SearchCertificateResult struct {
+	Certificate *x509.Certificate
+	KeyName     string
+
+	// Err is non-nil when the certificate's key-provider metadata could not
+	// be read. Certificate is still valid and KeyName is empty. It
+	// distinguishes a certificate with no private-key association at all
+	// (Err == nil, KeyName == "") from one whose association exists but
+	// cannot be interpreted — a certificate a caller sweeping for broken
+	// credentials most likely wants to see rather than have hidden.
+	Err error
+}
+
+// SearchCertificatesResponse is the response of a SearchCertificates call.
+//
+// # Experimental
+//
+// Notice: This API is EXPERIMENTAL and may be changed or removed in a later
+// release.
+type SearchCertificatesResponse struct {
+	Results []SearchCertificateResult
 }

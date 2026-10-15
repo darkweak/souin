@@ -9,7 +9,7 @@
 //
 // Or from a keyword/value string.
 //
-//	db, err := sql.Open("pgx", "user=postgres password=secret host=localhost port=5432 database=pgx_test sslmode=disable")
+//	db, err := sql.Open("pgx", "user=postgres password=secret host=localhost port=5432 dbname=pgx_test sslmode=disable")
 //	if err != nil {
 //	  return err
 //	}
@@ -57,12 +57,25 @@
 //
 // # PostgreSQL Specific Data Types
 //
-// The pgtype package provides support for PostgreSQL specific types. *pgtype.Map.SQLScanner is an adapter that makes
-// these types usable as a sql.Scanner.
+// As of Go 1.27, database/sql allows drivers to implement their own scanning logic by implementing the
+// driver.RowsColumnScanner interface. This allows PostgreSQL types such as arrays to be scanned directly into Go
+// values such as slices.
+//
+//	var a []int64
+//	err := db.QueryRow("select '{1,2,3}'::bigint[]").Scan(&a)
+//
+// In older versions of Go, *pgtype.Map.SQLScanner can be used as an adapter that makes these types usable as a
+// sql.Scanner.
 //
 //	m := pgtype.NewMap()
 //	var a []int64
 //	err := db.QueryRow("select '{1,2,3}'::bigint[]").Scan(m.SQLScanner(&a))
+//
+// The pgtype package provides support for PostgreSQL specific types. These types can be used directly in Go 1.27 and
+// with *pgtype.Map.SQLScanner in older Go versions.
+//
+//	var r pgtype.Range[pgtype.Int4]
+//	err := db.QueryRow("select int4range(1, 5)").Scan(&r)
 package stdlib
 
 import (
@@ -73,8 +86,9 @@ import (
 	"fmt"
 	"io"
 	"math"
-	"math/rand"
+	"math/rand/v2"
 	"reflect"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -98,7 +112,7 @@ func init() {
 
 	// if pgx driver was already registered by different pgx major version then we
 	// skip registration under the default name.
-	if !contains(sql.Drivers(), "pgx") {
+	if !slices.Contains(sql.Drivers(), "pgx") {
 		sql.Register("pgx", pgxDriver)
 	}
 	sql.Register("pgx/v5", pgxDriver)
@@ -120,19 +134,24 @@ func init() {
 	}
 }
 
-// TODO replace by slices.Contains when experimental package will be merged to stdlib
-// https://pkg.go.dev/golang.org/x/exp/slices#Contains
-func contains(list []string, y string) bool {
-	for _, x := range list {
-		if x == y {
-			return true
-		}
-	}
-	return false
-}
-
 // OptionOpenDB options for configuring the driver when opening a new db pool.
 type OptionOpenDB func(*connector)
+
+// ShouldPingParams are passed to OptionShouldPing to decide whether to ping before reusing a connection.
+type ShouldPingParams struct {
+	// Conn is the underlying pgx connection.
+	Conn *pgx.Conn
+	// IdleDuration is how long it has been since ResetSession last ran.
+	IdleDuration time.Duration
+}
+
+// OptionShouldPing controls whether stdlib should issue a liveness ping before reusing a connection.
+// If the function returns true, stdlib will ping.
+// If it returns false, stdlib will skip the ping.
+// If not provided, default is ping only when IdleDuration > 1s.
+func OptionShouldPing(f func(context.Context, ShouldPingParams) bool) OptionOpenDB {
+	return func(dc *connector) { dc.ShouldPing = f }
+}
 
 // OptionBeforeConnect provides a callback for before connect. It is passed a shallow copy of the ConnConfig that will
 // be used to connect, so only its immediate members should be modified. Used only if db is opened with *pgx.ConnConfig.
@@ -226,7 +245,8 @@ func OpenDB(config pgx.ConnConfig, opts ...OptionOpenDB) *sql.DB {
 
 // OpenDBFromPool creates a new *sql.DB from the given *pgxpool.Pool. Note that this method automatically sets the
 // maximum number of idle connections in *sql.DB to zero, since they must be managed from the *pgxpool.Pool. This is
-// required to avoid acquiring all the connections from the pgxpool and starving any direct users of the pgxpool.
+// required to avoid acquiring all the connections from the pgxpool and starving any direct users of the pgxpool. Note
+// that closing the returned *sql.DB will not close the *pgxpool.Pool.
 func OpenDBFromPool(pool *pgxpool.Pool, opts ...OptionOpenDB) *sql.DB {
 	c := GetPoolConnector(pool, opts...)
 	db := sql.OpenDB(c)
@@ -240,6 +260,7 @@ type connector struct {
 	BeforeConnect func(context.Context, *pgx.ConnConfig) error // function to call before creation of every new connection
 	AfterConnect  func(context.Context, *pgx.Conn) error       // function to call after creation of every new connection
 	ResetSession  func(context.Context, *pgx.Conn) error       // function is called before a connection is reused
+	ShouldPing    func(context.Context, ShouldPingParams) bool // function to decide if stdlib should ping before reusing a connection
 	driver        *Driver
 }
 
@@ -291,6 +312,7 @@ func (c connector) Connect(ctx context.Context) (driver.Conn, error) {
 		driver:           c.driver,
 		connConfig:       connConfig,
 		resetSessionFunc: c.ResetSession,
+		shouldPing:       c.ShouldPing,
 		psRefCounts:      make(map[*pgconn.StatementDescription]int),
 	}, nil
 }
@@ -398,7 +420,8 @@ type Conn struct {
 	close                func(context.Context) error
 	driver               *Driver
 	connConfig           pgx.ConnConfig
-	resetSessionFunc     func(context.Context, *pgx.Conn) error // Function is called before a connection is reused
+	resetSessionFunc     func(context.Context, *pgx.Conn) error       // Function is called before a connection is reused
+	shouldPing           func(context.Context, ShouldPingParams) bool // Function to decide if stdlib should ping before reusing a connection
 	lastResetSessionTime time.Time
 
 	// psRefCounts contains reference counts for prepared statements. Prepare uses the underlying pgx logic to generate
@@ -480,7 +503,8 @@ func (c *Conn) ExecContext(ctx context.Context, query string, argsV []driver.Nam
 		return nil, driver.ErrBadConn
 	}
 
-	args := namedValueToInterface(argsV)
+	args := make([]any, len(argsV))
+	convertNamedArguments(args, argsV)
 
 	commandTag, err := c.conn.Exec(ctx, query, args...)
 	// if we got a network error before we had a chance to send the query, retry
@@ -497,8 +521,9 @@ func (c *Conn) QueryContext(ctx context.Context, query string, argsV []driver.Na
 		return nil, driver.ErrBadConn
 	}
 
-	args := []any{databaseSQLResultFormats}
-	args = append(args, namedValueToInterface(argsV)...)
+	args := make([]any, 1+len(argsV))
+	args[0] = databaseSQLResultFormats
+	convertNamedArguments(args[1:], argsV)
 
 	rows, err := c.conn.Query(ctx, query, args...)
 	if err != nil {
@@ -543,12 +568,30 @@ func (c *Conn) ResetSession(ctx context.Context) error {
 		return driver.ErrBadConn
 	}
 
+	// Discard connection if it has an open transaction. This can happen if the
+	// application did not properly commit or rollback a transaction.
+	if c.conn.PgConn().TxStatus() != 'I' {
+		return driver.ErrBadConn
+	}
+
 	now := time.Now()
-	if now.Sub(c.lastResetSessionTime) > time.Second {
+	idle := now.Sub(c.lastResetSessionTime)
+
+	doPing := idle > time.Second // default behavior: ping only if idle > 1s
+
+	if c.shouldPing != nil {
+		doPing = c.shouldPing(ctx, ShouldPingParams{
+			Conn:         c.conn,
+			IdleDuration: idle,
+		})
+	}
+
+	if doPing {
 		if err := c.conn.PgConn().Ping(ctx); err != nil {
 			return driver.ErrBadConn
 		}
 	}
+
 	c.lastResetSessionTime = now
 
 	return c.resetSessionFunc(ctx, c.conn)
@@ -611,7 +654,7 @@ func (r *Rows) Columns() []string {
 		fields := r.rows.FieldDescriptions()
 		r.columnNames = make([]string, len(fields))
 		for i, fd := range fields {
-			r.columnNames[i] = string(fd.Name)
+			r.columnNames[i] = fd.Name
 		}
 	}
 
@@ -638,8 +681,10 @@ func (r *Rows) ColumnTypeLength(index int) (int64, bool) {
 	switch fd.DataTypeOID {
 	case pgtype.TextOID, pgtype.ByteaOID:
 		return math.MaxInt64, true
-	case pgtype.VarcharOID, pgtype.BPCharArrayOID:
+	case pgtype.VarcharOID, pgtype.BPCharOID:
 		return int64(fd.TypeModifier - varHeaderSize), true
+	case pgtype.VarbitOID:
+		return int64(fd.TypeModifier), true
 	default:
 		return 0, false
 	}
@@ -667,25 +712,25 @@ func (r *Rows) ColumnTypeScanType(index int) reflect.Type {
 
 	switch fd.DataTypeOID {
 	case pgtype.Float8OID:
-		return reflect.TypeOf(float64(0))
+		return reflect.TypeFor[float64]()
 	case pgtype.Float4OID:
-		return reflect.TypeOf(float32(0))
+		return reflect.TypeFor[float32]()
 	case pgtype.Int8OID:
-		return reflect.TypeOf(int64(0))
+		return reflect.TypeFor[int64]()
 	case pgtype.Int4OID:
-		return reflect.TypeOf(int32(0))
+		return reflect.TypeFor[int32]()
 	case pgtype.Int2OID:
-		return reflect.TypeOf(int16(0))
+		return reflect.TypeFor[int16]()
 	case pgtype.BoolOID:
-		return reflect.TypeOf(false)
+		return reflect.TypeFor[bool]()
 	case pgtype.NumericOID:
-		return reflect.TypeOf(float64(0))
+		return reflect.TypeFor[float64]()
 	case pgtype.DateOID, pgtype.TimestampOID, pgtype.TimestamptzOID:
-		return reflect.TypeOf(time.Time{})
+		return reflect.TypeFor[time.Time]()
 	case pgtype.ByteaOID:
-		return reflect.TypeOf([]byte(nil))
+		return reflect.TypeFor[[]byte]()
 	default:
-		return reflect.TypeOf("")
+		return reflect.TypeFor[string]()
 	}
 }
 
@@ -694,7 +739,9 @@ func (r *Rows) Close() error {
 	return r.rows.Err()
 }
 
-func (r *Rows) Next(dest []driver.Value) error {
+// initValueFuncs prepares the database/sql representation of each column. Both
+// Next and ScanColumn use these conversions so their driver.Values agree.
+func (r *Rows) initValueFuncs() {
 	m := r.conn.conn.TypeMap()
 	fieldDescriptions := r.rows.FieldDescriptions()
 
@@ -805,6 +852,16 @@ func (r *Rows) Next(dest []driver.Value) error {
 					}
 					return d.Value()
 				}
+			case pgtype.XMLOID:
+				var d []byte
+				scanPlan := m.PlanScan(dataTypeOID, format, &d)
+				r.valueFuncs[i] = func(src []byte) (driver.Value, error) {
+					err := scanPlan.Scan(src, &d)
+					if err != nil {
+						return nil, err
+					}
+					return d, nil
+				}
 			default:
 				var d string
 				scanPlan := m.PlanScan(dataTypeOID, format, &d)
@@ -815,6 +872,10 @@ func (r *Rows) Next(dest []driver.Value) error {
 			}
 		}
 	}
+}
+
+func (r *Rows) Next(dest []driver.Value) error {
+	r.initValueFuncs()
 
 	var more bool
 	if r.skipNext {
@@ -847,28 +908,14 @@ func (r *Rows) Next(dest []driver.Value) error {
 	return nil
 }
 
-func valueToInterface(argsV []driver.Value) []any {
-	args := make([]any, 0, len(argsV))
-	for _, v := range argsV {
-		if v != nil {
-			args = append(args, v.(any))
-		} else {
-			args = append(args, nil)
-		}
-	}
-	return args
-}
-
-func namedValueToInterface(argsV []driver.NamedValue) []any {
-	args := make([]any, 0, len(argsV))
-	for _, v := range argsV {
+func convertNamedArguments(args []any, argsV []driver.NamedValue) {
+	for i, v := range argsV {
 		if v.Value != nil {
-			args = append(args, v.Value.(any))
+			args[i] = v.Value.(any)
 		} else {
-			args = append(args, nil)
+			args[i] = nil
 		}
 	}
-	return args
 }
 
 type wrapTx struct {

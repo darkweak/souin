@@ -151,7 +151,7 @@ func (i Issuer) Set(c *x509.Certificate) {
 // 5280, Section 4.1.2.4.
 type DistinguishedName struct {
 	Type  ObjectIdentifier `json:"type"`
-	Value interface{}      `json:"value"`
+	Value any              `json:"value"`
 }
 
 // NewExtraNames returns a list of DistinguishedName with the attributes not
