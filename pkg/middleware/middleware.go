@@ -1052,7 +1052,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 
 				return err
 			}
-			if resCc, _ := cacheobject.ParseResponseCacheControl(rfc.HeaderAllCommaSepValuesString(response.Header, headerName)); !modeContext.Bypass_response && resCc.NoCachePresent {
+			if !modeContext.Bypass_response && rfc.HasUnqualifiedNoCache(rfc.HeaderAllCommaSepValuesString(response.Header, headerName)) {
 				prometheus.Increment(prometheus.NoCachedResponseCounter)
 				err := s.Revalidate(validator, next, customWriter, req, requestCc, cachedKey, uri)
 				_, _ = customWriter.Send()
@@ -1102,7 +1102,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 					return err
 				}
 
-				if modeContext.Bypass_response || responseCc.MustRevalidate || responseCc.NoCachePresent || validator.NeedRevalidation {
+				if modeContext.Bypass_response || responseCc.MustRevalidate || rfc.HasUnqualifiedNoCache(rfc.HeaderAllCommaSepValuesString(response.Header, "Cache-Control")) || validator.NeedRevalidation {
 					req.Header["If-None-Match"] = append(req.Header["If-None-Match"], validator.ResponseETag)
 					err := s.Revalidate(validator, next, customWriter, req, requestCc, cachedKey, uri)
 					statusCode := customWriter.GetStatusCode()

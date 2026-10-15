@@ -401,3 +401,58 @@ func TestHopByHopHeadersAreNotCached(t *testing.T) {
 		}
 	}
 }
+
+// TestQualifiedNoCacheResponseIsReusedWithoutListedFields ensures that the
+// qualified no-cache form (no-cache="field") does not force a revalidation:
+// the response is reused while fresh, without the listed fields
+// (RFC 9111 §5.2.2.4).
+func TestQualifiedNoCacheResponseIsReusedWithoutListedFields(t *testing.T) {
+	for _, tc := range []struct {
+		name          string
+		path          string
+		cacheControl  string
+		upstreamCalls int
+	}{
+		{"qualified", "/qualified-no-cache", `no-cache="X-Secret", max-age=60`, 1},
+		{"qualified and unqualified", "/mixed-no-cache", `no-cache, no-cache="X-Secret", max-age=60`, 2},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			handler, _ := newTestHandler(t)
+
+			var upstreamCalls int
+			next := func(w http.ResponseWriter, r *http.Request) error {
+				upstreamCalls++
+				w.Header().Set("Cache-Control", tc.cacheControl)
+				w.Header().Set("X-Secret", "secret")
+				w.Header().Set("X-Public", "public")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte("BODY"))
+				return nil
+			}
+
+			// First request: MISS, populates the cache.
+			req1 := httptest.NewRequest(http.MethodGet, "http://example.com"+tc.path, nil)
+			if err := handler.ServeHTTP(httptest.NewRecorder(), req1, next); err != nil {
+				t.Fatalf("first ServeHTTP failed: %v", err)
+			}
+
+			req2 := httptest.NewRequest(http.MethodGet, "http://example.com"+tc.path, nil)
+			rec2 := httptest.NewRecorder()
+			if err := handler.ServeHTTP(rec2, req2, next); err != nil {
+				t.Fatalf("second ServeHTTP failed: %v", err)
+			}
+
+			if upstreamCalls != tc.upstreamCalls {
+				t.Fatalf("expected %d upstream calls, got %d", tc.upstreamCalls, upstreamCalls)
+			}
+			if tc.upstreamCalls == 1 {
+				if got := rec2.Header().Get("X-Secret"); got != "" {
+					t.Errorf("X-Secret is listed in no-cache and must not be served from cache, got %q", got)
+				}
+				if got := rec2.Header().Get("X-Public"); got != "public" {
+					t.Errorf("expected X-Public to be served from cache, got %q", got)
+				}
+			}
+		})
+	}
+}

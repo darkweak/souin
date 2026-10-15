@@ -28,3 +28,33 @@ func HeaderAllCommaSepValuesString(headers http.Header, headerName string) strin
 	valsArray := HeaderAllCommaSepValues(headers, headerName)
 	return strings.Join(valsArray, ", ")
 }
+
+// HasUnqualifiedNoCache reports whether a Cache-Control value contains the
+// no-cache directive without field names. Only that form requires the stored
+// response to be revalidated before each reuse; the qualified form
+// (no-cache="field") only prevents the listed fields from being reused
+// (RFC 9111 §5.2.2.4).
+func HasUnqualifiedNoCache(cacheControl string) bool {
+	inQuote := false
+	start := 0
+	for i := 0; i <= len(cacheControl); i++ {
+		if i < len(cacheControl) {
+			switch c := cacheControl[i]; {
+			case inQuote && c == '\\':
+				i++
+				continue
+			case c == '"':
+				inQuote = !inQuote
+				continue
+			case c != ',' || inQuote:
+				continue
+			}
+		}
+		if strings.EqualFold(strings.TrimSpace(cacheControl[start:i]), "no-cache") {
+			return true
+		}
+		start = i + 1
+	}
+
+	return false
+}

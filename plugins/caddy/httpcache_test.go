@@ -1441,12 +1441,15 @@ func TestSetCookieNotStored(t *testing.T) {
 		t.Errorf("unexpected resp1 Age header %v", resp1.Header.Get("Age"))
 	}
 
-	if resp2.Header.Get("Cache-Status") != "Souin; fwd=request; fwd-status=200; key=GET-http-localhost:9080-/cache-set-cookie; detail=REQUEST-REVALIDATION" {
+	// The qualified no-cache=Set-Cookie form lets the response be reused
+	// without revalidation, but never with the listed Set-Cookie field
+	// (RFC 9111 §5.2.2.4).
+	if !strings.HasPrefix(resp2.Header.Get("Cache-Status"), "Souin; hit; ") {
 		t.Errorf("unexpected resp2 Cache-Status header %v", resp2.Header.Get("Cache-Status"))
 	}
 
-	if resp2.Header.Get("Set-Cookie") != "foo=baz" {
-		t.Errorf("unexpected resp2 Set-Cookie header %v", resp1.Header.Get("Set-Cookie"))
+	if resp2.Header.Get("Set-Cookie") != "" {
+		t.Errorf("unexpected resp2 Set-Cookie header %v", resp2.Header.Get("Set-Cookie"))
 	}
 }
 
