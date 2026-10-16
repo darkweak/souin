@@ -4,9 +4,9 @@ go 1.27.1
 
 require (
 	github.com/darkweak/souin v1.7.9
-	github.com/darkweak/souin/plugins/souin/storages v0.0.20
-	github.com/gofiber/fiber/v2 v2.52.9
-	github.com/valyala/fasthttp v1.65.0
+	github.com/darkweak/souin/plugins/souin/storages v1.7.9
+	github.com/gofiber/fiber/v2 v2.52.15
+	github.com/valyala/fasthttp v1.75.0
 )
 
 require (
@@ -24,7 +24,6 @@ require (
 	github.com/Masterminds/semver/v3 v3.5.0 // indirect
 	github.com/Masterminds/sprig/v3 v3.3.0 // indirect
 	github.com/RoaringBitmap/roaring v1.9.4 // indirect
-	github.com/andybalholm/brotli v1.2.0 // indirect
 	github.com/antlabs/stl v0.0.2 // indirect
 	github.com/antlabs/timer v0.1.4 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
@@ -49,15 +48,15 @@ require (
 	github.com/coreos/go-semver v0.3.1 // indirect
 	github.com/coreos/go-systemd/v22 v22.7.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
-	github.com/darkweak/storages/badger v0.0.21 // indirect
-	github.com/darkweak/storages/core v0.0.21 // indirect
-	github.com/darkweak/storages/etcd v0.0.21 // indirect
-	github.com/darkweak/storages/nats v0.0.21 // indirect
-	github.com/darkweak/storages/nuts v0.0.21 // indirect
-	github.com/darkweak/storages/olric v0.0.21 // indirect
-	github.com/darkweak/storages/otter v0.0.21 // indirect
-	github.com/darkweak/storages/redis v0.0.21 // indirect
-	github.com/darkweak/storages/simplefs v0.0.21 // indirect
+	github.com/darkweak/storages/badger v0.0.22 // indirect
+	github.com/darkweak/storages/core v0.0.22 // indirect
+	github.com/darkweak/storages/etcd v0.0.22 // indirect
+	github.com/darkweak/storages/nats v0.0.22 // indirect
+	github.com/darkweak/storages/nuts v0.0.22 // indirect
+	github.com/darkweak/storages/olric v0.0.22 // indirect
+	github.com/darkweak/storages/otter v0.0.22 // indirect
+	github.com/darkweak/storages/redis v0.0.22 // indirect
+	github.com/darkweak/storages/simplefs v0.0.22 // indirect
 	github.com/dgraph-io/badger v1.6.2 // indirect
 	github.com/dgraph-io/badger/v2 v2.2007.4 // indirect
 	github.com/dgraph-io/badger/v4 v4.9.1 // indirect
@@ -118,6 +117,7 @@ require (
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/go-ps v1.0.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
+	github.com/molecule-man/go-brrr v1.1.1 // indirect
 	github.com/mschoch/smat v0.2.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/nats-io/nats.go v1.45.0 // indirect

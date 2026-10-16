@@ -4,9 +4,9 @@ go 1.27.1
 
 require (
 	github.com/darkweak/souin v1.7.9
-	github.com/darkweak/souin/plugins/souin/storages v0.0.21
-	github.com/darkweak/storages/core v0.0.21
-	github.com/labstack/echo/v4 v4.13.4
+	github.com/darkweak/souin/plugins/souin/storages v1.7.9
+	github.com/darkweak/storages/core v0.0.22
+	github.com/labstack/echo/v4 v4.16.0
 )
 
 require (
@@ -47,14 +47,14 @@ require (
 	github.com/coreos/go-semver v0.3.1 // indirect
 	github.com/coreos/go-systemd/v22 v22.7.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
-	github.com/darkweak/storages/badger v0.0.21 // indirect
-	github.com/darkweak/storages/etcd v0.0.21 // indirect
-	github.com/darkweak/storages/nats v0.0.21 // indirect
-	github.com/darkweak/storages/nuts v0.0.21 // indirect
-	github.com/darkweak/storages/olric v0.0.21 // indirect
-	github.com/darkweak/storages/otter v0.0.21 // indirect
-	github.com/darkweak/storages/redis v0.0.21 // indirect
-	github.com/darkweak/storages/simplefs v0.0.21 // indirect
+	github.com/darkweak/storages/badger v0.0.22 // indirect
+	github.com/darkweak/storages/etcd v0.0.22 // indirect
+	github.com/darkweak/storages/nats v0.0.22 // indirect
+	github.com/darkweak/storages/nuts v0.0.22 // indirect
+	github.com/darkweak/storages/olric v0.0.22 // indirect
+	github.com/darkweak/storages/otter v0.0.22 // indirect
+	github.com/darkweak/storages/redis v0.0.22 // indirect
+	github.com/darkweak/storages/simplefs v0.0.22 // indirect
 	github.com/dgraph-io/badger v1.6.2 // indirect
 	github.com/dgraph-io/badger/v2 v2.2007.4 // indirect
 	github.com/dgraph-io/badger/v4 v4.9.1 // indirect
@@ -103,7 +103,7 @@ require (
 	github.com/jellydator/ttlcache/v3 v3.4.0 // indirect
 	github.com/klauspost/compress v1.20.1 // indirect
 	github.com/klauspost/cpuid/v2 v2.4.0 // indirect
-	github.com/labstack/gommon v0.4.2 // indirect
+	github.com/labstack/gommon v0.5.0 // indirect
 	github.com/libdns/libdns v1.1.1 // indirect
 	github.com/manifoldco/promptui v0.9.0 // indirect
 	github.com/mattn/go-colorable v0.1.15 // indirect
