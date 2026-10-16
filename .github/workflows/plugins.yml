@@ -147,6 +147,11 @@ jobs:
         name: Run detached cache-tests server
         run: cd cache-tests && pnpm install && pnpm run server &
       -
+        name: Wait for Souin is really loaded inside caddy as middleware
+        uses: jakejarvis/wait-action@master
+        with:
+          time: 10s
+      -
         name: Run cache-tests test suite
         run: cd cache-tests && ./test-host.sh 127.0.0.1:4443 > results/mr.json
       - 
