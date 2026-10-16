@@ -6,9 +6,9 @@ help:
 local-cache-tests: ## Run local cache-tests
 	if cd .local-cache-tests; then git pull; else git clone https://github.com/http-tests/cache-tests .local-cache-tests; fi
 	xcaddy build --with github.com/darkweak/souin/plugins/caddy=./ --with github.com/darkweak/souin=../..
-	./caddy run --config ../../docs/cache-tests/cache-tests-caddyfile --adapter caddyfile &
 	cp ../../docs/cache-tests/index.mjs .local-cache-tests/results/index.mjs
 	cd .local-cache-tests && pnpm install && pnpm run server &
-	sleep 1
+	./caddy run --config ../../docs/cache-tests/cache-tests-caddyfile --adapter caddyfile &
+	sleep 10
 	cd .local-cache-tests && ./test-host.sh 127.0.0.1:4443 > results/mr.json
 	killall node caddy

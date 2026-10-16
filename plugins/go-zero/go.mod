@@ -4,8 +4,8 @@ go 1.27.1
 
 require (
 	github.com/darkweak/souin v1.7.9
-	github.com/darkweak/souin/plugins/souin/storages v0.0.20
-	github.com/zeromicro/go-zero v1.9.0
+	github.com/darkweak/souin/plugins/souin/storages v1.7.9
+	github.com/zeromicro/go-zero v1.10.3
 )
 
 require (
@@ -46,15 +46,15 @@ require (
 	github.com/coreos/go-semver v0.3.1 // indirect
 	github.com/coreos/go-systemd/v22 v22.7.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
-	github.com/darkweak/storages/badger v0.0.21 // indirect
-	github.com/darkweak/storages/core v0.0.21 // indirect
-	github.com/darkweak/storages/etcd v0.0.21 // indirect
-	github.com/darkweak/storages/nats v0.0.21 // indirect
-	github.com/darkweak/storages/nuts v0.0.21 // indirect
-	github.com/darkweak/storages/olric v0.0.21 // indirect
-	github.com/darkweak/storages/otter v0.0.21 // indirect
-	github.com/darkweak/storages/redis v0.0.21 // indirect
-	github.com/darkweak/storages/simplefs v0.0.21 // indirect
+	github.com/darkweak/storages/badger v0.0.22 // indirect
+	github.com/darkweak/storages/core v0.0.22 // indirect
+	github.com/darkweak/storages/etcd v0.0.22 // indirect
+	github.com/darkweak/storages/nats v0.0.22 // indirect
+	github.com/darkweak/storages/nuts v0.0.22 // indirect
+	github.com/darkweak/storages/olric v0.0.22 // indirect
+	github.com/darkweak/storages/otter v0.0.22 // indirect
+	github.com/darkweak/storages/redis v0.0.22 // indirect
+	github.com/darkweak/storages/simplefs v0.0.22 // indirect
 	github.com/dgraph-io/badger v1.6.2 // indirect
 	github.com/dgraph-io/badger/v2 v2.2007.4 // indirect
 	github.com/dgraph-io/badger/v4 v4.9.1 // indirect
@@ -86,8 +86,8 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.22 // indirect
 	github.com/googleapis/gax-go/v2 v2.25.0 // indirect
-	github.com/grafana/pyroscope-go v1.2.7 // indirect
-	github.com/grafana/pyroscope-go/godeltaprof v0.1.9 // indirect
+	github.com/grafana/pyroscope-go v1.3.0 // indirect
+	github.com/grafana/pyroscope-go/godeltaprof v0.1.10 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.30.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-immutable-radix v1.3.1 // indirect
@@ -161,6 +161,7 @@ require (
 	github.com/tidwall/btree v1.8.1 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/redcon v1.6.2 // indirect
+	github.com/titanous/json5 v1.0.0 // indirect
 	github.com/urfave/cli v1.22.17 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
@@ -176,7 +177,6 @@ require (
 	go.opentelemetry.io/contrib/exporters/autoexport v0.71.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.71.0 // indirect
 	go.opentelemetry.io/otel v1.46.0 // indirect
-	go.opentelemetry.io/otel/exporters/jaeger v1.17.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc v0.22.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp v0.22.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc v1.46.0 // indirect
@@ -188,7 +188,7 @@ require (
 	go.opentelemetry.io/otel/exporters/stdout/stdoutlog v0.22.0 // indirect
 	go.opentelemetry.io/otel/exporters/stdout/stdoutmetric v1.46.0 // indirect
 	go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.46.0 // indirect
-	go.opentelemetry.io/otel/exporters/zipkin v1.38.0 // indirect
+	go.opentelemetry.io/otel/exporters/zipkin v1.40.0 // indirect
 	go.opentelemetry.io/otel/log v0.22.0 // indirect
 	go.opentelemetry.io/otel/metric v1.46.0 // indirect
 	go.opentelemetry.io/otel/sdk v1.46.0 // indirect

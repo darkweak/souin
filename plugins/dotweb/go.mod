@@ -4,8 +4,8 @@ go 1.27.1
 
 require (
 	github.com/darkweak/souin v1.7.9
-	github.com/darkweak/souin/plugins/souin/storages v0.0.20
-	github.com/devfeel/dotweb v1.7.21
+	github.com/darkweak/souin/plugins/souin/storages v1.7.9
+	github.com/devfeel/dotweb v1.8.3
 )
 
 require (
@@ -46,15 +46,15 @@ require (
 	github.com/coreos/go-semver v0.3.1 // indirect
 	github.com/coreos/go-systemd/v22 v22.7.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
-	github.com/darkweak/storages/badger v0.0.21 // indirect
-	github.com/darkweak/storages/core v0.0.21 // indirect
-	github.com/darkweak/storages/etcd v0.0.21 // indirect
-	github.com/darkweak/storages/nats v0.0.21 // indirect
-	github.com/darkweak/storages/nuts v0.0.21 // indirect
-	github.com/darkweak/storages/olric v0.0.21 // indirect
-	github.com/darkweak/storages/otter v0.0.21 // indirect
-	github.com/darkweak/storages/redis v0.0.21 // indirect
-	github.com/darkweak/storages/simplefs v0.0.21 // indirect
+	github.com/darkweak/storages/badger v0.0.22 // indirect
+	github.com/darkweak/storages/core v0.0.22 // indirect
+	github.com/darkweak/storages/etcd v0.0.22 // indirect
+	github.com/darkweak/storages/nats v0.0.22 // indirect
+	github.com/darkweak/storages/nuts v0.0.22 // indirect
+	github.com/darkweak/storages/olric v0.0.22 // indirect
+	github.com/darkweak/storages/otter v0.0.22 // indirect
+	github.com/darkweak/storages/redis v0.0.22 // indirect
+	github.com/darkweak/storages/simplefs v0.0.22 // indirect
 	github.com/dgraph-io/badger v1.6.2 // indirect
 	github.com/dgraph-io/badger/v2 v2.2007.4 // indirect
 	github.com/dgraph-io/badger/v4 v4.9.1 // indirect
@@ -68,7 +68,6 @@ require (
 	github.com/dustin/go-humanize v1.1.0 // indirect
 	github.com/felixge/httpsnoop v1.1.0 // indirect
 	github.com/gammazero/deque v1.1.0 // indirect
-	github.com/garyburd/redigo v1.6.4 // indirect
 	github.com/go-jose/go-jose/v3 v3.0.5 // indirect
 	github.com/go-jose/go-jose/v4 v4.1.5 // indirect
 	github.com/go-logr/logr v1.4.4 // indirect
@@ -133,6 +132,7 @@ require (
 	github.com/prometheus/procfs v0.22.0 // indirect
 	github.com/quic-go/qpack v0.6.0 // indirect
 	github.com/quic-go/quic-go v0.63.0 // indirect
+	github.com/redis/go-redis/v9 v9.18.0 // indirect
 	github.com/redis/rueidis v1.0.73 // indirect
 	github.com/rs/xid v1.6.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
@@ -189,6 +189,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.46.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.11.0 // indirect
 	go.step.sm/crypto v0.91.0 // indirect
+	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/automaxprocs v1.6.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.28.0 // indirect

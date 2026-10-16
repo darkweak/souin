@@ -168,7 +168,7 @@ github.com/darkweak/souin/pkg/storage
 github.com/darkweak/souin/pkg/storage/types
 github.com/darkweak/souin/pkg/surrogate
 github.com/darkweak/souin/pkg/surrogate/providers
-# github.com/darkweak/storages/core v0.0.21
+# github.com/darkweak/storages/core v0.0.22
 ## explicit; go 1.27.1
 github.com/darkweak/storages/core
 # github.com/dgraph-io/badger v1.6.2
@@ -843,7 +843,7 @@ golang.org/x/oauth2/google/internal/stsexchange
 golang.org/x/oauth2/internal
 golang.org/x/oauth2/jws
 golang.org/x/oauth2/jwt
-# golang.org/x/sync v0.23.0
+# golang.org/x/sync v0.24.0
 ## explicit; go 1.26.0
 golang.org/x/sync/semaphore
 golang.org/x/sync/singleflight

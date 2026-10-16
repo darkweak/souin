@@ -6,15 +6,15 @@ replace github.com/darkweak/souin => ../../..
 
 require (
 	github.com/darkweak/souin v1.7.9
-	github.com/darkweak/storages/badger v0.0.21
-	github.com/darkweak/storages/core v0.0.21
-	github.com/darkweak/storages/etcd v0.0.21
-	github.com/darkweak/storages/nats v0.0.21
-	github.com/darkweak/storages/nuts v0.0.21
-	github.com/darkweak/storages/olric v0.0.21
-	github.com/darkweak/storages/otter v0.0.21
-	github.com/darkweak/storages/redis v0.0.21
-	github.com/darkweak/storages/simplefs v0.0.21
+	github.com/darkweak/storages/badger v0.0.22
+	github.com/darkweak/storages/core v0.0.22
+	github.com/darkweak/storages/etcd v0.0.22
+	github.com/darkweak/storages/nats v0.0.22
+	github.com/darkweak/storages/nuts v0.0.22
+	github.com/darkweak/storages/olric v0.0.22
+	github.com/darkweak/storages/otter v0.0.22
+	github.com/darkweak/storages/redis v0.0.22
+	github.com/darkweak/storages/simplefs v0.0.22
 	go.uber.org/zap v1.28.0
 )
 
