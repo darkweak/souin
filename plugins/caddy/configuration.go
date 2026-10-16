@@ -1,6 +1,8 @@
 package httpcache
 
 import (
+	"fmt"
+	"math"
 	"regexp"
 	"strconv"
 	"strings"
@@ -9,6 +11,7 @@ import (
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/storages/core"
+	"github.com/dustin/go-humanize"
 )
 
 // DefaultCache the struct
@@ -363,31 +366,42 @@ func parseRedisConfiguration(c map[string]interface{}) map[string]interface{} {
 	return c
 }
 
-func parseSimpleFSConfiguration(c map[string]interface{}) map[string]interface{} {
+// parseSimpleFSConfiguration normalizes the simplefs Caddyfile configuration
+// block. size is a number of entries and directory_size accepts any value
+// understood by humanize.ParseBytes (e.g. 10485760, 10MB, 10MiB). Invalid
+// values are reported instead of silently falling back to an unbounded cache.
+func parseSimpleFSConfiguration(c map[string]interface{}) (map[string]interface{}, error) {
 	for k, v := range c {
 		switch k {
 		case "path":
 			c[k] = v
 		case "size":
-			if v == false {
-				c[k] = 0
-			} else if v == true {
-				c[k] = 1
-			} else {
-				c[k], _ = strconv.Atoi(v.(string))
+			val, ok := v.(string)
+			if !ok {
+				return nil, fmt.Errorf("simplefs size expects a single integer value, got %v", v)
 			}
+			size, err := strconv.Atoi(val)
+			if err != nil || size < 0 {
+				return nil, fmt.Errorf("simplefs size expects a positive integer, got %q", val)
+			}
+			c[k] = size
 		case "directory_size":
-			if v == false {
-				c[k] = 0
-			} else if v == true {
-				c[k] = 1
-			} else {
-				c[k], _ = strconv.Atoi(v.(string))
+			val, ok := v.(string)
+			if !ok {
+				return nil, fmt.Errorf("simplefs directory_size expects a single size value, got %v", v)
 			}
+			size, err := humanize.ParseBytes(val)
+			if err != nil {
+				return nil, fmt.Errorf("simplefs directory_size: invalid size %q: %w", val, err)
+			}
+			if size > math.MaxInt64 {
+				return nil, fmt.Errorf("simplefs directory_size: %q is too large", val)
+			}
+			c[k] = int64(size)
 		}
 	}
 
-	return c
+	return c, nil
 }
 
 func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isGlobal bool) error {
@@ -726,8 +740,11 @@ func parseConfiguration(cfg *Configuration, h *caddyfile.Dispenser, isGlobal boo
 						urlArgs := h.RemainingArgs()
 						provider.Path = urlArgs[0]
 					case "configuration":
-						provider.Configuration = parseCaddyfileRecursively(h)
-						provider.Configuration = parseSimpleFSConfiguration(provider.Configuration.(map[string]interface{}))
+						sfsConfiguration, err := parseSimpleFSConfiguration(parseCaddyfileRecursively(h).(map[string]interface{}))
+						if err != nil {
+							return h.Err(err.Error())
+						}
+						provider.Configuration = sfsConfiguration
 					default:
 						return h.Errf("unsupported simplefs directive: %s", directive)
 					}
