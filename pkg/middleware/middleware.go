@@ -720,9 +720,8 @@ func (s *SouinBaseHandler) Store(
 					wg.Wait()
 					if len(fails) < s.storersLen {
 						if !s.Configuration.IsSurrogateDisabled() {
-							go func(rs http.Response, key string) {
-								_ = s.SurrogateKeyStorer.Store(&rs, key, uri)
-							}(res, variedKey)
+							rs := res
+							_ = s.SurrogateKeyStorer.Store(new(rs), variedKey, uri)
 						}
 
 						status += "; stored"

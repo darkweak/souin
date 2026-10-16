@@ -28,6 +28,9 @@ type item struct {
 	value     []byte
 }
 
+// Default keeps the surrogate keys as native sets.
+var _ core.SetStorer = (*Default)(nil)
+
 // Factory function create new Default instance
 func Factory(c configurationtypes.AbstractConfigurationInterface) (types.Storer, error) {
 	return &Default{m: &sync.Map{}, logger: c.GetLogger(), stale: c.GetDefaultCache().GetStale()}, nil
@@ -217,6 +220,152 @@ func (provider *Default) Reset() error {
 	provider.mu.Lock()
 	provider.m = new(sync.Map)
 	provider.mu.Unlock()
+
+	return nil
+}
+
+// set is the value stored under a key managed with AddToSet. Its members are
+// kept in insertion order.
+type set struct {
+	mu        sync.Mutex
+	seen      map[string]struct{}
+	members   []string
+	invalidAt time.Time
+}
+
+func newSet(members []string, invalidAt time.Time) *set {
+	s := &set{seen: make(map[string]struct{}, len(members)), invalidAt: invalidAt}
+	for _, member := range members {
+		s.add(member)
+	}
+
+	return s
+}
+
+func (s *set) add(member string) {
+	if member == "" {
+		return
+	}
+
+	if _, found := s.seen[member]; !found {
+		s.seen[member] = struct{}{}
+		s.members = append(s.members, member)
+	}
+}
+
+// snapshot returns a copy of the members, or false when the set expired.
+func (s *set) snapshot(now time.Time) ([]string, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if !s.invalidAt.After(now) {
+		return nil, false
+	}
+
+	return append([]string(nil), s.members...), true
+}
+
+// loadSet returns the set stored at key, converting a separator-joined value
+// written with Set into a set, or creating an empty one.
+func (provider *Default) loadSet(key string, now time.Time) *set {
+	if value, ok := provider.m.Load(key); ok {
+		if s, ok := value.(*set); ok {
+			return s
+		}
+	}
+
+	provider.mu.Lock()
+	defer provider.mu.Unlock()
+
+	value, ok := provider.m.Load(key)
+	if s, isSet := value.(*set); ok && isSet {
+		return s
+	}
+
+	s := newSet(nil, now)
+	if i, isItem := value.(item); ok && isItem && i.invalidAt.After(now) {
+		s = newSet(strings.Split(string(i.value), ","), i.invalidAt)
+	}
+
+	provider.m.Store(key, s)
+
+	return s
+}
+
+// AddToSet adds members to the set stored at key, extending its lifetime to
+// at least the given duration.
+func (provider *Default) AddToSet(key string, members []string, duration time.Duration) error {
+	for {
+		now := time.Now()
+		s := provider.loadSet(key, now)
+
+		s.mu.Lock()
+		if !s.invalidAt.After(now) {
+			s.seen = make(map[string]struct{})
+			s.members = nil
+		}
+		if invalidAt := now.Add(duration); duration > 0 && invalidAt.After(s.invalidAt) {
+			s.invalidAt = invalidAt
+		}
+		for _, member := range members {
+			s.add(member)
+		}
+		s.mu.Unlock()
+
+		// A concurrent Delete or Reset may have dropped the set while the
+		// members were added, which would lose them.
+		if current, ok := provider.m.Load(key); ok && current == any(s) {
+			return nil
+		}
+	}
+}
+
+// GetSet returns all members of the set stored at key.
+func (provider *Default) GetSet(key string) []string {
+	value, ok := provider.m.Load(key)
+	if !ok {
+		return nil
+	}
+
+	now := time.Now()
+	switch v := value.(type) {
+	case *set:
+		members, _ := v.snapshot(now)
+
+		return members
+	case item:
+		if v.invalidAt.After(now) && len(v.value) > 0 {
+			return strings.Split(string(v.value), ",")
+		}
+	}
+
+	return nil
+}
+
+// WalkSets visits every set whose key matches the prefix, with the key
+// stripped of it.
+func (provider *Default) WalkSets(prefix string, fn func(key string, members []string) bool) error {
+	now := time.Now()
+
+	provider.m.Range(func(current, value any) bool {
+		key, found := strings.CutPrefix(current.(string), prefix)
+		if !found {
+			return true
+		}
+
+		switch v := value.(type) {
+		case *set:
+			if members, alive := v.snapshot(now); alive {
+				return fn(key, members)
+			}
+		case item:
+			if v.invalidAt.After(now) {
+				return fn(key, strings.Split(string(v.value), ","))
+			}
+		}
+
+		return true
+	})
 
 	return nil
 }

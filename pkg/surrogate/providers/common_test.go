@@ -9,6 +9,7 @@ import (
 
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/storage"
+	"github.com/darkweak/souin/pkg/storage/types"
 	"github.com/darkweak/souin/tests"
 	"github.com/darkweak/storages/core"
 	"go.uber.org/zap"
@@ -32,6 +33,7 @@ func mockCommonProvider() *baseStorage {
 			dynamic:    true,
 			mu:         sync.Mutex{},
 			logger:     zap.NewNop().Sugar(),
+			duration:   storageToInfiniteTTLMap[memoryStorer.Name()],
 		},
 	}
 
@@ -166,45 +168,89 @@ func TestBaseStorage_Store_Load(t *testing.T) {
 	}
 
 	wg.Wait()
-	_ = bs.Storage.Get(surrogatePrefix)
 
-	// if len(strings.Split(string(v), ",")) != length+1 {
-	// 	// t.Errorf("The surrogate storage should contain %d stored elements, %d given.", length+1, len(strings.Split(string(v), ",")))
-	// }
+	if stored := len(strings.Split(bs.List()[""], souinStorageSeparator)); stored != length {
+		t.Errorf("The surrogate storage should contain %d stored elements, %d given.", length, stored)
+	}
 }
 
-func TestContainsCacheKey(t *testing.T) {
-	testCases := []struct {
-		name         string
-		currentValue string
-		cacheKey     string
-		expected     bool
-	}{
-		{"empty current value", "", "key1", false},
-		{"exact match single key", "key1", "key1", true},
-		{"key at beginning", "key1,key2,key3", "key1", true},
-		{"key at end", "key1,key2,key3", "key3", true},
-		{"key in middle", "key1,key2,key3", "key2", true},
-		{"key not present", "key1,key2,key3", "key4", false},
-		{"partial match should not match", "key1,key2,key3", "key", false},
-		{"partial match at start should not match", "key12,key2,key3", "key1", false},
-		{"partial match at end should not match", "key1,key2,key34", "key3", false},
-		{"url encoded key present", "%2Fapi%2Fusers,other", "%2Fapi%2Fusers", true},
-		{"url encoded key not present", "%2Fapi%2Fusers,other", "%2Fapi%2Fposts", false},
-		{"key with special chars", "a%2Fb,c%2Fd", "a%2Fb", true},
-		{"empty key in empty value", "", "", false},
-		{"empty key in non-empty value", "key1,key2", "", false},
-		{"similar keys should not match", "product-123,product-1234", "product-12", false},
-		{"leading comma in stored value", ",key1,key2", "key1", true},
+type stringStorer struct {
+	types.Storer
+}
+
+func mockStringProvider() *baseStorage {
+	bs := mockCommonProvider()
+	bs.Storage = stringStorer{Storer: bs.Storage}
+
+	return bs
+}
+
+func TestBaseStorage_StoreTag_StringValue(t *testing.T) {
+	bs := mockStringProvider()
+	_ = bs.Storage.Set(surrogatePrefix+"tag", []byte("first,second"), storageToInfiniteTTLMap[bs.Storage.Name()])
+
+	for _, key := range []string{"second", "third", "first", "fourth", "third"} {
+		bs.storeTag("tag", key)
+	}
+	bs.storeTag("other", "fifth")
+
+	list := bs.List()
+	if list["tag"] != "first,second,third,fourth" {
+		t.Errorf("The tag must keep its keys once and in order, %q given.", list["tag"])
+	}
+	if list["other"] != "fifth" {
+		t.Errorf("The other tag must contain fifth, %q given.", list["other"])
+	}
+}
+
+func TestBaseStorage_StoreTag_Set(t *testing.T) {
+	bs := mockCommonProvider()
+	if _, ok := bs.Storage.(core.SetStorer); !ok {
+		t.Fatal("The default storer must store the tags as native sets.")
 	}
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			result := containsCacheKey(tc.currentValue, tc.cacheKey)
-			if result != tc.expected {
-				t.Errorf("containsCacheKey(%q, %q) = %v, expected %v",
-					tc.currentValue, tc.cacheKey, result, tc.expected)
+	_ = bs.Storage.Set(surrogatePrefix+"tag", []byte("first,second"), storageToInfiniteTTLMap[bs.Storage.Name()])
+	for _, key := range []string{"second", "third", "first"} {
+		bs.storeTag("tag", key)
+	}
+
+	if list := bs.List(); list["tag"] != "first,second,third" {
+		t.Errorf("The tag must keep its keys once and in order, %q given.", list["tag"])
+	}
+
+	cacheKeys, _ := bs.Purge(http.Header{surrogateKey: []string{"tag"}})
+	if strings.Join(cacheKeys, ",") != "first,second,third" {
+		t.Errorf("The purge must return every key of the tag, %v given.", cacheKeys)
+	}
+}
+
+func TestBaseStorage_Purge_SeesQueuedKeys(t *testing.T) {
+	for name, bs := range map[string]*baseStorage{"set": mockCommonProvider(), "string": mockStringProvider()} {
+		t.Run(name, func(t *testing.T) {
+			res := http.Response{Header: http.Header{}}
+			res.Header.Set(surrogateKey, "group")
+
+			_ = bs.Store(&res, "stored", "/uri")
+
+			cacheKeys, _ := bs.Purge(http.Header{surrogateKey: []string{"group"}})
+			if len(cacheKeys) != 1 || cacheKeys[0] != "stored" {
+				t.Errorf("The purge must see the key stored just before, %v given.", cacheKeys)
 			}
 		})
+	}
+}
+
+func TestBaseStorage_Destruct_DropsQueuedKeys(t *testing.T) {
+	bs := mockStringProvider()
+	bs.writeMu.Lock()
+	bs.storeTag("tag", "queued")
+	bs.writeMu.Unlock()
+
+	if e := bs.Destruct(); e != nil {
+		t.Fatalf("Destruct must not fail, %v given.", e)
+	}
+
+	if list := bs.List(); len(list) != 0 {
+		t.Errorf("The surrogate storage must be empty after Destruct, %v given.", list)
 	}
 }

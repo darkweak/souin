@@ -1,6 +1,7 @@
 package providers
 
 import (
+	"bytes"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -121,8 +122,12 @@ type baseStorage struct {
 	dynamic    bool
 	keepStale  bool
 	logger     core.Logger
-	mu         sync.Mutex
 	duration   time.Duration
+
+	mu       sync.Mutex
+	writeMu  sync.Mutex
+	pending  map[string]*pendingKeys
+	draining bool
 }
 
 func (s *baseStorage) init(config configurationtypes.AbstractConfigurationInterface, defaultStorerName string) {
@@ -179,57 +184,119 @@ func (s *baseStorage) init(config configurationtypes.AbstractConfigurationInterf
 	s.duration = storageToInfiniteTTLMap[s.Storage.Name()]
 }
 
-// containsCacheKey checks if the cacheKey already exists in the comma-separated currentValue.
-// This is much faster than regex matching, especially for long strings.
-func containsCacheKey(currentValue, cacheKey string) bool {
-	if currentValue == "" {
-		return false
-	}
-	// Check for exact match at various positions:
-	// 1. Exact match of entire string
-	if currentValue == cacheKey {
-		return true
-	}
-	// 2. At the beginning: "cacheKey,"
-	if strings.HasPrefix(currentValue, cacheKey+souinStorageSeparator) {
-		return true
-	}
-	// 3. At the end: ",cacheKey"
-	if strings.HasSuffix(currentValue, souinStorageSeparator+cacheKey) {
-		return true
-	}
-	// 4. In the middle: ",cacheKey,"
-	if strings.Contains(currentValue, souinStorageSeparator+cacheKey+souinStorageSeparator) {
-		return true
-	}
-	return false
+type pendingKeys struct {
+	seen  map[string]struct{}
+	order []string
 }
 
 func (s *baseStorage) storeTag(tag string, cacheKey string) {
-	defer s.mu.Unlock()
 	s.mu.Lock()
+	if s.pending == nil {
+		s.pending = make(map[string]*pendingKeys)
+	}
 
-	// Native sets avoid rereading and rewriting the whole tag value on every
-	// stored response.
-	if setStorer, ok := s.Storage.(core.SetStorer); ok {
+	keys, ok := s.pending[tag]
+	if !ok {
+		keys = &pendingKeys{seen: make(map[string]struct{})}
+		s.pending[tag] = keys
+	}
+
+	if _, found := keys.seen[cacheKey]; !found {
+		keys.seen[cacheKey] = struct{}{}
+		keys.order = append(keys.order, cacheKey)
+	}
+
+	startDrain := !s.draining
+	s.draining = true
+	s.mu.Unlock()
+
+	if startDrain {
+		go s.drain()
+	}
+}
+
+func (s *baseStorage) drain() {
+	for {
+		if !s.flushPending() {
+			s.mu.Lock()
+			if len(s.pending) == 0 {
+				s.draining = false
+				s.mu.Unlock()
+
+				return
+			}
+			s.mu.Unlock()
+		}
+	}
+}
+
+func (s *baseStorage) flushPending() bool {
+	s.writeMu.Lock()
+	defer s.writeMu.Unlock()
+
+	s.mu.Lock()
+	batch := s.pending
+	s.pending = nil
+	s.mu.Unlock()
+
+	if len(batch) == 0 {
+		return false
+	}
+
+	setStorer, isSetStorer := s.Storage.(core.SetStorer)
+	for tag, keys := range batch {
 		s.logger.Debugf("Store the tag %s", tag)
-		_ = setStorer.AddToSet(surrogatePrefix+tag, []string{cacheKey}, s.duration)
 
+		// Native sets avoid rereading and rewriting the whole tag value.
+		if isSetStorer {
+			_ = setStorer.AddToSet(surrogatePrefix+tag, keys.order, s.duration)
+
+			continue
+		}
+
+		s.appendToTag(tag, keys)
+	}
+
+	return true
+}
+
+func (s *baseStorage) appendToTag(tag string, keys *pendingKeys) {
+	current := s.Storage.Get(surrogatePrefix + tag)
+
+	for rest := current; len(rest) > 0; {
+		member := rest
+		if i := bytes.IndexByte(rest, souinStorageSeparator[0]); i >= 0 {
+			member, rest = rest[:i], rest[i+1:]
+		} else {
+			rest = nil
+		}
+
+		delete(keys.seen, string(member))
+	}
+
+	if len(keys.seen) == 0 {
 		return
 	}
 
-	currentValue := string(s.Storage.Get(surrogatePrefix + tag))
-	if !containsCacheKey(currentValue, cacheKey) {
-		s.logger.Debugf("Store the tag %s", tag)
+	size := len(current)
+	for _, key := range keys.order {
+		size += len(key) + len(souinStorageSeparator)
+	}
 
-		if currentValue == "" {
-			currentValue = cacheKey
-		} else {
-			currentValue += souinStorageSeparator + cacheKey
+	value := make([]byte, 0, size)
+	value = append(value, current...)
+	for _, key := range keys.order {
+		if _, missing := keys.seen[key]; !missing {
+			continue
 		}
 
-		_ = s.Storage.Set(surrogatePrefix+tag, []byte(currentValue), s.duration)
+		if len(value) > 0 {
+			value = append(value, souinStorageSeparator...)
+		}
+		value = append(value, key...)
 	}
+
+	_ = s.Storage.Set(surrogatePrefix+tag, value, s.duration)
 }
 
 func (*baseStorage) candidateStore(tag string) bool {
@@ -322,6 +389,7 @@ func (s *baseStorage) Store(response *http.Response, cacheKey, uri string) error
 // It returns an array which one contains the cache keys to invalidate.
 func (s *baseStorage) Purge(header http.Header) (cacheKeys []string, surrogateKeys []string) {
 	surrogates := s.ParseHeaders(s.parent.getSurrogateKey(header))
+	s.flushPending()
 	toInvalidate := []string{}
 	for _, su := range surrogates {
 		toInvalidate = append(toInvalidate, s.purgeTag(su)...)
@@ -334,8 +402,9 @@ func (s *baseStorage) Purge(header http.Header) (cacheKeys []string, surrogateKe
 
 // Invalidate the grouped responses from the Cache-Group-Invalidation HTTP response header
 func (s *baseStorage) Invalidate(method string, headers http.Header) {
-	if !isSafeHTTPMethod(method) {
-		for _, group := range headers["Cache-Group-Invalidation"] {
+	if groups := headers["Cache-Group-Invalidation"]; !isSafeHTTPMethod(method) && len(groups) > 0 {
+		s.flushPending()
+		for _, group := range groups {
 			s.purgeTag(group)
 		}
 	}
@@ -343,7 +412,8 @@ func (s *baseStorage) Invalidate(method string, headers http.Header) {
 
 // List returns the stored keys associated to resources
 func (s *baseStorage) List() map[string]string {
-	// Set-backed tags are invisible to MapKeys, which only reads string values.
+	s.flushPending()
+
 	if setStorer, ok := s.Storage.(core.SetStorer); ok {
 		keys := map[string]string{}
 
@@ -361,5 +431,12 @@ func (s *baseStorage) List() map[string]string {
 
 // Destruct method will shutdown properly the provider
 func (s *baseStorage) Destruct() error {
+	s.writeMu.Lock()
+	defer s.writeMu.Unlock()
+
+	s.mu.Lock()
+	s.pending = nil
+	s.mu.Unlock()
+
 	return s.Storage.Reset()
 }
