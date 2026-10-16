@@ -2,9 +2,11 @@ package httpcache
 
 import (
 	"encoding/json"
+	"reflect"
 	"testing"
 
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
+	"github.com/darkweak/souin/configurationtypes"
 )
 
 // roundTripCaddyfileDirective parses a `cache` handler directive the way the
@@ -84,5 +86,40 @@ func TestSimpleFSConfigurationInvalidSizes(t *testing.T) {
 		if err == nil {
 			t.Errorf("expected an error for %q, got nil", block)
 		}
+	}
+}
+
+// Regression test for https://github.com/darkweak/souin/issues/688.
+func TestCacheKeysCaddyfileRoundTrip(t *testing.T) {
+	loaded, err := roundTripCaddyfileDirective(t, `cache {
+		cache_keys {
+			.+\/404$ {
+				disable_host
+			}
+			.+\.css {
+				disable_body
+				disable_query
+				headers Authorization Content-Type
+			}
+		}
+	}`)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	expected := map[string]configurationtypes.Key{
+		`.+\/404$`: {DisableHost: true},
+		`.+\.css`:  {DisableBody: true, DisableQuery: true, Headers: []string{"Authorization", "Content-Type"}},
+	}
+
+	got := map[string]configurationtypes.Key{}
+	for _, cacheKey := range loaded.Configuration.CacheKeys {
+		for rg, key := range cacheKey {
+			got[rg.String()] = key
+		}
+	}
+
+	if !reflect.DeepEqual(expected, got) {
+		t.Errorf("unexpected cache_keys after the JSON round trip, expected %#v, got %#v", expected, got)
 	}
 }

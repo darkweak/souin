@@ -20,8 +20,8 @@ func (c *CacheKeys) parseJSON(rootDecoder *json.Decoder) {
 	var token json.Token
 	var err error
 
-	_, _ = rootDecoder.Token()
-	_, _ = rootDecoder.Token()
+	// Consume the opening delimiter of the cache keys object, the regexp
+	// keys are then read one by one in the loop.
 	_, _ = rootDecoder.Token()
 
 	for err == nil {
@@ -108,8 +108,15 @@ func (c *CacheKeys) MarshalJSON() ([]byte, error) {
 	var strKeys []string
 	for _, cacheKey := range *c {
 		for rg, key := range cacheKey {
-			keyBytes, _ := json.Marshal(key)
-			strKeys = append(strKeys, fmt.Sprintf(`"%s": %v`, rg.String(), string(keyBytes)))
+			rgBytes, err := json.Marshal(rg.String())
+			if err != nil {
+				return nil, err
+			}
+			keyBytes, err := json.Marshal(key)
+			if err != nil {
+				return nil, err
+			}
+			strKeys = append(strKeys, fmt.Sprintf(`%s: %s`, rgBytes, keyBytes))
 		}
 	}
 
