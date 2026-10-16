@@ -37,7 +37,7 @@ func (c *credentialsCache) Delete(domain string) {
 }
 
 func (c *credentialsCache) Range(fn func(domain string, v *credentialsCacheElement) bool) {
-	c.CacheStore.Range(func(k, v interface{}) bool {
+	c.CacheStore.Range(func(k, v any) bool {
 		if domain, ok := k.(string); ok {
 			if e, ok := v.(*credentialsCacheElement); ok {
 				return fn(domain, e)

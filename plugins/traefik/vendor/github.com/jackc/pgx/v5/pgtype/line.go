@@ -2,7 +2,6 @@ package pgtype
 
 import (
 	"database/sql/driver"
-	"encoding/binary"
 	"fmt"
 	"math"
 	"strconv"
@@ -24,11 +23,13 @@ type Line struct {
 	Valid   bool
 }
 
+// ScanLine implements the [LineScanner] interface.
 func (line *Line) ScanLine(v Line) error {
 	*line = v
 	return nil
 }
 
+// LineValue implements the [LineValuer] interface.
 func (line Line) LineValue() (Line, error) {
 	return line, nil
 }
@@ -37,22 +38,21 @@ func (line *Line) Set(src any) error {
 	return fmt.Errorf("cannot convert %v to Line", src)
 }
 
-// Scan implements the database/sql Scanner interface.
+// Scan implements the [database/sql.Scanner] interface.
 func (line *Line) Scan(src any) error {
 	if src == nil {
 		*line = Line{}
 		return nil
 	}
 
-	switch src := src.(type) {
-	case string:
+	if src, ok := src.(string); ok {
 		return scanPlanTextAnyToLineScanner{}.Scan([]byte(src), line)
 	}
 
 	return fmt.Errorf("cannot scan %T", src)
 }
 
-// Value implements the database/sql/driver Valuer interface.
+// Value implements the [database/sql/driver.Valuer] interface.
 func (line Line) Value() (driver.Value, error) {
 	if !line.Valid {
 		return nil, nil
@@ -129,16 +129,13 @@ func (encodePlanLineCodecText) Encode(value any, buf []byte) (newBuf []byte, err
 }
 
 func (LineCodec) PlanScan(m *Map, oid uint32, format int16, target any) ScanPlan {
-
 	switch format {
 	case BinaryFormatCode:
-		switch target.(type) {
-		case LineScanner:
+		if _, ok := target.(LineScanner); ok {
 			return scanPlanBinaryLineToLineScanner{}
 		}
 	case TextFormatCode:
-		switch target.(type) {
-		case LineScanner:
+		if _, ok := target.(LineScanner); ok {
 			return scanPlanTextAnyToLineScanner{}
 		}
 	}
@@ -149,19 +146,21 @@ func (LineCodec) PlanScan(m *Map, oid uint32, format int16, target any) ScanPlan
 type scanPlanBinaryLineToLineScanner struct{}
 
 func (scanPlanBinaryLineToLineScanner) Scan(src []byte, dst any) error {
-	scanner := (dst).(LineScanner)
+	scanner := dst.(LineScanner)
 
 	if src == nil {
 		return scanner.ScanLine(Line{})
 	}
 
-	if len(src) != 24 {
-		return fmt.Errorf("invalid length for line: %v", len(src))
-	}
+	r := pgio.NewReader(src)
 
-	a := binary.BigEndian.Uint64(src)
-	b := binary.BigEndian.Uint64(src[8:])
-	c := binary.BigEndian.Uint64(src[16:])
+	a := r.Uint64()
+	b := r.Uint64()
+	c := r.Uint64()
+
+	if err := r.Finish(); err != nil {
+		return fmt.Errorf("line: %w", err)
+	}
 
 	return scanner.ScanLine(Line{
 		A:     math.Float64frombits(a),
@@ -174,7 +173,7 @@ func (scanPlanBinaryLineToLineScanner) Scan(src []byte, dst any) error {
 type scanPlanTextAnyToLineScanner struct{}
 
 func (scanPlanTextAnyToLineScanner) Scan(src []byte, dst any) error {
-	scanner := (dst).(LineScanner)
+	scanner := dst.(LineScanner)
 
 	if src == nil {
 		return scanner.ScanLine(Line{})

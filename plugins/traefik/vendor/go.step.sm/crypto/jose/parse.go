@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+
 	"go.step.sm/crypto/pemutil"
 	"go.step.sm/crypto/x25519"
 )
@@ -199,7 +200,7 @@ func ParseKeySet(b []byte, opts ...Option) (*JSONWebKey, error) {
 	}
 }
 
-func decodeCerts(l []interface{}) ([]*x509.Certificate, error) {
+func decodeCerts(l []any) ([]*x509.Certificate, error) {
 	certs := make([]*x509.Certificate, len(l))
 	for i, j := range l {
 		certStr, ok := j.(string)
@@ -228,7 +229,7 @@ func GetX5cInsecureHeader(jwt *JSONWebToken) ([]*x509.Certificate, error) {
 	if !ok {
 		return nil, errors.New("ssh check-host token missing x5cInsecure header")
 	}
-	interfaces, ok := x5cVal.([]interface{})
+	interfaces, ok := x5cVal.([]any)
 	if !ok {
 		return nil, errors.Errorf("ssh check-host token x5cInsecure header has wrong type; expected []string, but got %T", x5cVal)
 	}

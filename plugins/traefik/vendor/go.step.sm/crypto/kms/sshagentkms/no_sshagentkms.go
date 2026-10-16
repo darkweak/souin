@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/pkg/errors"
+
 	"go.step.sm/crypto/kms/apiv1"
 )
 

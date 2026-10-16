@@ -67,7 +67,7 @@ func CreateCertificateRequest(rand io.Reader, template *CertificateRequest, priv
 	// add the challenge attribute to the CSR, then re-sign the raw csr.
 	// not checking the crypto.Signer assertion because x509.CreateCertificateRequest already did that.
 	return addChallenge(
-		template.CertificateRequest.SignatureAlgorithm,
+		template.SignatureAlgorithm,
 		rand,
 		derBytes,
 		template.ChallengePassword,

@@ -24,6 +24,7 @@ import (
 
 	fileutils "go.step.sm/crypto/internal/utils/file"
 	"go.step.sm/crypto/keyutil"
+	"go.step.sm/crypto/mldsa"
 	"go.step.sm/crypto/x25519"
 )
 
@@ -447,7 +448,7 @@ func ReadCertificateRequest(filename string) (*x509.CertificateRequest, error) {
 }
 
 // Parse returns the key or certificate PEM-encoded in the given bytes.
-func Parse(b []byte, opts ...Options) (interface{}, error) {
+func Parse(b []byte, opts ...Options) (any, error) {
 	// Populate options
 	ctx := newContext("PEM")
 	if err := ctx.apply(opts); err != nil {
@@ -521,7 +522,7 @@ func Parse(b []byte, opts ...Options) (interface{}, error) {
 
 // ParseKey returns the key or the public key of a certificate or certificate
 // signing request in the given PEM-encoded bytes.
-func ParseKey(b []byte, opts ...Options) (interface{}, error) {
+func ParseKey(b []byte, opts ...Options) (any, error) {
 	k, err := Parse(b, opts...)
 	if err != nil {
 		return nil, err
@@ -536,7 +537,7 @@ func ParseKey(b []byte, opts ...Options) (interface{}, error) {
 // Supported keys algorithms are RSA and EC. Supported standards for private
 // keys are PKCS#1, PKCS#8, RFC5915 for EC, and base64-encoded DER for
 // certificates and public keys.
-func Read(filename string, opts ...Options) (interface{}, error) {
+func Read(filename string, opts ...Options) (any, error) {
 	b, err := fileutils.ReadFile(filename)
 	if err != nil {
 		return nil, err
@@ -549,16 +550,19 @@ func Read(filename string, opts ...Options) (interface{}, error) {
 
 // Serialize will serialize the input to a PEM formatted block and apply
 // modifiers.
-func Serialize(in interface{}, opts ...Options) (*pem.Block, error) {
+func Serialize(in any, opts ...Options) (*pem.Block, error) {
 	ctx := new(context)
 	if err := ctx.apply(opts); err != nil {
 		return nil, err
 	}
 
-	var p *pem.Block
-	var isPrivateKey bool
+	var (
+		p            *pem.Block
+		isPrivateKey bool
+		err          error
+	)
 	switch k := in.(type) {
-	case *rsa.PublicKey, *ecdsa.PublicKey, ed25519.PublicKey:
+	case *rsa.PublicKey, *ecdsa.PublicKey, *mldsa.PublicKey, ed25519.PublicKey:
 		b, err := x509.MarshalPKIXPublicKey(k)
 		if err != nil {
 			return nil, errors.WithStack(err)
@@ -571,13 +575,8 @@ func Serialize(in interface{}, opts ...Options) (*pem.Block, error) {
 		isPrivateKey = true
 		switch {
 		case ctx.pkcs8:
-			b, err := x509.MarshalPKCS8PrivateKey(k)
-			if err != nil {
+			if p, err = marshalPKCS8PrivateKey(k); err != nil {
 				return nil, err
-			}
-			p = &pem.Block{
-				Type:  "PRIVATE KEY",
-				Bytes: b,
 			}
 		case ctx.openSSH:
 			return SerializeOpenSSHPrivateKey(k, withContext(ctx))
@@ -591,13 +590,8 @@ func Serialize(in interface{}, opts ...Options) (*pem.Block, error) {
 		isPrivateKey = true
 		switch {
 		case ctx.pkcs8:
-			b, err := x509.MarshalPKCS8PrivateKey(k)
-			if err != nil {
+			if p, err = marshalPKCS8PrivateKey(k); err != nil {
 				return nil, err
-			}
-			p = &pem.Block{
-				Type:  "PRIVATE KEY",
-				Bytes: b,
 			}
 		case ctx.openSSH:
 			return SerializeOpenSSHPrivateKey(k, withContext(ctx))
@@ -611,21 +605,24 @@ func Serialize(in interface{}, opts ...Options) (*pem.Block, error) {
 				Bytes: b,
 			}
 		}
+	case *mldsa.PrivateKey:
+		isPrivateKey = true
+		if !ctx.pkcs8 && ctx.openSSH {
+			return nil, fmt.Errorf("cannot serialize type '*mldsa.PrivateKey' as an OpenSSH private key")
+		}
+		ctx.pkcs8 = true
+		if p, err = marshalPKCS8PrivateKey(k); err != nil {
+			return nil, err
+		}
 	case ed25519.PrivateKey:
 		isPrivateKey = true
-		switch {
-		case !ctx.pkcs8 && ctx.openSSH:
+		if !ctx.pkcs8 && ctx.openSSH {
 			return SerializeOpenSSHPrivateKey(k, withContext(ctx))
-		default: // Ed25519 keys will use pkcs8 by default
-			ctx.pkcs8 = true
-			b, err := x509.MarshalPKCS8PrivateKey(k)
-			if err != nil {
-				return nil, err
-			}
-			p = &pem.Block{
-				Type:  "PRIVATE KEY",
-				Bytes: b,
-			}
+		}
+		// Ed25519 keys uses pkcs8 by default
+		ctx.pkcs8 = true
+		if p, err = marshalPKCS8PrivateKey(k); err != nil {
+			return nil, err
 		}
 	case *x509.Certificate:
 		p = &pem.Block{
@@ -638,7 +635,7 @@ func Serialize(in interface{}, opts ...Options) (*pem.Block, error) {
 			Bytes: k.Raw,
 		}
 	default:
-		return nil, errors.Errorf("cannot serialize type '%T', value '%v'", k, k)
+		return nil, fmt.Errorf("cannot serialize type '%T', value '%v'", in, in)
 	}
 
 	if isPrivateKey {
@@ -677,7 +674,7 @@ func Serialize(in interface{}, opts ...Options) (*pem.Block, error) {
 
 // ParseDER parses the given DER-encoded bytes and results the public or private
 // key encoded.
-func ParseDER(b []byte) (interface{}, error) {
+func ParseDER(b []byte) (any, error) {
 	// Try private keys
 	key, err := x509.ParsePKCS8PrivateKey(b)
 	if err != nil {
@@ -700,7 +697,7 @@ func ParseDER(b []byte) (interface{}, error) {
 
 // ParseSSH parses parses a public key from an authorized_keys file used in
 // OpenSSH according to the sshd(8) manual page.
-func ParseSSH(b []byte) (interface{}, error) {
+func ParseSSH(b []byte) (any, error) {
 	key, _, _, _, err := ssh.ParseAuthorizedKey(b)
 	if err != nil {
 		return nil, errors.Wrap(err, "error parsing OpenSSH key")
@@ -766,23 +763,11 @@ func ParseSSH(b []byte) (interface{}, error) {
 		rawKey := p.Bytes()
 		switch p.Curve() {
 		case ecdh.P256():
-			return &ecdsa.PublicKey{
-				Curve: elliptic.P256(),
-				X:     big.NewInt(0).SetBytes(rawKey[1:33]),
-				Y:     big.NewInt(0).SetBytes(rawKey[33:]),
-			}, nil
+			return ecdsa.ParseUncompressedPublicKey(elliptic.P256(), rawKey)
 		case ecdh.P384():
-			return &ecdsa.PublicKey{
-				Curve: elliptic.P384(),
-				X:     big.NewInt(0).SetBytes(rawKey[1:49]),
-				Y:     big.NewInt(0).SetBytes(rawKey[49:]),
-			}, nil
+			return ecdsa.ParseUncompressedPublicKey(elliptic.P384(), rawKey)
 		case ecdh.P521():
-			return &ecdsa.PublicKey{
-				Curve: elliptic.P521(),
-				X:     big.NewInt(0).SetBytes(rawKey[1:67]),
-				Y:     big.NewInt(0).SetBytes(rawKey[67:]),
-			}, nil
+			return ecdsa.ParseUncompressedPublicKey(elliptic.P521(), rawKey)
 		default:
 			return nil, errors.New("cannot convert non-NIST *ecdh.PublicKey to *ecdsa.PublicKey")
 		}
@@ -871,4 +856,15 @@ func UnbundleCertificate(bundlePEM []byte, certsPEM ...[]byte) ([]byte, bool, er
 	}
 
 	return keep, modified, nil
+}
+
+func marshalPKCS8PrivateKey(k any) (*pem.Block, error) {
+	b, err := x509.MarshalPKCS8PrivateKey(k)
+	if err != nil {
+		return nil, err
+	}
+	return &pem.Block{
+		Type:  "PRIVATE KEY",
+		Bytes: b,
+	}, nil
 }

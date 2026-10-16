@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/darkweak/souin/configurationtypes"
+	"github.com/darkweak/souin/pkg/rfc"
 	"github.com/darkweak/souin/pkg/storage/types"
 	"github.com/darkweak/storages/core"
 )
@@ -51,12 +52,27 @@ func (s *baseStorage) ParseHeaders(value string) []string {
 	return res
 }
 
+// structuredFieldHeaders are the cache control headers defined as RFC 8941
+// Structured Fields. One that fails to parse conveys nothing and must be
+// skipped entirely, letting the next candidate decide instead.
+var structuredFieldHeaders = map[string]bool{
+	cdnCacheControl:  true,
+	surrogateControl: true,
+}
+
 func getCandidateHeader(header http.Header, getCandidates func() []string) (string, string) {
 	candidates := getCandidates()
 	for _, candidate := range candidates {
-		if h := header.Get(candidate); h != "" {
-			return candidate, h
+		h := header.Get(candidate)
+		if h == "" {
+			continue
 		}
+
+		if structuredFieldHeaders[candidate] && !rfc.IsValidCacheControlDictionary(h) {
+			continue
+		}
+
+		return candidate, h
 	}
 
 	return candidates[len(candidates)-1], ""

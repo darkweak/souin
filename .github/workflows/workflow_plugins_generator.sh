@@ -3,7 +3,7 @@
 # Disabled go-zero and hertz temporary
 # plugins=("beego"  "chi"  "dotweb"  "echo"  "fiber"  "gin"  "goa"  "go-zero"  "hertz"  "kratos"  "roadrunner"  "souin"  "traefik"  "tyk"  "webgo")
 plugins=("beego"  "chi"  "dotweb"  "echo"  "fiber"  "gin"  "goa"  "kratos"  "souin"  "traefik"  "webgo")
-go_version=1.25
+go_version=1.27
 
 IFS= read -r -d '' tpl <<EOF
 name: Build and validate Souin as plugins
@@ -116,12 +116,12 @@ jobs:
         name: Install Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25'
+          go-version: '1.27'
 
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
 
       - uses: pnpm/action-setup@v3
         name: Install pnpm
@@ -174,14 +174,6 @@ jobs:
           releaseId: 144343803
         env:
           GITHUB_TOKEN: \${{ secrets.GITHUB_TOKEN }}
-      - 
-        name: Upload screenshot artifacts
-        id: screenshot-uploader
-        uses: edunad/actions-image@master
-        with:
-            path: screenshots/iPad_Pro_landscape.jpeg
-            GITHUB_TOKEN: \${{ secrets.GITHUB_TOKEN }}
-            title: 'cache-tests suite result'
 
 EOF
 workflow+="$tpl"

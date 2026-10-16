@@ -2,13 +2,11 @@ package pgtype
 
 import (
 	"database/sql/driver"
-	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"regexp"
-	"strconv"
 	"time"
 
+	"github.com/jackc/pgx/v5/internal/pgdatetime"
 	"github.com/jackc/pgx/v5/internal/pgio"
 )
 
@@ -26,11 +24,13 @@ type Date struct {
 	Valid            bool
 }
 
+// ScanDate implements the [DateScanner] interface.
 func (d *Date) ScanDate(v Date) error {
 	*d = v
 	return nil
 }
 
+// DateValue implements the [DateValuer] interface.
 func (d Date) DateValue() (Date, error) {
 	return d, nil
 }
@@ -40,7 +40,7 @@ const (
 	infinityDayOffset         = 2147483647
 )
 
-// Scan implements the database/sql Scanner interface.
+// Scan implements the [database/sql.Scanner] interface.
 func (dst *Date) Scan(src any) error {
 	if src == nil {
 		*dst = Date{}
@@ -58,7 +58,7 @@ func (dst *Date) Scan(src any) error {
 	return fmt.Errorf("cannot scan %T", src)
 }
 
-// Value implements the database/sql/driver Valuer interface.
+// Value implements the [database/sql/driver.Valuer] interface.
 func (src Date) Value() (driver.Value, error) {
 	if !src.Valid {
 		return nil, nil
@@ -70,6 +70,7 @@ func (src Date) Value() (driver.Value, error) {
 	return src.Time, nil
 }
 
+// MarshalJSON implements the [encoding/json.Marshaler] interface.
 func (src Date) MarshalJSON() ([]byte, error) {
 	if !src.Valid {
 		return []byte("null"), nil
@@ -89,6 +90,7 @@ func (src Date) MarshalJSON() ([]byte, error) {
 	return json.Marshal(s)
 }
 
+// UnmarshalJSON implements the [encoding/json.Unmarshaler] interface.
 func (dst *Date) UnmarshalJSON(b []byte) error {
 	var s *string
 	err := json.Unmarshal(b, &s)
@@ -186,33 +188,7 @@ func (encodePlanDateCodecText) Encode(value any, buf []byte) (newBuf []byte, err
 
 	switch date.InfinityModifier {
 	case Finite:
-		// Year 0000 is 1 BC
-		bc := false
-		year := date.Time.Year()
-		if year <= 0 {
-			year = -year + 1
-			bc = true
-		}
-
-		yearBytes := strconv.AppendInt(make([]byte, 0, 6), int64(year), 10)
-		for i := len(yearBytes); i < 4; i++ {
-			buf = append(buf, '0')
-		}
-		buf = append(buf, yearBytes...)
-		buf = append(buf, '-')
-		if date.Time.Month() < 10 {
-			buf = append(buf, '0')
-		}
-		buf = strconv.AppendInt(buf, int64(date.Time.Month()), 10)
-		buf = append(buf, '-')
-		if date.Time.Day() < 10 {
-			buf = append(buf, '0')
-		}
-		buf = strconv.AppendInt(buf, int64(date.Time.Day()), 10)
-
-		if bc {
-			buf = append(buf, " BC"...)
-		}
+		buf = pgdatetime.AppendDate(buf, date.Time)
 	case Infinity:
 		buf = append(buf, "infinity"...)
 	case NegativeInfinity:
@@ -223,16 +199,13 @@ func (encodePlanDateCodecText) Encode(value any, buf []byte) (newBuf []byte, err
 }
 
 func (DateCodec) PlanScan(m *Map, oid uint32, format int16, target any) ScanPlan {
-
 	switch format {
 	case BinaryFormatCode:
-		switch target.(type) {
-		case DateScanner:
+		if _, ok := target.(DateScanner); ok {
 			return scanPlanBinaryDateToDateScanner{}
 		}
 	case TextFormatCode:
-		switch target.(type) {
-		case DateScanner:
+		if _, ok := target.(DateScanner); ok {
 			return scanPlanTextAnyToDateScanner{}
 		}
 	}
@@ -243,17 +216,18 @@ func (DateCodec) PlanScan(m *Map, oid uint32, format int16, target any) ScanPlan
 type scanPlanBinaryDateToDateScanner struct{}
 
 func (scanPlanBinaryDateToDateScanner) Scan(src []byte, dst any) error {
-	scanner := (dst).(DateScanner)
+	scanner := dst.(DateScanner)
 
 	if src == nil {
 		return scanner.ScanDate(Date{})
 	}
 
-	if len(src) != 4 {
-		return fmt.Errorf("invalid length for date: %v", len(src))
+	raw, err := pgio.Uint32Exact(src)
+	if err != nil {
+		return fmt.Errorf("date: %w", err)
 	}
 
-	dayOffset := int32(binary.BigEndian.Uint32(src))
+	dayOffset := int32(raw)
 
 	switch dayOffset {
 	case infinityDayOffset:
@@ -262,56 +236,42 @@ func (scanPlanBinaryDateToDateScanner) Scan(src []byte, dst any) error {
 		return scanner.ScanDate(Date{InfinityModifier: -Infinity, Valid: true})
 	default:
 		t := time.Date(2000, 1, int(1+dayOffset), 0, 0, 0, 0, time.UTC)
+		if t.Before(minDateTime) || !t.Before(endDate) {
+			return fmt.Errorf("date %d days from 2000-01-01 is out of range", dayOffset)
+		}
+
 		return scanner.ScanDate(Date{Time: t, Valid: true})
 	}
 }
 
 type scanPlanTextAnyToDateScanner struct{}
 
-var dateRegexp = regexp.MustCompile(`^(\d{4,})-(\d\d)-(\d\d)( BC)?$`)
-
 func (scanPlanTextAnyToDateScanner) Scan(src []byte, dst any) error {
-	scanner := (dst).(DateScanner)
+	scanner := dst.(DateScanner)
 
 	if src == nil {
 		return scanner.ScanDate(Date{})
 	}
 
-	sbuf := string(src)
-	match := dateRegexp.FindStringSubmatch(sbuf)
-	if match != nil {
-		year, err := strconv.ParseInt(match[1], 10, 32)
-		if err != nil {
-			return fmt.Errorf("BUG: cannot parse date that regexp matched (year): %w", err)
-		}
-
-		month, err := strconv.ParseInt(match[2], 10, 32)
-		if err != nil {
-			return fmt.Errorf("BUG: cannot parse date that regexp matched (month): %w", err)
-		}
-
-		day, err := strconv.ParseInt(match[3], 10, 32)
-		if err != nil {
-			return fmt.Errorf("BUG: cannot parse date that regexp matched (month): %w", err)
-		}
-
-		// BC matched
-		if len(match[4]) > 0 {
-			year = -year + 1
-		}
-
-		t := time.Date(int(year), time.Month(month), int(day), 0, 0, 0, 0, time.UTC)
-		return scanner.ScanDate(Date{Time: t, Valid: true})
+	dt, err := parseTextDateTime(src)
+	if err != nil {
+		return err
 	}
 
-	switch sbuf {
-	case "infinity":
-		return scanner.ScanDate(Date{InfinityModifier: Infinity, Valid: true})
-	case "-infinity":
-		return scanner.ScanDate(Date{InfinityModifier: -Infinity, Valid: true})
-	default:
-		return fmt.Errorf("invalid date format")
+	if dt.infinity != Finite {
+		return scanner.ScanDate(Date{InfinityModifier: dt.infinity, Valid: true})
 	}
+
+	if dt.hasTime {
+		return badDateTime(src)
+	}
+
+	t, err := dt.toTime(src, "date", endDate)
+	if err != nil {
+		return err
+	}
+
+	return scanner.ScanDate(Date{Time: t, Valid: true})
 }
 
 func (c DateCodec) DecodeDatabaseSQLValue(m *Map, oid uint32, format int16, src []byte) (driver.Value, error) {

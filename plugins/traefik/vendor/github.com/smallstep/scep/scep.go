@@ -268,7 +268,7 @@ func ParsePKIMessage(data []byte, opts ...Option) (*PKIMessage, error) {
 		logger:        conf.logger,
 	}
 
-	msg.logger.Log(
+	_ = msg.logger.Log(
 		"msg", "parsed scep pkiMessage",
 		"scep_message_type", msgType,
 		"transaction_id", tID,
@@ -363,7 +363,7 @@ func (msg *PKIMessage) DecryptPKIEnvelope(cert *x509.Certificate, key crypto.Pri
 	logKeyVals := []interface{}{
 		"msg", "decrypt pkiEnvelope",
 	}
-	defer func() { msg.logger.Log(logKeyVals...) }()
+	defer func() { _ = msg.logger.Log(logKeyVals...) }()
 
 	switch msg.MessageType {
 	case CertRep:
@@ -371,7 +371,7 @@ func (msg *PKIMessage) DecryptPKIEnvelope(cert *x509.Certificate, key crypto.Pri
 		if err != nil {
 			return err
 		}
-		msg.CertRepMessage.Certificate = certs[0]
+		msg.Certificate = certs[0]
 		logKeyVals = append(logKeyVals, "ca_certs", len(certs))
 		return nil
 	case PKCSReq, UpdateReq, RenewalReq:
@@ -464,7 +464,7 @@ func (msg *PKIMessage) Fail(crtAuth *x509.Certificate, keyAuth crypto.PrivateKey
 // Success returns a new PKIMessage with CertRep data using an already-issued certificate
 func (msg *PKIMessage) Success(crtAuth *x509.Certificate, keyAuth crypto.PrivateKey, crt *x509.Certificate) (*PKIMessage, error) {
 	// check if CSRReqMessage has already been decrypted
-	if msg.CSRReqMessage.CSR == nil { // TODO(hslatman): remove this; just require decryption before, so that we can make keyAuth a crypto.Signer
+	if msg.CSR == nil { // TODO(hslatman): remove this; just require decryption before, so that we can make keyAuth a crypto.Signer
 		if err := msg.DecryptPKIEnvelope(crtAuth, keyAuth); err != nil {
 			return nil, err
 		}
@@ -603,7 +603,7 @@ func NewCSRRequest(csr *x509.CertificateRequest, tmpl *PKIMessage, opts ...Optio
 		return nil, err
 	}
 
-	conf.logger.Log(
+	_ = conf.logger.Log(
 		"msg", "creating SCEP CSR request",
 		"transaction_id", tID,
 		"signer_cn", tmpl.SignerCert.Subject.CommonName,

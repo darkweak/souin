@@ -446,6 +446,9 @@ func (p *textPlistParser) parseGNUStepValue() cfValue {
 
 	switch typ {
 	case 'I':
+		if len(v) == 0 {
+			p.error("truncated GNUStep extended value")
+		}
 		if v[0] == '-' {
 			n := mustParseInt(v, 10, 64)
 			return &cfNumber{signed: true, value: uint64(n)}
@@ -457,6 +460,9 @@ func (p *textPlistParser) parseGNUStepValue() cfValue {
 		n := mustParseFloat(v, 64)
 		return &cfReal{wide: true, value: n} // TODO(DH) 32/64
 	case 'B':
+		if len(v) == 0 {
+			p.error("truncated GNUStep extended value")
+		}
 		b := v[0] == 'Y'
 		return cfBoolean(b)
 	case 'D':

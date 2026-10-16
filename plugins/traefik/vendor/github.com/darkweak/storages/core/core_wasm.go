@@ -44,14 +44,14 @@ type CacheProvider struct {
 const MappingKeyPrefix = "IDX_"
 
 func DecodeMapping(item []byte) (*StorageMapper, error) {
-	mapping := &StorageMapper{}
+	mapping := new(StorageMapper)
 	e := proto.Unmarshal(item, mapping)
 
 	return mapping, e
 }
 
 func MappingElection(provider Storer, item []byte, req *http.Request, validator *Revalidator, logger Logger) (resultFresh *http.Response, resultStale *http.Response, e error) {
-	mapping := &StorageMapper{}
+	mapping := new(StorageMapper)
 
 	if len(item) != 0 {
 		mapping, e = DecodeMapping(item)
@@ -124,7 +124,7 @@ func MappingElection(provider Storer, item []byte, req *http.Request, validator 
 }
 
 func MappingUpdater(key string, item []byte, logger Logger, now, freshTime, staleTime time.Time, variedHeaders http.Header, etag, realKey string) (val []byte, e error) {
-	mapping := &StorageMapper{}
+	mapping := new(StorageMapper)
 	if len(item) != 0 {
 		e = proto.Unmarshal(item, mapping)
 		if e != nil {

@@ -16,7 +16,7 @@ jobs:
         name: Install Go
         uses: actions/setup-go@v3
         with:
-          go-version: '1.25'
+          go-version: '1.27'
       -
         name: Checkout code
         uses: actions/checkout@v4
@@ -62,7 +62,7 @@ jobs:
         name: Install Go
         uses: actions/setup-go@v3
         with:
-          go-version: '1.25'
+          go-version: '1.27'
       -
         name: Checkout code
         uses: actions/checkout@v4
@@ -108,12 +108,12 @@ jobs:
         name: Install Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25'
+          go-version: '1.27'
 
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
 
       - uses: pnpm/action-setup@v3
         name: Install pnpm
@@ -166,14 +166,6 @@ jobs:
           releaseId: 144343803
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - 
-        name: Upload screenshot artifacts
-        id: screenshot-uploader
-        uses: edunad/actions-image@master
-        with:
-            path: screenshots/iPad_Pro_landscape.jpeg
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-            title: 'cache-tests suite result'
 
   build-beego-validator:
     uses: ./.github/workflows/plugin_template.yml
@@ -181,74 +173,74 @@ jobs:
     with:
       CAPITALIZED_NAME: Beego
       LOWER_NAME: beego
-      GO_VERSION: '1.25'
+      GO_VERSION: '1.27'
   build-chi-validator:
     uses: ./.github/workflows/plugin_template.yml
     secrets: inherit
     with:
       CAPITALIZED_NAME: Chi
       LOWER_NAME: chi
-      GO_VERSION: '1.25'
+      GO_VERSION: '1.27'
   build-dotweb-validator:
     uses: ./.github/workflows/plugin_template.yml
     secrets: inherit
     with:
       CAPITALIZED_NAME: Dotweb
       LOWER_NAME: dotweb
-      GO_VERSION: '1.25'
+      GO_VERSION: '1.27'
   build-echo-validator:
     uses: ./.github/workflows/plugin_template.yml
     secrets: inherit
     with:
       CAPITALIZED_NAME: Echo
       LOWER_NAME: echo
-      GO_VERSION: '1.25'
+      GO_VERSION: '1.27'
   build-fiber-validator:
     uses: ./.github/workflows/plugin_template.yml
     secrets: inherit
     with:
       CAPITALIZED_NAME: Fiber
       LOWER_NAME: fiber
-      GO_VERSION: '1.25'
+      GO_VERSION: '1.27'
   build-gin-validator:
     uses: ./.github/workflows/plugin_template.yml
     secrets: inherit
     with:
       CAPITALIZED_NAME: Gin
       LOWER_NAME: gin
-      GO_VERSION: '1.25'
+      GO_VERSION: '1.27'
   build-goa-validator:
     uses: ./.github/workflows/plugin_template.yml
     secrets: inherit
     with:
       CAPITALIZED_NAME: Goa
       LOWER_NAME: goa
-      GO_VERSION: '1.25'
+      GO_VERSION: '1.27'
   build-kratos-validator:
     uses: ./.github/workflows/plugin_template.yml
     secrets: inherit
     with:
       CAPITALIZED_NAME: Kratos
       LOWER_NAME: kratos
-      GO_VERSION: '1.25'
+      GO_VERSION: '1.27'
   build-souin-validator:
     uses: ./.github/workflows/plugin_template.yml
     secrets: inherit
     with:
       CAPITALIZED_NAME: Souin
       LOWER_NAME: souin
-      GO_VERSION: '1.25'
+      GO_VERSION: '1.27'
   build-traefik-validator:
     uses: ./.github/workflows/plugin_template.yml
     secrets: inherit
     with:
       CAPITALIZED_NAME: Traefik
       LOWER_NAME: traefik
-      GO_VERSION: '1.25'
+      GO_VERSION: '1.27'
   build-webgo-validator:
     uses: ./.github/workflows/plugin_template.yml
     secrets: inherit
     with:
       CAPITALIZED_NAME: Webgo
       LOWER_NAME: webgo
-      GO_VERSION: '1.25'
+      GO_VERSION: '1.27'

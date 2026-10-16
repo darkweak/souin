@@ -2,7 +2,6 @@ package pgtype
 
 import (
 	"database/sql/driver"
-	"encoding/binary"
 	"fmt"
 	"strconv"
 
@@ -19,32 +18,35 @@ type TimeValuer interface {
 
 // Time represents the PostgreSQL time type. The PostgreSQL time is a time of day without time zone.
 //
-// Time is represented as the number of microseconds since midnight in the same way that PostgreSQL does. Other time
-// and date types in pgtype can use time.Time as the underlying representation. However, pgtype.Time type cannot due
-// to needing to handle 24:00:00. time.Time converts that to 00:00:00 on the following day.
+// Time is represented as the number of microseconds since midnight in the same way that PostgreSQL does. Other time and
+// date types in pgtype can use time.Time as the underlying representation. However, pgtype.Time type cannot due to
+// needing to handle 24:00:00. time.Time converts that to 00:00:00 on the following day.
+//
+// The time with time zone type is not supported. Use of time with time zone is discouraged by the PostgreSQL documentation.
 type Time struct {
 	Microseconds int64 // Number of microseconds since midnight
 	Valid        bool
 }
 
+// ScanTime implements the [TimeScanner] interface.
 func (t *Time) ScanTime(v Time) error {
 	*t = v
 	return nil
 }
 
+// TimeValue implements the [TimeValuer] interface.
 func (t Time) TimeValue() (Time, error) {
 	return t, nil
 }
 
-// Scan implements the database/sql Scanner interface.
+// Scan implements the [database/sql.Scanner] interface.
 func (t *Time) Scan(src any) error {
 	if src == nil {
 		*t = Time{}
 		return nil
 	}
 
-	switch src := src.(type) {
-	case string:
+	if src, ok := src.(string); ok {
 		err := scanPlanTextAnyToTimeScanner{}.Scan([]byte(src), t)
 		if err != nil {
 			t.Microseconds = 0
@@ -56,7 +58,7 @@ func (t *Time) Scan(src any) error {
 	return fmt.Errorf("cannot scan %T", src)
 }
 
-// Value implements the database/sql/driver Valuer interface.
+// Value implements the [database/sql/driver.Valuer] interface.
 func (t Time) Value() (driver.Value, error) {
 	if !t.Valid {
 		return nil, nil
@@ -135,7 +137,6 @@ func (encodePlanTimeCodecText) Encode(value any, buf []byte) (newBuf []byte, err
 }
 
 func (TimeCodec) PlanScan(m *Map, oid uint32, format int16, target any) ScanPlan {
-
 	switch format {
 	case BinaryFormatCode:
 		switch target.(type) {
@@ -145,8 +146,7 @@ func (TimeCodec) PlanScan(m *Map, oid uint32, format int16, target any) ScanPlan
 			return scanPlanBinaryTimeToTextScanner{}
 		}
 	case TextFormatCode:
-		switch target.(type) {
-		case TimeScanner:
+		if _, ok := target.(TimeScanner); ok {
 			return scanPlanTextAnyToTimeScanner{}
 		}
 	}
@@ -157,17 +157,18 @@ func (TimeCodec) PlanScan(m *Map, oid uint32, format int16, target any) ScanPlan
 type scanPlanBinaryTimeToTimeScanner struct{}
 
 func (scanPlanBinaryTimeToTimeScanner) Scan(src []byte, dst any) error {
-	scanner := (dst).(TimeScanner)
+	scanner := dst.(TimeScanner)
 
 	if src == nil {
 		return scanner.ScanTime(Time{})
 	}
 
-	if len(src) != 8 {
-		return fmt.Errorf("invalid length for time: %v", len(src))
+	raw, err := pgio.Uint64Exact(src)
+	if err != nil {
+		return fmt.Errorf("time: %w", err)
 	}
 
-	usec := int64(binary.BigEndian.Uint64(src))
+	usec := int64(raw)
 
 	return scanner.ScanTime(Time{Microseconds: usec, Valid: true})
 }
@@ -175,7 +176,7 @@ func (scanPlanBinaryTimeToTimeScanner) Scan(src []byte, dst any) error {
 type scanPlanBinaryTimeToTextScanner struct{}
 
 func (scanPlanBinaryTimeToTextScanner) Scan(src []byte, dst any) error {
-	ts, ok := (dst).(TextScanner)
+	ts, ok := dst.(TextScanner)
 	if !ok {
 		return ErrScanTargetTypeChanged
 	}
@@ -184,11 +185,12 @@ func (scanPlanBinaryTimeToTextScanner) Scan(src []byte, dst any) error {
 		return ts.ScanText(Text{})
 	}
 
-	if len(src) != 8 {
-		return fmt.Errorf("invalid length for time: %v", len(src))
+	raw, err := pgio.Uint64Exact(src)
+	if err != nil {
+		return fmt.Errorf("time: %w", err)
 	}
 
-	usec := int64(binary.BigEndian.Uint64(src))
+	usec := int64(raw)
 
 	tim := Time{Microseconds: usec, Valid: true}
 
@@ -203,7 +205,7 @@ func (scanPlanBinaryTimeToTextScanner) Scan(src []byte, dst any) error {
 type scanPlanTextAnyToTimeScanner struct{}
 
 func (scanPlanTextAnyToTimeScanner) Scan(src []byte, dst any) error {
-	scanner := (dst).(TimeScanner)
+	scanner := dst.(TimeScanner)
 
 	if src == nil {
 		return scanner.ScanTime(Time{})

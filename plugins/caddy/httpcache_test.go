@@ -605,7 +605,10 @@ func TestMustRevalidate(t *testing.T) {
 	if resp4.Header.Get("Cache-Control") != "must-revalidate" {
 		t.Errorf("unexpected resp4 Cache-Control header %v", resp4.Header.Get("Cache-Control"))
 	}
-	if resp4.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-http-localhost:9080-/cache-default" {
+	// The stored response is stale and under `must-revalidate`, so it is
+	// revalidated rather than plainly refetched, even for an unconditional
+	// client request.
+	if resp4.Header.Get("Cache-Status") != "Souin; fwd=request; fwd-status=200; key=GET-http-localhost:9080-/cache-default; detail=REQUEST-REVALIDATION" {
 		t.Errorf("unexpected resp4 Cache-Status header %v", resp4.Header.Get("Cache-Status"))
 	}
 	if resp4.Header.Get("Age") != "" {
@@ -1140,7 +1143,7 @@ func TestCacheableStatusCode(t *testing.T) {
 }
 
 func TestExpires(t *testing.T) {
-	expiresValue := time.Now().Add(time.Hour * 24)
+	expiresValue := time.Now().Add(time.Hour * 24).UTC()
 	caddyTester := caddytest.NewTester(t)
 	caddyTester.InitServer(fmt.Sprintf(`
 	{
@@ -1169,7 +1172,7 @@ func TestExpires(t *testing.T) {
 			header Cache-Control "s-maxage=5"
 			respond "Hello, expires-with-s-maxage!"
 		}
-	}`, expiresValue.Format(time.RFC1123)), "caddyfile")
+	}`, expiresValue.Format(http.TimeFormat)), "caddyfile")
 
 	cacheChecker := func(tester *caddytest.Tester, path string, expectedBody string, expectedDuration int) {
 		resp1, _ := tester.AssertGetResponse("http://localhost:9080"+path, 200, expectedBody)
@@ -1563,7 +1566,9 @@ type rangePart struct {
 func assertMultipartRanges(t *testing.T, resp *http.Response, want []rangePart) {
 	t.Helper()
 
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	mediaType, params, err := mime.ParseMediaType(resp.Header.Get("Content-Type"))
 	if err != nil {

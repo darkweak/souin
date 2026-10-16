@@ -18,6 +18,17 @@ type KeyManager interface {
 	Close() error
 }
 
+// KeyDeleter is an optional interface for KMS implementations that support
+// deleting keys.
+//
+// # Experimental
+//
+// Notice: This API is EXPERIMENTAL and may be changed or removed in a later
+// release.
+type KeyDeleter interface {
+	DeleteKey(req *DeleteKeyRequest) error
+}
+
 // SearchableKeyManager is an optional interface for KMS implementations
 // that support searching for keys based on certain attributes.
 //
@@ -43,6 +54,28 @@ type CertificateManager interface {
 	StoreCertificate(req *StoreCertificateRequest) error
 }
 
+// SearchableCertificateManager is an optional interface for KMS
+// implementations that can enumerate the certificates in a certificate store
+// together with provider metadata about each certificate's private-key
+// association.
+//
+// SearchCertificates is best-effort: on a mid-enumeration failure the
+// returned response may still be non-nil and hold the certificates
+// enumerated before the failure, together with a non-nil error describing
+// what went wrong. Callers wanting those partial results must check the
+// response before (or regardless of) the error. A failure to read one
+// certificate's key metadata is reported on that result's Err field rather
+// than failing the search or dropping the certificate.
+//
+// # Experimental
+//
+// Notice: This API is EXPERIMENTAL and may be changed or removed in a later
+// release.
+type SearchableCertificateManager interface {
+	CertificateManager
+	SearchCertificates(req *SearchCertificatesRequest) (*SearchCertificatesResponse, error)
+}
+
 // CertificateChainManager is the interface implemented by KMS implementations
 // that can load certificate chains. The LoadCertificateChain method uses the
 // same request object as the LoadCertificate method of the CertificateManager
@@ -52,6 +85,28 @@ type CertificateManager interface {
 type CertificateChainManager interface {
 	LoadCertificateChain(req *LoadCertificateChainRequest) ([]*x509.Certificate, error)
 	StoreCertificateChain(req *StoreCertificateChainRequest) error
+}
+
+// CertificateDeleter is an optional interface for KMS implementations that
+// support deleting certificates.
+//
+// # Experimental
+//
+// Notice: This API is EXPERIMENTAL and may be changed or removed in a later
+// release.
+type CertificateDeleter interface {
+	DeleteCertificate(req *DeleteCertificateRequest) error
+}
+
+// CredentialsCleaner is an optional interface for KMS implementations that
+// support cleaning up expired certificates from a certificate store.
+//
+// # Experimental
+//
+// Notice: This API is EXPERIMENTAL and may be changed or removed in a later
+// release.
+type CredentialsCleaner interface {
+	CleanupCredentials(req *CleanupCredentialsRequest) error
 }
 
 // NameValidator is an interface that KeyManager can implement to validate a
@@ -151,6 +206,9 @@ const (
 	TPMKMS Type = "tpmkms"
 	// MacKMS is the KMS implementation using macOS Keychain and Secure Enclave.
 	MacKMS Type = "mackms"
+	// PlatformKMS is the KMS implementation that uses TPMKMS on Windows and
+	// Linux and MacKMS on macOS.
+	PlatformKMS Type = "kms"
 )
 
 // TypeOf returns the type of of the given uri.
@@ -181,7 +239,7 @@ func (t Type) Validate() error {
 		return nil
 	case YubiKey, PKCS11, TPMKMS: // Hardware based kms.
 		return nil
-	case SSHAgentKMS, CAPIKMS, MacKMS: // Others
+	case SSHAgentKMS, CAPIKMS, MacKMS, PlatformKMS: // Others
 		return nil
 	}
 

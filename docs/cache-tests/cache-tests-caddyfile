@@ -8,6 +8,7 @@
       dynamic
     }
     ttl 1000s
+    stale 5s
     default_cache_control public
   }
 }

@@ -1,2 +1,3 @@
 /caddy
 vendor/
+.local-cache-tests/

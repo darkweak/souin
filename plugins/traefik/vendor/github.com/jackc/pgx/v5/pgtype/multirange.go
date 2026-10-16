@@ -3,7 +3,6 @@ package pgtype
 import (
 	"bytes"
 	"database/sql/driver"
-	"encoding/binary"
 	"fmt"
 	"reflect"
 
@@ -98,7 +97,7 @@ func (p *encodePlanMultirangeCodecText) Encode(value any, buf []byte) (newBuf []
 	var encodePlan EncodePlan
 	var lastElemType reflect.Type
 	inElemBuf := make([]byte, 0, 32)
-	for i := 0; i < elementCount; i++ {
+	for i := range elementCount {
 		if i > 0 {
 			buf = append(buf, ',')
 		}
@@ -151,7 +150,7 @@ func (p *encodePlanMultirangeCodecBinary) Encode(value any, buf []byte) (newBuf 
 
 	var encodePlan EncodePlan
 	var lastElemType reflect.Type
-	for i := 0; i < elementCount; i++ {
+	for i := range elementCount {
 		sp := len(buf)
 		buf = pgio.AppendInt32(buf, -1)
 
@@ -205,10 +204,13 @@ func (c *MultirangeCodec) PlanScan(m *Map, oid uint32, format int16, target any)
 }
 
 func (c *MultirangeCodec) decodeBinary(m *Map, multirangeOID uint32, src []byte, multirange MultirangeSetter) error {
-	rp := 0
+	r := pgio.NewReader(src)
 
-	elementCount := int(binary.BigEndian.Uint32(src[rp:]))
-	rp += 4
+	// Each element requires at least 4 bytes for its length prefix.
+	elementCount := r.Count(4)
+	if err := r.Err(); err != nil {
+		return fmt.Errorf("multirange: %w", err)
+	}
 
 	err := multirange.SetLen(elementCount)
 	if err != nil {
@@ -216,7 +218,7 @@ func (c *MultirangeCodec) decodeBinary(m *Map, multirangeOID uint32, src []byte,
 	}
 
 	if elementCount == 0 {
-		return nil
+		return r.Finish()
 	}
 
 	elementScanPlan := c.ElementType.Codec.PlanScan(m, c.ElementType.OID, BinaryFormatCode, multirange.ScanIndex(0))
@@ -224,14 +226,11 @@ func (c *MultirangeCodec) decodeBinary(m *Map, multirangeOID uint32, src []byte,
 		elementScanPlan = m.PlanScan(c.ElementType.OID, BinaryFormatCode, multirange.ScanIndex(0))
 	}
 
-	for i := 0; i < elementCount; i++ {
+	for i := range elementCount {
 		elem := multirange.ScanIndex(i)
-		elemLen := int(int32(binary.BigEndian.Uint32(src[rp:])))
-		rp += 4
-		var elemSrc []byte
-		if elemLen >= 0 {
-			elemSrc = src[rp : rp+elemLen]
-			rp += elemLen
+		elemSrc, _ := r.Value()
+		if err := r.Err(); err != nil {
+			return fmt.Errorf("multirange element %d: %w", i, err)
 		}
 		err = elementScanPlan.Scan(elemSrc, elem)
 		if err != nil {
@@ -239,7 +238,7 @@ func (c *MultirangeCodec) decodeBinary(m *Map, multirangeOID uint32, src []byte,
 		}
 	}
 
-	return nil
+	return r.Finish()
 }
 
 func (c *MultirangeCodec) decodeText(m *Map, multirangeOID uint32, src []byte, multirange MultirangeSetter) error {
@@ -374,7 +373,6 @@ parseValueLoop:
 	}
 
 	return elements, nil
-
 }
 
 func parseRange(buf *bytes.Buffer) (string, error) {
@@ -403,8 +401,8 @@ func parseRange(buf *bytes.Buffer) (string, error) {
 
 // Multirange is a generic multirange type.
 //
-// T should implement RangeValuer and *T should implement RangeScanner. However, there does not appear to be a way to
-// enforce the RangeScanner constraint.
+// T should implement [RangeValuer] and *T should implement [RangeScanner]. However, there does not appear to be a way to
+// enforce the [RangeScanner] constraint.
 type Multirange[T RangeValuer] []T
 
 func (r Multirange[T]) IsNull() bool {

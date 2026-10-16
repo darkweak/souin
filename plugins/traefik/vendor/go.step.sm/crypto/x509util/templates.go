@@ -42,9 +42,9 @@ func ValidateTemplateData(data []byte) error {
 	return templates.ValidateTemplateData(data)
 }
 
-// TemplateData is an alias for map[string]interface{}. It represents the data
-// passed to the templates.
-type TemplateData map[string]interface{}
+// TemplateData is an alias for map[string]any. It represents the data passed to
+// the templates.
+type TemplateData map[string]any
 
 // NewTemplateData creates a new map for templates data.
 func NewTemplateData() TemplateData {
@@ -62,12 +62,12 @@ func CreateTemplateData(commonName string, sans []string) TemplateData {
 }
 
 // Set sets a key-value pair in the template data.
-func (t TemplateData) Set(key string, v interface{}) {
+func (t TemplateData) Set(key string, v any) {
 	t[key] = v
 }
 
 // SetInsecure sets a key-value pair in the insecure template data.
-func (t TemplateData) SetInsecure(key string, v interface{}) {
+func (t TemplateData) SetInsecure(key string, v any) {
 	if m, ok := t[InsecureKey].(TemplateData); ok {
 		m[key] = v
 	} else {
@@ -98,25 +98,25 @@ func (t TemplateData) SetSubjectAlternativeNames(sans ...SubjectAlternativeName)
 }
 
 // SetToken sets the given token in the template data.
-func (t TemplateData) SetToken(v interface{}) {
+func (t TemplateData) SetToken(v any) {
 	t.Set(TokenKey, v)
 }
 
 // SetUserData sets the given user provided object in the insecure template
 // data.
-func (t TemplateData) SetUserData(v interface{}) {
+func (t TemplateData) SetUserData(v any) {
 	t.SetInsecure(UserKey, v)
 }
 
 // SetAuthorizationCertificate sets the given certificate in the template. This certificate
 // is generally present in a token header.
-func (t TemplateData) SetAuthorizationCertificate(crt interface{}) {
+func (t TemplateData) SetAuthorizationCertificate(crt any) {
 	t.Set(AuthorizationCrtKey, crt)
 }
 
 // SetAuthorizationCertificateChain sets a the given certificate chain in the
 // template. These certificates are generally present in a token header.
-func (t TemplateData) SetAuthorizationCertificateChain(chain interface{}) {
+func (t TemplateData) SetAuthorizationCertificateChain(chain any) {
 	t.Set(AuthorizationChainKey, chain)
 }
 
@@ -127,11 +127,11 @@ func (t TemplateData) SetCertificateRequest(cr *x509.CertificateRequest) {
 }
 
 // SetWebhook sets the given webhook response in the webhooks template data.
-func (t TemplateData) SetWebhook(webhookName string, data interface{}) {
-	if webhooksMap, ok := t[WebhooksKey].(map[string]interface{}); ok {
+func (t TemplateData) SetWebhook(webhookName string, data any) {
+	if webhooksMap, ok := t[WebhooksKey].(map[string]any); ok {
 		webhooksMap[webhookName] = data
 	} else {
-		t[WebhooksKey] = map[string]interface{}{
+		t[WebhooksKey] = map[string]any{
 			webhookName: data,
 		}
 	}

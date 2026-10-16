@@ -2,19 +2,17 @@ package pgtype
 
 import (
 	"database/sql/driver"
-	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"strings"
 	"time"
 
+	"github.com/jackc/pgx/v5/internal/pgdatetime"
 	"github.com/jackc/pgx/v5/internal/pgio"
 )
 
-const pgTimestamptzHourFormat = "2006-01-02 15:04:05.999999999Z07"
-const pgTimestamptzMinuteFormat = "2006-01-02 15:04:05.999999999Z07:00"
-const pgTimestamptzSecondFormat = "2006-01-02 15:04:05.999999999Z07:00:00"
-const microsecFromUnixEpochToY2K = 946684800 * 1000000
+const (
+	microsecFromUnixEpochToY2K = 946_684_800 * 1_000_000
+)
 
 const (
 	negativeInfinityMicrosecondOffset = -9223372036854775808
@@ -36,16 +34,18 @@ type Timestamptz struct {
 	Valid            bool
 }
 
+// ScanTimestamptz implements the [TimestamptzScanner] interface.
 func (tstz *Timestamptz) ScanTimestamptz(v Timestamptz) error {
 	*tstz = v
 	return nil
 }
 
+// TimestamptzValue implements the [TimestamptzValuer] interface.
 func (tstz Timestamptz) TimestamptzValue() (Timestamptz, error) {
 	return tstz, nil
 }
 
-// Scan implements the database/sql Scanner interface.
+// Scan implements the [database/sql.Scanner] interface.
 func (tstz *Timestamptz) Scan(src any) error {
 	if src == nil {
 		*tstz = Timestamptz{}
@@ -63,7 +63,7 @@ func (tstz *Timestamptz) Scan(src any) error {
 	return fmt.Errorf("cannot scan %T", src)
 }
 
-// Value implements the database/sql/driver Valuer interface.
+// Value implements the [database/sql/driver.Valuer] interface.
 func (tstz Timestamptz) Value() (driver.Value, error) {
 	if !tstz.Valid {
 		return nil, nil
@@ -75,6 +75,7 @@ func (tstz Timestamptz) Value() (driver.Value, error) {
 	return tstz.Time, nil
 }
 
+// MarshalJSON implements the [encoding/json.Marshaler] interface.
 func (tstz Timestamptz) MarshalJSON() ([]byte, error) {
 	if !tstz.Valid {
 		return []byte("null"), nil
@@ -94,6 +95,7 @@ func (tstz Timestamptz) MarshalJSON() ([]byte, error) {
 	return json.Marshal(s)
 }
 
+// UnmarshalJSON implements the [encoding/json.Unmarshaler] interface.
 func (tstz *Timestamptz) UnmarshalJSON(b []byte) error {
 	var s *string
 	err := json.Unmarshal(b, &s)
@@ -193,48 +195,26 @@ func (encodePlanTimestamptzCodecText) Encode(value any, buf []byte) (newBuf []by
 		return nil, nil
 	}
 
-	var s string
-
 	switch ts.InfinityModifier {
 	case Finite:
-
-		t := ts.Time.UTC().Truncate(time.Microsecond)
-
-		// Year 0000 is 1 BC
-		bc := false
-		if year := t.Year(); year <= 0 {
-			year = -year + 1
-			t = time.Date(year, t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second(), t.Nanosecond(), time.UTC)
-			bc = true
-		}
-
-		s = t.Format(pgTimestamptzSecondFormat)
-
-		if bc {
-			s = s + " BC"
-		}
+		buf = pgdatetime.AppendTimestamp(buf, ts.Time.UTC(), "Z")
 	case Infinity:
-		s = "infinity"
+		buf = append(buf, "infinity"...)
 	case NegativeInfinity:
-		s = "-infinity"
+		buf = append(buf, "-infinity"...)
 	}
-
-	buf = append(buf, s...)
 
 	return buf, nil
 }
 
 func (c *TimestamptzCodec) PlanScan(m *Map, oid uint32, format int16, target any) ScanPlan {
-
 	switch format {
 	case BinaryFormatCode:
-		switch target.(type) {
-		case TimestamptzScanner:
+		if _, ok := target.(TimestamptzScanner); ok {
 			return &scanPlanBinaryTimestamptzToTimestamptzScanner{location: c.ScanLocation}
 		}
 	case TextFormatCode:
-		switch target.(type) {
-		case TimestamptzScanner:
+		if _, ok := target.(TimestamptzScanner); ok {
 			return &scanPlanTextTimestamptzToTimestamptzScanner{location: c.ScanLocation}
 		}
 	}
@@ -245,18 +225,19 @@ func (c *TimestamptzCodec) PlanScan(m *Map, oid uint32, format int16, target any
 type scanPlanBinaryTimestamptzToTimestamptzScanner struct{ location *time.Location }
 
 func (plan *scanPlanBinaryTimestamptzToTimestamptzScanner) Scan(src []byte, dst any) error {
-	scanner := (dst).(TimestamptzScanner)
+	scanner := dst.(TimestamptzScanner)
 
 	if src == nil {
 		return scanner.ScanTimestamptz(Timestamptz{})
 	}
 
-	if len(src) != 8 {
-		return fmt.Errorf("invalid length for timestamptz: %v", len(src))
+	raw, err := pgio.Uint64Exact(src)
+	if err != nil {
+		return fmt.Errorf("timestamptz: %w", err)
 	}
 
 	var tstz Timestamptz
-	microsecSinceY2K := int64(binary.BigEndian.Uint64(src))
+	microsecSinceY2K := int64(raw)
 
 	switch microsecSinceY2K {
 	case infinityMicrosecondOffset:
@@ -265,9 +246,12 @@ func (plan *scanPlanBinaryTimestamptzToTimestamptzScanner) Scan(src []byte, dst 
 		tstz = Timestamptz{Valid: true, InfinityModifier: -Infinity}
 	default:
 		tim := time.Unix(
-			microsecFromUnixEpochToY2K/1000000+microsecSinceY2K/1000000,
-			(microsecFromUnixEpochToY2K%1000000*1000)+(microsecSinceY2K%1000000*1000),
+			microsecFromUnixEpochToY2K/1_000_000+microsecSinceY2K/1_000_000,
+			(microsecFromUnixEpochToY2K%1_000_000*1_000)+(microsecSinceY2K%1_000_000*1_000),
 		)
+		if tim.Before(minDateTime) || !tim.Before(endTimestamp) {
+			return fmt.Errorf("timestamptz %d microseconds from 2000-01-01 is out of range", microsecSinceY2K)
+		}
 		if plan.location != nil {
 			tim = tim.In(plan.location)
 		}
@@ -280,50 +264,38 @@ func (plan *scanPlanBinaryTimestamptzToTimestamptzScanner) Scan(src []byte, dst 
 type scanPlanTextTimestamptzToTimestamptzScanner struct{ location *time.Location }
 
 func (plan *scanPlanTextTimestamptzToTimestamptzScanner) Scan(src []byte, dst any) error {
-	scanner := (dst).(TimestamptzScanner)
+	scanner := dst.(TimestamptzScanner)
 
 	if src == nil {
 		return scanner.ScanTimestamptz(Timestamptz{})
 	}
 
+	dt, err := parseTextDateTime(src)
+	if err != nil {
+		return err
+	}
+
 	var tstz Timestamptz
-	sbuf := string(src)
-	switch sbuf {
-	case "infinity":
-		tstz = Timestamptz{Valid: true, InfinityModifier: Infinity}
-	case "-infinity":
-		tstz = Timestamptz{Valid: true, InfinityModifier: -Infinity}
-	default:
-		bc := false
-		if strings.HasSuffix(sbuf, " BC") {
-			sbuf = sbuf[:len(sbuf)-3]
-			bc = true
+	if dt.infinity != Finite {
+		tstz = Timestamptz{Valid: true, InfinityModifier: dt.infinity}
+	} else {
+		if !dt.hasTime || !dt.hasOffset {
+			return badDateTime(src)
 		}
 
-		var format string
-		if len(sbuf) >= 9 && (sbuf[len(sbuf)-9] == '-' || sbuf[len(sbuf)-9] == '+') {
-			format = pgTimestamptzSecondFormat
-		} else if len(sbuf) >= 6 && (sbuf[len(sbuf)-6] == '-' || sbuf[len(sbuf)-6] == '+') {
-			format = pgTimestamptzMinuteFormat
-		} else {
-			format = pgTimestamptzHourFormat
-		}
-
-		tim, err := time.Parse(format, sbuf)
+		tim, err := dt.toTime(src, "timestamptz", endTimestamp)
 		if err != nil {
 			return err
 		}
 
-		if bc {
-			year := -tim.Year() + 1
-			tim = time.Date(year, tim.Month(), tim.Day(), tim.Hour(), tim.Minute(), tim.Second(), tim.Nanosecond(), tim.Location())
-		}
-
+		// The binary path builds its value with time.Unix, which returns time.Local. Match
+		// it, so that the same value scanned in either format produces the same time.Time.
+		loc := time.Local
 		if plan.location != nil {
-			tim = tim.In(plan.location)
+			loc = plan.location
 		}
 
-		tstz = Timestamptz{Time: tim, Valid: true}
+		tstz = Timestamptz{Time: tim.In(loc), Valid: true}
 	}
 
 	return scanner.ScanTimestamptz(tstz)
