@@ -1607,7 +1607,7 @@ func cloneResponse(res *http.Response) (*http.Response, error) {
 		return nil, err
 	}
 
-	res.Body.Close()
+	_ = res.Body.Close()
 	res.Body = io.NopCloser(bytes.NewReader(body))
 
 	clone := *res
