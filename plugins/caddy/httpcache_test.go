@@ -9,8 +9,10 @@ import (
 	"mime/multipart"
 	"net/http"
 	"reflect"
+	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -717,6 +719,103 @@ func TestStaleIfError(t *testing.T) {
 
 	if resp5.Header.Get("Age") != "" {
 		t.Errorf("unexpected resp5 Age header %v", resp5.Header.Get("Age"))
+	}
+}
+
+const staleIfErrorBody = "Hello stale-if-error!"
+
+// staleIfErrorOrigin answers with the Cache-Control header the reported issue
+// relied on: a freshness lifetime short enough to be stale almost immediately
+// plus a long `stale-if-error` window. The counter lets the test assert how
+// many times a single client request reached the origin.
+type staleIfErrorOrigin struct {
+	calls atomic.Int64
+}
+
+func (o *staleIfErrorOrigin) ServeHTTP(w http.ResponseWriter, _ *http.Request) {
+	o.calls.Add(1)
+	w.Header().Set("Cache-Control", "s-maxage=1, stale-if-error=3600")
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	_, _ = w.Write([]byte(staleIfErrorBody))
+}
+
+// TestStaleIfErrorDoesNotDuplicateTheBody covers the stale branch of the cache
+// when the origin is reachable. Revalidating a stored response must not hand
+// the request back to the regular upstream path afterwards: that runs the
+// handler chain a second time into the same buffer, duplicating the body and
+// querying the origin twice for a single request (issue #846).
+func TestStaleIfErrorDoesNotDuplicateTheBody(t *testing.T) {
+	tester := caddytest.NewTester(t)
+	origin := &staleIfErrorOrigin{}
+
+	tester.InitServer(`
+	{
+		admin localhost:2999
+		http_port     9080
+		cache {
+			ttl 5s
+			stale 30s
+		}
+	}
+	localhost:9080 {
+		route /stale-if-error-revalidated {
+			cache
+			reverse_proxy localhost:9088
+		}
+	}`, "caddyfile")
+
+	go func() {
+		_ = http.ListenAndServe(":9088", origin)
+	}()
+	time.Sleep(time.Second)
+
+	const url = "http://localhost:9080/stale-if-error-revalidated"
+
+	resp1, _ := tester.AssertGetResponse(url, http.StatusOK, staleIfErrorBody)
+	if resp1.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-http-localhost:9080-/stale-if-error-revalidated" {
+		t.Errorf("unexpected Cache-Status header %v", resp1.Header.Get("Cache-Status"))
+	}
+
+	// The `s-maxage=1` freshness lifetime is over: the response is still
+	// stored, but stale, so this request goes through the stale branch.
+	time.Sleep(2 * time.Second)
+
+	callsBefore := origin.calls.Load()
+
+	resp, err := http.Get(url)
+	if err != nil {
+		t.Fatalf("unable to get the stale response: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("unexpected status code %d", resp.StatusCode)
+	}
+
+	staleBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("unable to read the stale response body: %v", err)
+	}
+
+	if string(staleBody) != staleIfErrorBody {
+		t.Errorf(
+			"unexpected stale response body: got %d bytes %q, want %q (the body was served twice)",
+			len(staleBody),
+			string(staleBody),
+			staleIfErrorBody,
+		)
+	}
+
+	if contentLength := resp.Header.Get("Content-Length"); contentLength != "" && contentLength != strconv.Itoa(len(staleIfErrorBody)) {
+		t.Errorf("unexpected Content-Length header %s, want %d", contentLength, len(staleIfErrorBody))
+	}
+
+	if cacheStatus := resp.Header.Get("Cache-Status"); !strings.Contains(cacheStatus, "fwd=request") {
+		t.Errorf("the origin should have been revalidated, got Cache-Status %v", cacheStatus)
+	}
+
+	if calls := origin.calls.Load() - callsBefore; calls != 1 {
+		t.Errorf("the origin was called %d times for a single stale request, want 1", calls)
 	}
 }
 
