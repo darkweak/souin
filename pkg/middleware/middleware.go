@@ -785,7 +785,16 @@ func (s *SouinBaseHandler) Upstream(
 		singleflightCacheKey += uuid.NewString()
 	}
 	var recoveredFromCallback interface{} = nil
+	// singleflight reports shared=true to EVERY caller of a coalesced flight,
+	// including the one that executed it. Only the callers that merely WAITED
+	// may run the handler again below: the executing caller already wrote that
+	// execution's headers into customWriter.Header(), which is the client's
+	// header map, so a second run appends a second copy of every upstream header
+	// (and, with a non-empty buffer, a second body) to ONE response.
+	// The receive from singleflightChan orders this write before the read below.
+	executed := false
 	singleflightChan := s.singleflightPool.DoChan(singleflightCacheKey, func() (interface{}, error) {
+		executed = true
 		// With DoChan the callback doesn't run in the caller goroutine anymore,
 		// so the panic has to be caught here and rethrown below, otherwise
 		// singleflight rethrows it in a goroutine nobody can recover from.
@@ -872,7 +881,7 @@ func (s *SouinBaseHandler) Upstream(
 	}
 
 	if sfWriter, ok := sfValue.(singleflightValue); ok {
-		if shared && sfWriter.disableCoalescing {
+		if shared && sfWriter.disableCoalescing && !executed {
 			return s.Upstream(customWriter, rq, next, requestCc, cachedKey, uri, true)
 		}
 
