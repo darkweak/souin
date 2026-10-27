@@ -1,7 +1,9 @@
 package httpcache
 
 import (
+	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -47,14 +49,16 @@ func (o *slowCountingOrigin) ServeHTTP(w http.ResponseWriter, _ *http.Request) {
 	_, _ = w.Write([]byte("ok"))
 }
 
-func concurrentOriginCalls(t *testing.T, caddyfile string, port string) int64 {
+// concurrentOriginCalls runs the upstream on its own ephemeral port (closed when the test ends),
+// fires n identical concurrent requests and returns how many reached the upstream.
+func concurrentOriginCalls(t *testing.T, caddyfile string) int64 {
 	t.Helper()
-	tester := caddytest.NewTester(t)
-	tester.InitServer(caddyfile, "caddyfile")
-
 	origin := &slowCountingOrigin{}
-	go func() { _ = http.ListenAndServe(":"+port, origin) }()
-	time.Sleep(time.Second)
+	srv := httptest.NewServer(origin)
+	t.Cleanup(srv.Close)
+
+	tester := caddytest.NewTester(t)
+	tester.InitServer(fmt.Sprintf(caddyfile, srv.Listener.Addr()), "caddyfile")
 
 	const n = 8
 	start := make(chan struct{})
@@ -92,9 +96,9 @@ func TestGlobalDisableCoalescingTakesEffect(t *testing.T) {
 	localhost:9080 {
 		route /coalescing {
 			cache
-			reverse_proxy localhost:9093
+			reverse_proxy %s
 		}
-	}`, "9093")
+	}`)
 
 	if calls != 8 {
 		t.Errorf("with disable_coalescing, want one upstream call per request (8), got %d", calls)
@@ -113,9 +117,9 @@ func TestCoalescingIsOnByDefault(t *testing.T) {
 	localhost:9080 {
 		route /coalescing {
 			cache
-			reverse_proxy localhost:9094
+			reverse_proxy %s
 		}
-	}`, "9094")
+	}`)
 
 	if calls != 1 {
 		t.Errorf("without disable_coalescing, want the burst coalesced into 1 upstream call, got %d", calls)
