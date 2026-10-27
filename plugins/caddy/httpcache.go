@@ -243,6 +243,9 @@ func (s *SouinCaddyMiddleware) FromApp(app *SouinApp) error {
 	if dc.Regex.Exclude == "" {
 		s.Configuration.DefaultCache.Regex.Exclude = appDc.Regex.Exclude
 	}
+	if !dc.DisableCoalescing {
+		s.Configuration.DefaultCache.DisableCoalescing = appDc.DisableCoalescing
+	}
 
 	return nil
 }
