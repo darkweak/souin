@@ -1,10 +1,12 @@
 package httpcache
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -13,10 +15,9 @@ import (
 	"github.com/caddyserver/caddy/v2/caddytest"
 )
 
-// phpLikeOrigin mimics an API Platform response the way FrankenPHP emits it:
-// every header is ADDED (not set) to the writer's header map, every execution
-// carries its own X-Request-Id, and the body is one JSON-LD document. A slow
-// origin makes concurrent identical requests overlap.
+// phpLikeOrigin is an upstream that ADDS (rather than sets) every header, as
+// FrankenPHP does, stamps each execution with its own X-Request-Id and returns
+// one JSON document. It is slow so that concurrent identical requests overlap.
 type phpLikeOrigin struct {
 	calls        atomic.Int64
 	cacheControl string
@@ -33,7 +34,7 @@ func (h *phpLikeOrigin) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	_, _ = fmt.Fprintf(w, `{"@id":"/users/1","@type":"User","exec":%d}`, n)
 }
 
-// assertSingleDocument is the per-response contract the feed relies on.
+// assertSingleDocument asserts that one response carries exactly one upstream execution.
 func assertSingleDocument(t *testing.T, label string, res *http.Response) {
 	t.Helper()
 	body, _ := io.ReadAll(res.Body)
@@ -46,7 +47,7 @@ func assertSingleDocument(t *testing.T, label string, res *http.Response) {
 		t.Errorf("%s: the origin ran %d times into ONE response (X-Request-Id %q)", label, len(got), got)
 	}
 	var v map[string]any
-	dec := json.NewDecoder(bytesReader(body))
+	dec := json.NewDecoder(bytes.NewReader(body))
 	if err := dec.Decode(&v); err != nil {
 		t.Errorf("%s: body is not JSON: %v (%q)", label, err, body)
 	} else if dec.More() {
@@ -92,8 +93,7 @@ const doubledBodyCaddyfile = `
 			allowed_http_verbs GET HEAD
 			default_cache_control no-store
 			mode strict
-			# No disable_coalescing: these tests need coalesced flights. (In v1.7.9 the
-			# global option never reaches the handler anyway; see Mooply README.)
+			# No disable_coalescing: these tests need coalesced flights.
 			key {
 				disable_host
 				disable_scheme
@@ -107,27 +107,37 @@ const doubledBodyCaddyfile = `
 	localhost:9080 {
 		route /private {
 			cache
-			reverse_proxy localhost:9091
+			reverse_proxy %s
 		}
 		route /public {
 			cache
-			reverse_proxy localhost:9092
+			reverse_proxy %s
 		}
 	}`
 
-// Mooply roadmap #1878: the gateway emitted ONE response carrying two origin
-// executions (every origin header twice, two X-Request-Ids, and sometimes two
-// bodies). Concurrent identical requests for a `private` response must each
-// run the origin once and get exactly one document.
-func TestConcurrentPrivateResponsesAreNotDoubled(t *testing.T) {
-	tester := caddytest.NewTester(t)
-	tester.InitServer(doubledBodyCaddyfile, "caddyfile")
+// startDoubledBodyServer runs each origin on its own ephemeral port, closed when the test ends,
+// so repeated runs (-count) never reach a previous run's origin.
+func startDoubledBodyServer(t *testing.T, priv, pub http.Handler) *caddytest.Tester {
+	t.Helper()
+	privSrv := httptest.NewServer(priv)
+	t.Cleanup(privSrv.Close)
+	pubSrv := httptest.NewServer(pub)
+	t.Cleanup(pubSrv.Close)
 
+	tester := caddytest.NewTester(t)
+	tester.InitServer(fmt.Sprintf(doubledBodyCaddyfile, privSrv.Listener.Addr(), pubSrv.Listener.Addr()), "caddyfile")
+
+	return tester
+}
+
+// Concurrent identical requests for a `private` response must each run the
+// upstream once and get exactly one document. Before the fix the executing
+// request re-ran the upstream into its own response (every header twice, two
+// X-Request-Ids, sometimes two bodies).
+func TestConcurrentPrivateResponsesAreNotDoubled(t *testing.T) {
 	priv := &phpLikeOrigin{cacheControl: "max-age=0, no-store, private"}
 	pub := &phpLikeOrigin{cacheControl: "max-age=0, public, s-maxage=604800"}
-	go func() { _ = http.ListenAndServe(":9091", priv) }()
-	go func() { _ = http.ListenAndServe(":9092", pub) }()
-	time.Sleep(time.Second)
+	tester := startDoubledBodyServer(t, priv, pub)
 
 	runConcurrentIdentical(t, tester, "http://localhost:9080/private", 8, nil)
 	if got := priv.calls.Load(); got != 8 {
@@ -138,29 +148,11 @@ func TestConcurrentPrivateResponsesAreNotDoubled(t *testing.T) {
 // Same shape, public+stored response, and the concurrent requests differ in a
 // header the response varies on (Origin), which drives Upstream's re-run branch.
 func TestConcurrentPublicResponsesWithVaryAreNotDoubled(t *testing.T) {
-	tester := caddytest.NewTester(t)
-	tester.InitServer(doubledBodyCaddyfile, "caddyfile")
-
 	priv := &phpLikeOrigin{cacheControl: "max-age=0, no-store, private"}
 	pub := &phpLikeOrigin{cacheControl: "max-age=0, public, s-maxage=604800"}
-	go func() { _ = http.ListenAndServe(":9091", priv) }()
-	go func() { _ = http.ListenAndServe(":9092", pub) }()
-	time.Sleep(time.Second)
+	tester := startDoubledBodyServer(t, priv, pub)
 
 	runConcurrentIdentical(t, tester, "http://localhost:9080/public", 8, func(i int, r *http.Request) {
 		r.Header.Set("Origin", fmt.Sprintf("https://o%d.example", i%2))
 	})
-}
-
-func bytesReader(b []byte) io.Reader { return &sliceReader{b: b} }
-
-type sliceReader struct{ b []byte }
-
-func (s *sliceReader) Read(p []byte) (int, error) {
-	if len(s.b) == 0 {
-		return 0, io.EOF
-	}
-	n := copy(p, s.b)
-	s.b = s.b[n:]
-	return n, nil
 }
