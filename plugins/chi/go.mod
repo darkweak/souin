@@ -5,7 +5,7 @@ go 1.27.1
 require (
 	github.com/darkweak/souin v1.7.9
 	github.com/darkweak/souin/plugins/souin/storages v1.7.9
-	github.com/go-chi/chi/v5 v5.3.2
+	github.com/go-chi/chi/v5 v5.4.0
 )
 
 require (
