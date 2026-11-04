@@ -765,33 +765,25 @@ func (s *SouinBaseHandler) Upstream(
 	s.Configuration.GetLogger().Debug("Request the upstream server")
 	prometheus.Increment(prometheus.RequestCounter)
 
-	var recoveredFromErr error = nil
-	defer func() {
-		// In case of "http.ErrAbortHandler" panic,
-		// prevent singleflight from wrapping it into "singleflight.panicError".
-		if r := recover(); r != nil {
-			err, ok := r.(error)
-			// Sometimes, the error is a string.
-			if !ok || errors.Is(err, http.ErrAbortHandler) {
-				recoveredFromErr = http.ErrAbortHandler
-			} else {
-				panic(err)
-			}
-		}
-	}()
-
 	singleflightCacheKey := cachedKey
 	if s.Configuration.GetDefaultCache().IsCoalescingDisable() || disableCoalescing {
 		singleflightCacheKey += uuid.NewString()
 	}
 	var recoveredFromCallback interface{} = nil
-	singleflightChan := s.singleflightPool.DoChan(singleflightCacheKey, func() (interface{}, error) {
+	singleflightChan := s.singleflightPool.DoChan(singleflightCacheKey, func() (value interface{}, upstreamErr error) {
 		// With DoChan the callback doesn't run in the caller goroutine anymore,
 		// so the panic has to be caught here and rethrown below, otherwise
 		// singleflight rethrows it in a goroutine nobody can recover from.
 		defer func() {
 			if r := recover(); r != nil {
-				recoveredFromCallback = r
+				err, ok := r.(error)
+				if !ok || errors.Is(err, http.ErrAbortHandler) {
+					// Share the abort with every coalesced request without panicking
+					// on the singleflight or upstream goroutine.
+					upstreamErr = http.ErrAbortHandler
+				} else {
+					recoveredFromCallback = r
+				}
 			}
 		}()
 
@@ -863,9 +855,6 @@ func (s *SouinBaseHandler) Upstream(
 
 	if recoveredFromCallback != nil {
 		panic(recoveredFromCallback)
-	}
-	if recoveredFromErr != nil {
-		panic(recoveredFromErr)
 	}
 	if err != nil {
 		return err
@@ -1366,6 +1355,10 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 			return nil
 		}
 	case v := <-errorCacheCh:
+		if errors.Is(v, http.ErrAbortHandler) {
+			// net/http must recover the abort on the request goroutine.
+			panic(http.ErrAbortHandler)
+		}
 		switch v {
 		case nil:
 			_, _ = customWriter.Send()

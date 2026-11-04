@@ -153,7 +153,7 @@ func TestBufferPoolReuseAfterCancellation(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 	cancel1()
 
-	<-errCh // wait for ServeHTTP to return
+	_ = <-errCh // wait for ServeHTTP to return
 
 	// Give the orphaned goroutine time to finish writing into the
 	// buffer that has been returned to the pool.
