@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -184,5 +185,40 @@ func TestHandleRequest_InvalidateGroupKeepsOtherTagsIndex(t *testing.T) {
 	}
 	if !isIndexedUnder(s, "/a/1", r1) {
 		t.Errorf("The response %s should still be indexed under /a/1, %+v given", r1, s.surrogateStorage.List())
+	}
+}
+
+// Mappings written by SetMultiLevel must be reachable by the eviction on the
+// default storage, and the mapping it rewrites must stay usable (#885).
+func TestEvictMapping_DefaultStorageMultiLevel(t *testing.T) {
+	memoryStorer, err := storage.Factory(tests.MockConfiguration(tests.BaseConfiguration))
+	if err != nil {
+		t.Fatalf("Impossible to create the storer, %v given", err)
+	}
+
+	expired := -24 * time.Hour
+	_ = memoryStorer.SetMultiLevel("gone", "gone-varied", []byte("body"), http.Header{}, "", expired, "gone-real")
+	_ = memoryStorer.SetMultiLevel("partial", "partial-old", []byte("body"), http.Header{"Accept": {"a"}}, "", expired, "partial-old")
+	_ = memoryStorer.SetMultiLevel("partial", "partial-new", []byte("body"), http.Header{"Accept": {"b"}}, "", time.Hour, "partial-new")
+
+	EvictMapping(memoryStorer)
+
+	if _, ok := memoryStorer.MapKeys(core.MappingKeyPrefix)["gone"]; ok {
+		t.Error("the fully expired mapping should be deleted")
+	}
+	mapping, ok := memoryStorer.MapKeys(core.MappingKeyPrefix)["partial"]
+	if !ok {
+		t.Fatal("the mapping with a fresh entry should be kept")
+	}
+	if strings.Contains(mapping, "partial-old") || !strings.Contains(mapping, "partial-new") {
+		t.Errorf("only the expired entry should be evicted, got %q", mapping)
+	}
+
+	// The eviction rewrote the mapping, storing and reading it again must work.
+	if err := memoryStorer.SetMultiLevel("partial", "partial-other", []byte("body"), http.Header{"Accept": {"c"}}, "", time.Hour, "partial-other"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if keys := memoryStorer.ListKeys(); !slices.Contains(keys, "partial-new") || !slices.Contains(keys, "partial-other") {
+		t.Errorf("expected both fresh keys to be listed, got %v", keys)
 	}
 }
