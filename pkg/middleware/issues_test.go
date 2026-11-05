@@ -343,3 +343,44 @@ func TestNotModifiedFreshensStoredResponse(t *testing.T) {
 		t.Errorf("expected 2 upstream calls, got %d", calls.Load())
 	}
 }
+
+// The request that executed a coalesced flight answered `private` must not
+// run the handler a second time into its own response (#886).
+func TestCoalescedPrivateResponseIsNotDuplicated(t *testing.T) {
+	handler, _ := newTestHandler(t)
+
+	var calls atomic.Int32
+	next := func(w http.ResponseWriter, r *http.Request) error {
+		n := calls.Add(1)
+		time.Sleep(80 * time.Millisecond)
+		w.Header().Add("Cache-Control", "private")
+		w.Header().Add("X-Request-Id", string(rune('a'+n)))
+		_, _ = w.Write([]byte("BODY"))
+		return nil
+	}
+
+	const concurrent = 8
+	recorders := make([]*httptest.ResponseRecorder, concurrent)
+	var wg sync.WaitGroup
+	for i := range recorders {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			recorders[i] = serve(t, handler, httptest.NewRequest(http.MethodGet, "http://example.com/coalesced-private", nil), next)
+		}(i)
+		time.Sleep(time.Millisecond)
+	}
+	wg.Wait()
+
+	for i, rec := range recorders {
+		if ids := rec.Header().Values("X-Request-Id"); len(ids) != 1 {
+			t.Errorf("response %d carries %d upstream executions: %v", i, len(ids), ids)
+		}
+		if body := rec.Body.String(); body != "BODY" {
+			t.Errorf("response %d has body %q", i, body)
+		}
+	}
+	if calls.Load() > concurrent {
+		t.Errorf("expected at most %d upstream calls, got %d", concurrent, calls.Load())
+	}
+}
