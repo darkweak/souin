@@ -24,10 +24,11 @@ var sharedCache *Cache
 
 // Factory function create new Cache instance
 func Factory(c t.AbstractConfigurationInterface) (types.Storer, error) {
-	provider := cache.New(1 * time.Second)
-
 	if sharedCache == nil {
-		sharedCache = &Cache{Cache: provider, stale: c.GetDefaultCache().GetStale()}
+		// Create the cache, and so its cleaner goroutine, only once: Factory runs for
+		// every middleware instance, and a cache created on a later call would never
+		// be used while its cleaner keeps running.
+		sharedCache = &Cache{Cache: cache.New(1 * time.Second), stale: c.GetDefaultCache().GetStale()}
 	}
 
 	return sharedCache, nil
