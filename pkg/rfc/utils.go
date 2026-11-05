@@ -32,6 +32,36 @@ func HeaderAllCommaSepValuesString(headers http.Header, headerName string) strin
 	return strings.Join(valsArray, ", ")
 }
 
+// HasUnqualifiedNoCache reports whether a Cache-Control value contains the
+// no-cache directive without field names. Only that form requires the stored
+// response to be revalidated before each reuse; the qualified form
+// (no-cache="field") only prevents the listed fields from being reused
+// (RFC 9111 §5.2.2.4).
+func HasUnqualifiedNoCache(cacheControl string) bool {
+	inQuote := false
+	start := 0
+	for i := 0; i <= len(cacheControl); i++ {
+		if i < len(cacheControl) {
+			switch c := cacheControl[i]; {
+			case inQuote && c == '\\':
+				i++
+				continue
+			case c == '"':
+				inQuote = !inQuote
+				continue
+			case c != ',' || inQuote:
+				continue
+			}
+		}
+		if strings.EqualFold(strings.TrimSpace(cacheControl[start:i]), "no-cache") {
+			return true
+		}
+		start = i + 1
+	}
+
+	return false
+}
+
 // HTTP dates come in exactly three shapes (RFC 9110 section 5.6.7) and
 // nothing else may be understood: a recipient that guesses at a malformed
 // date would keep serving a response the origin meant to expire. Go's own

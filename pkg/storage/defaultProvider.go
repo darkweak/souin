@@ -62,6 +62,14 @@ func (provider *Default) MapKeys(prefix string) map[string]string {
 				return true
 			}
 
+			// Mappings written by SetMultiLevel are raw bytes, the eviction
+			// walks them through here.
+			if v, ok := value.([]byte); ok {
+				keys[k] = string(v)
+
+				return true
+			}
+
 			if v, ok := value.(*core.StorageMapper); ok {
 				for _, v := range v.Mapping {
 					if v.StaleTime.AsTime().After(now) {
@@ -77,6 +85,20 @@ func (provider *Default) MapKeys(prefix string) map[string]string {
 	return keys
 }
 
+// mappingBytes returns the encoded mapping whatever way it was written:
+// SetMultiLevel stores the raw bytes while the mapping eviction rewrites
+// it with Set, which wraps it in an item.
+func mappingBytes(value any) ([]byte, bool) {
+	switch v := value.(type) {
+	case []byte:
+		return v, true
+	case item:
+		return v.value, v.invalidAt.After(time.Now())
+	}
+
+	return nil, false
+}
+
 // ListKeys method returns the list of existing keys
 func (provider *Default) ListKeys() []string {
 	now := time.Now()
@@ -84,7 +106,12 @@ func (provider *Default) ListKeys() []string {
 
 	provider.m.Range(func(key, value any) bool {
 		if strings.HasPrefix(key.(string), core.MappingKeyPrefix) {
-			mapping, err := core.DecodeMapping(value.([]byte))
+			raw, ok := mappingBytes(value)
+			if !ok {
+				return true
+			}
+
+			mapping, err := core.DecodeMapping(raw)
 			if err == nil {
 				for _, v := range mapping.Mapping {
 					if v.StaleTime.AsTime().After(now) {
@@ -130,7 +157,12 @@ func (provider *Default) GetMultiLevel(key string, req *http.Request, validator 
 		return
 	}
 
-	fresh, stale, _ = core.MappingElection(provider, result.([]byte), req, validator, provider.logger)
+	raw, ok := mappingBytes(result)
+	if !ok {
+		return
+	}
+
+	fresh, stale, _ = core.MappingElection(provider, raw, req, validator, provider.logger)
 
 	return
 }
@@ -159,10 +191,9 @@ func (provider *Default) SetMultiLevel(baseKey, variedKey string, value []byte, 
 	})
 
 	mappingKey := core.MappingKeyPrefix + baseKey
-	item, ok := provider.m.Load(mappingKey)
 	var val []byte
-	if ok {
-		val = item.([]byte)
+	if stored, ok := provider.m.Load(mappingKey); ok {
+		val, _ = mappingBytes(stored)
 	}
 
 	val, e = core.MappingUpdater(variedKey, val, provider.logger, now, now.Add(duration), now.Add(duration+provider.stale), variedHeaders, etag, realKey)

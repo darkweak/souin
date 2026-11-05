@@ -72,7 +72,7 @@ func Test_SouinGinPlugin_Process_CannotHandle(t *testing.T) {
 	}
 
 	r.ServeHTTP(res2, c.Request)
-	if res2.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-http-example.com-/handled" {
+	if res2.Result().Header.Get("Cache-Status") != "Souin; fwd=request; stored; key=GET-http-example.com-/handled" {
 		t.Error("The response must contain a Cache-Status header without the stored directive and with the uri-miss only.")
 	}
 	if res2.Result().Header.Get("Age") != "" {

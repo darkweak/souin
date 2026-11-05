@@ -12,13 +12,13 @@ Simplefs is a high performance filesystem cache for Go. It was built because no 
 ## Github repository
 [https://github.com/darkweak/storages](https://github.com/darkweak/storages)
 
-## Use Otter
+## Use Simplefs
 ### With Caddy
 You have to build your caddy instance including `Souin` and `Simplefs` using `xcaddy` ([refer to the build caddy section]({{% relref "/docs/middlewares/caddy#build-your-caddy-binary" %}})).
 ```shell
 xcaddy build --with github.com/darkweak/souin/plugins/caddy --with github.com/darkweak/storages/simplefs/caddy
 ```
-You will be able to use otter in your Caddyfile or JSON configuration file.
+You will be able to use simplefs in your Caddyfile or JSON configuration file.
 ```caddyfile
 {
     cache {

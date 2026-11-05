@@ -138,7 +138,7 @@ func (g *keyContext) computeKey(req *http.Request) (key string, headers []string
 	if g.template != "" {
 		return req.Context().Value(caddy.ReplacerCtxKey).(*caddy.Replacer).ReplaceAll(g.template, ""), g.headers, g.hash, g.displayable
 	}
-	key = req.URL.Path
+	key = req.URL.EscapedPath()
 	query, body, host, scheme, method, headerValues, headers, displayable, hash := parseKeyInformations(req, *g)
 
 	hasOverride := false

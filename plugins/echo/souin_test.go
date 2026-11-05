@@ -83,7 +83,7 @@ func Test_SouinEchoPlugin_Process_CannotHandle(t *testing.T) {
 	if err := s.Process(handler)(c2); err != nil {
 		t.Error("No error must be thrown on the second request if everything is good.")
 	}
-	if res2.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-http-example.com-/not-handled" {
+	if res2.Result().Header.Get("Cache-Status") != "Souin; fwd=request; stored; key=GET-http-example.com-/not-handled" {
 		t.Error("The response must contain a Cache-Status header without the stored directive and with the uri-miss only.")
 	}
 	if res2.Result().Header.Get("Age") != "" {

@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -290,30 +291,22 @@ func (s *baseStorage) Store(response *http.Response, cacheKey, uri string) error
 
 	cacheKey = url.QueryEscape(cacheKey)
 
-	keys := s.ParseHeaders(s.parent.getSurrogateKey(h))
-
-	for _, key := range keys {
-		_, v := s.parent.GetSurrogateControl(h)
-		if controls := s.ParseHeaders(v); len(controls) != 0 {
-			if len(controls) == 1 && controls[0] == "" {
-				s.storeTag(key, cacheKey)
-				s.storeTag(uri, cacheKey)
-
-				continue
-			}
-			for _, control := range controls {
-				if s.parent.candidateStore(control) {
-					s.storeTag(key, cacheKey)
-					s.storeTag(uri, cacheKey)
-
-					break
-				}
-			}
-		} else {
-			s.storeTag(key, cacheKey)
-			s.storeTag(uri, cacheKey)
+	_, v := s.parent.GetSurrogateControl(h)
+	if controls := s.ParseHeaders(v); len(controls) > 1 || (len(controls) == 1 && controls[0] != "") {
+		if !slices.ContainsFunc(controls, s.parent.candidateStore) {
+			return nil
 		}
 	}
+
+	// A response without any surrogate key parses as the single empty key.
+	// Indexing it would gather every untagged response under one tag that
+	// only grows, so only the URI tag is kept for those.
+	for _, key := range s.ParseHeaders(s.parent.getSurrogateKey(h)) {
+		if key != "" {
+			s.storeTag(key, cacheKey)
+		}
+	}
+	s.storeTag(uri, cacheKey)
 
 	return nil
 }
