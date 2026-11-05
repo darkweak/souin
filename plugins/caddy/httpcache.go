@@ -90,8 +90,11 @@ func (SouinCaddyMiddleware) CaddyModule() caddy.ModuleInfo {
 
 // ServeHTTP implements caddyhttp.MiddlewareHandler.
 func (s *SouinCaddyMiddleware) ServeHTTP(rw http.ResponseWriter, r *http.Request, next caddyhttp.Handler) error {
-	return s.SouinBaseHandler.ServeHTTP(rw, r, func(w http.ResponseWriter, _ *http.Request) error {
-		return next.ServeHTTP(w, r)
+	// Forward the request Souin hands over: a background revalidation runs
+	// with its own context, detached from the client one, and revalidations
+	// carry their conditional headers on it.
+	return s.SouinBaseHandler.ServeHTTP(rw, r, func(w http.ResponseWriter, req *http.Request) error {
+		return next.ServeHTTP(w, req)
 	})
 }
 
