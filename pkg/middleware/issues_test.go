@@ -299,12 +299,19 @@ func TestRequestNoCacheCacheStatus(t *testing.T) {
 		return nil
 	}
 
-	serve(t, handler, httptest.NewRequest(http.MethodGet, "http://example.com/rq-no-cache", nil), next)
-	req := httptest.NewRequest(http.MethodGet, "http://example.com/rq-no-cache", nil)
-	req.Header.Set("Cache-Control", "no-cache")
-	rec := serve(t, handler, req, next)
+	noCacheRequest := func() *http.Request {
+		req := httptest.NewRequest(http.MethodGet, "http://example.com/rq-no-cache", nil)
+		req.Header.Set("Cache-Control", "no-cache")
 
-	if status := rec.Header().Get("Cache-Status"); !strings.HasPrefix(status, "Souin; fwd=request;") {
+		return req
+	}
+
+	// Nothing stored yet: the reason is the miss, not the request.
+	if status := serve(t, handler, noCacheRequest(), next).Header().Get("Cache-Status"); !strings.HasPrefix(status, "Souin; fwd=uri-miss;") {
+		t.Errorf("expected fwd=uri-miss on an empty cache, got %q", status)
+	}
+	// A fresh response is stored now, the request directive skipped it.
+	if status := serve(t, handler, noCacheRequest(), next).Header().Get("Cache-Status"); !strings.HasPrefix(status, "Souin; fwd=request;") {
 		t.Errorf("expected fwd=request, got %q", status)
 	}
 }

@@ -1234,6 +1234,24 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 	// RFC 9111 section 5.2.1.4: a request carrying `no-cache` may not be
 	// answered from what is stored, so it is forwarded to the origin
 	// untouched. `no-store` only forbids storing, not reusing.
+	// RFC 9211 section 2.2: `fwd=request` means a fresh stored response could
+	// have been used but the request directives forbade it. On an empty cache
+	// the reason stays `uri-miss`.
+	requestSkippedFresh := false
+	if !modeContext.Bypass_request && requestCc.NoCache {
+		finalKey := cachedKey
+		if req.Context().Value(context.Hashed).(bool) {
+			finalKey = fmt.Sprint(xxhash.Sum64String(finalKey))
+		}
+		validator := rfc.ParseRequest(req)
+		for _, currentStorer := range s.Storers {
+			if fresh, _ := currentStorer.GetMultiLevel(finalKey, req, validator); fresh != nil {
+				requestSkippedFresh = true
+				break
+			}
+		}
+	}
+
 	if modeContext.Bypass_request || !requestCc.NoCache {
 		validator := rfc.ParseRequest(req)
 		var fresh, stale *http.Response
@@ -1404,9 +1422,9 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 			return nil
 		}
 	case v := <-errorCacheCh:
-		// RFC 9211 section 2.2: the request went to the origin because the
-		// client asked for it, not because nothing was stored.
-		if !modeContext.Bypass_request && requestCc.NoCache {
+		// The request went to the origin because the client asked for it,
+		// not because nothing was stored.
+		if requestSkippedFresh {
 			if status := customWriter.Header().Get("Cache-Status"); strings.Contains(status, "; fwd=uri-miss") {
 				customWriter.Header().Set("Cache-Status", strings.Replace(status, "; fwd=uri-miss", "; fwd=request", 1))
 			}
