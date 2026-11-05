@@ -2947,7 +2947,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.noCacheRequest(pm, `${utils.getVar(pm, 'app_url')}/default`)"
+									"utils.noCacheRequest(pm, `${utils.getVar(pm, 'app_url')}/default`, 'uri-miss')"
 								],
 								"type": "text/javascript"
 							}
@@ -3406,7 +3406,7 @@
 					"            });",
 					"        });",
 					"    },",
-					"    noCacheRequest: (pm, baseUrl = '') => {",
+					"    noCacheRequest: (pm, baseUrl = '', secondForward = 'request') => {",
 					"        pm.test(\"The first no-cache request must contain the Cache-Status HTTP response header without Age\", function () {",
 					"            pm.response.to.have.status(200);",
 					"            pm.response.to.have.header(\"Cache-Status\");",
@@ -3420,7 +3420,7 @@
 					"                const expected = pm.expect(response);",
 					"                expected.to.have.status(200);",
 					"                expected.to.have.header(\"Cache-Status\");",
-					"                pm.expect(response.headers.get(\"Cache-Status\")).to.eql(`Souin; fwd=request; stored; key=GET-http-${pm.collectionVariables.get('current_host')}-${pm.request.url.getPath()}`);",
+					"                pm.expect(response.headers.get(\"Cache-Status\")).to.eql(`Souin; fwd=${secondForward}; stored; key=GET-http-${pm.collectionVariables.get('current_host')}-${pm.request.url.getPath()}`);",
 					"                expected.to.not.have.header(\"Age\");",
 					"            });",
 					"        });",
