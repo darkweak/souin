@@ -1295,10 +1295,21 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 		}
 
 		if fresh != nil && (!modeContext.Strict || rfc.ValidateCacheControl(fresh, requestCc)) {
-			freshClone := *fresh
-			freshClone.Header = fresh.Header.Clone()
+			if backfillIds > 0 {
+				// The upper storers are backfilled in the background while the
+				// response is served, so each side needs its own body reader:
+				// sharing one truncates what the client receives.
+				freshClone := *fresh
+				freshClone.Header = fresh.Header.Clone()
+				if fresh.Body != nil {
+					body, _ := io.ReadAll(fresh.Body)
+					_ = fresh.Body.Close()
+					fresh.Body = io.NopCloser(bytes.NewReader(body))
+					freshClone.Body = io.NopCloser(bytes.NewReader(body))
+				}
 
-			go s.backfillStorers(backfillIds, cachedKey, req.Clone(req.Context()), &freshClone)
+				go s.backfillStorers(backfillIds, cachedKey, req.Clone(req.Context()), &freshClone)
+			}
 
 			response := fresh
 
