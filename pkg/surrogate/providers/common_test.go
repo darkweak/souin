@@ -6,6 +6,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/storage"
@@ -206,5 +207,35 @@ func TestContainsCacheKey(t *testing.T) {
 					tc.currentValue, tc.cacheKey, result, tc.expected)
 			}
 		})
+	}
+}
+
+// An untagged response must not be indexed under the empty tag, which would
+// otherwise grow with every stored response (#884), but stays reachable
+// through its URI tag.
+func TestBaseStorage_Store_WithoutSurrogateKey(t *testing.T) {
+	bs := mockCommonProvider()
+	bs.duration = time.Hour
+
+	if err := bs.Store(&http.Response{Header: http.Header{}}, "untagged", "/page"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if value := bs.Storage.Get(surrogatePrefix); len(value) != 0 {
+		t.Errorf("the empty tag must stay empty, got %q", value)
+	}
+	if value := string(bs.Storage.Get(surrogatePrefix + "/page")); !strings.Contains(value, "untagged") {
+		t.Errorf("the URI tag must reference the stored key, got %q", value)
+	}
+
+	tagged := &http.Response{Header: http.Header{}}
+	tagged.Header.Set(surrogateKey, "a, b")
+	_ = bs.Store(tagged, "tagged", "/tagged")
+	for _, tag := range []string{"a", "b", "/tagged"} {
+		if value := string(bs.Storage.Get(surrogatePrefix + tag)); !strings.Contains(value, "tagged") {
+			t.Errorf("tag %q must reference the stored key, got %q", tag, value)
+		}
+	}
+	if value := bs.Storage.Get(surrogatePrefix); len(value) != 0 {
+		t.Errorf("the empty tag must stay empty, got %q", value)
 	}
 }

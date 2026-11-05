@@ -1500,7 +1500,8 @@ func TestAPIPlatformInvalidation(t *testing.T) {
 	var items map[string]string
 	_ = json.NewDecoder(resp5.Body).Decode(&items)
 
-	if len(items) != 2 {
+	// The response carries no surrogate key, only its URI tag is indexed.
+	if _, ok := items["/api-platform-invalidation"]; !ok || len(items) != 1 {
 		t.Errorf("unexpected list %#v", items)
 	}
 }
