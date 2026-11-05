@@ -95,7 +95,7 @@ func Test_SouinFiberPlugin_Middleware_CannotHandle(t *testing.T) {
 		t.Error(err)
 	}
 
-	if res.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-http-example.com-/not-handled" {
+	if res.Header.Get("Cache-Status") != "Souin; fwd=request; stored; key=GET-http-example.com-/not-handled" {
 		t.Error("The response must contain a Cache-Status header without the stored directive and with the uri-miss only.")
 	}
 
@@ -104,7 +104,7 @@ func Test_SouinFiberPlugin_Middleware_CannotHandle(t *testing.T) {
 		t.Error(err)
 	}
 
-	if res.Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-http-example.com-/not-handled" {
+	if res.Header.Get("Cache-Status") != "Souin; fwd=request; stored; key=GET-http-example.com-/not-handled" {
 		t.Error("The response must contain a Cache-Status header without the stored directive and with the uri-miss only.")
 	}
 	if res.Header.Get("Age") != "" {

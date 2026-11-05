@@ -55,7 +55,7 @@ func TestGetDefaultRequest(t *testing.T) {
 		Key:   "Cache-Control",
 		Value: "no-cache",
 	})
-	if rr1.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-http-domain.com-/default" {
+	if rr1.Result().Header.Get("Cache-Status") != "Souin; fwd=request; stored; key=GET-http-domain.com-/default" {
 		t.Errorf("The Cache-Status header response mismatched the expectations, %s given.", rr1.Result().Header.Get("Cache-Status"))
 	}
 	if rr1.Result().Header.Get("Age") != "" {
@@ -69,7 +69,7 @@ func TestGetDefaultRequest(t *testing.T) {
 		Key:   "Cache-Control",
 		Value: "no-cache",
 	})
-	if rr2.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-http-domain.com-/default" {
+	if rr2.Result().Header.Get("Cache-Status") != "Souin; fwd=request; stored; key=GET-http-domain.com-/default" {
 		t.Errorf("The Cache-Status header response mismatched the expectations, %s given.", rr2.Result().Header.Get("Cache-Status"))
 	}
 	if rr2.Result().Header.Get("Age") != "" {

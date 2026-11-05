@@ -98,12 +98,12 @@ func Test_SouinWebgoPlugin_Middleware_CannotHandle(t *testing.T) {
 	req.Header.Add("Cache-Control", "no-cache")
 	router.ServeHTTP(res, req)
 
-	if res.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-http-example.com-/not-handled" {
+	if res.Result().Header.Get("Cache-Status") != "Souin; fwd=request; stored; key=GET-http-example.com-/not-handled" {
 		t.Error("The response must contain a Cache-Status header without the stored directive and with the uri-miss only.")
 	}
 
 	router.ServeHTTP(res2, req)
-	if res2.Result().Header.Get("Cache-Status") != "Souin; fwd=uri-miss; stored; key=GET-http-example.com-/not-handled" {
+	if res2.Result().Header.Get("Cache-Status") != "Souin; fwd=request; stored; key=GET-http-example.com-/not-handled" {
 		t.Error("The response must contain a Cache-Status header without the stored directive and with the uri-miss only.")
 	}
 	if res2.Result().Header.Get("Age") != "" {

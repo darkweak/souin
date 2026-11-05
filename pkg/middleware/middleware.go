@@ -507,9 +507,21 @@ func (s *SouinBaseHandler) Store(
 	authenticatedButStorable := responseCc.MustRevalidate || responseCc.Public || responseCc.SMaxAge >= 0 ||
 		canBypassAuthorizationRestriction(customWriter.Header(), rq.Context().Value(context.IgnoredHeaders).([]string))
 
+	// RFC 9111 section 5.2.2.7: `private` forbids a shared cache to store the
+	// response, it is a statement about the response that the keying
+	// configuration of the Authorization header has nothing to say about.
 	modeContext := rq.Context().Value(context.Mode).(*context.ModeContext)
-	if !modeContext.Bypass_request && (responseCc.PrivatePresent || rq.Header.Get("Authorization") != "") && !authenticatedButStorable {
+	if !modeContext.Bypass_request && (responseCc.PrivatePresent || (rq.Header.Get("Authorization") != "" && !authenticatedButStorable)) {
 		customWriter.Header().Set("Cache-Status", fmt.Sprintf("%s; fwd=uri-miss; key=%s; detail=PRIVATE-OR-AUTHENTICATED-RESPONSE", rq.Context().Value(context.CacheName), rfc.GetCacheKeyFromCtx(rq.Context())))
+		return nil
+	}
+
+	// A response setting a cookie is tied to one user, storing it would replay
+	// that cookie to every client. RFC 9111 section 7.3 leaves it to the origin,
+	// but like most shared caches such responses aren't stored, unless the
+	// origin excluded the cookie from the stored copy with `no-cache="Set-Cookie"`.
+	if customWriter.Header().Get("Set-Cookie") != "" && !responseCc.NoCache["Set-Cookie"] {
+		customWriter.Header().Set("Cache-Status", fmt.Sprintf("%s; fwd=uri-miss; key=%s; detail=UNCACHEABLE-SET-COOKIE", rq.Context().Value(context.CacheName), rfc.GetCacheKeyFromCtx(rq.Context())))
 		return nil
 	}
 
@@ -811,7 +823,16 @@ func (s *SouinBaseHandler) Upstream(
 
 			switch statusCode {
 			case 500, 502, 503, 504:
-				return nil, Upstream50xError
+				// The requests coalesced on this call have nothing written in
+				// their own writer, they need the response to send it too.
+				body := make([]byte, customWriter.Buf.Len())
+				copy(body, customWriter.Buf.Bytes())
+
+				return singleflightValue{
+					body:    body,
+					headers: customWriter.Header().Clone(),
+					code:    statusCode,
+				}, Upstream50xError
 			}
 		}
 
@@ -866,6 +887,16 @@ func (s *SouinBaseHandler) Upstream(
 	}
 	if recoveredFromErr != nil {
 		panic(recoveredFromErr)
+	}
+	if errors.Is(err, Upstream50xError) {
+		if sfWriter, ok := sfValue.(singleflightValue); ok && shared {
+			customWriter.Buf.Reset()
+			_, _ = customWriter.Write(sfWriter.body)
+			maps.Copy(customWriter.Header(), sfWriter.headers)
+			customWriter.WriteHeader(sfWriter.code)
+		}
+
+		return err
 	}
 	if err != nil {
 		return err
@@ -1227,7 +1258,7 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 			// origin confirmed it is still valid, so it goes down the same
 			// road as a stale one and gets revalidated conditionally.
 			storedControlName, _ := s.SurrogateKeyStorer.GetSurrogateControl(fresh.Header)
-			if storedCc, _ := cacheobject.ParseResponseCacheControl(rfc.HeaderAllCommaSepValuesString(fresh.Header, storedControlName)); storedCc != nil && storedCc.NoCachePresent {
+			if rfc.HasUnqualifiedNoCache(rfc.HeaderAllCommaSepValuesString(fresh.Header, storedControlName)) {
 				prometheus.Increment(prometheus.NoCachedResponseCounter)
 
 				forceRevalidation = true
@@ -1366,6 +1397,14 @@ func (s *SouinBaseHandler) ServeHTTP(rw http.ResponseWriter, rq *http.Request, n
 			return nil
 		}
 	case v := <-errorCacheCh:
+		// RFC 9211 section 2.2: the request went to the origin because the
+		// client asked for it, not because nothing was stored.
+		if !modeContext.Bypass_request && requestCc.NoCache {
+			if status := customWriter.Header().Get("Cache-Status"); strings.Contains(status, "; fwd=uri-miss") {
+				customWriter.Header().Set("Cache-Status", strings.Replace(status, "; fwd=uri-miss", "; fwd=request", 1))
+			}
+		}
+
 		switch v {
 		case nil:
 			_, _ = customWriter.Send()
@@ -1424,6 +1463,43 @@ func writeCachedResponse(customWriter *CustomWriter, headers http.Header, status
 	})
 }
 
+// backgroundResponseWriter collects the response of a background
+// revalidation, nobody is waiting for it anymore.
+type backgroundResponseWriter struct {
+	header http.Header
+}
+
+func (b *backgroundResponseWriter) Header() http.Header       { return b.header }
+func (*backgroundResponseWriter) Write(p []byte) (int, error) { return len(p), nil }
+func (*backgroundResponseWriter) WriteHeader(int)             {}
+
+// revalidateInBackground refreshes the stored response once the client got
+// the stale one. The client request is over by then, so the revalidation
+// gets a request and a writer of its own, bounded by the backend timeout
+// instead of the client connection.
+func (s *SouinBaseHandler) revalidateInBackground(
+	validator *core.Revalidator,
+	next handlerFunc,
+	rq *http.Request,
+	requestCc *cacheobject.RequestCacheDirectives,
+	cachedKey string,
+	uri string,
+) {
+	timeout := s.Configuration.GetDefaultCache().GetTimeout().Backend.Duration
+	if timeout <= 0 {
+		timeout = 10 * time.Second
+	}
+
+	ctx, cancel := baseCtx.WithTimeout(baseCtx.WithoutCancel(rq.Context()), timeout)
+	backgroundRq := rq.Clone(ctx)
+	backgroundWriter := NewCustomWriter(backgroundRq, &backgroundResponseWriter{header: http.Header{}}, new(bytes.Buffer))
+
+	go func() {
+		defer cancel()
+		_ = s.Revalidate(validator, next, backgroundWriter, backgroundRq, requestCc, cachedKey, uri)
+	}()
+}
+
 // serveStale decides what to do with a stored response that is no longer
 // fresh: serve it as is when the request (`max-stale`) or the response
 // (`stale-while-revalidate`, `stale-if-error`) allows it, and otherwise
@@ -1456,7 +1532,8 @@ func (s *SouinBaseHandler) serveStale(
 	withinStaleWindow := staleness <= s.Configuration.GetDefaultCache().GetStale()
 	// `must-revalidate` and `no-cache` both forbid reusing the response
 	// without contacting the origin first, whatever the client allows.
-	mustRevalidate := responseCc.MustRevalidate || responseCc.NoCachePresent || validator.NeedRevalidation
+	mustRevalidate := responseCc.MustRevalidate || validator.NeedRevalidation ||
+		rfc.HasUnqualifiedNoCache(rfc.HeaderAllCommaSepValuesString(stale.Header, headerName))
 
 	storedBody := new(bytes.Buffer)
 	_, _ = io.Copy(storedBody, stale.Body)
@@ -1472,7 +1549,23 @@ func (s *SouinBaseHandler) serveStale(
 		return true, err
 	}
 
+	// RFC 5861 section 3: within the stale-while-revalidate window the stale
+	// response is served right away and refreshed in the background. That
+	// window is the response's own, it does not depend on how long this cache
+	// was configured to keep stale content.
+	withinStaleWhileRevalidate := staleness <= time.Duration(responseCc.StaleWhileRevalidate)*time.Second
+	serveStoredAndRevalidate := func() (bool, error) {
+		handled, err := serveStored()
+		s.revalidateInBackground(validator, next, rq, requestCc, cachedKey, uri)
+
+		return handled, err
+	}
+
 	if !modeContext.Strict {
+		if withinStaleWhileRevalidate {
+			return serveStoredAndRevalidate()
+		}
+
 		if withinStaleWindow {
 			return serveStored()
 		}
@@ -1501,18 +1594,8 @@ func (s *SouinBaseHandler) serveStale(
 			return serveStored()
 		}
 
-		// RFC 5861 section 3: within the stale-while-revalidate window the
-		// stale response is served right away and refreshed in the
-		// background. That window is the response's own, it does not depend
-		// on how long this cache was configured to keep stale content.
-		if staleness <= time.Duration(responseCc.StaleWhileRevalidate)*time.Second {
-			handled, err := serveStored()
-			backgroundWriter := NewCustomWriter(rq, customWriter.Rw, new(bytes.Buffer))
-			go func(goRq *http.Request) {
-				_ = s.Revalidate(validator, next, backgroundWriter, goRq, requestCc, cachedKey, uri)
-			}(rq)
-
-			return handled, err
+		if withinStaleWhileRevalidate {
+			return serveStoredAndRevalidate()
 		}
 	}
 
