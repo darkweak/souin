@@ -51,9 +51,17 @@ jobs:
           CURRENT_SHA: ${{ github.event.pull_request.head.sha }}
       -
         name: Wait for Souin is really loaded inside ${{ inputs.CAPITALIZED_NAME }} as middleware
-        uses: jakejarvis/wait-action@master
-        with:
-          time: 80s
+        # The examples compile on container start, which takes a varying time
+        # on the runners: poll instead of waiting a fixed delay.
+        run: |
+          cd plugins/${{ inputs.LOWER_NAME }}
+          for _ in $(seq 1 60); do
+            if make -s load-checker | grep -q 'Souin configuration is now loaded.'; then
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Souin was not loaded after 300s"
       -
         name: Set ${{ inputs.CAPITALIZED_NAME }} logs configuration result as environment variable
         run: cd plugins/${{ inputs.LOWER_NAME }} && echo "$(make load-checker)" >> $GITHUB_ENV
