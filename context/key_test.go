@@ -168,3 +168,29 @@ func Test_KeyContext_SetContext(t *testing.T) {
 		t.Errorf("The Key context must be equal to GET-http-domain.com-/matched?word=alpha&word=beta, %s given.", req8.Context().Value(Key).(string))
 	}
 }
+
+// The key must describe the path as it is forwarded upstream, otherwise
+// `/%70age` would be stored under the key of `/page` (#882).
+func Test_KeyContext_SetContext_EscapedPath(t *testing.T) {
+	ctx := keyContext{
+		disable_host:   true,
+		disable_method: true,
+		initializer: func(r *http.Request) *http.Request {
+			return r.WithContext(context.WithValue(r.Context(), caddy.ReplacerCtxKey, caddy.NewReplacer()))
+		},
+	}
+
+	keyOf := func(target string) string {
+		req := httptest.NewRequest(http.MethodGet, target, nil)
+		req = ctx.SetContext(req.WithContext(context.WithValue(req.Context(), HashBody, "")))
+
+		return req.Context().Value(Key).(string)
+	}
+
+	if spelled, plain := keyOf("http://domain.com/%70age"), keyOf("http://domain.com/page"); spelled == plain {
+		t.Errorf("/%%70age and /page must not share the key %s", plain)
+	}
+	if key := keyOf("http://domain.com/page"); key != "http-/page" {
+		t.Errorf("unexpected key for a plain path, %s given", key)
+	}
+}
