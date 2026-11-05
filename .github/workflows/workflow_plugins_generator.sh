@@ -157,12 +157,14 @@ jobs:
       -
         name: Run cache-tests test suite
         run: cd cache-tests && ./test-host.sh 127.0.0.1:4443 > results/mr.json
-      - 
-        name: install puppeteer-headful
-        uses: mujo-code/puppeteer-headful@master
-        env:
-          CI: 'true'
-      - 
+      -
+        # screenshots-ci-action launches the browser from CHROME_BIN.
+        name: Install Chrome
+        id: setup-chrome
+        uses: browser-actions/setup-chrome@v2
+        with:
+          chrome-version: stable
+      -
         name: screenshots-ci-action
         uses: flameddd/screenshots-ci-action@master
         with:
@@ -173,6 +175,7 @@ jobs:
           fullPage: true
           releaseId: 144343803
         env:
+          CHROME_BIN: \${{ steps.setup-chrome.outputs.chrome-path }}
           GITHUB_TOKEN: \${{ secrets.GITHUB_TOKEN }}
 
 EOF
