@@ -6,6 +6,7 @@ require (
 	github.com/caddyserver/caddy/v2 v2.11.7
 	github.com/darkweak/souin v1.7.9
 	github.com/darkweak/storages/core v0.0.22
+	github.com/dustin/go-humanize v1.1.0
 )
 
 require (
@@ -46,7 +47,6 @@ require (
 	github.com/dlclark/regexp2/v2 v2.8.0 // indirect
 	github.com/dunglas/go-urlpattern v1.0.0 // indirect
 	github.com/dunglas/httpsfv v1.1.1 // indirect
-	github.com/dustin/go-humanize v1.1.0 // indirect
 	github.com/felixge/httpsnoop v1.1.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.4 // indirect
 	github.com/go-chi/chi/v5 v5.3.2 // indirect
