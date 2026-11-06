@@ -13,6 +13,7 @@ type SurrogateInterface interface {
 	GetSurrogateControlName() string
 	getSurrogateKey(http.Header) string
 	Purge(http.Header) (cacheKeys []string, surrogateKeys []string)
+	Lookup(http.Header) (cacheKeys []string, surrogateKeys []string)
 	Invalidate(method string, h http.Header)
 	purgeTag(string) []string
 	Store(*http.Response, string, string) error
