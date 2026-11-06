@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"regexp"
@@ -9,11 +10,12 @@ import (
 	"time"
 
 	"github.com/darkweak/souin/configurationtypes"
+	"github.com/darkweak/souin/pkg/rfc"
 	"github.com/darkweak/souin/pkg/storage/types"
 	"github.com/darkweak/souin/pkg/surrogate/providers"
 	"github.com/darkweak/storages/core"
+	"github.com/pquerna/cachecontrol/cacheobject"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // SouinAPI object contains informations related to the endpoints
@@ -23,6 +25,8 @@ type SouinAPI struct {
 	storers          []types.Storer
 	surrogateStorage providers.SurrogateInterface
 	allowedMethods   []string
+	stale            time.Duration
+	softByDefault    bool
 	compiledBP       *regexp.Regexp
 	extractArgsBP    *regexp.Regexp
 }
@@ -34,7 +38,30 @@ const (
 	uriPrefixInvalidationType invalidationType = "uri-prefix"
 	originInvalidationType    invalidationType = "origin"
 	groupInvalidationType     invalidationType = "group"
+
+	// SoftPurgeModeHeader switches a PURGE request from removing the matching
+	// responses to making them stale.
+	SoftPurgeModeHeader = "Souin-Purge-Mode"
+	softPurgeModeValue  = "soft"
+	hardPurgeModeValue  = "hard"
 )
+
+// IsSoftPurgeRequest tells whether a PURGE request asks for a soft purge.
+func IsSoftPurgeRequest(r *http.Request) bool {
+	return strings.EqualFold(r.Header.Get(SoftPurgeModeHeader), softPurgeModeValue)
+}
+
+// softPurgesSurrogateKeys tells whether a purge by surrogate key is a soft one:
+// what the request says wins, and without it `cdn.strategy: soft` decides.
+// That strategy is about purging by tag, so it does not reach the regexp purge
+// nor the flush, which stay hard unless the request asks otherwise.
+func (s *SouinAPI) softPurgesSurrogateKeys(r *http.Request) bool {
+	if strings.EqualFold(r.Header.Get(SoftPurgeModeHeader), hardPurgeModeValue) {
+		return false
+	}
+
+	return IsSoftPurgeRequest(r) || s.softByDefault
+}
 
 type invalidation struct {
 	Type      invalidationType `json:"type"`
@@ -64,6 +91,10 @@ func initializeSouin(
 		storers,
 		surrogateStorage,
 		allowedMethods,
+		configuration.GetDefaultCache().GetStale(),
+		// Only an explicit `soft`: the strategy is documented to default to it,
+		// and nobody who did not ask for it gets their purges turned soft.
+		configuration.GetDefaultCache().GetCDN().Strategy == "soft",
 		regexp.MustCompile(basePath + "/.+"),
 		regexp.MustCompile(basePath + "/(.+)"),
 	}
@@ -71,7 +102,14 @@ func initializeSouin(
 
 // BulkDelete deletes the given key, its mapping and the keys referenced by that mapping.
 // Every deletion is exact: the key is never interpreted as a regexp.
+// Without purge the responses are kept and made stale instead, see SoftPurge.
 func (s *SouinAPI) BulkDelete(key string, purge bool) {
+	if !purge {
+		s.SoftPurge(key)
+
+		return
+	}
+
 	key, _ = strings.CutPrefix(key, core.MappingKeyPrefix)
 	for _, current := range s.storers {
 		if b := current.Get(core.MappingKeyPrefix + key); len(b) > 0 {
@@ -82,29 +120,100 @@ func (s *SouinAPI) BulkDelete(key string, purge bool) {
 					current.Delete(k)
 				}
 			}
-
-			if !purge {
-				newFreshTime := time.Now()
-				for k, v := range mapping.Mapping {
-					v.FreshTime = timestamppb.New(newFreshTime)
-					mapping.Mapping[k] = v
-				}
-
-				v, e := proto.Marshal(&mapping)
-				if e != nil {
-					fmt.Println("Impossible to re-encode the mapping", core.MappingKeyPrefix+key)
-					current.Delete(core.MappingKeyPrefix + key)
-				}
-				_ = current.Set(core.MappingKeyPrefix+key, v, storageToInfiniteTTLMap[current.Name()])
-			}
 		}
 
-		if purge {
-			current.Delete(core.MappingKeyPrefix + key)
-		}
-
+		current.Delete(core.MappingKeyPrefix + key)
 		current.Delete(key)
 	}
+}
+
+// SoftPurge makes every response stored for the given key stale, without
+// removing it. The key is exact and so is every response it designates.
+//
+// The stored expiry of each response moves to now, which is all the
+// middleware needs: the next request goes down the stale path, is answered
+// with the stored response and refreshes it in the background. Nothing else
+// is touched, neither the mapping nor the surrogate index, since the
+// responses they point to are still stored.
+func (s *SouinAPI) SoftPurge(key string) {
+	key, _ = strings.CutPrefix(key, core.MappingKeyPrefix)
+	for _, current := range s.storers {
+		b := storedMapping(current, key)
+		if len(b) == 0 {
+			continue
+		}
+
+		var mapping core.StorageMapper
+		if e := proto.Unmarshal(b, &mapping); e != nil {
+			continue
+		}
+
+		for k := range mapping.GetMapping() {
+			s.softPurgeStored(current, k)
+		}
+	}
+}
+
+// storedMapping reads the mapping of a key. Some storers hand mappings back
+// through MapKeys only, since SetMultiLevel keeps them apart from the values
+// Get returns.
+func storedMapping(current types.Storer, key string) []byte {
+	if b := current.Get(core.MappingKeyPrefix + key); len(b) > 0 {
+		return b
+	}
+
+	// The prefix scan returns every key sharing the prefix, the entry named
+	// exactly like the key being the one with nothing left after the prefix.
+	return []byte(current.MapKeys(core.MappingKeyPrefix + key)[""])
+}
+
+// SoftPurgeMatching makes stale every stored response whose key matches the
+// regexp, the soft counterpart of the regexp purge.
+func (s *SouinAPI) SoftPurgeMatching(pattern string) {
+	re, err := regexp.Compile(pattern)
+	if err != nil {
+		return
+	}
+
+	for _, current := range s.storers {
+		for _, k := range current.ListKeys() {
+			if re.MatchString(k) {
+				s.softPurgeStored(current, k)
+			}
+		}
+	}
+}
+
+func (s *SouinAPI) softPurgeStored(current types.Storer, storedKey string) {
+	stored := current.Get(storedKey)
+	if len(stored) == 0 {
+		return
+	}
+
+	rewritten, ttl, err := rfc.SoftPurgeStored(stored, time.Now(), s.stale, s.retention)
+	if err != nil {
+		// Nothing left to refresh, or not a response to begin with. Only the
+		// first one is a purge that has to take effect.
+		if errors.Is(err, rfc.ErrSoftPurgeExpired) {
+			current.Delete(storedKey)
+		}
+
+		return
+	}
+
+	_ = current.Set(storedKey, rewritten, ttl)
+}
+
+// retention is the extra time a response asks to stay available once stale.
+func (s *SouinAPI) retention(h http.Header) time.Duration {
+	if s.surrogateStorage == nil {
+		return 0
+	}
+
+	name, _ := s.surrogateStorage.GetSurrogateControl(h)
+	cc, _ := cacheobject.ParseResponseCacheControl(rfc.HeaderAllCommaSepValuesString(h, name))
+
+	return rfc.RetentionWindow(cc)
 }
 
 // Delete will delete a record into the provider cache system and will update the Souin API if enabled
@@ -337,8 +446,15 @@ func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 		}
 		w.WriteHeader(http.StatusOK)
 	case "PURGE":
+		softPurge := IsSoftPurgeRequest(r)
 		if compile {
 			if strings.HasSuffix(r.RequestURI, s.GetBasePath()+"/flush") {
+				if softPurge {
+					w.WriteHeader(http.StatusBadRequest)
+					_, _ = w.Write([]byte("soft purge is not supported for flush"))
+
+					return
+				}
 				for _, current := range s.storers {
 					current.DeleteMany(".+")
 				}
@@ -351,11 +467,26 @@ func (s *SouinAPI) HandleRequest(w http.ResponseWriter, r *http.Request) {
 				s.purgeMapping()
 			} else {
 				submatch := s.extractArgsBP.FindAllStringSubmatch(r.RequestURI, -1)[0][1]
-				for _, current := range s.storers {
-					current.DeleteMany(submatch)
+				if softPurge {
+					s.SoftPurgeMatching(submatch)
+				} else {
+					for _, current := range s.storers {
+						current.DeleteMany(submatch)
+					}
 				}
 			}
 		} else {
+			if s.softPurgesSurrogateKeys(r) {
+				// The tags keep pointing at the responses: they are still stored.
+				ck, _ := s.surrogateStorage.Lookup(r.Header)
+				for _, k := range ck {
+					s.SoftPurge(k)
+				}
+				w.WriteHeader(http.StatusNoContent)
+
+				return
+			}
+
 			ck, surrogateKeys := s.surrogateStorage.Purge(r.Header)
 			for _, k := range ck {
 				s.BulkDelete(k, true)
