@@ -12,6 +12,8 @@ import (
 
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/api"
+	"github.com/darkweak/souin/pkg/storage"
+	"github.com/darkweak/souin/pkg/storage/types"
 )
 
 func newTestHandlerWithConfig(t *testing.T, configure func(*BaseConfiguration)) *SouinBaseHandler {
@@ -513,5 +515,31 @@ func TestSoftPurgeRefreshIsCoalesced(t *testing.T) {
 	}
 	if calls.Load() != 2 {
 		t.Errorf("expected the initial fetch and a single refresh, got %d upstream calls", calls.Load())
+	}
+}
+
+// #869: a hit on a lower storer backfills the upper ones in the background while
+// the stored response is served: both must not read the same body.
+func TestBackfillDoesNotShareTheServedBody(t *testing.T) {
+	handler := newTestHandlerWithConfig(t, func(*BaseConfiguration) {})
+	lower := handler.Storers[0]
+
+	body := strings.Repeat("souin-backfill-", 4096)
+	next := func(w http.ResponseWriter, _ *http.Request) error {
+		w.Header().Set("Cache-Control", "public, max-age=60")
+		_, _ = w.Write([]byte(body))
+		return nil
+	}
+
+	_ = serve(t, handler, httptest.NewRequest(http.MethodGet, "http://domain.com/backfill", nil), next)
+
+	for i := 0; i < 20; i++ {
+		backfilling := newTestHandlerWithConfig(t, func(*BaseConfiguration) {})
+		upper, _ := storage.Factory(backfilling.Configuration)
+		backfilling.Storers = []types.Storer{upper, lower}
+		rec := serve(t, backfilling, httptest.NewRequest(http.MethodGet, "http://domain.com/backfill", nil), next)
+		if rec.Body.String() != body {
+			t.Fatalf("iteration %d: served body has %d bytes, %d expected", i, rec.Body.Len(), len(body))
+		}
 	}
 }
