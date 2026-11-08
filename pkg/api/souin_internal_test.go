@@ -142,6 +142,10 @@ func TestHandleRequest_PurgeSurrogateKeyDeletesExactCacheKeys(t *testing.T) {
 			purged: "GET-https-domain.com-/items",
 			kept:   "GET-https-domain.com-/items/1",
 		},
+		"root": {
+			purged: "GET-https-domain.com-/",
+			kept:   "GET-https-domain.com-/blog",
+		},
 	}
 
 	for name, tc := range cases {
@@ -163,6 +167,37 @@ func TestHandleRequest_PurgeSurrogateKeyDeletesExactCacheKeys(t *testing.T) {
 				t.Errorf("The response %s should still be indexed under kept-tag, %+v given", tc.kept, s.surrogateStorage.List())
 			}
 		})
+	}
+}
+
+func TestHandleRequest_PurgeKeyWithDollarIsExact(t *testing.T) {
+	s, storer := mockPurgeAPI(t)
+
+	purged := "GET-https-domain.com-/blog"
+	kept := []string{
+		"GET-https-domain.com-/blog/a",
+		"GET-https-domain.com-/blogger",
+		"GET-https-domain.com-/blog?page=2",
+	}
+	for _, k := range append([]string{purged}, kept...) {
+		if err := storer.SetMultiLevel(k, k, []byte("HTTP/1.1 200 OK\r\n\r\n"), http.Header{}, "", time.Minute, k); err != nil {
+			t.Fatalf("Impossible to store the key %s, %v given", k, err)
+		}
+	}
+
+	rq := httptest.NewRequest("PURGE", s.GetBasePath()+"/"+purged+"$", nil)
+	s.HandleRequest(httptest.NewRecorder(), rq)
+
+	if len(storer.Get(purged)) != 0 {
+		t.Errorf("The response %s should be purged", purged)
+	}
+	if len(storer.Get(core.MappingKeyPrefix+purged)) != 0 {
+		t.Errorf("The mapping of %s should be purged", purged)
+	}
+	for _, k := range kept {
+		if len(storer.Get(k)) == 0 {
+			t.Errorf("The response %s should not be purged by the key %s$", k, purged)
+		}
 	}
 }
 
