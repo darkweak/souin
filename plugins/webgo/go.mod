@@ -4,8 +4,8 @@ go 1.27.1
 
 require (
 	github.com/bnkamalesh/webgo/v6 v6.7.1
-	github.com/darkweak/souin v1.7.9
-	github.com/darkweak/souin/plugins/souin/storages v1.7.9
+	github.com/darkweak/souin v1.7.10
+	github.com/darkweak/souin/plugins/souin/storages v1.7.10
 )
 
 require (
@@ -215,6 +215,6 @@ require (
 )
 
 replace (
-	github.com/darkweak/souin v1.7.9 => ../..
+	github.com/darkweak/souin v1.7.10 => ../..
 	github.com/darkweak/souin/plugins/souin/storages => ../souin/storages
 )

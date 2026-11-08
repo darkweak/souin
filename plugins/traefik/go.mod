@@ -4,7 +4,7 @@ go 1.27.1
 
 require (
 	github.com/akyoto/cache v1.0.6
-	github.com/darkweak/souin v1.7.9
+	github.com/darkweak/souin v1.7.10
 	github.com/google/uuid v1.6.0
 	github.com/pquerna/cachecontrol v0.2.0
 	golang.org/x/sync v0.24.0
@@ -158,6 +158,6 @@ require (
 )
 
 replace (
-	github.com/darkweak/souin v1.7.9 => ../..
+	github.com/darkweak/souin v1.7.10 => ../..
 	go.uber.org/zap v1.26.0 => go.uber.org/zap v1.21.0
 )

@@ -5,7 +5,7 @@ go 1.27.1
 replace github.com/darkweak/souin => ../../..
 
 require (
-	github.com/darkweak/souin v1.7.9
+	github.com/darkweak/souin v1.7.10
 	github.com/darkweak/storages/badger v0.0.22
 	github.com/darkweak/storages/core v0.0.22
 	github.com/darkweak/storages/etcd v0.0.22

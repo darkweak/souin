@@ -3,8 +3,8 @@ module github.com/darkweak/souin/plugins/dotweb
 go 1.27.1
 
 require (
-	github.com/darkweak/souin v1.7.9
-	github.com/darkweak/souin/plugins/souin/storages v1.7.9
+	github.com/darkweak/souin v1.7.10
+	github.com/darkweak/souin/plugins/souin/storages v1.7.10
 	github.com/devfeel/dotweb v1.8.3
 )
 
@@ -217,6 +217,6 @@ require (
 )
 
 replace (
-	github.com/darkweak/souin v1.7.9 => ../..
+	github.com/darkweak/souin v1.7.10 => ../..
 	github.com/darkweak/souin/plugins/souin/storages => ../souin/storages
 )

@@ -4,7 +4,7 @@ go 1.27.1
 
 require (
 	github.com/caddyserver/caddy/v2 v2.11.7
-	github.com/darkweak/souin v1.7.9
+	github.com/darkweak/souin v1.7.10
 	github.com/darkweak/storages/core v0.0.22
 	github.com/dustin/go-humanize v1.1.0
 )
@@ -176,4 +176,4 @@ require (
 	howett.net/plist v1.0.1 // indirect
 )
 
-replace github.com/darkweak/souin v1.7.9 => ../..
+replace github.com/darkweak/souin v1.7.10 => ../..
