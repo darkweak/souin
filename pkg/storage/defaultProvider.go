@@ -221,7 +221,11 @@ func (provider *Default) Delete(key string) {
 	provider.m.Delete(key)
 }
 
-// DeleteMany method will delete the responses in Badger provider if exists corresponding to the regex key param
+// DeleteMany method will delete the responses in Default provider if exists corresponding to the regex key param.
+// Like the other storages, the key only matches as a regexp; a key equal to
+// the param is deleted too, so a literal key that is not a valid or not a
+// self-matching regexp can still be purged. Keys that merely start with the
+// param are not deleted anymore.
 func (provider *Default) DeleteMany(key string) {
 	re, e := regexp.Compile(key)
 
@@ -230,7 +234,7 @@ func (provider *Default) DeleteMany(key string) {
 	}
 
 	provider.m.Range(func(current, _ any) bool {
-		if (re != nil && re.MatchString(current.(string))) || strings.HasPrefix(current.(string), key) {
+		if (re != nil && re.MatchString(current.(string))) || current.(string) == key {
 			provider.m.Delete(current)
 		}
 
