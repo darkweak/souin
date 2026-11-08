@@ -154,7 +154,7 @@ github.com/coreos/go-oidc/v3/oidc
 # github.com/cpuguy83/go-md2man/v2 v2.0.7
 ## explicit; go 1.12
 github.com/cpuguy83/go-md2man/v2/md2man
-# github.com/darkweak/souin v1.7.9 => ../..
+# github.com/darkweak/souin v1.7.10 => ../..
 ## explicit; go 1.27.1
 github.com/darkweak/souin/configurationtypes
 github.com/darkweak/souin/context

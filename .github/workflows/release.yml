@@ -80,7 +80,7 @@ jobs:
     steps:
       -
         name: Set up Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v7
         with:
           go-version: ${{ env.GO_VERSION }}
       -
@@ -108,7 +108,7 @@ jobs:
     steps:
       -
         name: Set up Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v7
         with:
           go-version: ${{ env.GO_VERSION }}
       -

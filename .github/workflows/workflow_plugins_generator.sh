@@ -22,7 +22,7 @@ jobs:
           sudo echo "127.0.0.1 domain.com etcd redis" | sudo tee -a /etc/hosts
       -
         name: Install Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v7
         with:
           go-version: '$go_version'
       -
@@ -68,7 +68,7 @@ jobs:
           sudo echo "127.0.0.1 domain.com etcd redis" | sudo tee -a /etc/hosts
       -
         name: Install Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v7
         with:
           go-version: '$go_version'
       -

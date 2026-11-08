@@ -3,9 +3,9 @@ module github.com/darkweak/souin/plugins/roadrunner
 go 1.27.1
 
 require (
-	github.com/darkweak/souin v1.7.9
-	github.com/darkweak/souin/plugins/souin v1.7.9
-	github.com/darkweak/souin/plugins/souin/storages v1.7.9
+	github.com/darkweak/souin v1.7.10
+	github.com/darkweak/souin/plugins/souin v1.7.10
+	github.com/darkweak/souin/plugins/souin/storages v1.7.10
 	github.com/roadrunner-server/errors v1.6.0
 	go.uber.org/zap v1.28.0
 	gopkg.in/yaml.v3 v3.0.1
@@ -216,7 +216,7 @@ require (
 )
 
 replace (
-	github.com/darkweak/souin v1.7.9 => ../..
+	github.com/darkweak/souin v1.7.10 => ../..
 	github.com/darkweak/souin/plugins/souin => ../souin
 	github.com/darkweak/souin/plugins/souin/storages => ../souin/storages
 )
