@@ -68,6 +68,15 @@ func MappingEntry(now, freshTime, staleTime time.Time, variedHeaders http.Header
 	})
 }
 
+// MappingTTL returns the lifetime the in-memory storers (otter, simplefs)
+// give to their mapping keys: minus twice the current nanosecond of the
+// second, in seconds. It is the value they historically computed through
+// time.ParseDuration(fmt.Sprintf("-%ds", time.Now().Nanosecond()*2)), without
+// the formatting and the parsing.
+func MappingTTL() time.Duration {
+	return -time.Duration(time.Now().Nanosecond()*2) * time.Second
+}
+
 var registered = sync.Map{}
 
 func RegisterStorage(s Storer) {

@@ -2,6 +2,9 @@ displayName: Souin
 type: middleware
 import: github.com/darkweak/souin/plugins/traefik
 summary: 'Souin is a powerfull cache system as fast as Varnish but easier to configure'
+# The storages (badger, otter, redis...) rely on unsafe: Traefik must also allow it with
+# experimental.(local)plugins.souin.settings.useUnsafe.
+useUnsafe: true
 
 # Refer to https://github.com/darkweak/Souin/blob/master/configuration/configuration.sample.yml for full configuration
 testData:

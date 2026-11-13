@@ -2,7 +2,7 @@
 
 # Disabled go-zero and hertz temporary
 # plugins=("beego"  "chi"  "dotweb"  "echo"  "fiber"  "gin"  "goa"  "go-zero"  "hertz"  "kratos"  "roadrunner"  "souin"  "traefik"  "tyk"  "webgo")
-plugins=("beego"  "chi"  "dotweb"  "echo"  "fiber"  "gin"  "goa"  "kratos"  "souin"  "traefik"  "webgo")
+plugins=("beego"  "chi"  "dotweb"  "echo"  "fiber"  "gin"  "goa"  "kratos"  "souin"  "webgo")
 go_version=1.27
 
 IFS= read -r -d '' tpl <<EOF
@@ -177,6 +177,15 @@ jobs:
         env:
           CHROME_BIN: \${{ steps.setup-chrome.outputs.chrome-path }}
           GITHUB_TOKEN: \${{ secrets.GITHUB_TOKEN }}
+
+  build-traefik-validator:
+    uses: ./.github/workflows/plugin_template.yml
+    secrets: inherit
+    with:
+      CAPITALIZED_NAME: Traefik
+      LOWER_NAME: traefik
+      GO_VERSION: '$go_version'
+      WAIT_SECONDS: 120
 
 EOF
 workflow+="$tpl"

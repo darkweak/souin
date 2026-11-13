@@ -1,17 +1,18 @@
 package providers
 
 import (
-	"fmt"
 	"net/http"
 	"net/url"
 	"regexp"
+	"slices"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/darkweak/souin/configurationtypes"
-	"github.com/darkweak/souin/pkg/storage"
+	"github.com/darkweak/souin/pkg/rfc"
 	"github.com/darkweak/souin/pkg/storage/types"
+	"github.com/darkweak/storages/core"
 )
 
 const (
@@ -28,16 +29,54 @@ const (
 	cacheTags             = "Cache-Tags"
 	cacheTag              = "Cache-Tag"
 
-	stalePrefix     = "STALE_"
 	surrogatePrefix = "SURROGATE_"
 )
 
 var storageToInfiniteTTLMap = map[string]time.Duration{
-	"CACHE": 365 * 24 * time.Hour,
+	"BADGER":                 types.OneYearDuration,
+	"ETCD":                   types.OneYearDuration,
+	"GO-REDIS":               types.OneYearDuration,
+	"NUTS":                   0,
+	"OLRIC":                  types.OneYearDuration,
+	"OTTER":                  types.OneYearDuration,
+	"REDIS":                  -1,
+	"SIMPLEFS":               0,
+	types.DefaultStorageName: types.OneYearDuration,
 }
 
 func (s *baseStorage) ParseHeaders(value string) []string {
-	return regexp.MustCompile(s.parent.getHeaderSeparator()+" *").Split(value, -1)
+	res := strings.Split(value, s.parent.getHeaderSeparator())
+	for i, v := range res {
+		res[i] = strings.TrimSpace(v)
+	}
+
+	return res
+}
+
+// structuredFieldHeaders are the cache control headers defined as RFC 8941
+// Structured Fields. One that fails to parse conveys nothing and must be
+// skipped entirely, letting the next candidate decide instead.
+var structuredFieldHeaders = map[string]bool{
+	cdnCacheControl:  true,
+	surrogateControl: true,
+}
+
+func getCandidateHeader(header http.Header, getCandidates func() []string) (string, string) {
+	candidates := getCandidates()
+	for _, candidate := range candidates {
+		h := header.Get(candidate)
+		if h == "" {
+			continue
+		}
+
+		if structuredFieldHeaders[candidate] && !rfc.IsValidCacheControlDictionary(h) {
+			continue
+		}
+
+		return candidate, h
+	}
+
+	return candidates[len(candidates)-1], ""
 }
 
 func isSafeHTTPMethod(method string) bool {
@@ -59,8 +98,11 @@ func uniqueTag(values []string) []string {
 		}
 		if _, found := tmp[item]; !found {
 			tmp[item] = true
-			i, _ := url.QueryUnescape(item)
-			list = append(list, i)
+
+			if strings.Contains(item, "%") {
+				item, _ = url.QueryUnescape(item)
+			}
+			list = append(list, item)
 		}
 	}
 
@@ -79,17 +121,35 @@ type baseStorage struct {
 	keysRegexp map[string]keysRegexpInner
 	dynamic    bool
 	keepStale  bool
+	logger     core.Logger
 	mu         sync.Mutex
 	duration   time.Duration
 }
 
-func (s *baseStorage) init(config configurationtypes.AbstractConfigurationInterface, _ string) {
-	storers, err := storage.NewStorages(config)
-	if err != nil {
-		panic(fmt.Sprintf("Impossible to instanciate the storer for the surrogate-keys: %v", err))
-	}
+func (s *baseStorage) init(config configurationtypes.AbstractConfigurationInterface, defaultStorerName string) {
+	if configuration, ok := config.GetSurrogateKeys()["_configuration"]; ok {
+		storer := core.GetRegisteredStorer(configuration.Storer)
+		if storer == nil {
+			storer = core.GetRegisteredStorer(types.DefaultStorageName + "-")
+			if storer == nil {
+				config.GetLogger().Errorf("Impossible to retrieve the storers %s for the surrogate-keys from it's configuration", configuration.Storer)
+			}
+		}
 
-	s.Storage = storers[0]
+		s.Storage = storer
+	} else {
+		config.GetLogger().Debugf("Try to load the storer %s as surrogate backend", defaultStorerName)
+		storer := core.GetRegisteredStorer(defaultStorerName)
+		if storer == nil {
+			config.GetLogger().Errorf("Impossible to retrieve the storers %s for the surrogate-keys fallback to the default storage", configuration.Storer)
+			storer = core.GetRegisteredStorer(types.DefaultStorageName + "-")
+			if storer == nil {
+				config.GetLogger().Error("Impossible to retrieve the default storer")
+			}
+		}
+
+		s.Storage = storer
+	}
 
 	s.Keys = config.GetSurrogateKeys()
 	s.keepStale = config.GetDefaultCache().GetCDN().Strategy != "hard"
@@ -115,8 +175,8 @@ func (s *baseStorage) init(config configurationtypes.AbstractConfigurationInterf
 	}
 
 	s.dynamic = config.GetDefaultCache().GetCDN().Dynamic
+	s.logger = config.GetLogger()
 	s.keysRegexp = keysRegexp
-	s.mu = sync.Mutex{}
 	s.duration = storageToInfiniteTTLMap[s.Storage.Name()]
 }
 
@@ -149,10 +209,27 @@ func containsCacheKey(currentValue, cacheKey string) bool {
 func (s *baseStorage) storeTag(tag string, cacheKey string) {
 	defer s.mu.Unlock()
 	s.mu.Lock()
+
+	// Native sets avoid rereading and rewriting the whole tag value on every
+	// stored response.
+	if setStorer, ok := s.Storage.(core.SetStorer); ok {
+		s.logger.Debugf("Store the tag %s", tag)
+		_ = setStorer.AddToSet(surrogatePrefix+tag, []string{cacheKey}, s.duration)
+
+		return
+	}
+
 	currentValue := string(s.Storage.Get(surrogatePrefix + tag))
 	if !containsCacheKey(currentValue, cacheKey) {
-		fmt.Printf("Store the tag %s", tag)
-		_ = s.Storage.Set(surrogatePrefix+tag, []byte(currentValue+souinStorageSeparator+cacheKey), -1)
+		s.logger.Debugf("Store the tag %s", tag)
+
+		if currentValue == "" {
+			currentValue = cacheKey
+		} else {
+			currentValue += souinStorageSeparator + cacheKey
+		}
+
+		_ = s.Storage.Set(surrogatePrefix+tag, []byte(currentValue), s.duration)
 	}
 }
 
@@ -162,6 +239,7 @@ func (*baseStorage) candidateStore(tag string) bool {
 
 func (*baseStorage) getOrderedSurrogateKeyHeadersCandidate() []string {
 	return []string{
+		cacheGroupKey,
 		surrogateKey,
 		edgeCacheTag,
 		cacheTags,
@@ -178,14 +256,7 @@ func (*baseStorage) getOrderedSurrogateControlHeadersCandidate() []string {
 }
 
 func (s *baseStorage) GetSurrogateControl(header http.Header) (string, string) {
-	parent := s.parent.getOrderedSurrogateControlHeadersCandidate()
-	for _, candidate := range parent {
-		if h := header.Get(candidate); h != "" {
-			return candidate, h
-		}
-	}
-
-	return parent[len(parent)-1], ""
+	return getCandidateHeader(header, s.parent.getOrderedSurrogateControlHeadersCandidate)
 }
 
 func (s *baseStorage) GetSurrogateControlName() string {
@@ -193,25 +264,25 @@ func (s *baseStorage) GetSurrogateControlName() string {
 }
 
 func (s *baseStorage) getSurrogateKey(header http.Header) string {
-	for _, candidate := range s.parent.getOrderedSurrogateKeyHeadersCandidate() {
-		if h := header.Get(candidate); h != "" {
-			return h
-		}
-	}
-
-	return ""
+	_, v := getCandidateHeader(header, s.parent.getOrderedSurrogateKeyHeadersCandidate)
+	return v
 }
 
 func (s *baseStorage) purgeTag(tag string) []string {
-	toInvalidate := string(s.Storage.Get(tag))
-	fmt.Printf("Purge the tag %s", tag)
-	s.Storage.Delete(surrogatePrefix + tag)
-	if !s.keepStale {
-		toInvalidate = toInvalidate + "," + string(s.Storage.Get(stalePrefix+tag))
-		fmt.Printf("Purge the tag %s", stalePrefix+tag)
-		s.Storage.Delete(surrogatePrefix + stalePrefix + tag)
+	var toInvalidate []string
+	if setStorer, ok := s.Storage.(core.SetStorer); ok {
+		toInvalidate = setStorer.GetSet(surrogatePrefix + tag)
+	} else {
+		toInvalidate = strings.Split(string(s.Storage.Get(surrogatePrefix+tag)), souinStorageSeparator)
 	}
-	return strings.Split(toInvalidate, souinStorageSeparator)
+
+	s.logger.Debugf("Purge the tag %s", tag)
+
+	if !s.keepStale {
+		s.Storage.Delete(surrogatePrefix + tag)
+	}
+
+	return toInvalidate
 }
 
 // Store will take the lead to store the cache key for each provided Surrogate-key
@@ -219,30 +290,23 @@ func (s *baseStorage) Store(response *http.Response, cacheKey, uri string) error
 	h := response.Header
 
 	cacheKey = url.QueryEscape(cacheKey)
-	staleKey := stalePrefix + cacheKey
 
-	keys := s.ParseHeaders(s.parent.getSurrogateKey(h))
-
-	for _, key := range keys {
-		_, v := s.parent.GetSurrogateControl(h)
-		if controls := s.ParseHeaders(v); len(controls) != 0 {
-			if len(controls) == 1 && controls[0] == "" {
-				s.storeTag(key, cacheKey)
-				s.storeTag(stalePrefix+key, staleKey)
-
-				continue
-			}
-			for _, control := range controls {
-				if s.parent.candidateStore(control) {
-					s.storeTag(key, cacheKey)
-					s.storeTag(stalePrefix+key, staleKey)
-				}
-			}
-		} else {
-			s.storeTag(key, cacheKey)
-			s.storeTag(stalePrefix+key, staleKey)
+	_, v := s.parent.GetSurrogateControl(h)
+	if controls := s.ParseHeaders(v); len(controls) > 1 || (len(controls) == 1 && controls[0] != "") {
+		if !slices.ContainsFunc(controls, s.parent.candidateStore) {
+			return nil
 		}
 	}
+
+	// A response without any surrogate key parses as the single empty key.
+	// Indexing it would gather every untagged response under one tag that
+	// only grows, so only the URI tag is kept for those.
+	for _, key := range s.ParseHeaders(s.parent.getSurrogateKey(h)) {
+		if key != "" {
+			s.storeTag(key, cacheKey)
+		}
+	}
+	s.storeTag(uri, cacheKey)
 
 	return nil
 }
@@ -255,6 +319,8 @@ func (s *baseStorage) Purge(header http.Header) (cacheKeys []string, surrogateKe
 	for _, su := range surrogates {
 		toInvalidate = append(toInvalidate, s.purgeTag(su)...)
 	}
+
+	s.logger.Debugf("Purge the following tags: %+v", toInvalidate)
 
 	return uniqueTag(toInvalidate), surrogates
 }
@@ -270,12 +336,23 @@ func (s *baseStorage) Invalidate(method string, headers http.Header) {
 
 // List returns the stored keys associated to resources
 func (s *baseStorage) List() map[string]string {
+	// Set-backed tags are invisible to MapKeys, which only reads string values.
+	if setStorer, ok := s.Storage.(core.SetStorer); ok {
+		keys := map[string]string{}
+
+		_ = setStorer.WalkSets(surrogatePrefix, func(key string, members []string) bool {
+			keys[key] = strings.Join(members, souinStorageSeparator)
+
+			return true
+		})
+
+		return keys
+	}
+
 	return s.Storage.MapKeys(surrogatePrefix)
 }
 
 // Destruct method will shutdown properly the provider
 func (s *baseStorage) Destruct() error {
-	s.Storage.DeleteMany(surrogatePrefix + ".*")
-
-	return nil
+	return s.Storage.Reset()
 }

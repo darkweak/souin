@@ -11,6 +11,7 @@ import (
 
 	"github.com/darkweak/souin/configurationtypes"
 	"github.com/darkweak/souin/pkg/middleware"
+	"github.com/darkweak/souin/plugins/souin/storages"
 )
 
 // SouinTraefikMiddleware declaration.
@@ -58,6 +59,37 @@ func configCacheKey(keyConfiguration map[string]interface{}) configurationtypes.
 	}
 
 	return key
+}
+
+// parseCacheProvider returns the storage provider declared under a storage name (badger, redis...) in the default_cache.
+func parseCacheProvider(i interface{}) configurationtypes.CacheProvider {
+	provider := configurationtypes.CacheProvider{}
+	values, ok := i.(map[string]interface{})
+	if !ok {
+		// An empty block (e.g. "otter: {}" or "otter:") enables the storage with its defaults.
+		provider.Found = true
+		provider.Configuration = map[string]interface{}{}
+
+		return provider
+	}
+
+	provider.Found = true
+	for k, v := range values {
+		switch k {
+		case "url":
+			provider.URL, _ = v.(string)
+		case "path":
+			provider.Path, _ = v.(string)
+		case "configuration":
+			provider.Configuration = v
+		}
+	}
+
+	if provider.URL == "" && provider.Path == "" && provider.Configuration == nil {
+		provider.Configuration = map[string]interface{}{}
+	}
+
+	return provider
 }
 
 func parseConfiguration(c map[string]interface{}) Configuration {
@@ -133,6 +165,22 @@ func parseConfiguration(c map[string]interface{}) Configuration {
 			defaultCache := v.(map[string]interface{})
 			for defaultCacheK, defaultCacheV := range defaultCache {
 				switch defaultCacheK {
+				case "badger":
+					dc.Badger = parseCacheProvider(defaultCacheV)
+				case "etcd":
+					dc.Etcd = parseCacheProvider(defaultCacheV)
+				case "nats":
+					dc.Nats = parseCacheProvider(defaultCacheV)
+				case "nuts":
+					dc.Nuts = parseCacheProvider(defaultCacheV)
+				case "olric":
+					dc.Olric = parseCacheProvider(defaultCacheV)
+				case "otter":
+					dc.Otter = parseCacheProvider(defaultCacheV)
+				case "redis":
+					dc.Redis = parseCacheProvider(defaultCacheV)
+				case "simplefs":
+					dc.SimpleFS = parseCacheProvider(defaultCacheV)
 				case "cache_name":
 					dc.CacheName = defaultCacheV.(string)
 				case "cdn":
@@ -322,6 +370,10 @@ func parseIntSlice(i interface{}) []int {
 // New create Souin instance.
 func New(_ context.Context, next http.Handler, config *TestConfiguration, name string) (http.Handler, error) {
 	c := parseConfiguration(*config)
+	if c.DefaultCache == nil {
+		c.DefaultCache = &configurationtypes.DefaultCache{}
+	}
+	storages.InitFromConfiguration(&c)
 
 	return &SouinTraefikMiddleware{
 		name:             name,

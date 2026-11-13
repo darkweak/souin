@@ -12,6 +12,10 @@ on:
       GO_VERSION:
         required: true
         type: string
+      WAIT_SECONDS:
+        required: false
+        type: number
+        default: 60
 
 jobs:
   plugin-test:
@@ -55,7 +59,7 @@ jobs:
         # on the runners: poll instead of waiting a fixed delay.
         run: |
           cd plugins/${{ inputs.LOWER_NAME }}
-          for _ in $(seq 1 60); do
+          for _ in $(seq 1 ${{ inputs.WAIT_SECONDS }}); do
             if make -s load-checker | grep -q 'Souin configuration is now loaded.'; then
               exit 0
             fi

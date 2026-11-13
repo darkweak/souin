@@ -1,0 +1,22 @@
+# syntax=docker/dockerfile:1
+# Traefik built from the darkweak/traefik fork (wy interpreter instead of Yaegi).
+# ADD of a git ref re-resolves the branch head on each build, so cache only hits
+# when TRAEFIK_REF has not moved.
+FROM golang:1.27-alpine AS builder
+
+ARG TRAEFIK_REPOSITORY=https://github.com/darkweak/traefik.git
+ARG TRAEFIK_REF=master
+
+WORKDIR /src
+ADD ${TRAEFIK_REPOSITORY}#${TRAEFIK_REF} .
+RUN go mod download
+RUN CGO_ENABLED=0 go build -ldflags "-s -w -X github.com/traefik/traefik/v3/pkg/version.Version=${TRAEFIK_REF}" \
+    -o /traefik ./cmd/traefik
+
+FROM alpine:3
+
+RUN apk add --no-cache --no-progress ca-certificates tzdata
+COPY --from=builder /traefik /
+
+EXPOSE 80
+ENTRYPOINT ["/traefik"]

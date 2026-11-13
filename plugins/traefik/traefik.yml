@@ -8,13 +8,16 @@ api:
   debug: true
   insecure: true
 
-pilot:
-  token: 2dfb46d0-ad2a-4792-8b8e-8305dbc4e212
-
 experimental:
+  # Souin runs on wy, not Yaegi: it needs the darkweak/traefik fork, or a
+  # Traefik with traefik/traefik#14293.
+  defaultRuntimeVersion: wy
   localPlugins:
     souin:
       moduleName: github.com/darkweak/souin
+      settings:
+        # The storages rely on unsafe, see useUnsafe in .traefik.yml.
+        useUnsafe: true
 
 log:
   level: DEBUG

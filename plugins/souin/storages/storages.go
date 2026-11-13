@@ -29,12 +29,24 @@ func toCoreCacheProvider(p configurationtypes.CacheProvider) core.CacheProvider 
 		URL:           p.URL,
 	}
 }
-func tryToRegisterStorage(p configurationtypes.CacheProvider, f factory, logger core.Logger, stale time.Duration) {
-	if !isProviderEmpty(p) {
-		if s, err := f(toCoreCacheProvider(p), logger, stale); err == nil {
-			core.RegisterStorage(s)
-		}
+
+// tryToRegisterStorage registers the storage declared by p and returns the
+// key the middleware looks it up with, or an empty string.
+func tryToRegisterStorage(name string, p configurationtypes.CacheProvider, f factory, logger core.Logger, stale time.Duration) string {
+	if isProviderEmpty(p) {
+		return ""
 	}
+
+	s, err := f(toCoreCacheProvider(p), logger, stale)
+	if err != nil {
+		logger.Errorf("Impossible to initialize the %s storage: %v", name, err)
+
+		return ""
+	}
+
+	core.RegisterStorage(s)
+
+	return s.Name() + "-" + s.Uuid()
 }
 
 func InitFromConfiguration(configuration configurationtypes.AbstractConfigurationInterface) {
@@ -67,13 +79,27 @@ func InitFromConfiguration(configuration configurationtypes.AbstractConfiguratio
 		configuration.SetLogger(logger.Sugar())
 	}
 	logger := configuration.GetLogger()
-	stale := configuration.GetDefaultCache().GetStale()
-	tryToRegisterStorage(configuration.GetDefaultCache().GetBadger(), badger.Factory, logger, stale)
-	tryToRegisterStorage(configuration.GetDefaultCache().GetEtcd(), etcd.Factory, logger, stale)
-	tryToRegisterStorage(configuration.GetDefaultCache().GetNats(), nats.Factory, logger, stale)
-	tryToRegisterStorage(configuration.GetDefaultCache().GetNuts(), nuts.Factory, logger, stale)
-	tryToRegisterStorage(configuration.GetDefaultCache().GetOlric(), olric.Factory, logger, stale)
-	tryToRegisterStorage(configuration.GetDefaultCache().GetOtter(), otter.Factory, logger, stale)
-	tryToRegisterStorage(configuration.GetDefaultCache().GetRedis(), redis.Factory, logger, stale)
-	tryToRegisterStorage(configuration.GetDefaultCache().GetSimpleFS(), simplefs.Factory, logger, stale)
+	dc := configuration.GetDefaultCache()
+	stale := dc.GetStale()
+
+	badgerUuid := tryToRegisterStorage("badger", dc.GetBadger(), badger.Factory, logger, stale)
+	etcdUuid := tryToRegisterStorage("etcd", dc.GetEtcd(), etcd.Factory, logger, stale)
+	natsUuid := tryToRegisterStorage("nats", dc.GetNats(), nats.Factory, logger, stale)
+	nutsUuid := tryToRegisterStorage("nuts", dc.GetNuts(), nuts.Factory, logger, stale)
+	olricUuid := tryToRegisterStorage("olric", dc.GetOlric(), olric.Factory, logger, stale)
+	otterUuid := tryToRegisterStorage("otter", dc.GetOtter(), otter.Factory, logger, stale)
+	redisUuid := tryToRegisterStorage("redis", dc.GetRedis(), redis.Factory, logger, stale)
+	simplefsUuid := tryToRegisterStorage("simplefs", dc.GetSimpleFS(), simplefs.Factory, logger, stale)
+
+	// The middleware retrieves the registered storages by these identifiers.
+	if d, ok := dc.(*configurationtypes.DefaultCache); ok && d != nil {
+		d.Badger.Uuid = badgerUuid
+		d.Etcd.Uuid = etcdUuid
+		d.Nats.Uuid = natsUuid
+		d.Nuts.Uuid = nutsUuid
+		d.Olric.Uuid = olricUuid
+		d.Otter.Uuid = otterUuid
+		d.Redis.Uuid = redisUuid
+		d.SimpleFS.Uuid = simplefsUuid
+	}
 }
