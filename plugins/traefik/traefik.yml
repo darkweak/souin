@@ -9,6 +9,9 @@ api:
   insecure: true
 
 experimental:
+  # Souin runs on wy, not Yaegi: it needs the darkweak/traefik fork, or a
+  # Traefik with traefik/traefik#14293.
+  defaultRuntimeVersion: wy
   localPlugins:
     souin:
       moduleName: github.com/darkweak/souin
