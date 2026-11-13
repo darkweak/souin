@@ -8,13 +8,13 @@ api:
   debug: true
   insecure: true
 
-pilot:
-  token: 2dfb46d0-ad2a-4792-8b8e-8305dbc4e212
-
 experimental:
   localPlugins:
     souin:
       moduleName: github.com/darkweak/souin
+      settings:
+        # The storages rely on unsafe, see useUnsafe in .traefik.yml.
+        useUnsafe: true
 
 log:
   level: DEBUG

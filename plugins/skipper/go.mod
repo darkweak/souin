@@ -97,15 +97,15 @@ require (
 	github.com/coreos/go-semver v0.3.1 // indirect
 	github.com/coreos/go-systemd/v22 v22.7.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
-	github.com/darkweak/storages/badger v0.0.22 // indirect
-	github.com/darkweak/storages/core v0.0.22 // indirect
-	github.com/darkweak/storages/etcd v0.0.22 // indirect
-	github.com/darkweak/storages/nats v0.0.22 // indirect
-	github.com/darkweak/storages/nuts v0.0.22 // indirect
-	github.com/darkweak/storages/olric v0.0.22 // indirect
-	github.com/darkweak/storages/otter v0.0.22 // indirect
-	github.com/darkweak/storages/redis v0.0.22 // indirect
-	github.com/darkweak/storages/simplefs v0.0.22 // indirect
+	github.com/darkweak/storages/badger v0.0.23 // indirect
+	github.com/darkweak/storages/core v0.0.23 // indirect
+	github.com/darkweak/storages/etcd v0.0.23 // indirect
+	github.com/darkweak/storages/nats v0.0.23 // indirect
+	github.com/darkweak/storages/nuts v0.0.23 // indirect
+	github.com/darkweak/storages/olric v0.0.23 // indirect
+	github.com/darkweak/storages/otter v0.0.23 // indirect
+	github.com/darkweak/storages/redis v0.0.23 // indirect
+	github.com/darkweak/storages/simplefs v0.0.23 // indirect
 	github.com/dchest/siphash v1.2.3 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0 // indirect
 	github.com/dgraph-io/badger v1.6.2 // indirect

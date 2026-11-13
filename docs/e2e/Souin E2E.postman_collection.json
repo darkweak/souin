@@ -2947,7 +2947,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"utils.noCacheRequest(pm, `${utils.getVar(pm, 'app_url')}/default`, 'uri-miss')"
+									"utils.noCacheRequest(pm, `${utils.getVar(pm, 'app_url')}/default`, 'request')"
 								],
 								"type": "text/javascript"
 							}

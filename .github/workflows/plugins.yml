@@ -147,11 +147,6 @@ jobs:
         name: Run detached cache-tests server
         run: cd cache-tests && pnpm install && pnpm run server &
       -
-        name: Wait for Souin is really loaded inside caddy as middleware
-        uses: jakejarvis/wait-action@master
-        with:
-          time: 10s
-      -
         name: Run cache-tests test suite
         run: cd cache-tests && ./test-host.sh 127.0.0.1:4443 > results/mr.json
       -
@@ -174,6 +169,15 @@ jobs:
         env:
           CHROME_BIN: ${{ steps.setup-chrome.outputs.chrome-path }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-traefik-validator:
+    uses: ./.github/workflows/plugin_template.yml
+    secrets: inherit
+    with:
+      CAPITALIZED_NAME: Traefik
+      LOWER_NAME: traefik
+      GO_VERSION: '1.27'
+      WAIT_SECONDS: 120
 
   build-beego-validator:
     uses: ./.github/workflows/plugin_template.yml
@@ -237,13 +241,6 @@ jobs:
     with:
       CAPITALIZED_NAME: Souin
       LOWER_NAME: souin
-      GO_VERSION: '1.27'
-  build-traefik-validator:
-    uses: ./.github/workflows/plugin_template.yml
-    secrets: inherit
-    with:
-      CAPITALIZED_NAME: Traefik
-      LOWER_NAME: traefik
       GO_VERSION: '1.27'
   build-webgo-validator:
     uses: ./.github/workflows/plugin_template.yml
