@@ -2,7 +2,11 @@ version: '3.4'
 
 services:
   traefik:
-    image: traefik:v3.1
+    # darkweak/traefik: Traefik interpreting plugins with wy instead of Yaegi.
+    build:
+      context: .
+      dockerfile: Dockerfile.traefik
+    image: souin-traefik-fork:master
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ../..:/plugins-local/src/github.com/darkweak/souin

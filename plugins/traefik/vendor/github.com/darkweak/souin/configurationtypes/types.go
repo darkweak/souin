@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/darkweak/storages/core"
 	"gopkg.in/yaml.v3"
 )
 
@@ -19,8 +20,8 @@ func (c *CacheKeys) parseJSON(rootDecoder *json.Decoder) {
 	var token json.Token
 	var err error
 
-	_, _ = rootDecoder.Token()
-	_, _ = rootDecoder.Token()
+	// Consume the opening delimiter of the cache keys object, the regexp
+	// keys are then read one by one in the loop.
 	_, _ = rootDecoder.Token()
 
 	for err == nil {
@@ -48,15 +49,15 @@ func (c *CacheKeys) parseJSON(rootDecoder *json.Decoder) {
 			case "disable_query":
 				val, _ := rootDecoder.Token()
 				key.DisableQuery, _ = strconv.ParseBool(fmt.Sprint(val))
-			case "sort_query":
-				val, _ := rootDecoder.Token()
-				key.SortQuery, _ = strconv.ParseBool(fmt.Sprint(val))
 			case "disable_scheme":
 				val, _ := rootDecoder.Token()
 				key.DisableScheme, _ = strconv.ParseBool(fmt.Sprint(val))
 			case "disable_vary":
 				val, _ := rootDecoder.Token()
 				key.DisableVary, _ = strconv.ParseBool(fmt.Sprint(val))
+			case "sort_query":
+				val, _ := rootDecoder.Token()
+				key.SortQuery, _ = strconv.ParseBool(fmt.Sprint(val))
 			case "hash":
 				val, _ := rootDecoder.Token()
 				key.Hash, _ = strconv.ParseBool(fmt.Sprint(val))
@@ -107,8 +108,15 @@ func (c *CacheKeys) MarshalJSON() ([]byte, error) {
 	var strKeys []string
 	for _, cacheKey := range *c {
 		for rg, key := range cacheKey {
-			keyBytes, _ := json.Marshal(key)
-			strKeys = append(strKeys, fmt.Sprintf(`"%s": %v`, rg.String(), string(keyBytes)))
+			rgBytes, err := json.Marshal(rg.String())
+			if err != nil {
+				return nil, err
+			}
+			keyBytes, err := json.Marshal(key)
+			if err != nil {
+				return nil, err
+			}
+			strKeys = append(strKeys, fmt.Sprintf(`%s: %s`, rgBytes, keyBytes))
 		}
 	}
 
@@ -201,6 +209,26 @@ type CacheProvider struct {
 	Configuration interface{} `json:"configuration" yaml:"configuration"`
 }
 
+func (c *CacheProvider) MarshalJSON() ([]byte, error) {
+	if !c.Found && c.URL == "" && c.Path == "" && c.Configuration == nil && c.Uuid == "" {
+		return []byte("null"), nil
+	}
+
+	return json.Marshal(struct {
+		Uuid          string
+		Found         bool        `json:"found"`
+		URL           string      `json:"url"`
+		Path          string      `json:"path"`
+		Configuration interface{} `json:"configuration"`
+	}{
+		Uuid:          c.Uuid,
+		Found:         c.Found,
+		URL:           c.URL,
+		Path:          c.Path,
+		Configuration: c.Configuration,
+	})
+}
+
 // Timeout configuration to handle the cache provider and the
 // reverse-proxy timeout.
 type Timeout struct {
@@ -226,9 +254,9 @@ type Key struct {
 	DisableHost   bool     `json:"disable_host,omitempty" yaml:"disable_host,omitempty"`
 	DisableMethod bool     `json:"disable_method,omitempty" yaml:"disable_method,omitempty"`
 	DisableQuery  bool     `json:"disable_query,omitempty" yaml:"disable_query,omitempty"`
-	SortQuery     bool     `json:"sort_query,omitempty" yaml:"sort_query,omitempty"`
 	DisableScheme bool     `json:"disable_scheme,omitempty" yaml:"disable_scheme,omitempty"`
 	DisableVary   bool     `json:"disable_vary,omitempty" yaml:"disable_vary,omitempty"`
+	SortQuery     bool     `json:"sort_query,omitempty" yaml:"sort_query,omitempty"`
 	Hash          bool     `json:"hash,omitempty" yaml:"hash,omitempty"`
 	Hide          bool     `json:"hide,omitempty" yaml:"hide,omitempty"`
 	Template      string   `json:"template,omitempty" yaml:"template,omitempty"`
@@ -262,6 +290,7 @@ type DefaultCache struct {
 	DefaultCacheControl          string        `json:"default_cache_control" yaml:"default_cache_control"`
 	MaxBodyBytes                 uint64        `json:"max_cacheable_body_bytes" yaml:"max_cacheable_body_bytes"`
 	DisableCoalescing            bool          `json:"disable_coalescing" yaml:"disable_coalescing"`
+	MappingEvictionInterval      Duration      `json:"mapping_eviction_interval" yaml:"mapping_eviction_interval"`
 }
 
 // GetAllowedHTTPVerbs returns the allowed verbs to cache
@@ -384,6 +413,14 @@ func (d *DefaultCache) IsCoalescingDisable() bool {
 	return d.DisableCoalescing
 }
 
+// GetMappingEvictionInterval returns the interval for mapping eviction
+func (d *DefaultCache) GetMappingEvictionInterval() time.Duration {
+	if d.MappingEvictionInterval.Duration == 0 {
+		return time.Minute
+	}
+	return d.MappingEvictionInterval.Duration
+}
+
 // DefaultCacheInterface interface
 type DefaultCacheInterface interface {
 	GetAllowedHTTPVerbs() []string
@@ -410,6 +447,7 @@ type DefaultCacheInterface interface {
 	GetDefaultCacheControl() string
 	GetMaxBodyBytes() uint64
 	IsCoalescingDisable() bool
+	GetMappingEvictionInterval() time.Duration
 }
 
 // APIEndpoint is the minimal structure to define an endpoint
@@ -460,7 +498,10 @@ type AbstractConfigurationInterface interface {
 	GetDefaultCache() DefaultCacheInterface
 	GetAPI() API
 	GetLogLevel() string
+	GetLogger() core.Logger
+	SetLogger(core.Logger)
 	GetYkeys() map[string]SurrogateKeys
 	GetSurrogateKeys() map[string]SurrogateKeys
+	IsSurrogateDisabled() bool
 	GetCacheKeys() CacheKeys
 }

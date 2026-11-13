@@ -15,6 +15,9 @@ experimental:
   localPlugins:
     souin:
       moduleName: github.com/darkweak/souin
+      settings:
+        # The storages rely on unsafe, see useUnsafe in .traefik.yml.
+        useUnsafe: true
 
 log:
   level: DEBUG
