@@ -111,6 +111,7 @@ func (r *CustomWriter) Send() (int, error) {
 	r.Header().Del(rfc.StoredLengthHeader)
 	r.Header().Del(rfc.StoredTTLHeader)
 	r.Header().Del(rfc.StoredExpiryHeader)
+	r.Header().Del(rfc.SoftPurgedHeader)
 
 	// When the client issued a range request, serve it from the fully cached
 	// body through the standard library. http.ServeContent implements RFC 7233
@@ -151,6 +152,7 @@ func (r *CustomWriter) Send() (int, error) {
 	r.Header().Del(rfc.StoredLengthHeader)
 	r.Header().Del(rfc.StoredTTLHeader)
 	r.Header().Del(rfc.StoredExpiryHeader)
+	r.Header().Del(rfc.SoftPurgedHeader)
 
 	if !r.headersSent.Load() {
 		r.mutex.Lock()

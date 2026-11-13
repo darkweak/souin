@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/darkweak/souin/pkg/rfc"
 	"github.com/darkweak/souin/pkg/storage"
 	"github.com/darkweak/souin/pkg/storage/types"
 	"github.com/darkweak/souin/pkg/surrogate/providers"
@@ -220,5 +221,226 @@ func TestEvictMapping_DefaultStorageMultiLevel(t *testing.T) {
 	}
 	if keys := memoryStorer.ListKeys(); !slices.Contains(keys, "partial-new") || !slices.Contains(keys, "partial-other") {
 		t.Errorf("expected both fresh keys to be listed, got %v", keys)
+	}
+}
+
+func storeFreshResponse(t *testing.T, s *SouinAPI, storer types.Storer, key, tag string) {
+	t.Helper()
+
+	expiry := time.Now().Add(time.Hour).UTC().Format(time.RFC3339Nano)
+	stored := []byte("HTTP/1.1 200 OK\r\nContent-Length: 4\r\nX-Souin-Stored-Expiry: " + expiry + "\r\n\r\nbody")
+	if err := storer.SetMultiLevel(key, key, stored, http.Header{}, "", time.Hour, key); err != nil {
+		t.Fatalf("Impossible to store the key %s, %v given", key, err)
+	}
+
+	res := &http.Response{Header: http.Header{"Surrogate-Key": []string{tag}}}
+	if err := s.surrogateStorage.Store(res, key, "/uri-"+tag); err != nil {
+		t.Fatalf("Impossible to store the surrogate key %s, %v given", tag, err)
+	}
+}
+
+func softPurgeRequest(s *SouinAPI, target string, headers map[string]string) int {
+	rq := httptest.NewRequest("PURGE", target, nil)
+	rq.Header.Set(SoftPurgeModeHeader, "soft")
+	for k, v := range headers {
+		rq.Header.Set(k, v)
+	}
+	rec := httptest.NewRecorder()
+	s.HandleRequest(rec, rq)
+
+	return rec.Code
+}
+
+// isStale reads the stored response back the way a request would.
+func isStale(t *testing.T, storer types.Storer, key string) bool {
+	t.Helper()
+
+	req := httptest.NewRequest(http.MethodGet, "http://domain.com/", nil)
+	fresh, stale := storer.GetMultiLevel(key, req, rfc.ParseRequest(req))
+	res := fresh
+	if res == nil {
+		res = stale
+	}
+	if res == nil {
+		t.Fatalf("The response %s should still be stored", key)
+	}
+
+	return !rfc.IsStoredFresh(res.Header, time.Now())
+}
+
+func TestHandleRequest_SoftPurgeSurrogateKeyKeepsResponseAndIndex(t *testing.T) {
+	s, storer := mockPurgeAPI(t)
+
+	soft := "GET-http-domain.com-/soft"
+	other := "GET-http-domain.com-/other"
+	storeFreshResponse(t, s, storer, soft, "soft-tag")
+	storeFreshResponse(t, s, storer, other, "other-tag")
+
+	if code := softPurgeRequest(s, s.GetBasePath(), map[string]string{"Surrogate-Key": "soft-tag"}); code != http.StatusNoContent {
+		t.Fatalf("Unexpected status code %d", code)
+	}
+
+	if !isStale(t, storer, soft) {
+		t.Errorf("The response %s should be stale after the soft purge", soft)
+	}
+	if isStale(t, storer, other) {
+		t.Errorf("The response %s was not purged and should stay fresh", other)
+	}
+	if !isIndexedUnder(s, "soft-tag", soft) {
+		t.Errorf("The soft-purged response should stay indexed under its tag, %+v given", s.surrogateStorage.List())
+	}
+	if len(storedMapping(storer, soft)) == 0 {
+		t.Error("The mapping of a soft-purged response must be left alone")
+	}
+
+	// Nothing but the stored response changed: no marker key next to it.
+	for _, k := range storer.ListKeys() {
+		if k != soft && k != other {
+			t.Errorf("Unexpected key %s, soft purge must not add keys", k)
+		}
+	}
+}
+
+func TestHandleRequest_SoftPurgeKeepsTheRetention(t *testing.T) {
+	s, storer := mockPurgeAPI(t)
+
+	key := "GET-http-domain.com-/soft"
+	storeFreshResponse(t, s, storer, key, "soft-tag")
+	softPurgeRequest(s, s.GetBasePath(), map[string]string{"Surrogate-Key": "soft-tag"})
+
+	// A second soft purge is a no-op rather than a way to lose the entry.
+	softPurgeRequest(s, s.GetBasePath(), map[string]string{"Surrogate-Key": "soft-tag"})
+	if len(storer.Get(key)) == 0 {
+		t.Error("The soft-purged response must outlive the purge")
+	}
+}
+
+func TestHandleRequest_SoftPurgeRegexpMatchesKeysAsRegexp(t *testing.T) {
+	s, storer := mockPurgeAPI(t)
+
+	a := "GET-http-domain.com-/items/1"
+	b := "GET-http-domain.com-/items/2"
+	c := "GET-http-domain.com-/other"
+	storeFreshResponse(t, s, storer, a, "a")
+	storeFreshResponse(t, s, storer, b, "b")
+	storeFreshResponse(t, s, storer, c, "c")
+
+	if code := softPurgeRequest(s, s.GetBasePath()+"/.*/items/.*", nil); code != http.StatusNoContent {
+		t.Fatalf("Unexpected status code %d", code)
+	}
+
+	if !isStale(t, storer, a) || !isStale(t, storer, b) {
+		t.Error("Both responses matching the regexp should be stale")
+	}
+	if isStale(t, storer, c) {
+		t.Error("The response that does not match should stay fresh")
+	}
+}
+
+func TestHandleRequest_SoftPurgeFlushIsRefused(t *testing.T) {
+	s, storer := mockPurgeAPI(t)
+
+	key := "GET-http-domain.com-/soft"
+	storeFreshResponse(t, s, storer, key, "soft-tag")
+
+	if code := softPurgeRequest(s, s.GetBasePath()+"/flush", nil); code != http.StatusBadRequest {
+		t.Errorf("Unexpected status code %d", code)
+	}
+	if len(storer.Get(key)) == 0 {
+		t.Error("A refused soft flush must not drop anything")
+	}
+}
+
+func TestBulkDelete_WithoutPurgeSoftPurges(t *testing.T) {
+	s, storer := mockPurgeAPI(t)
+
+	key := "GET-http-domain.com-/soft"
+	storeFreshResponse(t, s, storer, key, "soft-tag")
+
+	s.BulkDelete(key, false)
+
+	if !isStale(t, storer, key) {
+		t.Error("BulkDelete without purge should keep the response and make it stale")
+	}
+}
+
+func mockPurgeAPIWithStrategy(t *testing.T, strategy string) (*SouinAPI, types.Storer) {
+	t.Helper()
+
+	config := tests.MockConfiguration(tests.BaseConfiguration)
+	config.DefaultCache.CDN.Strategy = strategy
+	memoryStorer, err := storage.Factory(config)
+	if err != nil {
+		t.Fatalf("Impossible to create the storer, %v given", err)
+	}
+	core.RegisterStorage(memoryStorer)
+
+	return initializeSouin(config, []types.Storer{memoryStorer}, providers.SurrogateFactory(config, memoryStorer.Name()+"-"+memoryStorer.Uuid())), memoryStorer
+}
+
+func TestHandleRequest_CDNStrategySoftSoftPurgesSurrogateKeys(t *testing.T) {
+	s, storer := mockPurgeAPIWithStrategy(t, "soft")
+
+	key := "GET-http-domain.com-/strategy"
+	storeFreshResponse(t, s, storer, key, "strategy-tag")
+	purgeSurrogateKey(s, "strategy-tag")
+
+	if !isStale(t, storer, key) {
+		t.Error("cdn.strategy soft should make the purge by surrogate key a soft one")
+	}
+	if !isIndexedUnder(s, "strategy-tag", key) {
+		t.Error("the tag index should be kept")
+	}
+}
+
+func TestHandleRequest_PurgeModeHardOverridesCDNStrategy(t *testing.T) {
+	s, storer := mockPurgeAPIWithStrategy(t, "soft")
+
+	key := "GET-http-domain.com-/strategy"
+	storeFreshResponse(t, s, storer, key, "strategy-tag")
+
+	rq := httptest.NewRequest("PURGE", s.GetBasePath(), nil)
+	rq.Header.Set("Surrogate-Key", "strategy-tag")
+	rq.Header.Set(SoftPurgeModeHeader, "hard")
+	s.HandleRequest(httptest.NewRecorder(), rq)
+
+	if len(storer.Get(key)) != 0 {
+		t.Error("an explicit hard purge must delete the response whatever the strategy")
+	}
+}
+
+// The strategy is about purging by tag: the regexp purge and the flush keep
+// their meaning, so nobody loses a flush because of a CDN setting.
+func TestHandleRequest_CDNStrategySoftLeavesRegexpAndFlushHard(t *testing.T) {
+	s, storer := mockPurgeAPIWithStrategy(t, "soft")
+
+	a := "GET-http-domain.com-/regexp"
+	b := "GET-http-domain.com-/flush"
+	storeFreshResponse(t, s, storer, a, "a")
+	storeFreshResponse(t, s, storer, b, "b")
+
+	s.HandleRequest(httptest.NewRecorder(), httptest.NewRequest("PURGE", s.GetBasePath()+"/.*/regexp$", nil))
+	if len(storer.Get(a)) != 0 {
+		t.Error("the regexp purge without a mode must stay a hard purge")
+	}
+
+	rec := httptest.NewRecorder()
+	s.HandleRequest(rec, httptest.NewRequest("PURGE", s.GetBasePath()+"/flush", nil))
+	if rec.Code != http.StatusNoContent || len(storer.Get(b)) != 0 {
+		t.Errorf("the flush must still flush, got %d", rec.Code)
+	}
+}
+
+func TestHandleRequest_DefaultStrategyStaysHard(t *testing.T) {
+	for _, strategy := range []string{"", "hard"} {
+		s, storer := mockPurgeAPIWithStrategy(t, strategy)
+
+		key := "GET-http-domain.com-/strategy"
+		storeFreshResponse(t, s, storer, key, "strategy-tag")
+		purgeSurrogateKey(s, "strategy-tag")
+
+		if len(storer.Get(key)) != 0 {
+			t.Errorf("strategy %q: the purge by surrogate key must delete the response", strategy)
+		}
 	}
 }

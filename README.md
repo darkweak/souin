@@ -308,6 +308,11 @@ This system is able to invalidate by tags your cloud provider cache. Actually it
 | `PURGE` | `/`               | `Surrogate-Key: Surrogate-Key-First, Surrogate-Key-Second` | Purge selected item(s) belong to the target key in the header `Surrogate-Key` (see [Surrogate-Key system](https://github.com/darkweak/souin/blob/master/cache/surrogate/README.md)) |
 | `PURGE` | `/flush`          | -                                                          | Purge all providers and surrogate storages                                                                                                                                          |
 
+#### Soft purge
+Add `Souin-Purge-Mode: soft` to a regexp or `Surrogate-Key` `PURGE` request to keep the matching responses and make them stale instead of removing them. The next request is answered with the stored response, flagged as stale in `Cache-Status`, and the response is refreshed from the origin in the background, whether or not it carries `stale-while-revalidate` or validators. `PURGE /flush` refuses it.  
+A purge by `Surrogate-Key` is also soft when `cdn.strategy` is explicitly set to `soft`; `Souin-Purge-Mode: hard` forces a hard purge for one request whatever the strategy. The regexp purge and `/flush` ignore the strategy and stay hard unless the request asks otherwise.  
+It is the stored expiry that moves to now, nothing else is written: no extra key, no extra read on a hit, and the surrogate index keeps pointing at the responses. A response under `must-revalidate` or `no-cache` is still revalidated before it is reused.
+
 ### Security API
 **DEPRECATED**  
 Security API allows users to protect other APIs with JWT authentication.  

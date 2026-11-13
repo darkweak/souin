@@ -3,6 +3,7 @@ package middleware
 import (
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	"github.com/darkweak/souin/configurationtypes"
+	"github.com/darkweak/souin/pkg/api"
 	"github.com/darkweak/souin/pkg/storage"
 	"github.com/darkweak/souin/pkg/storage/types"
 )
@@ -391,6 +393,128 @@ func TestCoalescedPrivateResponseIsNotDuplicated(t *testing.T) {
 	}
 	if calls.Load() > concurrent {
 		t.Errorf("expected at most %d upstream calls, got %d", concurrent, calls.Load())
+	}
+}
+
+func softPurge(t *testing.T, handler *SouinBaseHandler, pattern string) {
+	t.Helper()
+
+	endpoints := api.Initialize(newTestConfig(), handler.Storers, handler.SurrogateKeyStorer)
+	req := httptest.NewRequest("PURGE", "/souin/"+pattern, nil)
+	req.Header.Set(api.SoftPurgeModeHeader, "soft")
+	rec := httptest.NewRecorder()
+	endpoints[0].HandleRequest(rec, req)
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("unexpected soft purge status %d", rec.Code)
+	}
+}
+
+// A soft purge serves the stored response once more and refreshes it, even
+// when it carries neither validators nor `stale-while-revalidate`: the purge
+// is what asks for the refresh, not the origin directives. Every mode has its
+// own branch in the stale path, so every mode is checked.
+func TestSoftPurgeServesStaleAndRefreshesInBackground(t *testing.T) {
+	for _, mode := range []string{"", "strict", "bypass_request", "bypass_response", "bypass"} {
+		t.Run("mode="+mode, func(t *testing.T) {
+			handler := newTestHandlerWithConfig(t, func(c *BaseConfiguration) {
+				c.DefaultCache.Stale = configurationtypes.Duration{Duration: 0}
+				c.DefaultCache.Mode = mode
+			})
+
+			// The storage outlives the handler: a path of its own keeps runs apart.
+			path := "/soft-" + mode + "-" + strconv.FormatInt(time.Now().UnixNano(), 36)
+
+			var calls atomic.Int32
+			next := func(w http.ResponseWriter, r *http.Request) error {
+				n := calls.Add(1)
+				w.Header().Set("Cache-Control", "max-age=300")
+				_, _ = w.Write([]byte("v" + string(rune('0'+n))))
+
+				return nil
+			}
+
+			get := func() *httptest.ResponseRecorder {
+				return serve(t, handler, httptest.NewRequest(http.MethodGet, "http://example.com"+path, nil), next)
+			}
+
+			get()
+			if rec := get(); rec.Body.String() != "v1" || calls.Load() != 1 {
+				t.Fatalf("expected a plain hit before the purge, got %q after %d calls", rec.Body.String(), calls.Load())
+			}
+
+			softPurge(t, handler, ".*example.com-"+path+"$")
+
+			rec := get()
+			if rec.Body.String() != "v1" || !strings.Contains(rec.Header().Get("Cache-Status"), "stale") {
+				t.Fatalf("expected the stale response right after the soft purge, got %q (%s)", rec.Body.String(), rec.Header().Get("Cache-Status"))
+			}
+			if rec.Header().Get("X-Souin-Soft-Purged") != "" || rec.Header().Get("X-Souin-Stored-Expiry") != "" {
+				t.Errorf("the internal headers leaked to the client: %v", rec.Header())
+			}
+
+			time.Sleep(300 * time.Millisecond)
+			rec = get()
+			if rec.Body.String() != "v2" || !strings.Contains(rec.Header().Get("Cache-Status"), "hit") {
+				t.Errorf("expected the refreshed response from cache, got %q (%s)", rec.Body.String(), rec.Header().Get("Cache-Status"))
+			}
+			if calls.Load() != 2 {
+				t.Errorf("expected exactly 2 upstream calls, got %d", calls.Load())
+			}
+		})
+	}
+}
+
+// However many requests hit a soft-purged response while its refresh is
+// running, the origin is asked once. A request that read the stale entry just
+// before the refresh stored and acts just after can still start a second one:
+// the deduplication is the singleflight of `Revalidate`, not a lock on the entry.
+func TestSoftPurgeRefreshIsCoalesced(t *testing.T) {
+	handler := newTestHandlerWithConfig(t, func(c *BaseConfiguration) {
+		c.DefaultCache.Stale = configurationtypes.Duration{Duration: 0}
+	})
+
+	path := "/coalesced-" + strconv.FormatInt(time.Now().UnixNano(), 36)
+
+	var calls atomic.Int32
+	next := func(w http.ResponseWriter, r *http.Request) error {
+		n := calls.Add(1)
+		if n > 1 {
+			// Longer than the burst of clients below, whatever the load.
+			time.Sleep(time.Second)
+		}
+		w.Header().Set("Cache-Control", "max-age=300")
+		_, _ = w.Write([]byte("v" + string(rune('0'+n))))
+
+		return nil
+	}
+
+	get := func() *httptest.ResponseRecorder {
+		return serve(t, handler, httptest.NewRequest(http.MethodGet, "http://example.com"+path, nil), next)
+	}
+
+	get()
+	softPurge(t, handler, ".*example.com-"+path+"$")
+
+	const clients = 20
+	var wg sync.WaitGroup
+	for i := 0; i < clients; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			rec := get()
+			if rec.Body.String() != "v1" {
+				t.Errorf("every client should get the stale response, got %q (%s)", rec.Body.String(), rec.Header().Get("Cache-Status"))
+			}
+		}()
+	}
+	wg.Wait()
+
+	time.Sleep(1500 * time.Millisecond)
+	if rec := get(); rec.Body.String() != "v2" {
+		t.Errorf("expected the refreshed response, got %q (%s)", rec.Body.String(), rec.Header().Get("Cache-Status"))
+	}
+	if calls.Load() != 2 {
+		t.Errorf("expected the initial fetch and a single refresh, got %d upstream calls", calls.Load())
 	}
 }
 

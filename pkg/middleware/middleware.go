@@ -452,11 +452,7 @@ func removeHopByHopHeaders(h http.Header) {
 // stale. The storer adds the configured stale window on its own, so what is
 // left to cover here is the extra room a `stale-while-revalidate` asks for.
 func retentionWindow(responseCc *cacheobject.ResponseCacheDirectives) time.Duration {
-	if responseCc == nil {
-		return 0
-	}
-
-	return max(time.Duration(responseCc.StaleWhileRevalidate)*time.Second, 0)
+	return rfc.RetentionWindow(responseCc)
 }
 
 func (s *SouinBaseHandler) Store(
@@ -1471,6 +1467,8 @@ func refreshStoredHeaders(stored, from http.Header) http.Header {
 	// The stored response has just been validated, so whatever age it had
 	// accumulated is gone unless the origin says otherwise.
 	refreshed.Del("Age")
+	// A refreshed response is no longer the one a soft purge made stale.
+	refreshed.Del(rfc.SoftPurgedHeader)
 
 	for name, values := range from {
 		if headersKeptOnRevalidation[http.CanonicalHeaderKey(name)] {
@@ -1589,7 +1587,12 @@ func (s *SouinBaseHandler) serveStale(
 	// response is served right away and refreshed in the background. That
 	// window is the response's own, it does not depend on how long this cache
 	// was configured to keep stale content.
-	withinStaleWhileRevalidate := staleness <= time.Duration(responseCc.StaleWhileRevalidate)*time.Second
+	//
+	// A soft purge asks for the same treatment whatever the response
+	// directives say: it made the response stale on purpose, so it is served
+	// once more and refreshed, for as long as the storer still holds it.
+	withinStaleWhileRevalidate := rfc.IsSoftPurged(stale.Header) ||
+		staleness <= time.Duration(responseCc.StaleWhileRevalidate)*time.Second
 	serveStoredAndRevalidate := func() (bool, error) {
 		handled, err := serveStored()
 		s.revalidateInBackground(validator, next, rq, requestCc, cachedKey, uri)

@@ -268,13 +268,17 @@ func (s *baseStorage) getSurrogateKey(header http.Header) string {
 	return v
 }
 
-func (s *baseStorage) purgeTag(tag string) []string {
-	var toInvalidate []string
+// tagMembers returns the cache keys indexed under the tag, leaving the index alone.
+func (s *baseStorage) tagMembers(tag string) []string {
 	if setStorer, ok := s.Storage.(core.SetStorer); ok {
-		toInvalidate = setStorer.GetSet(surrogatePrefix + tag)
-	} else {
-		toInvalidate = strings.Split(string(s.Storage.Get(surrogatePrefix+tag)), souinStorageSeparator)
+		return setStorer.GetSet(surrogatePrefix + tag)
 	}
+
+	return strings.Split(string(s.Storage.Get(surrogatePrefix+tag)), souinStorageSeparator)
+}
+
+func (s *baseStorage) purgeTag(tag string) []string {
+	toInvalidate := s.tagMembers(tag)
 
 	s.logger.Debugf("Purge the tag %s", tag)
 
@@ -321,6 +325,19 @@ func (s *baseStorage) Purge(header http.Header) (cacheKeys []string, surrogateKe
 	}
 
 	s.logger.Debugf("Purge the following tags: %+v", toInvalidate)
+
+	return uniqueTag(toInvalidate), surrogates
+}
+
+// Lookup resolves the Surrogate-Key header to the cache keys it designates
+// exactly as Purge does, but keeps the tag index: the responses a soft purge
+// refreshes stay stored and so stay tagged.
+func (s *baseStorage) Lookup(header http.Header) (cacheKeys []string, surrogateKeys []string) {
+	surrogates := s.ParseHeaders(s.parent.getSurrogateKey(header))
+	toInvalidate := []string{}
+	for _, su := range surrogates {
+		toInvalidate = append(toInvalidate, s.tagMembers(su)...)
+	}
 
 	return uniqueTag(toInvalidate), surrogates
 }
