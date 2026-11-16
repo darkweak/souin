@@ -352,6 +352,15 @@ func (s *baseStorage) List() map[string]string {
 	return s.Storage.MapKeys(surrogatePrefix)
 }
 
+// Clear deletes every surrogate key entry and leaves the storer open, so the
+// cache keeps storing afterwards.
+func (s *baseStorage) Clear() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.Storage.DeleteMany("^" + surrogatePrefix)
+}
+
 // Destruct method will shutdown properly the provider
 func (s *baseStorage) Destruct() error {
 	return s.Storage.Reset()
