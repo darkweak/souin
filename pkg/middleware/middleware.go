@@ -516,14 +516,9 @@ func (s *SouinBaseHandler) Store(
 		return nil
 	}
 
-	// A response setting a cookie is tied to one user, storing it would replay
-	// that cookie to every client. RFC 9111 section 7.3 leaves it to the origin,
-	// but like most shared caches such responses aren't stored, unless the
-	// origin excluded the cookie from the stored copy with `no-cache="Set-Cookie"`.
-	if customWriter.Header().Get("Set-Cookie") != "" && !responseCc.NoCache["Set-Cookie"] {
-		customWriter.Header().Set("Cache-Status", fmt.Sprintf("%s; fwd=uri-miss; key=%s; detail=UNCACHEABLE-SET-COOKIE", rq.Context().Value(context.CacheName), rfc.GetCacheKeyFromCtx(rq.Context())))
-		return nil
-	}
+	// RFC 9111 section 7.3: `Set-Cookie` does not inhibit caching. An origin
+	// that doesn't want the cookie replayed says so with `private`, `no-store`
+	// or `no-cache="Set-Cookie"`, the latter being honoured when storing.
 
 	currentMatchedURL := s.DefaultMatchedUrl
 	if regexpURL := s.RegexpUrls.FindString(rq.Host + rq.URL.Path); regexpURL != "" {

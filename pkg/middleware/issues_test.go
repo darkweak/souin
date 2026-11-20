@@ -183,16 +183,19 @@ func TestPrivateResponseIsNotStored(t *testing.T) {
 	}
 }
 
-// A response that sets a cookie isn't stored, unless the origin asked to
-// drop the cookie from the stored copy with `no-cache="Set-Cookie"`.
-func TestSetCookieResponseIsNotStored(t *testing.T) {
+// RFC 9111 section 7.3: `Set-Cookie` does not inhibit caching, the origin
+// controls it with `private` or by dropping the cookie from the stored copy
+// with `no-cache="Set-Cookie"`.
+func TestSetCookieResponseCacheability(t *testing.T) {
 	for _, tc := range []struct {
 		name          string
 		cacheControl  string
 		upstreamCalls int32
+		cachedCookie  string
 	}{
-		{"cookie", "public, max-age=60", 2},
-		{"cookie excluded by no-cache", `public, max-age=60, no-cache="Set-Cookie"`, 1},
+		{"cookie", "public, max-age=60", 1, "session=abc"},
+		{"cookie excluded by no-cache", `public, max-age=60, no-cache="Set-Cookie"`, 1, ""},
+		{"private", "private, max-age=60", 2, "session=abc"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			handler, _ := newTestHandler(t)
@@ -212,8 +215,8 @@ func TestSetCookieResponseIsNotStored(t *testing.T) {
 			if calls.Load() != tc.upstreamCalls {
 				t.Errorf("expected %d upstream calls, got %d (%s)", tc.upstreamCalls, calls.Load(), rec.Header().Get("Cache-Status"))
 			}
-			if tc.upstreamCalls == 1 && rec.Header().Get("Set-Cookie") != "" {
-				t.Errorf("the cookie must not be served from cache, got %q", rec.Header().Get("Set-Cookie"))
+			if got := rec.Header().Get("Set-Cookie"); got != tc.cachedCookie {
+				t.Errorf("expected Set-Cookie %q, got %q", tc.cachedCookie, got)
 			}
 		})
 	}

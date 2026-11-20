@@ -172,6 +172,13 @@ func (s *SouinBaseHandler) Store(
 		return nil
 	}
 
+<<<<<<< Updated upstream
+=======
+	// RFC 9111 section 7.3: `Set-Cookie` does not inhibit caching. An origin
+	// that doesn't want the cookie replayed says so with `private`, `no-store`
+	// or `no-cache="Set-Cookie"`, the latter being honoured when storing.
+
+>>>>>>> Stashed changes
 	currentMatchedURL := s.DefaultMatchedUrl
 	if regexpURL := s.RegexpUrls.FindString(rq.Host + rq.URL.Path); regexpURL != "" {
 		u := s.Configuration.GetUrls()[regexpURL]
