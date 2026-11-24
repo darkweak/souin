@@ -17,6 +17,9 @@ on:
       GH_APP_TOKEN:
         required: false
 
+permissions:
+  contents: read
+
 jobs:
   plugin-test:
     name: ${{ inputs.CAPITALIZED_NAME }}

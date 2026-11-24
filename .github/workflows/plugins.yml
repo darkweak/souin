@@ -3,6 +3,9 @@ name: Build and validate Souin as plugins
 on:
   - pull_request
 
+permissions:
+  contents: read
+
 jobs:
   build-caddy-validator:
     name: Caddy
@@ -99,6 +102,11 @@ jobs:
     needs: build-caddy-validator
     name: Run cache-tests suite requirements and add the generated screenshot to the PR
     runs-on: ubuntu-latest
+    permissions:
+      # screenshots-ci-action uploads the screenshot as a release asset and
+      # links it in a comment on the pull request.
+      contents: write
+      pull-requests: write
     steps:
       -
         name: Add domain.com host to /etc/hosts
