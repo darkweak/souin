@@ -28,6 +28,8 @@ jobs:
       -
         name: Checkout code
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       -
         name: Install xcaddy
         run: go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest

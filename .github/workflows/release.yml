@@ -24,6 +24,8 @@ jobs:
       -
         name: Checkout code
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       -
         name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -56,6 +58,8 @@ jobs:
       -
         name: Checkout code
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       -
         name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -98,6 +102,7 @@ jobs:
         name: Checkout
         uses: actions/checkout@v4
         with:
+          persist-credentials: false
           fetch-depth: 0
       -
         name: Run GoReleaser
@@ -126,6 +131,8 @@ jobs:
       -
         name: Checkout code
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       -
         name: Generate Tyk amd64 artifacts
         run: cd plugins/tyk && make vendor && docker compose -f docker-compose.yml.artifacts up

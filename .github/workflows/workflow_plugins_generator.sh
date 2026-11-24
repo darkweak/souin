@@ -31,6 +31,8 @@ jobs:
       -
         name: Checkout code
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       -
         name: Install xcaddy
         run: go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest
@@ -77,6 +79,8 @@ jobs:
       -
         name: Checkout code
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       -
         name: Install xcaddy
         run: go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest
@@ -139,12 +143,14 @@ jobs:
         name: Checkout Souin code
         uses: actions/checkout@v4
         with:
+          persist-credentials: false
           repository: darkweak/souin
           path: souin
       -
         name: Checkout cache-tests code
         uses: actions/checkout@v4
         with:
+          persist-credentials: false
           repository: http-tests/cache-tests
           path: cache-tests
       -

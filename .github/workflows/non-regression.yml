@@ -17,6 +17,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - name: Install Go
         uses: actions/setup-go@v7
         with:
@@ -32,6 +34,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - name: Install Go
         uses: actions/setup-go@v7
         with:
@@ -46,6 +50,8 @@ jobs:
       -
         name: Checkout code
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       -
         name: Build the stack
         run: docker network create your_network || true
