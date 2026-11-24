@@ -1,6 +1,8 @@
 name: Build container and publish to docker hub
 
 on:
+  # The create event fires for every new branch and tag, the tags filter
+  # below is not applied to it. Each job checks the ref itself.
   create:
     tags: ["v*"]
 
@@ -10,6 +12,7 @@ env:
 jobs:
   generate-souin-traefik-docker:
     name: Generate embedded Souin as traefik middleware
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
       -
@@ -41,6 +44,7 @@ jobs:
           tags: darkweak/souin-traefik:${{ env.RELEASE_VERSION }}
   generate-souin-docker:
     name: Generate souin docker
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
       -
@@ -76,6 +80,7 @@ jobs:
             darkweak/souin:${{ env.RELEASE_VERSION }}
   generate-artifacts:
     name: Deploy to goreleaser
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
       -
@@ -100,6 +105,7 @@ jobs:
           GO_VERSION: ${{ secrets.GITHUB_TOKEN }}
   generate-tyk-versions:
     name: Generate Tyk plugin binaries
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     env:
       LATEST_VERSION: v5.0
