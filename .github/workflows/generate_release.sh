@@ -29,7 +29,7 @@ for i in ${!plugins[@]}; do
   IFS= read -d '' tpl <<EOF
       -
         name: Create $capitalized tag
-        uses: actions/github-script@v7
+        uses: actions/github-script@v7.1.0
         with:
           script: |
             github.rest.git.createRef({
