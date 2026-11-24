@@ -12,6 +12,10 @@ on:
       GO_VERSION:
         required: true
         type: string
+    secrets:
+      # Read by the roadrunner example only.
+      GH_APP_TOKEN:
+        required: false
 
 jobs:
   plugin-test:

@@ -187,7 +187,8 @@ for i in ${!plugins[@]}; do
   IFS= read -d '' tpl <<EOF
   build-$lower-validator:
     uses: ./.github/workflows/plugin_template.yml
-    secrets: inherit
+    secrets:
+      GH_APP_TOKEN: \${{ secrets.GH_APP_TOKEN }}
     with:
       CAPITALIZED_NAME: $capitalized
       LOWER_NAME: $lower
