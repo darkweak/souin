@@ -83,7 +83,7 @@ jobs:
           comparison: contains
       -
         name: Run ${{ inputs.CAPITALIZED_NAME }} E2E tests
-        uses: matt-ball/newman-action@master
+        uses: matt-ball/newman-action@v2.0.0
         with:
           collection: "docs/e2e/Souin E2E.postman_collection.json"
           folder: '["${{ inputs.CAPITALIZED_NAME }}"]'

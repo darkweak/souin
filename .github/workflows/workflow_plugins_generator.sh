@@ -92,7 +92,7 @@ jobs:
         run: cd plugins/caddy && ./caddy run &
       -
         name: Run Caddy E2E tests
-        uses: matt-ball/newman-action@master
+        uses: matt-ball/newman-action@v2.0.0
         with:
           collection: "docs/e2e/Souin E2E.postman_collection.json"
           folder: '["Caddy"]'
@@ -105,7 +105,7 @@ jobs:
         run: cd plugins/caddy && ./caddy run --config ./configuration.json &
       -
         name: Run Caddy E2E tests
-        uses: matt-ball/newman-action@master
+        uses: matt-ball/newman-action@v2.0.0
         with:
           collection: "docs/e2e/Souin E2E.postman_collection.json"
           folder: '["Caddy"]'
