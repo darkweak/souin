@@ -6,6 +6,8 @@ IFS= read -r -d '' tpl <<EOF
 name: Tag submodules on release
 
 on:
+  # The create event fires for every new branch and tag, the tags filter
+  # below is not applied to it. The job checks the ref itself.
   create:
     tags: ["v*"]
 
@@ -14,6 +16,7 @@ permissions:
 
 jobs:
   tag-all-submodules:
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     name: Tag all submodules
     steps:
@@ -26,7 +29,7 @@ for i in ${!plugins[@]}; do
   IFS= read -d '' tpl <<EOF
       -
         name: Create $capitalized tag
-        uses: actions/github-script@v7
+        uses: actions/github-script@v7.1.0
         with:
           script: |
             github.rest.git.createRef({

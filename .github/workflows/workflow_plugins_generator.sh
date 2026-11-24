@@ -11,6 +11,9 @@ name: Build and validate Souin as plugins
 on:
   - pull_request
 
+permissions:
+  contents: read
+
 jobs:
   build-caddy-validator:
     name: Caddy
@@ -22,12 +25,14 @@ jobs:
           sudo echo "127.0.0.1 domain.com etcd redis" | sudo tee -a /etc/hosts
       -
         name: Install Go
-        uses: actions/setup-go@v7
+        uses: actions/setup-go@v7.1.0
         with:
           go-version: '$go_version'
       -
         name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.4.0
+        with:
+          persist-credentials: false
       -
         name: Install xcaddy
         run: go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest
@@ -68,12 +73,14 @@ jobs:
           sudo echo "127.0.0.1 domain.com etcd redis" | sudo tee -a /etc/hosts
       -
         name: Install Go
-        uses: actions/setup-go@v7
+        uses: actions/setup-go@v7.1.0
         with:
           go-version: '$go_version'
       -
         name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.4.0
+        with:
+          persist-credentials: false
       -
         name: Install xcaddy
         run: go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest
@@ -85,7 +92,7 @@ jobs:
         run: cd plugins/caddy && ./caddy run &
       -
         name: Run Caddy E2E tests
-        uses: matt-ball/newman-action@master
+        uses: matt-ball/newman-action@v2.0.0
         with:
           collection: "docs/e2e/Souin E2E.postman_collection.json"
           folder: '["Caddy"]'
@@ -98,7 +105,7 @@ jobs:
         run: cd plugins/caddy && ./caddy run --config ./configuration.json &
       -
         name: Run Caddy E2E tests
-        uses: matt-ball/newman-action@master
+        uses: matt-ball/newman-action@v2.0.0
         with:
           collection: "docs/e2e/Souin E2E.postman_collection.json"
           folder: '["Caddy"]'
@@ -107,6 +114,11 @@ jobs:
     needs: build-caddy-validator
     name: Run cache-tests suite requirements and add the generated screenshot to the PR
     runs-on: ubuntu-latest
+    permissions:
+      # screenshots-ci-action uploads the screenshot as a release asset and
+      # links it in a comment on the pull request.
+      contents: write
+      pull-requests: write
     steps:
       -
         name: Add domain.com host to /etc/hosts
@@ -114,29 +126,31 @@ jobs:
           sudo echo "127.0.0.1 domain.com etcd redis" | sudo tee -a /etc/hosts
       -
         name: Install Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v5.6.0
         with:
           go-version: '1.27'
 
       - name: Install Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v4.4.0
         with:
           node-version: 24
 
-      - uses: pnpm/action-setup@v3
+      - uses: pnpm/action-setup@v3.0.0
         name: Install pnpm
         with:
           version: 11.5.1
       -
         name: Checkout Souin code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.4.0
         with:
+          persist-credentials: false
           repository: darkweak/souin
           path: souin
       -
         name: Checkout cache-tests code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.4.0
         with:
+          persist-credentials: false
           repository: http-tests/cache-tests
           path: cache-tests
       -
@@ -161,7 +175,7 @@ jobs:
         # screenshots-ci-action launches the browser from CHROME_BIN.
         name: Install Chrome
         id: setup-chrome
-        uses: browser-actions/setup-chrome@v2
+        uses: browser-actions/setup-chrome@v2.2.0
         with:
           chrome-version: stable
       -
@@ -187,7 +201,8 @@ for i in ${!plugins[@]}; do
   IFS= read -d '' tpl <<EOF
   build-$lower-validator:
     uses: ./.github/workflows/plugin_template.yml
-    secrets: inherit
+    secrets:
+      GH_APP_TOKEN: \${{ secrets.GH_APP_TOKEN }}
     with:
       CAPITALIZED_NAME: $capitalized
       LOWER_NAME: $lower
