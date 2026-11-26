@@ -291,6 +291,7 @@ The base path for the prometheus API is `/metrics`.
 | `souin_request_upstream_counter`   | Count the incoming requests that go to the upstream |
 | `souin_no_cached_response_counter` | Count the uncacheable responses                     |
 | `souin_cached_response_counter`    | Count the cacheable responses                       |
+| `souin_shared_response_counter`    | Count concurrent requests that reused another (leader) request's response instead of calling the upstream |
 | `souin_avg_response_time`          | Average response time                               |
 
 ### Souin API
