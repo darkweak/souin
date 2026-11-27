@@ -8,10 +8,7 @@ Only the latest released version of Souin (and of each plugin built from this re
 
 Please **do not open a public GitHub issue** for a security vulnerability.
 
-Report it privately, either:
-
-- through GitHub's [private vulnerability reporting](https://github.com/darkweak/souin/security/advisories/new), or
-- by email to [darkweak@protonmail.com](mailto:darkweak@protonmail.com).
+Report it privately by email to [darkweak@protonmail.com](mailto:darkweak@protonmail.com). GitHub's private vulnerability reporting is not enabled for this repository, so its advisory submission URL does not work.
 
 Include as much of the following as you can:
 
